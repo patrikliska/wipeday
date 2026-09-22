@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { Emojis } from "../../assets/emojiSync";
 import { loadContent } from "../../content/load";
+import { hitNode, settleAll, settleBarrel, startNodeRun } from "../../domain/active";
 import {
   type BaseState,
   buyFurnace,
@@ -23,6 +24,8 @@ import { buildScreen } from "./build";
 import { craftScreen } from "./craft";
 import { furnaceScreen } from "./furnace";
 import { inventoryScreen } from "./inventory";
+import { nodeScreen } from "./node";
+import { progressBar, tasksScreen } from "./tasks";
 import { toolsDoneScreen, toolsScreen } from "./tools";
 
 const paths = discoverPaths();
@@ -318,5 +321,48 @@ describe("card view model", () => {
     expect(cardSafeName("🔥Žluťoučký 日本 <b>&", locale)).toBe("Žluťoučký <b>&");
     expect(cardSafeName("日本語", locale)).toBe(locale.t("player.anonymous"));
     expect(cardSafeName("  Kolt500  ", locale)).toBe("Kolt500");
+  });
+});
+
+describe("phase 2b screens", () => {
+  const withBarrel = settleBarrel(content, fresh, fresh.nextBarrelAt + 60);
+  const withTasks = settleAll(content, later, T0 + HOUR).state;
+  const running = startNodeRun(content, gathered.state, T0 + 30, 7);
+
+  it("home: a live barrel is the primary action and gets its own line", () => {
+    const screen = build(withBarrel, fresh.nextBarrelAt + 60);
+    expect(lintScreen(screen)).toEqual([]);
+    expect(primaryOf(screen)).toBe(locale.t("screen.base.barrel"));
+    expect(screen.details.some((line) => line.includes("barrel"))).toBe(true);
+  });
+
+  it("home: tasks get a line and a button once rolled", () => {
+    const screen = build(withTasks, T0 + HOUR);
+    expect(lintScreen(screen)).toEqual([]);
+    expect(screen.details.some((line) => line.startsWith("Tasks 0/3"))).toBe(true);
+    expect(buttonsOf(screen).some((b) => b.label === locale.t("screen.base.tasks"))).toBe(true);
+  });
+
+  it("node: the marker is the one primary while alive; Home leads once over", () => {
+    const alive = nodeScreen(ctx, running, T0 + 32);
+    expect(lintScreen(alive)).toEqual([]);
+    const primary = buttonsOf(alive).find((b) => b.style === "primary");
+    expect(primary?.customId).toContain(`:${running.nodeRun?.marker}`);
+    const faded = nodeScreen(ctx, running, T0 + 60);
+    expect(lintScreen(faded)).toEqual([]);
+    expect(primaryOf(faded)).toBe(locale.t("nav.home"));
+    expect(buttonsOf(faded).filter((b) => b.disabled)).toHaveLength(content.active.node.positions);
+    const hit = hitNode(content, running, T0 + 31, running.nodeRun?.marker ?? 0);
+    if (!hit.ok) throw new Error("hit");
+    expect(nodeScreen(ctx, hit.state, T0 + 32).status).toContain("1/5");
+  });
+
+  it("tasks: lint passes and bars reflect progress", () => {
+    const screen = tasksScreen(ctx, withTasks, T0 + HOUR);
+    expect(lintScreen(screen)).toEqual([]);
+    expect(screen.details).toHaveLength(content.active.tasks.perDay);
+    expect(progressBar(0, 4)).toBe("▱▱▱▱▱");
+    expect(progressBar(2, 4)).toBe("▰▰▱▱▱");
+    expect(progressBar(9, 4)).toBe("▰▰▰▰▰");
   });
 });

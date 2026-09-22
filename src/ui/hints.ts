@@ -35,6 +35,8 @@ export function hintFor(
     }
     case "furnace":
       return locale.t(furnaceOf(content, state) ? "hint.furnace_use" : "hint.furnace");
+    case "barrel":
+      return locale.t("hint.barrel");
     case "craft":
       return locale.t("hint.craft");
     case "collect":

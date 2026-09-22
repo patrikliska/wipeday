@@ -23,7 +23,7 @@ import {
   workbenchLevel,
 } from "../domain/base";
 
-export type Advice = "collect" | "build" | "tools" | "furnace" | "craft" | "gather";
+export type Advice = "collect" | "barrel" | "build" | "tools" | "furnace" | "craft" | "gather";
 
 /** Ore worth walking to the furnace for. */
 const SMELT_WORTH = 100;
@@ -91,6 +91,7 @@ export function craftWorthIt(content: Content, state: BaseState, now: number): b
 export function advise(content: Content, state: BaseState, now: number): Advice {
   // The status line says "collect" when full; the button must agree.
   if (isStorageFull(content, state, now)) return "collect";
+  if (state.barrel && now <= state.barrel.expiresAt) return "barrel";
   const target = nextTier(state.tier);
   if (!state.build && target && canAfford(tierOf(content, target).cost, state.stock))
     return "build";

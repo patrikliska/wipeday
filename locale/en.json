@@ -378,7 +378,17 @@
       "build": "Build",
       "furnace": "Furnace",
       "craft": "Craft",
-      "inventory": "Inventory"
+      "inventory": "Inventory",
+      "barrel": "Break barrel",
+      "barrel_line": "🛢️ A barrel washed up · gone {when}",
+      "barrel_broken": "Barrel: {loot}",
+      "barrel_empty": "The barrel was empty.",
+      "barrel_gone": "That barrel drifted off already.",
+      "tasks": "Tasks",
+      "tasks_line": "Tasks {done}/{total} · {summary}",
+      "task_done": "Task done: {task} · {reward}",
+      "node_result_perfect": "Perfect run at the node: {banked}",
+      "node_result_part": "Node run: {hits} hits · {banked}"
     },
     "tools": {
       "title": "Upgrade to {tool}",
@@ -466,6 +476,23 @@
       "status": "{count} items · boxes {used} / {slots}",
       "status_empty": "Nothing here yet",
       "craft": "Craft"
+    },
+    "node": {
+      "title": "Work the node",
+      "status": "Hit the glowing button · {hits}/{max} · marker fades {when}",
+      "status_perfect": "Perfect run · {hits}/{max}",
+      "status_missed": "Missed · {hits}/{max} hits kept",
+      "status_faded": "The marker faded · {hits}/{max} hits kept",
+      "banked": "Banked so far: {banked}",
+      "banked_none": "Nothing banked yet.",
+      "hint": "Every hit banks {perHit}. Miss once and the run is over.",
+      "position": "{n}"
+    },
+    "tasks": {
+      "title": "Daily tasks",
+      "status": "{done}/{total} done · new tasks {when}",
+      "status_all": "All done · new tasks {when}",
+      "line": "{check} {task} · {bar} {progress}/{target} · {reward}"
     }
   },
   "error": {
@@ -489,6 +516,30 @@
     "build": "You can afford a {tier} base: more storage, more room to grow.",
     "furnace": "Ore only becomes metal in a furnace. You can afford one.",
     "craft": "A workbench lets you craft boxes for more storage.",
-    "furnace_use": "Ore is waiting. Smelt it at the furnace to get metal."
+    "furnace_use": "Ore is waiting. Smelt it at the furnace to get metal.",
+    "barrel": "A barrel washed up. Break it before it drifts off."
+  },
+  "task": {
+    "gather_4": {
+      "name": "Gather 4 times"
+    },
+    "collect_3": {
+      "name": "Collect 3 times"
+    },
+    "node_hits_10": {
+      "name": "Hit the node 10 times"
+    },
+    "barrel_1": {
+      "name": "Break a barrel"
+    },
+    "smelt_300": {
+      "name": "Smelt 300 ore"
+    },
+    "furnace_out_200": {
+      "name": "Take 200 metal out of the furnace"
+    },
+    "craft_1": {
+      "name": "Craft something"
+    }
   }
 }

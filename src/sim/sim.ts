@@ -7,6 +7,7 @@
  * rest. Deterministic: no randomness yet (Phase 3 adds seeded RNG).
  */
 import type { Content } from "../content/schema";
+import { breakBarrel, hitNode, progressTasks, settleAll, startNodeRun } from "../domain/active";
 import {
   type BaseState,
   buyFurnace,
@@ -22,16 +23,17 @@ import {
   nextFurnace,
   nextTier,
   nextTool,
-  settle,
   smelt,
   smeltable,
   startBuild,
   storageCap,
   storageFill,
   tierOf,
+  total,
   upgradeTool,
   workbenchLevel,
 } from "../domain/base";
+import { seedOf } from "../domain/rng";
 import { TIERS, type Tier } from "../ui/theme";
 
 export const ARCHETYPES = ["casual", "active", "optimal"] as const;
@@ -56,6 +58,7 @@ export interface DayRow {
   cap: number;
   metalFragments: number;
   hqm: number;
+  scrap: number;
   items: number;
   building: boolean;
 }
@@ -74,11 +77,31 @@ export function checkIn(
   now: number,
   archetype: Archetype,
 ): BaseState {
-  let s = settle(content, state, now).state;
-  s = collect(content, s, now).state;
+  let s = settleAll(content, state, now).state;
+  const collected = collect(content, s, now);
+  s = collected.state;
+  if (total(collected.gained) > 0) s = progressTasks(content, s, "collect", 1).state;
   const gathered = gather(content, s, now);
-  if (gathered.ok) s = gathered.state;
-  if (!isEmpty(furnaceReady(content, s, now))) s = collectFurnaces(content, s, now).state;
+  if (gathered.ok) {
+    s = progressTasks(content, gathered.state, "gather", 1).state;
+    // Active players work the node after every gather, perfectly.
+    if (archetype !== "casual") {
+      s = startNodeRun(content, s, now, seedOf(now));
+      for (let hit = 0; hit < content.active.node.maxHits; hit++) {
+        const result = hitNode(content, s, now + hit, s.nodeRun?.marker ?? 0);
+        if (!result.ok) break;
+        s = progressTasks(content, result.state, "node_hits", 1).state;
+      }
+    }
+  }
+  if (s.barrel) {
+    const broken = breakBarrel(content, s, now);
+    if (broken.ok) s = progressTasks(content, broken.state, "barrel", 1).state;
+  }
+  if (!isEmpty(furnaceReady(content, s, now))) {
+    const out = collectFurnaces(content, s, now);
+    s = progressTasks(content, out.state, "furnace_collect", total(out.gained)).state;
+  }
 
   // Spend, most valuable first. Loop because one purchase can enable another.
   for (let guard = 0; guard < 8; guard++) {
@@ -122,7 +145,7 @@ export function checkIn(
       canAfford(benchRecipe.cost, spendable)
     ) {
       const result = craft(content, s, benchRecipe.item);
-      if (result.ok) s = result.state;
+      if (result.ok) s = progressTasks(content, result.state, "craft", 1).state;
     }
     if (storageFill(content, s, now).fraction > 0.7) {
       const boxes = content.recipes
@@ -133,7 +156,7 @@ export function checkIn(
       for (const recipe of boxes) {
         const result = craft(content, s, recipe.item);
         if (result.ok) {
-          s = result.state;
+          s = progressTasks(content, result.state, "craft", 1).state;
           break;
         }
       }
@@ -156,7 +179,7 @@ export function checkIn(
     while (s.furnaceJobs.length < furnaceSlots(content, s) && smeltable(content, s, ore.id) > 0) {
       const result = smelt(content, s, now, ore.id);
       if (!result.ok) break;
-      s = result.state;
+      s = progressTasks(content, result.state, "smelt", result.job.amount).state;
     }
   }
   return s;
@@ -175,7 +198,7 @@ export function simulate(content: Content, archetype: Archetype, days: number): 
       if (reached[state.tier] === undefined) reached[state.tier] = day;
     }
     const endOfDay = start + day * DAY - 1;
-    const settledState = settle(content, state, endOfDay).state;
+    const settledState = settleAll(content, state, endOfDay).state;
     if (reached[settledState.tier] === undefined) reached[settledState.tier] = day;
     rows.push({
       day,
@@ -185,6 +208,7 @@ export function simulate(content: Content, archetype: Archetype, days: number): 
       cap: storageCap(content, settledState),
       metalFragments: settledState.stock.metal_fragments ?? 0,
       hqm: settledState.stock.hqm ?? 0,
+      scrap: settledState.stock.scrap ?? 0,
       items: Object.values(settledState.items).reduce((sum, count) => sum + count, 0),
       building: settledState.build !== null,
     });

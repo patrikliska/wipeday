@@ -5,6 +5,7 @@
  */
 import { and, eq, isNull, lte } from "drizzle-orm";
 import type { Amounts } from "../content/schema";
+import type { ActiveState } from "../domain/active";
 import type { BaseState } from "../domain/base";
 import type { Tier } from "../ui/theme";
 import type { Db } from "./db";
@@ -61,6 +62,22 @@ export const seasonsRepo = {
   },
 };
 
+/** Rows from before Phase 2b have no active state; they get a fresh one. */
+function parseActive(json: string | null): ActiveState {
+  const fallback: ActiveState = {
+    nodeRun: null,
+    barrel: null,
+    nextBarrelAt: 0,
+    tasks: { day: -1, ids: [], progress: {}, done: [] },
+  };
+  if (!json) return fallback;
+  try {
+    return { ...fallback, ...(JSON.parse(json) as Partial<ActiveState>) };
+  } catch {
+    return fallback;
+  }
+}
+
 export const basesRepo = {
   load(db: Db, playerId: number): BaseState | null {
     const row = db.select().from(bases).where(eq(bases.playerId, playerId)).get();
@@ -104,6 +121,7 @@ export const basesRepo = {
       furnaceId: row.furnaceId,
       furnaceJobs: jobs,
       items,
+      ...parseActive(row.activeJson),
     };
   },
 
@@ -118,6 +136,12 @@ export const basesRepo = {
       buildEndsAt: state.build?.endsAt ?? null,
       upkeepPaidUntil: state.upkeepPaidUntil,
       furnaceId: state.furnaceId,
+      activeJson: JSON.stringify({
+        nodeRun: state.nodeRun,
+        barrel: state.barrel,
+        nextBarrelAt: state.nextBarrelAt,
+        tasks: state.tasks,
+      } satisfies ActiveState),
     };
     db.insert(bases)
       .values({ playerId, ...row })

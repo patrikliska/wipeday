@@ -1,13 +1,24 @@
 /**
  * Transaction scripts: one player action = load state, settle it to `now`,
- * apply a pure domain function, save, log. Each runs inside a single SQLite
- * transaction, so a double click or a stale message can never bank a reward
- * twice: the second call sees the state the first one wrote.
+ * apply a pure domain function, record task progress, save, log. Each runs
+ * inside a single SQLite transaction, so a double click or a stale message
+ * can never bank a reward twice: the second call sees the state the first
+ * one wrote.
  *
  * Nothing here knows about Discord; the UI layer calls these and renders
  * whatever comes back.
  */
-import type { Amounts, Content } from "../content/schema";
+import type { Amounts, Content, Task } from "../content/schema";
+import {
+  type BarrelResult,
+  breakBarrel,
+  type HitResult,
+  hitNode,
+  progressTasks,
+  settleAll,
+  startNodeRun,
+  type TaskDone,
+} from "../domain/active";
 import {
   type BaseState,
   type BuildResult,
@@ -22,12 +33,13 @@ import {
   newBase,
   type SettleEvent,
   type SmeltResult,
-  settle,
   smelt,
   startBuild,
+  total,
   type UpgradeResult,
   upgradeTool,
 } from "../domain/base";
+import { seedOf } from "../domain/rng";
 import type { Db } from "../store/db";
 import {
   basesRepo,
@@ -54,6 +66,9 @@ export interface Loaded {
   settled: SettleEvent[];
 }
 
+/** Every successful action also reports the daily tasks it completed. */
+export type WithTasks<R> = R & { completed: TaskDone[] };
+
 function logEvents(
   game: Game,
   playerId: number,
@@ -70,8 +85,8 @@ function logEvents(
 function settled(game: Game, playerId: number, seasonId: number, now: number) {
   const stored = basesRepo.load(game.db, playerId);
   if (!stored) throw new Error(`player ${playerId} has no base`);
-  const result = settle(game.content, stored, now);
-  if (result.events.length > 0) {
+  const result = settleAll(game.content, stored, now);
+  if (result.events.length > 0 || result.state !== stored) {
     basesRepo.save(game.db, playerId, seasonId, result.state);
     logEvents(game, playerId, seasonId, now, result.events);
   }
@@ -141,22 +156,40 @@ export function loadById(game: Game, player: Player, now: number): Loaded {
   };
 }
 
-/** Runs one domain step inside a transaction: settle, apply, save on success, log. */
+interface Outcome {
+  state: BaseState;
+  type: string;
+  payload: unknown;
+  /** Daily task progress this action earns. */
+  task?: { kind: Task["kind"]; amount: number };
+}
+
+/**
+ * Runs one domain step inside a transaction: settle, apply, record task
+ * progress, save on success, log. Failed steps change nothing.
+ */
 function act<R extends { ok: boolean }>(
   game: Game,
   playerId: number,
   now: number,
   hint: string | null,
   step: (state: BaseState) => R,
-  outcome: (result: R & { ok: true }) => { state: BaseState; type: string; payload: unknown },
-): R {
+  outcome: (result: R & { ok: true }) => Outcome,
+): WithTasks<R> {
   return game.db.transaction(() => {
     const seasonId = seasonsRepo.current(game.db, now).id;
     const { state } = settled(game, playerId, seasonId, now);
     const result = step(state);
-    if (!result.ok) return result;
+    if (!result.ok) return { ...result, completed: [] };
     const done = outcome(result as R & { ok: true });
-    basesRepo.save(game.db, playerId, seasonId, done.state);
+    let next = done.state;
+    let completed: TaskDone[] = [];
+    if (done.task) {
+      const progressed = progressTasks(game.content, next, done.task.kind, done.task.amount);
+      next = progressed.state;
+      completed = progressed.completed;
+    }
+    basesRepo.save(game.db, playerId, seasonId, next);
     if (hint) hintsRepo.bump(game.db, playerId, hint);
     eventLogRepo.append(game.db, {
       at: now,
@@ -165,7 +198,16 @@ function act<R extends { ok: boolean }>(
       type: done.type,
       payload: done.payload,
     });
-    return result;
+    for (const task of completed) {
+      eventLogRepo.append(game.db, {
+        at: now,
+        playerId,
+        seasonId,
+        type: "task_done",
+        payload: { task: task.task.id, reward: task.reward },
+      });
+    }
+    return { ...result, state: next, completed };
   });
 }
 
@@ -173,30 +215,85 @@ export function collectAction(
   game: Game,
   playerId: number,
   now: number,
-): { state: BaseState; gained: Amounts } {
-  const result = act(
+): WithTasks<{ state: BaseState; gained: Amounts }> {
+  return act(
     game,
     playerId,
     now,
     "collect",
     (state) => ({ ok: true as const, ...collect(game.content, state, now) }),
-    (r) => ({ state: r.state, type: "collect", payload: r.gained }),
+    (r) => ({
+      state: r.state,
+      type: "collect",
+      payload: r.gained,
+      task: { kind: "collect", amount: total(r.gained) > 0 ? 1 : 0 },
+    }),
   );
-  return { state: result.state, gained: result.gained };
 }
 
-export function gatherAction(game: Game, playerId: number, now: number): GatherResult {
+/** Gather, and open a node run on the fresh bonus. */
+export function gatherAction(game: Game, playerId: number, now: number): WithTasks<GatherResult> {
   return act(
     game,
     playerId,
     now,
     "gather",
     (state) => gather(game.content, state, now),
-    (r) => ({ state: r.state, type: "gather", payload: { gained: r.gained, bonus: r.bonus } }),
+    (r) => ({
+      state: startNodeRun(game.content, r.state, now, seedOf(playerId, now)),
+      type: "gather",
+      payload: { gained: r.gained, bonus: r.bonus },
+      task: { kind: "gather", amount: 1 },
+    }),
   );
 }
 
-export function upgradeToolAction(game: Game, playerId: number, now: number): UpgradeResult {
+export function hitNodeAction(
+  game: Game,
+  playerId: number,
+  now: number,
+  position: number,
+): WithTasks<HitResult> {
+  return act(
+    game,
+    playerId,
+    now,
+    null,
+    (state) => hitNode(game.content, state, now, position),
+    (r) => ({
+      state: r.state,
+      type: "node_hit",
+      payload: { hit: r.run.hits, gained: r.gained, ended: r.run.ended },
+      task: { kind: "node_hits", amount: total(r.gained) > 0 ? 1 : 0 },
+    }),
+  );
+}
+
+export function breakBarrelAction(
+  game: Game,
+  playerId: number,
+  now: number,
+): WithTasks<BarrelResult> {
+  return act(
+    game,
+    playerId,
+    now,
+    "barrel",
+    (state) => breakBarrel(game.content, state, now),
+    (r) => ({
+      state: r.state,
+      type: "barrel",
+      payload: r.loot,
+      task: { kind: "barrel", amount: 1 },
+    }),
+  );
+}
+
+export function upgradeToolAction(
+  game: Game,
+  playerId: number,
+  now: number,
+): WithTasks<UpgradeResult> {
   return act(
     game,
     playerId,
@@ -211,7 +308,7 @@ export function upgradeToolAction(game: Game, playerId: number, now: number): Up
   );
 }
 
-export function buildAction(game: Game, playerId: number, now: number): BuildResult {
+export function buildAction(game: Game, playerId: number, now: number): WithTasks<BuildResult> {
   return act(
     game,
     playerId,
@@ -226,7 +323,11 @@ export function buildAction(game: Game, playerId: number, now: number): BuildRes
   );
 }
 
-export function buyFurnaceAction(game: Game, playerId: number, now: number): BuyFurnaceResult {
+export function buyFurnaceAction(
+  game: Game,
+  playerId: number,
+  now: number,
+): WithTasks<BuyFurnaceResult> {
   return act(
     game,
     playerId,
@@ -241,14 +342,24 @@ export function buyFurnaceAction(game: Game, playerId: number, now: number): Buy
   );
 }
 
-export function smeltAction(game: Game, playerId: number, now: number, ore: string): SmeltResult {
+export function smeltAction(
+  game: Game,
+  playerId: number,
+  now: number,
+  ore: string,
+): WithTasks<SmeltResult> {
   return act(
     game,
     playerId,
     now,
     "furnace",
     (state) => smelt(game.content, state, now, ore),
-    (r) => ({ state: r.state, type: "smelt_start", payload: { job: r.job, fuel: r.fuel } }),
+    (r) => ({
+      state: r.state,
+      type: "smelt_start",
+      payload: { job: r.job, fuel: r.fuel },
+      task: { kind: "smelt", amount: r.job.amount },
+    }),
   );
 }
 
@@ -256,16 +367,20 @@ export function collectFurnacesAction(
   game: Game,
   playerId: number,
   now: number,
-): { state: BaseState; gained: Amounts } {
-  const result = act(
+): WithTasks<{ state: BaseState; gained: Amounts }> {
+  return act(
     game,
     playerId,
     now,
     "furnace",
     (state) => ({ ok: true as const, ...collectFurnaces(game.content, state, now) }),
-    (r) => ({ state: r.state, type: "furnace_collect", payload: r.gained }),
+    (r) => ({
+      state: r.state,
+      type: "furnace_collect",
+      payload: r.gained,
+      task: { kind: "furnace_collect", amount: total(r.gained) },
+    }),
   );
-  return { state: result.state, gained: result.gained };
 }
 
 export function craftAction(
@@ -273,13 +388,18 @@ export function craftAction(
   playerId: number,
   now: number,
   itemId: string,
-): CraftResult {
+): WithTasks<CraftResult> {
   return act(
     game,
     playerId,
     now,
     "craft",
     (state) => craft(game.content, state, itemId),
-    (r) => ({ state: r.state, type: "craft", payload: { item: itemId, paid: r.paid } }),
+    (r) => ({
+      state: r.state,
+      type: "craft",
+      payload: { item: itemId, paid: r.paid },
+      task: { kind: "craft", amount: 1 },
+    }),
   );
 }

@@ -42,6 +42,8 @@ export const bases = sqliteTable("bases", {
   buildEndsAt: integer("build_ends_at"),
   upkeepPaidUntil: integer("upkeep_paid_until").notNull().default(0),
   furnaceId: text("furnace_id"),
+  /** Node run, barrel, daily tasks (`domain/active.ts` ActiveState) as JSON: transient, small, never queried. */
+  activeJson: text("active_json"),
 });
 
 /** One row per running furnace slot. */

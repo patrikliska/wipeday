@@ -179,3 +179,17 @@ Lint: ok in all 28 states.
 - Craft: affordable recipes first, locked ones marked 🔒 with what is missing; higher
   levels listed as one line each so the tree is visible (rule 3: nothing hidden).
 - Build: cost vs stock, build time, what the tier unlocks, upkeep after, stock after.
+
+### Phase 2b screens: `node`, `tasks`, and the home additions
+Outlines: `preview/screens/node__{running,faded}.txt`, `tasks__normal.txt`,
+`base__{barrel,tasks}.txt`. Lint: ok.
+- Node run: four buttons `1`..`4`, the marker primary and the other three secondary; status
+  carries the live fade timer; a hint line says what one hit banks. Once over, the four are
+  disabled and Home is primary; the tone says perfect (green) or faded/missed (neutral).
+- Home with a barrel: a details line with the live "gone" timer and a primary `Break barrel`
+  in the second row; the hint explains it once. Home with tasks: one summary line with the two
+  nearest unfinished tasks, and a `Tasks` button.
+- Tasks: one line per task, `⬜/✅`, a five-block bar, `progress/target`, the reward with
+  emoji. Back is primary because everything on it is done elsewhere.
+- Checked against rule 9: the home message is now two rows of at most five; the node screen
+  is two rows of four and two.

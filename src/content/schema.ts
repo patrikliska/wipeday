@@ -135,6 +135,60 @@ export const recipeSchema = z.strictObject({
   cost: amounts,
 });
 
+export const TASK_KINDS = [
+  "gather",
+  "collect",
+  "node_hits",
+  "barrel",
+  "smelt",
+  "furnace_collect",
+  "craft",
+] as const;
+
+export const taskSchema = z.strictObject({
+  id,
+  kind: z.enum(TASK_KINDS),
+  target: z.int().min(1),
+  /** Swapped out for players who lack this. */
+  requires: z.enum(["furnace", "workbench"]).optional(),
+  reward: amounts,
+});
+export type Task = z.infer<typeof taskSchema>;
+
+const lootEntry = z
+  .strictObject({
+    resource: z.string().optional(),
+    item: z.string().optional(),
+    min: z.int().min(1),
+    max: z.int().min(1),
+    weight: z.int().min(0),
+  })
+  .refine((entry) => (entry.resource === undefined) !== (entry.item === undefined), {
+    message: "a loot entry names exactly one of resource or item",
+  })
+  .refine((entry) => entry.max >= entry.min, { message: "max must be >= min" });
+
+export const activeSchema = z.strictObject({
+  node: z.strictObject({
+    maxHits: z.int().min(1),
+    hitPercentOfBonus: z.int().min(0).max(100),
+    hitWindowSeconds: z.int().min(1),
+    positions: z.int().min(2).max(5),
+  }),
+  barrels: z.strictObject({
+    firstAfterMinutes: z.int().min(0),
+    everyMinutes: z.int().min(1),
+    expiresMinutes: z.int().min(1),
+    rolls: z.int().min(1),
+    loot: z.array(lootEntry).min(1),
+  }),
+  tasks: z.strictObject({
+    perDay: z.int().min(1),
+    pool: z.array(taskSchema).min(1),
+  }),
+});
+export type Active = z.infer<typeof activeSchema>;
+
 const dayWindow = z.strictObject({ earliestDay: z.int().min(1), latestDay: z.int().min(1) });
 export const pacingSchema = z.strictObject({
   casual: z.strictObject({ stone: dayWindow, metal: dayWindow, hqm: dayWindow }),
@@ -163,6 +217,7 @@ export interface Content {
   perks: Perk[];
   recipes: Recipe[];
   pacing: Pacing;
+  active: Active;
 }
 
 /**

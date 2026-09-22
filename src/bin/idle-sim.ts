@@ -22,13 +22,13 @@ function table(run: Run): string {
     `${run.archetype}  (reached: ${Object.entries(run.reached)
       .map(([tier, day]) => `${tier} d${day}`)
       .join(", ")})`,
-    "day  tier   tool             fill                cap    frags     hqm  items  build",
+    "day  tier   tool             fill                cap    frags     hqm   scrap  items  build",
   ];
   for (const row of run.rows) {
     lines.push(
       `${String(row.day).padStart(3)}  ${row.tier.padEnd(6)} ${row.tool.padEnd(16)} ` +
         `${row.fill.padEnd(18)} ${String(row.cap).padStart(6)} ${String(row.metalFragments).padStart(8)} ` +
-        `${String(row.hqm).padStart(7)}  ${String(row.items).padStart(5)}  ${row.building ? "yes" : ""}`,
+        `${String(row.hqm).padStart(7)} ${String(row.scrap).padStart(7)}  ${String(row.items).padStart(5)}  ${row.building ? "yes" : ""}`,
     );
   }
   return lines.join("\n");
@@ -50,7 +50,7 @@ if (check) {
     const run = simulate(content, archetype, days);
     console.log(`${table(run)}\n`);
     const csv = [
-      "day,tier,tool,fill,cap,metal_fragments,hqm,items,building",
+      "day,tier,tool,fill,cap,metal_fragments,hqm,scrap,items,building",
       ...run.rows.map((row) =>
         [
           row.day,
@@ -60,6 +60,7 @@ if (check) {
           row.cap,
           row.metalFragments,
           row.hqm,
+          row.scrap,
           row.items,
           row.building,
         ].join(","),

@@ -9,6 +9,7 @@
  */
 import type { Amounts, BaseTier, Content, Furnace, Recipe, Tool } from "../content/schema";
 import { TIERS, type Tier } from "../ui/theme";
+import { type Barrel, type DailyTasks, type NodeRun, newActive } from "./active";
 
 export interface FurnaceJob {
   /** Ore id. */
@@ -38,6 +39,11 @@ export interface BaseState {
   furnaceJobs: FurnaceJob[];
   /** Inventory: item id -> count. */
   items: Record<string, number>;
+  /** Node mini-game, barrel and daily tasks: see `active.ts`. */
+  nodeRun: NodeRun | null;
+  barrel: Barrel | null;
+  nextBarrelAt: number;
+  tasks: DailyTasks;
 }
 
 const HOUR = 3600;
@@ -60,6 +66,7 @@ export function newBase(content: Content, now: number): BaseState {
     furnaceId: null,
     furnaceJobs: [],
     items: {},
+    ...newActive(content, now),
   };
 }
 
@@ -145,7 +152,7 @@ export function isEmpty(amounts: Amounts): boolean {
   return Object.values(amounts).every((amount) => amount === 0);
 }
 
-function add(stock: Amounts, gained: Amounts): Amounts {
+export function add(stock: Amounts, gained: Amounts): Amounts {
   const out = { ...stock };
   for (const [id, amount] of Object.entries(gained)) out[id] = (out[id] ?? 0) + amount;
   return out;

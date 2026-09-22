@@ -31,13 +31,13 @@
       id: "salvaged_tools", tier: "metal", phase: 1, fallbackEmoji: "🧊", rustRef: "icepick.salvaged",
       rates: { wood: 700, stone: 560, metal_ore: 300, sulfur_ore: 130, hqm_ore: 12, cloth: 40, leather: 15, low_grade_fuel: 10 },
       bonusMinutes: 30, cooldownMinutes: 10,
-      cost: { metal_fragments: 1500, scrap: 150 },
+      cost: { metal_fragments: 1500, scrap: 600 },
     },
     {
       id: "power_tools", tier: "hqm", phase: 1, fallbackEmoji: "🔧", rustRef: "jackhammer",
       rates: { wood: 1200, stone: 1000, metal_ore: 560, sulfur_ore: 260, hqm_ore: 30, cloth: 60, leather: 30, low_grade_fuel: 30 },
       bonusMinutes: 30, cooldownMinutes: 10,
-      cost: { metal_fragments: 3000, hqm: 40, scrap: 500 },
+      cost: { metal_fragments: 3000, hqm: 40, scrap: 2000 },
     },
   ],
 }

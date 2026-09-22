@@ -14,6 +14,7 @@ import { join } from "node:path";
 import { Emojis } from "../assets/emojiSync";
 import { AssetRegistry } from "../assets/registry";
 import { loadContent } from "../content/load";
+import { settleAll, settleBarrel, startNodeRun } from "../domain/active";
 import {
   type BaseState,
   buyFurnace,
@@ -41,6 +42,8 @@ import { craftScreen } from "../ui/screens/craft";
 import { debugCardScreen } from "../ui/screens/debugCard";
 import { furnaceScreen } from "../ui/screens/furnace";
 import { inventoryScreen } from "../ui/screens/inventory";
+import { nodeScreen } from "../ui/screens/node";
+import { tasksScreen } from "../ui/screens/tasks";
 import { toolsDoneScreen, toolsScreen } from "../ui/screens/tools";
 import { layout } from "../ui/theme";
 
@@ -193,6 +196,10 @@ const decaying: BaseState = {
   upkeepPaidUntil: T0 - 20 * HOUR,
 };
 
+const withBarrel = settleBarrel(content, fresh, fresh.nextBarrelAt + 60);
+const withTasks = settleAll(content, active, T0 + 3 * HOUR).state;
+const running = startNodeRun(content, firstGather, T0 + 30, 7);
+
 const base = (playerName: string, state: BaseState, now: number, extra = {}) =>
   baseScreen(ctx, {
     ownerId: "1",
@@ -223,6 +230,11 @@ const screens: Array<[string, Screen]> = [
   ],
   ["base__decaying", base("Soboj", decaying, T0 + 6 * HOUR)],
   ["base__full", base(LONGEST_PLAYER_NAME, stuffed, T0 + 31 * 86400)],
+  ["base__barrel", base("Soboj", withBarrel, fresh.nextBarrelAt + 60)],
+  ["base__tasks", base("Soboj", withTasks, T0 + 3 * HOUR)],
+  ["node__running", nodeScreen(ctx, running, T0 + 32)],
+  ["node__faded", nodeScreen(ctx, running, T0 + 60)],
+  ["tasks__normal", tasksScreen(ctx, withTasks, T0 + 3 * HOUR)],
   ["tools__locked", toolsScreen(ctx, firstGather)],
   ["tools__normal", toolsScreen(ctx, rich)],
   ["tools__maxed", toolsScreen(ctx, maxed)],

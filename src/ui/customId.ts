@@ -26,6 +26,8 @@ export const BASE_ACTIONS = [
   "furnace",
   "craft",
   "inventory",
+  "barrel",
+  "tasks",
   "refresh",
 ] as const;
 export const TOOLS_ACTIONS = ["upgrade", "back", "home"] as const;
@@ -33,6 +35,8 @@ export const BUILD_ACTIONS = ["start", "back", "home"] as const;
 export const FURNACE_ACTIONS = ["smelt", "collect", "buy", "back", "home"] as const;
 export const CRAFT_ACTIONS = ["pick", "again", "inventory", "back", "home"] as const;
 export const INVENTORY_ACTIONS = ["craft", "back", "home"] as const;
+export const NODE_ACTIONS = ["hit", "back", "home"] as const;
+export const TASKS_ACTIONS = ["back", "home"] as const;
 
 /** Every action a component can trigger. Grows by one variant per feature. */
 export type Route =
@@ -42,7 +46,9 @@ export type Route =
   | { screen: "build"; action: (typeof BUILD_ACTIONS)[number] }
   | { screen: "furnace"; action: (typeof FURNACE_ACTIONS)[number] }
   | { screen: "craft"; action: (typeof CRAFT_ACTIONS)[number]; item?: string }
-  | { screen: "inventory"; action: (typeof INVENTORY_ACTIONS)[number] };
+  | { screen: "inventory"; action: (typeof INVENTORY_ACTIONS)[number] }
+  | { screen: "node"; action: (typeof NODE_ACTIONS)[number]; position?: number }
+  | { screen: "tasks"; action: (typeof TASKS_ACTIONS)[number] };
 
 export interface CustomId {
   /** Discord user id of the message owner; `null` on ephemeral messages. */
@@ -63,6 +69,7 @@ export type Parsed =
 function argsOf(route: Route): string {
   if (route.screen === "debug") return route.state;
   if (route.screen === "craft") return route.item ?? "";
+  if (route.screen === "node") return route.position === undefined ? "" : String(route.position);
   return "";
 }
 
@@ -109,6 +116,14 @@ export function parseCustomId(raw: string): Parsed {
     if (known) route = args ? { screen, action: known, item: args } : { screen, action: known };
   } else if (screen === "inventory") {
     const known = pick(INVENTORY_ACTIONS, action);
+    if (known) route = { screen, action: known };
+  } else if (screen === "node") {
+    const known = pick(NODE_ACTIONS, action);
+    if (known === "hit") {
+      if (/^\d$/.test(args)) route = { screen, action: known, position: Number(args) };
+    } else if (known) route = { screen, action: known };
+  } else if (screen === "tasks") {
+    const known = pick(TASKS_ACTIONS, action);
     if (known) route = { screen, action: known };
   }
   return route ? { kind: "ok", id: { owner, route } } : unknown;

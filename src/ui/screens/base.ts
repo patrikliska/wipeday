@@ -5,6 +5,7 @@
  * a `Screen`. The interaction layer decides how it is sent.
  */
 import type { Amounts } from "../../content/schema";
+import { type BarrelLoot, type TaskDone, taskOf } from "../../domain/active";
 import {
   accrued,
   type BaseState,
@@ -42,7 +43,10 @@ export type LastAction =
   | { kind: "upgrade"; toolId: string }
   | { kind: "build_started"; tier: Tier; endsAt: number }
   | { kind: "built"; tier: Tier }
-  | { kind: "decayed"; tier: Tier };
+  | { kind: "decayed"; tier: Tier }
+  | { kind: "barrel"; loot: BarrelLoot }
+  | { kind: "barrel_gone" }
+  | { kind: "node"; hits: number; max: number; banked: Amounts };
 
 export interface BaseScreenInput {
   /** Discord user id: only this user may click. */
@@ -56,6 +60,8 @@ export interface BaseScreenInput {
   last?: LastAction;
   /** What settling to `now` did, shown as lines so nothing happens silently. */
   settled?: SettleEvent[];
+  /** Daily tasks the last click completed. */
+  completed?: TaskDone[];
 }
 
 export function seasonDay(seasonStartedAt: number, now: number): number {
@@ -117,7 +123,37 @@ function lastActionLine(ctx: TextContext, last: LastAction): string {
       return locale.t("screen.base.built", { tier: tierName(ctx, last.tier) });
     case "decayed":
       return locale.t("screen.base.decayed", { tier: tierName(ctx, last.tier) });
+    case "barrel": {
+      const parts = [amountsText(ctx, last.loot.resources, "delta")];
+      for (const [id, count] of Object.entries(last.loot.items)) {
+        const item = ctx.content.items.find((candidate) => candidate.id === id);
+        if (item)
+          parts.push(`${ctx.emojis.text("item", item)} +${count} ${locale.t(`item.${id}.name`)}`);
+      }
+      const loot = parts.filter(Boolean).join(" · ");
+      return loot
+        ? locale.t("screen.base.barrel_broken", { loot })
+        : locale.t("screen.base.barrel_empty");
+    }
+    case "barrel_gone":
+      return locale.t("screen.base.barrel_gone");
+    case "node":
+      return last.hits >= last.max
+        ? locale.t("screen.base.node_result_perfect", {
+            banked: amountsText(ctx, last.banked, "delta"),
+          })
+        : locale.t("screen.base.node_result_part", {
+            hits: last.hits,
+            banked: amountsText(ctx, last.banked, "delta") || "nothing",
+          });
   }
+}
+
+export function taskDoneLine(ctx: TextContext, done: TaskDone): string {
+  return ctx.locale.t("screen.base.task_done", {
+    task: ctx.locale.t(`task.${done.task.id}.name`),
+    reward: amountsText(ctx, done.reward, "delta") || "0",
+  });
 }
 
 /** Settle events worth a line: a landed build, a lost tier. Upkeep payments stay quiet. */
@@ -167,6 +203,12 @@ export function baseScreen(ctx: TextContext, input: BaseScreenInput): Screen {
   // --- text ------------------------------------------------------------------
   const details: string[] = [...settledLines(ctx, input.settled ?? [])];
   if (input.last) details.push(lastActionLine(ctx, input.last));
+  for (const done of input.completed ?? []) details.push(taskDoneLine(ctx, done));
+  if (state.barrel && now <= state.barrel.expiresAt) {
+    details.push(
+      locale.t("screen.base.barrel_line", { when: relativeTimestamp(state.barrel.expiresAt) }),
+    );
+  }
   if (readyAt > now) {
     details.push(locale.t("screen.base.cooldown", { when: relativeTimestamp(readyAt) }));
   }
@@ -201,6 +243,26 @@ export function baseScreen(ctx: TextContext, input: BaseScreenInput): Screen {
     }
   }
 
+  if (state.tasks.ids.length > 0) {
+    const summary = state.tasks.ids
+      .filter((id) => !state.tasks.done.includes(id))
+      .slice(0, 2)
+      .flatMap((id) => {
+        const task = taskOf(content, id);
+        if (!task) return [];
+        const progress = Math.min(task.target, state.tasks.progress[id] ?? 0);
+        return [`${locale.t(`task.${id}.name`)} ${progress}/${task.target}`];
+      })
+      .join(" · ");
+    details.push(
+      locale.t("screen.base.tasks_line", {
+        done: state.tasks.done.length,
+        total: state.tasks.ids.length,
+        summary: summary || "✅",
+      }),
+    );
+  }
+
   const pct = Math.min(100, Math.floor(fill.fraction * 100));
   let status: string;
   if (state.build) {
@@ -229,9 +291,12 @@ export function baseScreen(ctx: TextContext, input: BaseScreenInput): Screen {
     { customId: id("refresh"), label: locale.t("screen.base.refresh"), style: "secondary" },
   ];
   const rowTwo: Button[] = [];
+  if (state.barrel && now <= state.barrel.expiresAt)
+    rowTwo.push(button("barrel", "screen.base.barrel"));
   if (show.furnace) rowTwo.push(button("furnace", "screen.base.furnace"));
   if (show.craft) rowTwo.push(button("craft", "screen.base.craft"));
   if (show.inventory) rowTwo.push(button("inventory", "screen.base.inventory"));
+  if (state.tasks.ids.length > 0) rowTwo.push(button("tasks", "screen.base.tasks"));
 
   let tone: Screen["tone"] = "accent";
   if (decaying || full) tone = "danger";

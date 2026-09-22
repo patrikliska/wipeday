@@ -3,7 +3,7 @@ import type { TextContext } from "../amounts";
 import { encodeCustomId, type Route } from "../customId";
 import type { Button } from "../screen";
 
-type NavScreen = "tools" | "build" | "furnace" | "craft" | "inventory";
+type NavScreen = "tools" | "build" | "furnace" | "craft" | "inventory" | "node" | "tasks";
 
 export function navButtons(ctx: TextContext, screen: NavScreen, backPrimary = false): Button[] {
   const id = (action: "back" | "home") =>

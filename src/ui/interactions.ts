@@ -24,13 +24,16 @@ import {
   type StringSelectMenuInteraction,
 } from "discord.js";
 import type { App } from "../app";
+import type { TaskDone } from "../domain/active";
 import {
+  breakBarrelAction,
   buildAction,
   buyFurnaceAction,
   collectAction,
   collectFurnacesAction,
   craftAction,
   gatherAction,
+  hitNodeAction,
   type Loaded,
   loadById,
   loadPlayer,
@@ -51,6 +54,8 @@ import { craftScreen } from "./screens/craft";
 import { debugCardScreen } from "./screens/debugCard";
 import { furnaceScreen } from "./screens/furnace";
 import { inventoryCardProps, inventoryScreen } from "./screens/inventory";
+import { nodeScreen } from "./screens/node";
+import { tasksScreen } from "./screens/tasks";
 import { toolsDoneScreen, toolsScreen } from "./screens/tools";
 import type { Tier } from "./theme";
 
@@ -120,11 +125,16 @@ function isAdmin(app: App, interaction: ChatInputCommandInteraction): boolean {
 
 // --- the home message -------------------------------------------------------
 
+interface HomeExtras {
+  last?: LastAction;
+  completed?: TaskDone[];
+}
+
 async function renderBase(
   app: App,
   loaded: Loaded,
   now: number,
-  last?: LastAction,
+  extras: HomeExtras = {},
 ): Promise<Screen> {
   const props = baseCardProps(
     app,
@@ -143,7 +153,8 @@ async function renderBase(
     hintUses: loaded.hintUses,
     card: rendered.png,
     settled: loaded.settled,
-    ...(last ? { last } : {}),
+    ...(extras.last ? { last: extras.last } : {}),
+    ...(extras.completed && extras.completed.length > 0 ? { completed: extras.completed } : {}),
   };
   return baseScreen(app, input);
 }
@@ -188,7 +199,7 @@ export async function refreshHome(
   client: Client,
   loaded: Loaded,
   now: number,
-  last?: LastAction,
+  extras: HomeExtras = {},
 ): Promise<void> {
   const home = homeMessagesRepo.get(app.db, loaded.player.id);
   if (!home) return;
@@ -197,7 +208,7 @@ export async function refreshHome(
     if (!channel?.isTextBased()) return;
     await channel.messages.edit(
       home.messageId,
-      toMessage(await renderBase(app, loaded, now, last)),
+      toMessage(await renderBase(app, loaded, now, extras)),
     );
   } catch (error) {
     log.warn("home message is gone, forgetting it", {
@@ -276,6 +287,10 @@ async function subScreen(
       return craftScreen(app, loaded.state);
     case "inventory":
       return inventory(app, loaded);
+    case "node":
+      return nodeScreen(app, loaded.state, now);
+    case "tasks":
+      return tasksScreen(app, loaded.state, now);
     default:
       throw new Error(`no sub-screen for ${screen}`);
   }
@@ -293,24 +308,40 @@ async function onBaseRoute(
     action === "build" ||
     action === "furnace" ||
     action === "craft" ||
-    action === "inventory"
+    action === "inventory" ||
+    action === "tasks"
   ) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     await interaction.editReply(toMessage(await subScreen(app, action, loaded, now)));
     return;
   }
   await interaction.deferUpdate();
-  let last: LastAction | undefined;
+  const extras: HomeExtras = {};
   if (action === "collect") {
-    last = { kind: "collect", gained: collectAction(app, loaded.player.id, now).gained };
+    const result = collectAction(app, loaded.player.id, now);
+    extras.last = { kind: "collect", gained: result.gained };
+    extras.completed = result.completed;
   } else if (action === "gather") {
     const result = gatherAction(app, loaded.player.id, now);
-    last = result.ok
+    extras.last = result.ok
       ? { kind: "gather", gained: result.gained, bonus: result.bonus }
       : { kind: "cooldown", readyAt: result.readyAt };
+    extras.completed = result.completed;
+    if (result.ok) {
+      // The mini-game opens as a private follow-up while the home message updates.
+      const fresh = loadPlayer(app, interaction.user.id, now) ?? loaded;
+      await interaction.followUp({
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+        components: [toComponents(nodeScreen(app, fresh.state, now))],
+      });
+    }
+  } else if (action === "barrel") {
+    const result = breakBarrelAction(app, loaded.player.id, now);
+    extras.last = result.ok ? { kind: "barrel", loot: result.loot } : { kind: "barrel_gone" };
+    extras.completed = result.completed;
   }
   const fresh = loadPlayer(app, interaction.user.id, now) ?? loaded;
-  await interaction.editReply(toMessage(await renderBase(app, fresh, now, last)));
+  await interaction.editReply(toMessage(await renderBase(app, fresh, now, extras)));
 }
 
 /** Home on any sub-screen: close it and show the change on the home message. */
@@ -319,10 +350,10 @@ async function closeToHome(
   interaction: ComponentInteraction,
   loaded: Loaded,
   now: number,
-  last?: LastAction,
+  extras: HomeExtras = {},
 ) {
   await interaction.deleteReply();
-  await refreshHome(app, interaction.client, loaded, now, last);
+  await refreshHome(app, interaction.client, loaded, now, extras);
 }
 
 async function onSubRoute(
@@ -337,7 +368,17 @@ async function onSubRoute(
   const choice = interaction.isStringSelectMenu() ? interaction.values[0] : undefined;
 
   if (route.action === "home") {
-    await closeToHome(app, interaction, loaded, now);
+    const extras: HomeExtras = {};
+    const run = loaded.state.nodeRun;
+    if (route.screen === "node" && run && run.hits > 0) {
+      extras.last = {
+        kind: "node",
+        hits: run.hits,
+        max: app.content.active.node.maxHits,
+        banked: run.banked,
+      };
+    }
+    await closeToHome(app, interaction, loaded, now, extras);
     return;
   }
   if (route.action === "back") {
@@ -354,8 +395,7 @@ async function onSubRoute(
       }
       await interaction.editReply(toMessage(toolsDoneScreen(app, result.tool, result.paid)));
       await refreshHome(app, interaction.client, fresh(), now, {
-        kind: "upgrade",
-        toolId: result.tool.id,
+        last: { kind: "upgrade", toolId: result.tool.id },
       });
       return;
     }
@@ -367,27 +407,30 @@ async function onSubRoute(
       }
       // Validated against the tier list at load time.
       const tier = result.tier.id as Tier;
-      const last: LastAction =
-        result.tier.buildMinutes === 0
-          ? { kind: "built", tier }
-          : { kind: "build_started", tier, endsAt: result.endsAt };
+      const instant = result.tier.buildMinutes === 0;
       await interaction.editReply(
         toMessage(
           buildScreen(
             app,
             result.state,
-            result.tier.buildMinutes === 0
+            instant
               ? { kind: "done_now", tier, paid: result.paid }
               : { kind: "started", tier, endsAt: result.endsAt, paid: result.paid },
           ),
         ),
       );
-      await refreshHome(app, interaction.client, fresh(), now, last);
+      await refreshHome(app, interaction.client, fresh(), now, {
+        last: instant
+          ? { kind: "built", tier }
+          : { kind: "build_started", tier, endsAt: result.endsAt },
+      });
       return;
     }
     case "furnace": {
+      let completed: TaskDone[] = [];
       if (route.action === "collect") {
         const result = collectFurnacesAction(app, loaded.player.id, now);
+        completed = result.completed;
         await interaction.editReply(
           toMessage(
             furnaceScreen(app, result.state, now, { kind: "collected", gained: result.gained }),
@@ -417,6 +460,7 @@ async function onSubRoute(
           await interaction.editReply(toMessage(furnaceScreen(app, fresh().state, now)));
           return;
         }
+        completed = result.completed;
         const furnace = app.content.furnaces.find(
           (candidate) => candidate.id === result.state.furnaceId,
         );
@@ -434,7 +478,7 @@ async function onSubRoute(
           ),
         );
       }
-      await refreshHome(app, interaction.client, fresh(), now);
+      await refreshHome(app, interaction.client, fresh(), now, { completed });
       return;
     }
     case "craft": {
@@ -462,13 +506,36 @@ async function onSubRoute(
       await interaction.editReply(
         toMessage(craftScreen(app, result.state, { itemId, paid: result.paid })),
       );
-      await refreshHome(app, interaction.client, fresh(), now);
+      await refreshHome(app, interaction.client, fresh(), now, { completed: result.completed });
       return;
     }
     case "inventory": {
       await interaction.editReply(toMessage(craftScreen(app, fresh().state)));
       return;
     }
+    case "node": {
+      if (route.action !== "hit" || route.position === undefined) return;
+      const result = hitNodeAction(app, loaded.player.id, now, route.position);
+      const state = result.ok ? result.state : fresh().state;
+      await interaction.editReply(toMessage(nodeScreen(app, state, now)));
+      // The banked hits show on the home message when the run is over.
+      if (result.ok && result.run.ended) {
+        await refreshHome(app, interaction.client, fresh(), now, {
+          last: {
+            kind: "node",
+            hits: result.run.hits,
+            max: app.content.active.node.maxHits,
+            banked: result.run.banked,
+          },
+          completed: result.completed,
+        });
+      } else if (result.completed.length > 0) {
+        await refreshHome(app, interaction.client, fresh(), now, { completed: result.completed });
+      }
+      return;
+    }
+    case "tasks":
+      return;
   }
 }
 

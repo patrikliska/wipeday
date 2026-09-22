@@ -8,6 +8,7 @@ import { basesRepo, eventLogRepo, homeMessagesRepo } from "../store/repo";
 import { eventLog } from "../store/schema";
 import { Locale } from "../ui/locale";
 import {
+  breakBarrelAction,
   buildAction,
   buyFurnaceAction,
   collectAction,
@@ -15,6 +16,7 @@ import {
   craftAction,
   type Game,
   gatherAction,
+  hitNodeAction,
   loadPlayer,
   smeltAction,
   startPlayer,
@@ -208,4 +210,47 @@ it("remembers one home message per player", () => {
   expect(homeMessagesRepo.get(g.db, player.id)).toEqual({ channelId: "c1", messageId: "m2" });
   homeMessagesRepo.clear(g.db, player.id);
   expect(homeMessagesRepo.get(g.db, player.id)).toBeNull();
+});
+
+describe("active play", () => {
+  it("gather opens a node run; hitting the marker banks once per press, a wrong press ends it", () => {
+    const g = game();
+    const { player } = startPlayer(g, "1", "Kolt", T0);
+    const gathered = gatherAction(g, player.id, T0);
+    expect(gathered.ok).toBe(true);
+    const run = basesRepo.load(g.db, player.id)?.nodeRun;
+    if (!run) throw new Error("no run");
+    const hit = hitNodeAction(g, player.id, T0 + 1, run.marker);
+    expect(hit.ok).toBe(true);
+    expect(basesRepo.load(g.db, player.id)?.stock).toEqual({ wood: 66, stone: 44 });
+    // Same button again: the marker moved, so this is a miss and nothing is banked.
+    const again = hitNodeAction(g, player.id, T0 + 2, run.marker);
+    expect(again.ok && again.run.ended).toBe("missed");
+    expect(basesRepo.load(g.db, player.id)?.stock).toEqual({ wood: 66, stone: 44 });
+    expect(hitNodeAction(g, player.id, T0 + 3, 0)).toMatchObject({ ok: false, reason: "over" });
+  });
+
+  it("a barrel breaks once", () => {
+    const g = game();
+    const { player, state } = startPlayer(g, "1", "Kolt", T0);
+    const at = state.nextBarrelAt + 5;
+    const first = breakBarrelAction(g, player.id, at);
+    expect(first.ok).toBe(true);
+    expect(breakBarrelAction(g, player.id, at)).toMatchObject({ ok: false, reason: "no_barrel" });
+  });
+
+  it("completing a task pays once and is reported by the action that did it", () => {
+    const g = game();
+    const { player } = startPlayer(g, "1", "Kolt", T0);
+    const state = basesRepo.load(g.db, player.id);
+    if (!state) throw new Error("no base");
+    basesRepo.save(g.db, player.id, 1, {
+      ...state,
+      tasks: { ...state.tasks, ids: ["gather_4"], progress: { gather_4: 3 } },
+    });
+    const done = gatherAction(g, player.id, T0);
+    expect(done.completed.map((task) => task.task.id)).toEqual(["gather_4"]);
+    expect(basesRepo.load(g.db, player.id)?.stock.scrap).toBe(5);
+    expect(gatherAction(g, player.id, T0 + 3600).completed).toEqual([]);
+  });
 });

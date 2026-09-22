@@ -11,6 +11,7 @@ import type { Locale } from "../ui/locale";
 import { TIERS } from "../ui/theme";
 import {
   type Amounts,
+  activeSchema,
   baseRulesSchema,
   type Content,
   type EntityKind,
@@ -83,6 +84,11 @@ export function loadContent(dataDir: string, locale: Locale): Content {
     monuments: [],
     perks: [],
     recipes: [],
+    active: {
+      node: { maxHits: 1, hitPercentOfBonus: 0, hitWindowSeconds: 1, positions: 2 },
+      barrels: { firstAfterMinutes: 0, everyMinutes: 1, expiresMinutes: 1, rolls: 1, loot: [] },
+      tasks: { perDay: 1, pool: [] },
+    },
     pacing: {
       casual: {
         stone: { earliestDay: 1, latestDay: 1 },
@@ -145,6 +151,15 @@ export function loadContent(dataDir: string, locale: Locale): Content {
     if (parsed.success) content.pacing = parsed.data;
     else {
       problems.push({ file: "pacing.json5", id: "", message: issuesOf(parsed.error).join("; ") });
+    }
+  }
+
+  const activeRaw = read("active.json5");
+  if (activeRaw !== undefined) {
+    const parsed = activeSchema.safeParse(activeRaw);
+    if (parsed.success) content.active = parsed.data;
+    else {
+      problems.push({ file: "active.json5", id: "", message: issuesOf(parsed.error).join("; ") });
     }
   }
 
@@ -252,6 +267,35 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
       });
     } else if (!content.recipes.some((recipe) => recipe.item === item.id)) {
       problems.push({ file: "recipes.json5", id: item.id, message: "workbench has no recipe" });
+    }
+  }
+
+  for (const [index, entry] of content.active.barrels.loot.entries()) {
+    const label = entry.resource ?? entry.item ?? `#${index + 1}`;
+    if (entry.resource && !resourceIds.has(entry.resource)) {
+      problems.push({ file: "active.json5", id: label, message: "loot names an unknown resource" });
+    }
+    if (entry.item && !itemIds.has(entry.item)) {
+      problems.push({ file: "active.json5", id: label, message: "loot names an unknown item" });
+    }
+  }
+  const taskIds = new Set<string>();
+  for (const task of content.active.tasks.pool) {
+    if (taskIds.has(task.id)) {
+      problems.push({
+        file: "active.json5",
+        id: task.id,
+        message: "task id is used more than once",
+      });
+    }
+    taskIds.add(task.id);
+    checkAmounts("active.json5", task.id, "reward", task.reward);
+    if (!locale.has(`task.${task.id}.name`)) {
+      problems.push({
+        file: "active.json5",
+        id: task.id,
+        message: `missing locale key \`task.${task.id}.name\``,
+      });
     }
   }
 

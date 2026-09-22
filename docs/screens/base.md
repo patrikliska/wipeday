@@ -50,6 +50,15 @@ No locked state: the screen itself is always available.
 Phase 2 buttons appear only once the tier that unlocks them is reached (rule 6: reveal
 mechanics as they become relevant), except Build, which is always there.
 
+## Phase 2b additions
+- **Barrel:** a few times a day a barrel appears on the home message for a limited time:
+  a details line `🛢️ A barrel washed up · gone <t:R>` and a `Break barrel` button, primary
+  whenever present (free loot that expires beats everything except a full storage). The
+  result is a deltas line (`Barrel: +3 gears · +12 cloth · +4 scrap`).
+- **Tasks:** a details line `Tasks 1/3 · Gather 4 times 2/4 · …` and a `Tasks` button in
+  the second row. A completed task adds a line `Task done: … · +10 scrap`.
+- **Gather** now also opens the `node` mini-game as an ephemeral follow-up.
+
 ## Status and details (Phase 2 additions)
 - Building: `Upgrading to Stone · done <t:R>` replaces the storage status while a build runs.
 - Upkeep: a details line `Upkeep paid for 18h` / `DECAYING · pay upkeep by collecting` in

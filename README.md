@@ -1,7 +1,7 @@
 # Wipe Day
 
 A Rust-themed idle game played entirely inside Discord. Private, single-server.
-The full specification is [CLAUDE.md](CLAUDE.md). Current state: **Phase 2 (base: tiers, upkeep, furnaces, crafting)**.
+The full specification is [CLAUDE.md](CLAUDE.md). Current state: **Phase 2b (active play: node mini-game, barrels, daily tasks)**.
 
 ## Run it
 
@@ -40,6 +40,11 @@ away, **Gather** gives a bonus on a cooldown, **Tools** upgrades your gathering 
 upgrades the base (bigger storage, more furnace slots, higher workbench; costs upkeep every
 hour), **Furnace** turns ore into metal, **Craft** makes boxes, workbenches and gear,
 **Inventory** shows what you own. Buttons appear as the mechanic becomes relevant.
+
+Between gathers: every **Gather** opens **Work the node**, a quick game where you press the
+glowing button before it fades (each hit banks a bit more); a **barrel** washes up a few
+times a day and can be broken for loot before it drifts off; three **daily tasks** pay out
+the moment you complete them.
 
 ## Commands
 

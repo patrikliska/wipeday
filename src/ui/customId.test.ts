@@ -15,6 +15,10 @@ const everyRoute: Route[] = [
   ...DEBUG_STATES.map((state): Route => ({ screen: "debug", action: "card", state })),
   ...BASE_ACTIONS.map((action): Route => ({ screen: "base", action })),
   ...TOOLS_ACTIONS.map((action): Route => ({ screen: "tools", action })),
+  { screen: "node", action: "hit", position: 3 },
+  { screen: "node", action: "home" },
+  { screen: "tasks", action: "back" },
+  { screen: "craft", action: "again", item: "wood_box" },
 ];
 
 describe("customId", () => {

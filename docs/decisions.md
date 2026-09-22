@@ -201,3 +201,43 @@ a sub-screen is visible at once. On a list view Back is a refresh; the lint stil
 A wood base holds 5000 of each resource; the stone tier costs 6000 stone. Four wood boxes
 (+1000 each) make room. This is deliberate: the first boxes are the natural "why would I
 craft?" moment, and the advisor points at Craft when storage is tight and a box is affordable.
+
+## Phase 2b (active play)
+
+### D34. The node marker is the primary button: a reaction game, not a guessing game
+Rust's tree X rewards hitting a moving marker. In Discord a hidden marker would be a 1-in-4
+guess; showing it makes the game "find and press the glowing button before it fades", which
+is honest about what a phone can do and still needs attention (the marker jumps, the window
+is a few seconds, one miss ends the run). It also satisfies rule 1 literally: the one primary
+button is the one thing to press. Each hit banks a slice of the gather bonus immediately.
+
+### D35. One follow-up per Gather, hits edit the ephemeral, the home message updates at the end
+Gather edits the home message (deltas) and opens the run as an ephemeral follow-up. Hits edit
+that ephemeral only; the home message is refreshed once, when the run ends, with a summary
+line. Five quick clicks therefore cost five ephemeral edits and one public edit, well inside
+Discord's limits for a handful of friends.
+
+### D36. Barrels are scheduled, not random, and missed ones are skipped lazily
+`nextBarrelAt` advances on a fixed interval from the data file; a barrel lives for a limited
+time. Settling computes which scheduled barrel (if any) is still alive at `now`, so a player
+who was away for a day finds at most one barrel, never a queue. Loot is seeded by the spawn
+time: a double click cannot roll twice.
+
+### D37. Tasks are the same for everyone each UTC day; rewards bank on completion
+Seeded by the day index, so friends compare notes. Tasks a player cannot do yet (no furnace,
+no workbench) are skipped at roll time. Progress is recorded by the action layer after each
+successful action (`act(...)` takes a task hint), never by the domain functions themselves,
+which keeps them focused; the simulator records progress the same way. Rewards are banked the
+moment the target is reached, no claim button: fewer clicks, and the home message says
+`Task done: …` on the click that did it.
+
+### D38. Scrap-priced tools were re-priced for a world with a scrap trickle
+The first pacing run with tasks and barrels put the optimal player on HQM on day 10: the
+trickle bought Salvaged Tools (150 scrap) in a few days. Salvaged now costs 600 scrap and
+Power Tools 2000, which keeps optimal at day 15 and casual at day 27. Phase 3 expeditions will
+be the real scrap source and can be tuned against these prices.
+
+### D39. Active state is one JSON column
+Node run, barrel and daily tasks are small, transient, never queried, and change shape as the
+mini-games evolve: `bases.active_json` holds them as JSON rather than three more tables. Rows
+from before Phase 2b parse as "no run, no barrel, tasks not rolled yet".
