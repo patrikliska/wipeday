@@ -54,9 +54,9 @@ describe("base card", () => {
 
     const first = await renderer.render(baseCard, full);
     const size = sniff(first.png);
-    expect(size).toMatchObject({ kind: "png", width: 800 });
+    expect(size).toMatchObject({ kind: "png", width: 1600 });
     if (size.kind !== "png") throw new Error("not a png");
-    expect(size.height).toBeLessThanOrEqual(600);
+    expect(size.height).toBeLessThanOrEqual(1200);
     expect(first.cached).toBe(false);
     expect(first.ms).toBeLessThan(RENDER_BUDGET_MS);
 

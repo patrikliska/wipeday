@@ -116,3 +116,11 @@ One primary per state, and it is always a state the viewer is *not* looking at (
 case" from normal, "New player" from full, "Typical player" from empty); "Render again"
 stays secondary because re-rendering what is on screen is only useful to watch the cache
 hit. 3 buttons, one row, longest label 14 chars. Root screen, so no Back/Home.
+
+### Owner screenshot, desktop (2026-09-22, live `/base`, Phase 1)
+- Confirmed: exactly one home message after repeated `/base`; the wider card now fills
+  ~565 px of the container (the 800x754 demo card got ~370).
+- **Bug: "looks a bit blurry."** Cause: the PNG was rasterised at the 800 px design width
+  and the owner's display is HiDPI, so Discord *upscaled* it (~565 CSS px = ~1130 device
+  px). Fix: `layout.renderScale = 2`; cards are laid out in 800 units and rasterised at
+  1600 px. Cost: 34-47 ms per card, 80-113 KB per PNG. Layout code is untouched.

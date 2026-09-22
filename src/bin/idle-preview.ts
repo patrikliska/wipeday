@@ -65,7 +65,7 @@ function contactSheet(shots: Shot[]): string {
       (
         shot,
       ) => `<section><h2>${shot.name} <small>${shot.rendered.width}x${shot.rendered.height} · ${Math.round(shot.rendered.png.length / 1024)} KB · ${Math.round(shot.rendered.ms)} ms</small></h2>
-<div class="pair"><figure class="dark"><img src="${shot.full}" width="${shot.rendered.width}"><figcaption>desktop, dark</figcaption></figure>
+<div class="pair"><figure class="dark"><img src="${shot.full}" width="${shot.rendered.width / layout.renderScale}"><figcaption>desktop, dark (shown at 1x)</figcaption></figure>
 <figure class="dark"><img src="${shot.mobile}"><figcaption>phone (${layout.mobileWidth} px)</figcaption></figure>
 <figure class="light"><img src="${shot.mobile}"><figcaption>phone, light theme</figcaption></figure></div></section>`,
     )

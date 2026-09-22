@@ -100,13 +100,14 @@ export class Renderer {
   }
 
   /**
-   * The card as a PNG, from the cache when state is unchanged. `width` defaults
-   * to the full card width; the preview passes 400 to show what a phone displays.
+   * The card as a PNG, from the cache when state is unchanged. `width` is the
+   * output pixel width: by default the design width times `renderScale` (crisp
+   * on HiDPI screens); the preview passes 400 to show what a phone displays.
    */
   async render<Props>(
     card: CardDef<Props>,
     props: Props,
-    width: number = layout.cardWidth,
+    width: number = layout.cardWidth * layout.renderScale,
   ): Promise<Rendered> {
     const started = performance.now();
     const key = createHash("sha256")

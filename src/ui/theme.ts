@@ -71,8 +71,13 @@ export function withAlpha(hex: string, alpha: number): string {
 
 /** Card geometry shared by every template. */
 export const layout = {
-  /** All cards are this wide; Discord downsizes to about 400 px on phones. */
+  /** Design width: every card is laid out in these units. Discord shows ~550 px on desktop, ~400 on phones. */
   cardWidth: 800,
+  /**
+   * Rasterisation factor. Phones and most desktops are HiDPI, so an 800 px PNG
+   * shown at 550 CSS px gets *upscaled* and looks soft; 2x keeps it crisp.
+   */
+  renderScale: 2,
   /** What a phone shows. Used by the preview's @mobile renders. */
   mobileWidth: 400,
   /** Outer padding. Nothing but the background touches the card edge. */
