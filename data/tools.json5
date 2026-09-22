@@ -1,11 +1,43 @@
 // Gathering tool tiers, weakest first. A tier is a set of tools; `rustRef` names
-// the one item whose icon represents it. Rates arrive with Phase 1.
+// the one item whose icon represents it.
+//
+// `rates`: passive gathering per hour, by resource. A resource with no rate is not
+//   gathered by this tier (and stays hidden from a player who has never had it).
+// `bonusMinutes`: the manual Gather click grants this many minutes of production.
+// `cooldownMinutes`: time between Gather clicks.
+// `cost`: paid once to upgrade *to* this tier. Metal tools and up need refined
+//   metal, which furnaces (Phase 2) produce.
 {
   tools: [
-    { id: "rock", tier: "twig", phase: 1, fallbackEmoji: "🪨", rustRef: "rock" },
-    { id: "stone_tools", tier: "wood", phase: 1, fallbackEmoji: "⛏️", rustRef: "stone.pickaxe" },
-    { id: "metal_tools", tier: "stone", phase: 1, fallbackEmoji: "⛏️", rustRef: "pickaxe" },
-    { id: "salvaged_tools", tier: "metal", phase: 1, fallbackEmoji: "🧊", rustRef: "icepick.salvaged" },
-    { id: "power_tools", tier: "hqm", phase: 1, fallbackEmoji: "🔧", rustRef: "jackhammer" },
+    {
+      id: "rock", tier: "twig", phase: 1, fallbackEmoji: "🪨", rustRef: "rock",
+      rates: { wood: 120, stone: 80 },
+      bonusMinutes: 30, cooldownMinutes: 10,
+      cost: {},
+    },
+    {
+      id: "stone_tools", tier: "wood", phase: 1, fallbackEmoji: "⛏️", rustRef: "stone.pickaxe",
+      rates: { wood: 240, stone: 180, metal_ore: 60, sulfur_ore: 20 },
+      bonusMinutes: 30, cooldownMinutes: 10,
+      cost: { wood: 240, stone: 120 },
+    },
+    {
+      id: "metal_tools", tier: "stone", phase: 1, fallbackEmoji: "⛏️", rustRef: "pickaxe",
+      rates: { wood: 400, stone: 320, metal_ore: 150, sulfur_ore: 60, hqm_ore: 4, cloth: 20 },
+      bonusMinutes: 30, cooldownMinutes: 10,
+      cost: { wood: 800, stone: 600, metal_fragments: 250 },
+    },
+    {
+      id: "salvaged_tools", tier: "metal", phase: 1, fallbackEmoji: "🧊", rustRef: "icepick.salvaged",
+      rates: { wood: 700, stone: 560, metal_ore: 300, sulfur_ore: 130, hqm_ore: 12, cloth: 40, leather: 15, low_grade_fuel: 10 },
+      bonusMinutes: 30, cooldownMinutes: 10,
+      cost: { metal_fragments: 1500, scrap: 150 },
+    },
+    {
+      id: "power_tools", tier: "hqm", phase: 1, fallbackEmoji: "🔧", rustRef: "jackhammer",
+      rates: { wood: 1200, stone: 1000, metal_ore: 560, sulfur_ore: 260, hqm_ore: 30, cloth: 60, leather: 30, low_grade_fuel: 30 },
+      bonusMinutes: 30, cooldownMinutes: 10,
+      cost: { metal_fragments: 3000, hqm: 40, scrap: 500 },
+    },
   ],
 }

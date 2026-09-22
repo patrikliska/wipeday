@@ -33,14 +33,32 @@ const identity = {
 
 const tier = z.enum(TIERS);
 
+/** `{ resourceId: amount }`. Keys are checked against resources.json5 in crossCheck. */
+const amounts = z.record(z.string(), z.int().min(0));
+export type Amounts = Record<string, number>;
+
 export const resourceSchema = z.strictObject({
   ...identity,
   /** raw: gathered from nodes. refined: produced by furnaces. currency: scrap. */
   kind: z.enum(["raw", "refined", "currency"]),
 });
 
-export const toolSchema = z.strictObject({ ...identity, tier });
-export const baseTierSchema = z.strictObject({ ...identity });
+export const toolSchema = z.strictObject({
+  ...identity,
+  tier,
+  /** Passive gathering per hour, by resource. */
+  rates: amounts,
+  /** The manual Gather click grants this many minutes of production. */
+  bonusMinutes: z.int().min(1),
+  cooldownMinutes: z.int().min(1),
+  /** Paid once to upgrade to this tier. */
+  cost: amounts,
+});
+export const baseTierSchema = z.strictObject({
+  ...identity,
+  /** Total resources the base can hold, all resources together. */
+  storageCap: z.int().min(1),
+});
 export const furnaceSchema = z.strictObject({ ...identity, tier });
 
 export const ITEM_CATEGORIES = [

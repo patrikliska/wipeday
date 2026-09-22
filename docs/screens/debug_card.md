@@ -1,12 +1,12 @@
 # Screen: `debug_card`
 
 **Command:** `/idle-debug card` (Administrator only). **Visibility:** ephemeral.
-**Card:** `demo` (`src/render/cards/demo.tsx`). **Builder:** `src/ui/screens/debugCard.ts`.
+**Card:** `base` fixtures (`src/render/cards/base.tsx`). **Builder:** `src/ui/screens/debugCard.ts`.
 
 ## Purpose
 Prove the whole pipeline inside real Discord: data load -> card render -> attachment ->
 Components V2 message -> button round trip -> cache. Also lets the owner flip through the
-demo card's states on an actual phone, which is the one thing `pnpm preview` cannot show.
+base card's states on an actual phone, which is the one thing `pnpm preview` cannot show.
 
 ## States
 | State | Shows | When |

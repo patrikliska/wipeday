@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`demo card > has a stable element tree per fixture > empty 1`] = `
+exports[`base card > has a stable element tree per fixture > empty 1`] = `
 {
   "props": {
     "children": [
@@ -182,8 +182,8 @@ exports[`demo card > has a stable element tree per fixture > empty 1`] = `
                 "style": {
                   "display": "flex",
                   "flexDirection": "column",
-                  "marginBottom": 22,
-                  "marginTop": 22,
+                  "marginBottom": 18,
+                  "marginTop": 18,
                 },
               },
               "type": "div",
@@ -219,7 +219,7 @@ exports[`demo card > has a stable element tree per fixture > empty 1`] = `
                         },
                         {
                           "props": {
-                            "children": "/ 1k",
+                            "children": "/ 2.5k",
                             "style": {
                               "color": "#A49E93",
                               "display": "flex",
@@ -263,6 +263,94 @@ exports[`demo card > has a stable element tree per fixture > empty 1`] = `
             },
             {
               "props": {
+                "children": {
+                  "props": {
+                    "children": [
+                      {
+                        "props": {
+                          "children": "RO",
+                          "style": {
+                            "alignItems": "center",
+                            "backgroundColor": "rgba(194, 168, 104, 0.16)",
+                            "border": "1.5px solid rgba(194, 168, 104, 0.55)",
+                            "borderRadius": 6.4,
+                            "color": "#C2A868",
+                            "display": "flex",
+                            "flexShrink": 0,
+                            "fontSize": 14.399999999999999,
+                            "fontWeight": 700,
+                            "height": 40,
+                            "justifyContent": "center",
+                            "opacity": 1,
+                            "width": 40,
+                          },
+                        },
+                        "type": "div",
+                      },
+                      {
+                        "props": {
+                          "children": "Rock",
+                          "style": {
+                            "display": "block",
+                            "fontSize": 26,
+                            "fontWeight": 700,
+                            "marginLeft": 12,
+                            "minWidth": 0,
+                            "overflow": "hidden",
+                            "textOverflow": "ellipsis",
+                            "whiteSpace": "nowrap",
+                          },
+                        },
+                        "type": "div",
+                      },
+                      {
+                        "props": {
+                          "style": {
+                            "display": "flex",
+                            "flex": 1,
+                          },
+                        },
+                        "type": "div",
+                      },
+                      {
+                        "props": {
+                          "children": "Gathering tool",
+                          "style": {
+                            "color": "#C2A868",
+                            "display": "block",
+                            "marginLeft": 12,
+                            "minWidth": 0,
+                            "overflow": "hidden",
+                            "textOverflow": "ellipsis",
+                            "whiteSpace": "nowrap",
+                          },
+                        },
+                        "type": "div",
+                      },
+                    ],
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#272521",
+                      "border": "2px solid rgba(194, 168, 104, 0.6)",
+                      "borderRadius": 12,
+                      "display": "flex",
+                      "flexDirection": "row",
+                      "height": 56,
+                      "padding": "0 12px",
+                    },
+                  },
+                  "type": "div",
+                },
+                "style": {
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "marginTop": 18,
+                },
+              },
+              "type": "div",
+            },
+            {
+              "props": {
                 "children": [
                   {
                     "props": {
@@ -273,17 +361,17 @@ exports[`demo card > has a stable element tree per fixture > empty 1`] = `
                             "style": {
                               "alignItems": "center",
                               "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
+                              "border": "1.5px solid rgba(164, 158, 147, 0.55)",
+                              "borderRadius": 7.04,
                               "color": "#A49E93",
                               "display": "flex",
                               "flexShrink": 0,
-                              "fontSize": 18.72,
+                              "fontSize": 15.84,
                               "fontWeight": 700,
-                              "height": 52,
+                              "height": 44,
                               "justifyContent": "center",
                               "opacity": 0.45,
-                              "width": 52,
+                              "width": 44,
                             },
                           },
                           "type": "div",
@@ -293,23 +381,17 @@ exports[`demo card > has a stable element tree per fixture > empty 1`] = `
                             "children": [
                               {
                                 "props": {
-                                  "children": {
-                                    "props": {
-                                      "children": "0",
-                                      "style": {
-                                        "color": "#A49E93",
-                                        "display": "flex",
-                                        "fontSize": 30,
-                                        "fontWeight": 700,
-                                      },
-                                    },
-                                    "type": "div",
-                                  },
+                                  "children": "0",
                                   "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
+                                    "color": "#A49E93",
+                                    "display": "block",
+                                    "fontSize": 28,
+                                    "fontWeight": 700,
+                                    "lineHeight": "32px",
+                                    "minWidth": 0,
+                                    "overflow": "hidden",
+                                    "textOverflow": "ellipsis",
+                                    "whiteSpace": "nowrap",
                                   },
                                 },
                                 "type": "div",
@@ -320,7 +402,7 @@ exports[`demo card > has a stable element tree per fixture > empty 1`] = `
                                   "style": {
                                     "color": "#A49E93",
                                     "display": "block",
-                                    "marginTop": 2,
+                                    "lineHeight": "26px",
                                     "minWidth": 0,
                                     "overflow": "hidden",
                                     "textOverflow": "ellipsis",
@@ -344,13 +426,12 @@ exports[`demo card > has a stable element tree per fixture > empty 1`] = `
                       "style": {
                         "alignItems": "center",
                         "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
                         "borderRadius": 12,
                         "display": "flex",
                         "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
+                        "height": 76,
+                        "padding": "0 10px",
+                        "width": 176.5,
                       },
                     },
                     "type": "div",
@@ -364,17 +445,17 @@ exports[`demo card > has a stable element tree per fixture > empty 1`] = `
                             "style": {
                               "alignItems": "center",
                               "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
+                              "border": "1.5px solid rgba(164, 158, 147, 0.55)",
+                              "borderRadius": 7.04,
                               "color": "#A49E93",
                               "display": "flex",
                               "flexShrink": 0,
-                              "fontSize": 18.72,
+                              "fontSize": 15.84,
                               "fontWeight": 700,
-                              "height": 52,
+                              "height": 44,
                               "justifyContent": "center",
                               "opacity": 0.45,
-                              "width": 52,
+                              "width": 44,
                             },
                           },
                           "type": "div",
@@ -384,23 +465,17 @@ exports[`demo card > has a stable element tree per fixture > empty 1`] = `
                             "children": [
                               {
                                 "props": {
-                                  "children": {
-                                    "props": {
-                                      "children": "0",
-                                      "style": {
-                                        "color": "#A49E93",
-                                        "display": "flex",
-                                        "fontSize": 30,
-                                        "fontWeight": 700,
-                                      },
-                                    },
-                                    "type": "div",
-                                  },
+                                  "children": "0",
                                   "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
+                                    "color": "#A49E93",
+                                    "display": "block",
+                                    "fontSize": 28,
+                                    "fontWeight": 700,
+                                    "lineHeight": "32px",
+                                    "minWidth": 0,
+                                    "overflow": "hidden",
+                                    "textOverflow": "ellipsis",
+                                    "whiteSpace": "nowrap",
                                   },
                                 },
                                 "type": "div",
@@ -411,7 +486,7 @@ exports[`demo card > has a stable element tree per fixture > empty 1`] = `
                                   "style": {
                                     "color": "#A49E93",
                                     "display": "block",
-                                    "marginTop": 2,
+                                    "lineHeight": "26px",
                                     "minWidth": 0,
                                     "overflow": "hidden",
                                     "textOverflow": "ellipsis",
@@ -435,97 +510,12 @@ exports[`demo card > has a stable element tree per fixture > empty 1`] = `
                       "style": {
                         "alignItems": "center",
                         "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
                         "borderRadius": 12,
                         "display": "flex",
                         "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
-                      },
-                    },
-                    "type": "div",
-                  },
-                  {
-                    "props": {
-                      "children": [
-                        {
-                          "props": {
-                            "children": "RO",
-                            "style": {
-                              "alignItems": "center",
-                              "backgroundColor": "rgba(194, 168, 104, 0.16)",
-                              "border": "1.56px solid rgba(194, 168, 104, 0.55)",
-                              "borderRadius": 8.32,
-                              "color": "#C2A868",
-                              "display": "flex",
-                              "flexShrink": 0,
-                              "fontSize": 18.72,
-                              "fontWeight": 700,
-                              "height": 52,
-                              "justifyContent": "center",
-                              "opacity": 1,
-                              "width": 52,
-                            },
-                          },
-                          "type": "div",
-                        },
-                        {
-                          "props": {
-                            "children": [
-                              {
-                                "props": {
-                                  "children": "Rock",
-                                  "style": {
-                                    "display": "block",
-                                    "fontSize": 24,
-                                    "fontWeight": 700,
-                                    "lineHeight": "34px",
-                                    "minWidth": 0,
-                                    "overflow": "hidden",
-                                    "textOverflow": "ellipsis",
-                                    "whiteSpace": "nowrap",
-                                  },
-                                },
-                                "type": "div",
-                              },
-                              {
-                                "props": {
-                                  "children": "Gathering tool",
-                                  "style": {
-                                    "color": "#C2A868",
-                                    "display": "block",
-                                    "marginTop": 2,
-                                    "minWidth": 0,
-                                    "overflow": "hidden",
-                                    "textOverflow": "ellipsis",
-                                    "whiteSpace": "nowrap",
-                                  },
-                                },
-                                "type": "div",
-                              },
-                            ],
-                            "style": {
-                              "display": "flex",
-                              "flex": 1,
-                              "flexDirection": "column",
-                              "marginLeft": 10,
-                              "minWidth": 0,
-                            },
-                          },
-                          "type": "div",
-                        },
-                      ],
-                      "style": {
-                        "alignItems": "center",
-                        "backgroundColor": "#272521",
-                        "border": "2px solid rgba(194, 168, 104, 0.6)",
-                        "borderRadius": 12,
-                        "display": "flex",
-                        "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
+                        "height": 76,
+                        "padding": "0 10px",
+                        "width": 176.5,
                       },
                     },
                     "type": "div",
@@ -535,8 +525,8 @@ exports[`demo card > has a stable element tree per fixture > empty 1`] = `
                   "display": "flex",
                   "flexDirection": "row",
                   "flexWrap": "wrap",
-                  "gap": 12,
-                  "marginTop": 26,
+                  "gap": 10,
+                  "marginTop": 18,
                 },
               },
               "type": "div",
@@ -565,7 +555,7 @@ exports[`demo card > has a stable element tree per fixture > empty 1`] = `
 }
 `;
 
-exports[`demo card > has a stable element tree per fixture > full 1`] = `
+exports[`base card > has a stable element tree per fixture > full 1`] = `
 {
   "props": {
     "children": [
@@ -747,8 +737,8 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                 "style": {
                   "display": "flex",
                   "flexDirection": "column",
-                  "marginBottom": 22,
-                  "marginTop": 22,
+                  "marginBottom": 18,
+                  "marginTop": 18,
                 },
               },
               "type": "div",
@@ -818,6 +808,94 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
             },
             {
               "props": {
+                "children": {
+                  "props": {
+                    "children": [
+                      {
+                        "props": {
+                          "children": "PT",
+                          "style": {
+                            "alignItems": "center",
+                            "backgroundColor": "rgba(69, 194, 192, 0.16)",
+                            "border": "1.5px solid rgba(69, 194, 192, 0.55)",
+                            "borderRadius": 6.4,
+                            "color": "#45C2C0",
+                            "display": "flex",
+                            "flexShrink": 0,
+                            "fontSize": 14.399999999999999,
+                            "fontWeight": 700,
+                            "height": 40,
+                            "justifyContent": "center",
+                            "opacity": 1,
+                            "width": 40,
+                          },
+                        },
+                        "type": "div",
+                      },
+                      {
+                        "props": {
+                          "children": "Power Tools",
+                          "style": {
+                            "display": "block",
+                            "fontSize": 26,
+                            "fontWeight": 700,
+                            "marginLeft": 12,
+                            "minWidth": 0,
+                            "overflow": "hidden",
+                            "textOverflow": "ellipsis",
+                            "whiteSpace": "nowrap",
+                          },
+                        },
+                        "type": "div",
+                      },
+                      {
+                        "props": {
+                          "style": {
+                            "display": "flex",
+                            "flex": 1,
+                          },
+                        },
+                        "type": "div",
+                      },
+                      {
+                        "props": {
+                          "children": "Gathering tool",
+                          "style": {
+                            "color": "#45C2C0",
+                            "display": "block",
+                            "marginLeft": 12,
+                            "minWidth": 0,
+                            "overflow": "hidden",
+                            "textOverflow": "ellipsis",
+                            "whiteSpace": "nowrap",
+                          },
+                        },
+                        "type": "div",
+                      },
+                    ],
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#272521",
+                      "border": "2px solid rgba(69, 194, 192, 0.6)",
+                      "borderRadius": 12,
+                      "display": "flex",
+                      "flexDirection": "row",
+                      "height": 56,
+                      "padding": "0 12px",
+                    },
+                  },
+                  "type": "div",
+                },
+                "style": {
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "marginTop": 18,
+                },
+              },
+              "type": "div",
+            },
+            {
+              "props": {
                 "children": [
                   {
                     "props": {
@@ -828,17 +906,17 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "style": {
                               "alignItems": "center",
                               "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
+                              "border": "1.5px solid rgba(164, 158, 147, 0.55)",
+                              "borderRadius": 7.04,
                               "color": "#A49E93",
                               "display": "flex",
                               "flexShrink": 0,
-                              "fontSize": 18.72,
+                              "fontSize": 15.84,
                               "fontWeight": 700,
-                              "height": 52,
+                              "height": 44,
                               "justifyContent": "center",
                               "opacity": 1,
-                              "width": 52,
+                              "width": 44,
                             },
                           },
                           "type": "div",
@@ -848,35 +926,17 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "children": [
                               {
                                 "props": {
-                                  "children": [
-                                    {
-                                      "props": {
-                                        "children": "9.9M",
-                                        "style": {
-                                          "color": "#ECE8DF",
-                                          "display": "flex",
-                                          "fontSize": 30,
-                                          "fontWeight": 700,
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                    {
-                                      "props": {
-                                        "children": "+1.2M/h",
-                                        "style": {
-                                          "color": "#A49E93",
-                                          "display": "flex",
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                  ],
+                                  "children": "9.9M",
                                   "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
+                                    "color": "#ECE8DF",
+                                    "display": "block",
+                                    "fontSize": 28,
+                                    "fontWeight": 700,
+                                    "lineHeight": "32px",
+                                    "minWidth": 0,
+                                    "overflow": "hidden",
+                                    "textOverflow": "ellipsis",
+                                    "whiteSpace": "nowrap",
                                   },
                                 },
                                 "type": "div",
@@ -887,7 +947,7 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                                   "style": {
                                     "color": "#A49E93",
                                     "display": "block",
-                                    "marginTop": 2,
+                                    "lineHeight": "26px",
                                     "minWidth": 0,
                                     "overflow": "hidden",
                                     "textOverflow": "ellipsis",
@@ -911,13 +971,12 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                       "style": {
                         "alignItems": "center",
                         "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
                         "borderRadius": 12,
                         "display": "flex",
                         "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
+                        "height": 76,
+                        "padding": "0 10px",
+                        "width": 176.5,
                       },
                     },
                     "type": "div",
@@ -931,17 +990,17 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "style": {
                               "alignItems": "center",
                               "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
+                              "border": "1.5px solid rgba(164, 158, 147, 0.55)",
+                              "borderRadius": 7.04,
                               "color": "#A49E93",
                               "display": "flex",
                               "flexShrink": 0,
-                              "fontSize": 18.72,
+                              "fontSize": 15.84,
                               "fontWeight": 700,
-                              "height": 52,
+                              "height": 44,
                               "justifyContent": "center",
                               "opacity": 1,
-                              "width": 52,
+                              "width": 44,
                             },
                           },
                           "type": "div",
@@ -951,35 +1010,17 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "children": [
                               {
                                 "props": {
-                                  "children": [
-                                    {
-                                      "props": {
-                                        "children": "9.9M",
-                                        "style": {
-                                          "color": "#ECE8DF",
-                                          "display": "flex",
-                                          "fontSize": 30,
-                                          "fontWeight": 700,
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                    {
-                                      "props": {
-                                        "children": "+1.2M/h",
-                                        "style": {
-                                          "color": "#A49E93",
-                                          "display": "flex",
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                  ],
+                                  "children": "9.9M",
                                   "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
+                                    "color": "#ECE8DF",
+                                    "display": "block",
+                                    "fontSize": 28,
+                                    "fontWeight": 700,
+                                    "lineHeight": "32px",
+                                    "minWidth": 0,
+                                    "overflow": "hidden",
+                                    "textOverflow": "ellipsis",
+                                    "whiteSpace": "nowrap",
                                   },
                                 },
                                 "type": "div",
@@ -990,7 +1031,7 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                                   "style": {
                                     "color": "#A49E93",
                                     "display": "block",
-                                    "marginTop": 2,
+                                    "lineHeight": "26px",
                                     "minWidth": 0,
                                     "overflow": "hidden",
                                     "textOverflow": "ellipsis",
@@ -1014,13 +1055,12 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                       "style": {
                         "alignItems": "center",
                         "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
                         "borderRadius": 12,
                         "display": "flex",
                         "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
+                        "height": 76,
+                        "padding": "0 10px",
+                        "width": 176.5,
                       },
                     },
                     "type": "div",
@@ -1034,17 +1074,17 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "style": {
                               "alignItems": "center",
                               "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
+                              "border": "1.5px solid rgba(164, 158, 147, 0.55)",
+                              "borderRadius": 7.04,
                               "color": "#A49E93",
                               "display": "flex",
                               "flexShrink": 0,
-                              "fontSize": 18.72,
+                              "fontSize": 15.84,
                               "fontWeight": 700,
-                              "height": 52,
+                              "height": 44,
                               "justifyContent": "center",
                               "opacity": 1,
-                              "width": 52,
+                              "width": 44,
                             },
                           },
                           "type": "div",
@@ -1054,35 +1094,17 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "children": [
                               {
                                 "props": {
-                                  "children": [
-                                    {
-                                      "props": {
-                                        "children": "9.9M",
-                                        "style": {
-                                          "color": "#ECE8DF",
-                                          "display": "flex",
-                                          "fontSize": 30,
-                                          "fontWeight": 700,
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                    {
-                                      "props": {
-                                        "children": "+1.2M/h",
-                                        "style": {
-                                          "color": "#A49E93",
-                                          "display": "flex",
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                  ],
+                                  "children": "9.9M",
                                   "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
+                                    "color": "#ECE8DF",
+                                    "display": "block",
+                                    "fontSize": 28,
+                                    "fontWeight": 700,
+                                    "lineHeight": "32px",
+                                    "minWidth": 0,
+                                    "overflow": "hidden",
+                                    "textOverflow": "ellipsis",
+                                    "whiteSpace": "nowrap",
                                   },
                                 },
                                 "type": "div",
@@ -1093,7 +1115,7 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                                   "style": {
                                     "color": "#A49E93",
                                     "display": "block",
-                                    "marginTop": 2,
+                                    "lineHeight": "26px",
                                     "minWidth": 0,
                                     "overflow": "hidden",
                                     "textOverflow": "ellipsis",
@@ -1117,13 +1139,12 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                       "style": {
                         "alignItems": "center",
                         "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
                         "borderRadius": 12,
                         "display": "flex",
                         "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
+                        "height": 76,
+                        "padding": "0 10px",
+                        "width": 176.5,
                       },
                     },
                     "type": "div",
@@ -1137,17 +1158,17 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "style": {
                               "alignItems": "center",
                               "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
+                              "border": "1.5px solid rgba(164, 158, 147, 0.55)",
+                              "borderRadius": 7.04,
                               "color": "#A49E93",
                               "display": "flex",
                               "flexShrink": 0,
-                              "fontSize": 18.72,
+                              "fontSize": 15.84,
                               "fontWeight": 700,
-                              "height": 52,
+                              "height": 44,
                               "justifyContent": "center",
                               "opacity": 1,
-                              "width": 52,
+                              "width": 44,
                             },
                           },
                           "type": "div",
@@ -1157,46 +1178,28 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "children": [
                               {
                                 "props": {
-                                  "children": [
-                                    {
-                                      "props": {
-                                        "children": "9.9M",
-                                        "style": {
-                                          "color": "#ECE8DF",
-                                          "display": "flex",
-                                          "fontSize": 30,
-                                          "fontWeight": 700,
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                    {
-                                      "props": {
-                                        "children": "+1.2M/h",
-                                        "style": {
-                                          "color": "#A49E93",
-                                          "display": "flex",
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                  ],
+                                  "children": "9.9M",
                                   "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
+                                    "color": "#ECE8DF",
+                                    "display": "block",
+                                    "fontSize": 28,
+                                    "fontWeight": 700,
+                                    "lineHeight": "32px",
+                                    "minWidth": 0,
+                                    "overflow": "hidden",
+                                    "textOverflow": "ellipsis",
+                                    "whiteSpace": "nowrap",
                                   },
                                 },
                                 "type": "div",
                               },
                               {
                                 "props": {
-                                  "children": "Metal Fragments",
+                                  "children": "Metal Frags",
                                   "style": {
                                     "color": "#A49E93",
                                     "display": "block",
-                                    "marginTop": 2,
+                                    "lineHeight": "26px",
                                     "minWidth": 0,
                                     "overflow": "hidden",
                                     "textOverflow": "ellipsis",
@@ -1220,13 +1223,12 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                       "style": {
                         "alignItems": "center",
                         "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
                         "borderRadius": 12,
                         "display": "flex",
                         "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
+                        "height": 76,
+                        "padding": "0 10px",
+                        "width": 176.5,
                       },
                     },
                     "type": "div",
@@ -1240,17 +1242,17 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "style": {
                               "alignItems": "center",
                               "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
+                              "border": "1.5px solid rgba(164, 158, 147, 0.55)",
+                              "borderRadius": 7.04,
                               "color": "#A49E93",
                               "display": "flex",
                               "flexShrink": 0,
-                              "fontSize": 18.72,
+                              "fontSize": 15.84,
                               "fontWeight": 700,
-                              "height": 52,
+                              "height": 44,
                               "justifyContent": "center",
                               "opacity": 1,
-                              "width": 52,
+                              "width": 44,
                             },
                           },
                           "type": "div",
@@ -1260,35 +1262,17 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "children": [
                               {
                                 "props": {
-                                  "children": [
-                                    {
-                                      "props": {
-                                        "children": "9.9M",
-                                        "style": {
-                                          "color": "#ECE8DF",
-                                          "display": "flex",
-                                          "fontSize": 30,
-                                          "fontWeight": 700,
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                    {
-                                      "props": {
-                                        "children": "+1.2M/h",
-                                        "style": {
-                                          "color": "#A49E93",
-                                          "display": "flex",
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                  ],
+                                  "children": "9.9M",
                                   "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
+                                    "color": "#ECE8DF",
+                                    "display": "block",
+                                    "fontSize": 28,
+                                    "fontWeight": 700,
+                                    "lineHeight": "32px",
+                                    "minWidth": 0,
+                                    "overflow": "hidden",
+                                    "textOverflow": "ellipsis",
+                                    "whiteSpace": "nowrap",
                                   },
                                 },
                                 "type": "div",
@@ -1299,7 +1283,7 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                                   "style": {
                                     "color": "#A49E93",
                                     "display": "block",
-                                    "marginTop": 2,
+                                    "lineHeight": "26px",
                                     "minWidth": 0,
                                     "overflow": "hidden",
                                     "textOverflow": "ellipsis",
@@ -1323,13 +1307,12 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                       "style": {
                         "alignItems": "center",
                         "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
                         "borderRadius": 12,
                         "display": "flex",
                         "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
+                        "height": 76,
+                        "padding": "0 10px",
+                        "width": 176.5,
                       },
                     },
                     "type": "div",
@@ -1343,17 +1326,17 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "style": {
                               "alignItems": "center",
                               "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
+                              "border": "1.5px solid rgba(164, 158, 147, 0.55)",
+                              "borderRadius": 7.04,
                               "color": "#A49E93",
                               "display": "flex",
                               "flexShrink": 0,
-                              "fontSize": 18.72,
+                              "fontSize": 15.84,
                               "fontWeight": 700,
-                              "height": 52,
+                              "height": 44,
                               "justifyContent": "center",
                               "opacity": 1,
-                              "width": 52,
+                              "width": 44,
                             },
                           },
                           "type": "div",
@@ -1363,35 +1346,17 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "children": [
                               {
                                 "props": {
-                                  "children": [
-                                    {
-                                      "props": {
-                                        "children": "9.9M",
-                                        "style": {
-                                          "color": "#ECE8DF",
-                                          "display": "flex",
-                                          "fontSize": 30,
-                                          "fontWeight": 700,
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                    {
-                                      "props": {
-                                        "children": "+1.2M/h",
-                                        "style": {
-                                          "color": "#A49E93",
-                                          "display": "flex",
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                  ],
+                                  "children": "9.9M",
                                   "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
+                                    "color": "#ECE8DF",
+                                    "display": "block",
+                                    "fontSize": 28,
+                                    "fontWeight": 700,
+                                    "lineHeight": "32px",
+                                    "minWidth": 0,
+                                    "overflow": "hidden",
+                                    "textOverflow": "ellipsis",
+                                    "whiteSpace": "nowrap",
                                   },
                                 },
                                 "type": "div",
@@ -1402,7 +1367,7 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                                   "style": {
                                     "color": "#A49E93",
                                     "display": "block",
-                                    "marginTop": 2,
+                                    "lineHeight": "26px",
                                     "minWidth": 0,
                                     "overflow": "hidden",
                                     "textOverflow": "ellipsis",
@@ -1426,13 +1391,12 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                       "style": {
                         "alignItems": "center",
                         "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
                         "borderRadius": 12,
                         "display": "flex",
                         "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
+                        "height": 76,
+                        "padding": "0 10px",
+                        "width": 176.5,
                       },
                     },
                     "type": "div",
@@ -1446,17 +1410,17 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "style": {
                               "alignItems": "center",
                               "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
+                              "border": "1.5px solid rgba(164, 158, 147, 0.55)",
+                              "borderRadius": 7.04,
                               "color": "#A49E93",
                               "display": "flex",
                               "flexShrink": 0,
-                              "fontSize": 18.72,
+                              "fontSize": 15.84,
                               "fontWeight": 700,
-                              "height": 52,
+                              "height": 44,
                               "justifyContent": "center",
                               "opacity": 1,
-                              "width": 52,
+                              "width": 44,
                             },
                           },
                           "type": "div",
@@ -1466,35 +1430,17 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "children": [
                               {
                                 "props": {
-                                  "children": [
-                                    {
-                                      "props": {
-                                        "children": "9.9M",
-                                        "style": {
-                                          "color": "#ECE8DF",
-                                          "display": "flex",
-                                          "fontSize": 30,
-                                          "fontWeight": 700,
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                    {
-                                      "props": {
-                                        "children": "+1.2M/h",
-                                        "style": {
-                                          "color": "#A49E93",
-                                          "display": "flex",
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                  ],
+                                  "children": "9.9M",
                                   "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
+                                    "color": "#ECE8DF",
+                                    "display": "block",
+                                    "fontSize": 28,
+                                    "fontWeight": 700,
+                                    "lineHeight": "32px",
+                                    "minWidth": 0,
+                                    "overflow": "hidden",
+                                    "textOverflow": "ellipsis",
+                                    "whiteSpace": "nowrap",
                                   },
                                 },
                                 "type": "div",
@@ -1505,7 +1451,7 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                                   "style": {
                                     "color": "#A49E93",
                                     "display": "block",
-                                    "marginTop": 2,
+                                    "lineHeight": "26px",
                                     "minWidth": 0,
                                     "overflow": "hidden",
                                     "textOverflow": "ellipsis",
@@ -1529,13 +1475,12 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                       "style": {
                         "alignItems": "center",
                         "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
                         "borderRadius": 12,
                         "display": "flex",
                         "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
+                        "height": 76,
+                        "padding": "0 10px",
+                        "width": 176.5,
                       },
                     },
                     "type": "div",
@@ -1549,17 +1494,17 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "style": {
                               "alignItems": "center",
                               "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
+                              "border": "1.5px solid rgba(164, 158, 147, 0.55)",
+                              "borderRadius": 7.04,
                               "color": "#A49E93",
                               "display": "flex",
                               "flexShrink": 0,
-                              "fontSize": 18.72,
+                              "fontSize": 15.84,
                               "fontWeight": 700,
-                              "height": 52,
+                              "height": 44,
                               "justifyContent": "center",
                               "opacity": 1,
-                              "width": 52,
+                              "width": 44,
                             },
                           },
                           "type": "div",
@@ -1569,35 +1514,17 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "children": [
                               {
                                 "props": {
-                                  "children": [
-                                    {
-                                      "props": {
-                                        "children": "9.9M",
-                                        "style": {
-                                          "color": "#ECE8DF",
-                                          "display": "flex",
-                                          "fontSize": 30,
-                                          "fontWeight": 700,
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                    {
-                                      "props": {
-                                        "children": "+1.2M/h",
-                                        "style": {
-                                          "color": "#A49E93",
-                                          "display": "flex",
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                  ],
+                                  "children": "9.9M",
                                   "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
+                                    "color": "#ECE8DF",
+                                    "display": "block",
+                                    "fontSize": 28,
+                                    "fontWeight": 700,
+                                    "lineHeight": "32px",
+                                    "minWidth": 0,
+                                    "overflow": "hidden",
+                                    "textOverflow": "ellipsis",
+                                    "whiteSpace": "nowrap",
                                   },
                                 },
                                 "type": "div",
@@ -1608,7 +1535,7 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                                   "style": {
                                     "color": "#A49E93",
                                     "display": "block",
-                                    "marginTop": 2,
+                                    "lineHeight": "26px",
                                     "minWidth": 0,
                                     "overflow": "hidden",
                                     "textOverflow": "ellipsis",
@@ -1632,13 +1559,12 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                       "style": {
                         "alignItems": "center",
                         "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
                         "borderRadius": 12,
                         "display": "flex",
                         "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
+                        "height": 76,
+                        "padding": "0 10px",
+                        "width": 176.5,
                       },
                     },
                     "type": "div",
@@ -1652,17 +1578,17 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "style": {
                               "alignItems": "center",
                               "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
+                              "border": "1.5px solid rgba(164, 158, 147, 0.55)",
+                              "borderRadius": 7.04,
                               "color": "#A49E93",
                               "display": "flex",
                               "flexShrink": 0,
-                              "fontSize": 18.72,
+                              "fontSize": 15.84,
                               "fontWeight": 700,
-                              "height": 52,
+                              "height": 44,
                               "justifyContent": "center",
                               "opacity": 1,
-                              "width": 52,
+                              "width": 44,
                             },
                           },
                           "type": "div",
@@ -1672,35 +1598,17 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "children": [
                               {
                                 "props": {
-                                  "children": [
-                                    {
-                                      "props": {
-                                        "children": "9.9M",
-                                        "style": {
-                                          "color": "#ECE8DF",
-                                          "display": "flex",
-                                          "fontSize": 30,
-                                          "fontWeight": 700,
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                    {
-                                      "props": {
-                                        "children": "+1.2M/h",
-                                        "style": {
-                                          "color": "#A49E93",
-                                          "display": "flex",
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                  ],
+                                  "children": "9.9M",
                                   "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
+                                    "color": "#ECE8DF",
+                                    "display": "block",
+                                    "fontSize": 28,
+                                    "fontWeight": 700,
+                                    "lineHeight": "32px",
+                                    "minWidth": 0,
+                                    "overflow": "hidden",
+                                    "textOverflow": "ellipsis",
+                                    "whiteSpace": "nowrap",
                                   },
                                 },
                                 "type": "div",
@@ -1711,7 +1619,7 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                                   "style": {
                                     "color": "#A49E93",
                                     "display": "block",
-                                    "marginTop": 2,
+                                    "lineHeight": "26px",
                                     "minWidth": 0,
                                     "overflow": "hidden",
                                     "textOverflow": "ellipsis",
@@ -1735,13 +1643,12 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                       "style": {
                         "alignItems": "center",
                         "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
                         "borderRadius": 12,
                         "display": "flex",
                         "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
+                        "height": 76,
+                        "padding": "0 10px",
+                        "width": 176.5,
                       },
                     },
                     "type": "div",
@@ -1755,17 +1662,17 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "style": {
                               "alignItems": "center",
                               "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
+                              "border": "1.5px solid rgba(164, 158, 147, 0.55)",
+                              "borderRadius": 7.04,
                               "color": "#A49E93",
                               "display": "flex",
                               "flexShrink": 0,
-                              "fontSize": 18.72,
+                              "fontSize": 15.84,
                               "fontWeight": 700,
-                              "height": 52,
+                              "height": 44,
                               "justifyContent": "center",
                               "opacity": 1,
-                              "width": 52,
+                              "width": 44,
                             },
                           },
                           "type": "div",
@@ -1775,35 +1682,17 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "children": [
                               {
                                 "props": {
-                                  "children": [
-                                    {
-                                      "props": {
-                                        "children": "9.9M",
-                                        "style": {
-                                          "color": "#ECE8DF",
-                                          "display": "flex",
-                                          "fontSize": 30,
-                                          "fontWeight": 700,
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                    {
-                                      "props": {
-                                        "children": "+1.2M/h",
-                                        "style": {
-                                          "color": "#A49E93",
-                                          "display": "flex",
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                  ],
+                                  "children": "9.9M",
                                   "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
+                                    "color": "#ECE8DF",
+                                    "display": "block",
+                                    "fontSize": 28,
+                                    "fontWeight": 700,
+                                    "lineHeight": "32px",
+                                    "minWidth": 0,
+                                    "overflow": "hidden",
+                                    "textOverflow": "ellipsis",
+                                    "whiteSpace": "nowrap",
                                   },
                                 },
                                 "type": "div",
@@ -1814,7 +1703,7 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                                   "style": {
                                     "color": "#A49E93",
                                     "display": "block",
-                                    "marginTop": 2,
+                                    "lineHeight": "26px",
                                     "minWidth": 0,
                                     "overflow": "hidden",
                                     "textOverflow": "ellipsis",
@@ -1838,13 +1727,12 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                       "style": {
                         "alignItems": "center",
                         "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
                         "borderRadius": 12,
                         "display": "flex",
                         "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
+                        "height": 76,
+                        "padding": "0 10px",
+                        "width": 176.5,
                       },
                     },
                     "type": "div",
@@ -1858,17 +1746,17 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "style": {
                               "alignItems": "center",
                               "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
+                              "border": "1.5px solid rgba(164, 158, 147, 0.55)",
+                              "borderRadius": 7.04,
                               "color": "#A49E93",
                               "display": "flex",
                               "flexShrink": 0,
-                              "fontSize": 18.72,
+                              "fontSize": 15.84,
                               "fontWeight": 700,
-                              "height": 52,
+                              "height": 44,
                               "justifyContent": "center",
                               "opacity": 1,
-                              "width": 52,
+                              "width": 44,
                             },
                           },
                           "type": "div",
@@ -1878,46 +1766,28 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                             "children": [
                               {
                                 "props": {
-                                  "children": [
-                                    {
-                                      "props": {
-                                        "children": "9.9M",
-                                        "style": {
-                                          "color": "#ECE8DF",
-                                          "display": "flex",
-                                          "fontSize": 30,
-                                          "fontWeight": 700,
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                    {
-                                      "props": {
-                                        "children": "+1.2M/h",
-                                        "style": {
-                                          "color": "#A49E93",
-                                          "display": "flex",
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                  ],
+                                  "children": "9.9M",
                                   "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
+                                    "color": "#ECE8DF",
+                                    "display": "block",
+                                    "fontSize": 28,
+                                    "fontWeight": 700,
+                                    "lineHeight": "32px",
+                                    "minWidth": 0,
+                                    "overflow": "hidden",
+                                    "textOverflow": "ellipsis",
+                                    "whiteSpace": "nowrap",
                                   },
                                 },
                                 "type": "div",
                               },
                               {
                                 "props": {
-                                  "children": "Low Grade Fuel",
+                                  "children": "Low Grade",
                                   "style": {
                                     "color": "#A49E93",
                                     "display": "block",
-                                    "marginTop": 2,
+                                    "lineHeight": "26px",
                                     "minWidth": 0,
                                     "overflow": "hidden",
                                     "textOverflow": "ellipsis",
@@ -1941,97 +1811,12 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                       "style": {
                         "alignItems": "center",
                         "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
                         "borderRadius": 12,
                         "display": "flex",
                         "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
-                      },
-                    },
-                    "type": "div",
-                  },
-                  {
-                    "props": {
-                      "children": [
-                        {
-                          "props": {
-                            "children": "ST",
-                            "style": {
-                              "alignItems": "center",
-                              "backgroundColor": "rgba(108, 151, 188, 0.16)",
-                              "border": "1.56px solid rgba(108, 151, 188, 0.55)",
-                              "borderRadius": 8.32,
-                              "color": "#6C97BC",
-                              "display": "flex",
-                              "flexShrink": 0,
-                              "fontSize": 18.72,
-                              "fontWeight": 700,
-                              "height": 52,
-                              "justifyContent": "center",
-                              "opacity": 1,
-                              "width": 52,
-                            },
-                          },
-                          "type": "div",
-                        },
-                        {
-                          "props": {
-                            "children": [
-                              {
-                                "props": {
-                                  "children": "Salvaged Tools",
-                                  "style": {
-                                    "display": "block",
-                                    "fontSize": 24,
-                                    "fontWeight": 700,
-                                    "lineHeight": "34px",
-                                    "minWidth": 0,
-                                    "overflow": "hidden",
-                                    "textOverflow": "ellipsis",
-                                    "whiteSpace": "nowrap",
-                                  },
-                                },
-                                "type": "div",
-                              },
-                              {
-                                "props": {
-                                  "children": "Gathering tool",
-                                  "style": {
-                                    "color": "#6C97BC",
-                                    "display": "block",
-                                    "marginTop": 2,
-                                    "minWidth": 0,
-                                    "overflow": "hidden",
-                                    "textOverflow": "ellipsis",
-                                    "whiteSpace": "nowrap",
-                                  },
-                                },
-                                "type": "div",
-                              },
-                            ],
-                            "style": {
-                              "display": "flex",
-                              "flex": 1,
-                              "flexDirection": "column",
-                              "marginLeft": 10,
-                              "minWidth": 0,
-                            },
-                          },
-                          "type": "div",
-                        },
-                      ],
-                      "style": {
-                        "alignItems": "center",
-                        "backgroundColor": "#272521",
-                        "border": "2px solid rgba(108, 151, 188, 0.6)",
-                        "borderRadius": 12,
-                        "display": "flex",
-                        "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
+                        "height": 76,
+                        "padding": "0 10px",
+                        "width": 176.5,
                       },
                     },
                     "type": "div",
@@ -2041,71 +1826,8 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
                   "display": "flex",
                   "flexDirection": "row",
                   "flexWrap": "wrap",
-                  "gap": 12,
-                  "marginTop": 26,
-                },
-              },
-              "type": "div",
-            },
-            {
-              "props": {
-                "children": [
-                  {
-                    "props": {
-                      "children": [
-                        {
-                          "props": {
-                            "children": "Upkeep",
-                            "style": {
-                              "color": "#A49E93",
-                              "display": "flex",
-                              "fontSize": 22,
-                              "letterSpacing": 1.5,
-                              "textTransform": "uppercase",
-                            },
-                          },
-                          "type": "div",
-                        },
-                        {
-                          "props": {
-                            "children": "DECAYING",
-                            "style": {
-                              "color": "#F05252",
-                              "display": "flex",
-                              "fontSize": 24,
-                              "fontWeight": 700,
-                            },
-                          },
-                          "type": "div",
-                        },
-                      ],
-                      "style": {
-                        "alignItems": "baseline",
-                        "display": "flex",
-                        "flexDirection": "row",
-                        "justifyContent": "space-between",
-                        "marginBottom": 10,
-                      },
-                    },
-                    "type": "div",
-                  },
-                  {
-                    "props": {
-                      "style": {
-                        "backgroundColor": "#272521",
-                        "border": "1px solid #3B3832",
-                        "borderRadius": 6,
-                        "display": "flex",
-                        "height": 12,
-                      },
-                    },
-                    "type": "div",
-                  },
-                ],
-                "style": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "marginTop": 26,
+                  "gap": 10,
+                  "marginTop": 18,
                 },
               },
               "type": "div",
@@ -2134,7 +1856,7 @@ exports[`demo card > has a stable element tree per fixture > full 1`] = `
 }
 `;
 
-exports[`demo card > has a stable element tree per fixture > normal 1`] = `
+exports[`base card > has a stable element tree per fixture > normal 1`] = `
 {
   "props": {
     "children": [
@@ -2156,13 +1878,13 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                 "children": [
                   {
                     "props": {
-                      "children": "ST",
+                      "children": "TW",
                       "style": {
                         "alignItems": "center",
-                        "backgroundColor": "rgba(154, 160, 166, 0.16)",
-                        "border": "2.52px solid rgba(154, 160, 166, 0.55)",
+                        "backgroundColor": "rgba(194, 168, 104, 0.16)",
+                        "border": "2.52px solid rgba(194, 168, 104, 0.55)",
                         "borderRadius": 13.44,
-                        "color": "#9AA0A6",
+                        "color": "#C2A868",
                         "display": "flex",
                         "flexShrink": 0,
                         "fontSize": 30.24,
@@ -2196,9 +1918,9 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                         },
                         {
                           "props": {
-                            "children": "Stone base · Day 12",
+                            "children": "Twig base · Day 3",
                             "style": {
-                              "color": "#9AA0A6",
+                              "color": "#C2A868",
                               "display": "block",
                               "fontSize": 24,
                               "minWidth": 0,
@@ -2229,7 +1951,7 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                             "children": [
                               {
                                 "props": {
-                                  "children": "1.2k",
+                                  "children": "0",
                                   "style": {
                                     "display": "flex",
                                     "fontSize": 38,
@@ -2316,8 +2038,8 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                 "style": {
                   "display": "flex",
                   "flexDirection": "column",
-                  "marginBottom": 22,
-                  "marginTop": 22,
+                  "marginBottom": 18,
+                  "marginTop": 18,
                 },
               },
               "type": "div",
@@ -2343,7 +2065,7 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                       "children": [
                         {
                           "props": {
-                            "children": "12.4k",
+                            "children": "1.6k",
                             "style": {
                               "display": "flex",
                               "fontWeight": 700,
@@ -2353,7 +2075,7 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                         },
                         {
                           "props": {
-                            "children": "/ 20k",
+                            "children": "/ 2.5k",
                             "style": {
                               "color": "#A49E93",
                               "display": "flex",
@@ -2392,7 +2114,7 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                       "borderRadius": 10,
                       "display": "flex",
                       "minWidth": 20,
-                      "width": "62.245%",
+                      "width": "65.68%",
                     },
                   },
                   "type": "div",
@@ -2409,6 +2131,94 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
             },
             {
               "props": {
+                "children": {
+                  "props": {
+                    "children": [
+                      {
+                        "props": {
+                          "children": "ST",
+                          "style": {
+                            "alignItems": "center",
+                            "backgroundColor": "rgba(176, 120, 64, 0.16)",
+                            "border": "1.5px solid rgba(176, 120, 64, 0.55)",
+                            "borderRadius": 6.4,
+                            "color": "#B07840",
+                            "display": "flex",
+                            "flexShrink": 0,
+                            "fontSize": 14.399999999999999,
+                            "fontWeight": 700,
+                            "height": 40,
+                            "justifyContent": "center",
+                            "opacity": 1,
+                            "width": 40,
+                          },
+                        },
+                        "type": "div",
+                      },
+                      {
+                        "props": {
+                          "children": "Stone Tools",
+                          "style": {
+                            "display": "block",
+                            "fontSize": 26,
+                            "fontWeight": 700,
+                            "marginLeft": 12,
+                            "minWidth": 0,
+                            "overflow": "hidden",
+                            "textOverflow": "ellipsis",
+                            "whiteSpace": "nowrap",
+                          },
+                        },
+                        "type": "div",
+                      },
+                      {
+                        "props": {
+                          "style": {
+                            "display": "flex",
+                            "flex": 1,
+                          },
+                        },
+                        "type": "div",
+                      },
+                      {
+                        "props": {
+                          "children": "Gathering tool",
+                          "style": {
+                            "color": "#B07840",
+                            "display": "block",
+                            "marginLeft": 12,
+                            "minWidth": 0,
+                            "overflow": "hidden",
+                            "textOverflow": "ellipsis",
+                            "whiteSpace": "nowrap",
+                          },
+                        },
+                        "type": "div",
+                      },
+                    ],
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#272521",
+                      "border": "2px solid rgba(176, 120, 64, 0.6)",
+                      "borderRadius": 12,
+                      "display": "flex",
+                      "flexDirection": "row",
+                      "height": 56,
+                      "padding": "0 12px",
+                    },
+                  },
+                  "type": "div",
+                },
+                "style": {
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "marginTop": 18,
+                },
+              },
+              "type": "div",
+            },
+            {
+              "props": {
                 "children": [
                   {
                     "props": {
@@ -2419,17 +2229,17 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                             "style": {
                               "alignItems": "center",
                               "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
+                              "border": "1.5px solid rgba(164, 158, 147, 0.55)",
+                              "borderRadius": 7.04,
                               "color": "#A49E93",
                               "display": "flex",
                               "flexShrink": 0,
-                              "fontSize": 18.72,
+                              "fontSize": 15.84,
                               "fontWeight": 700,
-                              "height": 52,
+                              "height": 44,
                               "justifyContent": "center",
                               "opacity": 1,
-                              "width": 52,
+                              "width": 44,
                             },
                           },
                           "type": "div",
@@ -2439,35 +2249,17 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                             "children": [
                               {
                                 "props": {
-                                  "children": [
-                                    {
-                                      "props": {
-                                        "children": "4.2k",
-                                        "style": {
-                                          "color": "#ECE8DF",
-                                          "display": "flex",
-                                          "fontSize": 30,
-                                          "fontWeight": 700,
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                    {
-                                      "props": {
-                                        "children": "+620/h",
-                                        "style": {
-                                          "color": "#A49E93",
-                                          "display": "flex",
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                  ],
+                                  "children": "964",
                                   "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
+                                    "color": "#ECE8DF",
+                                    "display": "block",
+                                    "fontSize": 28,
+                                    "fontWeight": 700,
+                                    "lineHeight": "32px",
+                                    "minWidth": 0,
+                                    "overflow": "hidden",
+                                    "textOverflow": "ellipsis",
+                                    "whiteSpace": "nowrap",
                                   },
                                 },
                                 "type": "div",
@@ -2478,7 +2270,7 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                                   "style": {
                                     "color": "#A49E93",
                                     "display": "block",
-                                    "marginTop": 2,
+                                    "lineHeight": "26px",
                                     "minWidth": 0,
                                     "overflow": "hidden",
                                     "textOverflow": "ellipsis",
@@ -2502,13 +2294,12 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                       "style": {
                         "alignItems": "center",
                         "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
                         "borderRadius": 12,
                         "display": "flex",
                         "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
+                        "height": 76,
+                        "padding": "0 10px",
+                        "width": 176.5,
                       },
                     },
                     "type": "div",
@@ -2522,17 +2313,17 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                             "style": {
                               "alignItems": "center",
                               "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
+                              "border": "1.5px solid rgba(164, 158, 147, 0.55)",
+                              "borderRadius": 7.04,
                               "color": "#A49E93",
                               "display": "flex",
                               "flexShrink": 0,
-                              "fontSize": 18.72,
+                              "fontSize": 15.84,
                               "fontWeight": 700,
-                              "height": 52,
+                              "height": 44,
                               "justifyContent": "center",
                               "opacity": 1,
-                              "width": 52,
+                              "width": 44,
                             },
                           },
                           "type": "div",
@@ -2542,35 +2333,17 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                             "children": [
                               {
                                 "props": {
-                                  "children": [
-                                    {
-                                      "props": {
-                                        "children": "3.8k",
-                                        "style": {
-                                          "color": "#ECE8DF",
-                                          "display": "flex",
-                                          "fontSize": 30,
-                                          "fontWeight": 700,
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                    {
-                                      "props": {
-                                        "children": "+540/h",
-                                        "style": {
-                                          "color": "#A49E93",
-                                          "display": "flex",
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                  ],
+                                  "children": "512",
                                   "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
+                                    "color": "#ECE8DF",
+                                    "display": "block",
+                                    "fontSize": 28,
+                                    "fontWeight": 700,
+                                    "lineHeight": "32px",
+                                    "minWidth": 0,
+                                    "overflow": "hidden",
+                                    "textOverflow": "ellipsis",
+                                    "whiteSpace": "nowrap",
                                   },
                                 },
                                 "type": "div",
@@ -2581,7 +2354,7 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                                   "style": {
                                     "color": "#A49E93",
                                     "display": "block",
-                                    "marginTop": 2,
+                                    "lineHeight": "26px",
                                     "minWidth": 0,
                                     "overflow": "hidden",
                                     "textOverflow": "ellipsis",
@@ -2605,13 +2378,12 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                       "style": {
                         "alignItems": "center",
                         "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
                         "borderRadius": 12,
                         "display": "flex",
                         "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
+                        "height": 76,
+                        "padding": "0 10px",
+                        "width": 176.5,
                       },
                     },
                     "type": "div",
@@ -2625,17 +2397,17 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                             "style": {
                               "alignItems": "center",
                               "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
+                              "border": "1.5px solid rgba(164, 158, 147, 0.55)",
+                              "borderRadius": 7.04,
                               "color": "#A49E93",
                               "display": "flex",
                               "flexShrink": 0,
-                              "fontSize": 18.72,
+                              "fontSize": 15.84,
                               "fontWeight": 700,
-                              "height": 52,
+                              "height": 44,
                               "justifyContent": "center",
                               "opacity": 1,
-                              "width": 52,
+                              "width": 44,
                             },
                           },
                           "type": "div",
@@ -2645,35 +2417,17 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                             "children": [
                               {
                                 "props": {
-                                  "children": [
-                                    {
-                                      "props": {
-                                        "children": "1.4k",
-                                        "style": {
-                                          "color": "#ECE8DF",
-                                          "display": "flex",
-                                          "fontSize": 30,
-                                          "fontWeight": 700,
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                    {
-                                      "props": {
-                                        "children": "+210/h",
-                                        "style": {
-                                          "color": "#A49E93",
-                                          "display": "flex",
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                  ],
+                                  "children": "118",
                                   "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
+                                    "color": "#ECE8DF",
+                                    "display": "block",
+                                    "fontSize": 28,
+                                    "fontWeight": 700,
+                                    "lineHeight": "32px",
+                                    "minWidth": 0,
+                                    "overflow": "hidden",
+                                    "textOverflow": "ellipsis",
+                                    "whiteSpace": "nowrap",
                                   },
                                 },
                                 "type": "div",
@@ -2684,7 +2438,7 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                                   "style": {
                                     "color": "#A49E93",
                                     "display": "block",
-                                    "marginTop": 2,
+                                    "lineHeight": "26px",
                                     "minWidth": 0,
                                     "overflow": "hidden",
                                     "textOverflow": "ellipsis",
@@ -2708,13 +2462,12 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                       "style": {
                         "alignItems": "center",
                         "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
                         "borderRadius": 12,
                         "display": "flex",
                         "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
+                        "height": 76,
+                        "padding": "0 10px",
+                        "width": 176.5,
                       },
                     },
                     "type": "div",
@@ -2728,17 +2481,17 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                             "style": {
                               "alignItems": "center",
                               "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
+                              "border": "1.5px solid rgba(164, 158, 147, 0.55)",
+                              "borderRadius": 7.04,
                               "color": "#A49E93",
                               "display": "flex",
                               "flexShrink": 0,
-                              "fontSize": 18.72,
+                              "fontSize": 15.84,
                               "fontWeight": 700,
-                              "height": 52,
+                              "height": 44,
                               "justifyContent": "center",
-                              "opacity": 1,
-                              "width": 52,
+                              "opacity": 0.45,
+                              "width": 44,
                             },
                           },
                           "type": "div",
@@ -2748,34 +2501,28 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                             "children": [
                               {
                                 "props": {
-                                  "children": {
-                                    "props": {
-                                      "children": "964",
-                                      "style": {
-                                        "color": "#ECE8DF",
-                                        "display": "flex",
-                                        "fontSize": 30,
-                                        "fontWeight": 700,
-                                      },
-                                    },
-                                    "type": "div",
-                                  },
+                                  "children": "0",
                                   "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
+                                    "color": "#A49E93",
+                                    "display": "block",
+                                    "fontSize": 28,
+                                    "fontWeight": 700,
+                                    "lineHeight": "32px",
+                                    "minWidth": 0,
+                                    "overflow": "hidden",
+                                    "textOverflow": "ellipsis",
+                                    "whiteSpace": "nowrap",
                                   },
                                 },
                                 "type": "div",
                               },
                               {
                                 "props": {
-                                  "children": "Metal Fragments",
+                                  "children": "Metal Frags",
                                   "style": {
                                     "color": "#A49E93",
                                     "display": "block",
-                                    "marginTop": 2,
+                                    "lineHeight": "26px",
                                     "minWidth": 0,
                                     "overflow": "hidden",
                                     "textOverflow": "ellipsis",
@@ -2799,13 +2546,12 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                       "style": {
                         "alignItems": "center",
                         "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
                         "borderRadius": 12,
                         "display": "flex",
                         "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
+                        "height": 76,
+                        "padding": "0 10px",
+                        "width": 176.5,
                       },
                     },
                     "type": "div",
@@ -2819,17 +2565,17 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                             "style": {
                               "alignItems": "center",
                               "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
+                              "border": "1.5px solid rgba(164, 158, 147, 0.55)",
+                              "borderRadius": 7.04,
                               "color": "#A49E93",
                               "display": "flex",
                               "flexShrink": 0,
-                              "fontSize": 18.72,
+                              "fontSize": 15.84,
                               "fontWeight": 700,
-                              "height": 52,
+                              "height": 44,
                               "justifyContent": "center",
                               "opacity": 1,
-                              "width": 52,
+                              "width": 44,
                             },
                           },
                           "type": "div",
@@ -2839,35 +2585,17 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                             "children": [
                               {
                                 "props": {
-                                  "children": [
-                                    {
-                                      "props": {
-                                        "children": "820",
-                                        "style": {
-                                          "color": "#ECE8DF",
-                                          "display": "flex",
-                                          "fontSize": 30,
-                                          "fontWeight": 700,
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                    {
-                                      "props": {
-                                        "children": "+95/h",
-                                        "style": {
-                                          "color": "#A49E93",
-                                          "display": "flex",
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                  ],
+                                  "children": "48",
                                   "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
+                                    "color": "#ECE8DF",
+                                    "display": "block",
+                                    "fontSize": 28,
+                                    "fontWeight": 700,
+                                    "lineHeight": "32px",
+                                    "minWidth": 0,
+                                    "overflow": "hidden",
+                                    "textOverflow": "ellipsis",
+                                    "whiteSpace": "nowrap",
                                   },
                                 },
                                 "type": "div",
@@ -2878,7 +2606,7 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                                   "style": {
                                     "color": "#A49E93",
                                     "display": "block",
-                                    "marginTop": 2,
+                                    "lineHeight": "26px",
                                     "minWidth": 0,
                                     "overflow": "hidden",
                                     "textOverflow": "ellipsis",
@@ -2902,691 +2630,12 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                       "style": {
                         "alignItems": "center",
                         "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
                         "borderRadius": 12,
                         "display": "flex",
                         "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
-                      },
-                    },
-                    "type": "div",
-                  },
-                  {
-                    "props": {
-                      "children": [
-                        {
-                          "props": {
-                            "children": "SU",
-                            "style": {
-                              "alignItems": "center",
-                              "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
-                              "color": "#A49E93",
-                              "display": "flex",
-                              "flexShrink": 0,
-                              "fontSize": 18.72,
-                              "fontWeight": 700,
-                              "height": 52,
-                              "justifyContent": "center",
-                              "opacity": 1,
-                              "width": 52,
-                            },
-                          },
-                          "type": "div",
-                        },
-                        {
-                          "props": {
-                            "children": [
-                              {
-                                "props": {
-                                  "children": {
-                                    "props": {
-                                      "children": "312",
-                                      "style": {
-                                        "color": "#ECE8DF",
-                                        "display": "flex",
-                                        "fontSize": 30,
-                                        "fontWeight": 700,
-                                      },
-                                    },
-                                    "type": "div",
-                                  },
-                                  "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
-                                  },
-                                },
-                                "type": "div",
-                              },
-                              {
-                                "props": {
-                                  "children": "Sulfur",
-                                  "style": {
-                                    "color": "#A49E93",
-                                    "display": "block",
-                                    "marginTop": 2,
-                                    "minWidth": 0,
-                                    "overflow": "hidden",
-                                    "textOverflow": "ellipsis",
-                                    "whiteSpace": "nowrap",
-                                  },
-                                },
-                                "type": "div",
-                              },
-                            ],
-                            "style": {
-                              "display": "flex",
-                              "flex": 1,
-                              "flexDirection": "column",
-                              "marginLeft": 10,
-                              "minWidth": 0,
-                            },
-                          },
-                          "type": "div",
-                        },
-                      ],
-                      "style": {
-                        "alignItems": "center",
-                        "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
-                        "borderRadius": 12,
-                        "display": "flex",
-                        "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
-                      },
-                    },
-                    "type": "div",
-                  },
-                  {
-                    "props": {
-                      "children": [
-                        {
-                          "props": {
-                            "children": "HO",
-                            "style": {
-                              "alignItems": "center",
-                              "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
-                              "color": "#A49E93",
-                              "display": "flex",
-                              "flexShrink": 0,
-                              "fontSize": 18.72,
-                              "fontWeight": 700,
-                              "height": 52,
-                              "justifyContent": "center",
-                              "opacity": 1,
-                              "width": 52,
-                            },
-                          },
-                          "type": "div",
-                        },
-                        {
-                          "props": {
-                            "children": [
-                              {
-                                "props": {
-                                  "children": [
-                                    {
-                                      "props": {
-                                        "children": "41",
-                                        "style": {
-                                          "color": "#ECE8DF",
-                                          "display": "flex",
-                                          "fontSize": 30,
-                                          "fontWeight": 700,
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                    {
-                                      "props": {
-                                        "children": "+6/h",
-                                        "style": {
-                                          "color": "#A49E93",
-                                          "display": "flex",
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                  ],
-                                  "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
-                                  },
-                                },
-                                "type": "div",
-                              },
-                              {
-                                "props": {
-                                  "children": "HQM Ore",
-                                  "style": {
-                                    "color": "#A49E93",
-                                    "display": "block",
-                                    "marginTop": 2,
-                                    "minWidth": 0,
-                                    "overflow": "hidden",
-                                    "textOverflow": "ellipsis",
-                                    "whiteSpace": "nowrap",
-                                  },
-                                },
-                                "type": "div",
-                              },
-                            ],
-                            "style": {
-                              "display": "flex",
-                              "flex": 1,
-                              "flexDirection": "column",
-                              "marginLeft": 10,
-                              "minWidth": 0,
-                            },
-                          },
-                          "type": "div",
-                        },
-                      ],
-                      "style": {
-                        "alignItems": "center",
-                        "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
-                        "borderRadius": 12,
-                        "display": "flex",
-                        "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
-                      },
-                    },
-                    "type": "div",
-                  },
-                  {
-                    "props": {
-                      "children": [
-                        {
-                          "props": {
-                            "children": "HQ",
-                            "style": {
-                              "alignItems": "center",
-                              "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
-                              "color": "#A49E93",
-                              "display": "flex",
-                              "flexShrink": 0,
-                              "fontSize": 18.72,
-                              "fontWeight": 700,
-                              "height": 52,
-                              "justifyContent": "center",
-                              "opacity": 0.45,
-                              "width": 52,
-                            },
-                          },
-                          "type": "div",
-                        },
-                        {
-                          "props": {
-                            "children": [
-                              {
-                                "props": {
-                                  "children": {
-                                    "props": {
-                                      "children": "0",
-                                      "style": {
-                                        "color": "#A49E93",
-                                        "display": "flex",
-                                        "fontSize": 30,
-                                        "fontWeight": 700,
-                                      },
-                                    },
-                                    "type": "div",
-                                  },
-                                  "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
-                                  },
-                                },
-                                "type": "div",
-                              },
-                              {
-                                "props": {
-                                  "children": "HQM",
-                                  "style": {
-                                    "color": "#A49E93",
-                                    "display": "block",
-                                    "marginTop": 2,
-                                    "minWidth": 0,
-                                    "overflow": "hidden",
-                                    "textOverflow": "ellipsis",
-                                    "whiteSpace": "nowrap",
-                                  },
-                                },
-                                "type": "div",
-                              },
-                            ],
-                            "style": {
-                              "display": "flex",
-                              "flex": 1,
-                              "flexDirection": "column",
-                              "marginLeft": 10,
-                              "minWidth": 0,
-                            },
-                          },
-                          "type": "div",
-                        },
-                      ],
-                      "style": {
-                        "alignItems": "center",
-                        "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
-                        "borderRadius": 12,
-                        "display": "flex",
-                        "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
-                      },
-                    },
-                    "type": "div",
-                  },
-                  {
-                    "props": {
-                      "children": [
-                        {
-                          "props": {
-                            "children": "CL",
-                            "style": {
-                              "alignItems": "center",
-                              "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
-                              "color": "#A49E93",
-                              "display": "flex",
-                              "flexShrink": 0,
-                              "fontSize": 18.72,
-                              "fontWeight": 700,
-                              "height": 52,
-                              "justifyContent": "center",
-                              "opacity": 1,
-                              "width": 52,
-                            },
-                          },
-                          "type": "div",
-                        },
-                        {
-                          "props": {
-                            "children": [
-                              {
-                                "props": {
-                                  "children": [
-                                    {
-                                      "props": {
-                                        "children": "530",
-                                        "style": {
-                                          "color": "#ECE8DF",
-                                          "display": "flex",
-                                          "fontSize": 30,
-                                          "fontWeight": 700,
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                    {
-                                      "props": {
-                                        "children": "+48/h",
-                                        "style": {
-                                          "color": "#A49E93",
-                                          "display": "flex",
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                  ],
-                                  "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
-                                  },
-                                },
-                                "type": "div",
-                              },
-                              {
-                                "props": {
-                                  "children": "Cloth",
-                                  "style": {
-                                    "color": "#A49E93",
-                                    "display": "block",
-                                    "marginTop": 2,
-                                    "minWidth": 0,
-                                    "overflow": "hidden",
-                                    "textOverflow": "ellipsis",
-                                    "whiteSpace": "nowrap",
-                                  },
-                                },
-                                "type": "div",
-                              },
-                            ],
-                            "style": {
-                              "display": "flex",
-                              "flex": 1,
-                              "flexDirection": "column",
-                              "marginLeft": 10,
-                              "minWidth": 0,
-                            },
-                          },
-                          "type": "div",
-                        },
-                      ],
-                      "style": {
-                        "alignItems": "center",
-                        "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
-                        "borderRadius": 12,
-                        "display": "flex",
-                        "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
-                      },
-                    },
-                    "type": "div",
-                  },
-                  {
-                    "props": {
-                      "children": [
-                        {
-                          "props": {
-                            "children": "LE",
-                            "style": {
-                              "alignItems": "center",
-                              "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
-                              "color": "#A49E93",
-                              "display": "flex",
-                              "flexShrink": 0,
-                              "fontSize": 18.72,
-                              "fontWeight": 700,
-                              "height": 52,
-                              "justifyContent": "center",
-                              "opacity": 1,
-                              "width": 52,
-                            },
-                          },
-                          "type": "div",
-                        },
-                        {
-                          "props": {
-                            "children": [
-                              {
-                                "props": {
-                                  "children": [
-                                    {
-                                      "props": {
-                                        "children": "117",
-                                        "style": {
-                                          "color": "#ECE8DF",
-                                          "display": "flex",
-                                          "fontSize": 30,
-                                          "fontWeight": 700,
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                    {
-                                      "props": {
-                                        "children": "+12/h",
-                                        "style": {
-                                          "color": "#A49E93",
-                                          "display": "flex",
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                  ],
-                                  "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
-                                  },
-                                },
-                                "type": "div",
-                              },
-                              {
-                                "props": {
-                                  "children": "Leather",
-                                  "style": {
-                                    "color": "#A49E93",
-                                    "display": "block",
-                                    "marginTop": 2,
-                                    "minWidth": 0,
-                                    "overflow": "hidden",
-                                    "textOverflow": "ellipsis",
-                                    "whiteSpace": "nowrap",
-                                  },
-                                },
-                                "type": "div",
-                              },
-                            ],
-                            "style": {
-                              "display": "flex",
-                              "flex": 1,
-                              "flexDirection": "column",
-                              "marginLeft": 10,
-                              "minWidth": 0,
-                            },
-                          },
-                          "type": "div",
-                        },
-                      ],
-                      "style": {
-                        "alignItems": "center",
-                        "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
-                        "borderRadius": 12,
-                        "display": "flex",
-                        "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
-                      },
-                    },
-                    "type": "div",
-                  },
-                  {
-                    "props": {
-                      "children": [
-                        {
-                          "props": {
-                            "children": "LG",
-                            "style": {
-                              "alignItems": "center",
-                              "backgroundColor": "rgba(164, 158, 147, 0.16)",
-                              "border": "1.56px solid rgba(164, 158, 147, 0.55)",
-                              "borderRadius": 8.32,
-                              "color": "#A49E93",
-                              "display": "flex",
-                              "flexShrink": 0,
-                              "fontSize": 18.72,
-                              "fontWeight": 700,
-                              "height": 52,
-                              "justifyContent": "center",
-                              "opacity": 1,
-                              "width": 52,
-                            },
-                          },
-                          "type": "div",
-                        },
-                        {
-                          "props": {
-                            "children": [
-                              {
-                                "props": {
-                                  "children": [
-                                    {
-                                      "props": {
-                                        "children": "100",
-                                        "style": {
-                                          "color": "#ECE8DF",
-                                          "display": "flex",
-                                          "fontSize": 30,
-                                          "fontWeight": 700,
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                    {
-                                      "props": {
-                                        "children": "+9/h",
-                                        "style": {
-                                          "color": "#A49E93",
-                                          "display": "flex",
-                                        },
-                                      },
-                                      "type": "div",
-                                    },
-                                  ],
-                                  "style": {
-                                    "alignItems": "baseline",
-                                    "display": "flex",
-                                    "flexDirection": "row",
-                                    "justifyContent": "space-between",
-                                  },
-                                },
-                                "type": "div",
-                              },
-                              {
-                                "props": {
-                                  "children": "Low Grade Fuel",
-                                  "style": {
-                                    "color": "#A49E93",
-                                    "display": "block",
-                                    "marginTop": 2,
-                                    "minWidth": 0,
-                                    "overflow": "hidden",
-                                    "textOverflow": "ellipsis",
-                                    "whiteSpace": "nowrap",
-                                  },
-                                },
-                                "type": "div",
-                              },
-                            ],
-                            "style": {
-                              "display": "flex",
-                              "flex": 1,
-                              "flexDirection": "column",
-                              "marginLeft": 10,
-                              "minWidth": 0,
-                            },
-                          },
-                          "type": "div",
-                        },
-                      ],
-                      "style": {
-                        "alignItems": "center",
-                        "backgroundColor": "#272521",
-                        "border": "2px solid #272521",
-                        "borderRadius": 12,
-                        "display": "flex",
-                        "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
-                      },
-                    },
-                    "type": "div",
-                  },
-                  {
-                    "props": {
-                      "children": [
-                        {
-                          "props": {
-                            "children": "MT",
-                            "style": {
-                              "alignItems": "center",
-                              "backgroundColor": "rgba(154, 160, 166, 0.16)",
-                              "border": "1.56px solid rgba(154, 160, 166, 0.55)",
-                              "borderRadius": 8.32,
-                              "color": "#9AA0A6",
-                              "display": "flex",
-                              "flexShrink": 0,
-                              "fontSize": 18.72,
-                              "fontWeight": 700,
-                              "height": 52,
-                              "justifyContent": "center",
-                              "opacity": 1,
-                              "width": 52,
-                            },
-                          },
-                          "type": "div",
-                        },
-                        {
-                          "props": {
-                            "children": [
-                              {
-                                "props": {
-                                  "children": "Metal Tools",
-                                  "style": {
-                                    "display": "block",
-                                    "fontSize": 24,
-                                    "fontWeight": 700,
-                                    "lineHeight": "34px",
-                                    "minWidth": 0,
-                                    "overflow": "hidden",
-                                    "textOverflow": "ellipsis",
-                                    "whiteSpace": "nowrap",
-                                  },
-                                },
-                                "type": "div",
-                              },
-                              {
-                                "props": {
-                                  "children": "Gathering tool",
-                                  "style": {
-                                    "color": "#9AA0A6",
-                                    "display": "block",
-                                    "marginTop": 2,
-                                    "minWidth": 0,
-                                    "overflow": "hidden",
-                                    "textOverflow": "ellipsis",
-                                    "whiteSpace": "nowrap",
-                                  },
-                                },
-                                "type": "div",
-                              },
-                            ],
-                            "style": {
-                              "display": "flex",
-                              "flex": 1,
-                              "flexDirection": "column",
-                              "marginLeft": 10,
-                              "minWidth": 0,
-                            },
-                          },
-                          "type": "div",
-                        },
-                      ],
-                      "style": {
-                        "alignItems": "center",
-                        "backgroundColor": "#272521",
-                        "border": "2px solid rgba(154, 160, 166, 0.6)",
-                        "borderRadius": 12,
-                        "display": "flex",
-                        "flexDirection": "row",
-                        "height": 88,
-                        "padding": "0 12px",
-                        "width": 237.33333333333334,
+                        "height": 76,
+                        "padding": "0 10px",
+                        "width": 176.5,
                       },
                     },
                     "type": "div",
@@ -3596,83 +2645,8 @@ exports[`demo card > has a stable element tree per fixture > normal 1`] = `
                   "display": "flex",
                   "flexDirection": "row",
                   "flexWrap": "wrap",
-                  "gap": 12,
-                  "marginTop": 26,
-                },
-              },
-              "type": "div",
-            },
-            {
-              "props": {
-                "children": [
-                  {
-                    "props": {
-                      "children": [
-                        {
-                          "props": {
-                            "children": "Upkeep",
-                            "style": {
-                              "color": "#A49E93",
-                              "display": "flex",
-                              "fontSize": 22,
-                              "letterSpacing": 1.5,
-                              "textTransform": "uppercase",
-                            },
-                          },
-                          "type": "div",
-                        },
-                        {
-                          "props": {
-                            "children": "18h 40m left",
-                            "style": {
-                              "color": "#E3A32F",
-                              "display": "flex",
-                              "fontSize": 24,
-                              "fontWeight": 700,
-                            },
-                          },
-                          "type": "div",
-                        },
-                      ],
-                      "style": {
-                        "alignItems": "baseline",
-                        "display": "flex",
-                        "flexDirection": "row",
-                        "justifyContent": "space-between",
-                        "marginBottom": 10,
-                      },
-                    },
-                    "type": "div",
-                  },
-                  {
-                    "props": {
-                      "children": {
-                        "props": {
-                          "style": {
-                            "backgroundColor": "#E3A32F",
-                            "borderRadius": 6,
-                            "display": "flex",
-                            "minWidth": 12,
-                            "width": "25.925925925925924%",
-                          },
-                        },
-                        "type": "div",
-                      },
-                      "style": {
-                        "backgroundColor": "#272521",
-                        "border": "1px solid #3B3832",
-                        "borderRadius": 6,
-                        "display": "flex",
-                        "height": 12,
-                      },
-                    },
-                    "type": "div",
-                  },
-                ],
-                "style": {
-                  "display": "flex",
-                  "flexDirection": "column",
-                  "marginTop": 26,
+                  "gap": 10,
+                  "marginTop": 18,
                 },
               },
               "type": "div",

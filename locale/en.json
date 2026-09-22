@@ -10,7 +10,7 @@
       "name": "Metal Ore"
     },
     "metal_fragments": {
-      "name": "Metal Fragments"
+      "name": "Metal Frags"
     },
     "sulfur_ore": {
       "name": "Sulfur Ore"
@@ -31,7 +31,7 @@
       "name": "Leather"
     },
     "low_grade_fuel": {
-      "name": "Low Grade Fuel"
+      "name": "Low Grade"
     },
     "scrap": {
       "name": "Scrap"
@@ -317,14 +317,11 @@
     }
   },
   "card": {
-    "demo": {
+    "base": {
       "subtitle": "{tier} base · Day {day}",
       "storage": "Storage",
       "storage_full": "FULL · collect now",
-      "upkeep": "Upkeep",
-      "upkeep_left": "{time} left",
-      "tool": "Gathering tool",
-      "upkeep_decaying": "DECAYING"
+      "tool": "Gathering tool"
     }
   },
   "nav": {
@@ -337,17 +334,66 @@
       "status": "Rendered in {ms} ms · {assets}",
       "status_cached": "Served from cache in {ms} ms · {assets}",
       "assets": "{present}/{planned} assets supplied",
-      "detail": "This is the Phase 0 demo card with sample data. Missing pictures show as tinted tiles.",
+      "detail": "This is the base card with sample data. Missing pictures show as tinted tiles.",
       "rerender": "Render again",
       "full": "Worst case",
       "empty": "New player",
       "normal": "Typical player"
+    },
+    "base": {
+      "title": "{name}'s base",
+      "status_full": "Storage full · collect now",
+      "status": "Storage {pct}% · {waiting} waiting",
+      "status_nothing": "Storage {pct}% · nothing waiting yet",
+      "collected": "Collected {amounts}",
+      "collected_nothing": "Nothing to collect yet.",
+      "gathered": "Gather bonus {bonus}",
+      "gathered_with": "Gather bonus {bonus} · collected {amounts}",
+      "cooldown": "Gather ready {when}",
+      "cooldown_hit": "Gather is still on cooldown, ready {when}.",
+      "upgraded": "Upgraded to {tool}.",
+      "collect": "Collect",
+      "gather": "Gather",
+      "gather_locked": "Gather · on cooldown",
+      "tools": "Tools",
+      "refresh": "Refresh",
+      "title_s": "{name}' base"
+    },
+    "tools": {
+      "title": "Upgrade to {tool}",
+      "title_maxed": "Gathering tools",
+      "status": "Costs {cost} · you have {have}",
+      "status_maxed": "{tool}: the best there is. Nothing to upgrade.",
+      "rates": "Gathering per hour after the upgrade:",
+      "rate_line": "{resource} {before} → {after}",
+      "rate_new": "{resource} {after} (new)",
+      "after": "Left after paying: {stock}",
+      "missing": "Still missing: {missing}",
+      "upgrade": "Upgrade",
+      "upgrade_locked": "Upgrade · need {missing}",
+      "done_title": "Upgraded to {tool}",
+      "done_status": "Paid {paid}",
+      "done_detail": "Gathering per hour now: {rates}"
+    },
+    "help": {
+      "title": "Wipe Day",
+      "body": "A Rust idle game. /start builds your base; everything else happens on your base message. Collect what piled up, Gather for a bonus, upgrade Tools. That's it for now: more unlocks as you grow."
     }
   },
   "error": {
     "not_your_message": "That's someone else's base. Use /base to open yours.",
     "stale_message": "That message is from an older version. Use /base to open a fresh one.",
     "unexpected": "Something went wrong on our side. Nothing was spent. Try again in a moment.",
-    "admin_only": "That command is for server admins only."
+    "admin_only": "That command is for server admins only.",
+    "no_base": "You don't have a base yet. Use /start to build one.",
+    "home_moved": "Your base is here: {link}"
+  },
+  "player": {
+    "anonymous": "Survivor"
+  },
+  "hint": {
+    "gather": "Tap Gather to grab your first wood and stone.",
+    "collect": "Resources pile up while you're away. Collect them whenever you check in.",
+    "tools": "You can afford {tool}. Better tools gather faster."
   }
 }

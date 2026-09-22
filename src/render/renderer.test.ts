@@ -4,9 +4,9 @@ import { sniff } from "../assets/inspect";
 import { AssetRegistry } from "../assets/registry";
 import { discoverPaths } from "../paths";
 import { Locale } from "../ui/locale";
-import { demoCard } from "./cards/demo";
+import { baseCard } from "./cards/base";
 import { initials } from "./components";
-import { demoFixtures, LONGEST_PLAYER_NAME } from "./fixtures/demo";
+import { baseFixtures, LONGEST_PLAYER_NAME } from "./fixtures/base";
 import type { Node } from "./jsx-runtime";
 import { RENDER_BUDGET_MS, Renderer } from "./renderer";
 
@@ -22,47 +22,49 @@ function textOf(node: Node | string): string {
   return list.map((child) => textOf(child as Node | string)).join(" ");
 }
 
-describe("demo card", () => {
+const fixture = (state: string) => {
+  const found = baseFixtures.find((candidate) => candidate.state === state);
+  if (!found) throw new Error(`no ${state} fixture`);
+  return found;
+};
+
+describe("base card", () => {
   it("has a stable element tree per fixture", () => {
-    for (const fixture of demoFixtures) {
-      expect(renderer.tree(demoCard, fixture.props)).toMatchSnapshot(fixture.state);
+    for (const { state, props } of baseFixtures) {
+      expect(renderer.tree(baseCard, props)).toMatchSnapshot(state);
     }
   });
 
   it("formats every number through the shared formatter", () => {
-    const normal = demoFixtures.find((fixture) => fixture.state === "normal");
-    if (!normal) throw new Error("no normal fixture");
-    const text = textOf(renderer.tree(demoCard, normal.props));
-    expect(text).toContain("12.4k");
-    expect(text).toContain("/ 20k");
-    expect(text).toContain("+620/h");
-    expect(text).toContain("18h 40m left");
-    expect(text).not.toContain("12449");
+    const text = textOf(renderer.tree(baseCard, fixture("normal").props));
+    expect(text).toContain("1.6k");
+    expect(text).toContain("/ 2.5k");
+    expect(text).toContain("964");
+    expect(text).not.toContain("1642");
   });
 
-  it("omits the upkeep section for tiers without upkeep", () => {
-    const empty = demoFixtures.find((fixture) => fixture.state === "empty");
-    if (!empty) throw new Error("no empty fixture");
-    expect(textOf(renderer.tree(demoCard, empty.props))).not.toContain(
-      locale.t("card.demo.upkeep"),
-    );
+  it("shows FULL instead of numbers at the cap", () => {
+    const text = textOf(renderer.tree(baseCard, fixture("full").props));
+    expect(text).toContain(locale.t("card.base.storage_full"));
   });
 
-  it("renders a PNG of the card width, within budget once warm, and caches it", async () => {
-    const full = demoFixtures.find((fixture) => fixture.state === "full");
-    if (!full) throw new Error("no full fixture");
-    await renderer.render(demoCard, { ...full.props, seasonDay: 1 }); // warm-up
+  it("renders a PNG wider than tall, within budget once warm, and caches it", async () => {
+    const full = fixture("full").props;
+    await renderer.render(baseCard, { ...full, seasonDay: 1 }); // warm-up
 
-    const first = await renderer.render(demoCard, full.props);
-    expect(sniff(first.png)).toMatchObject({ kind: "png", width: 800 });
+    const first = await renderer.render(baseCard, full);
+    const size = sniff(first.png);
+    expect(size).toMatchObject({ kind: "png", width: 800 });
+    if (size.kind !== "png") throw new Error("not a png");
+    expect(size.height).toBeLessThanOrEqual(600);
     expect(first.cached).toBe(false);
     expect(first.ms).toBeLessThan(RENDER_BUDGET_MS);
 
-    const second = await renderer.render(demoCard, full.props);
+    const second = await renderer.render(baseCard, full);
     expect(second.cached).toBe(true);
     expect(second.png).toBe(first.png);
 
-    const changed = await renderer.render(demoCard, { ...full.props, scrap: 1 });
+    const changed = await renderer.render(baseCard, { ...full, scrap: 1 });
     expect(changed.cached).toBe(false);
   });
 });

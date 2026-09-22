@@ -1,6 +1,6 @@
 /**
  * `/idle-debug card`: proves the render pipeline end to end inside Discord and
- * lets the owner flip through the demo card's states on a real phone.
+ * lets the owner flip through the base card's fixture states on a real phone.
  * Spec: `docs/screens/debug_card.md`.
  */
 import type { Rendered } from "../../render/renderer";
@@ -56,7 +56,7 @@ export function debugCardScreen(locale: Locale, input: DebugCardInput): Screen {
       rendered.cached ? "screen.debug_card.status_cached" : "screen.debug_card.status",
       { ms: Math.round(rendered.ms), assets },
     ),
-    card: { fileName: `demo_${state}.png`, png: rendered.png },
+    card: { fileName: `base_${state}.png`, png: rendered.png },
     details: [locale.t("screen.debug_card.detail")],
     rows: [{ kind: "buttons", buttons }],
   };

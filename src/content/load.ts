@@ -130,6 +130,32 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
     });
   }
 
+  const resourceIds = new Set(content.resources.map((resource) => resource.id));
+  for (const tool of content.tools) {
+    for (const [field, table] of [
+      ["rates", tool.rates],
+      ["cost", tool.cost],
+    ] as const) {
+      for (const id of Object.keys(table)) {
+        if (!resourceIds.has(id)) {
+          problems.push({
+            file: "tools.json5",
+            id: tool.id,
+            message: `${field} names unknown resource \`${id}\``,
+          });
+        }
+      }
+    }
+  }
+  const caps = content.baseTiers.map((tier) => tier.storageCap);
+  if (caps.some((cap, index) => index > 0 && cap <= (caps[index - 1] ?? 0))) {
+    problems.push({
+      file: "base_tiers.json5",
+      id: "",
+      message: "storageCap must increase with every tier",
+    });
+  }
+
   const orders = content.monuments.map((monument) => monument.order).sort((a, b) => a - b);
   if (orders.some((order, index) => order !== index + 1)) {
     problems.push({

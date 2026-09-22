@@ -9,7 +9,7 @@
  * the full list). Phase 0 creates only what it uses plus the identity tables
  * every later table references. After editing: `pnpm db:generate`.
  */
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const players = sqliteTable("players", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -24,6 +24,46 @@ export const seasons = sqliteTable("seasons", {
   /** Null while the season is running. */
   endedAt: integer("ended_at"),
 });
+
+/** Season-layer base state: one row per player per season. See `domain/base.ts`. */
+export const bases = sqliteTable("bases", {
+  playerId: integer("player_id")
+    .primaryKey()
+    .references(() => players.id),
+  seasonId: integer("season_id")
+    .notNull()
+    .references(() => seasons.id),
+  tier: text("tier").notNull(),
+  toolId: text("tool_id").notNull(),
+  lastCollectedAt: integer("last_collected_at").notNull(),
+  lastGatherAt: integer("last_gather_at"),
+});
+
+/** Banked resources. A row exists from the moment the player first gains the resource. */
+export const resources = sqliteTable(
+  "resources",
+  {
+    playerId: integer("player_id")
+      .notNull()
+      .references(() => players.id),
+    resourceId: text("resource_id").notNull(),
+    amount: integer("amount").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.playerId, table.resourceId] })],
+);
+
+/** Onboarding hints: how often each has been acted on (hidden after two). */
+export const hints = sqliteTable(
+  "hints",
+  {
+    playerId: integer("player_id")
+      .notNull()
+      .references(() => players.id),
+    hint: text("hint").notNull(),
+    uses: integer("uses").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.playerId, table.hint] })],
+);
 
 /** The one persistent home message per player (CLAUDE.md 4.3 rule 7). */
 export const homeMessages = sqliteTable("home_messages", {

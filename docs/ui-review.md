@@ -64,6 +64,50 @@ Re-implemented as flexbox JSX; compared against the iteration-3 PNGs state by st
 - Accent (`#CD412B`) and danger (`#F05252`) are both reds. They never sit side by side on
   this card; on any future card where they would, danger gets an icon or label as well.
 
+## `base` (Phase 1) — the home card
+
+States: `empty`, `normal`, `full`, plus `noassets`. Template: `src/render/cards/base.tsx`.
+Grew out of the Phase 0 demo card; what changed is driven by the desktop finding above
+(tall cards shrink) and by the card's new job: show what the player *has*. Rates and
+what is waiting to be collected moved into message text, so the PNG only re-renders
+when stock changes.
+
+### Iteration 1 — 4-column grid, tool as the last cell
+- **Overflow: failed.** At 176 px per cell the tool tile lost its two most important
+  words (`Stone To…` / `Gatherin…`, `Power To…`), and `Metal Fra…`, `Low Grad…` truncated.
+- **Hierarchy: mismatch.** In the full state the status line said "collect now" while the
+  advisor made *Tools* the primary button. Fixed in the advisor: a full storage is the
+  check-in signal, so Collect leads there, before an affordable upgrade.
+- Copy: `Nakeds's base`. The preview's "locked" tools fixture was actually affordable.
+- *Fine:* 800x544 (3:2) at 11 resources; FULL in danger red is the first thing the eye
+  lands on; the 32-char name ellipsises.
+
+### Iteration 2 — tool strip, 3-row grid, slang names
+- The tool became a full-width strip under the storage bar (icon, name in bold 26,
+  "Gathering tool" in the tier colour on the right): no truncation possible at any
+  tier name, and it reads as "this is what drives the numbers below".
+- Two resource names shortened to what Rust players actually say: `Metal Frags`,
+  `Low Grade`. Every name now fits its cell at the worst case.
+- Vertical rhythm tightened (cells 76, gaps 10, margins 18) so 11 resources stay at
+  800x592, inside 4:3; the empty state is 800x420.
+- Possessive: `Nakeds' base`.
+- Mobile (`base__normal@mobile.png`): amounts at 14 px effective are read first; names
+  at 11 px are legible; the tool strip reads as one line.
+- Placeholder safety (`base__noassets`): identical layout; tinted tiles carry initials
+  and the names carry the meaning. Nothing depends on art.
+
+### `base` (home), `tools`, `tools_done` component screens
+Outlines: `preview/screens/base__{empty,normal,affordable,full}.txt`,
+`tools__{locked,normal,maxed}.txt`, `tools_done__normal.txt`. Lint: ok in every state.
+- One primary per state and it follows the advisor: Gather on a fresh base, Collect while
+  on cooldown or when storage is full, Tools once the upgrade is affordable. The hint
+  under the card explains exactly that button, and retires after two uses.
+- Gather on cooldown stays visible as `Gather · on cooldown` (disabled) with the live
+  `<t:R>` countdown in the details, never in the label (labels cannot tick).
+- Locked upgrade: `Upgrade · need 180 wood, 80 stone` (34 chars, within the 38 allowed
+  for disabled labels); Back becomes primary because leaving is the only useful move.
+- Both sub-screens carry Back and Home. Four buttons on home, one row.
+
 ## Component screens
 
 ### `debug_card`

@@ -1,7 +1,7 @@
 # Wipe Day
 
 A Rust-themed idle game played entirely inside Discord. Private, single-server.
-The full specification is [CLAUDE.md](CLAUDE.md). Current state: **Phase 0 (foundations)**.
+The full specification is [CLAUDE.md](CLAUDE.md). Current state: **Phase 1 (core loop)**.
 
 ## Run it
 
@@ -23,8 +23,20 @@ Creating the bot (once):
 3. In Discord: Settings -> Advanced -> Developer Mode, then right-click the server ->
    Copy Server ID. That is `DISCORD_GUILD_ID`.
 
-No privileged intents are needed. Then run `/idle-debug card` in the server: you should get
-a private message with the rendered demo card and buttons to flip through its states.
+No privileged intents are needed. Optional: `ADMIN_ROLE_ID` in `.env` lets a role use the
+admin commands besides server Administrators.
+
+## Playing
+
+| Command | What it does |
+| --- | --- |
+| `/start` | Builds your base and posts your home message |
+| `/base` | Re-posts your home message where you are (the old one is removed) |
+| `/help` | Three lines, never required |
+| `/idle-debug card` | Admins: renders the base card's sample states to check the pipeline |
+
+Everything else happens on the home message: **Collect** banks what piled up while you were
+away, **Gather** gives a bonus on a cooldown, **Tools** upgrades your gathering tool.
 
 ## Commands
 
@@ -49,7 +61,8 @@ Unicode emoji. Supplied files are gitignored and never committed.
 ## Where things are
 
 ```
-src/domain      pure game rules (from Phase 1)
+src/domain      pure game rules (state + now in, state + events out)
+src/game        transaction scripts: one player action = one SQLite transaction
 src/content     data file schemas, loading, validation
 src/store       drizzle schema and migrations
 src/ui          theme, locale, number format, Screen model + lint, customId router, screens

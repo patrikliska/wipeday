@@ -1,13 +1,15 @@
 // Base (tool cupboard) tiers. Must match the tier list in src/ui/theme.ts, in order.
 // Asset files are prefixed `tier_` so `tier_wood` never collides with the `wood`
 // resource in the shared emoji namespace.
-// Costs, build timers, caps and upkeep arrive with Phase 2.
+//
+// `storageCap`: total resources the base can hold (all resources together).
+// Roughly 4 to 5x per tier. Upgrade costs, build timers and upkeep arrive with Phase 2.
 {
   baseTiers: [
-    { id: "twig", phase: 1, fallbackEmoji: "🛖", rustRef: "building grade: twig (a twig 2x1 base)" },
-    { id: "wood", phase: 1, fallbackEmoji: "🏚️", rustRef: "building grade: wood" },
-    { id: "stone", phase: 1, fallbackEmoji: "🏠", rustRef: "building grade: stone" },
-    { id: "metal", phase: 1, fallbackEmoji: "🏢", rustRef: "building grade: sheet metal" },
-    { id: "hqm", phase: 1, fallbackEmoji: "🏰", rustRef: "building grade: armored" },
+    { id: "twig",  phase: 1, fallbackEmoji: "🛖",  rustRef: "building grade: twig (a twig 2x1 base)", storageCap: 2500 },
+    { id: "wood",  phase: 1, fallbackEmoji: "🏚️", rustRef: "building grade: wood",                    storageCap: 10000 },
+    { id: "stone", phase: 1, fallbackEmoji: "🏠",  rustRef: "building grade: stone",                   storageCap: 45000 },
+    { id: "metal", phase: 1, fallbackEmoji: "🏢",  rustRef: "building grade: sheet metal",             storageCap: 200000 },
+    { id: "hqm",   phase: 1, fallbackEmoji: "🏰",  rustRef: "building grade: armored",                 storageCap: 900000 },
   ],
 }

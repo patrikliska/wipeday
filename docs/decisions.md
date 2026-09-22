@@ -94,3 +94,56 @@ Found during the demo card's visual review: a new player's card with eleven `0` 
 reads as a broken dashboard. Card view models carry only discovered resources, so the
 grid grows with the player. This is rule 6 ("the next mechanic is revealed only when it
 becomes affordable") applied to cards. Carries into the Phase 1 base card.
+
+## Phase 1
+
+### D16. `src/game/` holds the transaction scripts
+`domain/` must stay pure and `store/` only knows tables, so "load state, apply a domain
+function inside one transaction, save, log" needs a home of its own: `src/game/actions.ts`.
+Every player click maps to exactly one function there. Not in the spec's tree; recorded here.
+
+### D17. Collect banks the accrual; Gather is the active bonus
+Spec 5.1 lists both "accrues offline" and a manual Gather "with a cooldown". Model: resources
+accrue lazily from `lastCollectedAt` at the tool's rates, capped by storage; **Collect**
+banks them (the check-in moment, always available, never harmful); **Gather** grants
+`bonusMinutes` of production on a `cooldownMinutes` timer and banks the accrual on the way.
+Upgrading a tool also banks first, so an accrual window is never re-priced at the new
+rates. Affordability is judged on banked stock only: what the card shows is what counts.
+
+### D18. One storage cap for everything, including scrap
+"Storage: boxes set the cap" could mean per resource or in total. One total cap gives one bar
+and one number ("Storage 72%"), which is the whole point of the check-in driver. Accrual is
+scaled down proportionally when it would overflow, so ratios are preserved. Scrap counts
+toward the cap for now; revisit in Phase 4 when scrap flows from the casino.
+
+### D19. Sub-unit production is dropped on collect
+Amounts are integers (spec 6). Accrual rounds down per resource, so collecting twice within a
+second loses at most one unit per resource. A fractional carry would need non-integer state;
+not worth it. Documented in `domain/base.ts`.
+
+### D20. `/base` reposts and deletes the previous home message
+"Posts or refreshes": players expect their base where they just asked for it. `/base` (and
+`/start`) post a fresh home message where the command was used and delete the old one, so
+there is never more than one. Every button on it edits in place. Sub-screens (Tools) are
+ephemeral; their Home button deletes the ephemeral and re-renders the home message.
+
+### D21. Hints and the primary button are one decision
+The onboarding hint explains whatever the advisor picked as primary (`ui/advisor.ts` ->
+`ui/hints.ts`), so the glowing button and the sentence under the card can never disagree.
+Hint use counts live in a small `hints` table (not in spec 6's list; three columns).
+
+### D22. Rates are message text, not card pixels
+The card shows what the player has; rates, cooldowns and "waiting" amounts are text in the
+message. Text is free to change on every view, while the PNG only re-renders (and the cache
+only misses) when stock changes. Rates in full live on the Tools screen, before vs after.
+
+### D23. Names: unsupported glyphs are stripped, not boxed
+Roboto Condensed covers Latin, Greek and Cyrillic. Emoji, CJK and symbols in a Discord
+display name are removed before rendering (`ui/names.ts`); an empty result becomes
+"Survivor". Message text keeps the original name. Cheaper than shipping a CJK fallback font
+for a handful of friends; revisit if a real player's name comes out empty.
+
+### D24. Metal tools need refined metal that Phase 1 cannot make
+`metal_tools` costs 250 metal fragments; furnaces arrive in Phase 2. The upgrade shows as
+locked with the reason (`Upgrade · need 250 metal frags`), which is honest, and the first
+upgrade (stone tools, wood + stone) is reachable in one session as the acceptance requires.

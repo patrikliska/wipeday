@@ -65,6 +65,13 @@ describe("validation", () => {
     expect(problems.some((p) => p.includes("`syringe` is not a keycard item"))).toBe(true);
   });
 
+  it("requires tool rates and costs to name real resources", () => {
+    const dir = dataWith("tools.json5", (text) =>
+      text.replace("stone: 80 }", "stone: 80, gold: 1 }"),
+    );
+    expect(problemsOf(dir)).toContain("tools.json5 `rock`: rates names unknown resource `gold`");
+  });
+
   it("requires base tiers to match the theme's tier list", () => {
     const dir = dataWith("base_tiers.json5", (text) => text.replace('id: "twig"', 'id: "mud"'));
     expect(problemsOf(dir).some((p) => p.includes("must list exactly [twig, wood"))).toBe(true);

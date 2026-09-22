@@ -3,23 +3,28 @@
  *
  * Renders every card with its fixtures into `preview/`: `{card}__{state}.png`,
  * the same at phone width as `...@mobile.png`, a no-assets variant for
- * placeholder safety, `screens/{screen}.txt` outlines of the component screens,
- * and `index.html`, a contact sheet on Discord's dark and light backgrounds.
+ * placeholder safety, `screens/{screen}__{state}.txt` outlines of the
+ * component screens, and `index.html`, a contact sheet on Discord's dark and
+ * light backgrounds.
  *
  * Exits non-zero when a screen fails its lint or a render blows the budget.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { Emojis } from "../assets/emojiSync";
 import { AssetRegistry } from "../assets/registry";
 import { loadContent } from "../content/load";
+import { collect, gather, newBase, upgradeTool } from "../domain/base";
 import { discoverPaths } from "../paths";
-import { demoCard } from "../render/cards/demo";
-import { demoFixtures } from "../render/fixtures/demo";
+import { baseCard } from "../render/cards/base";
+import { baseFixtures, LONGEST_PLAYER_NAME } from "../render/fixtures/base";
 import { type CardDef, RENDER_BUDGET_MS, type Rendered, Renderer } from "../render/renderer";
 import { DEBUG_STATES } from "../ui/customId";
 import { Locale } from "../ui/locale";
-import { lintScreen, outlineScreen } from "../ui/screen";
+import { lintScreen, outlineScreen, type Screen } from "../ui/screen";
+import { baseScreen } from "../ui/screens/base";
 import { debugCardScreen } from "../ui/screens/debugCard";
+import { toolsDoneScreen, toolsScreen } from "../ui/screens/tools";
 import { layout } from "../ui/theme";
 
 interface Shot {
@@ -31,11 +36,12 @@ interface Shot {
 
 const paths = discoverPaths();
 const locale = Locale.load(join(paths.locale, "en.json"));
-loadContent(paths.data, locale);
+const content = loadContent(paths.data, locale);
 const assets = AssetRegistry.load(paths.assets);
 const renderer = new Renderer({ assets, locale });
 // Same cards with nothing supplied: what a fresh deployment looks like.
 const bare = new Renderer({ assets: AssetRegistry.bare(paths.assets), locale });
+const ctx = { content, locale, emojis: new Emojis() };
 
 mkdirSync(join(paths.preview, "screens"), { recursive: true });
 
@@ -45,7 +51,6 @@ async function shoot<Props>(
   state: string,
   props: Props,
 ): Promise<Shot> {
-  // Warm up once so the timing shows steady state, not module/JIT start-up.
   const name = `${card.id}__${state}`;
   const rendered = await using.render(card, props);
   const mobile = await using.render(card, props, layout.mobileWidth);
@@ -83,12 +88,13 @@ let clean = true;
 const shots: Shot[] = [];
 
 // Throwaway render: keeps one-off start-up cost out of the reported timings.
-await new Renderer({ assets, locale }).render(demoCard, demoFixtures[0]?.props ?? ({} as never));
+const warm = baseFixtures[0];
+if (warm) await new Renderer({ assets, locale }).render(baseCard, warm.props);
 
-for (const fixture of demoFixtures) {
-  shots.push(await shoot(renderer, demoCard, fixture.state, fixture.props));
+for (const fixture of baseFixtures) {
+  shots.push(await shoot(renderer, baseCard, fixture.state, fixture.props));
   if (fixture.state === "normal") {
-    shots.push(await shoot(bare, demoCard, "noassets", fixture.props));
+    shots.push(await shoot(bare, baseCard, "noassets", fixture.props));
   }
 }
 
@@ -103,16 +109,66 @@ for (const shot of shots) {
   );
 }
 
-const sample = shots.find((shot) => shot.name === "demo__normal")?.rendered;
-if (!sample) throw new Error("no normal fixture for the demo card");
-for (const state of DEBUG_STATES) {
-  const screen = debugCardScreen(locale, { state, rendered: sample, assets: assets.counts() });
+// --- component screens ------------------------------------------------------
+
+const T0 = 1_700_000_000;
+const png = shots.find((shot) => shot.name === "base__normal")?.rendered.png;
+if (!png) throw new Error("no normal fixture for the base card");
+
+const fresh = newBase(content, T0);
+const firstGather = gather(content, fresh, T0);
+if (!firstGather.ok) throw new Error("fixture: gather should be ready");
+const active = collect(content, firstGather.state, T0 + 3 * 3600).state;
+const rich = { ...active, stock: { ...active.stock, wood: 900, stone: 700 } };
+const upgraded = upgradeTool(content, rich, T0 + 4 * 3600);
+if (!upgraded.ok) throw new Error("fixture: upgrade should be affordable");
+const maxedTool = content.tools.at(-1);
+if (!maxedTool) throw new Error("no tools");
+const maxed = { ...fresh, toolId: maxedTool.id };
+const stuffed = collect(content, fresh, T0 + 30 * 86400).state;
+
+const base = (playerName: string, state: typeof fresh, now: number, extra = {}) =>
+  baseScreen(ctx, {
+    ownerId: "1",
+    playerName,
+    state,
+    seasonStartedAt: T0,
+    now,
+    hintUses: {},
+    card: png,
+    ...extra,
+  });
+
+const screens: Array<[string, Screen]> = [
+  ["base__empty", base("Nakeds", fresh, T0)],
+  [
+    "base__normal",
+    base("Soboj", active, T0 + 3 * 3600 + 60, {
+      last: { kind: "collect", gained: { wood: 360, stone: 240 } },
+    }),
+  ],
+  ["base__affordable", base("Soboj", rich, T0 + 4 * 3600, { hintUses: { gather: 2, collect: 2 } })],
+  ["base__full", base(LONGEST_PLAYER_NAME, stuffed, T0 + 31 * 86400)],
+  ["tools__locked", toolsScreen(ctx, firstGather.state)],
+  ["tools__normal", toolsScreen(ctx, rich)],
+  ["tools__maxed", toolsScreen(ctx, maxed)],
+  ["tools_done__normal", toolsDoneScreen(ctx, upgraded.tool, upgraded.paid)],
+  ...DEBUG_STATES.map((state): [string, Screen] => {
+    const rendered = shots.find((shot) => shot.name === `base__${state}`)?.rendered;
+    if (!rendered) throw new Error(`no ${state} render`);
+    return [
+      `debug_card__${state}`,
+      debugCardScreen(locale, { state, rendered, assets: assets.counts() }),
+    ];
+  }),
+];
+
+for (const [name, screen] of screens) {
   const problems = lintScreen(screen);
   if (problems.length > 0) clean = false;
-  const file = `${screen.id}__${state}.txt`;
-  writeFileSync(join(paths.preview, "screens", file), outlineScreen(screen));
+  writeFileSync(join(paths.preview, "screens", `${name}.txt`), outlineScreen(screen));
   console.log(
-    `screens/${file.padEnd(28)} ${problems.length === 0 ? "lint ok" : `LINT FAIL: ${problems.join("; ")}`}`,
+    `screens/${`${name}.txt`.padEnd(28)} ${problems.length === 0 ? "lint ok" : `LINT FAIL: ${problems.join("; ")}`}`,
   );
 }
 

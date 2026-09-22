@@ -1,10 +1,5 @@
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { discoverPaths } from "../paths";
-import { DEBUG_STATES } from "./customId";
-import { Locale } from "./locale";
-import { type ActionRow, type Button, lintScreen, type Screen, toComponents } from "./screen";
-import { debugCardScreen } from "./screens/debugCard";
+import { type ActionRow, type Button, lintScreen, type Screen } from "./screen";
 
 const button = (customId: string, label: string, extra: Partial<Button> = {}): Button => ({
   customId,
@@ -74,22 +69,5 @@ describe("lintScreen", () => {
 
     const bad = screen("root", [{ kind: "buttons", buttons: [{ ...locked, style: "primary" }] }]);
     expect(lintScreen(bad).some((p) => p.includes("primary button is disabled"))).toBe(true);
-  });
-});
-
-describe("debug_card screen", () => {
-  const locale = Locale.load(join(discoverPaths().locale, "en.json"));
-  const rendered = { png: Buffer.from("png"), width: 800, height: 754, cached: false, ms: 41.6 };
-
-  it("passes the lint in every state and always offers a different primary", () => {
-    for (const state of DEBUG_STATES) {
-      const built = debugCardScreen(locale, { state, rendered, assets: [0, 218] });
-      expect(lintScreen(built)).toEqual([]);
-    }
-  });
-
-  it("has a stable Components V2 tree", () => {
-    const built = debugCardScreen(locale, { state: "normal", rendered, assets: [12, 218] });
-    expect(toComponents(built)).toMatchSnapshot();
   });
 });

@@ -16,8 +16,14 @@ const PREFIX = "idle:v1";
 export const DEBUG_STATES = ["empty", "normal", "full"] as const;
 export type DebugState = (typeof DEBUG_STATES)[number];
 
+export const BASE_ACTIONS = ["collect", "gather", "tools", "refresh"] as const;
+export const TOOLS_ACTIONS = ["upgrade", "back", "home"] as const;
+
 /** Every action a component can trigger. Grows by one variant per feature. */
-export type Route = { screen: "debug"; action: "card"; state: DebugState };
+export type Route =
+  | { screen: "debug"; action: "card"; state: DebugState }
+  | { screen: "base"; action: (typeof BASE_ACTIONS)[number] }
+  | { screen: "tools"; action: (typeof TOOLS_ACTIONS)[number] };
 
 export interface CustomId {
   /** Discord user id of the message owner; `null` on ephemeral messages. */
@@ -37,9 +43,14 @@ export type Parsed =
 
 export function encodeCustomId(id: CustomId): string {
   const { route } = id;
-  const text = `${PREFIX}:${route.screen}:${route.action}:${id.owner ?? "-"}:${route.state}`;
+  const args = route.screen === "debug" ? route.state : "";
+  const text = `${PREFIX}:${route.screen}:${route.action}:${id.owner ?? "-"}:${args}`;
   if (text.length > MAX_LENGTH) throw new Error(`customId over ${MAX_LENGTH} chars: ${text}`);
   return text;
+}
+
+function pick<T extends string>(list: readonly T[], value: string): T | undefined {
+  return list.find((candidate) => candidate === value);
 }
 
 export function parseCustomId(raw: string): Parsed {
@@ -47,20 +58,24 @@ export function parseCustomId(raw: string): Parsed {
   const unknown: Parsed = { kind: "unknown", raw };
   if (!raw.startsWith(`${PREFIX}:`)) return unknown;
 
-  const [screen, action, owner, ...rest] = raw.slice(PREFIX.length + 1).split(":");
+  const [screen, action, ownerText, ...rest] = raw.slice(PREFIX.length + 1).split(":");
   const args = rest.join(":");
-  if (!screen || !action || !owner) return unknown;
-  if (owner !== "-" && !/^\d{1,20}$/.test(owner)) return unknown;
+  if (!screen || !action || !ownerText) return unknown;
+  if (ownerText !== "-" && !/^\d{1,20}$/.test(ownerText)) return unknown;
+  const owner = ownerText === "-" ? null : ownerText;
 
+  let route: Route | undefined;
   if (screen === "debug" && action === "card") {
-    const state = DEBUG_STATES.find((candidate) => candidate === args);
-    if (!state) return unknown;
-    return {
-      kind: "ok",
-      id: { owner: owner === "-" ? null : owner, route: { screen, action, state } },
-    };
+    const state = pick(DEBUG_STATES, args);
+    if (state) route = { screen, action, state };
+  } else if (screen === "base") {
+    const known = pick(BASE_ACTIONS, action);
+    if (known) route = { screen, action: known };
+  } else if (screen === "tools") {
+    const known = pick(TOOLS_ACTIONS, action);
+    if (known) route = { screen, action: known };
   }
-  return unknown;
+  return route ? { kind: "ok", id: { owner, route } } : unknown;
 }
 
 /** True when `userId` may act on the message this id sits on. */
