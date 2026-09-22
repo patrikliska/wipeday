@@ -1,0 +1,20 @@
+// The expedition chain, easiest first. Keycards gate the upper half:
+// green -> blue -> red. Difficulty, duration and loot arrive with Phase 3.
+{
+  monuments: [
+    { id: "supermarket", order: 1, phase: 3, fallbackEmoji: "🛒", rustRef: "Abandoned Supermarket" },
+    { id: "gas_station", order: 2, phase: 3, fallbackEmoji: "⛽", rustRef: "Oxum's Gas Station" },
+    { id: "lighthouse", order: 3, phase: 3, fallbackEmoji: "🗼", rustRef: "Lighthouse" },
+    { id: "dome", order: 4, phase: 3, fallbackEmoji: "⚪", rustRef: "The Dome" },
+    { id: "harbor", order: 5, phase: 3, fallbackEmoji: "⚓", rustRef: "Harbor" },
+    { id: "satellite_dish", order: 6, phase: 3, fallbackEmoji: "📡", rustRef: "Satellite Dish" },
+    { id: "airfield", order: 7, phase: 3, fallbackEmoji: "🛩️", rustRef: "Airfield" },
+    { id: "train_yard", order: 8, keycard: "keycard_green", phase: 3, fallbackEmoji: "🚂", rustRef: "Train Yard" },
+    { id: "water_treatment", order: 9, keycard: "keycard_green", phase: 3, fallbackEmoji: "🚰", rustRef: "Water Treatment Plant" },
+    { id: "power_plant", order: 10, keycard: "keycard_blue", phase: 3, fallbackEmoji: "☢️", rustRef: "Power Plant" },
+    { id: "military_tunnels", order: 11, keycard: "keycard_blue", phase: 3, fallbackEmoji: "🚇", rustRef: "Military Tunnels" },
+    { id: "launch_site", order: 12, keycard: "keycard_red", phase: 3, fallbackEmoji: "🚀", rustRef: "Launch Site" },
+    { id: "small_oil_rig", order: 13, keycard: "keycard_red", phase: 3, fallbackEmoji: "🛢️", rustRef: "Small Oil Rig" },
+    { id: "large_oil_rig", order: 14, keycard: "keycard_red", phase: 3, fallbackEmoji: "🏗️", rustRef: "Large Oil Rig" },
+  ],
+}

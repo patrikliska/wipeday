@@ -1,0 +1,33 @@
+node_modules/
+
+# Rendered previews (pnpm preview)
+/preview/
+
+# Local runtime state
+/var/
+*.db
+*.db-shm
+*.db-wal
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+
+# Owner-supplied assets are never committed. Only the folder skeleton, the
+# manifest, the checklist and agent-generated placeholders are tracked.
+/assets/*/*
+!/assets/*/.gitkeep
+!/assets/_placeholders/**
+
+# Owner-supplied reference screenshots may contain third-party game UI.
+/docs/reference/*
+!/docs/reference/.gitkeep
+
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

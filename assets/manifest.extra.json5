@@ -1,0 +1,29 @@
+// Assets that belong to no entity in data/*.json5. Hand-maintained.
+// Everything else in manifest.json is derived from the data files.
+// Keep this minimal: only list a file once a planned card actually draws it.
+// Fonts: open licence, https://fonts.google.com/specimen/Roboto+Condensed (static TTFs).
+{
+  assets: [
+    { file: "RobotoCondensed-Regular.ttf", folder: "fonts", format: "ttf", width: 0, height: 0, phase: 0, rustRef: "n/a (Google Fonts)", depicts: "Roboto Condensed, regular weight", usedIn: ["every card"] },
+    { file: "RobotoCondensed-Bold.ttf", folder: "fonts", format: "ttf", width: 0, height: 0, phase: 0, rustRef: "n/a (Google Fonts)", depicts: "Roboto Condensed, bold weight", usedIn: ["every card"] },
+    { file: "survivor_01.png", folder: "portraits_256", format: "png", width: 256, height: 256, phase: 3, rustRef: "player model screenshot or NPC (scientist, bandit guard, tunnel dweller)", depicts: "Survivor portrait 1 (head and shoulders)", usedIn: ["squad card","loadout card","expedition report card"] },
+    { file: "survivor_02.png", folder: "portraits_256", format: "png", width: 256, height: 256, phase: 3, rustRef: "as survivor_01", depicts: "Survivor portrait 2", usedIn: ["squad card","loadout card","expedition report card"] },
+    { file: "survivor_03.png", folder: "portraits_256", format: "png", width: 256, height: 256, phase: 3, rustRef: "as survivor_01", depicts: "Survivor portrait 3", usedIn: ["squad card","loadout card","expedition report card"] },
+    { file: "survivor_04.png", folder: "portraits_256", format: "png", width: 256, height: 256, phase: 3, rustRef: "as survivor_01", depicts: "Survivor portrait 4", usedIn: ["squad card","loadout card","expedition report card"] },
+    { file: "survivor_05.png", folder: "portraits_256", format: "png", width: 256, height: 256, phase: 3, rustRef: "as survivor_01", depicts: "Survivor portrait 5", usedIn: ["squad card","loadout card","expedition report card"] },
+    { file: "survivor_06.png", folder: "portraits_256", format: "png", width: 256, height: 256, phase: 3, rustRef: "as survivor_01", depicts: "Survivor portrait 6", usedIn: ["squad card","loadout card","expedition report card"] },
+    { file: "survivor_07.png", folder: "portraits_256", format: "png", width: 256, height: 256, phase: 3, rustRef: "as survivor_01", depicts: "Survivor portrait 7", usedIn: ["squad card","loadout card","expedition report card"] },
+    { file: "survivor_08.png", folder: "portraits_256", format: "png", width: 256, height: 256, phase: 3, rustRef: "as survivor_01", depicts: "Survivor portrait 8", usedIn: ["squad card","loadout card","expedition report card"] },
+    { file: "bandit_camp.jpg", folder: "banners_1600x600", format: "jpg", width: 1600, height: 600, phase: 4, rustRef: "Bandit Camp", depicts: "Bandit Camp casino interior, dark enough for text on top", usedIn: ["roulette card","slots card"] },
+    { file: "roulette_wheel.png", folder: "ui", format: "png", width: 1024, height: 1024, phase: 4, rustRef: "Bandit Camp big wheel (spinner.wheel)", depicts: "The Bandit Camp wheel, face-on, centred, number 20 at the top", usedIn: ["roulette card"] },
+    { file: "slot_frame.png", folder: "ui", format: "png", width: 1600, height: 800, phase: 4, rustRef: "Bandit Camp slot machine", depicts: "Slot machine front with the three reel windows cut out (transparent)", usedIn: ["slots card"] },
+    { file: "npc_base_small.png", folder: "thumbs_512", format: "png", width: 512, height: 512, phase: 5, rustRef: "any small player base", depicts: "Small NPC base (2x1 stone)", usedIn: ["raid picker","raid report card"] },
+    { file: "npc_base_medium.png", folder: "thumbs_512", format: "png", width: 512, height: 512, phase: 5, rustRef: "any medium player base", depicts: "Medium NPC base (sheet metal bunker)", usedIn: ["raid picker","raid report card"] },
+    { file: "npc_base_large.png", folder: "thumbs_512", format: "png", width: 512, height: 512, phase: 5, rustRef: "any clan compound", depicts: "Large NPC compound (armored, turrets)", usedIn: ["raid picker","raid report card"] },
+    { file: "season.jpg", folder: "banners_1600x600", format: "jpg", width: 1600, height: 600, phase: 6, rustRef: "any map vista", depicts: "Wide island landscape, dark enough for text on top", usedIn: ["season summary card","leaderboard card"] },
+    { file: "event_cargo_ship.png", folder: "thumbs_512", format: "png", width: 512, height: 512, phase: 7, rustRef: "Cargo Ship", depicts: "Cargo Ship", usedIn: ["event join card"] },
+    { file: "event_patrol_heli.png", folder: "thumbs_512", format: "png", width: 512, height: 512, phase: 7, rustRef: "Patrol Helicopter", depicts: "Patrol Helicopter", usedIn: ["event join card"] },
+    { file: "event_locked_crate.png", folder: "thumbs_512", format: "png", width: 512, height: 512, phase: 7, rustRef: "codelockedhackablecrate", depicts: "Locked (hackable) crate", usedIn: ["event join card"] },
+    { file: "event_chinook.png", folder: "thumbs_512", format: "png", width: 512, height: 512, phase: 7, rustRef: "CH47 Chinook", depicts: "Chinook CH-47", usedIn: ["event join card"] },
+  ],
+}

@@ -1,0 +1,57 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`debug_card screen > has a stable Components V2 tree 1`] = `
+{
+  "accent_color": 13451563,
+  "components": [
+    {
+      "content": "## Render pipeline check
+Rendered in 42 ms · 12/218 assets supplied",
+      "type": 10,
+    },
+    {
+      "items": [
+        {
+          "media": {
+            "url": "attachment://demo_normal.png",
+          },
+        },
+      ],
+      "type": 12,
+    },
+    {
+      "content": "This is the Phase 0 demo card with sample data. Missing pictures show as tinted tiles.",
+      "type": 10,
+    },
+    {
+      "divider": true,
+      "spacing": 1,
+      "type": 14,
+    },
+    {
+      "components": [
+        {
+          "custom_id": "idle:v1:debug:card:-:full",
+          "label": "Worst case",
+          "style": 1,
+          "type": 2,
+        },
+        {
+          "custom_id": "idle:v1:debug:card:-:empty",
+          "label": "New player",
+          "style": 2,
+          "type": 2,
+        },
+        {
+          "custom_id": "idle:v1:debug:card:-:normal",
+          "label": "Render again",
+          "style": 2,
+          "type": 2,
+        },
+      ],
+      "type": 1,
+    },
+  ],
+  "type": 17,
+}
+`;

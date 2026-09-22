@@ -1,0 +1,8 @@
+// Furnace types, weakest first. Slots and throughput arrive with Phase 2.
+{
+  furnaces: [
+    { id: "furnace", tier: "wood", phase: 2, fallbackEmoji: "🔥", rustRef: "furnace" },
+    { id: "large_furnace", tier: "stone", phase: 2, fallbackEmoji: "🏭", rustRef: "furnace.large" },
+    { id: "electric_furnace", tier: "metal", phase: 2, fallbackEmoji: "⚡", rustRef: "electric.furnace" },
+  ],
+}

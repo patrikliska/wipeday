@@ -1,0 +1,18 @@
+// Season-layer resources. Order here is display order on every card and screen.
+// Balance fields (gather weights, storage weights) arrive with Phase 1.
+{
+  resources: [
+    { id: "wood", kind: "raw", phase: 1, fallbackEmoji: "🪵", rustRef: "wood" },
+    { id: "stone", kind: "raw", phase: 1, fallbackEmoji: "🪨", rustRef: "stones" },
+    { id: "metal_ore", kind: "raw", phase: 1, fallbackEmoji: "🟤", rustRef: "metal.ore" },
+    { id: "metal_fragments", kind: "refined", phase: 2, fallbackEmoji: "🔩", rustRef: "metal.fragments" },
+    { id: "sulfur_ore", kind: "raw", phase: 1, fallbackEmoji: "🟡", rustRef: "sulfur.ore" },
+    { id: "sulfur", kind: "refined", phase: 2, fallbackEmoji: "🧪", rustRef: "sulfur" },
+    { id: "hqm_ore", kind: "raw", phase: 1, fallbackEmoji: "🔷", rustRef: "hq.metal.ore" },
+    { id: "hqm", kind: "refined", phase: 2, fallbackEmoji: "💎", rustRef: "metal.refined" },
+    { id: "cloth", kind: "raw", phase: 1, fallbackEmoji: "🧵", rustRef: "cloth" },
+    { id: "leather", kind: "raw", phase: 1, fallbackEmoji: "🟫", rustRef: "leather" },
+    { id: "low_grade_fuel", kind: "raw", phase: 1, fallbackEmoji: "⛽", rustRef: "lowgradefuel" },
+    { id: "scrap", kind: "currency", phase: 1, fallbackEmoji: "⚙️", rustRef: "scrap" },
+  ],
+}

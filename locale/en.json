@@ -1,0 +1,353 @@
+{
+  "resource": {
+    "wood": {
+      "name": "Wood"
+    },
+    "stone": {
+      "name": "Stone"
+    },
+    "metal_ore": {
+      "name": "Metal Ore"
+    },
+    "metal_fragments": {
+      "name": "Metal Fragments"
+    },
+    "sulfur_ore": {
+      "name": "Sulfur Ore"
+    },
+    "sulfur": {
+      "name": "Sulfur"
+    },
+    "hqm_ore": {
+      "name": "HQM Ore"
+    },
+    "hqm": {
+      "name": "HQM"
+    },
+    "cloth": {
+      "name": "Cloth"
+    },
+    "leather": {
+      "name": "Leather"
+    },
+    "low_grade_fuel": {
+      "name": "Low Grade Fuel"
+    },
+    "scrap": {
+      "name": "Scrap"
+    }
+  },
+  "tool": {
+    "rock": {
+      "name": "Rock"
+    },
+    "stone_tools": {
+      "name": "Stone Tools"
+    },
+    "metal_tools": {
+      "name": "Metal Tools"
+    },
+    "salvaged_tools": {
+      "name": "Salvaged Tools"
+    },
+    "power_tools": {
+      "name": "Power Tools"
+    }
+  },
+  "base_tier": {
+    "twig": {
+      "name": "Twig"
+    },
+    "wood": {
+      "name": "Wood"
+    },
+    "stone": {
+      "name": "Stone"
+    },
+    "metal": {
+      "name": "Sheet Metal"
+    },
+    "hqm": {
+      "name": "Armored"
+    }
+  },
+  "furnace": {
+    "furnace": {
+      "name": "Furnace"
+    },
+    "large_furnace": {
+      "name": "Large Furnace"
+    },
+    "electric_furnace": {
+      "name": "Electric Furnace"
+    }
+  },
+  "perk": {
+    "scavenger": {
+      "name": "Scavenger"
+    },
+    "medic": {
+      "name": "Medic"
+    },
+    "demolition": {
+      "name": "Demolition"
+    },
+    "marksman": {
+      "name": "Marksman"
+    },
+    "mule": {
+      "name": "Mule"
+    }
+  },
+  "monument": {
+    "supermarket": {
+      "name": "Abandoned Supermarket"
+    },
+    "gas_station": {
+      "name": "Oxum's Gas Station"
+    },
+    "lighthouse": {
+      "name": "Lighthouse"
+    },
+    "dome": {
+      "name": "The Dome"
+    },
+    "harbor": {
+      "name": "Harbor"
+    },
+    "satellite_dish": {
+      "name": "Satellite Dish"
+    },
+    "airfield": {
+      "name": "Airfield"
+    },
+    "train_yard": {
+      "name": "Train Yard"
+    },
+    "water_treatment": {
+      "name": "Water Treatment Plant"
+    },
+    "power_plant": {
+      "name": "Power Plant"
+    },
+    "military_tunnels": {
+      "name": "Military Tunnels"
+    },
+    "launch_site": {
+      "name": "Launch Site"
+    },
+    "small_oil_rig": {
+      "name": "Small Oil Rig"
+    },
+    "large_oil_rig": {
+      "name": "Large Oil Rig"
+    }
+  },
+  "item": {
+    "wood_box": {
+      "name": "Wood Storage Box"
+    },
+    "large_box": {
+      "name": "Large Wood Box"
+    },
+    "workbench_1": {
+      "name": "Workbench Level 1"
+    },
+    "workbench_2": {
+      "name": "Workbench Level 2"
+    },
+    "workbench_3": {
+      "name": "Workbench Level 3"
+    },
+    "bandage": {
+      "name": "Bandage"
+    },
+    "syringe": {
+      "name": "Medical Syringe"
+    },
+    "medkit": {
+      "name": "Large Medkit"
+    },
+    "bow": {
+      "name": "Hunting Bow"
+    },
+    "crossbow": {
+      "name": "Crossbow"
+    },
+    "eoka": {
+      "name": "Eoka Pistol"
+    },
+    "waterpipe": {
+      "name": "Waterpipe Shotgun"
+    },
+    "revolver": {
+      "name": "Revolver"
+    },
+    "double_barrel": {
+      "name": "Double Barrel Shotgun"
+    },
+    "semi_pistol": {
+      "name": "Semi-Automatic Pistol"
+    },
+    "python": {
+      "name": "Python Revolver"
+    },
+    "pump_shotgun": {
+      "name": "Pump Shotgun"
+    },
+    "custom_smg": {
+      "name": "Custom SMG"
+    },
+    "thompson": {
+      "name": "Thompson"
+    },
+    "semi_rifle": {
+      "name": "Semi-Automatic Rifle"
+    },
+    "mp5": {
+      "name": "MP5A4"
+    },
+    "ak47": {
+      "name": "Assault Rifle"
+    },
+    "bolt_rifle": {
+      "name": "Bolt Action Rifle"
+    },
+    "m249": {
+      "name": "M249"
+    },
+    "burlap_shirt": {
+      "name": "Burlap Shirt"
+    },
+    "hide_poncho": {
+      "name": "Hide Poncho"
+    },
+    "wood_armor": {
+      "name": "Wood Chestplate"
+    },
+    "bone_armor": {
+      "name": "Bone Armor"
+    },
+    "hazmat_suit": {
+      "name": "Hazmat Suit"
+    },
+    "roadsign_jacket": {
+      "name": "Road Sign Jacket"
+    },
+    "coffee_can_helmet": {
+      "name": "Coffee Can Helmet"
+    },
+    "metal_facemask": {
+      "name": "Metal Facemask"
+    },
+    "metal_chestplate": {
+      "name": "Metal Chest Plate"
+    },
+    "keycard_green": {
+      "name": "Green Keycard"
+    },
+    "keycard_blue": {
+      "name": "Blue Keycard"
+    },
+    "keycard_red": {
+      "name": "Red Keycard"
+    },
+    "fuse": {
+      "name": "Electric Fuse"
+    },
+    "gears": {
+      "name": "Gears"
+    },
+    "metal_pipe": {
+      "name": "Metal Pipe"
+    },
+    "metal_spring": {
+      "name": "Metal Spring"
+    },
+    "semi_body": {
+      "name": "Semi Automatic Body"
+    },
+    "smg_body": {
+      "name": "SMG Body"
+    },
+    "rifle_body": {
+      "name": "Rifle Body"
+    },
+    "tech_trash": {
+      "name": "Tech Trash"
+    },
+    "targeting_computer": {
+      "name": "Targeting Computer"
+    },
+    "beancan_grenade": {
+      "name": "Beancan Grenade"
+    },
+    "satchel_charge": {
+      "name": "Satchel Charge"
+    },
+    "explosive_ammo": {
+      "name": "Explosive 5.56 Ammo"
+    },
+    "rocket": {
+      "name": "Rocket"
+    },
+    "c4": {
+      "name": "Timed Explosive Charge"
+    },
+    "wooden_barricade": {
+      "name": "Wooden Barricade"
+    },
+    "snap_trap": {
+      "name": "Snap Trap"
+    },
+    "landmine": {
+      "name": "Homemade Landmine"
+    },
+    "shotgun_trap": {
+      "name": "Shotgun Trap"
+    },
+    "flame_turret": {
+      "name": "Flame Turret"
+    },
+    "stone_wall": {
+      "name": "High Stone Wall"
+    },
+    "auto_turret": {
+      "name": "Auto Turret"
+    }
+  },
+  "card": {
+    "demo": {
+      "subtitle": "{tier} base · Day {day}",
+      "storage": "Storage",
+      "storage_full": "FULL · collect now",
+      "upkeep": "Upkeep",
+      "upkeep_left": "{time} left",
+      "tool": "Gathering tool",
+      "upkeep_decaying": "DECAYING"
+    }
+  },
+  "nav": {
+    "back": "Back",
+    "home": "Home"
+  },
+  "screen": {
+    "debug_card": {
+      "title": "Render pipeline check",
+      "status": "Rendered in {ms} ms · {assets}",
+      "status_cached": "Served from cache in {ms} ms · {assets}",
+      "assets": "{present}/{planned} assets supplied",
+      "detail": "This is the Phase 0 demo card with sample data. Missing pictures show as tinted tiles.",
+      "rerender": "Render again",
+      "full": "Worst case",
+      "empty": "New player",
+      "normal": "Typical player"
+    }
+  },
+  "error": {
+    "not_your_message": "That's someone else's base. Use /base to open yours.",
+    "stale_message": "That message is from an older version. Use /base to open a fresh one.",
+    "unexpected": "Something went wrong on our side. Nothing was spent. Try again in a moment.",
+    "admin_only": "That command is for server admins only."
+  }
+}

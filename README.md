@@ -1,0 +1,61 @@
+# Wipe Day
+
+A Rust-themed idle game played entirely inside Discord. Private, single-server.
+The full specification is [CLAUDE.md](CLAUDE.md). Current state: **Phase 0 (foundations)**.
+
+## Run it
+
+Requires Node 22+ and pnpm.
+
+```sh
+pnpm install
+cp .env.example .env      # then fill in DISCORD_TOKEN and DISCORD_GUILD_ID
+pnpm start                # or: pnpm dev (restarts on change)
+```
+
+Creating the bot (once):
+
+1. <https://discord.com/developers/applications> -> New Application -> **Bot** -> Reset Token.
+   That token is `DISCORD_TOKEN`.
+2. **OAuth2 -> URL Generator**: scopes `bot` and `applications.commands`; bot permissions
+   `Send Messages`, `Attach Files`, `Create Public Threads`, `Send Messages in Threads`.
+   Open the URL and add the bot to your server.
+3. In Discord: Settings -> Advanced -> Developer Mode, then right-click the server ->
+   Copy Server ID. That is `DISCORD_GUILD_ID`.
+
+No privileged intents are needed. Then run `/idle-debug card` in the server: you should get
+a private message with the rendered demo card and buttons to flip through its states.
+
+## Commands
+
+| Command | What it does |
+| --- | --- |
+| `pnpm start` / `pnpm dev` | Run the bot |
+| `pnpm preview` | Render every card in every state to `preview/`, plus `preview/index.html` |
+| `pnpm assets check` | Regenerate the asset list and report missing or unusable files |
+| `pnpm assets sync` | Regenerate `assets/manifest.json` and `assets/ASSETS.md` only |
+| `pnpm typecheck` / `pnpm lint` / `pnpm test` | Must all pass before a phase is done |
+| `pnpm format` | Apply formatting and safe lint fixes |
+| `pnpm db:generate` | Create a migration after editing `src/store/schema.ts` |
+
+## Supplying art
+
+Everything the game wants is listed in [assets/ASSETS.md](assets/ASSETS.md), by folder, with
+the Rust item shortname to source each picture from and the phase that first needs it. Drop
+files into the listed folder with the listed name, then run `pnpm assets check`. The bot
+runs with nothing supplied: cards use tinted placeholder tiles, inline icons fall back to
+Unicode emoji. Supplied files are gitignored and never committed.
+
+## Where things are
+
+```
+src/domain      pure game rules (from Phase 1)
+src/content     data file schemas, loading, validation
+src/store       drizzle schema and migrations
+src/ui          theme, locale, number format, Screen model + lint, customId router, screens
+src/render      satori JSX cards -> PNG, fixtures, cache
+src/assets      manifest generation, registry, checker, application emoji sync
+src/bin         bot, idle-preview, idle-assets
+data/           JSON5 content and balance      locale/   player-visible strings
+docs/           decisions.md, ui-review.md, screens/*.md, reference/ (your screenshots)
+```

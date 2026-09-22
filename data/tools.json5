@@ -1,0 +1,11 @@
+// Gathering tool tiers, weakest first. A tier is a set of tools; `rustRef` names
+// the one item whose icon represents it. Rates arrive with Phase 1.
+{
+  tools: [
+    { id: "rock", tier: "twig", phase: 1, fallbackEmoji: "🪨", rustRef: "rock" },
+    { id: "stone_tools", tier: "wood", phase: 1, fallbackEmoji: "⛏️", rustRef: "stone.pickaxe" },
+    { id: "metal_tools", tier: "stone", phase: 1, fallbackEmoji: "⛏️", rustRef: "pickaxe" },
+    { id: "salvaged_tools", tier: "metal", phase: 1, fallbackEmoji: "🧊", rustRef: "icepick.salvaged" },
+    { id: "power_tools", tier: "hqm", phase: 1, fallbackEmoji: "🔧", rustRef: "jackhammer" },
+  ],
+}
