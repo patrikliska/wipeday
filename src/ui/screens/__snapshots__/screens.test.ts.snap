@@ -6,7 +6,7 @@ exports[`base screen > has a stable Components V2 tree 1`] = `
   "components": [
     {
       "content": "## Soboj's base
-Storage 12% · nothing waiting yet",
+Storage 12% (Wood) · nothing waiting yet",
       "type": 10,
     },
     {
@@ -49,6 +49,12 @@ Storage 12% · nothing waiting yet",
         {
           "custom_id": "idle:v1:base:tools:1:",
           "label": "Tools",
+          "style": 2,
+          "type": 2,
+        },
+        {
+          "custom_id": "idle:v1:base:build:1:",
+          "label": "Build",
           "style": 2,
           "type": 2,
         },

@@ -20,7 +20,8 @@
     "lint": "biome check .",
     "format": "biome check --write .",
     "test": "vitest run",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "sim": "tsx src/bin/idle-sim.ts"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

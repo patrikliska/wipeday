@@ -96,6 +96,42 @@ when stock changes.
 - Placeholder safety (`base__noassets`): identical layout; tinted tiles carry initials
   and the names carry the meaning. Nothing depends on art.
 
+### Iteration 3 (Phase 2) — per-resource storage
+Storage became per resource (decision D26), so the card had to say *which* resource is
+the problem.
+- Storage row now names the binding resource: `Wood 964 / 1.5k`, or `Wood FULL` in
+  danger red. A single anonymous percentage would send the player looking for the wrong
+  thing.
+- Every resource cell got a 4 px fill bar under the name, toned like the big bar. At a
+  glance the whole grid shows which resources are near their cap; in the full state all
+  eleven bars are red, which reads as "everything is capped" without a single word.
+- Cell line heights tightened (30/24) to fit the bar in the same 76 px.
+- Checked at 400 px: the hairline bars are still visible; `Wood FULL` is unmistakable.
+
+## `inventory` (Phase 2)
+
+States: `empty`, `normal`, `full`. Template: `src/render/cards/inventory.tsx`.
+
+### Iteration 1 — 4 columns, count + name
+- **Overflow: failed.** Half the names truncated (`Wood Sto…`, `Assault R…`, `Medical
+  S…`, `Timed Ex…`). Unlike resources, items have no colour or icon the player knows
+  yet; the name *is* the identity.
+- `29388 items` bypassed the number formatter.
+- *Fine:* hierarchy (count in bold 28 is the first thing read), tier-coloured frames
+  separate rarities without shouting, the empty state is a calm dashed panel with one
+  sentence pointing at the workbench.
+
+### Iteration 2 — 3 columns, Rust names
+- Three columns give each name ~160 px: everything fits at the worst case except
+  `Coffee Can Helmet` (17 chars), which ellipsises after "Hel…" and stays recognisable.
+- Fifteen item names shortened to what players say (`C4`, `Semi Rifle`, `Wood Box`,
+  `Workbench 1`, `Syringe`, `Landmine`). These names also appear in the craft select, so
+  the shorter forms help there too.
+- `29.3k items` via the shared formatter.
+- Worst case (24 kinds) is 1600x1714 at 2x: taller than wide, so desktop shows it
+  smaller. Accepted: it is a hoarder's inventory, and the phone render (the common case)
+  is unaffected.
+
 ### `base` (home), `tools`, `tools_done` component screens
 Outlines: `preview/screens/base__{empty,normal,affordable,full}.txt`,
 `tools__{locked,normal,maxed}.txt`, `tools_done__normal.txt`. Lint: ok in every state.
@@ -124,3 +160,22 @@ hit. 3 buttons, one row, longest label 14 chars. Root screen, so no Back/Home.
   and the owner's display is HiDPI, so Discord *upscaled* it (~565 CSS px = ~1130 device
   px). Fix: `layout.renderScale = 2`; cards are laid out in 800 units and rasterised at
   1600 px. Cost: 34-47 ms per card, 80-113 KB per PNG. Layout code is untouched.
+
+### Phase 2 screens: `build`, `furnace`, `craft`, `inventory`, and the home additions
+Outlines: `preview/screens/{build,furnace,craft,inventory}__*.txt`, `base__{furnace,building,decaying}.txt`.
+Lint: ok in all 28 states.
+- Home grew a second row (Furnace, Craft, Inventory) that only appears once the mechanic
+  is relevant: ore in stock, a recipe affordable, an item owned. A fresh player still sees
+  one row and one glowing button.
+- Build status replaces the storage line while a build runs (`Upgrading to Stone · done
+  <t:R>`); upkeep is one line (`Upkeep 🪵 -30/h · stock covers 2d 10h`) and turns into a
+  red `DECAYING … drops a tier <t:R>` only after a full unpaid hour.
+- Found in review: the base flashed DECAYING for up to 59 minutes every hour because
+  upkeep is settled in whole hours. Fixed in the domain (`isDecaying` needs a full unpaid
+  hour; decay production starts with that hour too).
+- Furnace: one line per slot with a live finish time; the select lists each ore with
+  `→ output · fuel · time` in its description, so the choice is fully informed without a
+  confirm step. Take out is primary only when something is ready.
+- Craft: affordable recipes first, locked ones marked 🔒 with what is missing; higher
+  levels listed as one line each so the tree is visible (rule 3: nothing hidden).
+- Build: cost vs stock, build time, what the tier unlocks, upkeep after, stock after.

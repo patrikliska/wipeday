@@ -1,0 +1,49 @@
+// What the workbench can make. `item` must exist in items.json5. `workbench` is
+// the level required (0 = bare hands: the first workbench itself). Crafting is
+// instant (decision D30). Each recipe yields one unit.
+//
+// Boxes raise the storage cap (`capacity` on the item); workbenches unlock the
+// next level. Gear recipes exist so the tree is visible; gear is used from Phase 3.
+{
+  recipes: [
+    // --- infrastructure --------------------------------------------------------
+    { item: "workbench_1", workbench: 0, cost: { wood: 500, stone: 100 } },
+    { item: "wood_box", workbench: 1, cost: { wood: 300 } },
+    { item: "workbench_2", workbench: 1, cost: { wood: 1000, metal_fragments: 500 } },
+    { item: "large_box", workbench: 2, cost: { wood: 500, metal_fragments: 100 } },
+    { item: "workbench_3", workbench: 2, cost: { metal_fragments: 3000, hqm: 20 } },
+
+    // --- meds ------------------------------------------------------------------
+    { item: "bandage", workbench: 1, cost: { cloth: 4 } },
+    { item: "syringe", workbench: 2, cost: { cloth: 10, metal_fragments: 15 } },
+    { item: "medkit", workbench: 3, cost: { cloth: 60, metal_fragments: 100 } },
+
+    // --- weapons ---------------------------------------------------------------
+    { item: "bow", workbench: 1, cost: { wood: 200, cloth: 50 } },
+    { item: "eoka", workbench: 1, cost: { wood: 75, metal_fragments: 30 } },
+    { item: "crossbow", workbench: 1, cost: { wood: 200, metal_fragments: 75, cloth: 50 } },
+    { item: "waterpipe", workbench: 1, cost: { wood: 100, metal_fragments: 75 } },
+    { item: "revolver", workbench: 1, cost: { metal_fragments: 125, cloth: 25 } },
+    { item: "double_barrel", workbench: 2, cost: { wood: 150, metal_fragments: 175 } },
+    { item: "semi_pistol", workbench: 2, cost: { metal_fragments: 250, cloth: 50 } },
+    { item: "python", workbench: 2, cost: { metal_fragments: 400, hqm: 5 } },
+    { item: "pump_shotgun", workbench: 2, cost: { metal_fragments: 350, hqm: 10 } },
+    { item: "custom_smg", workbench: 2, cost: { metal_fragments: 350, hqm: 15 } },
+    { item: "thompson", workbench: 2, cost: { metal_fragments: 450, hqm: 15 } },
+    { item: "semi_rifle", workbench: 2, cost: { metal_fragments: 500, hqm: 20 } },
+    { item: "mp5", workbench: 3, cost: { metal_fragments: 600, hqm: 30 } },
+    { item: "ak47", workbench: 3, cost: { metal_fragments: 800, hqm: 50, wood: 200 } },
+    { item: "bolt_rifle", workbench: 3, cost: { metal_fragments: 700, hqm: 40, wood: 100 } },
+
+    // --- armor -----------------------------------------------------------------
+    { item: "burlap_shirt", workbench: 1, cost: { cloth: 20 } },
+    { item: "hide_poncho", workbench: 1, cost: { leather: 15, cloth: 10 } },
+    { item: "wood_armor", workbench: 1, cost: { wood: 200, cloth: 20 } },
+    { item: "bone_armor", workbench: 1, cost: { leather: 20, cloth: 20 } },
+    { item: "hazmat_suit", workbench: 2, cost: { cloth: 100, metal_fragments: 50, leather: 20 } },
+    { item: "roadsign_jacket", workbench: 2, cost: { metal_fragments: 150, leather: 30 } },
+    { item: "coffee_can_helmet", workbench: 2, cost: { metal_fragments: 100, leather: 15 } },
+    { item: "metal_facemask", workbench: 3, cost: { metal_fragments: 250, hqm: 15, leather: 20 } },
+    { item: "metal_chestplate", workbench: 3, cost: { metal_fragments: 400, hqm: 20, leather: 30 } },
+  ],
+}

@@ -37,15 +37,14 @@ describe("base card", () => {
 
   it("formats every number through the shared formatter", () => {
     const text = textOf(renderer.tree(baseCard, fixture("normal").props));
-    expect(text).toContain("1.6k");
-    expect(text).toContain("/ 2.5k");
+    expect(text).toContain("/ 1.5k");
     expect(text).toContain("964");
-    expect(text).not.toContain("1642");
+    expect(text).not.toContain("1500");
   });
 
   it("shows FULL instead of numbers at the cap", () => {
     const text = textOf(renderer.tree(baseCard, fixture("full").props));
-    expect(text).toContain(locale.t("card.base.storage_full"));
+    expect(text).toContain(locale.t("card.base.storage_full_of", { resource: "Wood" }));
   });
 
   it("renders a PNG wider than tall, within budget once warm, and caches it", async () => {

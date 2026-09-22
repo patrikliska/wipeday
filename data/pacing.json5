@@ -1,0 +1,16 @@
+// Targets the simulator asserts (`pnpm sim check`). Days are season days
+// (day 1 = the first 24 hours). CLAUDE.md 5.5.
+{
+  // Casual player, 3 check-ins a day.
+  casual: {
+    stone: { earliestDay: 3, latestDay: 4 },
+    metal: { earliestDay: 12, latestDay: 14 },
+    hqm: { earliestDay: 15, latestDay: 28 },
+  },
+  // The greedy planner with hourly check-ins must not beat these.
+  optimal: {
+    hqmNotBeforeDay: 14,
+  },
+  // Each tier costs roughly this much more than the previous one (by resource-hours).
+  tierCostRatio: { min: 3, max: 6 },
+}

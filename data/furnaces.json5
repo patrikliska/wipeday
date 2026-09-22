@@ -1,8 +1,25 @@
-// Furnace types, weakest first. Slots and throughput arrive with Phase 2.
+// Furnace types, weakest first. A base owns one type; the base tier says how many
+// slots of it run at once (`furnaceSlots` in base_tiers.json5).
+//
+// `orePerHour`: smelting speed per slot. `woodPer100Ore`: fuel, burned up front.
+// `maxOrePerJob`: a slot takes at most this much ore per job.
+// `cost`: paid once to buy (or upgrade to) this type. `minTier`: base tier needed.
 {
   furnaces: [
-    { id: "furnace", tier: "wood", phase: 2, fallbackEmoji: "🔥", rustRef: "furnace" },
-    { id: "large_furnace", tier: "stone", phase: 2, fallbackEmoji: "🏭", rustRef: "furnace.large" },
-    { id: "electric_furnace", tier: "metal", phase: 2, fallbackEmoji: "⚡", rustRef: "electric.furnace" },
+    {
+      id: "furnace", tier: "wood", phase: 2, fallbackEmoji: "🔥", rustRef: "furnace",
+      orePerHour: 120, woodPer100Ore: 50, maxOrePerJob: 1000,
+      cost: { wood: 400, stone: 300 }, minTier: "twig",
+    },
+    {
+      id: "large_furnace", tier: "stone", phase: 2, fallbackEmoji: "🏭", rustRef: "furnace.large",
+      orePerHour: 400, woodPer100Ore: 35, maxOrePerJob: 5000,
+      cost: { stone: 3000, metal_fragments: 600 }, minTier: "stone",
+    },
+    {
+      id: "electric_furnace", tier: "metal", phase: 2, fallbackEmoji: "⚡", rustRef: "electric.furnace",
+      orePerHour: 1200, woodPer100Ore: 0, maxOrePerJob: 20000,
+      cost: { metal_fragments: 5000, hqm: 25 }, minTier: "metal",
+    },
   ],
 }

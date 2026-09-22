@@ -2,14 +2,45 @@
 // Asset files are prefixed `tier_` so `tier_wood` never collides with the `wood`
 // resource in the shared emoji namespace.
 //
-// `storageCap`: total resources the base can hold (all resources together).
-// Roughly 4 to 5x per tier. Upgrade costs, build timers and upkeep arrive with Phase 2.
+// `storageCap`: how much of *each* resource the base can hold (Rust-style: every
+//   resource has its own room). Boxes (items.json5, category storage) add to it,
+//   up to `boxSlots` boxes.
+// `cost` / `buildMinutes`: paid up front to upgrade *to* this tier; the tier
+//   arrives when the timer ends. Twig -> wood is instant.
+// `upkeep`: drained from stock every hour at this tier. Unpaid upkeep halves
+//   production (`rules.decayProductionPercent`) and, after
+//   `rules.tierLossAfterHours` unpaid, drops the base one tier.
+// `furnaceSlots`, `workbenchLevel`: what the tier allows.
 {
+  rules: {
+    decayProductionPercent: 50,
+    tierLossAfterHours: 72,
+  },
   baseTiers: [
-    { id: "twig",  phase: 1, fallbackEmoji: "🛖",  rustRef: "building grade: twig (a twig 2x1 base)", storageCap: 2500 },
-    { id: "wood",  phase: 1, fallbackEmoji: "🏚️", rustRef: "building grade: wood",                    storageCap: 10000 },
-    { id: "stone", phase: 1, fallbackEmoji: "🏠",  rustRef: "building grade: stone",                   storageCap: 45000 },
-    { id: "metal", phase: 1, fallbackEmoji: "🏢",  rustRef: "building grade: sheet metal",             storageCap: 200000 },
-    { id: "hqm",   phase: 1, fallbackEmoji: "🏰",  rustRef: "building grade: armored",                 storageCap: 900000 },
+    {
+      id: "twig", phase: 1, fallbackEmoji: "🛖", rustRef: "building grade: twig (a twig 2x1 base)",
+      storageCap: 1500, boxSlots: 2, furnaceSlots: 1, workbenchLevel: 1,
+      cost: {}, buildMinutes: 0, upkeep: {},
+    },
+    {
+      id: "wood", phase: 1, fallbackEmoji: "🏚️", rustRef: "building grade: wood",
+      storageCap: 5000, boxSlots: 4, furnaceSlots: 1, workbenchLevel: 1,
+      cost: { wood: 1500, stone: 500 }, buildMinutes: 0, upkeep: { wood: 30 },
+    },
+    {
+      id: "stone", phase: 1, fallbackEmoji: "🏠", rustRef: "building grade: stone",
+      storageCap: 20000, boxSlots: 8, furnaceSlots: 2, workbenchLevel: 2,
+      cost: { stone: 6000, metal_fragments: 800 }, buildMinutes: 240, upkeep: { wood: 40, stone: 100 },
+    },
+    {
+      id: "metal", phase: 1, fallbackEmoji: "🏢", rustRef: "building grade: sheet metal",
+      storageCap: 80000, boxSlots: 12, furnaceSlots: 3, workbenchLevel: 3,
+      cost: { stone: 40000, metal_fragments: 38000 }, buildMinutes: 720, upkeep: { wood: 60, stone: 150, metal_fragments: 60 },
+    },
+    {
+      id: "hqm", phase: 1, fallbackEmoji: "🏰", rustRef: "building grade: armored",
+      storageCap: 300000, boxSlots: 16, furnaceSlots: 4, workbenchLevel: 3,
+      cost: { metal_fragments: 25000, hqm: 400 }, buildMinutes: 1440, upkeep: { wood: 80, stone: 200, metal_fragments: 100, hqm: 2 },
+    },
   ],
 }

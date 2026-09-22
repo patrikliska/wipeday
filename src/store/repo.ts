@@ -3,12 +3,22 @@
  * synchronous (better-sqlite3), which is what makes "one click = one
  * transaction" trivial: `db.transaction(() => { ... })`.
  */
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, lte } from "drizzle-orm";
 import type { Amounts } from "../content/schema";
 import type { BaseState } from "../domain/base";
 import type { Tier } from "../ui/theme";
 import type { Db } from "./db";
-import { bases, eventLog, hints, homeMessages, players, resources, seasons } from "./schema";
+import {
+  bases,
+  eventLog,
+  furnaceJobs,
+  hints,
+  homeMessages,
+  inventoryItems,
+  players,
+  resources,
+  seasons,
+} from "./schema";
 
 export interface Player {
   id: number;
@@ -59,12 +69,41 @@ export const basesRepo = {
     for (const entry of db.select().from(resources).where(eq(resources.playerId, playerId)).all()) {
       stock[entry.resourceId] = entry.amount;
     }
+    const items: Record<string, number> = {};
+    for (const entry of db
+      .select()
+      .from(inventoryItems)
+      .where(eq(inventoryItems.playerId, playerId))
+      .all()) {
+      items[entry.itemId] = entry.count;
+    }
+    const jobs = db
+      .select()
+      .from(furnaceJobs)
+      .where(eq(furnaceJobs.playerId, playerId))
+      .orderBy(furnaceJobs.id)
+      .all()
+      .map(({ input, output, amount, startedAt, collected }) => ({
+        input,
+        output,
+        amount,
+        startedAt,
+        collected,
+      }));
     return {
       tier: row.tier as Tier,
       toolId: row.toolId,
       stock,
       lastCollectedAt: row.lastCollectedAt,
       lastGatherAt: row.lastGatherAt,
+      build:
+        row.buildTier !== null && row.buildEndsAt !== null
+          ? { tier: row.buildTier as Tier, endsAt: row.buildEndsAt }
+          : null,
+      upkeepPaidUntil: row.upkeepPaidUntil,
+      furnaceId: row.furnaceId,
+      furnaceJobs: jobs,
+      items,
     };
   },
 
@@ -75,6 +114,10 @@ export const basesRepo = {
       toolId: state.toolId,
       lastCollectedAt: state.lastCollectedAt,
       lastGatherAt: state.lastGatherAt,
+      buildTier: state.build?.tier ?? null,
+      buildEndsAt: state.build?.endsAt ?? null,
+      upkeepPaidUntil: state.upkeepPaidUntil,
+      furnaceId: state.furnaceId,
     };
     db.insert(bases)
       .values({ playerId, ...row })
@@ -89,6 +132,33 @@ export const basesRepo = {
         })
         .run();
     }
+    for (const [itemId, count] of Object.entries(state.items)) {
+      db.insert(inventoryItems)
+        .values({ playerId, itemId, count })
+        .onConflictDoUpdate({
+          target: [inventoryItems.playerId, inventoryItems.itemId],
+          set: { count },
+        })
+        .run();
+    }
+    // Jobs are few and short-lived: replace the set wholesale.
+    db.delete(furnaceJobs).where(eq(furnaceJobs.playerId, playerId)).run();
+    for (const job of state.furnaceJobs) {
+      db.insert(furnaceJobs)
+        .values({ playerId, ...job })
+        .run();
+    }
+  },
+
+  /** Players whose base has something that ends at or before `now` (builds, furnace jobs). */
+  withPendingEndsBefore(db: Db, now: number): number[] {
+    const building = db
+      .select({ playerId: bases.playerId })
+      .from(bases)
+      .where(lte(bases.buildEndsAt, now))
+      .all()
+      .map((row) => row.playerId);
+    return [...new Set(building)];
   },
 };
 

@@ -5,6 +5,8 @@
  * nothing else in the project ever splits a customId. `owner` is the Discord
  * user id the message belongs to (`-` on ephemeral messages, which only their
  * owner can see), so clicks by anyone else can be turned away.
+ *
+ * Select menus carry their choice in the interaction's `values`, not here.
  */
 
 /** Discord's limit for a customId. */
@@ -16,14 +18,31 @@ const PREFIX = "idle:v1";
 export const DEBUG_STATES = ["empty", "normal", "full"] as const;
 export type DebugState = (typeof DEBUG_STATES)[number];
 
-export const BASE_ACTIONS = ["collect", "gather", "tools", "refresh"] as const;
+export const BASE_ACTIONS = [
+  "collect",
+  "gather",
+  "tools",
+  "build",
+  "furnace",
+  "craft",
+  "inventory",
+  "refresh",
+] as const;
 export const TOOLS_ACTIONS = ["upgrade", "back", "home"] as const;
+export const BUILD_ACTIONS = ["start", "back", "home"] as const;
+export const FURNACE_ACTIONS = ["smelt", "collect", "buy", "back", "home"] as const;
+export const CRAFT_ACTIONS = ["pick", "again", "inventory", "back", "home"] as const;
+export const INVENTORY_ACTIONS = ["craft", "back", "home"] as const;
 
 /** Every action a component can trigger. Grows by one variant per feature. */
 export type Route =
   | { screen: "debug"; action: "card"; state: DebugState }
   | { screen: "base"; action: (typeof BASE_ACTIONS)[number] }
-  | { screen: "tools"; action: (typeof TOOLS_ACTIONS)[number] };
+  | { screen: "tools"; action: (typeof TOOLS_ACTIONS)[number] }
+  | { screen: "build"; action: (typeof BUILD_ACTIONS)[number] }
+  | { screen: "furnace"; action: (typeof FURNACE_ACTIONS)[number] }
+  | { screen: "craft"; action: (typeof CRAFT_ACTIONS)[number]; item?: string }
+  | { screen: "inventory"; action: (typeof INVENTORY_ACTIONS)[number] };
 
 export interface CustomId {
   /** Discord user id of the message owner; `null` on ephemeral messages. */
@@ -41,10 +60,15 @@ export type Parsed =
    */
   | { kind: "unknown"; raw: string };
 
+function argsOf(route: Route): string {
+  if (route.screen === "debug") return route.state;
+  if (route.screen === "craft") return route.item ?? "";
+  return "";
+}
+
 export function encodeCustomId(id: CustomId): string {
   const { route } = id;
-  const args = route.screen === "debug" ? route.state : "";
-  const text = `${PREFIX}:${route.screen}:${route.action}:${id.owner ?? "-"}:${args}`;
+  const text = `${PREFIX}:${route.screen}:${route.action}:${id.owner ?? "-"}:${argsOf(route)}`;
   if (text.length > MAX_LENGTH) throw new Error(`customId over ${MAX_LENGTH} chars: ${text}`);
   return text;
 }
@@ -73,6 +97,18 @@ export function parseCustomId(raw: string): Parsed {
     if (known) route = { screen, action: known };
   } else if (screen === "tools") {
     const known = pick(TOOLS_ACTIONS, action);
+    if (known) route = { screen, action: known };
+  } else if (screen === "build") {
+    const known = pick(BUILD_ACTIONS, action);
+    if (known) route = { screen, action: known };
+  } else if (screen === "furnace") {
+    const known = pick(FURNACE_ACTIONS, action);
+    if (known) route = { screen, action: known };
+  } else if (screen === "craft") {
+    const known = pick(CRAFT_ACTIONS, action);
+    if (known) route = args ? { screen, action: known, item: args } : { screen, action: known };
+  } else if (screen === "inventory") {
+    const known = pick(INVENTORY_ACTIONS, action);
     if (known) route = { screen, action: known };
   }
   return route ? { kind: "ok", id: { owner, route } } : unknown;

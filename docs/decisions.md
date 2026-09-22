@@ -147,3 +147,57 @@ for a handful of friends; revisit if a real player's name comes out empty.
 `metal_tools` costs 250 metal fragments; furnaces arrive in Phase 2. The upgrade shows as
 locked with the reason (`Upgrade · need 250 metal frags`), which is honest, and the first
 upgrade (stone tools, wood + stone) is reachable in one session as the acceptance requires.
+
+## Phase 2
+
+### D25. Day targets are the pacing gate; the 4-5x cost ratio is advisory
+`pnpm sim check` fails on the casual/optimal day targets in `pacing.json5`. The "each tier
+costs roughly 4-5x the previous" guideline is measured in resource-hours at the tool the
+casual player has when buying, and printed as WARN: with real tool rates (HQM ore at 4/h),
+the day targets and a strict 4-5x ratio cannot both hold, and the days are what players feel.
+
+### D26. Storage caps are per resource, not one total
+The first simulator run deadlocked every archetype: wood and stone filled a single total cap,
+which stopped ore accrual and furnace output, so metal fragments never reached the next tier
+and upkeep starved. Rust-style per-resource room fixes it and makes the storage bar say
+*which* resource is full. Boxes add to every resource's cap.
+
+### D27. Upkeep is paid in whole hours; decay needs a full unpaid hour
+`settle` pays as many whole hours as stock covers, pulling from the nodes at the healthy rate
+first when stock is short (the base was being fed all along). `upkeepPaidUntil` therefore lags
+`now` by up to an hour on a healthy base; "decaying" starts with the first *full* unpaid hour,
+and so does the production penalty. Tier loss after `tierLossAfterHours` unpaid, then the
+clock restarts one tier down.
+
+### D28. Twig -> wood is instant; every later tier has a timer
+The spec says "twig instant, up to 24 h for HQM". Read as: the first upgrade has no timer so
+a new player sees the mechanic work at once; wood -> stone 4 h, stone -> metal 12 h, metal ->
+HQM 24 h. Builds land lazily on the next look *and* on the scheduler tick, so the home
+message updates within a minute even if nobody clicks.
+
+### D29. Fuel is burned up front; a job smelts all the ore the fuel allows
+One select choice per ore, no amount picker: the job takes everything of that ore in stock,
+limited by wood on hand and the furnace's per-job maximum, and the option's description
+states exactly that (amount, output, fuel, time). Output accrues linearly and can be taken
+out partially; a slot frees when its job is fully taken out.
+
+### D30. Crafting is instant; no blueprint gating yet
+Rust craft times are seconds to minutes, irrelevant at idle scale; timers belong to builds
+and furnaces. Recipes are gated by workbench level only until Phase 6 adds the account-layer
+blueprint tree.
+
+### D31. The scheduler resolves builds only
+Furnace jobs and accrual are computed lazily on view; a finished build is the one thing a
+player should see land without clicking, so the tick (`scheduler/scheduler.ts`, once a
+minute, first run at boot) settles bases whose build has ended and re-renders their home
+message. A tick that finds nothing edits nothing.
+
+### D32. Sub-screen navigation: Back = list view, Home = close and refresh
+Every sub-screen is ephemeral. Back re-renders that screen's list view (from a result back
+to the list), Home deletes the ephemeral and re-renders the home message so a change made on
+a sub-screen is visible at once. On a list view Back is a refresh; the lint still requires it.
+
+### D33. Wood base cannot afford the stone tier without boxes
+A wood base holds 5000 of each resource; the stone tier costs 6000 stone. Four wood boxes
+(+1000 each) make room. This is deliberate: the first boxes are the natural "why would I
+craft?" moment, and the advisor points at Craft when storage is tight and a box is affordable.

@@ -5,8 +5,9 @@ import { type EmojiApi, Emojis, syncEmojis } from "../assets/emojiSync";
 import { loadConfig } from "../config";
 import { log } from "../log";
 import { discoverPaths } from "../paths";
+import { startScheduler } from "../scheduler/scheduler";
 import { openDb } from "../store/db";
-import { commands, handleInteraction } from "../ui/interactions";
+import { commands, handleInteraction, refreshHomeById } from "../ui/interactions";
 
 async function main(): Promise<void> {
   const paths = discoverPaths();
@@ -48,12 +49,20 @@ async function main(): Promise<void> {
       },
     };
     app.emojis = await syncEmojis(api, app.assets, app.db, Math.floor(Date.now() / 1000));
+
+    // Resolves builds that end while nobody is clicking (and everything that
+    // ended while the bot was down).
+    stopScheduler = startScheduler(app, {
+      refreshHome: (game, playerId, now) => refreshHomeById(game, client, playerId, now),
+    });
   });
 
   client.on(Events.InteractionCreate, (interaction) => void handleInteraction(app, interaction));
 
+  let stopScheduler = () => {};
   const stop = () => {
     log.info("shutting down");
+    stopScheduler();
     void client.destroy().finally(() => process.exit(0));
   };
   process.once("SIGINT", stop);

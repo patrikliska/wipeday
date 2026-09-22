@@ -145,28 +145,28 @@
   },
   "item": {
     "wood_box": {
-      "name": "Wood Storage Box"
+      "name": "Wood Box"
     },
     "large_box": {
-      "name": "Large Wood Box"
+      "name": "Large Box"
     },
     "workbench_1": {
-      "name": "Workbench Level 1"
+      "name": "Workbench 1"
     },
     "workbench_2": {
-      "name": "Workbench Level 2"
+      "name": "Workbench 2"
     },
     "workbench_3": {
-      "name": "Workbench Level 3"
+      "name": "Workbench 3"
     },
     "bandage": {
       "name": "Bandage"
     },
     "syringe": {
-      "name": "Medical Syringe"
+      "name": "Syringe"
     },
     "medkit": {
-      "name": "Large Medkit"
+      "name": "Medkit"
     },
     "bow": {
       "name": "Hunting Bow"
@@ -184,10 +184,10 @@
       "name": "Revolver"
     },
     "double_barrel": {
-      "name": "Double Barrel Shotgun"
+      "name": "Double Barrel"
     },
     "semi_pistol": {
-      "name": "Semi-Automatic Pistol"
+      "name": "Semi Pistol"
     },
     "python": {
       "name": "Python Revolver"
@@ -202,7 +202,7 @@
       "name": "Thompson"
     },
     "semi_rifle": {
-      "name": "Semi-Automatic Rifle"
+      "name": "Semi Rifle"
     },
     "mp5": {
       "name": "MP5A4"
@@ -241,7 +241,7 @@
       "name": "Metal Facemask"
     },
     "metal_chestplate": {
-      "name": "Metal Chest Plate"
+      "name": "Metal Chestplate"
     },
     "keycard_green": {
       "name": "Green Keycard"
@@ -277,7 +277,7 @@
       "name": "Tech Trash"
     },
     "targeting_computer": {
-      "name": "Targeting Computer"
+      "name": "Targeting PC"
     },
     "beancan_grenade": {
       "name": "Beancan Grenade"
@@ -286,13 +286,13 @@
       "name": "Satchel Charge"
     },
     "explosive_ammo": {
-      "name": "Explosive 5.56 Ammo"
+      "name": "Explosive Ammo"
     },
     "rocket": {
       "name": "Rocket"
     },
     "c4": {
-      "name": "Timed Explosive Charge"
+      "name": "C4"
     },
     "wooden_barricade": {
       "name": "Wooden Barricade"
@@ -301,7 +301,7 @@
       "name": "Snap Trap"
     },
     "landmine": {
-      "name": "Homemade Landmine"
+      "name": "Landmine"
     },
     "shotgun_trap": {
       "name": "Shotgun Trap"
@@ -321,7 +321,16 @@
       "subtitle": "{tier} base · Day {day}",
       "storage": "Storage",
       "storage_full": "FULL · collect now",
-      "tool": "Gathering tool"
+      "tool": "Gathering tool",
+      "storage_of": "{resource} {value} / {cap}",
+      "storage_full_of": "{resource} FULL"
+    },
+    "inventory": {
+      "title": "Inventory",
+      "subtitle": "{count} items · Workbench {level}",
+      "subtitle_none": "Nothing here yet",
+      "empty": "Craft something at the workbench and it shows up here.",
+      "boxes": "Boxes {used} / {slots}"
     }
   },
   "nav": {
@@ -342,9 +351,9 @@
     },
     "base": {
       "title": "{name}'s base",
-      "status_full": "Storage full · collect now",
-      "status": "Storage {pct}% · {waiting} waiting",
-      "status_nothing": "Storage {pct}% · nothing waiting yet",
+      "status_full": "{resource} storage full · collect or spend it",
+      "status": "Storage {pct}% ({resource}) · {waiting} waiting",
+      "status_nothing": "Storage {pct}% ({resource}) · nothing waiting yet",
       "collected": "Collected {amounts}",
       "collected_nothing": "Nothing to collect yet.",
       "gathered": "Gather bonus {bonus}",
@@ -357,7 +366,19 @@
       "gather_locked": "Gather · on cooldown",
       "tools": "Tools",
       "refresh": "Refresh",
-      "title_s": "{name}' base"
+      "title_s": "{name}' base",
+      "status_building": "Upgrading to {tier} · done {when}",
+      "upkeep": "Upkeep {rates} · stock covers {time}",
+      "upkeep_decaying": "DECAYING · not enough for upkeep · base drops a tier {when}",
+      "furnace_ready": "Furnace: {amounts} ready to take out",
+      "furnace_busy": "Furnace: {count} smelting, next done {when}",
+      "built": "Your base is now {tier}.",
+      "build_started": "Upgrade to {tier} started · done {when}",
+      "decayed": "Upkeep ran out: your base dropped to {tier}.",
+      "build": "Build",
+      "furnace": "Furnace",
+      "craft": "Craft",
+      "inventory": "Inventory"
     },
     "tools": {
       "title": "Upgrade to {tool}",
@@ -378,6 +399,73 @@
     "help": {
       "title": "Wipe Day",
       "body": "A Rust idle game. /start builds your base; everything else happens on your base message. Collect what piled up, Gather for a bonus, upgrade Tools. That's it for now: more unlocks as you grow."
+    },
+    "build": {
+      "title": "Upgrade to {tier}",
+      "title_building": "Upgrading to {tier}",
+      "title_maxed": "Base upgrades",
+      "status": "Costs {cost} · you have {have}",
+      "status_building": "Done {when}",
+      "status_maxed": "{tier}: the top tier. Nothing left to build.",
+      "duration": "Build time: {time}",
+      "duration_instant": "Build time: instant",
+      "unlocks": "Unlocks: {cap} of each resource · {boxes} box slots · {furnaces} furnace slot(s) · workbench {workbench}",
+      "upkeep": "Upkeep after: {rates}",
+      "upkeep_none": "Upkeep after: none",
+      "after": "Left after paying: {stock}",
+      "missing": "Still missing: {missing}",
+      "build": "Build",
+      "build_locked": "Build · need {missing}",
+      "done_title": "Upgrade to {tier} started",
+      "done_status": "Done {when} · paid {paid}",
+      "done_now_title": "Your base is now {tier}",
+      "done_now_status": "Paid {paid}"
+    },
+    "furnace": {
+      "title": "Furnace",
+      "title_none": "No furnace yet",
+      "status_none": "A furnace turns ore into metal. {furnace} costs {cost}.",
+      "status": "{furnace} · {busy} of {slots} slots busy",
+      "slot_empty": "Slot {n}: empty",
+      "slot_busy": "Slot {n}: {amount} {ore} → {output} · done {when}",
+      "slot_done": "Slot {n}: {ready} {output} ready to take out",
+      "select": "Smelt which ore?",
+      "option_label": "Smelt {amount} {ore}",
+      "option_desc": "→ {amount} {output} · {fuel} wood · {time}",
+      "option_no_fuel": "no wood for fuel",
+      "ready": "Ready to take out: {amounts}",
+      "collect": "Take out",
+      "buy": "Buy {furnace}",
+      "buy_locked": "{furnace} · need {missing}",
+      "upgrade": "Upgrade: {furnace}",
+      "upgrade_locked": "Upgrade · need {missing}",
+      "collected_title": "Took out {amounts}",
+      "collected_none": "Nothing was ready.",
+      "started_title": "Smelting {amount} {ore}",
+      "started_status": "Done {when} · {fuel} wood burned",
+      "bought_title": "Bought {furnace}",
+      "bought_status": "Paid {paid} · {rate} ore per hour per slot"
+    },
+    "craft": {
+      "title": "Craft",
+      "status": "Workbench level {level} · {count} recipes",
+      "status_none": "No workbench yet. Craft one below to unlock more.",
+      "select": "Craft what?",
+      "option_desc": "{cost}",
+      "option_locked": "needs {missing}",
+      "effect_storage": "+{capacity} storage per resource",
+      "effect_workbench": "Workbench level {level}",
+      "locked_line": "Level {level} unlocks: {items}",
+      "done_title": "Crafted {item}",
+      "done_status": "Paid {paid}",
+      "again": "Craft again",
+      "inventory": "Inventory"
+    },
+    "inventory": {
+      "title": "Inventory",
+      "status": "{count} items · boxes {used} / {slots}",
+      "status_empty": "Nothing here yet",
+      "craft": "Craft"
     }
   },
   "error": {
@@ -386,7 +474,10 @@
     "unexpected": "Something went wrong on our side. Nothing was spent. Try again in a moment.",
     "admin_only": "That command is for server admins only.",
     "no_base": "You don't have a base yet. Use /start to build one.",
-    "home_moved": "Your base is here: {link}"
+    "home_moved": "Your base is here: {link}",
+    "no_slot": "Every furnace slot is busy. Take out what's ready or wait for one to finish.",
+    "box_slots": "All {slots} box slots are in use. Upgrade the base for more.",
+    "workbench": "That needs workbench level {needed}; you have level {have}."
   },
   "player": {
     "anonymous": "Survivor"
@@ -394,6 +485,10 @@
   "hint": {
     "gather": "Tap Gather to grab your first wood and stone.",
     "collect": "Resources pile up while you're away. Collect them whenever you check in.",
-    "tools": "You can afford {tool}. Better tools gather faster."
+    "tools": "You can afford {tool}. Better tools gather faster.",
+    "build": "You can afford a {tier} base: more storage, more room to grow.",
+    "furnace": "Ore only becomes metal in a furnace. You can afford one.",
+    "craft": "A workbench lets you craft boxes for more storage.",
+    "furnace_use": "Ore is waiting. Smelt it at the furnace to get metal."
   }
 }

@@ -4,7 +4,7 @@
  * used it twice. The hint always explains the advisor's primary action.
  */
 import type { Content } from "../content/schema";
-import { accrued, type BaseState, nextTool, total } from "../domain/base";
+import { accrued, type BaseState, furnaceOf, nextTier, nextTool, total } from "../domain/base";
 import type { Advice } from "./advisor";
 import type { Locale } from "./locale";
 
@@ -27,6 +27,16 @@ export function hintFor(
       const tool = nextTool(content, state);
       return tool ? locale.t("hint.tools", { tool: locale.t(`tool.${tool.id}.name`) }) : undefined;
     }
+    case "build": {
+      const tier = nextTier(state.tier);
+      return tier
+        ? locale.t("hint.build", { tier: locale.t(`base_tier.${tier}.name`) })
+        : undefined;
+    }
+    case "furnace":
+      return locale.t(furnaceOf(content, state) ? "hint.furnace_use" : "hint.furnace");
+    case "craft":
+      return locale.t("hint.craft");
     case "collect":
       return total(accrued(content, state, now)) > 0 ? locale.t("hint.collect") : undefined;
   }

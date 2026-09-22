@@ -28,17 +28,33 @@ No locked state: the screen itself is always available.
 6. Buttons
 
 ## Primary action rule (`ui/advisor.ts`)
-1. A tool upgrade is affordable -> **Tools**
-2. Gather bonus is ready -> **Gather**
-3. Otherwise -> **Collect** (always usable, never harmful)
+1. Storage is full -> **Collect** (the status line says so; the button must agree)
+2. A base upgrade is affordable and nothing is building -> **Build**
+3. A tool upgrade is affordable -> **Tools**
+4. Furnace output is ready, or ore is waiting and a slot is free -> **Furnace**
+5. Gather bonus is ready -> **Gather**
+6. Otherwise -> **Collect** (always usable, never harmful)
 
-## Buttons (one row)
+## Buttons (two rows, Phase 2)
 | Label | Style | Action |
 | --- | --- | --- |
 | Collect | primary/secondary | Bank accrued resources, show deltas, edit in place |
 | Gather / `Gather · on cooldown` | primary/secondary, disabled on cooldown | Active bonus |
-| Tools / `Tools · need 200 wood` | primary/secondary, disabled if nothing affordable and nothing to see | Opens the ephemeral tools screen |
+| Tools | primary/secondary | Ephemeral tools screen |
+| Build | primary/secondary | Ephemeral build screen |
 | Refresh | secondary | Re-render with current numbers |
+| Furnace | primary/secondary | Ephemeral furnace screen (Phase 2) |
+| Craft | secondary | Ephemeral craft screen (Phase 2) |
+| Inventory | secondary | Ephemeral inventory screen (Phase 2) |
+
+Phase 2 buttons appear only once the tier that unlocks them is reached (rule 6: reveal
+mechanics as they become relevant), except Build, which is always there.
+
+## Status and details (Phase 2 additions)
+- Building: `Upgrading to Stone · done <t:R>` replaces the storage status while a build runs.
+- Upkeep: a details line `Upkeep paid for 18h` / `DECAYING · pay upkeep by collecting` in
+  the warning/danger tone; a decaying base makes the container red.
+- Furnaces: a details line `Furnace: 320 metal frags ready` when output waits.
 
 Root screen: no Back/Home. customIds carry the owner's Discord id; other users get
 `error.not_your_message`.

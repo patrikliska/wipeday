@@ -1,7 +1,7 @@
 # Wipe Day
 
 A Rust-themed idle game played entirely inside Discord. Private, single-server.
-The full specification is [CLAUDE.md](CLAUDE.md). Current state: **Phase 1 (core loop)**.
+The full specification is [CLAUDE.md](CLAUDE.md). Current state: **Phase 2 (base: tiers, upkeep, furnaces, crafting)**.
 
 ## Run it
 
@@ -36,7 +36,10 @@ admin commands besides server Administrators.
 | `/idle-debug card` | Admins: renders the base card's sample states to check the pipeline |
 
 Everything else happens on the home message: **Collect** banks what piled up while you were
-away, **Gather** gives a bonus on a cooldown, **Tools** upgrades your gathering tool.
+away, **Gather** gives a bonus on a cooldown, **Tools** upgrades your gathering tool, **Build**
+upgrades the base (bigger storage, more furnace slots, higher workbench; costs upkeep every
+hour), **Furnace** turns ore into metal, **Craft** makes boxes, workbenches and gear,
+**Inventory** shows what you own. Buttons appear as the mechanic becomes relevant.
 
 ## Commands
 
@@ -44,6 +47,7 @@ away, **Gather** gives a bonus on a cooldown, **Tools** upgrades your gathering 
 | --- | --- |
 | `pnpm start` / `pnpm dev` | Run the bot |
 | `pnpm preview` | Render every card in every state to `preview/`, plus `preview/index.html` |
+| `pnpm sim` / `pnpm sim check` | Simulate casual/active/optimal players for 35 days; `check` asserts `data/pacing.json5` |
 | `pnpm assets check` | Regenerate the asset list and report missing or unusable files |
 | `pnpm assets sync` | Regenerate `assets/manifest.json` and `assets/ASSETS.md` only |
 | `pnpm typecheck` / `pnpm lint` / `pnpm test` | Must all pass before a phase is done |
@@ -63,6 +67,8 @@ Unicode emoji. Supplied files are gitignored and never committed.
 ```
 src/domain      pure game rules (state + now in, state + events out)
 src/game        transaction scripts: one player action = one SQLite transaction
+src/sim         headless balance simulator (archetypes, pacing check)
+src/scheduler   one tick per minute: lands finished builds, refreshes home messages
 src/content     data file schemas, loading, validation
 src/store       drizzle schema and migrations
 src/ui          theme, locale, number format, Screen model + lint, customId router, screens

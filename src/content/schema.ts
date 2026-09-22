@@ -3,7 +3,7 @@
  * also its asset file name and its locale key.
  *
  * Each phase adds the balance fields it needs here. Files from CLAUDE.md
- * section 8 that have no entities yet (recipes, loot tables, casino, ...) are
+ * section 8 that have no entities yet (loot tables, casino, ...) are
  * introduced by the phase that first reads them.
  */
 import { z } from "zod";
@@ -41,6 +41,8 @@ export const resourceSchema = z.strictObject({
   ...identity,
   /** raw: gathered from nodes. refined: produced by furnaces. currency: scrap. */
   kind: z.enum(["raw", "refined", "currency"]),
+  /** For ores: the refined resource a furnace turns them into, 1:1. */
+  smeltsInto: z.string().optional(),
 });
 
 export const toolSchema = z.strictObject({
@@ -54,12 +56,44 @@ export const toolSchema = z.strictObject({
   /** Paid once to upgrade to this tier. */
   cost: amounts,
 });
+
 export const baseTierSchema = z.strictObject({
   ...identity,
-  /** Total resources the base can hold, all resources together. */
+  /** How much of each resource the base can hold, before boxes. */
   storageCap: z.int().min(1),
+  /** How many storage boxes count toward the cap. */
+  boxSlots: z.int().min(0),
+  furnaceSlots: z.int().min(0),
+  /** Highest workbench level usable at this tier. */
+  workbenchLevel: z.int().min(0).max(3),
+  /** Paid up front to upgrade to this tier. */
+  cost: amounts,
+  buildMinutes: z.int().min(0),
+  /** Drained every hour at this tier. */
+  upkeep: amounts,
 });
-export const furnaceSchema = z.strictObject({ ...identity, tier });
+
+export const baseRulesSchema = z.strictObject({
+  /** Production while upkeep is unpaid, as a percentage of normal. */
+  decayProductionPercent: z.int().min(0).max(100),
+  /** Unpaid for this long and the base drops one tier. */
+  tierLossAfterHours: z.int().min(1),
+});
+export type BaseRules = z.infer<typeof baseRulesSchema>;
+
+export const furnaceSchema = z.strictObject({
+  ...identity,
+  tier,
+  /** Smelting speed per slot. */
+  orePerHour: z.int().min(1),
+  /** Fuel, burned up front. */
+  woodPer100Ore: z.int().min(0),
+  maxOrePerJob: z.int().min(1),
+  /** Paid once to buy (or upgrade to) this type. */
+  cost: amounts,
+  /** Base tier needed. */
+  minTier: tier,
+});
 
 export const ITEM_CATEGORIES = [
   "weapon",
@@ -78,6 +112,10 @@ export const itemSchema = z.strictObject({
   category: z.enum(ITEM_CATEGORIES),
   /** Rarity, on the base-tier colour scale. */
   tier,
+  /** Storage items: how much they add to every resource's cap. */
+  capacity: z.int().min(1).optional(),
+  /** Workbench items: the level they unlock. */
+  workbenchLevel: z.int().min(1).max(3).optional(),
 });
 
 export const monumentSchema = z.strictObject({
@@ -90,6 +128,20 @@ export const monumentSchema = z.strictObject({
 
 export const perkSchema = z.strictObject({ ...identity });
 
+export const recipeSchema = z.strictObject({
+  item: z.string(),
+  /** Workbench level required; 0 = bare hands. */
+  workbench: z.int().min(0).max(3),
+  cost: amounts,
+});
+
+const dayWindow = z.strictObject({ earliestDay: z.int().min(1), latestDay: z.int().min(1) });
+export const pacingSchema = z.strictObject({
+  casual: z.strictObject({ stone: dayWindow, metal: dayWindow, hqm: dayWindow }),
+  optimal: z.strictObject({ hqmNotBeforeDay: z.int().min(1) }),
+  tierCostRatio: z.strictObject({ min: z.number().min(1), max: z.number().min(1) }),
+});
+
 export type Resource = z.infer<typeof resourceSchema>;
 export type Tool = z.infer<typeof toolSchema>;
 export type BaseTier = z.infer<typeof baseTierSchema>;
@@ -97,19 +149,24 @@ export type Furnace = z.infer<typeof furnaceSchema>;
 export type Item = z.infer<typeof itemSchema>;
 export type Monument = z.infer<typeof monumentSchema>;
 export type Perk = z.infer<typeof perkSchema>;
+export type Recipe = z.infer<typeof recipeSchema>;
+export type Pacing = z.infer<typeof pacingSchema>;
 
 export interface Content {
   resources: Resource[];
   tools: Tool[];
   baseTiers: BaseTier[];
+  baseRules: BaseRules;
   furnaces: Furnace[];
   items: Item[];
   monuments: Monument[];
   perks: Perk[];
+  recipes: Recipe[];
+  pacing: Pacing;
 }
 
 /**
- * One row per data file: file name, the top-level key holding the entity
+ * One row per entity file: file name, the top-level key holding the entity
  * array, the `Content` field it fills, and the locale namespace (`kind`) whose
  * `{kind}.{id}.name` key every entity must have.
  */

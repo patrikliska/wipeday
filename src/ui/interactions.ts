@@ -2,6 +2,11 @@
  * Slash commands and the component router: the only module that talks to
  * discord.js interactions. Screens stay plain data (`ui/screen`); this file
  * sends them and keeps the one home message per player in order.
+ *
+ * Navigation model: the home message is edited in place; every sub-screen is
+ * an ephemeral message. On a sub-screen, Back re-renders that screen's list
+ * view (from a result back to the list) and Home closes it and refreshes the
+ * home message, so a change made on a sub-screen is visible at once.
  */
 import {
   AttachmentBuilder,
@@ -20,22 +25,34 @@ import {
 } from "discord.js";
 import type { App } from "../app";
 import {
+  buildAction,
+  buyFurnaceAction,
   collectAction,
+  collectFurnacesAction,
+  craftAction,
   gatherAction,
   type Loaded,
+  loadById,
   loadPlayer,
+  smeltAction,
   startPlayer,
   upgradeToolAction,
 } from "../game/actions";
 import { log } from "../log";
 import { baseCard } from "../render/cards/base";
+import { inventoryCard } from "../render/cards/inventory";
 import { baseFixtures } from "../render/fixtures/base";
-import { homeMessagesRepo } from "../store/repo";
+import { homeMessagesRepo, playersRepo } from "../store/repo";
 import { allows, type DebugState, parseCustomId, type Route } from "./customId";
 import { type Screen, toComponents } from "./screen";
 import { type BaseScreenInput, baseCardProps, baseScreen, type LastAction } from "./screens/base";
+import { buildScreen } from "./screens/build";
+import { craftScreen } from "./screens/craft";
 import { debugCardScreen } from "./screens/debugCard";
+import { furnaceScreen } from "./screens/furnace";
+import { inventoryCardProps, inventoryScreen } from "./screens/inventory";
 import { toolsDoneScreen, toolsScreen } from "./screens/tools";
+import type { Tier } from "./theme";
 
 type ComponentInteraction = ButtonInteraction | StringSelectMenuInteraction;
 
@@ -72,17 +89,6 @@ function toMessage(screen: Screen): InteractionEditReplyOptions {
     // Drop the previous card; only the new attachment is referenced.
     attachments: [],
   };
-}
-
-/** A screen as a new ephemeral reply (sub-screens only concern the player). */
-function toEphemeral(screen: Screen) {
-  return {
-    flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
-    components: [toComponents(screen)],
-    files: screen.card
-      ? [new AttachmentBuilder(screen.card.png, { name: screen.card.fileName })]
-      : [],
-  } as const;
 }
 
 /** One private sentence, as Components V2 like everything else. */
@@ -136,6 +142,7 @@ async function renderBase(
     now,
     hintUses: loaded.hintUses,
     card: rendered.png,
+    settled: loaded.settled,
     ...(last ? { last } : {}),
   };
   return baseScreen(app, input);
@@ -175,8 +182,8 @@ async function deleteMessage(client: Client, channelId: string, messageId: strin
   }
 }
 
-/** Re-renders the stored home message after a change made from an ephemeral screen. */
-async function refreshHome(
+/** Re-renders the stored home message after a change made outside it. */
+export async function refreshHome(
   app: App,
   client: Client,
   loaded: Loaded,
@@ -199,6 +206,18 @@ async function refreshHome(
     });
     homeMessagesRepo.clear(app.db, loaded.player.id);
   }
+}
+
+/** For the scheduler: refresh by player id. */
+export async function refreshHomeById(
+  app: App,
+  client: Client,
+  playerId: number,
+  now: number,
+): Promise<void> {
+  const player = playersRepo.byId(app.db, playerId);
+  if (!player) return;
+  await refreshHome(app, client, loadById(app, player, now), now);
 }
 
 // --- commands ----------------------------------------------------------------
@@ -232,7 +251,35 @@ async function onCommand(app: App, interaction: ChatInputCommandInteraction): Pr
   }
 }
 
-// --- components --------------------------------------------------------------
+// --- sub-screens ---------------------------------------------------------------
+
+async function inventory(app: App, loaded: Loaded): Promise<Screen> {
+  const rendered = await app.renderer.render(inventoryCard, inventoryCardProps(app, loaded.state));
+  return inventoryScreen(app, loaded.state, rendered.png);
+}
+
+/** The list view of a sub-screen, from fresh state. */
+async function subScreen(
+  app: App,
+  screen: Route["screen"],
+  loaded: Loaded,
+  now: number,
+): Promise<Screen> {
+  switch (screen) {
+    case "tools":
+      return toolsScreen(app, loaded.state);
+    case "build":
+      return buildScreen(app, loaded.state);
+    case "furnace":
+      return furnaceScreen(app, loaded.state, now);
+    case "craft":
+      return craftScreen(app, loaded.state);
+    case "inventory":
+      return inventory(app, loaded);
+    default:
+      throw new Error(`no sub-screen for ${screen}`);
+  }
+}
 
 async function onBaseRoute(
   app: App,
@@ -241,8 +288,15 @@ async function onBaseRoute(
   action: Extract<Route, { screen: "base" }>["action"],
 ): Promise<void> {
   const now = nowSeconds();
-  if (action === "tools") {
-    await interaction.reply(toEphemeral(toolsScreen(app, loaded.state)));
+  if (
+    action === "tools" ||
+    action === "build" ||
+    action === "furnace" ||
+    action === "craft" ||
+    action === "inventory"
+  ) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    await interaction.editReply(toMessage(await subScreen(app, action, loaded, now)));
     return;
   }
   await interaction.deferUpdate();
@@ -259,36 +313,160 @@ async function onBaseRoute(
   await interaction.editReply(toMessage(await renderBase(app, fresh, now, last)));
 }
 
-async function onToolsRoute(
+/** Home on any sub-screen: close it and show the change on the home message. */
+async function closeToHome(
   app: App,
   interaction: ComponentInteraction,
   loaded: Loaded,
-  action: Extract<Route, { screen: "tools" }>["action"],
+  now: number,
+  last?: LastAction,
+) {
+  await interaction.deleteReply();
+  await refreshHome(app, interaction.client, loaded, now, last);
+}
+
+async function onSubRoute(
+  app: App,
+  interaction: ComponentInteraction,
+  loaded: Loaded,
+  route: Exclude<Route, { screen: "base" | "debug" }>,
 ): Promise<void> {
   const now = nowSeconds();
   await interaction.deferUpdate();
-  switch (action) {
-    case "back":
-      await interaction.editReply(toMessage(toolsScreen(app, loaded.state)));
-      return;
-    case "home":
-      await interaction.deleteReply();
-      await refreshHome(app, interaction.client, loaded, now);
-      return;
-    case "upgrade": {
+  const fresh = () => loadPlayer(app, interaction.user.id, now) ?? loaded;
+  const choice = interaction.isStringSelectMenu() ? interaction.values[0] : undefined;
+
+  if (route.action === "home") {
+    await closeToHome(app, interaction, loaded, now);
+    return;
+  }
+  if (route.action === "back") {
+    await interaction.editReply(toMessage(await subScreen(app, route.screen, loaded, now)));
+    return;
+  }
+
+  switch (route.screen) {
+    case "tools": {
       const result = upgradeToolAction(app, loaded.player.id, now);
       if (!result.ok) {
-        // Stale screen (already upgraded, or spent meanwhile): show the current truth.
-        const fresh = loadPlayer(app, interaction.user.id, now) ?? loaded;
-        await interaction.editReply(toMessage(toolsScreen(app, fresh.state)));
+        await interaction.editReply(toMessage(toolsScreen(app, fresh().state)));
         return;
       }
       await interaction.editReply(toMessage(toolsDoneScreen(app, result.tool, result.paid)));
-      const fresh = loadPlayer(app, interaction.user.id, now) ?? loaded;
-      await refreshHome(app, interaction.client, fresh, now, {
+      await refreshHome(app, interaction.client, fresh(), now, {
         kind: "upgrade",
         toolId: result.tool.id,
       });
+      return;
+    }
+    case "build": {
+      const result = buildAction(app, loaded.player.id, now);
+      if (!result.ok) {
+        await interaction.editReply(toMessage(buildScreen(app, fresh().state)));
+        return;
+      }
+      // Validated against the tier list at load time.
+      const tier = result.tier.id as Tier;
+      const last: LastAction =
+        result.tier.buildMinutes === 0
+          ? { kind: "built", tier }
+          : { kind: "build_started", tier, endsAt: result.endsAt };
+      await interaction.editReply(
+        toMessage(
+          buildScreen(
+            app,
+            result.state,
+            result.tier.buildMinutes === 0
+              ? { kind: "done_now", tier, paid: result.paid }
+              : { kind: "started", tier, endsAt: result.endsAt, paid: result.paid },
+          ),
+        ),
+      );
+      await refreshHome(app, interaction.client, fresh(), now, last);
+      return;
+    }
+    case "furnace": {
+      if (route.action === "collect") {
+        const result = collectFurnacesAction(app, loaded.player.id, now);
+        await interaction.editReply(
+          toMessage(
+            furnaceScreen(app, result.state, now, { kind: "collected", gained: result.gained }),
+          ),
+        );
+      } else if (route.action === "buy") {
+        const result = buyFurnaceAction(app, loaded.player.id, now);
+        await interaction.editReply(
+          toMessage(
+            result.ok
+              ? furnaceScreen(app, result.state, now, {
+                  kind: "bought",
+                  furnaceId: result.furnace.id,
+                  paid: result.paid,
+                })
+              : furnaceScreen(app, fresh().state, now),
+          ),
+        );
+      } else if (route.action === "smelt" && choice) {
+        const result = smeltAction(app, loaded.player.id, now, choice);
+        if (!result.ok) {
+          await interaction.followUp(
+            notice(
+              app.locale.t(result.reason === "no_slot" ? "error.no_slot" : "error.unexpected"),
+            ),
+          );
+          await interaction.editReply(toMessage(furnaceScreen(app, fresh().state, now)));
+          return;
+        }
+        const furnace = app.content.furnaces.find(
+          (candidate) => candidate.id === result.state.furnaceId,
+        );
+        const endsAt =
+          result.job.startedAt + Math.ceil((result.job.amount * 3600) / (furnace?.orePerHour ?? 1));
+        await interaction.editReply(
+          toMessage(
+            furnaceScreen(app, result.state, now, {
+              kind: "started",
+              ore: result.job.input,
+              amount: result.job.amount,
+              fuel: result.fuel,
+              endsAt,
+            }),
+          ),
+        );
+      }
+      await refreshHome(app, interaction.client, fresh(), now);
+      return;
+    }
+    case "craft": {
+      if (route.action === "inventory") {
+        await interaction.editReply(toMessage(await inventory(app, fresh())));
+        return;
+      }
+      const itemId = route.action === "again" ? route.item : choice;
+      if (!itemId) {
+        await interaction.editReply(toMessage(craftScreen(app, fresh().state)));
+        return;
+      }
+      const result = craftAction(app, loaded.player.id, now, itemId);
+      if (!result.ok) {
+        const text =
+          result.reason === "workbench"
+            ? app.locale.t("error.workbench", { needed: result.needed, have: result.have })
+            : result.reason === "box_slots"
+              ? app.locale.t("error.box_slots", { slots: result.slots })
+              : app.locale.t("error.unexpected");
+        if (result.reason !== "unaffordable") await interaction.followUp(notice(text));
+        await interaction.editReply(toMessage(craftScreen(app, fresh().state)));
+        return;
+      }
+      await interaction.editReply(
+        toMessage(craftScreen(app, result.state, { itemId, paid: result.paid })),
+      );
+      await refreshHome(app, interaction.client, fresh(), now);
+      return;
+    }
+    case "inventory": {
+      await interaction.editReply(toMessage(craftScreen(app, fresh().state)));
       return;
     }
   }
@@ -317,7 +495,7 @@ async function onComponent(app: App, interaction: ComponentInteraction): Promise
     return;
   }
   if (route.screen === "base") await onBaseRoute(app, interaction, loaded, route.action);
-  else await onToolsRoute(app, interaction, loaded, route.action);
+  else await onSubRoute(app, interaction, loaded, route);
 }
 
 /** The single entry point wired to `interactionCreate`. Never throws. */

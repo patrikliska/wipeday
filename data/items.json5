@@ -1,17 +1,18 @@
 // Everything that can sit in an inventory. `rustRef` is the Rust item shortname,
 // which is also what icon packs name their files after.
 // `tier` is rarity on the base-tier colour scale (twig = primitive, hqm = top).
-// Stats, durability and recipes arrive with Phases 2 to 5.
+// `capacity`: storage boxes add this to the cap of every resource. `workbenchLevel`: what a
+// workbench item unlocks. Recipes are in recipes.json5. Gear stats arrive with Phase 3.
 //
 // The planned set, kept deliberately small; the ~120 blueprints of the account
 // layer include tool tiers, furnaces and upgrades, not just these.
 {
   items: [
-    { id: "wood_box", category: "storage", tier: "wood", phase: 2, fallbackEmoji: "📦", rustRef: "box.wooden" },
-    { id: "large_box", category: "storage", tier: "stone", phase: 2, fallbackEmoji: "🗃️", rustRef: "box.wooden.large" },
-    { id: "workbench_1", category: "workbench", tier: "wood", phase: 2, fallbackEmoji: "🛠️", rustRef: "workbench1" },
-    { id: "workbench_2", category: "workbench", tier: "metal", phase: 2, fallbackEmoji: "🛠️", rustRef: "workbench2" },
-    { id: "workbench_3", category: "workbench", tier: "hqm", phase: 2, fallbackEmoji: "🛠️", rustRef: "workbench3" },
+    { id: "wood_box", category: "storage", tier: "wood", phase: 2, fallbackEmoji: "📦", rustRef: "box.wooden", capacity: 1000 },
+    { id: "large_box", category: "storage", tier: "stone", phase: 2, fallbackEmoji: "🗃️", rustRef: "box.wooden.large", capacity: 4000 },
+    { id: "workbench_1", category: "workbench", tier: "wood", phase: 2, fallbackEmoji: "🛠️", rustRef: "workbench1", workbenchLevel: 1 },
+    { id: "workbench_2", category: "workbench", tier: "metal", phase: 2, fallbackEmoji: "🛠️", rustRef: "workbench2", workbenchLevel: 2 },
+    { id: "workbench_3", category: "workbench", tier: "hqm", phase: 2, fallbackEmoji: "🛠️", rustRef: "workbench3", workbenchLevel: 3 },
     { id: "bandage", category: "med", tier: "twig", phase: 2, fallbackEmoji: "🩹", rustRef: "bandage" },
     { id: "syringe", category: "med", tier: "stone", phase: 2, fallbackEmoji: "💉", rustRef: "syringe.medical" },
     { id: "medkit", category: "med", tier: "metal", phase: 2, fallbackEmoji: "🧰", rustRef: "largemedkit" },

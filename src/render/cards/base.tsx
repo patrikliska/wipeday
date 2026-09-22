@@ -26,7 +26,10 @@ export interface BaseCardProps {
   tier: Tier;
   seasonDay: number;
   scrap: number;
-  storage: { value: number; max: number };
+  /** Room per resource. */
+  cap: number;
+  /** The fullest resource: what the storage bar shows. */
+  storage: { resource: string; value: number };
   /** Discovered resources in display order, scrap excluded (it is in the header). */
   resources: Array<{ id: string; amount: number }>;
   tool: { id: string; tier: Tier };
@@ -54,10 +57,11 @@ function Cell({ children }: { children?: Child }) {
   );
 }
 
-/** Amount on top, name below: identifiable with zero art. */
-function Resource({ id, amount }: { id: string; amount: number }) {
+/** Amount on top, name below, a hairline fill bar under both: identifiable with zero art. */
+function Resource({ id, amount, cap }: { id: string; amount: number; cap: number }) {
   const { locale } = useRender();
   const empty = amount === 0;
+  const fill = cap > 0 ? Math.min(1, amount / cap) : 0;
   return (
     <Cell>
       <Icon folder="icons_256" name={id} size={44} dim={empty} />
@@ -66,15 +70,16 @@ function Resource({ id, amount }: { id: string; amount: number }) {
           style={{
             fontSize: 28,
             fontWeight: 700,
-            lineHeight: "32px",
+            lineHeight: "30px",
             color: empty ? color.muted : color.text,
           }}
         >
           {abbrev(amount)}
         </Fit>
-        <Fit style={{ color: color.muted, lineHeight: "26px" }}>
+        <Fit style={{ color: color.muted, lineHeight: "24px" }}>
           {locale.t(`resource.${id}.name`)}
         </Fit>
+        <Bar fraction={fill} tone={toneColor[toneForFill(fill)]} height={4} />
       </Col>
     </Cell>
   );
@@ -108,8 +113,9 @@ function ToolStrip({ tool }: { tool: BaseCardProps["tool"] }) {
 function Base(props: BaseCardProps) {
   const { locale } = useRender();
   const tint = tierColor[props.tier];
-  const fill = props.storage.max > 0 ? Math.min(1, props.storage.value / props.storage.max) : 0;
+  const fill = props.cap > 0 ? Math.min(1, props.storage.value / props.cap) : 0;
   const fillTone = toneColor[toneForFill(fill)];
+  const binding = locale.t(`resource.${props.storage.resource}.name`);
 
   return (
     <CardFrame>
@@ -149,17 +155,19 @@ function Base(props: BaseCardProps) {
         <Divider />
       </Col>
 
+      {/* Storage: the fullest resource is the one that matters. */}
       <Row style={{ alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
         <Label>{locale.t("card.base.storage")}</Label>
         {fill >= 1 ? (
           <div style={{ display: "flex", fontSize: 28, fontWeight: 700, color: color.danger }}>
-            {locale.t("card.base.storage_full")}
+            {locale.t("card.base.storage_full_of", { resource: binding })}
           </div>
         ) : (
           <Row style={{ alignItems: "baseline", fontSize: 28 }}>
+            <div style={{ display: "flex", color: color.muted, marginRight: 10 }}>{binding}</div>
             <div style={{ display: "flex", fontWeight: 700 }}>{abbrev(props.storage.value)}</div>
             <div style={{ display: "flex", color: color.muted, marginLeft: 8 }}>
-              {`/ ${abbrev(props.storage.max)}`}
+              {`/ ${abbrev(props.cap)}`}
             </div>
           </Row>
         )}
@@ -172,7 +180,7 @@ function Base(props: BaseCardProps) {
 
       <Row style={{ flexWrap: "wrap", gap: GAP, marginTop: 18 }}>
         {props.resources.map((cell) => (
-          <Resource id={cell.id} amount={cell.amount} />
+          <Resource id={cell.id} amount={cell.amount} cap={props.cap} />
         ))}
       </Row>
     </CardFrame>

@@ -5,8 +5,8 @@ import { discoverPaths } from "../paths";
 import { Locale } from "../ui/locale";
 import {
   accrued,
+  clampToCap,
   collect,
-  fitToSpace,
   gather,
   gatherReadyAt,
   isStorageFull,
@@ -51,22 +51,23 @@ describe("accrual", () => {
     expect(total(accrued(content, base, T0 - 3600))).toBe(0);
   });
 
-  it("stops at the storage cap, proportionally", () => {
+  it("stops each resource at its own cap", () => {
     const base = newBase(content, T0);
     const cap = storageCap(content, base);
     const week = accrued(content, base, T0 + 7 * 86400);
-    expect(total(week)).toBeLessThanOrEqual(cap);
-    expect(total(week)).toBeGreaterThanOrEqual(cap - 2);
-    expect((week.wood ?? 0) / (week.stone ?? 1)).toBeCloseTo(120 / 80, 1);
+    expect(week).toEqual({ wood: cap, stone: cap });
     expect(isStorageFull(content, base, T0 + 7 * 86400)).toBe(true);
     expect(isStorageFull(content, base, T0 + 3600)).toBe(false);
+    // Wood fills first at 120/h vs 80/h; stone keeps accruing after wood is capped.
+    const later = accrued(content, base, T0 + 15 * 3600);
+    expect(later.wood).toBe(cap);
+    expect(later.stone).toBe(80 * 15);
   });
 
-  it("fitToSpace never overflows and handles no space", () => {
-    expect(fitToSpace({ a: 300, b: 100 }, 100)).toEqual({ a: 75, b: 25 });
-    expect(fitToSpace({ a: 3, b: 3 }, 1)).toEqual({ a: 0, b: 0 });
-    expect(fitToSpace({ a: 3 }, 0)).toEqual({ a: 0 });
-    expect(fitToSpace({ a: 3 }, -5)).toEqual({ a: 0 });
+  it("clampToCap never overflows and handles no room", () => {
+    expect(clampToCap(100, { a: 90 }, { a: 30, b: 30 })).toEqual({ a: 10, b: 30 });
+    expect(clampToCap(100, { a: 100 }, { a: 3 })).toEqual({ a: 0 });
+    expect(clampToCap(100, { a: 150 }, { a: 3 })).toEqual({ a: 0 });
   });
 });
 
@@ -120,7 +121,8 @@ describe("gather", () => {
     const base = newBase(content, T0);
     const result = gather(content, base, T0 + 30 * 86400);
     if (!result.ok) throw new Error("expected ok");
-    expect(total(result.state.stock)).toBeLessThanOrEqual(storageCap(content, base));
+    const cap = storageCap(content, base);
+    expect(result.state.stock).toEqual({ wood: cap, stone: cap });
     expect(total(result.bonus)).toBe(0);
   });
 });
