@@ -35,7 +35,7 @@
       "rustRef": "wood",
       "usedIn": ["emoji", "buttons", "select menus"],
       "phase": 1,
-      "status": "invalid"
+      "status": "present"
     },
     {
       "file": "stone.png",
@@ -47,7 +47,7 @@
       "rustRef": "stones",
       "usedIn": ["emoji", "buttons", "select menus"],
       "phase": 1,
-      "status": "invalid"
+      "status": "present"
     },
     {
       "file": "metal_ore.png",
@@ -1247,7 +1247,7 @@
       "rustRef": "wood",
       "usedIn": ["base card", "inventory card", "report cards"],
       "phase": 1,
-      "status": "missing"
+      "status": "present"
     },
     {
       "file": "stone.png",
@@ -1259,7 +1259,7 @@
       "rustRef": "stones",
       "usedIn": ["base card", "inventory card", "report cards"],
       "phase": 1,
-      "status": "missing"
+      "status": "present"
     },
     {
       "file": "metal_ore.png",

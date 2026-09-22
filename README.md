@@ -49,6 +49,7 @@ hour), **Furnace** turns ore into metal, **Craft** makes boxes, workbenches and 
 | `pnpm preview` | Render every card in every state to `preview/`, plus `preview/index.html` |
 | `pnpm sim` / `pnpm sim check` | Simulate casual/active/optimal players for 35 days; `check` asserts `data/pacing.json5` |
 | `pnpm assets check` | Regenerate the asset list and report missing or unusable files |
+| `pnpm assets import <dir>` | Resize every known `name.png` in `<dir>` into each folder that needs it (128/256/512) |
 | `pnpm assets sync` | Regenerate `assets/manifest.json` and `assets/ASSETS.md` only |
 | `pnpm typecheck` / `pnpm lint` / `pnpm test` | Must all pass before a phase is done |
 | `pnpm format` | Apply formatting and safe lint fixes |
@@ -57,8 +58,10 @@ hour), **Furnace** turns ore into metal, **Craft** makes boxes, workbenches and 
 ## Supplying art
 
 Everything the game wants is listed in [assets/ASSETS.md](assets/ASSETS.md), by folder, with
-the Rust item shortname to source each picture from and the phase that first needs it. Drop
-files into the listed folder with the listed name, then run `pnpm assets check`. The bot
+the Rust item shortname to source each picture from and the phase that first needs it. The
+easy way: put full-size PNGs named like the manifest (`wood.png`, `tier_stone.png`) into one
+folder, e.g. `assets/_inbox/`, and run `pnpm assets import assets/_inbox`; it writes every
+size the game uses. Then `pnpm assets check` reports what is still missing. The bot
 runs with nothing supplied: cards use tinted placeholder tiles, inline icons fall back to
 Unicode emoji. Supplied files are gitignored and never committed.
 
