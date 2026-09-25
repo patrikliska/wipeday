@@ -21,7 +21,11 @@
     "format": "biome check --write .",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "sim": "tsx src/bin/idle-sim.ts"
+    "sim": "tsx src/bin/idle-sim.ts",
+    "web": "pnpm --filter web dev",
+    "web:build": "pnpm --filter web build",
+    "web:typecheck": "pnpm --filter web typecheck",
+    "web:shots": "pnpm --filter web shots"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

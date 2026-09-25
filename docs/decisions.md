@@ -241,3 +241,43 @@ be the real scrap source and can be tuned against these prices.
 Node run, barrel and daily tasks are small, transient, never queried, and change shape as the
 mini-games evolve: `bases.active_json` holds them as JSON rather than three more tables. Rows
 from before Phase 2b parse as "no run, no barrel, tasks not rolled yet".
+
+## Web client (visual prototype)
+
+### D40. The main client moves to the web; Discord becomes a companion
+The owner asked for a "microcivilization"-style living base with a much deeper crafting web,
+which Discord components cannot carry. `apps/web` is a Vite + React 19 + PixiJS 8 app in a pnpm
+workspace next to the bot. The bot code stays untouched until the web client is playable; it
+will later become the thin companion (gather, status, notifications).
+
+### D41. Procedural flat-vector art, no bitmap assets yet
+Every scene element (sky, hills, sea, base tiers, stations, trees, survivors) is drawn with
+Pixi `Graphics` from a palette in `src/scene/palette.ts`. Zero assets are needed to run, the
+whole look can be re-tuned by editing colours, and a real illustrator can replace one layer at a
+time later. The bot's asset pipeline is not reused here.
+
+### D42. Side-on shore composition with a fixed design stage
+The world is a 1600×900 stage with the ground line at y=560, the sea on the left and the base
+at x=1000; sky and ground extend 800 units past the stage so no screen shape shows an edge.
+The camera fills the viewport height on wide screens and never shows fewer than 760 world
+units across on phones, keeping the ground line at 66–72% of the viewport. This keeps the base
+readable on a 390 px phone without any second layout.
+
+### D43. Own names and rules in the web prototype
+Base tiers are Twig, Timber, Stone, Sheet Metal and Armored; refined resources are ingots and
+sulfur; fuel comes from an oil press (animal fat, seeds) and a charcoal kiln, never from
+barrels of crude. No item, monument or icon from Rust is referenced in `apps/web`.
+
+### D44. Headless screenshot review replaces `pnpm preview` for the web
+`pnpm web:shots` drives the dev server in headless Chromium (Playwright) through a dev-only
+`window.__wipeDay` hook, renders 26 states (times of day, weather, every tier, every panel,
+phone/tablet/ultrawide) into `preview/web/` with a contact sheet. The review loop from section
+4.6 applies unchanged: look at the PNGs, write the critique in `docs/ui-review.md`, iterate.
+Reason: a live browser window stops rendering when it is hidden, so the loop cannot depend on
+the desktop.
+
+### D45. Five dock actions on phones
+The dock shows Gather, Upgrade, Craft, Furnace, Squad, Inventory and Tasks on desktop, but only
+the first five on phones; Inventory opens from the resource strip and Tasks from the identity
+chip. Sub-labels under dock buttons are hidden on phones and clipped with an ellipsis on
+desktop so no label ever wraps over its button.

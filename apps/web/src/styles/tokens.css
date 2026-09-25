@@ -1,0 +1,42 @@
+/* The one place with colours and type. Mirrors src/ui/theme.ts in the bot. */
+@font-face {
+  font-family: "Roboto Condensed";
+  src: url("/fonts/RobotoCondensed-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Roboto Condensed";
+  src: url("/fonts/RobotoCondensed-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  --bg: #1b1a18;
+  --panel: #272521;
+  --panel-glass: rgba(27, 26, 24, 0.78);
+  --panel-glass-2: rgba(39, 37, 33, 0.72);
+  --border: #3b3832;
+  --border-soft: rgba(236, 232, 223, 0.08);
+  --text: #ece8df;
+  --muted: #a49e93;
+  --accent: #cd412b;
+  --accent-glow: rgba(205, 65, 43, 0.55);
+  --success: #7fa043;
+  --warning: #e3a32f;
+  --danger: #f05252;
+
+  --tier-twig: #c2a868;
+  --tier-wood: #b07840;
+  --tier-stone: #9aa0a6;
+  --tier-metal: #6c97bc;
+  --tier-hqm: #45c2c0;
+
+  --font: "Roboto Condensed", "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --radius: 14px;
+  --radius-sm: 9px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}

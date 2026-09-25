@@ -31,3 +31,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Web client build output
+/apps/web/dist/

@@ -86,3 +86,15 @@ src/bin         bot, idle-preview, idle-assets
 data/           JSON5 content and balance      locale/   player-visible strings
 docs/           decisions.md, ui-review.md, screens/*.md, reference/ (your screenshots)
 ```
+
+## Web prototype
+
+The game is moving to a web client (see `docs/decisions.md`, D40–D45). The visual prototype lives in
+`apps/web` (Vite + React + PixiJS):
+
+```
+pnpm web            # dev server on http://localhost:5173
+pnpm web:shots      # headless screenshots into preview/web/
+```
+
+Details in `docs/web-prototype.md`.

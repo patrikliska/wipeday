@@ -193,3 +193,34 @@ Outlines: `preview/screens/node__{running,faded}.txt`, `tasks__normal.txt`,
   emoji. Back is primary because everything on it is done elsewhere.
 - Checked against rule 9: the home message is now two rows of at most five; the node screen
   is two rows of four and two.
+
+## Web prototype (apps/web), reviewed through `pnpm web:shots`
+
+### Scene (desktop 1600×900, phone 390×844)
+- **Iteration 1.** Sun glow was a 700 px white blob washing out half the sky; the node timer ring
+  drew a stray line from the canvas origin (`arc` without `moveTo`); the shore was a hard diagonal
+  wedge with wave lines crossing the sand; the ground was one flat green field; floating gains used
+  muted resource colours and were hard to read.
+- **Iteration 2.** Glow halved and dimmed; ring fixed; organic waterline (`shoreAt(y)`) with wet
+  sand, foam and waves that stop at the water; hills sink below the horizon on the left so the bay
+  opens onto the sea with an island and lighthouse; path from the door to the shore, tufts, flowers,
+  pebbles; gains white with a dark stroke; camera zooms in 12% on desktop and puts the ground line
+  at 72% of the viewport.
+- **Iteration 3.** At noon the sun hid behind the top bar (arc lowered); rain kept a bright blue sky
+  (new `gloom()` greys the palette by rain and fog and dims the sun); the Armored base's four
+  furnaces plus kiln and press reached into the sea (furnaces now sit two by two with a back row
+  and the whole station strip is scaled to 85%); night sand and foam read as a white strip (foam
+  now fades with the light); grass doubled in density and size, dirt patch softened; phone ground
+  line moved from 58% to 66% so the base fills the middle of the screen.
+- **Iteration 4.** Dock sub-label "need 38k ingots" wrapped over the button name on the Sheet Metal
+  tier; the dock drops the "need" prefix, clips with an ellipsis and buttons are 4 px wider.
+
+### HUD
+- **Iteration 1.** Dock sub-labels wrapped on phones and the demo toggle overlapped the dock; the
+  bottom-sheet panel hid its last card under the dock; the craft panel recommended crafting a second
+  Workbench.
+- **Iteration 2.** Phones hide dock sub-labels, the toggle moves under the resource strip, the sheet
+  body pads for the dock; stations and utilities read "Built" once owned and sort below craftable
+  items; landscape phones get a compact top bar and dock.
+- Checklist status: one primary button per screen (advisor: gather → upgrade → furnace → craft);
+  every disabled button carries its reason; all text ≥ 11 px on phones; nothing touches the edges.
