@@ -276,6 +276,42 @@ export interface Task {
   done: boolean;
 }
 
+export type NodeKind = "tree" | "stone" | "ore" | "sulfur" | "fibre";
+
+export interface NodeType {
+  kind: NodeKind;
+  name: string;
+  /** Per hit: this many game minutes of the tool's output, of these resources only. */
+  hitMinutes: number;
+  /** Share of the hit per resource: 1 = the full slice. */
+  yields: Partial<Record<ResourceId, number>>;
+  /**
+   * Real seconds from worked out to back, whatever the game speed: nodes are active play,
+   * so the wait is seconds to a couple of minutes. The rarer the node, the longer.
+   */
+  respawn: number;
+}
+
+export const NODE_TYPES: Record<NodeKind, NodeType> = {
+  tree: { kind: "tree", name: "Tree", hitMinutes: 6, yields: { timber: 1 }, respawn: 20 },
+  stone: { kind: "stone", name: "Stone", hitMinutes: 6, yields: { stone: 1 }, respawn: 20 },
+  ore: {
+    kind: "ore",
+    name: "Iron Ore",
+    hitMinutes: 12,
+    yields: { ore: 1, stone: 0.2 },
+    respawn: 45,
+  },
+  sulfur: {
+    kind: "sulfur",
+    name: "Sulfur Ore",
+    hitMinutes: 24,
+    yields: { sulfur_ore: 1, stone: 0.2 },
+    respawn: 120,
+  },
+  fibre: { kind: "fibre", name: "Fibre", hitMinutes: 6, yields: { fibre: 1 }, respawn: 20 },
+};
+
 export const GAME_DAY = 86_400;
 export const GATHER_COOLDOWN = 10 * 60;
 export const GATHER_BONUS_MINUTES = 30;

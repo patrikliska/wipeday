@@ -1,15 +1,21 @@
 /**
- * Resource nodes (trees, rocks, a fibre patch) and the barrel on the shore.
+ * Resource nodes (trees, stone, ore and sulfur rocks) and the barrel on the shore.
  * Nodes are clickable; a click starts the "work the node" game: a marker
- * appears on the node, hit it before it fades, five times.
+ * appears on the node, hit it before it fades, five times. A worked node is
+ * gone: the tree falls, the rock crumbles, and a stump or rubble with a
+ * regrow clock stays until the store brings it back.
  */
 import { ColorMatrixFilter, Container, Graphics, Sprite } from "pixi.js";
+import type { Depleted } from "../state/store";
+import type { NodeKind } from "../state/world";
 import {
   FIBRE,
+  MOSS,
   ORE_VEIN,
   ROCK,
   ROCK_DARK,
   SAND,
+  STUMP_FACE,
   SULFUR_VEIN,
   TREE_CANOPY,
   TREE_TRUNK,
@@ -17,15 +23,18 @@ import {
 import { glowTexture } from "./textures";
 import { clamp, easeOutBack, hash, pick, rand, shade } from "./util";
 
-export type NodeKind = "tree" | "ore" | "sulfur" | "fibre";
-
 export interface NodeDef {
   id: string;
   kind: NodeKind;
   x: number;
   y: number;
   scale: number;
+  /** Trees only: which way it falls, away from the base. Default right. */
+  fall?: 1 | -1;
 }
+
+/** Up: workable. Falling and growing are the in-between animations. */
+type NodeState = "up" | "falling" | "down" | "growing";
 
 interface NodeView {
   def: NodeDef;
@@ -33,6 +42,15 @@ interface NodeView {
   /** White silhouette rim behind the body: says "you can click this". */
   outline: Container;
   body: Container;
+  /** Stump or rubble, shown while the node is worked out. */
+  remnant: Container;
+  /** Small pie clock over the remnant: how far the regrow is. */
+  clock: Graphics;
+  state: NodeState;
+  /** 0..1 through the current fall or grow animation. */
+  anim: number;
+  /** 0..1 through the regrow cooldown. */
+  regrow: number;
   phase: number;
   shake: number;
   hover: number;
@@ -46,10 +64,14 @@ export interface NodeRun {
 }
 
 export interface NodeCallbacks {
-  onStart: (node: string) => void;
-  onHit: (node: string, hits: number, x: number, y: number) => void;
+  onStart: (node: NodeDef) => void;
+  onHit: (node: NodeDef, hits: number, x: number, y: number) => void;
   /** `x`, `y`: the marker's last position in world units, where the player was looking. */
-  onRunOver: (node: string, perfect: boolean, x: number, y: number) => void;
+  onRunOver: (node: NodeDef, hits: number, perfect: boolean, x: number, y: number) => void;
+  /** A tap on a stump or rubble. */
+  onDepletedTap: (node: NodeDef) => void;
+  /** A felled tree hit the ground at (x, y), or a rock finished crumbling. */
+  onFelled: (node: NodeDef, x: number, y: number) => void;
 }
 
 export const MAX_HITS = 5;
@@ -58,6 +80,21 @@ const WINDOW = 4.5;
 const HIT_PX = { mouse: 18, touch: 26 };
 /** The next marker lands at least this many hit radii away, so every hit needs a new aim. */
 const MIN_JUMP = 2.5;
+/** Seconds: a tree takes a moment to fall, a rock crumbles fast, both grow back with a pop. */
+const FALL_TIME = { tree: 1.1, rock: 0.45 };
+const GROW_TIME = 0.8;
+/** Regrow clock radius in CSS pixels. */
+const CLOCK_PX = 11;
+/** Where the clock floats over the remnant, in node units above the ground. */
+const CLOCK_Y = { tree: 46, rock: 40 };
+/** Pie colour on the regrow clock: the colour of what comes back. */
+const CLOCK_COLOR: Record<NodeKind, number> = {
+  tree: 0x7fc062,
+  stone: 0xd6d9dc,
+  ore: 0xd07a48,
+  sulfur: 0xf0cf52,
+  fibre: 0xc8d870,
+};
 
 function drawTree(scale: number): Container {
   const c = new Container();
@@ -193,10 +230,10 @@ function drawRockShadow(g: Graphics): void {
 }
 
 /** `silhouette` leaves out the shadow and pebbles: the outline traces only the rock. */
-function drawRock(kind: "ore" | "sulfur", scale: number, silhouette = false): Container {
+function drawRock(kind: "ore" | "sulfur" | "stone", scale: number, silhouette = false): Container {
   const c = new Container();
   const g = new Graphics();
-  const seed = kind === "ore" ? 1 : 2;
+  const seed = kind === "ore" ? 1 : kind === "sulfur" ? 2 : 3;
   // Contact shadow hugging the base, longer on the right (light comes from the left).
   if (!silhouette) drawRockShadow(g);
   // A smaller rock behind, right.
@@ -242,7 +279,49 @@ function drawRock(kind: "ore" | "sulfur", scale: number, silhouette = false): Co
   ]).fill({ color: ROCK_DARK, alpha: 0.6 });
   g.moveTo(6, -34).lineTo(12, -20).lineTo(10, 0).stroke({ width: 1.2, color: ROCK_DARK });
   g.moveTo(-16, -30).lineTo(6, -34).stroke({ width: 1, color: 0xffffff, alpha: 0.25 });
-  // Veins: a dark crack, then nuggets (ore) or crystals (sulfur) along it.
+  if (kind === "stone") drawStoneMarks(g);
+  else drawVeins(g, kind, seed);
+  // Pebbles at the foot.
+  if (!silhouette) {
+    drawPebble(g, -46, 1, 6, 5, shade(ROCK, -0.05));
+    drawPebble(g, -37, 2, 4, 3, ROCK_DARK);
+    drawPebble(g, 39, 2, 5, 3.5, shade(ROCK, 0.02));
+  }
+  c.addChild(g);
+  c.scale.set(scale);
+  return c;
+}
+
+/** Plain stone: no mineral, so cracks, a chipped facet and a cap of moss say "just rock". */
+function drawStoneMarks(g: Graphics): void {
+  g.moveTo(-24, -38)
+    .lineTo(-18, -28)
+    .lineTo(-22, -18)
+    .lineTo(-14, -8)
+    .stroke({ width: 1.6, color: ROCK_DARK, join: "round" });
+  g.moveTo(-18, -28).lineTo(-8, -24).stroke({ width: 1.2, color: ROCK_DARK });
+  g.moveTo(14, -40).lineTo(8, -30).lineTo(12, -22).stroke({ width: 1.3, color: ROCK_DARK });
+  polygon(g, [
+    [-6, -20],
+    [4, -24],
+    [6, -14],
+    [-4, -12],
+  ]).fill({ color: 0xffffff, alpha: 0.12 });
+  polygon(g, [
+    [-20, -44],
+    [-8, -50],
+    [2, -52],
+    [14, -48],
+    [4, -45],
+    [-6, -44],
+    [-14, -40],
+  ]).fill(MOSS);
+  g.circle(-12, -44, 2.2).fill(shade(MOSS, 0.18));
+  g.circle(6, -48, 1.6).fill(shade(MOSS, 0.18));
+}
+
+/** Veins: a dark crack, then nuggets (ore) or crystals (sulfur) along it. */
+function drawVeins(g: Graphics, kind: "ore" | "sulfur", seed: number): void {
   const vein = kind === "ore" ? ORE_VEIN : SULFUR_VEIN;
   VEINS.forEach((line, v) => {
     // A mineral band that tapers at both ends, not a drawn line.
@@ -262,11 +341,105 @@ function drawRock(kind: "ore" | "sulfur", scale: number, silhouette = false): Co
       else drawCrystals(g, x, y + 2, size * 0.8, vein, seed * 17 + v * 7 + i);
     });
   });
-  // Pebbles at the foot.
-  if (!silhouette) {
-    drawPebble(g, -46, 1, 6, 5, shade(ROCK, -0.05));
-    drawPebble(g, -37, 2, 4, 3, ROCK_DARK);
-    drawPebble(g, 39, 2, 5, 3.5, shade(ROCK, 0.02));
+}
+
+/** What a felled tree leaves: a stump with a pale cut face, roots and wood chips. */
+function drawStump(scale: number): Container {
+  const c = new Container();
+  const g = new Graphics();
+  g.ellipse(4, 1, 18, 2.6).fill({ color: 0x000000, alpha: 0.2 });
+  polygon(g, [
+    [-10, 0],
+    [-17, 2],
+    [-8, -5],
+  ]).fill(TREE_TRUNK);
+  polygon(g, [
+    [10, 0],
+    [16, 2],
+    [8, -4],
+  ]).fill(shade(TREE_TRUNK, -0.2));
+  polygon(g, [
+    [-10, 0],
+    [-8, -16],
+    [8, -15],
+    [11, 0],
+  ]).fill(TREE_TRUNK);
+  polygon(g, [
+    [3, -15.5],
+    [8, -15],
+    [11, 0],
+    [4, 0],
+  ]).fill(shade(TREE_TRUNK, -0.25));
+  g.moveTo(-5, -12)
+    .lineTo(-6, -3)
+    .stroke({ width: 1, color: shade(TREE_TRUNK, -0.3) });
+  g.ellipse(0, -15.5, 8.5, 3).fill(STUMP_FACE);
+  g.ellipse(0, -15.5, 5, 1.8).stroke({ width: 0.8, color: shade(STUMP_FACE, -0.22) });
+  g.ellipse(0, -15.5, 1.8, 0.7).fill(shade(STUMP_FACE, -0.22));
+  for (const [x, y, w] of [
+    [-22, 1, 4],
+    [17, 2, 3],
+    [24, 0, 2.5],
+    [-15, 3, 2.5],
+  ] as const) {
+    g.rect(x, y - 1.5, w, 1.6).fill(STUMP_FACE);
+  }
+  c.addChild(g);
+  c.scale.set(scale);
+  return c;
+}
+
+/**
+ * What a mined rock leaves: the broken-off foot of the boulder with a jagged top, chunks
+ * scattered round it, and a fleck of the mineral that grows back.
+ */
+function drawRubble(kind: NodeKind, scale: number): Container {
+  const c = new Container();
+  const g = new Graphics();
+  drawRockShadow(g);
+  const top: Point[] = [
+    [-38, -12],
+    [-28, -19],
+    [-18, -12],
+    [-8, -22],
+    [4, -14],
+    [14, -20],
+    [24, -12],
+    [31, -8],
+  ];
+  polygon(g, [[-42, 0], ...top, [30, 0]]).fill(ROCK);
+  // Fresh break: the jagged top is paler than the weathered sides.
+  polygon(g, [...top, [24, -8], [4, -9], [-18, -8], [-36, -8]]).fill({
+    color: 0xffffff,
+    alpha: 0.2,
+  });
+  polygon(g, [
+    [14, -20],
+    [24, -12],
+    [31, -8],
+    [30, 0],
+    [12, 0],
+    [10, -12],
+  ]).fill({ color: ROCK_DARK, alpha: 0.6 });
+  g.moveTo(-8, -22).lineTo(-10, -10).lineTo(-6, 0).stroke({ width: 1.2, color: ROCK_DARK });
+  drawPebble(g, -50, 1.5, 7, 6, shade(ROCK, -0.05));
+  drawPebble(g, 38, 2, 8, 7, shade(ROCK, 0.02));
+  drawPebble(g, 48, 2.5, 4, 3, ROCK_DARK);
+  drawPebble(g, -30, 4, 5, 4, shade(ROCK, 0.05));
+  if (kind === "ore") {
+    drawNugget(g, -20, -8, 3.2, ORE_VEIN, 41);
+    drawNugget(g, 6, -9, 2.6, ORE_VEIN, 43);
+    drawNugget(g, 38, -3, 2.4, ORE_VEIN, 45);
+  } else if (kind === "sulfur") {
+    drawCrystals(g, -18, -9, 2.6, SULFUR_VEIN, 47);
+    drawCrystals(g, 8, -10, 2.2, SULFUR_VEIN, 49);
+  } else {
+    polygon(g, [
+      [-38, -12],
+      [-28, -19],
+      [-22, -15],
+      [-32, -10],
+    ]).fill(MOSS);
   }
   c.addChild(g);
   c.scale.set(scale);
@@ -296,6 +469,10 @@ function drawBody(def: NodeDef, silhouette = false): Container {
   if (def.kind === "tree") return drawTree(def.scale);
   if (def.kind === "fibre") return drawFibre(def.scale);
   return drawRock(def.kind, def.scale, silhouette);
+}
+
+function drawRemnant(def: NodeDef): Container {
+  return def.kind === "tree" ? drawStump(def.scale) : drawRubble(def.kind, def.scale);
 }
 
 /** Offsets of the silhouette copies that make the rim, in world units. */
@@ -352,24 +529,45 @@ export class Nodes {
       }
       outline.filters = [whiteFilter()];
       outline.alpha = 0.55;
+      const remnant = drawRemnant(def);
+      remnant.visible = false;
+      // On the overlay, so a station in front of a stump never hides it.
+      const clock = new Graphics();
+      clock.visible = false;
+      clock.eventMode = "none";
+      clock.position.set(
+        def.x,
+        def.y - (def.kind === "tree" ? CLOCK_Y.tree : CLOCK_Y.rock) * def.scale,
+      );
+      this.overlay.addChild(clock);
       const container = new Container();
       container.position.set(def.x, def.y);
-      container.addChild(outline, body);
+      container.addChild(remnant, outline, body);
       container.eventMode = "static";
       container.cursor = "pointer";
       const halfWidth = 50 * def.scale;
-      const height = (def.kind === "tree" ? 170 : def.kind === "fibre" ? 60 : 60) * def.scale;
-      container.hitArea = {
-        contains: (x: number, y: number) => x > -halfWidth && x < halfWidth && y < 8 && y > -height,
-      };
+      const height = (def.kind === "tree" ? 170 : 60) * def.scale;
       const view: NodeView = {
         def,
         container,
         outline,
         body,
+        remnant,
+        clock,
+        state: "up",
+        anim: 1,
+        regrow: 0,
         phase: hash(def.x) * 6.28,
         shake: 0,
         hover: 0,
+      };
+      // Worked out, only the stump or rubble (and its clock) answers a tap.
+      container.hitArea = {
+        contains: (x: number, y: number) => {
+          const top = view.state === "up" ? height : 48 * def.scale;
+          const half = view.state === "up" ? halfWidth : 30 * def.scale;
+          return x > -half && x < half && y < 8 && y > -top;
+        },
       };
       container.on("pointerover", () => {
         view.hover = 1;
@@ -412,6 +610,11 @@ export class Nodes {
 
   private tap(view: NodeView, localX: number, localY: number): void {
     const now = this.time;
+    if (view.state !== "up") {
+      view.shake = 0.5;
+      this.callbacks.onDepletedTap(view.def);
+      return;
+    }
     if (this.run && this.run.node === view.def.id) {
       const distance = Math.hypot(localX - this.run.marker.x, localY - this.run.marker.y);
       if (distance <= this.hitRadius(view.container)) {
@@ -423,7 +626,7 @@ export class Nodes {
     }
     view.shake = 1;
     this.run = { node: view.def.id, hits: 0, marker: this.randomSpot(view), lastHitAt: now };
-    this.callbacks.onStart(view.def.id);
+    this.callbacks.onStart(view.def);
   }
 
   private hit(view: NodeView): void {
@@ -433,7 +636,7 @@ export class Nodes {
     run.lastHitAt = this.time;
     view.shake = 1;
     this.callbacks.onHit(
-      view.def.id,
+      view.def,
       run.hits,
       view.container.x + run.marker.x,
       view.container.y + run.marker.y,
@@ -447,9 +650,11 @@ export class Nodes {
 
   private endRun(view: NodeView, perfect: boolean): void {
     const marker = this.run?.marker ?? { x: 0, y: -40 };
+    const hits = this.run?.hits ?? 0;
     this.run = null;
     this.callbacks.onRunOver(
-      view.def.id,
+      view.def,
+      hits,
       perfect,
       view.container.x + marker.x,
       view.container.y + marker.y,
@@ -491,7 +696,102 @@ export class Nodes {
 
   shake(id: string): void {
     const view = this.views.get(id);
-    if (view) view.shake = 1;
+    if (view && view.state === "up") view.shake = 1;
+  }
+
+  /** Whether the node is standing and workable (false for stumps, rubble, and unknown ids). */
+  isUp(id: string): boolean {
+    return this.views.get(id)?.state === "up";
+  }
+
+  /** Ids of this layer's standing nodes of a kind. */
+  standing(kind: NodeKind): string[] {
+    return [...this.views.values()]
+      .filter((view) => view.def.kind === kind && view.state === "up")
+      .map((view) => view.def.id);
+  }
+
+  /** Follows the store: fells nodes that went on cooldown, grows back the ones that are done. */
+  sync(depleted: Readonly<Record<string, Depleted>>, clock: number): void {
+    for (const view of this.views.values()) {
+      const entry = depleted[view.def.id];
+      if (entry) {
+        view.regrow = clamp((clock - entry.at) / Math.max(1, entry.until - entry.at), 0, 1);
+        if (view.state === "up" || view.state === "growing") {
+          if (this.run?.node === view.def.id) this.run = null;
+          view.state = "falling";
+          view.anim = 0;
+          view.hover = 0;
+        }
+      } else if (view.state === "down" || view.state === "falling") {
+        view.state = "growing";
+        view.anim = 0;
+      }
+    }
+  }
+
+  /** Fall, crumble and grow: body, rim and remnant for one frame. */
+  private animate(view: NodeView, dt: number): void {
+    const { def, body, remnant } = view;
+    const tree = def.kind === "tree";
+    if (view.state === "falling") {
+      view.anim = Math.min(1, view.anim + dt / (tree ? FALL_TIME.tree : FALL_TIME.rock));
+      const t = view.anim;
+      body.visible = true;
+      if (tree) {
+        // Slow to tip, fast to land, like a real fall; fades only once it is down.
+        body.rotation = (def.fall ?? 1) * t * t * 1.5;
+        body.alpha = 1 - clamp((t - 0.8) / 0.2, 0, 1);
+      } else {
+        body.scale.set(def.scale * (1 + t * 0.18), def.scale * (1 - t * 0.7));
+        body.alpha = 1 - t;
+      }
+      remnant.visible = true;
+      remnant.alpha = clamp(t * 2, 0, 1);
+      if (t >= 1) {
+        view.state = "down";
+        const reach = tree ? 150 * def.scale : 0;
+        this.callbacks.onFelled(def, def.x + (def.fall ?? 1) * reach, def.y);
+      }
+    } else if (view.state === "down") {
+      body.visible = false;
+      remnant.visible = true;
+      remnant.alpha = 1;
+    } else if (view.state === "growing") {
+      view.anim = Math.min(1, view.anim + dt / GROW_TIME);
+      const t = view.anim;
+      body.visible = true;
+      body.rotation = 0;
+      body.alpha = clamp(t * 3, 0, 1);
+      body.scale.set(def.scale * (0.2 + 0.8 * easeOutBack(t)));
+      remnant.alpha = 1 - t;
+      if (t >= 1) {
+        view.state = "up";
+        body.scale.set(def.scale);
+        remnant.visible = false;
+      }
+    }
+    view.outline.visible = view.state === "up";
+    view.container.cursor = view.state === "up" ? "pointer" : "help";
+    view.clock.visible = view.state === "down";
+    if (view.clock.visible) this.drawClock(view);
+  }
+
+  /** A pie that fills as the node grows back, sized in screen pixels so it reads at any zoom. */
+  private drawClock(view: NodeView): void {
+    const r = CLOCK_PX / Math.max(0.01, view.container.worldTransform.a);
+    const end = -Math.PI / 2 + Math.PI * 2 * Math.max(0.02, view.regrow);
+    const clock = view.clock;
+    clock.clear();
+    clock.circle(0, r * 0.12, r * 1.3).fill({ color: 0x000000, alpha: 0.25 });
+    clock.circle(0, 0, r * 1.2).fill({ color: 0x1b1a18, alpha: 0.7 });
+    clock
+      .moveTo(0, 0)
+      .lineTo(0, -r)
+      .arc(0, 0, r, -Math.PI / 2, end)
+      .closePath()
+      .fill(CLOCK_COLOR[view.def.kind]);
+    clock.circle(0, 0, r).stroke({ width: r * 0.16, color: 0xffffff, alpha: 0.85 });
   }
 
   position(id: string): { x: number; y: number } | null {
@@ -506,6 +806,14 @@ export class Nodes {
   update(dt: number, wind: number): void {
     this.time += dt;
     for (const view of this.views.values()) {
+      this.animate(view, dt);
+      if (view.state !== "up") {
+        // Out or on the way: no sway or hover, only a small wobble when the stump is tapped.
+        view.shake = Math.max(0, view.shake - dt * 3);
+        view.remnant.x = view.shake * Math.sin(this.time * 40) * 2;
+        view.container.scale.set(1);
+        continue;
+      }
       const sway = Math.sin(this.time * 1.3 + view.phase) * 0.012 + wind * 0.004;
       const jolt = view.shake * Math.sin(this.time * 40);
       if (view.def.kind === "tree") {

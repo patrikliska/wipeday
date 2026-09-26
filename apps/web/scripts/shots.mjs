@@ -201,6 +201,30 @@ const SHOTS = [
     clip: [1490, 790, 190, 120],
   },
   {
+    name: "stone_node",
+    viewport: [1920, 1080],
+    scale: 2,
+    state: { clock: at(3, 11) },
+    clip: [1300, 780, 150, 100],
+  },
+  {
+    name: "nodes_depleted",
+    viewport: [1920, 1080],
+    state: {
+      clock: at(3, 11),
+      realClock: 100,
+      depleted: {
+        tree_1: { kind: "tree", at: 90, until: 110 },
+        tree_2: { kind: "tree", at: 95, until: 115 },
+        ore_1: { kind: "ore", at: 70, until: 115 },
+        stone_1: { kind: "stone", at: 98, until: 118 },
+        sulfur_1: { kind: "sulfur", at: 20, until: 140 },
+      },
+    },
+    settle: 2500,
+    clip: [640, 640, 1000, 300],
+  },
+  {
     name: "survivors",
     viewport: [1920, 1080],
     scale: 2,

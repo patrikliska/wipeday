@@ -24,7 +24,7 @@ drawer: time speed, pause, +1 h / +6 h, weather, base tier, spawn a barrel, give
 | Sky | `src/scene/sky.ts` | gradient from the palette, sun and moon arcs, stars, clouds |
 | Terrain | `src/scene/terrain.ts` | parallax ridges with treelines, island with lighthouse, ground with path, grass, pebbles, organic shoreline, waves, foam, sparkle |
 | Base | `src/scene/base.ts` | one structure per tier (Twig, Timber, Stone, Sheet Metal, Armored), stations placed around it from the store (cupboard, furnaces, kiln, press, workbench, crates, campfire, lantern), window glows, scaffold while building, chimney smoke |
-| Nodes | `src/scene/nodes.ts` | clickable trees, rocks, fibre; the "hit the marker" mini-game; the barrel on the shore |
+| Nodes | `src/scene/nodes.ts` | clickable trees and stone, ore and sulfur rocks; the "hit the marker" mini-game; worked-out nodes fall or crumble and regrow; the barrel on the shore |
 | Actors | `src/scene/actors.ts` | survivors with hat colours walking between the base and nodes, resting at night; gulls |
 | Effects | `src/scene/effects.ts` | particles (smoke, sparks, leaves, dust, splash, coins, stone), floating gains, glows, rain and fog |
 | Palette | `src/scene/palette.ts` | time-of-day keyframes, `gloom()` for weather, tier materials, ground/sea colours |

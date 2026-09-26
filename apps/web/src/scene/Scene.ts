@@ -12,6 +12,8 @@ import {
   dayFraction,
   FURNACE_RATE,
   itemById,
+  NODE_TYPES,
+  type NodeKind,
   type ResourceId,
   resourceById,
   tierById,
@@ -40,23 +42,28 @@ const MIN_VISIBLE_W = 760;
 const FOCUS_X = 845;
 
 const BACK_NODES: NodeDef[] = [
-  { id: "tree_1", kind: "tree", x: 820, y: GROUND + 2, scale: 1 },
+  { id: "tree_1", kind: "tree", x: 834, y: GROUND + 2, scale: 1, fall: -1 },
   { id: "tree_2", kind: "tree", x: 1240, y: GROUND + 2, scale: 1.15 },
   { id: "tree_3", kind: "tree", x: 1470, y: GROUND + 6, scale: 0.95 },
   { id: "tree_4", kind: "tree", x: 1560, y: GROUND + 2, scale: 1.05 },
 ];
 const FRONT_NODES: NodeDef[] = [
   { id: "ore_1", kind: "ore", x: 705, y: GROUND + 30, scale: 1 },
+  { id: "stone_1", kind: "stone", x: 1150, y: GROUND + 52, scale: 0.8 },
   { id: "sulfur_1", kind: "sulfur", x: 1350, y: GROUND + 84, scale: 0.85 },
 ];
 const BARREL_SPOT = { x: 540, y: GROUND + 62 };
 
 type Amounts = Partial<Record<ResourceId, number>>;
 
-function debrisFor(node: string): { kind: "leaves" | "stone"; color: number } {
-  if (node.startsWith("tree")) return { kind: "leaves", color: 0x5c9b4a };
-  if (node.startsWith("fibre")) return { kind: "leaves", color: 0xa8c060 };
-  if (node.startsWith("sulfur")) return { kind: "stone", color: 0xe3c04f };
+const ALL_NODES = [...BACK_NODES, ...FRONT_NODES];
+const nodeKind = new Map(ALL_NODES.map((node) => [node.id, node.kind]));
+
+function debrisFor(kind: NodeKind): { kind: "leaves" | "stone"; color: number } {
+  if (kind === "tree") return { kind: "leaves", color: 0x5c9b4a };
+  if (kind === "fibre") return { kind: "leaves", color: 0xa8c060 };
+  if (kind === "sulfur") return { kind: "stone", color: 0xe3c04f };
+  if (kind === "ore") return { kind: "stone", color: 0xa8603a };
   return { kind: "stone", color: 0x9aa0a6 };
 }
 
@@ -109,31 +116,49 @@ export class Scene {
     const callbacks: NodeCallbacks = {
       onStart: () => undefined,
       onHit: (node, hits, x, y) => {
-        const debris = debrisFor(node);
+        const debris = debrisFor(node.kind);
         this.particles.spawn(debris.kind, x, y, 10, debris.color);
         this.lastHit = { x, y };
-        useWorld.getState().bankNodeHit(node, hits);
+        useWorld.getState().bankNodeHit(node.id, node.kind, hits);
       },
-      onRunOver: (node, perfect, x, y) => {
+      onRunOver: (node, hits, perfect, x, y) => {
         // At the marker, where the eye already is; "Perfect!" sits above the bonus gain.
         this.floaters.retire(this.hitText);
+        const store = useWorld.getState();
         if (perfect) {
           this.floaters.add(x, y - 62 / this.scale, "Perfect!", 0xffd25a, this.floatSize(1.2));
           this.particles.spawn("coins", x, y, 12);
-          useWorld.getState().bankNodeHit(node, MAX_HITS + 1);
+          store.bankNodeHit(node.id, node.kind, MAX_HITS + 1);
         } else {
           this.floaters.add(x, y - 22 / this.scale, "Missed", 0xa49e93, this.floatSize());
         }
+        // Worked at all, the node is used up: the tree falls, the rock breaks.
+        if (hits > 0) store.depleteNode(node.id, node.kind);
+      },
+      onDepletedTap: (node) => {
+        const state = useWorld.getState();
+        const until = state.depleted[node.id]?.until;
+        if (until === undefined) return;
+        const left = Math.ceil(until - state.realClock);
+        const wait = left >= 60 ? `${Math.floor(left / 60)}m ${left % 60}s` : `${left}s`;
+        const text = `${NODE_TYPES[node.kind].name} back in ${wait}`;
+        this.floaters.add(node.x, node.y - 70 * node.scale, text, 0xece8df, this.floatSize(0.85));
+      },
+      onFelled: (node, x, y) => {
+        if (node.kind !== "tree") return;
+        this.particles.spawn("dust", x, y, 10, 0xc9b78a);
+        this.particles.spawn("leaves", x, y - 20, 16, 0x5c9b4a);
       },
     };
     this.backNodes = new Nodes(BACK_NODES, callbacks);
     this.frontNodes = new Nodes(FRONT_NODES, callbacks);
     this.barrel = new Barrel(BARREL_SPOT.x, BARREL_SPOT.y, () => useWorld.getState().breakBarrel());
-    const spots = [...BACK_NODES, ...FRONT_NODES].map((node) => ({ id: node.id, x: node.x }));
+    const spots = ALL_NODES.map((node) => ({ id: node.id, x: node.x }));
     this.actors = new Actors(useWorld.getState().survivors, GROUND, BASE_X, spots, BASE_X + 340, {
+      canWork: (node) => this.backNodes.isUp(node) || this.frontNodes.isUp(node),
       onWork: (node, x, y) => {
         this.shakeNode(node);
-        const debris = debrisFor(node);
+        const debris = debrisFor(nodeKind.get(node) ?? "stone");
         this.particles.spawn(debris.kind, x + 12, y, 3, debris.color);
       },
       onDeliver: (x, y) => this.particles.spawn("dust", x, y + 50, 4),
@@ -248,6 +273,8 @@ export class Scene {
       ),
     );
     this.barrel.set(state.barrel !== null);
+    this.backNodes.sync(state.depleted, state.realClock);
+    this.frontNodes.sync(state.depleted, state.realClock);
     this.weather.set(state.weather);
   }
 
@@ -333,9 +360,13 @@ export class Scene {
   private handle(event: GameEvent): void {
     switch (event.type) {
       case "gathered": {
-        const tree = this.nodePosition("tree_1");
-        this.particles.spawn("leaves", tree.x, tree.y - 120, 14, 0x5c9b4a);
-        this.shakeNode("tree_1");
+        // The nearest tree still standing takes the swing; with all of them down, only the gain shows.
+        const standing = this.backNodes.standing("tree")[0];
+        if (standing) {
+          const tree = this.nodePosition(standing);
+          this.particles.spawn("leaves", tree.x, tree.y - 120, 14, 0x5c9b4a);
+          this.shakeNode(standing);
+        }
         this.gains(BASE_X, GROUND - 210, event.gained);
         break;
       }
@@ -403,7 +434,26 @@ export class Scene {
       case "task_done":
         this.floaters.add(BASE_X, GROUND - 300, event.name, 0x7fa043, this.floatSize(1.1));
         break;
-      case "node_run_over":
+      case "node_depleted": {
+        const spot = this.nodePosition(event.node);
+        const debris = debrisFor(event.kind);
+        if (event.kind === "tree") {
+          this.particles.spawn("leaves", spot.x, spot.y - 110, 10, debris.color);
+        } else {
+          // The rock breaks apart: chunks of it, the mineral, and a puff of dust.
+          this.particles.spawn("stone", spot.x, spot.y - 30, 22, 0x9aa0a6);
+          this.particles.spawn(debris.kind, spot.x, spot.y - 30, 12, debris.color);
+          this.particles.spawn("dust", spot.x, spot.y, 10, 0xc9b78a);
+        }
+        break;
+      }
+      case "node_respawned": {
+        const spot = this.nodePosition(event.node);
+        const debris = debrisFor(event.kind);
+        this.particles.spawn("dust", spot.x, spot.y, 6, 0xc9b78a);
+        this.particles.spawn(debris.kind, spot.x, spot.y - 20, 6, debris.color);
+        break;
+      }
       case "weather":
         break;
     }

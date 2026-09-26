@@ -16,6 +16,8 @@ import {
   ITEMS,
   type ItemId,
   itemById,
+  NODE_TYPES,
+  type NodeKind,
   nextTier,
   type ResourceId,
   SURVIVORS,
@@ -40,6 +42,13 @@ export interface FurnaceJob {
   taken: number;
 }
 
+/** A worked-out node: gone from `at` until `until` (`realClock` seconds), then it grows back. */
+export interface Depleted {
+  kind: NodeKind;
+  at: number;
+  until: number;
+}
+
 export interface Toast {
   id: number;
   text: string;
@@ -49,6 +58,11 @@ export interface Toast {
 export interface WorldState {
   /** Game seconds since the season started. */
   clock: number;
+  /**
+   * Wall-clock seconds, not scaled by `timeScale`: drives active-play timers (node regrow). It
+   * keeps running while the tab is hidden, so nodes are back when the player returns.
+   */
+  realClock: number;
   /** Game seconds per real second. */
   timeScale: number;
   paused: boolean;
@@ -63,6 +77,8 @@ export interface WorldState {
   furnace: { owned: boolean; jobs: FurnaceJob[] };
   survivors: Survivor[];
   barrel: { expiresAt: number } | null;
+  /** Nodes on cooldown, by node id. */
+  depleted: Record<string, Depleted>;
   nextBarrelAt: number;
   weather: Weather;
   tasks: Task[];
@@ -81,7 +97,8 @@ interface Actions {
   smelt(ore: ResourceId): void;
   takeOut(): void;
   breakBarrel(): void;
-  bankNodeHit(node: string, hits: number): void;
+  bankNodeHit(node: string, kind: NodeKind, hits: number): void;
+  depleteNode(node: string, kind: NodeKind): void;
   openPanel(panel: Panel): void;
   dismissAway(): void;
   toast(text: string, tone?: Toast["tone"]): void;
@@ -99,6 +116,8 @@ interface Actions {
 export type Store = WorldState & Actions;
 
 let toastId = 0;
+/** Wall time of the last tick, in seconds; frames stop in a hidden tab, the wall clock does not. */
+let lastWall: number | null = null;
 
 const cap = (state: Pick<WorldState, "tier" | "items">): number => {
   const base = tierById.get(state.tier)?.cap ?? 1500;
@@ -164,6 +183,7 @@ const START_CLOCK = 3 * GAME_DAY + 9 * 3600;
 
 const initial: WorldState = {
   clock: START_CLOCK,
+  realClock: 0,
   timeScale: 240,
   paused: false,
   tier: "wood",
@@ -176,6 +196,7 @@ const initial: WorldState = {
   furnace: { owned: true, jobs: [] },
   survivors: SURVIVORS,
   barrel: { expiresAt: START_CLOCK + 30 * 60 },
+  depleted: {},
   nextBarrelAt: START_CLOCK + BARREL_EVERY,
   weather: "clear",
   tasks: initialTasks(),
@@ -206,10 +227,14 @@ export const useWorld = create<Store>((set, get) => ({
 
   tick(realSeconds) {
     const state = get();
+    const wall = performance.now() / 1000;
+    const wallSeconds = lastWall === null ? realSeconds : wall - lastWall;
+    lastWall = wall;
     if (state.paused) return;
     const dt = realSeconds * state.timeScale;
     const clock = state.clock + dt;
-    let next: Partial<WorldState> = { clock };
+    const realClock = state.realClock + Math.max(0, wallSeconds);
+    let next: Partial<WorldState> = { clock, realClock };
 
     // Accrual into the pending pile, each resource capped by its room.
     const room = cap(state);
@@ -227,6 +252,17 @@ export const useWorld = create<Store>((set, get) => ({
       next = { ...next, tier: state.build.tier, build: null };
       emit({ type: "build_done", tier: state.build.tier });
       get().toast(`Your base is now ${tierById.get(state.build.tier)?.name}.`, "success");
+    }
+
+    // Worked-out nodes grow back.
+    const back = Object.entries(state.depleted).filter(([, node]) => node.until <= realClock);
+    if (back.length > 0) {
+      const depleted = { ...state.depleted };
+      for (const [id, node] of back) {
+        delete depleted[id];
+        emit({ type: "node_respawned", node: id, kind: node.kind });
+      }
+      next.depleted = depleted;
     }
 
     // Barrels wash up and drift off.
@@ -347,11 +383,26 @@ export const useWorld = create<Store>((set, get) => ({
     emit({ type: "barrel_broken", gained });
   },
 
-  bankNodeHit(node, hits) {
+  bankNodeHit(node, kind, hits) {
     const state = get();
-    const slice = production(state.tool, GATHER_BONUS_MINUTES * 60 * 0.1);
+    if (state.depleted[node]) return;
+    const type = NODE_TYPES[kind];
+    const output = production(state.tool, type.hitMinutes * 60);
+    const slice: Amounts = {};
+    for (const [id, share] of Object.entries(type.yields)) {
+      const key = id as ResourceId;
+      slice[key] = (output[key] ?? 0) * (share ?? 0);
+    }
     set({ stock: add(state.stock, slice, cap(state)) });
     emit({ type: "node_hit", node, hits, gained: slice });
+  },
+
+  depleteNode(node, kind) {
+    const state = get();
+    if (state.depleted[node]) return;
+    const until = state.realClock + NODE_TYPES[kind].respawn;
+    set({ depleted: { ...state.depleted, [node]: { kind, at: state.realClock, until } } });
+    emit({ type: "node_depleted", node, kind });
   },
 
   openPanel(panel) {

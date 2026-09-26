@@ -3,7 +3,7 @@
  * build rising, a barrel splash). State lives in the store; this only says
  * "something just happened, here".
  */
-import type { ItemId, ResourceId, Tier } from "./world";
+import type { ItemId, NodeKind, ResourceId, Tier } from "./world";
 
 export type GameEvent =
   | { type: "gathered"; node: string; gained: Partial<Record<ResourceId, number>> }
@@ -16,7 +16,8 @@ export type GameEvent =
   | { type: "barrel_spawned" }
   | { type: "barrel_broken"; gained: Partial<Record<ResourceId, number>> }
   | { type: "node_hit"; node: string; hits: number; gained: Partial<Record<ResourceId, number>> }
-  | { type: "node_run_over"; node: string; perfect: boolean }
+  | { type: "node_depleted"; node: string; kind: NodeKind }
+  | { type: "node_respawned"; node: string; kind: NodeKind }
   | { type: "task_done"; name: string }
   | { type: "weather"; weather: "clear" | "rain" | "fog" };
 

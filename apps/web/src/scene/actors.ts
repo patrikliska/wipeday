@@ -33,6 +33,8 @@ export interface Spot {
 }
 
 export interface ActorCallbacks {
+  /** False for worked-out nodes: survivors do not chop at stumps. */
+  canWork: (node: string) => boolean;
   onWork: (node: string, x: number, y: number) => void;
   onDeliver: (x: number, y: number) => void;
 }
@@ -243,6 +245,10 @@ export class Actors {
     }
   }
 
+  private workable(): Spot[] {
+    return this.spots.filter((spot) => this.callbacks.canWork(spot.id));
+  }
+
   setNight(night: boolean): void {
     this.night = night;
   }
@@ -262,8 +268,8 @@ export class Actors {
             if (this.night) {
               actor.targetX = this.restX + rand(-40, 40);
               actor.workNode = null;
-            } else if (Math.random() < 0.7 && this.spots.length > 0) {
-              const spot = pick(this.spots);
+            } else if (Math.random() < 0.7 && this.workable().length > 0) {
+              const spot = pick(this.workable());
               actor.workNode = spot.id;
               actor.targetX = spot.x + rand(-30, 30);
             } else {
@@ -310,9 +316,11 @@ export class Actors {
           actor.arms[1].rotation = -1.5 + Math.sin(this.time * 9) * 0.8;
           actor.arms[0].rotation = -0.5 + Math.sin(this.time * 9) * 0.3;
           actor.body.y = 0;
-          if (actor.workNode && Math.random() < dt * 2.2)
+          // The node can go while they work at it: then they stop and head home.
+          const gone = actor.workNode !== null && !this.callbacks.canWork(actor.workNode);
+          if (actor.workNode && !gone && Math.random() < dt * 2.2)
             this.callbacks.onWork(actor.workNode, actor.x, this.ground - 50);
-          if (actor.timer <= 0) {
+          if (actor.timer <= 0 || gone) {
             actor.body.rotation = 0;
             actor.carry.visible = true;
             actor.workNode = null;

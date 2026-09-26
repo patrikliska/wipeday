@@ -243,6 +243,9 @@ export const TREE_CANOPY = [0x3f7a3c, 0x4f8f45, 0x2f6a34, 0x5c9b4a];
 export const TREE_TRUNK = 0x5a3d26;
 export const ROCK = 0x7b7f83;
 export const ROCK_DARK = 0x5a5e62;
+/** Moss on plain stone, and the pale cut face of a stump. */
+export const MOSS = 0x5f8a3e;
+export const STUMP_FACE = 0xc9a36b;
 export const ORE_VEIN = 0xa8603a;
 export const SULFUR_VEIN = 0xe3c04f;
 export const FIBRE = 0x7fa043;

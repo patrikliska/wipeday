@@ -352,3 +352,20 @@ Outlines: `preview/screens/node__{running,faded}.txt`, `tasks__normal.txt`,
 - Iteration 3 (owner: "dialog window arrow is a little bit out of box", "barrel is a little bit overflowing sand"):
   - Badge: it was a stroked rounded rectangle with a separately filled pointer, so the dark edge stopped at the pointer and the pointer looked detached. Badge and pointer are now one path with a rounded join, filled and stroked as a single shape. It also gains a soft drop shadow, a darker lower half and a top highlight.
   - Sand: the tilted drum's lower corner poked out below the mound. The drum now sits 1 unit lower, and the mound is wider and taller (peak -11, base at +4) with a curved underside, so both corners are buried.
+
+### Stone node and worked-out nodes (owner: "add stone node and make all nodes destroyed when user collects them")
+
+- New `stone_1` (x 1150, in the clearing, visible on phones too): the same faceted boulder with no mineral. Instead it has cracks, a pale chipped facet and a cap of moss, so it reads as "just rock" next to the ore and sulfur.
+- Each node now pays only its own resource (`NODE_TYPES` in `world.ts`): trees give timber and stone gives stone. Ore and sulfur give their ore plus a little stone (share 0.2). The first try used 0.4, and the ore run's top gain line then read "+14 Stone", so it was lowered.
+- A run with at least one hit uses the node up. The tree tips over away from the base, slowly at first and then fast, and lands in dust and leaves. A rock crumbles flat in a burst of chunks. Regrow times are in real seconds whatever the game speed (owner: "player must play the game not wait"): tree 20 s, stone 20 s, ore 45 s, sulfur 2 min. They run on `realClock` in the store, which follows the wall clock rather than the game clock. It keeps counting while the tab is hidden (owner: timers should keep running offline).
+- Iteration 1 (`nodes_depleted`), what was wrong:
+  - The rubble was four small pebbles and could not be read at desktop scale.
+  - Both tree stumps were hidden behind the furnace and the crates.
+  - The 9 px regrow clocks sat inside the node layer, so the same stations covered them.
+- Iteration 2, what changed:
+  - Rubble is the broken-off foot of the boulder: a jagged, paler top and a dark side, with chunks around it and flecks of ore or sulfur crystals (moss for stone).
+  - The clocks moved to the marker overlay, above everything, at 11 px with a dark disc and a white rim. The pie is in the colour of what grows back.
+  - tree_1 moved 14 units right, so its stump peeks out between the furnace and the box.
+  - All five clocks now read at 1080p. The tree_2 stump stays behind the crates, but its clock marks the spot.
+- Tapping a stump or rubble floats "Iron Ore back in 32s" (or "1m 40s"). Survivors skip worked-out nodes and stop working at a node that goes. The Gather button's shake picks a tree that is still standing.
+- New shots: `stone_node` (2x crop) and `nodes_depleted`.
