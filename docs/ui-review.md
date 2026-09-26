@@ -224,3 +224,90 @@ Outlines: `preview/screens/node__{running,faded}.txt`, `tasks__normal.txt`,
   items; landscape phones get a compact top bar and dock.
 - Checklist status: one primary button per screen (advisor: gather → upgrade → furnace → craft);
   every disabled button carries its reason; all text ≥ 11 px on phones; nothing touches the edges.
+
+### Floating gains (`desktop_gains` 1920×1080, `phone_gains` 390×844 @3x, crops `*__zoom.png`)
+- **Owner screenshot (desktop).** `+43 Iron Ore / +169 Stone / +222 Timber` over the base was
+  blurry. Cause: floaters lived in the zoomed world, so Pixi rasterised 22 px text and the camera
+  stretched it 1.35× on a 1080p screen (1.8× at 1440p), outline included. Reproduced in the first
+  `desktop_gains__zoom.png`. The same crop showed two more faults: each line had its own random
+  sideways jitter, so the stack looked ragged, and the smallest gain sat on top.
+- **Iteration 1.** Floaters moved to screen space (D46): rasterised at the display's resolution,
+  drawn 1:1 and snapped to whole device pixels; only the anchor follows the camera. Size in CSS
+  px, 22 on phones and laptops up to 28 on big screens (the old formula reached 40 px at 1440p);
+  outline 20% of the size. One jitter per stack, lines centred in one column, biggest gain on top,
+  line height 1.2 so outlines never touch.
+- **Checked.** 1080p crop: sharp glyph edges, clean outline, stack centred over the roof. Phone
+  crop: as sharp as the rest of the canvas. Accepted limits: the 0.2 s pop at the start scales
+  the text up to 1.22× (soft for a moment, while it moves); on 3× phones the whole canvas renders
+  at 2× and the browser scales it, text included.
+
+### Furnace (`furnace_idle`, `furnace_lit`, `furnace_night_hqm`, crops `*__zoom.png`)
+- **Owner screenshot.** The furnace read as a grey blob: a dome with a brick grid spilling past
+  its outline, a plain black rounded box for a mouth, and no chimney although smoke rose from it.
+- **Iteration 1.** Redrawn as a stone smelter: plinth with a contact shadow, a tapered body whose
+  stones follow the taper (varied widths and tones), light from the left and shade on the right,
+  an iron band with rivets, a capstone, a chimney pipe (smoke now leaves from its top), and an
+  arched mouth with a voussoir ring and a grate. Working: lit interior, ember bed, flames.
+- **Iteration 2.** At night the four top-tier furnaces bleached almost white and their flames
+  turned olive: the night tint (`0x4a5a8a`, multiply) sits over the whole world, so no fire
+  colour survived it. Station fire and glows now live on a light layer above the tint (D47);
+  the furnace glow shrank (150 → 120) and dimmed at night so four of them do not merge into one
+  blob. Checked: day idle and lit read as one object, night flames stay orange.
+
+### Node marker (`node_marker`, crop `node_marker__zoom.png`)
+- **Owner screenshot.** The marker was so big that tapping the middle of a rock always hit:
+  hit radius 36 world units against a spread of ±30 × 32, so there was nothing to aim at.
+- **Iteration 1.** Hit radius in screen pixels (D48): 14 for a mouse, 22 for a finger; the white
+  ring is drawn at exactly that radius, the timer arc just outside, a centre dot, and the next
+  spot lands at least 2.5 radii from the last. Glow still flooded the ring.
+- **Iteration 2.** Glow reduced to 2.6× the radius and dimmer: the ring edge is the first thing
+  seen, the arc second.
+- **Owner screenshots, round 2.** (a) The hit text (`+12 Timber`) and the count (`2/5`) appeared
+  at two fixed spots, sometimes far from the node; (b) the marker could be hidden behind smoke or
+  other effects, and taps on it were lost.
+- **Iteration 3.** The marker, ring and a circular tap target moved to a top layer (above
+  particles, the foreground, the night tint and the weather), aligned with the world; a tap
+  inside the ring always counts, even where another node overlaps it. A hit's gain and count now
+  rise together from the hit point, 22 px above it, and the next hit fades the previous text
+  out, so quick hits never pile up (`node_hits` shows two hits at night: one clean stack, the
+  marker bright and on top).
+- Found, not changed: a hit on a rock banks Timber too, because the prototype store pays a slice
+  of the tool's whole production for any node. The real domain (W1) should pay the node's own
+  resource.
+- **Owner feedback, round 3.** "Perfect!" and "Missed" still appeared at a fixed spot high above
+  the node, and the 14 px ring was too small. **Iteration 4.** Both texts now appear at the
+  marker's last position ("Perfect!" 62 px above it, over the bonus gain; "Missed" just above
+  it), the previous hit text fades when the run ends, and the ring grew to 18 px (26 on touch).
+  `node_perfect` shows a full run: "Perfect!" and "+12 Timber" right above the rock.
+
+### Survivors (`survivors`, 2× crop `survivors__zoom.png`)
+- **Owner screenshot.** Walking legs swung from the feet (pivot at the ground), and the figure
+  itself was a capsule with stick legs and arms fused to the torso.
+- **Fix.** Legs pivot at the hip. Redrawn as a three-quarter figure facing where it walks: jacket
+  lit from the left with a collar, seam, pocket and belt; trousers and boots with toes; hair,
+  ear, nose and a hint of cheek; a hat shape per survivor (cap, beanie, bush hat) in their hat
+  colour; perk props (scavenger backpack, mule big pack, medic armband, demolition hi-vis,
+  marksman rifle). Arms hang from the shoulder: they swing against the legs when walking, chop
+  while working, and hug a crate at chest height when carrying (it used to float over the head).
+- **Iteration 2.** The front arm hung down the middle of the chest over the buckle and read as a
+  stump; both arms moved to the shoulder edges. Checked at 2×: three survivors tell apart at a
+  glance by hat, colours and props. Walking and carrying are not in any shot (actors move on
+  their own timers); check them live.
+- **Owner screenshot, round 2.** "Something behind the head": the hair was a larger circle behind
+  the face, so a dark crescent stuck out past the back of the head. **Iteration 3.** Hair is now
+  a patch inside the head's outline (back of the head and a sideburn, under the hat).
+
+### Ore and sulfur rocks (`ore_node`, `sulfur_node`, 2× crops)
+- **Owner screenshot.** A flat grey polygon with orange polka dots; the largest dot spilled past
+  the outline at the top.
+- **Iteration 1.** A small outcrop: a faceted main boulder (lit top, dark right side, a ridge
+  line), a second rock behind, pebbles at the foot; ore as nuggets along three cracks, sulfur as
+  crystal clusters. The veins read as a connect-the-dots diagram (thin dark lines between
+  nuggets), and the white glints looked like dots.
+- **Iteration 2.** Veins became mineral bands that taper at both ends, in a darker vein tone;
+  nugget glints smaller and softer; the iron ore colour warmed to rust (`0xa8603a`). Checked at
+  2×: iron reads as rusty seams, sulfur as yellow crystals, nothing leaves the silhouette.
+- **Owner feedback.** The round pebbles and the oval shadow looked out of place next to the
+  faceted boulder. **Iteration 3.** Pebbles are small faceted stones with a lit top; the shadow
+  is an irregular flat polygon hugging the base, longer on the right (away from the light), with
+  a darker contact band under the boulder. No rounded shape is left on the rocks.

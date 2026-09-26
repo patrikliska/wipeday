@@ -6,7 +6,7 @@
 import { Container, Graphics, Sprite } from "pixi.js";
 import { FIBRE, ORE_VEIN, ROCK, ROCK_DARK, SULFUR_VEIN, TREE_CANOPY, TREE_TRUNK } from "./palette";
 import { glowTexture } from "./textures";
-import { clamp, easeOutBack, hash, pick, rand } from "./util";
+import { clamp, easeOutBack, hash, pick, rand, shade } from "./util";
 
 export type NodeKind = "tree" | "ore" | "sulfur" | "fibre";
 
@@ -37,11 +37,16 @@ export interface NodeRun {
 export interface NodeCallbacks {
   onStart: (node: string) => void;
   onHit: (node: string, hits: number, x: number, y: number) => void;
-  onRunOver: (node: string, perfect: boolean) => void;
+  /** `x`, `y`: the marker's last position in world units, where the player was looking. */
+  onRunOver: (node: string, perfect: boolean, x: number, y: number) => void;
 }
 
 export const MAX_HITS = 5;
 const WINDOW = 4.5;
+/** Marker hit radius in CSS pixels: tight for a mouse, finger-sized on touch. The ring shows exactly this. */
+const HIT_PX = { mouse: 18, touch: 26 };
+/** The next marker lands at least this many hit radii away, so every hit needs a new aim. */
+const MIN_JUMP = 2.5;
 
 function drawTree(scale: number): Container {
   const c = new Container();
@@ -64,37 +69,187 @@ function drawTree(scale: number): Container {
   return c;
 }
 
+type Point = readonly [number, number];
+
+function polygon(g: Graphics, points: readonly Point[]): Graphics {
+  const [first, ...rest] = points;
+  if (!first) return g;
+  g.moveTo(first[0], first[1]);
+  for (const [x, y] of rest) g.lineTo(x, y);
+  return g.closePath();
+}
+
+/** Where the veins run on the main boulder: each a crack with nuggets (or crystals) along it. */
+const VEINS: readonly (readonly Point[])[] = [
+  [
+    [-30, -18],
+    [-18, -24],
+    [-8, -20],
+    [2, -28],
+  ],
+  [
+    [-14, -40],
+    [-4, -36],
+    [8, -42],
+  ],
+  [
+    [12, -24],
+    [20, -14],
+    [26, -8],
+  ],
+];
+
+/** An angular nugget with a lit facet and a glint. */
+function drawNugget(g: Graphics, x: number, y: number, size: number, color: number, seed: number) {
+  const points: Point[] = [];
+  for (let i = 0; i < 5; i++) {
+    const angle = (i / 5) * Math.PI * 2 + hash(seed + i) * 0.6;
+    const r = size * (0.75 + hash(seed * 3 + i) * 0.4);
+    points.push([x + Math.cos(angle) * r, y + Math.sin(angle) * r]);
+  }
+  polygon(g, points).fill(color);
+  polygon(g, [points[2] ?? [x, y], points[3] ?? [x, y], [x, y]]).fill(shade(color, 0.3));
+  g.circle(x - size * 0.3, y - size * 0.35, size * 0.18).fill({ color: 0xffffff, alpha: 0.4 });
+}
+
+/** A yellow crystal cluster: three pointed prisms with a light face each. */
+function drawCrystals(
+  g: Graphics,
+  x: number,
+  y: number,
+  size: number,
+  color: number,
+  seed: number,
+) {
+  for (let i = 0; i < 3; i++) {
+    const lean = (i - 1) * 0.45 + (hash(seed + i) - 0.5) * 0.3;
+    const h = size * (1.4 + hash(seed * 5 + i) * 0.9) * (i === 1 ? 1.3 : 1);
+    const w = size * 0.55;
+    const tipX = x + Math.sin(lean) * h;
+    const tipY = y - Math.cos(lean) * h;
+    polygon(g, [
+      [x - w, y],
+      [tipX - w * 0.4, tipY + w * 0.6],
+      [tipX, tipY],
+      [x + w, y],
+    ]).fill(shade(color, -0.12));
+    polygon(g, [
+      [x - w, y],
+      [tipX - w * 0.4, tipY + w * 0.6],
+      [tipX, tipY],
+      [x, y],
+    ]).fill(shade(color, 0.22));
+  }
+}
+
+/** A small faceted stone sitting on the ground at (x, y), with a lit top facet. */
+function drawPebble(g: Graphics, x: number, y: number, w: number, h: number, color: number) {
+  const outline: Point[] = [
+    [x - w, y],
+    [x - w * 0.7, y - h * 0.8],
+    [x - w * 0.1, y - h],
+    [x + w * 0.7, y - h * 0.7],
+    [x + w, y],
+  ];
+  polygon(g, outline).fill(color);
+  polygon(g, [
+    [x - w * 0.7, y - h * 0.8],
+    [x - w * 0.1, y - h],
+    [x + w * 0.7, y - h * 0.7],
+    [x + w * 0.1, y - h * 0.45],
+  ]).fill({ color: 0xffffff, alpha: 0.16 });
+}
+
 function drawRock(kind: "ore" | "sulfur", scale: number): Container {
   const c = new Container();
   const g = new Graphics();
-  g.ellipse(0, 2, 44, 6).fill({ color: 0x000000, alpha: 0.25 });
-  g.moveTo(-40, 0)
-    .lineTo(-30, -34)
-    .lineTo(-6, -52)
-    .lineTo(24, -44)
-    .lineTo(42, -14)
-    .lineTo(36, 0)
-    .closePath()
-    .fill(ROCK);
-  g.moveTo(-30, -34)
-    .lineTo(-6, -52)
-    .lineTo(24, -44)
-    .lineTo(8, -30)
-    .closePath()
-    .fill({ color: 0xffffff, alpha: 0.12 });
-  g.moveTo(24, -44)
-    .lineTo(42, -14)
-    .lineTo(36, 0)
-    .lineTo(8, -30)
-    .closePath()
-    .fill({ color: ROCK_DARK, alpha: 0.5 });
-  const vein = kind === "ore" ? ORE_VEIN : SULFUR_VEIN;
   const seed = kind === "ore" ? 1 : 2;
-  for (let i = 0; i < 6; i++) {
-    g.circle(-22 + hash(i * 3 + seed) * 44, -8 - hash(i * 5 + seed) * 34, 3 + hash(i * 7) * 3).fill(
-      vein,
-    );
-  }
+  // Contact shadow hugging the base, longer on the right (light comes from the left).
+  polygon(g, [
+    [-47, 0],
+    [-34, 3.5],
+    [-6, 5.5],
+    [26, 5],
+    [50, 3],
+    [55, 0.5],
+    [44, -1.5],
+    [10, -2],
+    [-30, -1.5],
+  ]).fill({ color: 0x000000, alpha: 0.2 });
+  polygon(g, [
+    [-40, 0.5],
+    [-10, 2.8],
+    [28, 2.4],
+    [30, -0.5],
+    [-38, -0.8],
+  ]).fill({ color: 0x000000, alpha: 0.18 });
+  // A smaller rock behind, right.
+  polygon(g, [
+    [14, 0],
+    [18, -22],
+    [34, -30],
+    [48, -14],
+    [47, 0],
+  ]).fill(shade(ROCK, -0.12));
+  polygon(g, [
+    [18, -22],
+    [34, -30],
+    [48, -14],
+    [34, -16],
+  ]).fill({ color: 0xffffff, alpha: 0.1 });
+  // The main boulder: front face, lit top, dark right side.
+  const outline: Point[] = [
+    [-42, 0],
+    [-38, -24],
+    [-20, -44],
+    [2, -52],
+    [24, -44],
+    [34, -22],
+    [30, 0],
+  ];
+  polygon(g, outline).fill(ROCK);
+  polygon(g, [
+    [-38, -24],
+    [-20, -44],
+    [2, -52],
+    [24, -44],
+    [6, -34],
+    [-16, -30],
+  ]).fill({ color: 0xffffff, alpha: 0.16 });
+  polygon(g, [
+    [24, -44],
+    [34, -22],
+    [30, 0],
+    [10, 0],
+    [12, -20],
+    [6, -34],
+  ]).fill({ color: ROCK_DARK, alpha: 0.6 });
+  g.moveTo(6, -34).lineTo(12, -20).lineTo(10, 0).stroke({ width: 1.2, color: ROCK_DARK });
+  g.moveTo(-16, -30).lineTo(6, -34).stroke({ width: 1, color: 0xffffff, alpha: 0.25 });
+  // Veins: a dark crack, then nuggets (ore) or crystals (sulfur) along it.
+  const vein = kind === "ore" ? ORE_VEIN : SULFUR_VEIN;
+  VEINS.forEach((line, v) => {
+    // A mineral band that tapers at both ends, not a drawn line.
+    const top: Point[] = [];
+    const bottom: Point[] = [];
+    line.forEach(([x, y], i) => {
+      const t = i / (line.length - 1);
+      const half = 0.6 + Math.sin(t * Math.PI) * 2.6;
+      top.push([x, y - half]);
+      bottom.unshift([x, y + half]);
+    });
+    polygon(g, [...top, ...bottom]).fill({ color: shade(vein, -0.3), alpha: 0.75 });
+    line.forEach(([x, y], i) => {
+      if ((i + v) % 2 === 1 && i !== line.length - 1) return;
+      const size = 3.2 + hash(seed * 11 + v * 5 + i) * 2.2;
+      if (kind === "ore") drawNugget(g, x, y, size, vein, seed * 17 + v * 7 + i);
+      else drawCrystals(g, x, y + 2, size * 0.8, vein, seed * 17 + v * 7 + i);
+    });
+  });
+  // Pebbles at the foot.
+  drawPebble(g, -46, 1, 6, 5, shade(ROCK, -0.05));
+  drawPebble(g, -37, 2, 4, 3, ROCK_DARK);
+  drawPebble(g, 39, 2, 5, 3.5, shade(ROCK, 0.02));
   c.addChild(g);
   c.scale.set(scale);
   return c;
@@ -121,10 +276,22 @@ function drawFibre(scale: number): Container {
 
 export class Nodes {
   readonly container = new Container();
+  /**
+   * The marker, its ring and its tap target. The scene stacks this above every effect, the
+   * night tint and the weather (aligned with the world), so nothing can cover the marker or
+   * take its tap: a tap inside the ring always counts, even where another node overlaps.
+   */
+  readonly overlay = new Container();
+  private readonly target = new Graphics();
+  private targetX = 0;
+  private targetY = 0;
+  private targetR = 0;
   private readonly views = new Map<string, NodeView>();
   private readonly marker: Sprite;
   private readonly ring: Graphics;
   private run: NodeRun | null = null;
+  /** Whether the last tap was a finger: sets the hit radius. */
+  private touch = false;
   private time = 0;
 
   constructor(
@@ -163,6 +330,7 @@ export class Nodes {
         view.hover = 0;
       });
       container.on("pointertap", (event) => {
+        this.touch = event.pointerType === "touch";
         const local = container.toLocal(event.global);
         this.tap(view, local.x, local.y);
       });
@@ -179,32 +347,29 @@ export class Nodes {
     this.ring = new Graphics();
     this.ring.visible = false;
     this.ring.eventMode = "none";
-    this.container.addChild(this.marker, this.ring);
+    this.target.eventMode = "static";
+    this.target.cursor = "pointer";
+    this.target.visible = false;
+    this.target.hitArea = {
+      contains: (x: number, y: number) =>
+        Math.hypot(x - this.targetX, y - this.targetY) <= this.targetR,
+    };
+    this.target.on("pointertap", (event) => {
+      this.touch = event.pointerType === "touch";
+      const view = this.run ? this.views.get(this.run.node) : undefined;
+      if (view) this.hit(view);
+    });
+    this.overlay.addChild(this.marker, this.ring, this.target);
   }
 
   private tap(view: NodeView, localX: number, localY: number): void {
     const now = this.time;
     if (this.run && this.run.node === view.def.id) {
       const distance = Math.hypot(localX - this.run.marker.x, localY - this.run.marker.y);
-      if (distance < 36) {
-        this.run.hits += 1;
-        this.run.lastHitAt = now;
-        view.shake = 1;
-        this.callbacks.onHit(
-          view.def.id,
-          this.run.hits,
-          view.container.x + this.run.marker.x,
-          view.container.y + this.run.marker.y,
-        );
-        if (this.run.hits >= MAX_HITS) {
-          this.callbacks.onRunOver(view.def.id, true);
-          this.run = null;
-        } else {
-          this.run.marker = this.randomSpot(view);
-        }
+      if (distance <= this.hitRadius(view.container)) {
+        this.hit(view);
       } else {
-        this.callbacks.onRunOver(view.def.id, false);
-        this.run = null;
+        this.endRun(view, false);
       }
       return;
     }
@@ -213,11 +378,67 @@ export class Nodes {
     this.callbacks.onStart(view.def.id);
   }
 
-  private randomSpot(view: NodeView): { x: number; y: number } {
+  private hit(view: NodeView): void {
+    const run = this.run;
+    if (!run || run.node !== view.def.id) return;
+    run.hits += 1;
+    run.lastHitAt = this.time;
+    view.shake = 1;
+    this.callbacks.onHit(
+      view.def.id,
+      run.hits,
+      view.container.x + run.marker.x,
+      view.container.y + run.marker.y,
+    );
+    if (run.hits >= MAX_HITS) {
+      this.endRun(view, true);
+    } else {
+      run.marker = this.randomSpot(view, run.marker);
+    }
+  }
+
+  private endRun(view: NodeView, perfect: boolean): void {
+    const marker = this.run?.marker ?? { x: 0, y: -40 };
+    this.run = null;
+    this.callbacks.onRunOver(
+      view.def.id,
+      perfect,
+      view.container.x + marker.x,
+      view.container.y + marker.y,
+    );
+  }
+
+  /** The active marker's centre in overlay (world) units, or null outside a run. */
+  get markerPoint(): { x: number; y: number } | null {
+    return this.target.visible ? { x: this.targetX, y: this.targetY } : null;
+  }
+
+  /** Hit radius in the node's own units, from the on-screen size in HIT_PX. */
+  private hitRadius(space: Container): number {
+    return (this.touch ? HIT_PX.touch : HIT_PX.mouse) / Math.max(0.01, space.worldTransform.a);
+  }
+
+  private randomSpot(
+    view: NodeView,
+    previous?: { x: number; y: number },
+  ): { x: number; y: number } {
     const s = view.def.scale;
-    if (view.def.kind === "tree") return { x: rand(-40, 40) * s, y: rand(-140, -80) * s };
-    if (view.def.kind === "fibre") return { x: rand(-24, 24) * s, y: rand(-46, -16) * s };
-    return { x: rand(-30, 30) * s, y: rand(-44, -12) * s };
+    const spot = (): { x: number; y: number } => {
+      if (view.def.kind === "tree") return { x: rand(-40, 40) * s, y: rand(-140, -80) * s };
+      if (view.def.kind === "fibre") return { x: rand(-24, 24) * s, y: rand(-46, -16) * s };
+      return { x: rand(-30, 30) * s, y: rand(-44, -12) * s };
+    };
+    if (!previous) return spot();
+    const minJump = this.hitRadius(view.container) * MIN_JUMP;
+    let best = spot();
+    for (let attempt = 0; attempt < 12; attempt++) {
+      const candidate = spot();
+      const far = (spot: { x: number; y: number }): number =>
+        Math.hypot(spot.x - previous.x, spot.y - previous.y);
+      if (far(candidate) > far(best)) best = candidate;
+      if (far(best) >= minJump) break;
+    }
+    return best;
   }
 
   shake(id: string): void {
@@ -253,8 +474,9 @@ export class Nodes {
     }
 
     if (this.run && this.time - this.run.lastHitAt > WINDOW) {
-      this.callbacks.onRunOver(this.run.node, false);
-      this.run = null;
+      const faded = this.views.get(this.run.node);
+      if (faded) this.endRun(faded, false);
+      else this.run = null;
     }
     const view = this.run ? this.views.get(this.run.node) : undefined;
     if (this.run && view) {
@@ -264,24 +486,28 @@ export class Nodes {
       const pop = easeOutBack(clamp((this.time - this.run.lastHitAt) * 4, 0, 1));
       this.marker.visible = true;
       this.marker.position.set(x, y);
-      this.marker.width = this.marker.height = 110 * pop * (0.9 + Math.sin(this.time * 8) * 0.1);
-      this.marker.alpha = 0.6 + remaining * 0.4;
+      // Sized in screen pixels so the ring is exactly the hit area at any zoom.
+      const px = 1 / Math.max(0.01, this.container.worldTransform.a);
+      const r = this.hitRadius(this.container) * pop;
+      this.marker.width = this.marker.height = r * 2.6 * (0.9 + Math.sin(this.time * 8) * 0.1);
+      this.marker.alpha = 0.3 + remaining * 0.3;
       this.ring.visible = true;
       this.ring.clear();
-      this.ring.circle(x, y, 26).stroke({ width: 3, color: 0xffffff, alpha: 0.9 });
+      this.ring.circle(x, y, r).stroke({ width: 2 * px, color: 0xffffff, alpha: 0.95 });
+      const arc = r + 5 * px;
       this.ring
-        .moveTo(x, y - 32)
-        .arc(x, y, 32, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * remaining)
-        .stroke({ width: 4, color: 0xffd25a, alpha: 0.95 });
-      this.ring
-        .moveTo(x - 10, y)
-        .lineTo(x + 10, y)
-        .moveTo(x, y - 10)
-        .lineTo(x, y + 10)
-        .stroke({ width: 2, color: 0xffffff, alpha: 0.8 });
+        .moveTo(x, y - arc)
+        .arc(x, y, arc, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * remaining)
+        .stroke({ width: 3 * px, color: 0xffd25a, alpha: 0.95 });
+      this.ring.circle(x, y, 2 * px).fill({ color: 0xffffff, alpha: 0.95 });
+      this.target.visible = true;
+      this.targetX = x;
+      this.targetY = y;
+      this.targetR = this.hitRadius(this.container);
     } else {
       this.marker.visible = false;
       this.ring.visible = false;
+      this.target.visible = false;
     }
   }
 }

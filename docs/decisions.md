@@ -281,3 +281,29 @@ The dock shows Gather, Upgrade, Craft, Furnace, Squad, Inventory and Tasks on de
 the first five on phones; Inventory opens from the resource strip and Tasks from the identity
 chip. Sub-labels under dock buttons are hidden on phones and clipped with an ellipsis on
 desktop so no label ever wraps over its button.
+
+### D46. Text in the scene lives in screen space, never inside the zoomed world
+The camera scales the world 0.5–1.8× depending on the screen, and Pixi rasterises text once at the
+renderer's resolution, so text inside the world is stretched by the camera: on a 1080p desktop the
+floating gains came out visibly blurry (owner screenshot). Floating text is drawn in a
+screen-space layer at the display's resolution, snapped to whole pixels; only its anchor point
+follows the camera, and sizes are CSS pixels. Any future text in the scene (labels or timers over
+buildings) follows the same rule: anchor in the world, draw on the screen.
+
+### D47. Fire and glows draw above the night tint
+Night is a multiply layer (`ambient`) over the whole world; with a tint of `0x4a5a8a`, orange
+fire became olive and additive glows bleached stone white. Station fire (the furnace's lit
+interior and flames) and station glows move to a world-aligned `lights` layer stacked after the
+tint; each station gets a proxy container there at its own position and scale. Window and flood
+glows still sit under the tint; move them too if they look washed out. Cost: a flame draws over
+anything in front of it (a survivor walking past the campfire), which is rare and brief.
+
+### D48. The node marker's hit area is a fixed size on screen
+The marker used a 36-unit radius in world space, larger than the area the marker moves within
+on a rock, so the mini-game needed no aim, and its size changed with the zoom. The hit radius is
+now 18 CSS px for a mouse and 26 for touch (a fingertip; first tried 14 and 22, which the owner found too small), converted to world units through the
+node's transform; the ring is drawn at exactly that radius, and each new spot lands at least 2.5
+radii from the last. *Revisit* the numbers after the owner plays it on a phone.
+The marker, its ring and its tap target live on a world-aligned layer stacked above everything
+(effects, foreground, night tint, weather): nothing can cover the marker, and the target wins
+the tap even where another node's hit area overlaps it.

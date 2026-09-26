@@ -195,29 +195,89 @@ export class Particles {
 const FLOAT_STYLE: TextStyleOptions = {
   fontFamily: "Roboto Condensed",
   fontWeight: "700",
-  fontSize: 22,
   fill: 0xffffff,
-  stroke: { color: 0x1b1a18, width: 5, join: "round" },
 };
+const FLOAT_OUTLINE = 0x1b1a18;
 
-interface Float {
+export interface Float {
   text: Text;
+  /** World point the text rises from; followed every frame, so camera moves carry the text. */
+  x: number;
+  y: number;
+  /** Screen offset from that point: the group's jitter and the line's place in the stack. */
+  dx: number;
+  dy: number;
+  rise: number;
+  vy: number;
   age: number;
   life: number;
-  vy: number;
 }
 
-/** "+120" rising and fading. */
+/**
+ * "+120 Timber" rising and fading. Floaters live in screen space, not in the
+ * zoomed world: each text is rasterised at the display's resolution and drawn
+ * 1:1 on whole pixels, so the camera zoom never stretches (and blurs) it.
+ * Sizes are CSS pixels.
+ */
 export class Floaters {
   readonly container = new Container();
   private readonly live: Float[] = [];
+  private cameraX = 0;
+  private cameraY = 0;
+  private cameraScale = 1;
+
+  /** The world's screen transform; the scene sets it every frame. */
+  setCamera(x: number, y: number, scale: number): void {
+    this.cameraX = x;
+    this.cameraY = y;
+    this.cameraScale = scale;
+  }
 
   add(x: number, y: number, label: string, color = 0xffffff, size = 22): void {
-    const text = new Text({ text: label, style: { ...FLOAT_STYLE, fill: color, fontSize: size } });
-    text.anchor.set(0.5, 1);
-    text.position.set(x + rand(-8, 8), y);
-    this.container.addChild(text);
-    this.live.push({ text, age: 0, life: 1.4, vy: -46 });
+    this.addStack(x, y, [label], color, size);
+  }
+
+  /** Lines that rise together as one centred column, the first line on top. Returns the group. */
+  addStack(
+    x: number,
+    y: number,
+    lines: readonly string[],
+    color = 0xffffff,
+    size = 22,
+  ): readonly Float[] {
+    const group: Float[] = [];
+    const dx = Math.round(rand(-8, 8));
+    const lineHeight = Math.round(size * 1.2);
+    const stroke = { color: FLOAT_OUTLINE, width: Math.round(size * 0.2), join: "round" } as const;
+    lines.forEach((label, index) => {
+      const text = new Text({
+        text: label,
+        style: { ...FLOAT_STYLE, fill: color, fontSize: size, stroke },
+      });
+      text.anchor.set(0.5, 1);
+      text.roundPixels = true;
+      this.container.addChild(text);
+      const float: Float = {
+        text,
+        x,
+        y,
+        dx,
+        dy: -(lines.length - 1 - index) * lineHeight,
+        rise: 0,
+        vy: -2.1 * size,
+        age: 0,
+        life: 1.4,
+      };
+      this.place(float);
+      this.live.push(float);
+      group.push(float);
+    });
+    return group;
+  }
+
+  /** Starts fading a group now (a newer one replaces it), unless it is already fading. */
+  retire(group: readonly Float[]): void {
+    for (const float of group) float.age = Math.max(float.age, float.life * 0.7);
   }
 
   update(dt: number): void {
@@ -231,12 +291,20 @@ export class Floaters {
         this.live.splice(i, 1);
         continue;
       }
-      f.text.y += f.vy * dt;
+      f.rise += f.vy * dt;
       f.vy *= 0.97;
       f.text.alpha = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;
       const pop = t < 0.15 ? 1 + (0.15 - t) * 1.5 : 1;
       f.text.scale.set(pop);
+      this.place(f);
     }
+  }
+
+  private place(f: Float): void {
+    f.text.position.set(
+      this.cameraX + f.x * this.cameraScale + f.dx,
+      this.cameraY + f.y * this.cameraScale + f.dy + f.rise,
+    );
   }
 }
 

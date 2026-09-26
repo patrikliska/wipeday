@@ -8,6 +8,10 @@ interface DebugHook {
   store: typeof useWorld;
   /** Frames rendered since load; the screenshot script waits for this to move. */
   frames: number;
+  /** Stops scene motion (rendering goes on), so a screenshot and its crop show the same moment. */
+  frozen: boolean;
+  /** Screen position (CSS px) of the active node marker, for shots that hit it. */
+  nodeMarker?: () => { x: number; y: number } | null;
 }
 
 declare global {
@@ -18,7 +22,11 @@ declare global {
 
 export function installDebug(): void {
   if (!import.meta.env.DEV) return;
-  window.__wipeDay = { store: useWorld, frames: 0 };
+  window.__wipeDay = { store: useWorld, frames: 0, frozen: false };
+}
+
+export function isFrozen(): boolean {
+  return window.__wipeDay?.frozen === true;
 }
 
 export function countFrame(): void {

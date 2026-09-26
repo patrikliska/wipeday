@@ -19,7 +19,12 @@ const only = process.argv.includes("--only")
 const DAY = 86_400;
 const at = (day, hour) => day * DAY + hour * 3600;
 
-/** Each shot: viewport, store patch, optional actions, settle time. */
+/**
+ * Each shot: viewport, store patch, settle time. Optional: `act` fires a store
+ * action after the patch (for effects such as floating gains), `click` clicks a
+ * point in CSS pixels instead (starting a node run), `clip` also saves
+ * a 1:1 crop `{name}__zoom.png` ([x, y, width, height] in CSS pixels).
+ */
 const SHOTS = [
   { name: "desktop_day", viewport: [1600, 900], state: { clock: at(3, 11) } },
   { name: "desktop_morning", viewport: [1600, 900], state: { clock: at(3, 7) } },
@@ -119,10 +124,101 @@ const SHOTS = [
     state: { clock: at(3, 11), panel: "tasks" },
   },
   { name: "desktop_away", viewport: [1600, 900], state: { clock: at(3, 11), showAway: true } },
+  {
+    name: "furnace_idle",
+    viewport: [1920, 1080],
+    state: { clock: at(3, 11), furnace: { owned: true, jobs: [] } },
+    clip: [700, 540, 300, 260],
+  },
+  {
+    name: "furnace_lit",
+    viewport: [1920, 1080],
+    state: {
+      clock: at(3, 11),
+      furnace: {
+        owned: true,
+        jobs: [{ input: "ore", output: "ingots", amount: 400, startedAt: at(3, 10), taken: 0 }],
+      },
+    },
+    clip: [700, 540, 300, 260],
+  },
+  {
+    name: "furnace_night_hqm",
+    viewport: [1920, 1080],
+    state: {
+      clock: at(24, 22),
+      tier: "hqm",
+      items: { workbench: 1, crate: 6, campfire: 1, kiln: 1, press: 1, lantern: 1 },
+      furnace: {
+        owned: true,
+        jobs: [{ input: "ore", output: "ingots", amount: 900, startedAt: at(24, 21), taken: 0 }],
+      },
+    },
+    clip: [420, 500, 620, 320],
+  },
+  {
+    name: "node_marker",
+    viewport: [1920, 1080],
+    state: { clock: at(3, 11) },
+    click: [570, 790],
+    clip: [440, 640, 280, 220],
+  },
+  {
+    name: "node_hits",
+    viewport: [1920, 1080],
+    state: { clock: at(3, 22) },
+    click: [570, 790],
+    hits: 2,
+    clip: [400, 560, 360, 300],
+  },
+  {
+    name: "node_perfect",
+    viewport: [1920, 1080],
+    state: { clock: at(3, 11) },
+    click: [570, 790],
+    hits: 5,
+    clip: [400, 560, 360, 300],
+  },
+  {
+    name: "ore_node",
+    viewport: [1920, 1080],
+    scale: 2,
+    state: { clock: at(3, 11) },
+    clip: [480, 700, 190, 130],
+  },
+  {
+    name: "sulfur_node",
+    viewport: [1920, 1080],
+    scale: 2,
+    state: { clock: at(3, 11) },
+    clip: [1490, 790, 190, 120],
+  },
+  {
+    name: "survivors",
+    viewport: [1920, 1080],
+    scale: 2,
+    state: { clock: at(3, 11) },
+    clip: [980, 650, 260, 160],
+  },
   { name: "desktop_ultrawide", viewport: [2560, 1080], state: { clock: at(3, 11) } },
   { name: "laptop", viewport: [1366, 768], state: { clock: at(3, 11) } },
+  {
+    name: "desktop_gains",
+    viewport: [1920, 1080],
+    state: { clock: at(3, 11), lastGatherAt: 0 },
+    act: "gather",
+    clip: [860, 320, 500, 220],
+  },
   { name: "phone_day", viewport: [390, 844], scale: 3, state: { clock: at(3, 11) } },
   { name: "phone_night", viewport: [390, 844], scale: 3, state: { clock: at(3, 23) } },
+  {
+    name: "phone_gains",
+    viewport: [390, 844],
+    scale: 3,
+    state: { clock: at(3, 11), lastGatherAt: 0 },
+    act: "gather",
+    clip: [95, 330, 270, 140],
+  },
   {
     name: "phone_panel_build",
     viewport: [390, 844],
@@ -173,7 +269,37 @@ async function main() {
         ...state,
       });
     }, shot.state);
-    await page.waitForTimeout(shot.settle ?? 1600);
+    if (shot.act || shot.click) {
+      // Let the scene pick up the patch, fire the action, then catch the effect in flight:
+      // at least 450 ms and 12 frames, so slow software rendering still gets past the pop.
+      await page.waitForTimeout(400);
+      if (shot.click) await page.mouse.click(shot.click[0], shot.click[1]);
+      for (let hit = 0; hit < (shot.hits ?? 0); hit++) {
+        await page.waitForTimeout(500);
+        const point = await page.evaluate(() => window.__wipeDay.nodeMarker?.() ?? null);
+        if (point) await page.mouse.click(point.x, point.y);
+      }
+      const frames = await page.evaluate((act) => {
+        if (act) window.__wipeDay.store.getState()[act]();
+        return window.__wipeDay.frames;
+      }, shot.act ?? null);
+      await page.waitForTimeout(450);
+      await page.waitForFunction((target) => window.__wipeDay.frames >= target, frames + 12, {
+        timeout: 20_000,
+      });
+      await page.evaluate(() => {
+        window.__wipeDay.frozen = true;
+      });
+    } else {
+      await page.waitForTimeout(shot.settle ?? 1600);
+    }
+    if (shot.clip) {
+      const [x, y, clipWidth, clipHeight] = shot.clip;
+      await page.screenshot({
+        path: path.join(outDir, `${shot.name}__zoom.png`),
+        clip: { x, y, width: clipWidth, height: clipHeight },
+      });
+    }
     const file = path.join(outDir, `${shot.name}.png`);
     await page.screenshot({ path: file });
     done.push({ ...shot, file: `${shot.name}.png`, errors });

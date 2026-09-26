@@ -6,7 +6,7 @@ import { Container, Graphics } from "pixi.js";
 import type { ItemId, Tier } from "../state/world";
 import { Glow, type Particles } from "./effects";
 import { MATERIALS, type Material } from "./palette";
-import { easeOutBack, rand, shade } from "./util";
+import { clamp, easeOutBack, lerp, rand, shade } from "./util";
 
 type StationId = ItemId | "furnace" | "cupboard";
 
@@ -18,6 +18,10 @@ interface Station {
   animate?: (t: number) => void;
   /** Where smoke and sparks come from, relative to the station. */
   chimney?: { x: number; y: number };
+  /** Shown only while the station is working (the furnace's lit interior and flames). */
+  fire?: Container;
+  /** The station's fire and glow, moved to the light layer when the station is placed. */
+  light?: Container;
 }
 
 interface Owned {
@@ -298,34 +302,90 @@ function drawFlame(flame: Graphics, f: number, scale: number): void {
     .fill(0xffd25a);
 }
 
+/** Half-width of the furnace body at height y (it tapers from 32 at the base to 23 under the cap). */
+const furnaceHalfWidth = (y: number): number => lerp(32, 23, clamp((-y - 8) / 62, 0, 1));
+
+/** The arched mouth, as a path on `g` (not filled). */
+function furnaceMouth(g: Graphics, halfWidth: number, bottom: number, springY: number): Graphics {
+  return g
+    .moveTo(-halfWidth, bottom)
+    .lineTo(-halfWidth, springY)
+    .arc(0, springY, halfWidth, Math.PI, 0)
+    .lineTo(halfWidth, bottom)
+    .closePath();
+}
+
 function makeFurnace(index: number): Station {
   const container = new Container();
   const g = new Graphics();
-  g.ellipse(0, -10, 36, 12).fill(0x4a4d50);
-  g.moveTo(-34, -10)
-    .quadraticCurveTo(-36, -80, 0, -84)
-    .quadraticCurveTo(36, -80, 34, -10)
-    .closePath()
-    .fill(0x66696d);
-  for (let y = -74; y < -12; y += 14) {
-    for (let x = -28 + (Math.round(y / 14) % 2 === 0 ? 7 : 0); x < 26; x += 14) {
-      g.rect(x, y, 12, 11)
-        .fill({ color: 0x5a5d61, alpha: 0.9 })
-        .stroke({ width: 1, color: 0x43464a, alpha: 0.6 });
+  // Contact shadow and plinth.
+  g.ellipse(0, 0, 40, 7).fill({ color: 0x000000, alpha: 0.22 });
+  g.roundRect(-37, -10, 74, 10, 3).fill(0x4a4d50);
+  g.rect(-37, -10, 74, 3).fill(0x5d6064);
+  // Body: mortar first, then stones that stay inside the taper.
+  g.moveTo(-32, -8).lineTo(-23, -70).lineTo(23, -70).lineTo(32, -8).closePath().fill(0x3f4246);
+  const tones = [0x7c7f83, 0x707377, 0x676a6e, 0x75787c];
+  for (let row = 0; row < 5; row++) {
+    const top = -70 + row * 12.4;
+    let x = -furnaceHalfWidth(top + 6) + 1;
+    const right = furnaceHalfWidth(top + 6) - 1;
+    let n = row * 3 + index;
+    while (x < right - 3) {
+      const width = Math.min(right - x, row % 2 === 0 ? 12 + (n % 3) * 3 : 10 + ((n + 1) % 3) * 4);
+      g.roundRect(x, top + 1, width - 1.5, 10.4, 2).fill(tones[n % tones.length] ?? 0x707377);
+      x += width;
+      n++;
     }
   }
-  g.roundRect(-13, -40, 26, 30, 6).fill(0x1b1a18);
+  // Light from the left, shade on the right.
+  g.moveTo(14, -70).lineTo(23, -70).lineTo(32, -8).lineTo(20, -8).closePath();
+  g.fill({ color: 0x000000, alpha: 0.2 });
+  g.moveTo(-23, -70).lineTo(-19, -70).lineTo(-27, -8).lineTo(-32, -8).closePath();
+  g.fill({ color: 0xffffff, alpha: 0.08 });
+  // Iron band with rivets.
+  const bandHalf = furnaceHalfWidth(-52);
+  g.rect(-bandHalf - 1, -55, bandHalf * 2 + 2, 5).fill(0x3b3833);
+  for (const rx of [-bandHalf + 4, -7, 7, bandHalf - 4]) g.circle(rx, -52.5, 1.3).fill(0x8a847a);
+  // Capstone slab and the chimney pipe.
+  g.roundRect(-27, -77, 54, 8, 2).fill(0x5d6064);
+  g.rect(-27, -77, 54, 2).fill(0x85888c);
+  g.rect(-6, -98, 12, 22).fill(0x3b3833);
+  g.rect(-6, -98, 4, 22).fill({ color: 0xffffff, alpha: 0.08 });
+  g.roundRect(-8, -102, 16, 5, 1.5).fill(0x2e2b27);
+  // Arched mouth: a ring of lighter voussoirs, then the dark hole and its grate.
+  furnaceMouth(g, 17, -8, -30).fill(0x8a8d90);
+  for (let i = 1; i < 5; i++) {
+    const angle = Math.PI + (i * Math.PI) / 5;
+    g.moveTo(Math.cos(angle) * 12, -30 + Math.sin(angle) * 12)
+      .lineTo(Math.cos(angle) * 17, -30 + Math.sin(angle) * 17)
+      .stroke({ width: 1.2, color: 0x3f4246 });
+  }
+  furnaceMouth(g, 12, -8, -30).fill(0x1b1a18);
+  g.rect(-12, -14, 24, 2).fill(0x4a4540);
+  for (let bx = -9; bx <= 9; bx += 6) g.rect(bx - 1, -14, 2, 6).fill(0x4a4540);
+  // Lit interior, embers and flames: hidden while the furnace is idle.
+  const fire = new Container();
+  const interior = new Graphics();
   const flame = new Graphics();
-  flame.position.set(0, -14);
-  const glow = new Glow(0xff8a3c, 150, 1);
+  flame.position.set(0, -12);
+  fire.addChild(interior, flame);
+  const glow = new Glow(0xff8a3c, 120, 1);
   glow.sprite.position.set(0, -26);
-  container.addChild(g, flame, glow.sprite);
+  container.addChild(g, fire, glow.sprite);
   return {
     id: "furnace",
     container,
     glow,
-    chimney: { x: 0, y: -84 },
-    animate: (t) => drawFlame(flame, 0.85 + Math.sin(t * 17 + index) * 0.15, 0.75),
+    fire,
+    chimney: { x: 0, y: -102 },
+    animate: (t) => {
+      const f = 0.85 + Math.sin(t * 17 + index) * 0.15;
+      interior.clear();
+      furnaceMouth(interior, 12, -8, -30).fill({ color: 0x6e2410, alpha: 0.95 });
+      furnaceMouth(interior, 9, -9, -28).fill({ color: 0xb8461c, alpha: 0.45 + 0.3 * f });
+      interior.rect(-11, -12, 22, 3).fill({ color: 0xffb347, alpha: 0.7 + 0.3 * f });
+      drawFlame(flame, f, 0.6);
+    },
   };
 }
 
@@ -365,6 +425,12 @@ function makeLantern(): Station {
 
 export class Base {
   readonly container = new Container();
+  /**
+   * Fire and glows, drawn above the scene's night tint so flames stay warm in the dark.
+   * Mirrors `container`; the scene stacks it after the ambient layer.
+   */
+  readonly lights = new Container();
+  private readonly lightStations = new Container();
   private readonly stationsLayer = new Container();
   private readonly structureLayer = new Container();
   private readonly glowLayer = new Container();
@@ -383,6 +449,8 @@ export class Base {
   constructor(private readonly particles: Particles) {
     this.stationsLayer.scale.set(0.85);
     this.container.addChild(this.stationsLayer, this.structureLayer, this.glowLayer);
+    this.lightStations.scale.set(0.85);
+    this.lights.addChild(this.lightStations);
   }
 
   setTier(tier: Tier, animate: boolean): void {
@@ -453,13 +521,25 @@ export class Base {
     const key = `${this.tier}:${JSON.stringify(owned)}`;
     if (key === this.stationsKey) return;
     this.stationsKey = key;
-    for (const station of this.stations) station.container.destroy({ children: true });
+    for (const station of this.stations) {
+      station.container.destroy({ children: true });
+      station.light?.destroy({ children: true });
+    }
     this.stations = [];
     const half = this.tier ? FOOTPRINT[this.tier][0] / 2 : 110;
     const add = (station: Station, x: number, y = 0, scale = 1): void => {
       station.container.position.set(x, y);
       station.container.scale.set(scale);
       this.stationsLayer.addChild(station.container);
+      const emissive = [station.fire, station.glow?.sprite].filter((item) => item !== undefined);
+      if (emissive.length > 0) {
+        const light = new Container();
+        light.position.set(x, y);
+        light.scale.set(scale);
+        light.addChild(...emissive);
+        this.lightStations.addChild(light);
+        station.light = light;
+      }
       this.stations.push(station);
     };
 
@@ -550,14 +630,14 @@ export class Base {
 
     for (const station of this.stations) {
       const lit = station.id === "furnace" ? this.furnaceActive : true;
+      if (station.fire) station.fire.visible = lit;
       if (station.id === "furnace" && !lit) {
-        (station.container.children[1] as Graphics | undefined)?.clear();
         station.glow?.update(0);
         continue;
       }
       station.animate?.(this.time);
       if (station.id === "furnace")
-        station.glow?.update(0.35 + darkness * 0.65, Math.sin(this.time * 17) * 0.08);
+        station.glow?.update(0.3 + darkness * 0.35, Math.sin(this.time * 17) * 0.06);
       else if (station.id === "campfire")
         station.glow?.update(0.12 + darkness * 0.88, Math.sin(this.time * 13) * 0.08);
       else station.glow?.update(darkness, Math.sin(this.time * 7) * 0.05);

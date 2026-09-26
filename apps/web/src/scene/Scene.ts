@@ -4,7 +4,7 @@
  * store actions; the scene reads it once per frame.
  */
 import { Application, Container, Graphics, type Ticker } from "pixi.js";
-import { countFrame } from "../debug";
+import { countFrame, isFrozen } from "../debug";
 import { type GameEvent, on } from "../state/events";
 import { useWorld } from "../state/store";
 import {
@@ -18,7 +18,7 @@ import {
 } from "../state/world";
 import { Actors } from "./actors";
 import { Base } from "./base";
-import { Floaters, Particles, Weather } from "./effects";
+import { type Float, Floaters, Particles, Weather } from "./effects";
 import { Barrel, MAX_HITS, type NodeCallbacks, type NodeDef, Nodes } from "./nodes";
 import { gloom, paletteAt } from "./palette";
 import { Sky } from "./sky";
@@ -66,6 +66,14 @@ export class Scene {
   private readonly world = new Container();
   /** Multiplied over the world: white by day, blue at night. Screen space. */
   private readonly ambient = new Graphics();
+  /** World-aligned top layer: the node markers, above every effect and the weather. */
+  private readonly markers = new Container();
+  /** Where the last node hit landed, so its gain rises from the cursor. */
+  private lastHit: { x: number; y: number } | null = null;
+  /** The previous hit's text, faded out when the next hit lands so quick hits never pile up. */
+  private hitText: readonly Float[] = [];
+  /** World-aligned layer above the ambient tint, for things that emit light. */
+  private readonly lights = new Container();
   private readonly particles = new Particles();
   private readonly floaters = new Floaters();
   private readonly weather = new Weather(1200, 800);
@@ -104,17 +112,18 @@ export class Scene {
       onHit: (node, hits, x, y) => {
         const debris = debrisFor(node);
         this.particles.spawn(debris.kind, x, y, 10, debris.color);
-        this.floaters.add(x, y - 20, `${hits}/${MAX_HITS}`, 0xffffff, this.floatSize(0.9));
+        this.lastHit = { x, y };
         useWorld.getState().bankNodeHit(node, hits);
       },
-      onRunOver: (node, perfect) => {
-        const spot = this.nodePosition(node);
+      onRunOver: (node, perfect, x, y) => {
+        // At the marker, where the eye already is; "Perfect!" sits above the bonus gain.
+        this.floaters.retire(this.hitText);
         if (perfect) {
-          this.floaters.add(spot.x, spot.y - 150, "Perfect!", 0xffd25a, this.floatSize(1.3));
-          this.particles.spawn("coins", spot.x, spot.y - 80, 12);
+          this.floaters.add(x, y - 62 / this.scale, "Perfect!", 0xffd25a, this.floatSize(1.2));
+          this.particles.spawn("coins", x, y, 12);
           useWorld.getState().bankNodeHit(node, MAX_HITS + 1);
         } else {
-          this.floaters.add(spot.x, spot.y - 150, "Missed", 0xa49e93, this.floatSize());
+          this.floaters.add(x, y - 22 / this.scale, "Missed", 0xa49e93, this.floatSize());
         }
       },
     };
@@ -131,6 +140,9 @@ export class Scene {
       onDeliver: (x, y) => this.particles.spawn("dust", x, y + 50, 4),
     });
     this.base.container.position.set(BASE_X, GROUND);
+    this.base.lights.position.set(BASE_X, GROUND);
+    this.lights.addChild(this.base.lights);
+    this.markers.addChild(this.backNodes.overlay, this.frontNodes.overlay);
     this.ambient.blendMode = "multiply";
     this.world.addChild(
       this.sky.container,
@@ -163,10 +175,18 @@ export class Scene {
     this.app.stage.addChild(
       this.world,
       this.ambient,
+      this.lights,
       this.floaters.container,
       this.weather.container,
+      this.markers,
     );
     this.unsubscribe = on((event) => this.handle(event));
+    if (window.__wipeDay) {
+      window.__wipeDay.nodeMarker = () => {
+        const point = this.backNodes.markerPoint ?? this.frontNodes.markerPoint;
+        return point ? this.markers.toGlobal(point) : null;
+      };
+    }
     this.app.canvas.addEventListener("pointermove", this.onPointer);
     this.sync();
     this.app.ticker.add(this.frame);
@@ -233,10 +253,11 @@ export class Scene {
   }
 
   private readonly frame = (ticker: Ticker): void => {
+    countFrame();
+    if (isFrozen()) return;
     const dt = Math.min(0.05, ticker.deltaMS / 1000);
     this.time += dt;
     this.step(dt);
-    countFrame();
   };
 
   private step(dt: number): void {
@@ -259,8 +280,11 @@ export class Scene {
     const visibleW = this.viewW / this.scale;
     const left = this.centerX - visibleW / 2;
     this.world.position.set(-left * this.scale - this.parallax * 6, -this.top * this.scale);
-    this.floaters.container.position.copyFrom(this.world.position);
-    this.floaters.container.scale.copyFrom(this.world.scale);
+    this.floaters.setCamera(this.world.position.x, this.world.position.y, this.scale);
+    this.lights.position.copyFrom(this.world.position);
+    this.lights.scale.copyFrom(this.world.scale);
+    this.markers.position.copyFrom(this.world.position);
+    this.markers.scale.copyFrom(this.world.scale);
 
     this.sky.update(dt, fraction, palette, this.wind, gloomAmount);
     this.terrain.update(dt, palette, this.wind, this.parallax);
@@ -276,8 +300,9 @@ export class Scene {
     this.ambient.tint = palette.ambient;
   }
 
+  /** Floating text size in CSS pixels: 22 on phones and laptops, up to 28 on big screens. */
   private floatSize(multiplier = 1): number {
-    return clamp(22 / this.scale, 22, 46) * multiplier;
+    return Math.round(clamp(22 * this.scale, 22, 28) * multiplier);
   }
 
   private nodePosition(node: string): { x: number; y: number } {
@@ -291,23 +316,19 @@ export class Scene {
     this.frontNodes.shake(node);
   }
 
-  /** "+214 Timber" for the biggest few gains, stacked. */
-  private gains(x: number, y: number, gained: Amounts, limit = 3): void {
-    const entries = Object.entries(gained)
+  /** "+214 Timber" lines for the biggest few gains, biggest first. */
+  private gainLines(gained: Amounts, limit: number): string[] {
+    return Object.entries(gained)
       .map(([id, amount]) => [id as ResourceId, amount ?? 0] as const)
       .filter(([, amount]) => amount >= 1)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, limit);
-    entries.forEach(([id, amount], index) => {
-      const name = resourceById.get(id)?.name ?? id;
-      this.floaters.add(
-        x,
-        y - index * (30 / this.scale),
-        `+${abbrev(amount)} ${name}`,
-        0xffffff,
-        this.floatSize(),
-      );
-    });
+      .slice(0, limit)
+      .map(([id, amount]) => `+${abbrev(amount)} ${resourceById.get(id)?.name ?? id}`);
+  }
+
+  /** The biggest few gains, stacked with the biggest on top. */
+  private gains(x: number, y: number, gained: Amounts, limit = 3): void {
+    this.floaters.addStack(x, y, this.gainLines(gained, limit), 0xffffff, this.floatSize());
   }
 
   private handle(event: GameEvent): void {
@@ -365,8 +386,19 @@ export class Scene {
         this.gains(BARREL_SPOT.x, BARREL_SPOT.y - 100, event.gained);
         break;
       case "node_hit": {
+        // Rises from where the player hit, just clear of the cursor: the gain, then the count.
         const spot = this.nodePosition(event.node);
-        this.gains(spot.x + 40, spot.y - 150, event.gained, 1);
+        const at = this.lastHit ?? { x: spot.x, y: spot.y - 60 };
+        const lines = this.gainLines(event.gained, 1);
+        if (event.hits <= MAX_HITS) lines.push(`${event.hits}/${MAX_HITS}`);
+        this.floaters.retire(this.hitText);
+        this.hitText = this.floaters.addStack(
+          at.x,
+          at.y - 22 / this.scale,
+          lines,
+          0xffffff,
+          this.floatSize(0.85),
+        );
         break;
       }
       case "task_done":
