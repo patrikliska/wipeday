@@ -356,7 +356,7 @@ Outlines: `preview/screens/node__{running,faded}.txt`, `tasks__normal.txt`,
 ### Stone node and worked-out nodes (owner: "add stone node and make all nodes destroyed when user collects them")
 
 - New `stone_1` (x 1150, in the clearing, visible on phones too): the same faceted boulder with no mineral. Instead it has cracks, a pale chipped facet and a cap of moss, so it reads as "just rock" next to the ore and sulfur.
-- Each node now pays only its own resource (`NODE_TYPES` in `world.ts`): trees give timber and stone gives stone. Ore and sulfur give their ore plus a little stone (share 0.2). The first try used 0.4, and the ore run's top gain line then read "+14 Stone", so it was lowered.
+- Each node now pays only its own resource (`NODE_TYPES` in `world.ts`): trees give timber, stone gives stone, ore gives iron ore, sulfur gives sulfur ore. A stone by-product on ore and sulfur was tried and dropped. At a share of 0.2 it still out-yielded the sulfur ore, so a sulfur run showed "+14 Stone" (owner screenshot).
 - A run with at least one hit uses the node up. The tree tips over away from the base, slowly at first and then fast, and lands in dust and leaves. A rock crumbles flat in a burst of chunks. Regrow times are in real seconds whatever the game speed (owner: "player must play the game not wait"): tree 20 s, stone 20 s, ore 45 s, sulfur 2 min. They run on `realClock` in the store, which follows the wall clock rather than the game clock. It keeps counting while the tab is hidden (owner: timers should keep running offline).
 - Iteration 1 (`nodes_depleted`), what was wrong:
   - The rubble was four small pebbles and could not be read at desktop scale.
