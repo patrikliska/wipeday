@@ -307,3 +307,77 @@ radii from the last. *Revisit* the numbers after the owner plays it on a phone.
 The marker, its ring and its tap target live on a world-aligned layer stacked above everything
 (effects, foreground, night tint, weather): nothing can cover the marker, and the target wins
 the tap even where another node's hit area overlaps it.
+
+## W0 (re-baseline for the web)
+
+### D49. A pnpm monorepo; packages are consumed as TypeScript source
+`packages/domain` (pure rules), `packages/content` (data, schemas, loader, locale), `packages/sim`
+(the simulator), `apps/api`, `apps/web`, `apps/discord` (the bot, moved unchanged). Each package
+exports `"./*": "./src/*.ts"`, so imports read `@wipe-day/domain/base` and there is no build step
+between packages: tsx, Vite and vitest all compile workspace sources directly. One
+`tsconfig.base.json` extended everywhere, one root `biome.json`, tests per package through
+`pnpm -r test`. `pnpm check` runs typecheck, lint and test. *Revisit* if a package ever has to be
+published or the API needs a compiled deploy artifact (then add a build step to that app only).
+
+### D50. Tier ids and the Locale class live in `content`; `content` is split by environment
+Domain and content imported `TIERS` from the bot's `ui/theme.ts` (the file with the hex colours),
+which blocked extracting them. Tier ids are content, so `@wipe-day/content/tiers` owns them and
+the bot's theme re-exports them next to its colours. `Locale` moved too, without its file read
+and its logger: `Locale.fromObject(tree, onMissing)` is pure, and `loadLocale()` in
+`content/load.ts` reads the file. `load.ts` and `paths.ts` are the only Node-only modules in
+`content`, so a browser can import the schemas, tiers and Locale. The bot keeps its own
+`ui/locale.ts` as a thin wrapper that logs missing keys.
+
+### D51. One `Clock` interface, injected; domain functions keep a plain `now`
+`@wipe-day/domain/clock`: `now()` (whole unix seconds, what state stores) and `nowMs()` (for
+animation). Implementations: `systemClock`, `manualClock` (tests, simulator) and `scaledClock`
+(faster, pausable, jumpable; the web demo and screenshots only). Domain functions still take
+`now: number`: the caller reads its clock once per action, so one action sees one instant and
+domain tests need no clock object. The bot's `App` carries `clock`, and its three `Date.now()`
+reads (interactions, scheduler, emoji sync) go through it.
+The web prototype's fake clock is gone from the store. The store is built by
+`createWorld({ game, wall })` and stores only the readings from the last tick (`now`, `wallNow`).
+The demo clocks live in `apps/web/src/state/clocks.ts`: the game clock is a `scaledClock` at 240×
+over a demo season that starts at the epoch (so screenshot timestamps are "seconds into the
+season"), and the wall clock is a 1× `scaledClock` so screenshots can pin regrow timers. The demo
+drawer drives the game clock directly (speed, pause, +1 h / +6 h); `+N h` now accrues like real
+time passing instead of silently skipping. `tick()` does nothing when neither clock moved, which
+is what the old `paused` flag did for screenshots (without it, a clock jump spawned a barrel toast
+in every shot).
+
+### D52. SQLite + drizzle stays; the API is the one writer
+A friends-scale game has a handful of concurrent players and one server. SQLite in WAL mode with
+`better-sqlite3` is fast, transactional, zero-ops and trivially backed up; drizzle and its
+migrations already work. From W1 the API is the only process that writes; the bot becomes an API
+client in W8, so two processes never write the same file. *Revisit* (Postgres) if the game needs
+more than one writer host, or write contention shows up in the `event_log` timings.
+
+### D53. Hosting: one small VPS behind Caddy
+Caddy terminates TLS automatically, reverse-proxies `/api` (and the SSE stream) to the API
+process and serves the static web build. The API (and the bot, until W8) run as systemd units
+with restart on failure. No containers until something needs them. The provider and sizing are
+chosen in W9; a 1 vCPU / 1 GB machine is plenty.
+
+### D54. Backups: a nightly copy job, not Litestream
+Owner's choice. Each night the API takes an online SQLite backup (`better-sqlite3`'s `backup()`,
+consistent while the game runs) into `var/backups/wipe-day-YYYY-MM-DD.db`, keeps the newest 14,
+and a cron job copies the folder off the box (rclone or rsync to any storage the owner has).
+Restore: stop the API, copy one file into place, start. Worst case loses up to a day of play, with
+no extra daemon or bucket account. *Revisit* (Litestream to S3-compatible storage) if losing a day
+ever becomes unacceptable.
+
+### D55. The bot moves as it is; its Rust-themed data stays until W1
+The bot's data and locale moved into `packages/content` unchanged, because the bot still reads
+them and W0 must keep it running. W1 introduces the own-IP content for the web (the glossary in
+`docs/game-design.md`), and W8 retires the bot's own rules. Other placements: bot assets moved
+to `apps/discord/assets/` (the gitignore rules followed), `.env` and `var/` stay at the repo root
+(one `.env` for every app, the live database keeps its path), bot previews still go to `preview/`.
+The old CLAUDE.md is archived verbatim in `docs/archive/discord-bot-spec.md`; code comments that
+cited its sections now cite that file. The new CLAUDE.md is the only spec.
+
+### D56. The pacing check runs in the test suite; the API starts as a boot check
+The bot spec wanted `pnpm sim check` in CI from Phase 2, but no test called it.
+`packages/sim/src/sim.test.ts` asserts the pacing targets (about a second) and determinism, so
+`pnpm test` fails on a pacing regression. `apps/api` exists so the layout is complete, and for now
+it only loads and validates content with an injected clock. The HTTP framework (Hono or Fastify)
+is W1's decision.

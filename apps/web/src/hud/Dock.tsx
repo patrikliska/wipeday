@@ -26,14 +26,14 @@ export function Dock() {
   const readySeconds = useWorld((state) => Math.ceil(gatherReadyIn(state) / 60) * 60);
   const tier = useWorld((state) => state.tier);
   const buildMinutes = useWorld((state) =>
-    state.build ? Math.max(0, Math.ceil((state.build.endsAt - state.clock) / 60)) : null,
+    state.build ? Math.max(0, Math.ceil((state.build.endsAt - state.now) / 60)) : null,
   );
   const stock = useWorld((state) => state.stock);
   const furnaceReady = useWorld((state) =>
     state.furnace.jobs.reduce(
       (sum, job) =>
         sum +
-        Math.min(job.amount, Math.floor((FURNACE_RATE * (state.clock - job.startedAt)) / 3600)) -
+        Math.min(job.amount, Math.floor((FURNACE_RATE * (state.now - job.startedAt)) / 3600)) -
         job.taken,
       0,
     ),

@@ -1,0 +1,22 @@
+{
+  "name": "@wipe-day/domain",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pure game rules: state + now + seed in, new state + events out. No IO, no clock reads.",
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@wipe-day/content": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
+  }
+}

@@ -1,7 +1,14 @@
 # Wipe Day
 
-A Rust-themed idle game played entirely inside Discord. Private, single-server.
-The full specification is [CLAUDE.md](CLAUDE.md). Current state: **Phase 2b (active play: node mini-game, barrels, daily tasks)**.
+An idle survival game for a handful of friends: a living base on a wrecked island, played in the
+browser, with a Discord bot as a companion. Private, single-server.
+
+- Spec: [CLAUDE.md](CLAUDE.md). Design: [docs/game-design.md](docs/game-design.md). Next phases:
+  [docs/roadmap.md](docs/roadmap.md). Why things are the way they are:
+  [docs/decisions.md](docs/decisions.md).
+- Current state: **W0 done** (monorepo, new spec, injected clock). The web client is a visual
+  prototype (`apps/web`); the Discord bot (`apps/discord`) is playable through its Phase 2b
+  (node mini-game, barrels, daily tasks). W1 puts the game state on a server.
 
 ## Run it
 
@@ -9,11 +16,49 @@ Requires Node 22+ and pnpm.
 
 ```sh
 pnpm install
+pnpm web                  # web prototype on http://localhost:5173 (also on the LAN)
+pnpm check                # typecheck + lint + test, everything
+```
+
+The `✦` button in the web prototype opens the demo drawer: time speed, pause, +1 h / +6 h,
+weather, base tier, spawn a barrel, give everything.
+
+## Where things are
+
+```
+packages/domain    pure game rules (state + now in, state + events out), Clock
+packages/content   data/*.json5 balance and content, zod schemas, loader, locale/en.json
+packages/sim       headless balance simulator (archetypes, pacing check)
+apps/web           the client: PixiJS scene + React panels (docs/web-prototype.md)
+apps/api           the game server (arrives in W1)
+apps/discord       the Discord bot (frozen until W8 makes it a companion)
+docs/              game-design, roadmap, decisions, ui-review, web-prototype, archive/
+```
+
+## Commands
+
+| Command | What it does |
+| --- | --- |
+| `pnpm check` | typecheck + lint + test across the workspace |
+| `pnpm web` / `pnpm web:build` | web dev server / production bundle |
+| `pnpm web:shots [--only x]` | headless screenshots of the web client into `preview/web/` (needs `pnpm web` running) |
+| `pnpm sim` / `pnpm sim check` | simulate casual/active/optimal players for 35 days; `check` asserts `data/pacing.json5` |
+| `pnpm api` | the API process (a content check until W1) |
+| `pnpm start` / `pnpm dev` | run the Discord bot |
+| `pnpm preview` | render every bot card in every state to `preview/`, plus `preview/index.html` |
+| `pnpm assets check` | regenerate the bot's asset list and report missing or unusable files |
+| `pnpm assets import <dir>` | resize every known `name.png` in `<dir>` into each bot asset folder that needs it |
+| `pnpm format` | apply formatting and safe lint fixes |
+| `pnpm db:generate` | create a migration after editing `apps/discord/src/store/schema.ts` |
+
+## The Discord bot
+
+```sh
 cp .env.example .env      # then fill in DISCORD_TOKEN and DISCORD_GUILD_ID
 pnpm start                # or: pnpm dev (restarts on change)
 ```
 
-Creating the bot (once):
+`.env` and the database (`var/`) live at the repo root. Creating the bot (once):
 
 1. <https://discord.com/developers/applications> -> New Application -> **Bot** -> Reset Token.
    That token is `DISCORD_TOKEN`.
@@ -26,8 +71,6 @@ Creating the bot (once):
 No privileged intents are needed. Optional: `ADMIN_ROLE_ID` in `.env` lets a role use the
 admin commands besides server Administrators.
 
-## Playing
-
 | Command | What it does |
 | --- | --- |
 | `/start` | Builds your base and posts your home message |
@@ -35,66 +78,16 @@ admin commands besides server Administrators.
 | `/help` | Three lines, never required |
 | `/idle-debug card` | Admins: renders the base card's sample states to check the pipeline |
 
-Everything else happens on the home message: **Collect** banks what piled up while you were
-away, **Gather** gives a bonus on a cooldown, **Tools** upgrades your gathering tool, **Build**
-upgrades the base (bigger storage, more furnace slots, higher workbench; costs upkeep every
-hour), **Furnace** turns ore into metal, **Craft** makes boxes, workbenches and gear,
-**Inventory** shows what you own. Buttons appear as the mechanic becomes relevant.
+Everything else happens on the home message: **Collect**, **Gather** (opens the node
+mini-game), **Tools**, **Build**, **Furnace**, **Craft**, **Inventory**, plus barrels and three
+daily tasks. Buttons appear as the mechanic becomes relevant.
 
-Between gathers: every **Gather** opens **Work the node**, a quick game where you press the
-glowing button before it fades (each hit banks a bit more); a **barrel** washes up a few
-times a day and can be broken for loot before it drifts off; three **daily tasks** pay out
-the moment you complete them.
+### Supplying bot art
 
-## Commands
-
-| Command | What it does |
-| --- | --- |
-| `pnpm start` / `pnpm dev` | Run the bot |
-| `pnpm preview` | Render every card in every state to `preview/`, plus `preview/index.html` |
-| `pnpm sim` / `pnpm sim check` | Simulate casual/active/optimal players for 35 days; `check` asserts `data/pacing.json5` |
-| `pnpm assets check` | Regenerate the asset list and report missing or unusable files |
-| `pnpm assets import <dir>` | Resize every known `name.png` in `<dir>` into each folder that needs it (128/256/512) |
-| `pnpm assets sync` | Regenerate `assets/manifest.json` and `assets/ASSETS.md` only |
-| `pnpm typecheck` / `pnpm lint` / `pnpm test` | Must all pass before a phase is done |
-| `pnpm format` | Apply formatting and safe lint fixes |
-| `pnpm db:generate` | Create a migration after editing `src/store/schema.ts` |
-
-## Supplying art
-
-Everything the game wants is listed in [assets/ASSETS.md](assets/ASSETS.md), by folder, with
-the Rust item shortname to source each picture from and the phase that first needs it. The
-easy way: put full-size PNGs named like the manifest (`wood.png`, `tier_stone.png`) into one
-folder, e.g. `assets/_inbox/`, and run `pnpm assets import assets/_inbox`; it writes every
-size the game uses. Then `pnpm assets check` reports what is still missing. The bot
-runs with nothing supplied: cards use tinted placeholder tiles, inline icons fall back to
-Unicode emoji. Supplied files are gitignored and never committed.
-
-## Where things are
-
-```
-src/domain      pure game rules (state + now in, state + events out)
-src/game        transaction scripts: one player action = one SQLite transaction
-src/sim         headless balance simulator (archetypes, pacing check)
-src/scheduler   one tick per minute: lands finished builds, refreshes home messages
-src/content     data file schemas, loading, validation
-src/store       drizzle schema and migrations
-src/ui          theme, locale, number format, Screen model + lint, customId router, screens
-src/render      satori JSX cards -> PNG, fixtures, cache
-src/assets      manifest generation, registry, checker, application emoji sync
-src/bin         bot, idle-preview, idle-assets
-data/           JSON5 content and balance      locale/   player-visible strings
-docs/           decisions.md, ui-review.md, screens/*.md, reference/ (your screenshots)
-```
-
-## Web prototype
-
-The game is moving to a web client (see `docs/decisions.md`, D40–D45). The visual prototype lives in
-`apps/web` (Vite + React + PixiJS):
-
-```
-pnpm web            # dev server on http://localhost:5173
-pnpm web:shots      # headless screenshots into preview/web/
-```
-
-Details in `docs/web-prototype.md`.
+Everything the bot wants is listed in
+[apps/discord/assets/ASSETS.md](apps/discord/assets/ASSETS.md), by folder, with the item
+shortname to source each picture from and the phase that first needs it. Put full-size PNGs
+named like the manifest (`wood.png`, `tier_stone.png`) into `apps/discord/assets/_inbox/` and
+run `pnpm assets import apps/discord/assets/_inbox`; it writes every size the bot uses. The bot
+runs with nothing supplied (placeholder tiles, Unicode emoji). Supplied files are gitignored.
+The web client needs no art: it draws everything procedurally.

@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!src/store/migrations", "!preview"]
+    "includes": ["**", "!apps/discord/src/store/migrations", "!preview"]
   },
   "formatter": {
     "indentStyle": "space",
@@ -28,7 +28,7 @@
   },
   "overrides": [
     {
-      "includes": ["src/bin/**"],
+      "includes": ["apps/discord/src/bin/**", "packages/sim/src/cli.ts"],
       "linter": {
         "rules": {
           "suspicious": {
@@ -38,7 +38,7 @@
       }
     },
     {
-      "includes": ["src/render/**/*.tsx"],
+      "includes": ["apps/discord/src/render/**/*.tsx"],
       "linter": {
         "rules": {
           "a11y": "off"

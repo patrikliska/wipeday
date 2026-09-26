@@ -1,0 +1,20 @@
+{
+  "name": "@wipe-day/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The game server: commands, lazy settling, sessions, push. Built in W1; a boot check until then.",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@wipe-day/content": "workspace:*",
+    "@wipe-day/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

@@ -21,7 +21,7 @@ export function FurnacePanel() {
   const jobs = useWorld((state) => state.furnace.jobs);
   const smelt = useWorld((state) => state.smelt);
   const takeOut = useWorld((state) => state.takeOut);
-  const clock = useWorld((state) => Math.floor(state.clock / 30) * 30);
+  const clock = useWorld((state) => Math.floor(state.now / 30) * 30);
   const slots = tierById.get(tier)?.furnaceSlots ?? 1;
   const progressOf = (job: (typeof jobs)[number]): number =>
     Math.min(job.amount, Math.floor((FURNACE_RATE * (clock - job.startedAt)) / 3600));

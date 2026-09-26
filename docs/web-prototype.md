@@ -30,9 +30,13 @@ drawer: time speed, pause, +1 h / +6 h, weather, base tier, spawn a barrel, give
 | Palette | `src/scene/palette.ts` | time-of-day keyframes, `gloom()` for weather, tier materials, ground/sea colours |
 | Scene | `src/scene/Scene.ts` | Pixi application, camera rules, layer order, store sync, event → effect mapping |
 
-The store (`src/state/store.ts`, Zustand) holds the fake world and a fake clock (240 game
-seconds per real second by default). The HUD (`src/hud/*`) reads it with narrow selectors so
-the scene can tick at 60 fps without re-rendering React every frame.
+The store (`src/state/store.ts`, Zustand) holds the placeholder world. It is built by
+`createWorld(clocks)` over two injected clocks (`src/state/clocks.ts`, D51): a demo game clock
+(`scaledClock`, 240 game seconds per real second by default, driven by the demo drawer) and a
+wall clock for active-play timers such as node regrow. Each frame the scene calls `tick()`, which
+reads both clocks; the store keeps only their readings (`now`, `wallNow`). The HUD (`src/hud/*`)
+reads it with narrow selectors so the scene can tick at 60 fps without re-rendering React every
+frame.
 
 ## Camera rules
 
@@ -45,10 +49,11 @@ the scene can tick at 60 fps without re-rendering React every frame.
 
 ## Review loop
 
-`pnpm web:shots` writes 38 PNGs and `preview/web/index.html`. States covered: morning, noon,
+`pnpm web:shots` writes 40 shots (plus `__zoom` crops) and `preview/web/index.html`. States covered: morning, noon,
 dusk, night, rain, fog, every tier, a build in progress, every panel, the welcome-back modal,
 floating gains (1080p and phone), the furnace idle, lit and at night, a node run, two hits at night and a perfect run, the survivors and both rocks close up (each with a
 1:1 `*__zoom.png` crop for judging detail), ultrawide, laptop, phone portrait and landscape,
-tablet. `--only <text>` renders just the shots
+tablet. Each shot pins the demo clocks through `window.__wipeDay.clocks`: `time` is seconds into
+the demo season (which starts at the epoch), `wall` the real clock. `--only <text>` renders just the shots
 whose name contains it. Notes per iteration live in `docs/ui-review.md`. Extend `SHOTS` in
 `apps/web/scripts/shots.mjs` when a new state appears.

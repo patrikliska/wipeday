@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "#jsx"
+  },
+  "include": ["src", "drizzle.config.ts", "vitest.config.ts"]
+}

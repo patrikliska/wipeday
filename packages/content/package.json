@@ -1,0 +1,24 @@
+{
+  "name": "@wipe-day/content",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Balance and content data (JSON5), their zod schemas, the loader and the locale strings.",
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts",
+    "./locale/en.json": "./locale/en.json"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "json5": "^2.2.3",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
+  }
+}

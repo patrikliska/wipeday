@@ -6,7 +6,7 @@
 import { Application, Container, Graphics, type Ticker } from "pixi.js";
 import { countFrame, isFrozen } from "../debug";
 import { type GameEvent, on } from "../state/events";
-import { useWorld } from "../state/store";
+import { seasonTime, useWorld } from "../state/store";
 import {
   abbrev,
   dayFraction,
@@ -139,7 +139,7 @@ export class Scene {
         const state = useWorld.getState();
         const until = state.depleted[node.id]?.until;
         if (until === undefined) return;
-        const left = Math.ceil(until - state.realClock);
+        const left = Math.ceil(until - state.wallNow);
         const wait = left >= 60 ? `${Math.floor(left / 60)}m ${left % 60}s` : `${left}s`;
         const text = `${NODE_TYPES[node.kind].name} back in ${wait}`;
         this.floaters.add(node.x, node.y - 70 * node.scale, text, 0xece8df, this.floatSize(0.85));
@@ -269,12 +269,12 @@ export class Scene {
     });
     this.base.setFurnaceActive(
       state.furnace.jobs.some(
-        (job) => (FURNACE_RATE * (state.clock - job.startedAt)) / 3600 < job.amount,
+        (job) => (FURNACE_RATE * (state.now - job.startedAt)) / 3600 < job.amount,
       ),
     );
     this.barrel.set(state.barrel !== null);
-    this.backNodes.sync(state.depleted, state.realClock);
-    this.frontNodes.sync(state.depleted, state.realClock);
+    this.backNodes.sync(state.depleted, state.wallNow);
+    this.frontNodes.sync(state.depleted, state.wallNow);
     this.weather.set(state.weather);
   }
 
@@ -288,10 +288,10 @@ export class Scene {
 
   private step(dt: number): void {
     this.layout();
-    useWorld.getState().tick(dt);
+    useWorld.getState().tick();
     this.sync();
     const state = useWorld.getState();
-    const fraction = dayFraction(state.clock);
+    const fraction = dayFraction(seasonTime(state));
     const rain = this.weather.rainAmount;
     const gloomAmount = clamp(rain + (state.weather === "fog" ? 0.5 : 0), 0, 1);
     const palette = gloom(paletteAt(fraction), gloomAmount);

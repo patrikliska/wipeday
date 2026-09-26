@@ -2,30 +2,28 @@
   "name": "wipe-day",
   "version": "0.1.0",
   "private": true,
-  "description": "Wipe Day: a Rust-themed idle game played entirely inside Discord.",
+  "description": "Wipe Day: an idle survival game. Web client, API, shared domain, Discord companion.",
   "type": "module",
   "engines": {
     "node": ">=22"
   },
-  "imports": {
-    "#jsx/jsx-runtime": "./src/render/jsx-runtime.ts",
-    "#jsx/jsx-dev-runtime": "./src/render/jsx-runtime.ts"
-  },
   "scripts": {
-    "dev": "tsx watch src/bin/bot.ts",
-    "start": "tsx src/bin/bot.ts",
-    "preview": "tsx src/bin/idle-preview.ts",
-    "assets": "tsx src/bin/idle-assets.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "pnpm -r typecheck",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "test": "vitest run",
-    "db:generate": "drizzle-kit generate",
-    "sim": "tsx src/bin/idle-sim.ts",
-    "web": "pnpm --filter web dev",
-    "web:build": "pnpm --filter web build",
-    "web:typecheck": "pnpm --filter web typecheck",
-    "web:shots": "pnpm --filter web shots"
+    "test": "pnpm -r test",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "start": "pnpm --filter @wipe-day/discord start",
+    "dev": "pnpm --filter @wipe-day/discord dev",
+    "preview": "pnpm --filter @wipe-day/discord preview",
+    "assets": "pnpm --filter @wipe-day/discord assets",
+    "db:generate": "pnpm --filter @wipe-day/discord db:generate",
+    "sim": "pnpm --filter @wipe-day/sim sim",
+    "api": "pnpm --filter @wipe-day/api start",
+    "web": "pnpm --filter @wipe-day/web dev",
+    "web:build": "pnpm --filter @wipe-day/web build",
+    "web:typecheck": "pnpm --filter @wipe-day/web typecheck",
+    "web:shots": "pnpm --filter @wipe-day/web shots"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -35,20 +33,9 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
-    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.6.2",
-    "drizzle-kit": "^0.31.11",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.0.1"
-  },
-  "dependencies": {
-    "@resvg/resvg-js": "^2.6.2",
-    "better-sqlite3": "^12.11.1",
-    "discord.js": "^14.27.0",
-    "drizzle-orm": "^0.45.3",
-    "json5": "^2.2.3",
-    "satori": "^0.33.4",
-    "zod": "^4.6.5"
   }
 }

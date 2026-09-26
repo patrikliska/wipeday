@@ -2,10 +2,13 @@
  * Dev-only hook for the screenshot script and for poking the prototype from
  * the console: `__wipeDay.store.getState().jumpTier("hqm")`.
  */
+import { demoClocks } from "./state/clocks";
 import { useWorld } from "./state/store";
 
 interface DebugHook {
   store: typeof useWorld;
+  /** The demo clocks: shots pause them and set the time (`clocks.game.set(seconds)`). */
+  clocks: typeof demoClocks;
   /** Frames rendered since load; the screenshot script waits for this to move. */
   frames: number;
   /** Stops scene motion (rendering goes on), so a screenshot and its crop show the same moment. */
@@ -22,7 +25,7 @@ declare global {
 
 export function installDebug(): void {
   if (!import.meta.env.DEV) return;
-  window.__wipeDay = { store: useWorld, frames: 0, frozen: false };
+  window.__wipeDay = { store: useWorld, clocks: demoClocks, frames: 0, frozen: false };
 }
 
 export function isFrozen(): boolean {

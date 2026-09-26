@@ -1,5 +1,5 @@
 {
-  "name": "web",
+  "name": "@wipe-day/web",
   "version": "0.1.0",
   "private": true,
   "description": "Wipe Day web client: the living base.",
@@ -12,6 +12,7 @@
     "shots": "node scripts/shots.mjs"
   },
   "dependencies": {
+    "@wipe-day/domain": "workspace:*",
     "pixi.js": "^8.21.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

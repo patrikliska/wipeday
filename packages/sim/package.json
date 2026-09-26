@@ -1,0 +1,25 @@
+{
+  "name": "@wipe-day/sim",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Headless balance simulator: drives the domain with a fake clock and asserts the pacing targets.",
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "sim": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@wipe-day/content": "workspace:*",
+    "@wipe-day/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
+  }
+}

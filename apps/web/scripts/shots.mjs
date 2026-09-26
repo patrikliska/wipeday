@@ -20,33 +20,34 @@ const DAY = 86_400;
 const at = (day, hour) => day * DAY + hour * 3600;
 
 /**
- * Each shot: viewport, store patch, settle time. Optional: `act` fires a store
+ * Each shot: viewport, store patch, settle time. In the patch, `time` sets the game clock
+ * (seconds into the demo season, which starts at the epoch) and `wall` the real clock. Optional: `act` fires a store
  * action after the patch (for effects such as floating gains), `click` clicks a
  * point in CSS pixels instead (starting a node run), `clip` also saves
  * a 1:1 crop `{name}__zoom.png` ([x, y, width, height] in CSS pixels).
  */
 const SHOTS = [
-  { name: "desktop_day", viewport: [1600, 900], state: { clock: at(3, 11) } },
-  { name: "desktop_morning", viewport: [1600, 900], state: { clock: at(3, 7) } },
-  { name: "desktop_dusk", viewport: [1600, 900], state: { clock: at(3, 18.6) } },
-  { name: "desktop_night", viewport: [1600, 900], state: { clock: at(3, 23) } },
+  { name: "desktop_day", viewport: [1600, 900], state: { time: at(3, 11) } },
+  { name: "desktop_morning", viewport: [1600, 900], state: { time: at(3, 7) } },
+  { name: "desktop_dusk", viewport: [1600, 900], state: { time: at(3, 18.6) } },
+  { name: "desktop_night", viewport: [1600, 900], state: { time: at(3, 23) } },
   {
     name: "desktop_rain",
     viewport: [1600, 900],
-    state: { clock: at(3, 14), weather: "rain" },
+    state: { time: at(3, 14), weather: "rain" },
     settle: 4500,
   },
   {
     name: "desktop_fog",
     viewport: [1600, 900],
-    state: { clock: at(3, 8), weather: "fog" },
+    state: { time: at(3, 8), weather: "fog" },
     settle: 4500,
   },
   {
     name: "desktop_twig",
     viewport: [1600, 900],
     state: {
-      clock: at(1, 12),
+      time: at(1, 12),
       tier: "twig",
       tool: "rock",
       lastGatherAt: 0,
@@ -58,7 +59,7 @@ const SHOTS = [
     name: "desktop_stone",
     viewport: [1600, 900],
     state: {
-      clock: at(9, 12),
+      time: at(9, 12),
       tier: "stone",
       items: { workbench: 1, crate: 3, campfire: 1, kiln: 1 },
     },
@@ -67,7 +68,7 @@ const SHOTS = [
     name: "desktop_metal",
     viewport: [1600, 900],
     state: {
-      clock: at(15, 12),
+      time: at(15, 12),
       tier: "metal",
       items: { workbench: 1, crate: 4, campfire: 1, kiln: 1, press: 1, lantern: 1 },
     },
@@ -76,7 +77,7 @@ const SHOTS = [
     name: "desktop_hqm_night",
     viewport: [1600, 900],
     state: {
-      clock: at(24, 22),
+      time: at(24, 22),
       tier: "hqm",
       items: { workbench: 1, crate: 6, campfire: 1, kiln: 1, press: 1, lantern: 1 },
     },
@@ -84,23 +85,23 @@ const SHOTS = [
   {
     name: "desktop_building",
     viewport: [1600, 900],
-    state: { clock: at(5, 12), build: { tier: "stone", endsAt: at(5, 15) } },
+    state: { time: at(5, 12), build: { tier: "stone", endsAt: at(5, 15) } },
   },
   {
     name: "desktop_panel_build",
     viewport: [1600, 900],
-    state: { clock: at(3, 11), panel: "build" },
+    state: { time: at(3, 11), panel: "build" },
   },
   {
     name: "desktop_panel_craft",
     viewport: [1600, 900],
-    state: { clock: at(3, 11), panel: "craft" },
+    state: { time: at(3, 11), panel: "craft" },
   },
   {
     name: "desktop_panel_furnace",
     viewport: [1600, 900],
     state: {
-      clock: at(3, 11),
+      time: at(3, 11),
       panel: "furnace",
       furnace: {
         owned: true,
@@ -111,30 +112,30 @@ const SHOTS = [
   {
     name: "desktop_panel_inventory",
     viewport: [1600, 900],
-    state: { clock: at(3, 11), panel: "inventory" },
+    state: { time: at(3, 11), panel: "inventory" },
   },
   {
     name: "desktop_panel_squad",
     viewport: [1600, 900],
-    state: { clock: at(3, 11), panel: "squad" },
+    state: { time: at(3, 11), panel: "squad" },
   },
   {
     name: "desktop_panel_tasks",
     viewport: [1600, 900],
-    state: { clock: at(3, 11), panel: "tasks" },
+    state: { time: at(3, 11), panel: "tasks" },
   },
-  { name: "desktop_away", viewport: [1600, 900], state: { clock: at(3, 11), showAway: true } },
+  { name: "desktop_away", viewport: [1600, 900], state: { time: at(3, 11), showAway: true } },
   {
     name: "furnace_idle",
     viewport: [1920, 1080],
-    state: { clock: at(3, 11), furnace: { owned: true, jobs: [] } },
+    state: { time: at(3, 11), furnace: { owned: true, jobs: [] } },
     clip: [700, 540, 300, 260],
   },
   {
     name: "furnace_lit",
     viewport: [1920, 1080],
     state: {
-      clock: at(3, 11),
+      time: at(3, 11),
       furnace: {
         owned: true,
         jobs: [{ input: "ore", output: "ingots", amount: 400, startedAt: at(3, 10), taken: 0 }],
@@ -146,7 +147,7 @@ const SHOTS = [
     name: "furnace_night_hqm",
     viewport: [1920, 1080],
     state: {
-      clock: at(24, 22),
+      time: at(24, 22),
       tier: "hqm",
       items: { workbench: 1, crate: 6, campfire: 1, kiln: 1, press: 1, lantern: 1 },
       furnace: {
@@ -159,14 +160,14 @@ const SHOTS = [
   {
     name: "node_marker",
     viewport: [1920, 1080],
-    state: { clock: at(3, 11) },
+    state: { time: at(3, 11) },
     click: [772, 795],
     clip: [640, 640, 280, 220],
   },
   {
     name: "node_hits",
     viewport: [1920, 1080],
-    state: { clock: at(3, 22) },
+    state: { time: at(3, 22) },
     click: [772, 795],
     hits: 2,
     clip: [600, 560, 360, 300],
@@ -174,7 +175,7 @@ const SHOTS = [
   {
     name: "node_perfect",
     viewport: [1920, 1080],
-    state: { clock: at(3, 11) },
+    state: { time: at(3, 11) },
     click: [772, 795],
     hits: 5,
     clip: [600, 560, 360, 300],
@@ -183,36 +184,36 @@ const SHOTS = [
     name: "ore_node",
     viewport: [1920, 1080],
     scale: 2,
-    state: { clock: at(3, 11) },
+    state: { time: at(3, 11) },
     clip: [690, 700, 190, 130],
   },
   {
     name: "barrel",
     viewport: [1920, 1080],
     scale: 2,
-    state: { clock: at(3, 11) },
+    state: { time: at(3, 11) },
     clip: [470, 735, 170, 170],
   },
   {
     name: "sulfur_node",
     viewport: [1920, 1080],
     scale: 2,
-    state: { clock: at(3, 11) },
+    state: { time: at(3, 11) },
     clip: [1490, 790, 190, 120],
   },
   {
     name: "stone_node",
     viewport: [1920, 1080],
     scale: 2,
-    state: { clock: at(3, 11) },
+    state: { time: at(3, 11) },
     clip: [1300, 780, 150, 100],
   },
   {
     name: "nodes_depleted",
     viewport: [1920, 1080],
     state: {
-      clock: at(3, 11),
-      realClock: 100,
+      time: at(3, 11),
+      wall: 100,
       depleted: {
         tree_1: { kind: "tree", at: 90, until: 110 },
         tree_2: { kind: "tree", at: 95, until: 115 },
@@ -228,25 +229,25 @@ const SHOTS = [
     name: "survivors",
     viewport: [1920, 1080],
     scale: 2,
-    state: { clock: at(3, 11) },
+    state: { time: at(3, 11) },
     clip: [980, 650, 260, 160],
   },
-  { name: "desktop_ultrawide", viewport: [2560, 1080], state: { clock: at(3, 11) } },
-  { name: "laptop", viewport: [1366, 768], state: { clock: at(3, 11) } },
+  { name: "desktop_ultrawide", viewport: [2560, 1080], state: { time: at(3, 11) } },
+  { name: "laptop", viewport: [1366, 768], state: { time: at(3, 11) } },
   {
     name: "desktop_gains",
     viewport: [1920, 1080],
-    state: { clock: at(3, 11), lastGatherAt: 0 },
+    state: { time: at(3, 11), lastGatherAt: 0 },
     act: "gather",
     clip: [860, 320, 500, 220],
   },
-  { name: "phone_day", viewport: [390, 844], scale: 3, state: { clock: at(3, 11) } },
-  { name: "phone_night", viewport: [390, 844], scale: 3, state: { clock: at(3, 23) } },
+  { name: "phone_day", viewport: [390, 844], scale: 3, state: { time: at(3, 11) } },
+  { name: "phone_night", viewport: [390, 844], scale: 3, state: { time: at(3, 23) } },
   {
     name: "phone_gains",
     viewport: [390, 844],
     scale: 3,
-    state: { clock: at(3, 11), lastGatherAt: 0 },
+    state: { time: at(3, 11), lastGatherAt: 0 },
     act: "gather",
     clip: [95, 330, 270, 140],
   },
@@ -254,16 +255,16 @@ const SHOTS = [
     name: "phone_panel_build",
     viewport: [390, 844],
     scale: 3,
-    state: { clock: at(3, 11), panel: "build" },
+    state: { time: at(3, 11), panel: "build" },
   },
   {
     name: "phone_away",
     viewport: [390, 844],
     scale: 3,
-    state: { clock: at(3, 11), showAway: true },
+    state: { time: at(3, 11), showAway: true },
   },
-  { name: "phone_landscape", viewport: [844, 390], scale: 3, state: { clock: at(3, 11) } },
-  { name: "tablet", viewport: [820, 1180], scale: 2, state: { clock: at(3, 11) } },
+  { name: "phone_landscape", viewport: [844, 390], scale: 3, state: { time: at(3, 11) } },
+  { name: "tablet", viewport: [820, 1180], scale: 2, state: { time: at(3, 11) } },
 ];
 
 async function main() {
@@ -290,14 +291,22 @@ async function main() {
       timeout: 20_000,
     });
     await page.evaluate((state) => {
-      const store = window.__wipeDay.store;
+      // `time` (game clock) and `wall` (real clock) pin the injected demo clocks; both stop so
+      // the shot shows one moment. The store's readings move with them, so nothing accrues.
+      const { store, clocks } = window.__wipeDay;
+      const { time, wall, ...patch } = state;
+      clocks.game.setPaused(true);
+      clocks.wall.setPaused(true);
+      if (time !== undefined) clocks.game.set(time);
+      if (wall !== undefined) clocks.wall.set(wall);
       store.setState({
         showAway: false,
         panel: null,
-        paused: true,
         demoOpen: false,
         toasts: [],
-        ...state,
+        now: clocks.game.nowMs() / 1000,
+        wallNow: clocks.wall.nowMs() / 1000,
+        ...patch,
       });
     }, shot.state);
     if (shot.act || shot.click) {

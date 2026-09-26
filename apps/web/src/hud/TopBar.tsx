@@ -1,5 +1,5 @@
 import { useShallow } from "zustand/shallow";
-import { storageCap, useWorld } from "../state/store";
+import { seasonTime, storageCap, useWorld } from "../state/store";
 import {
   abbrev,
   clockLabel,
@@ -17,8 +17,8 @@ const WEATHER_LABEL = { clear: "Clear", rain: "Rain", fog: "Fog" } as const;
 export function TopBar() {
   const tier = useWorld((state) => state.tier);
   const cap = useWorld((state) => storageCap(state));
-  const clock = useWorld((state) => clockLabel(state.clock));
-  const day = useWorld((state) => Math.floor(state.clock / GAME_DAY) + 1);
+  const clock = useWorld((state) => clockLabel(seasonTime(state)));
+  const day = useWorld((state) => Math.floor(seasonTime(state) / GAME_DAY) + 1);
   const weather = useWorld((state) => state.weather);
   const panel = useWorld((state) => state.panel);
   const openPanel = useWorld((state) => state.openPanel);

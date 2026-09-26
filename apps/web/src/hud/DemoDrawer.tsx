@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { demoClocks } from "../state/clocks";
 import { useWorld } from "../state/store";
 import { BASE_TIERS } from "../state/world";
 
@@ -7,15 +9,23 @@ const WEATHERS = ["clear", "rain", "fog"] as const;
 export function DemoDrawer() {
   const open = useWorld((state) => state.demoOpen);
   const setOpen = useWorld((state) => state.setDemoOpen);
-  const timeScale = useWorld((state) => state.timeScale);
-  const setTimeScale = useWorld((state) => state.setTimeScale);
-  const paused = useWorld((state) => state.paused);
-  const setPaused = useWorld((state) => state.setPaused);
+  // Time controls drive the demo game clock itself; the store only reads it.
+  const clock = demoClocks.game;
+  const [timeScale, setScaleShown] = useState(clock.scale);
+  const [paused, setPausedShown] = useState(clock.paused);
+  const setTimeScale = (scale: number) => {
+    clock.setScale(scale);
+    setScaleShown(scale);
+  };
+  const setPaused = (next: boolean) => {
+    clock.setPaused(next);
+    setPausedShown(next);
+  };
+  const addHours = (hours: number) => clock.advance(hours * 3600);
   const weather = useWorld((state) => state.weather);
   const setWeather = useWorld((state) => state.setWeather);
   const tier = useWorld((state) => state.tier);
   const jumpTier = useWorld((state) => state.jumpTier);
-  const addHours = useWorld((state) => state.addHours);
   const spawnBarrel = useWorld((state) => state.spawnBarrel);
   const giveEverything = useWorld((state) => state.giveEverything);
 

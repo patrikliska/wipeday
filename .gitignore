@@ -16,9 +16,9 @@ node_modules/
 
 # Owner-supplied assets are never committed. Only the folder skeleton, the
 # manifest, the checklist and agent-generated placeholders are tracked.
-/assets/*/*
-!/assets/*/.gitkeep
-!/assets/_placeholders/**
+/apps/discord/assets/*/*
+!/apps/discord/assets/*/.gitkeep
+!/apps/discord/assets/_placeholders/**
 
 # Owner-supplied reference screenshots may contain third-party game UI.
 /docs/reference/*
@@ -32,5 +32,5 @@ Thumbs.db
 # Logs
 *.log
 
-# Web client build output
-/apps/web/dist/
+# Build output
+/apps/*/dist/

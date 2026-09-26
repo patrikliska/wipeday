@@ -4,13 +4,16 @@ Companion to `docs/game-design.md` (what the game becomes) and `docs/decisions.m
 are the way they are). This file says **what to build next, in which order, and how hard the
 agent should think at each step**.
 
-## Where we are (2026-09-26)
+## Where we are (2026-09-27)
 
-- Discord bot: phases 0, 1, 2 and 2b are live-tested or built (`src/`). It has a pure domain,
-  a SQLite store, a simulator with pacing gates, 115 tests.
+- W0 is done: a pnpm monorepo (`packages/domain`, `packages/content`, `packages/sim`,
+  `apps/api`, `apps/web`, `apps/discord`), a new `CLAUDE.md` for the web, storage, hosting and
+  backup decisions (D52–D54), and an injected `Clock` everywhere (D51). 124 tests.
+- Discord bot (`apps/discord`): phases 0, 1, 2 and 2b built; frozen until W8.
 - Web: a visual, non-playable prototype in `apps/web` (Vite, React, PixiJS). Own-IP names,
   procedural art, day cycle, weather, five base tiers, HUD, headless screenshot review
-  (`pnpm web:shots`). Nothing in it talks to the real domain yet.
+  (`pnpm web:shots`). Its rules are still placeholders in `state/world.ts` and `state/store.ts`;
+  W1 replaces them with the domain.
 - Decision: the web app becomes the main client, Discord becomes a companion (D40).
 
 ## How to run a phase with an agent
@@ -75,7 +78,7 @@ Tips on effort:
 
 ## Phases
 
-### W0. Re-baseline the project for the web
+### W0. Re-baseline the project for the web (done)
 
 *Goal:* the repo is shaped for the web game and the spec says so.
 

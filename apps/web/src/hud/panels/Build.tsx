@@ -10,7 +10,7 @@ export function BuildPanel() {
   const build = useWorld((state) => state.build);
   const startBuild = useWorld((state) => state.startBuild);
   const minutesLeft = useWorld((state) =>
-    state.build ? Math.max(0, Math.ceil((state.build.endsAt - state.clock) / 60)) : 0,
+    state.build ? Math.max(0, Math.ceil((state.build.endsAt - state.now) / 60)) : 0,
   );
   const current = TIERS.indexOf(tier);
 

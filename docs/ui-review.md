@@ -369,3 +369,16 @@ Outlines: `preview/screens/node__{running,faded}.txt`, `tasks__normal.txt`,
   - All five clocks now read at 1080p. The tree_2 stump stays behind the crates, but its clock marks the spot.
 - Tapping a stump or rubble floats "Iron Ore back in 32s" (or "1m 40s"). Survivors skip worked-out nodes and stop working at a node that goes. The Gather button's shake picks a tree that is still standing.
 - New shots: `stone_node` (2x crop) and `nodes_depleted`.
+
+### W0: injected clocks (no visual change intended)
+
+The store's fake clock was replaced by injected demo clocks (D51), so every shot was re-run and
+compared with the previous set.
+- Iteration 1, what was wrong: every shot that jumps the time (night, dusk, other days, the
+  build in progress) showed an "A barrel washed up on the shore." toast. The old `paused: true`
+  skipped `tick()` entirely. With stopped clocks `tick()` still ran its barrel expiry and spawn
+  checks against the jumped time.
+- Iteration 2, what changed: `tick()` returns early when neither clock has moved, which is
+  exactly the old pause. All 40 shots match the previous set again: time of day, day number, the
+  "lands in 3h" build timer, the welcome-back deltas, and the rubble, stumps and regrow pies in
+  `nodes_depleted` (checked on two repeat runs; the crops differ only by the walking survivors).
