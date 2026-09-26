@@ -45,7 +45,7 @@ the scene can tick at 60 fps without re-rendering React every frame.
 
 ## Review loop
 
-`pnpm web:shots` writes 37 PNGs and `preview/web/index.html`. States covered: morning, noon,
+`pnpm web:shots` writes 38 PNGs and `preview/web/index.html`. States covered: morning, noon,
 dusk, night, rain, fog, every tier, a build in progress, every panel, the welcome-back modal,
 floating gains (1080p and phone), the furnace idle, lit and at night, a node run, two hits at night and a perfect run, the survivors and both rocks close up (each with a
 1:1 `*__zoom.png` crop for judging detail), ultrawide, laptop, phone portrait and landscape,

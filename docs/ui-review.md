@@ -311,3 +311,44 @@ Outlines: `preview/screens/node__{running,faded}.txt`, `tasks__normal.txt`,
   faceted boulder. **Iteration 3.** Pebbles are small faceted stones with a lit top; the shadow
   is an irregular flat polygon hugging the base, longer on the right (away from the light), with
   a darker contact band under the boulder. No rounded shape is left on the rocks.
+
+### Node rim (experiment, after commit 540baaf)
+- **Owner request.** Nodes should look clickable. **Iteration 1.** A white rim behind every node:
+  eight silhouette copies offset 2.2 world units (thinned to 1.4 on owner feedback), whitened by one `ColorMatrixFilter`, at 50%
+  alpha, easing to 95% under the pointer. The rim follows the tree sway and the hit shake;
+  shadows and pebbles are left out so it traces only the rock or tree. Checked in `desktop_day`
+  and the rock crops: every node reads as interactive at a glance; the rim is soft rather than
+  crisp and also runs along the rock's base line. Kept or dropped after the owner tries it.
+- **Owner feedback.** Rim thinned to 1.4 world units: "looks great now".
+
+### Fibre patch removed
+- **Owner request.** The fibre node (tall stalks with round heads) read as "weird grass". Removed
+  from the scene (`fibre_1` in `Scene.ts`). Nothing is lost in the prototype: fibre accrues at the
+  same rate, since any node pays the tool's whole production mix. `drawFibre` stays for a proper
+  flax or hemp plant when W1 gives each node its own resource.
+
+### Beach rebuilt (owner: "so weird, few items are too small few are overflowing")
+
+- Iteration 1 (what was wrong): the sea was a plain rectangle that ran ~200 units past the waterline, so deep water showed on both sides of the sand strip and ended in a hard vertical edge against the grass. The sand looked like a road through the sea. The shoreline barely slanted, the barrel sat mid-sand, and the ore rock sat on the sand edge.
+- Iteration 2 (what changed): the sea sprite is now masked to the waterline, so nothing shows past the beach. The shoreline slants toward the viewer (0.2 per unit) and moved right (SHORE_X 540) and the beach widens with depth (`duneAt`). The beach has dry sand, a sun-bleached upper band, wind ripples, wet sand, a faint tide line, driftwood and faceted beach stones. A fringe of sandy dune grass hides the seam where sand meets meadow. The barrel moved onto the wet sand (x 540) and the ore rock moved inland (x 705). Phone focus moved from 930 to 845, so a phone sees the water, the beach and the barrel next to the base (the first try at 880 showed the beach but no water).
+- Checked in Chrome (1456 px) and on desktop_night: the beach reads as one coherent strip, and the night tint keeps it readable.
+
+### Barrel on the shore (owner: "improve how barrel on shore looks like")
+
+- Before: a flat blue rounded rectangle with three stripes and an orange dot. It bobbed up and down as if floating, even though it sits on sand.
+- Iteration 1: redrawn as an oil drum.
+  - Tipped over a little, with cylinder shading in vertical strips.
+  - Two rolled ribs that curve because we see the drum from slightly above.
+  - An elliptical lid with a rolled rim and a bung.
+  - Chipped paint, rust patches and kelp draped over the rim.
+  - The white rim outline the nodes use, which strengthens on hover because the barrel is tappable.
+  - No more bobbing: the drum only rocks slowly. The tag is a badge with a dark edge.
+  - Problem found: the sand heap in front was a flat grey-brown slab that read as a ramp, and its shadow stuck out.
+- Iteration 2:
+  - The drift became a curved mound of dry sand with a light crest and a soft base line.
+  - The shadow shrank to a short damp patch on the lee side.
+  - A rust band runs along the foot of the drum where it sits in the wet sand.
+- New `barrel` shot (2x crop). The ore moved, so the ore, node run and marker shot clicks and crops were re-aimed. node_hits confirms the click starts a run.
+- Iteration 3 (owner: "dialog window arrow is a little bit out of box", "barrel is a little bit overflowing sand"):
+  - Badge: it was a stroked rounded rectangle with a separately filled pointer, so the dark edge stopped at the pointer and the pointer looked detached. Badge and pointer are now one path with a rounded join, filled and stroked as a single shape. It also gains a soft drop shadow, a darker lower half and a top highlight.
+  - Sand: the tilted drum's lower corner poked out below the mound. The drum now sits 1 unit lower, and the mound is wider and taller (peak -11, base at +4) with a curved underside, so both corners are buried.

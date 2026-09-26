@@ -98,7 +98,13 @@ export class Terrain {
   /** The waterline x for a ground-level y: drifts left as it comes toward the viewer, with bays. */
   private shoreAt(y: number): number {
     const d = y - this.layout.ground;
-    return this.layout.shoreX - 60 - d * 0.1 + Math.sin(d / 90) * 22 + Math.sin(d / 37 + 1) * 7;
+    return this.layout.shoreX - 60 - d * 0.2 + Math.sin(d / 90) * 18 + Math.sin(d / 37 + 1) * 5;
+  }
+
+  /** Where the sand gives way to grass: the beach widens toward the viewer, with a soft dune wobble. */
+  private duneAt(y: number): number {
+    const d = y - this.layout.ground;
+    return this.shoreAt(y) + 135 + d * 0.14 + Math.sin(d / 41 + 2) * 9 + Math.sin(d / 13) * 3;
   }
 
   constructor(private readonly layout: TerrainLayout) {
@@ -178,7 +184,7 @@ export class Terrain {
     for (let i = 0; i < 1100; i++) {
       const x = -extend + hash(i * 1.91) * (width + extend * 2);
       const y = ground + 10 + hash(i * 2.73) ** 1.6 * (bottom - ground - 20);
-      if (x > this.shoreAt(y) - 30 && x < this.shoreAt(y) + 150) continue;
+      if (x < this.duneAt(y) + 6) continue;
       if (Math.abs(x - baseX) < 330 && y < ground + 90) continue;
       const h = 8 + hash(i * 3.3) * 16;
       tufts
@@ -206,14 +212,123 @@ export class Terrain {
     for (let i = 0; i < 40; i++) {
       const x = -extend + hash(i * 7.3) * (width + extend * 2);
       const y = ground + 30 + hash(i * 8.1) * (bottom - ground - 40);
-      if (x > this.shoreAt(y) - 40 && x < this.shoreAt(y) + 160) continue;
+      if (x < this.duneAt(y) + 10) continue;
       groundGraphics
         .ellipse(x, y, 3 + hash(i) * 5, 2 + hash(i * 2) * 3)
         .fill({ color: 0x5c6166, alpha: 0.8 });
     }
     this.ground.addChild(groundGraphics, tufts, flowers);
 
-    // Sea: gradient from deep to shallow, then the sand, the wet sand and the foam along the shoreline.
+    // Beach: dry sand from the dunes down to the water, darker wet sand along the waterline.
+    const step = 8;
+    const sand = new Graphics();
+    sand.moveTo(this.shoreAt(ground) - 30, ground);
+    for (let y = ground; y <= bottom; y += step) sand.lineTo(this.duneAt(y), y);
+    sand.lineTo(-extend, bottom).lineTo(-extend, ground).closePath().fill(SAND);
+    // Sun-bleached band at the top of the beach and soft wind ripples.
+    for (let y = ground; y <= bottom; y += step) sand.lineTo(this.duneAt(y) - 2, y);
+    for (let y = bottom; y >= ground; y -= step) sand.lineTo(this.duneAt(y) - 26, y);
+    sand.closePath().fill({ color: lerpColor(SAND, 0xffffff, 0.25), alpha: 0.6 });
+    for (let i = 0; i < 14; i++) {
+      const y = ground + 24 + i * 34 + hash(i * 5.3) * 12;
+      const from = this.shoreAt(y) + 44;
+      const to = this.duneAt(y) - 30;
+      if (to - from < 30) continue;
+      const x = from + hash(i * 2.9) * (to - from - 30);
+      const w = 22 + hash(i * 1.7) * 26;
+      sand
+        .moveTo(x, y)
+        .quadraticCurveTo(x + w / 2, y - 4, x + w, y)
+        .stroke({ width: 1.6, color: lerpColor(SAND, 0x6f5638, 0.28), alpha: 0.55 });
+    }
+    sand.moveTo(this.shoreAt(ground) - 30, ground);
+    for (let y = ground; y <= bottom; y += step)
+      sand.lineTo(this.shoreAt(y) + 30 + Math.sin(y / 29) * 4, y);
+    sand.lineTo(-extend, bottom).lineTo(-extend, ground).closePath().fill(SAND_WET);
+    // Tide line: a thin darker streak of seaweed where the last big wave reached.
+    sand.moveTo(this.shoreAt(ground) + 30, ground + 4);
+    for (let y = ground + 4; y <= bottom; y += step)
+      sand.lineTo(this.shoreAt(y) + 44 + Math.sin(y / 17) * 3, y);
+    sand.stroke({ width: 1.5, color: lerpColor(SAND_WET, 0x3b3a26, 0.3), alpha: 0.35 });
+
+    // Driftwood and a few flat beach stones.
+    const drift = (x: number, y: number, len: number, angle: number) => {
+      const c = Math.cos(angle);
+      const sn = Math.sin(angle);
+      const p = (u: number, v: number): [number, number] => [
+        x + u * c - v * sn,
+        y + u * sn + v * c,
+      ];
+      sand
+        .poly([...p(-len / 2, -4), ...p(len / 2, -3), ...p(len / 2 + 2, 2), ...p(-len / 2, 5)])
+        .fill(0x8a7a62);
+      sand
+        .poly([...p(-len / 2, -4), ...p(len / 2, -3), ...p(len / 2, -1), ...p(-len / 2, -1)])
+        .fill(0xb3a386);
+      sand
+        .poly([
+          ...p(len * 0.1, -3),
+          ...p(len * 0.22, -12),
+          ...p(len * 0.26, -11),
+          ...p(len * 0.17, -2),
+        ])
+        .fill(0x8a7a62);
+    };
+    const driftY = ground + 150;
+    drift(this.shoreAt(driftY) + 70, driftY, 58, -0.12);
+    for (let i = 0; i < 7; i++) {
+      const y = ground + 40 + hash(i * 6.1) * 360;
+      const x = this.shoreAt(y) + 40 + hash(i * 3.7) * (this.duneAt(y) - this.shoreAt(y) - 70);
+      const r = 4 + hash(i * 2.3) * 5;
+      sand
+        .poly([
+          x - r,
+          y,
+          x - r * 0.5,
+          y - r * 0.6,
+          x + r * 0.6,
+          y - r * 0.55,
+          x + r,
+          y + r * 0.1,
+          x + r * 0.3,
+          y + r * 0.4,
+          x - r * 0.6,
+          y + r * 0.35,
+        ])
+        .fill(0x8c8f8c)
+        .poly([
+          x - r * 0.5,
+          y - r * 0.6,
+          x + r * 0.6,
+          y - r * 0.55,
+          x + r * 0.2,
+          y - r * 0.1,
+          x - r * 0.6,
+          y - r * 0.1,
+        ])
+        .fill(0xa9aca8);
+    }
+    this.ground.addChild(sand);
+
+    // Dune grass: a ragged fringe of taller, sandy tufts where the meadow meets the beach.
+    const dune = new Graphics();
+    for (let y = ground + 6; y <= bottom; y += 7) {
+      const edge = this.duneAt(y);
+      for (let k = 0; k < 2; k++) {
+        const x = edge - 4 + hash(y * 0.31 + k * 7.7) * 16;
+        const h = 10 + hash(y * 0.53 + k) * 14;
+        const lean = (hash(y * 0.9 + k * 3) - 0.6) * 6;
+        dune
+          .moveTo(x - 3, y)
+          .lineTo(x + lean, y - h)
+          .lineTo(x + 2, y)
+          .closePath();
+      }
+    }
+    dune.fill({ color: 0x6f7f45, alpha: 0.95 });
+    this.ground.addChild(dune);
+
+    // Sea: gradient from deep to shallow, clipped to the waterline so nothing shows past the beach.
     this.sea = new Sprite(
       verticalGradient([
         [0, 0x1e5c86],
@@ -221,21 +336,14 @@ export class Terrain {
       ]),
     );
     this.sea.position.set(-extend, ground - 2);
-    this.sea.width = this.layout.shoreX + extend + 200;
+    this.sea.width = this.layout.shoreX + extend;
     this.sea.height = bottom - ground + 2;
-    this.ground.addChild(this.sea);
-
-    const sand = new Graphics();
-    sand.moveTo(this.shoreAt(ground) - 10, ground - 2);
-    for (let y = ground; y <= bottom; y += 12)
-      sand.lineTo(this.shoreAt(y) + 160 - (y - ground) * 0.03, y);
-    for (let y = bottom; y >= ground; y -= 12) sand.lineTo(this.shoreAt(y) - 20, y);
-    sand.closePath().fill(SAND);
-    sand.moveTo(this.shoreAt(ground) - 10, ground - 2);
-    for (let y = ground; y <= bottom; y += 12) sand.lineTo(this.shoreAt(y) + 34, y);
-    for (let y = bottom; y >= ground; y -= 12) sand.lineTo(this.shoreAt(y) - 20, y);
-    sand.closePath().fill(SAND_WET);
-    this.ground.addChild(sand);
+    const seaMask = new Graphics();
+    seaMask.moveTo(-extend, ground - 2).lineTo(this.shoreAt(ground) + 4, ground - 2);
+    for (let y = ground; y <= bottom; y += step) seaMask.lineTo(this.shoreAt(y) + 4, y);
+    seaMask.lineTo(-extend, bottom).closePath().fill(0xffffff);
+    this.sea.mask = seaMask;
+    this.ground.addChild(this.sea, seaMask);
 
     for (let i = 0; i < 6; i++) {
       const wave = new Graphics();

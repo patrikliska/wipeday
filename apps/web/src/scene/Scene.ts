@@ -30,14 +30,14 @@ const W = 1600;
 const H = 900;
 const HORIZON = 520;
 const GROUND = 560;
-const SHORE_X = 480;
+const SHORE_X = 540;
 const BASE_X = 1000;
 /** Sky and ground continue this far past the stage so no screen shape shows an edge. */
 const EXTEND = 800;
 /** Narrow screens always see at least this many world units across... */
 const MIN_VISIBLE_W = 760;
 /** ...centred here, so the base and the shore both fit on a phone. */
-const FOCUS_X = 930;
+const FOCUS_X = 845;
 
 const BACK_NODES: NodeDef[] = [
   { id: "tree_1", kind: "tree", x: 820, y: GROUND + 2, scale: 1 },
@@ -46,8 +46,7 @@ const BACK_NODES: NodeDef[] = [
   { id: "tree_4", kind: "tree", x: 1560, y: GROUND + 2, scale: 1.05 },
 ];
 const FRONT_NODES: NodeDef[] = [
-  { id: "ore_1", kind: "ore", x: 600, y: GROUND + 30, scale: 1 },
-  { id: "fibre_1", kind: "fibre", x: 720, y: GROUND + 96, scale: 1 },
+  { id: "ore_1", kind: "ore", x: 705, y: GROUND + 30, scale: 1 },
   { id: "sulfur_1", kind: "sulfur", x: 1350, y: GROUND + 84, scale: 0.85 },
 ];
 const BARREL_SPOT = { x: 540, y: GROUND + 62 };

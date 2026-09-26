@@ -3,8 +3,17 @@
  * Nodes are clickable; a click starts the "work the node" game: a marker
  * appears on the node, hit it before it fades, five times.
  */
-import { Container, Graphics, Sprite } from "pixi.js";
-import { FIBRE, ORE_VEIN, ROCK, ROCK_DARK, SULFUR_VEIN, TREE_CANOPY, TREE_TRUNK } from "./palette";
+import { ColorMatrixFilter, Container, Graphics, Sprite } from "pixi.js";
+import {
+  FIBRE,
+  ORE_VEIN,
+  ROCK,
+  ROCK_DARK,
+  SAND,
+  SULFUR_VEIN,
+  TREE_CANOPY,
+  TREE_TRUNK,
+} from "./palette";
 import { glowTexture } from "./textures";
 import { clamp, easeOutBack, hash, pick, rand, shade } from "./util";
 
@@ -21,6 +30,8 @@ export interface NodeDef {
 interface NodeView {
   def: NodeDef;
   container: Container;
+  /** White silhouette rim behind the body: says "you can click this". */
+  outline: Container;
   body: Container;
   phase: number;
   shake: number;
@@ -160,11 +171,7 @@ function drawPebble(g: Graphics, x: number, y: number, w: number, h: number, col
   ]).fill({ color: 0xffffff, alpha: 0.16 });
 }
 
-function drawRock(kind: "ore" | "sulfur", scale: number): Container {
-  const c = new Container();
-  const g = new Graphics();
-  const seed = kind === "ore" ? 1 : 2;
-  // Contact shadow hugging the base, longer on the right (light comes from the left).
+function drawRockShadow(g: Graphics): void {
   polygon(g, [
     [-47, 0],
     [-34, 3.5],
@@ -183,6 +190,15 @@ function drawRock(kind: "ore" | "sulfur", scale: number): Container {
     [30, -0.5],
     [-38, -0.8],
   ]).fill({ color: 0x000000, alpha: 0.18 });
+}
+
+/** `silhouette` leaves out the shadow and pebbles: the outline traces only the rock. */
+function drawRock(kind: "ore" | "sulfur", scale: number, silhouette = false): Container {
+  const c = new Container();
+  const g = new Graphics();
+  const seed = kind === "ore" ? 1 : 2;
+  // Contact shadow hugging the base, longer on the right (light comes from the left).
+  if (!silhouette) drawRockShadow(g);
   // A smaller rock behind, right.
   polygon(g, [
     [14, 0],
@@ -247,9 +263,11 @@ function drawRock(kind: "ore" | "sulfur", scale: number): Container {
     });
   });
   // Pebbles at the foot.
-  drawPebble(g, -46, 1, 6, 5, shade(ROCK, -0.05));
-  drawPebble(g, -37, 2, 4, 3, ROCK_DARK);
-  drawPebble(g, 39, 2, 5, 3.5, shade(ROCK, 0.02));
+  if (!silhouette) {
+    drawPebble(g, -46, 1, 6, 5, shade(ROCK, -0.05));
+    drawPebble(g, -37, 2, 4, 3, ROCK_DARK);
+    drawPebble(g, 39, 2, 5, 3.5, shade(ROCK, 0.02));
+  }
   c.addChild(g);
   c.scale.set(scale);
   return c;
@@ -272,6 +290,32 @@ function drawFibre(scale: number): Container {
   c.addChild(g);
   c.scale.set(scale);
   return c;
+}
+
+function drawBody(def: NodeDef, silhouette = false): Container {
+  if (def.kind === "tree") return drawTree(def.scale);
+  if (def.kind === "fibre") return drawFibre(def.scale);
+  return drawRock(def.kind, def.scale, silhouette);
+}
+
+/** Offsets of the silhouette copies that make the rim, in world units. */
+const RIM = 1.4;
+const RIM_OFFSETS: readonly (readonly [number, number])[] = [
+  [RIM, 0],
+  [-RIM, 0],
+  [0, RIM],
+  [0, -RIM],
+  [RIM * 0.7, RIM * 0.7],
+  [-RIM * 0.7, RIM * 0.7],
+  [RIM * 0.7, -RIM * 0.7],
+  [-RIM * 0.7, -RIM * 0.7],
+];
+
+/** Turns everything it draws white, keeping alpha: the silhouette colour. */
+function whiteFilter(): ColorMatrixFilter {
+  const filter = new ColorMatrixFilter();
+  filter.matrix = [0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0];
+  return filter;
 }
 
 export class Nodes {
@@ -299,15 +343,18 @@ export class Nodes {
     private readonly callbacks: NodeCallbacks,
   ) {
     for (const def of defs) {
-      const body =
-        def.kind === "tree"
-          ? drawTree(def.scale)
-          : def.kind === "fibre"
-            ? drawFibre(def.scale)
-            : drawRock(def.kind, def.scale);
+      const body = drawBody(def);
+      const outline = new Container();
+      for (const [dx, dy] of RIM_OFFSETS) {
+        const copy = drawBody(def, true);
+        copy.position.set(dx, dy);
+        outline.addChild(copy);
+      }
+      outline.filters = [whiteFilter()];
+      outline.alpha = 0.55;
       const container = new Container();
       container.position.set(def.x, def.y);
-      container.addChild(body);
+      container.addChild(outline, body);
       container.eventMode = "static";
       container.cursor = "pointer";
       const halfWidth = 50 * def.scale;
@@ -318,6 +365,7 @@ export class Nodes {
       const view: NodeView = {
         def,
         container,
+        outline,
         body,
         phase: hash(def.x) * 6.28,
         shake: 0,
@@ -463,10 +511,18 @@ export class Nodes {
       if (view.def.kind === "tree") {
         const canopy = view.body.children[1];
         if (canopy) canopy.rotation = sway + jolt * 0.06;
+        for (const copy of view.outline.children) {
+          const rim = copy.children[1];
+          if (rim) rim.rotation = sway + jolt * 0.06;
+        }
       } else {
         view.body.rotation = jolt * 0.04;
         view.body.x = jolt * 4;
+        view.outline.rotation = view.body.rotation;
+        view.outline.x = view.body.x;
       }
+      // Soft at rest, bright under the pointer.
+      view.outline.alpha += ((view.hover ? 0.95 : 0.5) - view.outline.alpha) * Math.min(1, dt * 10);
       view.shake = Math.max(0, view.shake - dt * 3);
       const target = 1 + view.hover * 0.04;
       view.container.scale.x += (target - view.container.scale.x) * dt * 10;
@@ -513,50 +569,198 @@ export class Nodes {
 }
 
 /** The barrel washed up on the shore. */
+const BARREL_BLUE = 0x3d6e9c;
+const BARREL_RUST = 0x9a5a34;
+const BARREL_W = 19;
+const BARREL_H = 50;
+
+/**
+ * A blue oil drum, tipped over a little and half sunk in the wet sand: rolled ribs, a lid
+ * with a bung, chipped paint and rust, a strand of kelp over the top. Origin at the sand line.
+ */
+function drawBarrel(silhouette = false): Container {
+  const root = new Container();
+  const drum = new Graphics();
+  drum.rotation = -0.16;
+  drum.y = -1;
+  const w = BARREL_W;
+  const h = BARREL_H;
+  const lid = 5;
+  // Body: shaded in vertical strips so it reads as a cylinder.
+  drum.roundRect(-w, -h, w * 2, h, 4).fill(BARREL_BLUE);
+  if (!silhouette) {
+    drum.rect(w * 0.45, -h + 2, w * 0.55, h - 2).fill(shade(BARREL_BLUE, -0.28));
+    drum.rect(-w * 0.62, -h + 3, w * 0.34, h - 4).fill(shade(BARREL_BLUE, 0.16));
+    drum.rect(-w * 0.5, -h + 4, w * 0.1, h - 8).fill({ color: 0xffffff, alpha: 0.18 });
+    // Rolled ribs, curving down a touch because we look at the drum from slightly above.
+    for (const y of [-h * 0.66, -h * 0.34]) {
+      drum
+        .moveTo(-w, y - 2)
+        .quadraticCurveTo(0, y + 2, w, y - 2)
+        .lineTo(w, y + 2)
+        .quadraticCurveTo(0, y + 6, -w, y + 2)
+        .closePath()
+        .fill(shade(BARREL_BLUE, -0.38));
+      drum
+        .moveTo(-w, y - 2)
+        .quadraticCurveTo(0, y + 2, w, y - 2)
+        .stroke({ width: 1.2, color: shade(BARREL_BLUE, 0.3), alpha: 0.7 });
+    }
+    // Chipped paint and rust: along the ribs, the rim, the foot and a streak running down.
+    drum
+      .poly([-w, -12, -w * 0.4, -14, 0, -11, w * 0.5, -13, w, -10, w, -4, -w, -4])
+      .fill({ color: BARREL_RUST, alpha: 0.75 });
+    drum
+      .poly([
+        w * 0.2,
+        -h * 0.66 + 3,
+        w * 0.62,
+        -h * 0.64 + 2,
+        w * 0.5,
+        -h * 0.58,
+        w * 0.3,
+        -h * 0.6,
+      ])
+      .fill(BARREL_RUST);
+    drum
+      .poly([
+        -w * 0.8,
+        -h * 0.34 + 3,
+        -w * 0.35,
+        -h * 0.33 + 4,
+        -w * 0.5,
+        -h * 0.26,
+        -w * 0.75,
+        -h * 0.28,
+      ])
+      .fill(BARREL_RUST);
+    drum
+      .poly([w * 0.36, -h * 0.58, w * 0.46, -h * 0.58, w * 0.42, -h * 0.44])
+      .fill({ color: BARREL_RUST, alpha: 0.7 });
+    drum.poly([-w * 0.1, -h + 3, w * 0.3, -h + 3, w * 0.12, -h + 8]).fill(shade(BARREL_RUST, -0.1));
+    drum
+      .poly([-w * 0.3, -h * 0.2, -w * 0.05, -h * 0.18, -w * 0.18, -h * 0.1])
+      .fill({ color: 0xc7c2b4, alpha: 0.8 });
+  }
+  // Lid: the top ellipse, a darker rolled rim, and the bung.
+  drum.ellipse(0, -h, w, lid).fill(shade(BARREL_BLUE, silhouette ? 0 : -0.3));
+  if (!silhouette) {
+    drum.ellipse(0, -h + 0.5, w - 2.5, lid - 1.6).fill(shade(BARREL_BLUE, 0.1));
+    drum.ellipse(w * 0.45, -h, 3, 1.4).fill(0x2a2d31);
+    drum.ellipse(w * 0.45, -h - 0.4, 2, 0.8).fill(0x8a8f94);
+    // Kelp draped over the rim.
+    drum
+      .moveTo(-w * 0.55, -h - 2)
+      .quadraticCurveTo(-w * 0.2, -h + 1, -w * 0.9, -h + 12)
+      .quadraticCurveTo(-w * 1.05, -h + 20, -w * 0.8, -h + 26)
+      .stroke({ width: 2.4, color: 0x3f5a2a, cap: "round" });
+    drum
+      .moveTo(-w * 0.3, -h - 1)
+      .quadraticCurveTo(-w * 0.55, -h + 6, -w * 0.62, -h + 14)
+      .stroke({ width: 1.6, color: 0x55703a, cap: "round" });
+  }
+  root.addChild(drum);
+  if (!silhouette) {
+    // Sand drifted against the foot of the drum, so it sits in the beach instead of on it.
+    const sand = new Graphics();
+    sand
+      .moveTo(-w - 13, 4)
+      .quadraticCurveTo(-w * 0.7, -12, w * 0.2, -11)
+      .quadraticCurveTo(w + 4, -10, w + 14, 3)
+      .quadraticCurveTo(0, 7, -w - 13, 4)
+      .closePath()
+      .fill(SAND);
+    sand
+      .moveTo(-w * 0.7, -5)
+      .quadraticCurveTo(0, -9, w * 0.7, -5)
+      .stroke({ width: 1.4, color: shade(SAND, 0.35), alpha: 0.8 });
+    sand
+      .moveTo(-w - 13, 4)
+      .quadraticCurveTo(0, 7, w + 14, 3)
+      .stroke({ width: 1.2, color: shade(SAND, -0.18), alpha: 0.6 });
+    // A short damp shadow on the lee side.
+    root.addChildAt(
+      new Graphics()
+        .poly([w * 0.4, -2, w + 10, -3, w + 20, 1, w + 8, 3])
+        .fill({ color: shade(SAND, -0.35), alpha: 0.35 }),
+      0,
+    );
+    root.addChild(sand);
+  }
+  return root;
+}
+
 export class Barrel {
   readonly container = new Container();
   private readonly glow: Sprite;
-  private readonly body: Graphics;
+  private readonly body = new Container();
+  private readonly outline = new Container();
   private readonly tag: Graphics;
   private time = 0;
   private target = 0;
   private appear = 0;
+  private hover = false;
 
-  constructor(
-    private readonly x: number,
-    private readonly y: number,
-    onTap: () => void,
-  ) {
+  constructor(x: number, y: number, onTap: () => void) {
     this.glow = new Sprite(glowTexture());
     this.glow.anchor.set(0.5);
     this.glow.blendMode = "add";
     this.glow.tint = 0xffd25a;
     this.glow.width = 170;
     this.glow.height = 170;
+    this.glow.y = -24;
     this.glow.alpha = 0;
-    this.body = new Graphics();
-    this.body.roundRect(-18, -48, 36, 48, 6).fill(0x4a6b8a);
-    this.body
-      .rect(-18, -40, 36, 4)
-      .fill(0x2f4a63)
-      .rect(-18, -26, 36, 4)
-      .fill(0x2f4a63)
-      .rect(-18, -12, 36, 4)
-      .fill(0x2f4a63);
-    this.body.roundRect(-14, -44, 10, 40, 3).fill({ color: 0xffffff, alpha: 0.12 });
-    this.body.circle(6, -30, 5).fill(0xe3a32f);
+    this.body.addChild(drawBarrel());
+    for (const [dx, dy] of RIM_OFFSETS) {
+      const copy = drawBarrel(true);
+      copy.position.set(dx, dy);
+      this.outline.addChild(copy);
+    }
+    this.outline.filters = [whiteFilter()];
+    this.outline.alpha = 0.55;
+    // Loot tag: a rounded badge with a dark edge and a pointer at the drum.
     this.tag = new Graphics();
-    this.tag.roundRect(-14, -84, 28, 24, 6).fill(0xe3a32f);
-    this.tag.moveTo(-6, -60).lineTo(0, -52).lineTo(6, -60).closePath().fill(0xe3a32f);
-    this.tag.rect(-2, -78, 4, 10).fill(0x1b1a18).circle(0, -65, 2.2).fill(0x1b1a18);
-    this.container.addChild(this.glow, this.body, this.tag);
+    // One path for badge and pointer, so the edge runs around both without a seam.
+    const badge = (dy: number) => {
+      const [l, r, t, b, k] = [-15, 15, -96 + dy, -70 + dy, 7];
+      this.tag
+        .moveTo(l + k, t)
+        .lineTo(r - k, t)
+        .arcTo(r, t, r, t + k, k)
+        .lineTo(r, b - k)
+        .arcTo(r, b, r - k, b, k)
+        .lineTo(6, b)
+        .lineTo(0, b + 8)
+        .lineTo(-6, b)
+        .lineTo(l + k, b)
+        .arcTo(l, b, l, b - k, k)
+        .lineTo(l, t + k)
+        .arcTo(l, t, l + k, t, k)
+        .closePath();
+    };
+    badge(3);
+    this.tag.fill({ color: 0x000000, alpha: 0.22 });
+    badge(0);
+    this.tag.fill(0xe3a32f);
+    this.tag.roundRect(-15, -83, 30, 13, 6).fill({ color: 0xb87818, alpha: 0.35 });
+    this.tag.roundRect(-11, -93, 22, 5, 2.5).fill({ color: 0xffffff, alpha: 0.28 });
+    badge(0);
+    this.tag.stroke({ width: 2, color: 0x5a3a0e, join: "round" });
+    this.tag.roundRect(-2.2, -91, 4.4, 11, 2).fill(0x2a1c08).circle(0, -76, 2.4).fill(0x2a1c08);
+    this.container.addChild(this.glow, this.outline, this.body, this.tag);
     this.container.position.set(x, y);
     this.container.eventMode = "static";
     this.container.cursor = "pointer";
     this.container.hitArea = {
-      contains: (px: number, py: number) => Math.abs(px) < 30 && py < 10 && py > -90,
+      contains: (px: number, py: number) => Math.abs(px) < 32 && py < 10 && py > -100,
     };
     this.container.on("pointertap", onTap);
+    this.container.on("pointerover", () => {
+      this.hover = true;
+    });
+    this.container.on("pointerout", () => {
+      this.hover = false;
+    });
     this.container.visible = false;
   }
 
@@ -570,8 +774,11 @@ export class Barrel {
     const shown = this.appear > 0.02;
     this.container.visible = shown;
     if (!shown) return;
-    this.container.position.set(this.x, this.y + Math.sin(this.time * 1.6) * 4);
-    this.body.rotation = Math.sin(this.time * 1.1) * 0.08;
+    // Stuck in the sand: only a slow rock as the wash reaches it, while the tag bobs.
+    const rock = Math.sin(this.time * 0.9) * 0.025;
+    this.body.rotation = rock;
+    this.outline.rotation = rock;
+    this.outline.alpha += ((this.hover ? 0.95 : 0.55) - this.outline.alpha) * Math.min(1, dt * 10);
     this.container.scale.set(easeOutBack(clamp(this.appear, 0, 1)));
     this.glow.alpha = 0.08 + 0.08 * Math.sin(this.time * 3) + darkness * 0.3;
     this.tag.y = Math.sin(this.time * 3) * 4;
