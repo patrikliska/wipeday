@@ -1,6 +1,6 @@
 /** Daily tasks overview. Spec: `docs/screens/tasks.md`. Ephemeral. */
-import { nextTaskResetAt, taskOf } from "@wipe-day/domain/active";
-import type { BaseState } from "@wipe-day/domain/base";
+import { nextTaskResetAt, taskOf } from "../../legacy/domain/active";
+import type { BaseState } from "../../legacy/domain/base";
 import { amountsText, type TextContext } from "../amounts";
 import { relativeTimestamp } from "../format";
 import type { Screen } from "../screen";

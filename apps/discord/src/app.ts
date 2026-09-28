@@ -1,11 +1,11 @@
 /** Everything a handler needs, built once at startup. */
 
-import { loadContent } from "@wipe-day/content/load";
-import type { Content } from "@wipe-day/content/schema";
 import type { Clock } from "@wipe-day/domain/clock";
 import type { Emojis } from "./assets/emojiSync";
 import { AssetRegistry } from "./assets/registry";
 import type { Config } from "./config";
+import { loadContent } from "./legacy/content/load";
+import type { Content } from "./legacy/content/schema";
 import type { Paths } from "./paths";
 import { Renderer } from "./render/renderer";
 import type { Db } from "./store/db";

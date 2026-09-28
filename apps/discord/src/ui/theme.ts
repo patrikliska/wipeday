@@ -22,10 +22,10 @@ export const color = {
   danger: "#F05252",
 } as const;
 
-import type { Tier } from "@wipe-day/content/tiers";
+import type { Tier } from "../legacy/content/tiers";
 
 /** Base tiers, which double as the rarity scale for items and blueprints. Ids live in content. */
-export { TIERS, type Tier } from "@wipe-day/content/tiers";
+export { TIERS, type Tier } from "../legacy/content/tiers";
 
 /** The one fixed colour each tier has everywhere. */
 export const tierColor: Record<Tier, string> = {

@@ -4,8 +4,8 @@
  * Pure: takes state, the rendered card and what the last click did, returns
  * a `Screen`. The interaction layer decides how it is sent.
  */
-import type { Amounts } from "@wipe-day/content/schema";
-import { type BarrelLoot, type TaskDone, taskOf } from "@wipe-day/domain/active";
+import type { Amounts } from "../../legacy/content/schema";
+import { type BarrelLoot, type TaskDone, taskOf } from "../../legacy/domain/active";
 import {
   accrued,
   type BaseState,
@@ -23,7 +23,7 @@ import {
   toolOf,
   total,
   upkeepCoverHours,
-} from "@wipe-day/domain/base";
+} from "../../legacy/domain/base";
 import type { BaseCardProps } from "../../render/cards/base";
 import { advise, revealed } from "../advisor";
 import { amountsText, type TextContext } from "../amounts";

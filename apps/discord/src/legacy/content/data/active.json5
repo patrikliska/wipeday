@@ -1,0 +1,46 @@
+// Active play between gathers (Phase 2b): the node mini-game, barrels and
+// daily tasks. Everything here is a balance number; the simulator's
+// "optimal" archetype plays all three perfectly and the pacing check must
+// still hold.
+{
+  // Work the node: after Gather, hit the highlighted button up to `maxHits`
+  // times. Each hit banks `hitPercentOfBonus` of the gather bonus at once.
+  // No hit within `hitWindowSeconds` and the marker fades (run over).
+  node: { maxHits: 5, hitPercentOfBonus: 10, hitWindowSeconds: 8, positions: 4 },
+
+  // Barrels wash up every `everyMinutes` (the first one `firstAfterMinutes`
+  // after /start) and vanish `expiresMinutes` later if not broken. Breaking
+  // one draws `rolls` picks from the loot table, weighted.
+  barrels: {
+    firstAfterMinutes: 15,
+    everyMinutes: 240,
+    expiresMinutes: 45,
+    rolls: 2,
+    loot: [
+      { resource: "scrap", min: 2, max: 8, weight: 30 },
+      { resource: "cloth", min: 10, max: 30, weight: 25 },
+      { resource: "leather", min: 5, max: 15, weight: 15 },
+      { resource: "low_grade_fuel", min: 5, max: 20, weight: 15 },
+      { item: "gears", min: 1, max: 3, weight: 18 },
+      { item: "metal_pipe", min: 1, max: 2, weight: 14 },
+      { item: "metal_spring", min: 1, max: 2, weight: 10 },
+      { item: "tech_trash", min: 1, max: 1, weight: 4 },
+    ],
+  },
+
+  // Daily tasks: `perDay` picked from the pool, seeded by the UTC day so
+  // everyone gets the same ones. `requires` swaps a task out for players who
+  // cannot do it yet. Rewards are banked the moment the target is reached.
+  tasks: {
+    perDay: 3,
+    pool: [
+      { id: "gather_4", kind: "gather", target: 4, reward: { scrap: 5, wood: 200 } },
+      { id: "collect_3", kind: "collect", target: 3, reward: { scrap: 5, stone: 200 } },
+      { id: "node_hits_10", kind: "node_hits", target: 10, reward: { scrap: 10 } },
+      { id: "barrel_1", kind: "barrel", target: 1, reward: { scrap: 5, cloth: 20 } },
+      { id: "smelt_300", kind: "smelt", target: 300, requires: "furnace", reward: { scrap: 10, metal_fragments: 50 } },
+      { id: "furnace_out_200", kind: "furnace_collect", target: 200, requires: "furnace", reward: { scrap: 8 } },
+      { id: "craft_1", kind: "craft", target: 1, requires: "workbench", reward: { scrap: 10, wood: 300 } },
+    ],
+  },
+}

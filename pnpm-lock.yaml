@@ -48,9 +48,6 @@ importers:
       '@resvg/resvg-js':
         specifier: ^2.6.2
         version: 2.6.2
-      '@wipe-day/content':
-        specifier: workspace:*
-        version: link:../../packages/content
       '@wipe-day/domain':
         specifier: workspace:*
         version: link:../../packages/domain

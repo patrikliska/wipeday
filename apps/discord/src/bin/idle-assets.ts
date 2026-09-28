@@ -12,11 +12,11 @@
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, extname, join, resolve } from "node:path";
-import { loadContent } from "@wipe-day/content/load";
 import { checkAssets, type Finding, type Report, reportFails } from "../assets/check";
 import { CHECKLIST_FILE, MANIFEST_FILE, plannedAssets, writeManifest } from "../assets/manifest";
 import { resizePng } from "../assets/resize";
 import { assetName } from "../assets/spec";
+import { loadContent } from "../legacy/content/load";
 import { discoverPaths } from "../paths";
 import { CURRENT_PHASE } from "../phase";
 import { loadLocale } from "../ui/locale";

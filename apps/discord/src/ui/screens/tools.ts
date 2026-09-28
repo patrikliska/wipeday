@@ -2,8 +2,8 @@
  * The gathering-tool upgrade screen and its result. Spec: `docs/screens/tools.md`.
  * Ephemeral, so customIds carry no owner.
  */
-import type { Amounts, Tool } from "@wipe-day/content/schema";
-import { type BaseState, nextTool, shortfall, toolOf } from "@wipe-day/domain/base";
+import type { Amounts, Tool } from "../../legacy/content/schema";
+import { type BaseState, nextTool, shortfall, toolOf } from "../../legacy/domain/base";
 import { amountsLabel, amountsText, type TextContext } from "../amounts";
 import { encodeCustomId } from "../customId";
 import { perHour } from "../format";

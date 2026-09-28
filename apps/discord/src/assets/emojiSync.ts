@@ -7,9 +7,9 @@
  * in `app_emojis`). Emojis added by hand in the developer portal are left alone.
  */
 import { readFileSync } from "node:fs";
-import type { EntityKind } from "@wipe-day/content/schema";
 import type { APIMessageComponentEmoji } from "discord.js";
 import { eq } from "drizzle-orm";
+import type { EntityKind } from "../legacy/content/schema";
 import { log } from "../log";
 import type { Db } from "../store/db";
 import { appEmojis } from "../store/schema";

@@ -1,6 +1,6 @@
 /** Workbench and crafting. Spec: `docs/screens/craft.md`. Ephemeral. */
-import type { Amounts, Item, Recipe } from "@wipe-day/content/schema";
-import { type BaseState, craftable, tierOf, workbenchLevel } from "@wipe-day/domain/base";
+import type { Amounts, Item, Recipe } from "../../legacy/content/schema";
+import { type BaseState, craftable, tierOf, workbenchLevel } from "../../legacy/domain/base";
 import { amountsText, type TextContext } from "../amounts";
 import { encodeCustomId } from "../customId";
 import type { Button, Screen, SelectOption } from "../screen";

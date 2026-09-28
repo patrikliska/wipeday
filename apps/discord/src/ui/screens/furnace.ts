@@ -1,5 +1,5 @@
 /** Storage and furnaces. Spec: `docs/screens/furnace.md`. Ephemeral. */
-import type { Amounts } from "@wipe-day/content/schema";
+import type { Amounts } from "../../legacy/content/schema";
 import {
   type BaseState,
   fuelFor,
@@ -12,7 +12,7 @@ import {
   nextFurnace,
   shortfall,
   smeltable,
-} from "@wipe-day/domain/base";
+} from "../../legacy/domain/base";
 import { amountsLabel, amountsText, type TextContext } from "../amounts";
 import { encodeCustomId } from "../customId";
 import { abbrev, duration, relativeTimestamp } from "../format";

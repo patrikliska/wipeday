@@ -1,5 +1,5 @@
-import { loadContent } from "@wipe-day/content/load";
 import { describe, expect, it } from "vitest";
+import { loadContent } from "../legacy/content/load";
 import { discoverPaths } from "../paths";
 import { tick } from "../scheduler/scheduler";
 import { openDb } from "../store/db";

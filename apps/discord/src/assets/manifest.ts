@@ -9,10 +9,10 @@
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { identities } from "@wipe-day/content/load";
-import { type Content, type EntityKind, ID_PATTERN } from "@wipe-day/content/schema";
 import JSON5 from "json5";
 import { z } from "zod";
+import { identities } from "../legacy/content/load";
+import { type Content, type EntityKind, ID_PATTERN } from "../legacy/content/schema";
 import type { Locale } from "../ui/locale";
 import {
   type AssetSpec,

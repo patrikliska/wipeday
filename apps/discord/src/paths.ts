@@ -1,12 +1,12 @@
 /**
- * Where the bot's on-disk resources live. Data and locale come from
- * `@wipe-day/content`; assets, migrations and previews belong to this app.
+ * Where the bot's on-disk resources live. Data and locale come from its frozen
+ * copy in `legacy/content` (D57); assets, migrations and previews belong to this app.
  * `.env` and `var/` (the database) stay at the repo root, shared by every app.
  * `IDLE_ROOT` overrides the repo root in deployment.
  */
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { contentPaths } from "@wipe-day/content/paths";
+import { contentPaths } from "./legacy/content/paths";
 
 export interface Paths {
   /** Repo root: `.env`, `var/`. */

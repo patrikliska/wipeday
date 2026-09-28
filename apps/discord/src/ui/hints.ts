@@ -3,7 +3,7 @@
  * when a mechanic first becomes relevant, gone for good once the player has
  * used it twice. The hint always explains the advisor's primary action.
  */
-import type { Content } from "@wipe-day/content/schema";
+import type { Content } from "../legacy/content/schema";
 import {
   accrued,
   type BaseState,
@@ -11,7 +11,7 @@ import {
   nextTier,
   nextTool,
   total,
-} from "@wipe-day/domain/base";
+} from "../legacy/domain/base";
 import type { Advice } from "./advisor";
 import type { Locale } from "./locale";
 

@@ -1,0 +1,12 @@
+// Survivor perks (account layer). Effects arrive with Phase 3.
+// Asset files are prefixed `perk_`. Perks have no Rust item of their own, so
+// `rustRef` names an item whose icon stands in for the perk.
+{
+  perks: [
+    { id: "scavenger", phase: 3, fallbackEmoji: "🔍", rustRef: "scrap (or the loot barrel)" },
+    { id: "medic", phase: 3, fallbackEmoji: "🩹", rustRef: "largemedkit" },
+    { id: "demolition", phase: 3, fallbackEmoji: "🧨", rustRef: "explosive.timed" },
+    { id: "marksman", phase: 3, fallbackEmoji: "🎯", rustRef: "weapon.mod.small.scope" },
+    { id: "mule", phase: 3, fallbackEmoji: "🎒", rustRef: "largebackpack" },
+  ],
+}

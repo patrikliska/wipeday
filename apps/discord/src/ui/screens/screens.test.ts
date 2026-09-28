@@ -1,5 +1,7 @@
-import { loadContent } from "@wipe-day/content/load";
-import { hitNode, settleAll, settleBarrel, startNodeRun } from "@wipe-day/domain/active";
+import { describe, expect, it } from "vitest";
+import { Emojis } from "../../assets/emojiSync";
+import { loadContent } from "../../legacy/content/load";
+import { hitNode, settleAll, settleBarrel, startNodeRun } from "../../legacy/domain/active";
 import {
   type BaseState,
   buyFurnace,
@@ -9,9 +11,7 @@ import {
   newBase,
   smelt,
   startBuild,
-} from "@wipe-day/domain/base";
-import { describe, expect, it } from "vitest";
-import { Emojis } from "../../assets/emojiSync";
+} from "../../legacy/domain/base";
 import { discoverPaths } from "../../paths";
 import { loadLocale } from "../../ui/locale";
 import { advise, revealed } from "../advisor";

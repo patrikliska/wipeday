@@ -11,8 +11,10 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { loadContent } from "@wipe-day/content/load";
-import { settleAll, settleBarrel, startNodeRun } from "@wipe-day/domain/active";
+import { Emojis } from "../assets/emojiSync";
+import { AssetRegistry } from "../assets/registry";
+import { loadContent } from "../legacy/content/load";
+import { settleAll, settleBarrel, startNodeRun } from "../legacy/domain/active";
 import {
   type BaseState,
   buyFurnace,
@@ -24,9 +26,7 @@ import {
   smelt,
   startBuild,
   upgradeTool,
-} from "@wipe-day/domain/base";
-import { Emojis } from "../assets/emojiSync";
-import { AssetRegistry } from "../assets/registry";
+} from "../legacy/domain/base";
 import { discoverPaths } from "../paths";
 import { baseCard } from "../render/cards/base";
 import { inventoryCard } from "../render/cards/inventory";

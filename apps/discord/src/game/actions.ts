@@ -8,7 +8,7 @@
  * Nothing here knows about Discord; the UI layer calls these and renders
  * whatever comes back.
  */
-import type { Amounts, Content, Task } from "@wipe-day/content/schema";
+import type { Amounts, Content, Task } from "../legacy/content/schema";
 import {
   type BarrelResult,
   breakBarrel,
@@ -18,7 +18,7 @@ import {
   settleAll,
   startNodeRun,
   type TaskDone,
-} from "@wipe-day/domain/active";
+} from "../legacy/domain/active";
 import {
   type BaseState,
   type BuildResult,
@@ -38,8 +38,8 @@ import {
   total,
   type UpgradeResult,
   upgradeTool,
-} from "@wipe-day/domain/base";
-import { seedOf } from "@wipe-day/domain/rng";
+} from "../legacy/domain/base";
+import { seedOf } from "../legacy/domain/rng";
 import type { Db } from "../store/db";
 import {
   basesRepo,

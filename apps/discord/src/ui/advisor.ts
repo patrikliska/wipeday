@@ -3,7 +3,7 @@
  * the most useful thing the player can do right now. The onboarding hint
  * explains the same action, so the glowing button and the hint always agree.
  */
-import type { Content } from "@wipe-day/content/schema";
+import type { Content } from "../legacy/content/schema";
 import {
   type BaseState,
   boxesInUse,
@@ -21,7 +21,7 @@ import {
   storageFill,
   tierOf,
   workbenchLevel,
-} from "@wipe-day/domain/base";
+} from "../legacy/domain/base";
 
 export type Advice = "collect" | "barrel" | "build" | "tools" | "furnace" | "craft" | "gather";
 

@@ -4,10 +4,10 @@
  * transaction" trivial: `db.transaction(() => { ... })`.
  */
 
-import type { Amounts } from "@wipe-day/content/schema";
-import type { ActiveState } from "@wipe-day/domain/active";
-import type { BaseState } from "@wipe-day/domain/base";
 import { and, eq, isNull, lte } from "drizzle-orm";
+import type { Amounts } from "../legacy/content/schema";
+import type { ActiveState } from "../legacy/domain/active";
+import type { BaseState } from "../legacy/domain/base";
 import type { Tier } from "../ui/theme";
 import type { Db } from "./db";
 import {

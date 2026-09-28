@@ -1,6 +1,6 @@
 /** The node mini-game. Spec: `docs/screens/node.md`. Ephemeral. */
-import { nodeRunAlive } from "@wipe-day/domain/active";
-import type { BaseState } from "@wipe-day/domain/base";
+import { nodeRunAlive } from "../../legacy/domain/active";
+import type { BaseState } from "../../legacy/domain/base";
 import { amountsText, type TextContext } from "../amounts";
 import { encodeCustomId } from "../customId";
 import { relativeTimestamp } from "../format";

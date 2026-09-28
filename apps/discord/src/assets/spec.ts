@@ -1,7 +1,7 @@
 /** What one owner-supplied asset file must look like. */
 
-import { LAST_PHASE } from "@wipe-day/content/schema";
 import { z } from "zod";
+import { LAST_PHASE } from "../legacy/content/schema";
 
 /** The size folders under `assets/` (docs/archive/discord-bot-spec.md section 7.2), in checklist order. */
 export const FOLDERS = [

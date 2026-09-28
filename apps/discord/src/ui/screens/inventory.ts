@@ -1,5 +1,5 @@
 /** The inventory screen. Spec: `docs/screens/inventory.md`. Ephemeral. */
-import { type BaseState, boxesInUse, tierOf, workbenchLevel } from "@wipe-day/domain/base";
+import { type BaseState, boxesInUse, tierOf, workbenchLevel } from "../../legacy/domain/base";
 import type { InventoryCardProps } from "../../render/cards/inventory";
 import type { TextContext } from "../amounts";
 import { encodeCustomId } from "../customId";

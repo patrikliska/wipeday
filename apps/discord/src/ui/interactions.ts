@@ -9,7 +9,6 @@
  * home message, so a change made on a sub-screen is visible at once.
  */
 
-import type { TaskDone } from "@wipe-day/domain/active";
 import {
   AttachmentBuilder,
   type ButtonInteraction,
@@ -42,6 +41,7 @@ import {
   startPlayer,
   upgradeToolAction,
 } from "../game/actions";
+import type { TaskDone } from "../legacy/domain/active";
 import { log } from "../log";
 import { baseCard } from "../render/cards/base";
 import { inventoryCard } from "../render/cards/inventory";

@@ -1,6 +1,6 @@
 /** The base upgrade screen. Spec: `docs/screens/build.md`. Ephemeral. */
-import type { Amounts } from "@wipe-day/content/schema";
-import { type BaseState, isEmpty, nextTier, shortfall, tierOf } from "@wipe-day/domain/base";
+import type { Amounts } from "../../legacy/content/schema";
+import { type BaseState, isEmpty, nextTier, shortfall, tierOf } from "../../legacy/domain/base";
 import { amountsLabel, amountsText, type TextContext } from "../amounts";
 import { encodeCustomId } from "../customId";
 import { abbrev, duration, relativeTimestamp } from "../format";

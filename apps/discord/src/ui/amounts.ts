@@ -4,8 +4,8 @@
  * the same everywhere.
  */
 
-import type { Amounts, Content } from "@wipe-day/content/schema";
 import type { Emojis } from "../assets/emojiSync";
+import type { Amounts, Content } from "../legacy/content/schema";
 import { abbrev, delta, perHour } from "./format";
 import type { Locale } from "./locale";
 

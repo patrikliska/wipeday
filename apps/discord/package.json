@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
-    "@wipe-day/content": "workspace:*",
     "@wipe-day/domain": "workspace:*",
     "better-sqlite3": "^12.11.1",
     "discord.js": "^14.27.0",
