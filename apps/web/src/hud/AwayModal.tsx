@@ -1,7 +1,7 @@
 import { total } from "@wipe-day/domain/base";
 import type { GameEvent } from "@wipe-day/domain/events";
 import { useWorld } from "../state/store";
-import { abbrev, duration, itemName, resourceName, t, tierName } from "../state/world";
+import { abbrev, duration, outputName, resourceName, t, tierName } from "../state/world";
 import { pendingOf } from "./derived";
 import { ResourceIcon } from "./Icon";
 
@@ -21,7 +21,7 @@ function summary(events: GameEvent[]): string[] {
   }
   const crafted = events.filter((event) => event.type === "crafted");
   if (crafted.length > 0) {
-    const names = [...new Set(crafted.map((event) => itemName(event.item)))].join(", ");
+    const names = [...new Set(crafted.map((event) => outputName(event.recipe)))].join(", ");
     lines.push(t("welcome.crafted", { items: names }));
   }
   const barrels = events.filter((event) => event.type === "barrel_spawned").length;

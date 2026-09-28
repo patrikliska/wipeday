@@ -2,11 +2,16 @@
  * Brings a stored base up to the current shape. W1 bases kept stations as
  * items (workbench_1-3, campfire, kiln, press, lantern), the furnace as
  * `furnaceId` and a tier build as `build`; W2 made them buildings and
- * constructions. Players keep everything they built. Idempotent: a current
- * state passes through unchanged.
+ * constructions. W3 replaced the one crafting queue with a queue per station:
+ * whatever was still waiting in the old one lands at once, and the hide vest
+ * became the leather vest. Players keep everything they built. Idempotent: a
+ * current state passes through unchanged.
  */
 import type { Content } from "@wipe-day/content/schema";
 import type { BaseState, Construction, FurnaceJob, NodeRun } from "./base";
+
+/** Items that were renamed, old id -> new id. */
+const RENAMED: Record<string, string> = { hide_vest: "leather_vest" };
 
 /** W1 station items and the building (and level) each became. */
 const STATION_ITEMS: Record<string, [string, number]> = {
@@ -24,6 +29,8 @@ type Stored = Partial<BaseState> & {
   build?: { tier: BaseState["tier"]; endsAt: number } | null;
   furnaceJobs?: Array<Omit<FurnaceJob, "perHour"> & { perHour?: number }>;
   nodeRun?: (Omit<NodeRun, "from"> & { from?: number }) | null;
+  /** W1-W2: one queue of single items. */
+  craftQueue?: Array<{ item: string; endsAt: number }>;
 };
 
 export function normalizeState(content: Content, stored: unknown): BaseState {
@@ -36,8 +43,13 @@ export function normalizeState(content: Content, stored: unknown): BaseState {
       const [building, level] = station;
       buildings[building] = Math.max(buildings[building] ?? 0, level);
     } else if (!station) {
-      items[id] = count;
+      const current = RENAMED[id] ?? id;
+      items[current] = (items[current] ?? 0) + count;
     }
+  }
+  for (const job of raw.craftQueue ?? []) {
+    const current = RENAMED[job.item] ?? job.item;
+    items[current] = (items[current] ?? 0) + 1;
   }
   if (raw.furnaceId) {
     const index = content.furnaces.findIndex((furnace) => furnace.id === raw.furnaceId);
@@ -58,7 +70,7 @@ export function normalizeState(content: Content, stored: unknown): BaseState {
     ...job,
     perHour: job.perHour ?? furnace?.orePerHour ?? 1,
   }));
-  const { furnaceId: _furnaceId, build: _build, ...rest } = raw;
+  const { furnaceId: _furnaceId, build: _build, craftQueue: _craftQueue, ...rest } = raw;
   return {
     ...(rest as BaseState),
     buildings,
@@ -67,6 +79,9 @@ export function normalizeState(content: Content, stored: unknown): BaseState {
     furnaceJobs,
     haul: raw.haul ?? { day: -1, minutes: 0 },
     wear: raw.wear ?? {},
+    production: raw.production ?? {},
+    blueprints: raw.blueprints ?? [],
+    wellFed: raw.wellFed ?? null,
     nodeRun: raw.nodeRun ? { ...raw.nodeRun, from: raw.nodeRun.from ?? 0 } : null,
     hints: raw.hints ?? {},
   };

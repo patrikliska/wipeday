@@ -12,17 +12,33 @@ import {
   smelt,
   storageCap,
   upkeepOf,
-  workbenchLevel,
 } from "./base";
 import { buildingCount, buildStatus, startConstruction } from "./buildings";
-import { craftSeconds } from "./craft";
+import { unitSeconds } from "./craft";
 import { haulLeft } from "./nodes";
 import { normalizeState } from "./normalize";
 
 const content = loadContent(contentPaths.data, loadLocale());
 const T0 = 1_700_000_000;
 const HOUR = 3600;
-const RICH = { timber: 1e6, stone: 1e6, ingots: 1e6, fibre: 1e6, fat: 1e6, fuel: 1e6, hide: 1e6 };
+const RICH = {
+  timber: 1e6,
+  stone: 1e6,
+  ingots: 1e6,
+  fibre: 1e6,
+  fat: 1e6,
+  fuel: 1e6,
+  hide: 1e6,
+  planks: 1e6,
+  rope: 1e6,
+  cloth: 1e6,
+  leather: 1e6,
+  charcoal: 1e6,
+  plates: 1e6,
+  frames: 1e6,
+  gears: 1e6,
+  springs: 1e6,
+};
 
 const at = (tier: BaseState["tier"], buildings: Record<string, number> = {}): BaseState => ({
   ...newBase(content, T0, 1),
@@ -96,7 +112,7 @@ describe("effects", () => {
     const base = at("stone");
     expect(storageCap(content, built(base, "warehouse"))).toBe(storageCap(content, base) + 2000);
     const tool = { ...base, toolId: "stone_tools" };
-    expect(effectiveRates(content, built(tool, "garden")).fibre).toBe(30 + 10);
+    expect(effectiveRates(content, built(tool, "garden")).food).toBe(10);
     expect(effectiveRates(content, built(tool, "loom")).fibre).toBe(Math.floor(30 * 1.15));
     expect(effectiveRates(content, built(tool, "campfire")).timber).toBe(Math.floor(240 * 1.02));
   });
@@ -118,13 +134,11 @@ describe("effects", () => {
     expect(job.ok && job.job.perHour).toBe(144);
   });
 
-  it("workbench level, crafting speed, node haul and barrel life", () => {
+  it("crafting speed, node haul and barrel life", () => {
     const base = at("stone");
-    expect(workbenchLevel(content, base)).toBe(0);
-    expect(workbenchLevel(content, built(base, "workbench"))).toBe(1);
-    const bow = content.recipes.find((recipe) => recipe.item === "bow");
+    const bow = content.recipes.find((recipe) => recipe.output === "bow");
     if (!bow) throw new Error("no bow");
-    expect(craftSeconds(content, built(base, "lights"), bow)).toBe(Math.round((600 * 100) / 110));
+    expect(unitSeconds(content, built(base, "lights"), bow)).toBe(Math.round((600 * 100) / 110));
     expect(haulLeft(content, built(base, "bunkhouse"), T0).of).toBe(
       content.active.node.dailyHaulMinutes + 30,
     );

@@ -8,8 +8,10 @@ import type { GameEvent } from "./events";
 import {
   content,
   duration,
-  itemName,
+  gainLines,
   missingLabel,
+  outputName,
+  stationName,
   t,
   taskName,
   tierName,
@@ -24,12 +26,15 @@ export interface Message {
   tone: Tone;
   /** Where the player gets what was missing; the toast offers a button to it. */
   panel?: Panel;
+  /** A recipe that makes what was missing: the button opens it ("Make planks"). */
+  recipe?: string;
 }
 
 /** Refined resources come out of the furnace; everything else from gathering. */
 const refined = new Set(
   content.resources.filter((resource) => resource.kind === "refined").map((r) => r.id),
 );
+const made = new Set(content.recipes.map((recipe) => recipe.output));
 
 export function refusalMessage(refusal: Refusal, now: number): Message | null {
   switch (refusal.code) {
@@ -59,11 +64,9 @@ export function refusalMessage(refusal: Refusal, now: number): Message | null {
       };
     case "unaffordable": {
       const first = Object.keys(refusal.missing)[0] ?? "";
-      return {
-        text: t("refusal.unaffordable", { need: missingLabel(refusal.missing) ?? "" }),
-        tone: "warning",
-        panel: refined.has(first) ? "furnace" : null,
-      };
+      const text = t("refusal.unaffordable", { need: missingLabel(refusal.missing) ?? "" });
+      if (made.has(first)) return { text, tone: "warning", panel: "craft", recipe: first };
+      return { text, tone: "warning", panel: refined.has(first) ? "furnace" : null };
     }
     case "no_furnace":
       return { text: t("refusal.no_furnace"), tone: "warning", panel: "furnace" };
@@ -78,9 +81,39 @@ export function refusalMessage(refusal: Refusal, now: number): Message | null {
       return { text: t("refusal.no_barrel"), tone: "neutral" };
     case "workbench":
       return {
-        text: t("refusal.workbench", { level: refusal.needed }),
+        text: t("refusal.workbench", {
+          level: refusal.needed,
+          station: stationName(refusal.station).toLowerCase(),
+        }),
         tone: "warning",
-        panel: "craft",
+        panel: "build",
+      };
+    case "station":
+      return {
+        text: t("refusal.station", { station: stationName(refusal.station) }),
+        tone: "warning",
+        panel: "build",
+      };
+    case "blueprint":
+      return { text: t("refusal.blueprint"), tone: "neutral" };
+    case "batch":
+      return {
+        text: t("refusal.batch", {
+          size: refusal.size,
+          station: stationName(refusal.station).toLowerCase(),
+        }),
+        tone: "neutral",
+      };
+    case "no_job":
+      return { text: t("refusal.no_job"), tone: "neutral" };
+    case "not_owned":
+      return { text: t("refusal.not_owned"), tone: "neutral" };
+    case "not_meal":
+      return { text: t("refusal.not_meal"), tone: "danger" };
+    case "fed_better":
+      return {
+        text: t("refusal.fed_better", { time: duration(refusal.until - now) }),
+        tone: "neutral",
       };
     case "owned":
       return { text: t("refusal.owned"), tone: "neutral" };
@@ -92,7 +125,7 @@ export function refusalMessage(refusal: Refusal, now: number): Message | null {
       };
     case "queue_full":
       return {
-        text: t("refusal.queue_full", { size: refusal.size }),
+        text: t("refusal.queue_full", { station: stationName(refusal.station).toLowerCase() }),
         tone: "neutral",
         panel: "craft",
       };
@@ -118,7 +151,29 @@ export function eventMessage(event: GameEvent): Message | null {
     case "build_done":
       return { text: t("toast.build_done", { tier: tierName(event.tier) }), tone: "success" };
     case "crafted":
-      return { text: t("toast.crafted", { item: itemName(event.item) }), tone: "success" };
+      // Units land one by one; the toast waits for the job's last.
+      if (!event.done) return null;
+      return { text: t("toast.crafted", { item: outputName(event.recipe) }), tone: "success" };
+    case "blueprint_found":
+      return {
+        text: t("toast.blueprint", { item: outputName(event.recipe) }),
+        tone: "success",
+        panel: "craft",
+        recipe: event.recipe,
+      };
+    case "served":
+      return {
+        text: t("toast.served", { meal: outputName(event.meal), percent: event.percent }),
+        tone: "success",
+      };
+    case "salvaged":
+      return {
+        text: t("toast.salvaged", {
+          item: outputName(event.item),
+          gains: gainLines(event.gained, 3).join(", "),
+        }),
+        tone: "neutral",
+      };
     case "barrel_spawned":
       return { text: t("toast.barrel"), tone: "warning" };
     case "tool_upgraded":

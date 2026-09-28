@@ -15,7 +15,14 @@ export const commandSchema = z.discriminatedUnion("type", [
   z.strictObject({ type: z.literal("build"), what: id }),
   z.strictObject({ type: z.literal("smelt"), ore: id }),
   z.strictObject({ type: z.literal("take_out") }),
-  z.strictObject({ type: z.literal("craft"), item: id }),
+  z.strictObject({ type: z.literal("craft"), recipe: id, count: z.int().min(1).max(1000) }),
+  z.strictObject({
+    type: z.literal("cancel_craft"),
+    station: id,
+    index: z.int().min(0).max(100),
+  }),
+  z.strictObject({ type: z.literal("salvage"), item: id, count: z.int().min(1).max(1000) }),
+  z.strictObject({ type: z.literal("serve"), meal: id }),
   z.strictObject({ type: z.literal("break_barrel") }),
   z.strictObject({
     type: z.literal("hit_node"),

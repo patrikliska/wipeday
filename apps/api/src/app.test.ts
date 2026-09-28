@@ -220,9 +220,9 @@ describe("time", () => {
       ...base,
       // A W1-shaped base (the workbench as an item): loading converts it to a building.
       items: { workbench_1: 1 },
-      stock: { timber: 500, fibre: 100 },
+      stock: { timber: 500, fibre: 100, planks: 10, rope: 5 },
     }));
-    const queued = await send(cookie, "key-bow-1", { type: "craft", item: "bow" });
+    const queued = await send(cookie, "key-bow-1", { type: "craft", recipe: "bow", count: 1 });
     expect(queued.ok).toBe(true);
 
     const pushed: PushMessage[] = [];

@@ -64,6 +64,12 @@ export const taskName = (id: string): string => t(`task.${id}.name`);
 
 export const itemById = new Map<string, Item>(content.items.map((item) => [item.id, item]));
 
+/** A recipe's output by name: a part (a resource) or an item. */
+export const outputName = (id: string): string =>
+  itemById.has(id) ? itemName(id) : resourceName(id);
+/** Stations are buildings: the workbench, loom, campfire... */
+export const stationName = (id: string): string => t(`building.${id}.name`);
+
 /** Placeholder icon colours, until real art arrives. One per resource, used everywhere. */
 const RESOURCE_COLOR: Record<string, string> = {
   timber: "#b07840",
@@ -77,6 +83,16 @@ const RESOURCE_COLOR: Record<string, string> = {
   fat: "#e8d9b0",
   fuel: "#c85a2b",
   scrap: "#a49e93",
+  food: "#d9774a",
+  planks: "#c89a5b",
+  rope: "#b8a27a",
+  cloth: "#d8cfb8",
+  leather: "#7a4a2c",
+  charcoal: "#4a4541",
+  plates: "#8fa3b5",
+  frames: "#a57a45",
+  gears: "#7d8a96",
+  springs: "#b0b8c0",
 };
 export const resourceColor = (id: string): string => RESOURCE_COLOR[id] ?? "#a49e93";
 
@@ -93,6 +109,16 @@ const RESOURCE_INITIALS: Record<string, string> = {
   fat: "FA",
   fuel: "FU",
   scrap: "SC",
+  food: "FO",
+  planks: "PL",
+  rope: "RO",
+  cloth: "CL",
+  leather: "LE",
+  charcoal: "CH",
+  plates: "PT",
+  frames: "FR",
+  gears: "GE",
+  springs: "SP",
 };
 export const resourceInitials = (id: string): string =>
   RESOURCE_INITIALS[id] ?? initials(resourceName(id));

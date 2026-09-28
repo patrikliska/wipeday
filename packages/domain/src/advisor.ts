@@ -15,6 +15,7 @@ import {
   gatherReadyAt,
   isEmpty,
   isStorageFull,
+  nextTier,
   nextTool,
   smeltable,
   storageFill,
@@ -23,6 +24,7 @@ import {
 } from "./base";
 import { buildingCount, buildStatus, nextBuild } from "./buildings";
 import { craftStatus } from "./craft";
+import { partsToMake } from "./recipes";
 
 export type Advice =
   | "collect"
@@ -52,13 +54,14 @@ export function revealed(content: Content, state: BaseState): Revealed {
     (resource) => resource.smeltsInto && state.stock[resource.id] !== undefined,
   );
   const hasItems = Object.values(state.items).some((count) => count > 0);
-  const anyCraftable = content.recipes.some(
-    (recipe) => craftStatus(content, state, recipe.item).code === "ok",
+  const hasParts = content.resources.some(
+    (resource) => resource.kind === "part" && (state.stock[resource.id] ?? 0) > 0,
   );
+  const anyStation = content.recipes.some((recipe) => (state.buildings[recipe.station] ?? 0) > 0);
   return {
     furnace: furnaceOf(content, state) !== null || hasOre,
-    craft: hasItems || anyCraftable || state.craftQueue.length > 0,
-    inventory: hasItems,
+    craft: hasItems || anyStation || Object.keys(state.production).length > 0,
+    inventory: hasItems || hasParts,
   };
 }
 
@@ -90,8 +93,33 @@ export function buildingWorthIt(content: Content, state: BaseState): string | nu
   return ready.sort((a, b) => cost(a) - cost(b))[0] ?? null;
 }
 
-/** True when a crate is the natural next step: storage is tight and one fits. */
+/**
+ * The part the next goal waits on and a station can start now: the next tier
+ * first, then the next tool. Deepest first (planks before the frames made of
+ * them), as units of its recipe. Null when nothing is short or nothing can start.
+ */
+export function partWorthIt(
+  content: Content,
+  state: BaseState,
+): { output: string; units: number } | null {
+  const goals = [];
+  const tier = nextTier(state.tier);
+  if (tier && !state.construction.some((job) => job.target.kind === "tier"))
+    goals.push(tierOf(content, tier).cost);
+  const tool = nextTool(content, state);
+  if (tool) goals.push(tool.cost);
+  for (const cost of goals) {
+    for (const { recipe, units } of partsToMake(content, state.stock, cost)) {
+      if (craftStatus(content, state, recipe.output).code === "ok")
+        return { output: recipe.output, units };
+    }
+  }
+  return null;
+}
+
+/** True when crafting is the natural next step: a part the next goal needs, or a crate. */
 export function craftWorthIt(content: Content, state: BaseState, now: number): boolean {
+  if (partWorthIt(content, state)) return true;
   const tier = tierOf(content, state.tier);
   if (
     storageFill(content, state, now).fraction >= 0.8 &&

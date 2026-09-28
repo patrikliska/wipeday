@@ -3,17 +3,10 @@
  * base's own seed. Balance in `data/active.json5`.
  */
 import type { Amounts, Content, Task } from "@wipe-day/content/schema";
-import {
-  add,
-  type BaseState,
-  clampToCap,
-  type DailyTasks,
-  furnaceOf,
-  storageCap,
-  workbenchLevel,
-} from "./base";
+import { add, type BaseState, clampToCap, type DailyTasks, furnaceOf, storageCap } from "./base";
 import type { GameEvent } from "./events";
 import { modifiers } from "./modifiers";
+import { rollBlueprint } from "./recipes";
 import { pickWeighted, rng, seedOf } from "./rng";
 
 const DAY = 86400;
@@ -51,10 +44,13 @@ export function settleBarrel(
 }
 
 export type BarrelResult =
-  | { ok: true; state: BaseState; gained: Amounts }
+  | { ok: true; state: BaseState; gained: Amounts; blueprint: string | null }
   | { ok: false; reason: "no_barrel" };
 
-/** Breaks the barrel: weighted rolls from the loot table, banked at once (capped). */
+/**
+ * Breaks the barrel: weighted rolls from the loot table, banked at once (capped),
+ * and now and then a blueprint the base does not know yet.
+ */
 export function breakBarrel(content: Content, state: BaseState, now: number): BarrelResult {
   const barrel = state.barrel;
   if (!barrel || now > barrel.expiresAt) return { ok: false, reason: "no_barrel" };
@@ -73,7 +69,19 @@ export function breakBarrel(content: Content, state: BaseState, now: number): Ba
     loot[entry.resource] = (loot[entry.resource] ?? 0) + random.int(entry.min, entry.max);
   }
   const gained = clampToCap(storageCap(content, state), state.stock, loot);
-  return { ok: true, state: { ...state, stock: add(state.stock, gained), barrel: null }, gained };
+  const blueprint = rollBlueprint(
+    content,
+    state,
+    content.crafting.blueprints.barrelPercent,
+    barrel.seed,
+  );
+  const blueprints = blueprint ? [...state.blueprints, blueprint] : state.blueprints;
+  return {
+    ok: true,
+    state: { ...state, stock: add(state.stock, gained), barrel: null, blueprints },
+    gained,
+    blueprint,
+  };
 }
 
 // --- daily tasks ----------------------------------------------------------------
@@ -88,7 +96,7 @@ export function nextTaskResetAt(now: number): number {
 
 function eligible(content: Content, state: BaseState, task: Task): boolean {
   if (task.requires === "furnace") return furnaceOf(content, state) !== null;
-  if (task.requires === "workbench") return workbenchLevel(content, state) > 0;
+  if (task.requires === "workbench") return (state.buildings.workbench ?? 0) > 0;
   return true;
 }
 
@@ -130,6 +138,11 @@ export function progressTasks(
     const progress = Math.min(task.target, (next.tasks.progress[id] ?? 0) + amount);
     const done = progress >= task.target;
     const reward = done ? clampToCap(storageCap(content, next), next.stock, task.reward) : {};
+    // A blueprint task draws one the base does not know yet, seeded by the day and the task.
+    const blueprint =
+      done && task.blueprint
+        ? rollBlueprint(content, next, 100, next.tasks.day, next.tasks.ids.indexOf(id))
+        : null;
     next = {
       ...next,
       stock: done ? add(next.stock, reward) : next.stock,
@@ -138,8 +151,10 @@ export function progressTasks(
         progress: { ...next.tasks.progress, [id]: progress },
         done: done ? [...next.tasks.done, id] : next.tasks.done,
       },
+      blueprints: blueprint ? [...next.blueprints, blueprint] : next.blueprints,
     };
     if (done) events.push({ type: "task_done", task: id, reward });
+    if (blueprint) events.push({ type: "blueprint_found", recipe: blueprint, from: "task" });
   }
   return { state: next, events };
 }

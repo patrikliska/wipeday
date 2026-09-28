@@ -11,6 +11,7 @@
  */
 import type { Amounts, BaseTier, Content, Furnace, Tool } from "@wipe-day/content/schema";
 import { TIERS, type Tier } from "@wipe-day/content/tiers";
+import type { CraftJob } from "./craft";
 import type { GameEvent } from "./events";
 import { modifiers } from "./modifiers";
 
@@ -25,12 +26,6 @@ export interface FurnaceJob {
   collected: number;
   /** Ore per hour, fixed when the job starts (so a later upgrade cannot re-price it). */
   perHour: number;
-}
-
-export interface CraftJob {
-  item: string;
-  /** Lands in the inventory at this moment. Jobs run one after another, in order. */
-  endsAt: number;
 }
 
 /** What a builder is putting up: the next base tier, or a building's next level. */
@@ -90,8 +85,12 @@ export interface BaseState {
   furnaceJobs: FurnaceJob[];
   /** Inventory: item id -> count. */
   items: Record<string, number>;
-  /** Paid for, waiting to land. See `craft.ts`. */
-  craftQueue: CraftJob[];
+  /** Station building id -> its jobs, the running one first. See `craft.ts`. */
+  production: Record<string, CraftJob[]>;
+  /** Blueprint recipes found (by output id). W7 moves them to the legacy layer. */
+  blueprints: string[];
+  /** A served meal's boost to Gather and node hits, until `until`. */
+  wellFed: { percent: number; until: number } | null;
   /** The node mini-game. See `nodes.ts`. */
   nodeRun: NodeRun | null;
   /** Worked-out nodes: node id -> when it stands again. */
@@ -130,7 +129,9 @@ export function newBase(content: Content, now: number, seed: number): BaseState 
     upkeepPaidUntil: now,
     furnaceJobs: [],
     items: {},
-    craftQueue: [],
+    production: {},
+    blueprints: [],
+    wellFed: null,
     nodeRun: null,
     depleted: {},
     wear: {},
@@ -177,11 +178,6 @@ export function furnaceOf(content: Content, state: BaseState): Furnace | null {
 
 export function furnaceSlots(content: Content, state: BaseState): number {
   return furnaceOf(content, state) ? tierOf(content, state.tier).furnaceSlots : 0;
-}
-
-/** Crafting level the buildings give (the workbench). */
-export function workbenchLevel(content: Content, state: BaseState): number {
-  return modifiers(content, state).workbench;
 }
 
 /** Crates counting toward storage: the biggest ones first, up to the tier's slots. */
@@ -291,7 +287,8 @@ export function storageFill(
   const waiting = accrued(content, state, now);
   let best = { resource: content.resources[0]?.id ?? "", fraction: 0 };
   for (const resource of content.resources) {
-    if (state.stock[resource.id] === undefined) continue;
+    // Parts are not capped (the queues are their throttle).
+    if (resource.kind === "part" || state.stock[resource.id] === undefined) continue;
     const held = (state.stock[resource.id] ?? 0) + (waiting[resource.id] ?? 0);
     const fraction = Math.min(1, held / cap);
     if (fraction > best.fraction) best = { resource: resource.id, fraction };
@@ -391,7 +388,9 @@ export function gather(content: Content, state: BaseState, now: number): GatherR
   if (now < readyAt) return { ok: false, reason: "cooldown", readyAt };
   const banked = collect(content, state, now);
   const tool = toolOf(content, state);
-  const wanted = production(effectiveRates(content, state), tool.bonusMinutes * 60);
+  // A served meal adds its percent to the bonus (not to what had accrued).
+  const fed = state.wellFed && state.wellFed.until > now ? state.wellFed.percent : 0;
+  const wanted = production(effectiveRates(content, state), tool.bonusMinutes * 60, 100 + fed);
   const bonus = clampToCap(storageCap(content, state), banked.state.stock, wanted);
   return {
     ok: true,

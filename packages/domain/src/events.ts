@@ -16,7 +16,21 @@ export type GameEvent =
   | { type: "building_started"; building: string; level: number; endsAt: number; paid: Amounts }
   | { type: "smelt_started"; ore: string; amount: number; fuel: number }
   | { type: "furnace_out"; gained: Amounts }
-  | { type: "craft_queued"; item: string; endsAt: number; paid: Amounts }
+  | {
+      type: "craft_queued";
+      /** The recipe, by its output id. */
+      recipe: string;
+      station: string;
+      /** Units queued; each makes the recipe's amount. */
+      count: number;
+      endsAt: number;
+      paid: Amounts;
+    }
+  | { type: "craft_cancelled"; recipe: string; station: string; refunded: Amounts }
+  | { type: "salvaged"; item: string; count: number; gained: Amounts }
+  | { type: "served"; meal: string; percent: number; until: number }
+  /** A blueprint turned up: `from` says where (a barrel, a perfect node run, a task). */
+  | { type: "blueprint_found"; recipe: string; from: "barrel" | "node" | "task" }
   | { type: "barrel_broken"; gained: Amounts }
   | {
       type: "node_hit";
@@ -37,8 +51,18 @@ export type GameEvent =
   | { type: "building_done"; building: string; level: number }
   /** Unpaid upkeep cost this building a level (`level` is what is left; 0 = gone). */
   | { type: "building_decayed"; building: string; level: number }
-  /** `at`: when it landed (tells two identical crafts apart). */
-  | { type: "crafted"; item: string; at: number }
+  /**
+   * Units of a job landed: `amount` of `recipe`'s output. `at`: when the last one did.
+   * `done`: that was the job's last unit.
+   */
+  | {
+      type: "crafted";
+      recipe: string;
+      station: string;
+      amount: number;
+      at: number;
+      done: boolean;
+    }
   | { type: "barrel_spawned"; expiresAt: number }
   | { type: "auto_collect"; gained: Amounts }
   | { type: "upkeep_paid"; hours: number; paid: Amounts }

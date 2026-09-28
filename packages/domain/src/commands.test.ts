@@ -32,17 +32,17 @@ describe("applyCommand", () => {
 
     const build = applyCommand(content, fresh(), { type: "build", what: "tier" }, T0);
     expect(build).toMatchObject({ ok: false, refusal: { code: "unaffordable" } });
-    const craft = applyCommand(content, fresh(), { type: "craft", item: "crate" }, T0);
-    expect(craft).toMatchObject({ ok: false, refusal: { code: "workbench", needed: 1 } });
+    const craft = applyCommand(content, fresh(), { type: "craft", recipe: "crate", count: 1 }, T0);
+    expect(craft).toMatchObject({ ok: false, refusal: { code: "station", station: "workbench" } });
   });
 
   it("lands time-based changes as events on the next command", () => {
     const base: BaseState = {
       ...fresh(),
-      stock: { timber: 1000, stone: 1000, fibre: 100 },
+      stock: { timber: 1000, stone: 1000, fibre: 100, planks: 10, rope: 5 },
       buildings: { workbench: 1 },
     };
-    const queued = applyCommand(content, base, { type: "craft", item: "bow" }, T0);
+    const queued = applyCommand(content, base, { type: "craft", recipe: "bow", count: 1 }, T0);
     if (!queued.ok) throw new Error("expected ok");
     expect(queued.state.tasks.progress.craft_1).toBe(1);
     const later = applyCommand(content, queued.state, { type: "collect" }, T0 + 3600);

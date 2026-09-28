@@ -14,6 +14,7 @@ import {
   buildStatus,
   nextBuild,
 } from "@wipe-day/domain/buildings";
+import { knows } from "@wipe-day/domain/recipes";
 import { useWorld } from "../../state/store";
 import {
   abbrev,
@@ -21,13 +22,14 @@ import {
   duration,
   initials,
   missingLabel,
+  outputName,
   resourceName,
   TIERS,
   t,
   tierName,
   toolName,
 } from "../../state/world";
-import { Cost, needLabel } from "../Cost";
+import { Cost, MakeParts, needLabel } from "../Cost";
 import { effectLines } from "../effects";
 import { Tile } from "../Icon";
 import { tierVar, vars } from "../util";
@@ -120,6 +122,13 @@ export function BuildPanel() {
         ? "tool"
         : (buildings.find((entry) => entry.status.code === "ok")?.building.id ?? null);
 
+  /** A station's recipes by name ("planks, crates, bow"), those the base knows. */
+  const makes = (station: string): string =>
+    content.recipes
+      .filter((recipe) => recipe.station === station && knows(base, recipe))
+      .map((recipe) => outputName(recipe.output).toLowerCase())
+      .join(", ");
+
   const buildingCard = (building: Building, status: BuildStatus) => {
     const level = buildingLevel(base, building.id);
     const of = building.levels.length;
@@ -146,6 +155,9 @@ export function BuildPanel() {
             <Pips level={level} of={of} />
           </div>
           <div className="desc">{t(`building.${building.id}.blurb`)}</div>
+          {makes(building.id) ? (
+            <div className="desc">{t("build.makes", { what: makes(building.id) })}</div>
+          ) : null}
           {now_.length > 0 ? (
             <div className="desc">{t("build.now", { what: now_.join(" · ") })}</div>
           ) : null}
@@ -178,6 +190,9 @@ export function BuildPanel() {
                   : t("build.level_up", { level: level + 1 })
                 : statusLabel(status, now)}
             </button>
+          ) : null}
+          {upcoming && status.code === "unaffordable" ? (
+            <MakeParts cost={upcoming.cost} stock={base.stock} />
           ) : null}
         </div>
       </div>
@@ -277,6 +292,7 @@ export function BuildPanel() {
                       : t("build.upgrade_need", { need: needLabel(info.cost, base.stock) ?? "" })}
                 </button>
               ) : null}
+              {stage === "next" ? <MakeParts cost={info.cost} stock={base.stock} /> : null}
             </div>
           </div>
         );
@@ -303,6 +319,7 @@ export function BuildPanel() {
                 ? t("build.tool_to", { tool: toolName(next.id) })
                 : t("build.upgrade_need", { need: needLabel(next.cost, base.stock) ?? "" })}
             </button>
+            <MakeParts cost={next.cost} stock={base.stock} />
           </div>
         </div>
       ) : (

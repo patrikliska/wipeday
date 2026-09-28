@@ -31,7 +31,10 @@ describe("the shipped data files", () => {
     const content = loadContent(paths.data, locale);
     expect(content.resources.map((resource) => resource.id)).toContain("sulfur_ore");
     expect(content.nodes.map((node) => node.id)).toContain("tree_1");
-    expect(content.baseRules.craftQueueSize).toBeGreaterThan(0);
+    expect(content.crafting.batchSize.length).toBeGreaterThanOrEqual(3);
+    expect(content.recipes.find((recipe) => recipe.output === "planks")?.amount).toBe(10);
+    // `amount` defaults to one.
+    expect(content.recipes.find((recipe) => recipe.output === "bow")?.amount).toBe(1);
   });
 });
 
@@ -77,7 +80,53 @@ describe("validation", () => {
       text.replace('{ id: "ore_1", kind: "ore" }', '{ id: "ore_1", kind: "gold" }'),
     );
     expect(problemsOf(nodes)).toContain("nodes.json5 `ore_1`: unknown node kind `gold`");
-    const recipes = dataWith("recipes.json5", (text) => text.replace(/\{ item: "spear".*\n/, ""));
+    const recipes = dataWith("recipes.json5", (text) => text.replace(/\{ output: "spear".*\n/, ""));
     expect(problemsOf(recipes)).toContain("recipes.json5 `spear`: item has no recipe");
+  });
+});
+
+describe("the crafting web", () => {
+  const recipesWith = (edit: (text: string) => string) =>
+    problemsOf(dataWith("recipes.json5", edit));
+
+  it("requires a recipe for every part, and a use for it", () => {
+    expect(recipesWith((text) => text.replace(/\{ output: "rope".*\n/, ""))).toContain(
+      "recipes.json5 `rope`: part has no recipe",
+    );
+    // Charcoal only goes into springs.
+    const unused = recipesWith((text) =>
+      text.replace("cost: { ingots: 16, charcoal: 10 }", "cost: { ingots: 16 }"),
+    );
+    expect(unused).toContain("recipes.json5 `charcoal`: part is made but nothing uses it");
+  });
+
+  it("requires a real station and level, and no blueprint on a part", () => {
+    const problems = recipesWith((text) =>
+      text
+        .replace(
+          'output: "rope", amount: 5, station: "loom"',
+          'output: "rope", amount: 5, station: "mill"',
+        )
+        .replace(
+          'output: "cloth", amount: 5, station: "loom", level: 1',
+          'output: "cloth", amount: 5, station: "loom", level: 7',
+        )
+        .replace("cost: { timber: 50 } },", "cost: { timber: 50 }, blueprint: true },"),
+    );
+    expect(problems).toContain("recipes.json5 `rope`: station `mill` is not a building");
+    expect(problems).toContain("recipes.json5 `cloth`: loom has no level 7");
+    expect(problems).toContain("recipes.json5 `charcoal`: a part cannot need a blueprint");
+  });
+
+  it("finds recipes nothing on the island can feed", () => {
+    // With no tool gathering sulfur ore, nothing gives sulfur: a roast that needs it cannot be made.
+    const dir = dataWith("recipes.json5", (text) =>
+      text.replace("cost: { food: 30 } }", "cost: { food: 30, sulfur: 1 } }"),
+    );
+    const tools = join(dir, "tools.json5");
+    writeFileSync(tools, readFileSync(tools, "utf8").replaceAll(/sulfur_ore: \d+, /g, ""));
+    expect(problemsOf(dir)).toContain(
+      "recipes.json5 `roast`: cannot be made: nothing on the island gives sulfur",
+    );
   });
 });

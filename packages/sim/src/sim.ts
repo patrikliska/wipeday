@@ -6,7 +6,7 @@
  * Archetypes are decision policies run at each check-in; the domain does the
  * rest. Deterministic: every roll is seeded from the check-in time.
  */
-import type { Content } from "@wipe-day/content/schema";
+import type { Amounts, Content } from "@wipe-day/content/schema";
 import { TIERS, type Tier } from "@wipe-day/content/tiers";
 import {
   type BaseState,
@@ -27,8 +27,10 @@ import {
 import { buildingCount, buildStatus, nextBuild } from "@wipe-day/domain/buildings";
 import { manualClock } from "@wipe-day/domain/clock";
 import { applyCommand, type Command } from "@wipe-day/domain/commands";
-import { craftStatus } from "@wipe-day/domain/craft";
+import { boostPercent, craftStatus, maxBatch, queueOf } from "@wipe-day/domain/craft";
+import type { GameEvent } from "@wipe-day/domain/events";
 import { nodeStatus } from "@wipe-day/domain/nodes";
+import { expandNeeds, type Need, partsToMake, stations } from "@wipe-day/domain/recipes";
 import { settleAll } from "@wipe-day/domain/settle";
 
 export const ARCHETYPES = ["casual", "active", "optimal"] as const;
@@ -55,6 +57,8 @@ export interface DayRow {
   fuel: number;
   scrap: number;
   items: number;
+  /** Part units in stock, all kinds together. */
+  parts: number;
   /** Buildings standing (level 1 or more). */
   buildings: number;
   building: boolean;
@@ -65,11 +69,20 @@ export interface Run {
   rows: DayRow[];
   /** Season day on which each tier was first reached. */
   reached: Partial<Record<Tier, number>>;
+  /** Season day on which each recipe output first landed. */
+  firstMade: Record<string, number>;
+  /** Season day on which each station first finished something. */
+  stationsWorked: Record<string, number>;
 }
+
+/** Where a run's events go while it plays (the first-made days are read from them). */
+let listener: ((event: GameEvent) => void) | null = null;
 
 /** Applies one command the way the server would; a refusal keeps the settled state. */
 function act(content: Content, state: BaseState, command: Command, now: number): BaseState {
-  return applyCommand(content, state, command, now).state;
+  const result = applyCommand(content, state, command, now);
+  if (listener) for (const event of result.events) listener(event);
+  return result.state;
 }
 
 /** Nodes an active player works after a gather, most valuable first. */
@@ -83,7 +96,15 @@ export function checkIn(
   archetype: Archetype,
 ): BaseState {
   let s = act(content, state, { type: "collect" }, now);
+  // Eat before gathering, so the boost counts: the best meal in the cupboard.
+  if (boostPercent(s, now) === 0) {
+    const meal = content.items
+      .filter((item) => item.category === "meal" && (s.items[item.id] ?? 0) > 0)
+      .sort((a, b) => (b.boostPercent ?? 0) - (a.boostPercent ?? 0))[0];
+    if (meal) s = act(content, s, { type: "serve", meal: meal.id }, now);
+  }
   const gathered = applyCommand(content, s, { type: "gather" }, now);
+  if (listener) for (const event of gathered.events) listener(event);
   s = gathered.state;
   // Active players work a node after every gather, perfectly.
   if (gathered.ok && archetype !== "casual") {
@@ -157,12 +178,88 @@ export function checkIn(
     const cheapest = others[0];
     if (cheapest) s = act(content, s, { type: "build", what: cheapest }, now);
 
+    // Parts: what the next tier and tool wait on, then the cheapest building that only lacks
+    // parts. A station that is missing or too low for a part gets built or upgraded first.
+    const partsFor = (cost: Amounts, depth = 0): void => {
+      for (const { recipe, units } of partsToMake(content, s.stock, cost)) {
+        const status = craftStatus(content, s, recipe.output);
+        if (status.code === "station" || status.code === "workbench") {
+          if (depth > 0) continue;
+          if (affordable(recipe.station)) {
+            s = act(content, s, { type: "build", what: recipe.station }, now);
+          } else {
+            const next = nextBuild(content, s, recipe.station);
+            if (next && buildStatus(content, s, recipe.station).code === "unaffordable")
+              partsFor(next.cost, depth + 1);
+          }
+          continue;
+        }
+        if (status.code !== "ok") continue;
+        let count = Math.min(units, maxBatch(content, s, recipe.output));
+        // Never into the upkeep reserve.
+        for (const [id, amount] of Object.entries(recipe.cost)) {
+          const reserve = (upkeepOf(content, s)[id] ?? 0) * reserveHours;
+          count = Math.min(count, Math.floor(((s.stock[id] ?? 0) - reserve) / amount));
+        }
+        if (count > 0) s = act(content, s, { type: "craft", recipe: recipe.output, count }, now);
+      }
+    };
+    if (upcoming && !s.construction.some((job) => job.target.kind === "tier"))
+      partsFor(upcoming.cost);
+    if (tool) partsFor(tool.cost);
+    const rawOnly = (cost: Amounts): Amounts =>
+      Object.fromEntries(
+        Object.entries(cost).filter(([id]) =>
+          content.resources.some((resource) => resource.id === id && resource.kind !== "part"),
+        ),
+      );
+    const waiting = content.buildings
+      .map((building) => building.id)
+      .filter((id) => {
+        const next = nextBuild(content, s, id);
+        return (
+          next !== null &&
+          buildStatus(content, s, id).code === "unaffordable" &&
+          canAfford(rawOnly(next.cost), saving)
+        );
+      })
+      .sort(
+        (a, b) =>
+          total(nextBuild(content, s, a)?.cost ?? {}) - total(nextBuild(content, s, b)?.cost ?? {}),
+      )[0];
+    if (waiting) partsFor(nextBuild(content, s, waiting)?.cost ?? {});
+
+    // A roast or stew in the cupboard for tomorrow's gathers.
+    const meals = content.items.filter((item) => item.category === "meal");
+    if (meals.every((meal) => (s.items[meal.id] ?? 0) === 0)) {
+      const best = meals
+        .filter((meal) => craftStatus(content, s, meal.id).code === "ok")
+        .sort((a, b) => (b.boostPercent ?? 0) - (a.boostPercent ?? 0))[0];
+      const station = best ? content.recipes.find((r) => r.output === best.id)?.station : undefined;
+      if (best && station && queueOf(s, station).length === 0)
+        s = act(
+          content,
+          s,
+          { type: "craft", recipe: best.id, count: Math.min(3, maxBatch(content, s, best.id)) },
+          now,
+        );
+    }
+    // A curious player makes one of each piece of gear once, when it is cheap to.
+    for (const item of content.items) {
+      if (!["weapon", "armor", "med"].includes(item.category)) continue;
+      if ((s.items[item.id] ?? 0) > 0) continue;
+      const recipe = content.recipes.find((r) => r.output === item.id);
+      if (!recipe || queueOf(s, recipe.station).some((job) => job.recipe === item.id)) continue;
+      if (craftStatus(content, s, item.id).code === "ok" && canAfford(recipe.cost, saving))
+        s = act(content, s, { type: "craft", recipe: item.id, count: 1 }, now);
+    }
+
     if (storageFill(content, s, now).fraction > 0.7) {
       const crates = content.items
         .filter((item) => item.category === "storage")
         .sort((a, b) => (b.capacity ?? 0) - (a.capacity ?? 0));
       const crate = crates.find((item) => craftStatus(content, s, item.id).code === "ok");
-      if (crate) s = act(content, s, { type: "craft", item: crate.id }, now);
+      if (crate) s = act(content, s, { type: "craft", recipe: crate.id, count: 1 }, now);
     }
 
     if (s === before) break;
@@ -194,8 +291,20 @@ export function simulate(content: Content, archetype: Archetype, days: number): 
   let state = newBase(content, clock.now(), 1);
   const rows: DayRow[] = [];
   const reached: Partial<Record<Tier, number>> = { twig: 1 };
+  const firstMade: Record<string, number> = {};
+  const stationsWorked: Record<string, number> = {};
+  let today = 1;
+  const record = (event: GameEvent) => {
+    if (event.type !== "crafted") return;
+    // A unit that landed before the check-in counts for the day it landed on.
+    const day = Math.min(today, Math.floor((event.at - start) / DAY) + 1);
+    firstMade[event.recipe] ??= day;
+    stationsWorked[event.station] ??= day;
+  };
+  listener = record;
 
   for (let day = 1; day <= days; day++) {
+    today = day;
     for (const hour of SCHEDULE[archetype]) {
       clock.set(start + (day - 1) * DAY + hour * HOUR);
       state = checkIn(content, state, clock.now(), archetype);
@@ -203,7 +312,9 @@ export function simulate(content: Content, archetype: Archetype, days: number): 
     }
     clock.set(start + day * DAY - 1);
     const endOfDay = clock.now();
-    const settledState = settleAll(content, state, endOfDay).state;
+    const settled = settleAll(content, state, endOfDay);
+    for (const event of settled.events) record(event);
+    const settledState = settled.state;
     if (reached[settledState.tier] === undefined) reached[settledState.tier] = day;
     rows.push({
       day,
@@ -215,11 +326,28 @@ export function simulate(content: Content, archetype: Archetype, days: number): 
       fuel: settledState.stock.fuel ?? 0,
       scrap: settledState.stock.scrap ?? 0,
       items: Object.values(settledState.items).reduce((sum, count) => sum + count, 0),
+      parts: content.resources
+        .filter((resource) => resource.kind === "part")
+        .reduce((sum, resource) => sum + (settledState.stock[resource.id] ?? 0), 0),
       buildings: buildingCount(settledState),
       building: settledState.construction.length > 0,
     });
   }
-  return { archetype, rows, reached };
+  listener = null;
+  return { archetype, rows, reached, firstMade, stationsWorked };
+}
+
+/** `cost` with every part broken down into what it is made of, down to gathered resources. */
+function rawCost(content: Content, cost: Amounts): Amounts {
+  const out: Amounts = {};
+  const leaves = (needs: Need[]) => {
+    for (const need of needs) {
+      if (need.make) leaves(need.parts);
+      else out[need.id] = (out[need.id] ?? 0) + need.need;
+    }
+  };
+  leaves(expandNeeds(content, {}, cost));
+  return out;
 }
 
 export interface CheckFailure {
@@ -255,6 +383,23 @@ export function checkPacing(content: Content, days = 35): CheckFailure[] {
       message: `casual has ${built} buildings on day ${buildDay}, target at least ${buildTarget}`,
     });
   }
+  for (const [output, byDay] of Object.entries(pacing.casual.firstMade)) {
+    const day = casual.firstMade[output];
+    if (day === undefined || day > byDay) {
+      failures.push({
+        message: `casual first made ${output} on ${day === undefined ? "no day" : `day ${day}`}, target by day ${byDay}`,
+      });
+    }
+  }
+  const workedBy = pacing.casual.stationsWorkedByDay;
+  for (const station of stations(content)) {
+    const day = casual.stationsWorked[station];
+    if (day === undefined || day > workedBy) {
+      failures.push({
+        message: `casual's ${station} first worked on ${day === undefined ? "no day" : `day ${day}`}, target by day ${workedBy}`,
+      });
+    }
+  }
   const optimalHqm = optimal.reached.hqm;
   if (optimalHqm !== undefined && optimalHqm < pacing.optimal.hqmNotBeforeDay) {
     failures.push({
@@ -264,7 +409,7 @@ export function checkPacing(content: Content, days = 35): CheckFailure[] {
 
   // Tier cost ratio, in resource-hours at the tool tier a player has when buying it.
   const hours = (tierId: Tier, toolIndex: number): number => {
-    const cost = tierOf(content, tierId).cost;
+    const cost = rawCost(content, tierOf(content, tierId).cost);
     const tool = content.tools[toolIndex];
     if (!tool) return 0;
     let sum = 0;

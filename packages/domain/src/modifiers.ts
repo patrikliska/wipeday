@@ -21,8 +21,6 @@ export interface Modifiers {
   barrelLifeMinutes: number;
   barrelEveryMinutes: number;
   graceHours: number;
-  /** Highest crafting level any building gives; 0 = none. */
-  workbench: number;
   /** Furnace type, 1-based; 0 = no furnace. */
   furnace: number;
 }
@@ -39,7 +37,6 @@ const NONE: Modifiers = {
   barrelLifeMinutes: 0,
   barrelEveryMinutes: 0,
   graceHours: 0,
-  workbench: 0,
   furnace: 0,
 };
 
@@ -69,7 +66,6 @@ export function modifiers(content: Content, state: Pick<BaseState, "buildings">)
     out.barrelLifeMinutes += effects.barrelLifeMinutes ?? 0;
     out.barrelEveryMinutes += effects.barrelEveryMinutes ?? 0;
     out.graceHours += effects.graceHours ?? 0;
-    out.workbench = Math.max(out.workbench, effects.workbench ?? 0);
     out.furnace = Math.max(out.furnace, effects.furnace ?? 0);
   }
   cache.set(state.buildings, { content, value: out });

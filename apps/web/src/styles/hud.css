@@ -953,3 +953,130 @@ a.btn {
 .card .desc.next {
   color: var(--success);
 }
+
+/* --- the recipe browser (W3) ------------------------------------------------------- */
+
+/* Station tabs: one row that scrolls sideways on phones, never wraps. */
+.tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 -4px 2px;
+  padding: 0 4px 2px;
+}
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+.tab {
+  position: relative;
+  flex: none;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.tab.on {
+  background: rgba(227, 163, 47, 0.18);
+  border-color: #e3a32f;
+}
+.tab.dim {
+  color: var(--muted);
+}
+.tab .dot {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e3a32f;
+}
+
+/* A card title that opens the recipe: looks like the title, acts like a link. */
+.card button.title.link {
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.card .row .btn {
+  white-space: normal;
+  line-height: 1.2;
+}
+.btn.wide {
+  width: 100%;
+  margin-top: 4px;
+}
+.panel .uses {
+  margin: 0 2px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* What it takes: an indented tree of inputs. */
+.needs {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 calc(var(--depth, 0) * 14px);
+  display: grid;
+  gap: 4px;
+}
+.needs .needs {
+  margin-top: 4px;
+  border-left: 1px dashed var(--border-soft);
+}
+.need {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+}
+.need .tile {
+  width: 26px;
+  height: 26px;
+  font-size: 10px;
+  flex: none;
+}
+.need b {
+  display: block;
+  font-size: 14px;
+}
+.need .sub {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+.need .num {
+  font-size: 13px;
+  white-space: nowrap;
+}
+.need .num.short {
+  color: var(--danger);
+}
+.need .num.ok {
+  color: var(--success);
+}
+.stepper .count {
+  min-width: 36px;
+  text-align: center;
+  font-size: 18px;
+}
+.stepper .btn:not(.grow) {
+  min-width: 44px;
+}
+.clockchip .small.fed {
+  color: var(--success);
+}

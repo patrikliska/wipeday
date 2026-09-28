@@ -1,7 +1,8 @@
 // Everything the base stores, in display order. Names live in locale/en.json
 // (`resource.{id}.name`); colours and icons live with the web client.
-// kind: raw = gathered, refined = made from a raw one (`smeltsInto`, 1:1 in a furnace),
-// currency = scrap. Fat renders into fuel in the furnace until the oil press gets its job (W3).
+// kind: raw = gathered or grown, refined = made from a raw one in a furnace (`smeltsInto`,
+// 1:1), part = made at a station (recipes.json5; parts are not capped by storage),
+// currency = scrap.
 {
   resources: [
     { id: "timber", kind: "raw" },
@@ -12,8 +13,19 @@
     { id: "sulfur", kind: "refined" },
     { id: "fibre", kind: "raw" },
     { id: "hide", kind: "raw" },
-    { id: "fat", kind: "raw", smeltsInto: "fuel" },
-    { id: "fuel", kind: "refined" },
+    { id: "fat", kind: "raw" },
+    { id: "food", kind: "raw" },
     { id: "scrap", kind: "currency" },
+    // Parts, roughly in the order a season opens them.
+    { id: "planks", kind: "part" },
+    { id: "rope", kind: "part" },
+    { id: "cloth", kind: "part" },
+    { id: "leather", kind: "part" },
+    { id: "charcoal", kind: "part" },
+    { id: "fuel", kind: "part" },
+    { id: "plates", kind: "part" },
+    { id: "frames", kind: "part" },
+    { id: "gears", kind: "part" },
+    { id: "springs", kind: "part" },
   ],
 }

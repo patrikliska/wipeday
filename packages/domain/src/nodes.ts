@@ -22,6 +22,7 @@ import {
 } from "./base";
 import type { GameEvent } from "./events";
 import { modifiers } from "./modifiers";
+import { rollBlueprint } from "./recipes";
 
 const DAY = 86400;
 
@@ -197,9 +198,11 @@ export function hitNode(
   // run a little over), then a small share.
   const reduced = haulLeft(content, next, now).minutes <= 0;
   const percent = reduced ? content.active.node.afterHaulPercent : 100;
+  // A served meal adds its percent on top.
+  const fed = next.wellFed && next.wellFed.until > now ? next.wellFed.percent : 0;
   const wanted: Amounts = {};
   for (const [id, amount] of Object.entries(slice)) {
-    wanted[id] = Math.floor((amount * slices * percent) / 100);
+    wanted[id] = Math.floor((amount * slices * percent * (100 + fed)) / 10000);
   }
   const gained = clampToCap(storageCap(content, next), next.stock, wanted);
   const day = Math.floor(now / DAY);
@@ -210,6 +213,17 @@ export function hitNode(
     haul: { day, minutes: usedToday + (reduced ? 0 : kind.hitMinutes * slices) },
   };
   events.push({ type: "node_hit", node: nodeId, kind: kind.id, hits, gained, perfect, reduced });
+
+  // A perfect run sometimes turns up a blueprint, seeded by the run's moment and node.
+  if (perfect) {
+    const chance = content.crafting.blueprints.perfectRunPercent;
+    const salt = [...nodeId].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) | 0, 0);
+    const blueprint = rollBlueprint(content, next, chance, now, salt);
+    if (blueprint) {
+      next = { ...next, blueprints: [...next.blueprints, blueprint] };
+      events.push({ type: "blueprint_found", recipe: blueprint, from: "node" });
+    }
+  }
 
   const updated: NodeRun = { ...run, hits, lastHitAt: now };
   if (done) {

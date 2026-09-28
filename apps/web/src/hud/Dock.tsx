@@ -1,4 +1,4 @@
-import { type Advice, advise, hintFor } from "@wipe-day/domain/advisor";
+import { type Advice, advise, hintFor, partWorthIt } from "@wipe-day/domain/advisor";
 import {
   canAfford,
   furnaceOf,
@@ -9,9 +9,9 @@ import {
   tierOf,
   total,
 } from "@wipe-day/domain/base";
-import { craftOptions } from "@wipe-day/domain/craft";
+import { craftOptions, jobEndsAt } from "@wipe-day/domain/craft";
 import { type Panel as PanelId, useWorld } from "../state/store";
-import { abbrev, content, duration, SURVIVORS, t } from "../state/world";
+import { abbrev, content, duration, outputName, SURVIVORS, t } from "../state/world";
 import { needLabel } from "./Cost";
 import { pendingOf } from "./derived";
 import { Tile } from "./Icon";
@@ -48,6 +48,7 @@ const DOCK_FOR: Record<Advice, string | null> = {
 export function Dock() {
   const panel = useWorld((state) => state.panel);
   const openPanel = useWorld((state) => state.openPanel);
+  const openRecipe = useWorld((state) => state.openRecipe);
   const gather = useWorld((state) => state.gather);
   const collect = useWorld((state) => state.collect);
   const base = useWorld((state) => state.base);
@@ -68,6 +69,12 @@ export function Dock() {
   const ready = total(furnaceReady(base, now));
   const furnace = furnaceOf(content, base);
   const craftable = craftOptions(content, base).filter((option) => option.status.code === "ok");
+  // What the stations are making: the job that finishes first.
+  const soonest = Object.values(base.production)
+    .flatMap((jobs) => jobs.slice(0, 1))
+    .sort((a, b) => jobEndsAt(a) - jobEndsAt(b))[0];
+  // The part the next tier or tool waits on: Craft opens straight on its recipe.
+  const part = partWorthIt(content, base);
   const tasksDone = base.tasks.done.length;
 
   // The builders first: what is going up and when it lands; then what can be built next.
@@ -117,14 +124,18 @@ export function Dock() {
       name: t("action.craft"),
       glyph: "CR",
       color: "#e3a32f",
-      sub:
-        base.craftQueue.length > 0
-          ? t("hud.crafting", { count: base.craftQueue.length })
+      sub: part
+        ? t("craft.make_named", { item: outputName(part.output) })
+        : soonest
+          ? t("hud.crafting_now", {
+              item: outputName(soonest.recipe),
+              time: duration(Math.max(0, jobEndsAt(soonest) - now)),
+            })
           : craftable.length > 0
             ? t("hud.recipes_ready", { count: craftable.length })
             : t("hud.nothing_affordable"),
       panel: "craft",
-      onClick: () => openPanel("craft"),
+      onClick: () => (part ? openRecipe(part.output) : openPanel("craft")),
     },
     {
       id: "furnace",

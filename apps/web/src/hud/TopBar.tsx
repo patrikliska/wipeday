@@ -1,7 +1,7 @@
 import { storageCap } from "@wipe-day/domain/base";
 import { useShallow } from "zustand/shallow";
 import { seasonDay, seasonTime, useWorld } from "../state/store";
-import { abbrev, clockLabel, content, resourceName, t, tierName } from "../state/world";
+import { abbrev, clockLabel, content, duration, resourceName, t, tierName } from "../state/world";
 import { knownResources, pendingOf } from "./derived";
 import { ResourceIcon, Tile } from "./Icon";
 import { tierVar, vars } from "./util";
@@ -19,6 +19,12 @@ export function TopBar() {
   const panel = useWorld((state) => state.panel);
   const openPanel = useWorld((state) => state.openPanel);
   const tasksDone = useWorld((state) => state.base.tasks.done.length);
+  // A served meal: its boost and the time left, in whole minutes (re-renders once a minute).
+  const fed = useWorld((state) => {
+    const wellFed = state.base.wellFed;
+    const left = wellFed ? Math.ceil((wellFed.until - state.now) / 60) : 0;
+    return wellFed && left > 0 ? `${wellFed.percent}:${left}` : "";
+  });
   const ids = useWorld(useShallow((state) => knownResources(state.base).slice(0, SHOWN)));
   const amounts = useWorld(
     useShallow((state) => ids.map((id) => Math.floor(state.base.stock[id] ?? 0))),
@@ -87,6 +93,14 @@ export function TopBar() {
           <div className="small">
             {t("hud.day_weather", { day, weather: t(`weather.${weather}`) })}
           </div>
+          {fed ? (
+            <div className="small fed">
+              {t("hud.well_fed", {
+                percent: fed.split(":")[0] ?? "",
+                time: duration(Number(fed.split(":")[1] ?? 0) * 60),
+              })}
+            </div>
+          ) : null}
         </div>
       </div>
     </header>

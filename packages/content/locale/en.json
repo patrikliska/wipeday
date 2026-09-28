@@ -27,11 +27,41 @@
     "fat": {
       "name": "Animal Fat"
     },
-    "fuel": {
-      "name": "Fuel"
+    "food": {
+      "name": "Food"
     },
     "scrap": {
       "name": "Scrap"
+    },
+    "planks": {
+      "name": "Planks"
+    },
+    "rope": {
+      "name": "Rope"
+    },
+    "cloth": {
+      "name": "Cloth"
+    },
+    "leather": {
+      "name": "Leather"
+    },
+    "charcoal": {
+      "name": "Charcoal"
+    },
+    "fuel": {
+      "name": "Fuel"
+    },
+    "plates": {
+      "name": "Metal Plates"
+    },
+    "frames": {
+      "name": "Frames"
+    },
+    "gears": {
+      "name": "Gears"
+    },
+    "springs": {
+      "name": "Springs"
     }
   },
   "tool": {
@@ -100,9 +130,33 @@
       "name": "Iron Spear",
       "effect": "Crew gear for expeditions"
     },
-    "hide_vest": {
-      "name": "Hide Vest",
+    "strongbox": {
+      "name": "Strongbox",
+      "effect": "+{capacity} room for every resource"
+    },
+    "first_aid_kit": {
+      "name": "First Aid Kit",
+      "effect": "Patches up the crew after a rough trip"
+    },
+    "crossbow": {
+      "name": "Crossbow",
+      "effect": "Crew gear for the dangerous sites"
+    },
+    "leather_vest": {
+      "name": "Leather Vest",
       "effect": "Crew armour for expeditions"
+    },
+    "roast": {
+      "name": "Roast",
+      "effect": "Serve it: +{percent}% from Gather and node hits for {hours}h"
+    },
+    "stew": {
+      "name": "Hearty Stew",
+      "effect": "Serve it: +{percent}% from Gather and node hits for {hours}h"
+    },
+    "feast": {
+      "name": "Feast",
+      "effect": "Serve it: +{percent}% from Gather and node hits for {hours}h"
     }
   },
   "perk": {
@@ -210,7 +264,9 @@
     "node_needs_tool": "Needs better tools",
     "tier_base": "{tier} base",
     "can_build": "a building is ready",
-    "building_level": "{building} level {level}"
+    "building_level": "{building} level {level}",
+    "crafting_now": "{item} · {time}",
+    "well_fed": "Well fed +{percent}% · {time}"
   },
   "action": {
     "gather": "Gather",
@@ -240,7 +296,8 @@
     "storage": "Storage",
     "med": "Medical",
     "weapon": "Weapon",
-    "armor": "Armour"
+    "armor": "Armour",
+    "meal": "Meal"
   },
   "hint": {
     "gather": "Tap Gather: your crew brings in a burst of what the tools find.",
@@ -286,21 +343,62 @@
     "section_base": "Base",
     "section_buildings": "Buildings",
     "section_tools": "Tools · {tool}",
-    "upkeep_total": "upkeep {upkeep}/h"
+    "upkeep_total": "upkeep {upkeep}/h",
+    "makes": "Makes {what}"
   },
   "craft": {
-    "hint_bench": "Make a Workbench first: it unlocks most of what is below.",
     "make": "Make",
     "queue": "Make · {time}",
-    "need": "Make · {need}",
-    "needs_bench": "Needs Workbench {level}",
+    "need": "Need {need}",
     "owned": "Built",
     "owned_count": "owned {count}",
     "no_slots": "All {slots} crate spots used",
     "queue_full": "Queue full",
     "making": "Making",
     "waiting": "Waiting",
-    "ready_in": "Ready in {time}"
+    "ready_in": "Ready in {time}",
+    "make_count": "Make {count} · {time}",
+    "make_named": "Make {item}",
+    "needs_level": "Needs {station} level {level}",
+    "needs_station": "Build a {station} first",
+    "blueprint": "Blueprint needed",
+    "blueprint_tag": "Blueprint",
+    "blueprint_needed": "Blueprint needed: find it in barrels, perfect node runs or daily tasks.",
+    "batch_max": "At most {size} at once",
+    "part": "Part",
+    "makes": "Makes {amount} per batch unit",
+    "per_unit": "{amount} per unit · {time} each",
+    "at_station": "{station} {level}",
+    "tab_pinned": "Pinned",
+    "pinned_empty": "Pin the recipes you make often: open one and tap Pin.",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "station_line": "Level {level} · {used} of {slots} jobs queued · up to {batch} units at once",
+    "station_missing": "Build a {station} to make these.",
+    "open_build": "Build",
+    "job": "{item} ×{count}",
+    "job_progress": "{done} of {count} units · all done in {time}",
+    "job_waiting": "Starts in {time}",
+    "cancel": "Cancel",
+    "more": "Details",
+    "details": "What {item} takes",
+    "back": "‹ {station}",
+    "used_for": "Used for",
+    "used_tier": "{tier} base",
+    "used_building": "{building} {level}",
+    "needs": "What it takes",
+    "source_recipe": "made at the {station}",
+    "source_tool": "gathered ({tool} and up)",
+    "source_building": "grows at the {building}",
+    "source_furnace": "smelted from {ore}",
+    "source_barrel": "found in barrels",
+    "source_task": "a daily task reward",
+    "how_many": "How many",
+    "fewer": "One fewer",
+    "more_units": "One more",
+    "all_you_can": "All you can · {count}",
+    "batch_result": "Makes {amount} {item} in {time}",
+    "left_after": "Leaves {list}"
   },
   "smelt": {
     "hint_none": "A furnace turns ore into ingots, sulfur ore into sulfur, and fat into fuel.",
@@ -331,7 +429,12 @@
     "collect": "Collect +{amount}",
     "nothing": "Nothing to collect",
     "items": "Items",
-    "no_items": "No items yet: craft some."
+    "no_items": "No items yet: craft some.",
+    "parts": "Parts: made at the stations, no storage limit",
+    "salvage": "Salvage",
+    "salvage_gives": "Salvage one: {gains}",
+    "serve": "Serve",
+    "serve_gives": "+{percent}% Gather and nodes for {hours}h"
   },
   "squad": {
     "hint": "Your crew works the nodes by day and rests by the fire at night. Expeditions come later.",
@@ -373,7 +476,10 @@
     "demo_mode": "No server running: this is demo mode.",
     "building_done": "{building} is built.",
     "building_level": "{building} is now level {level}.",
-    "building_decayed": "Upkeep ran out: {building} lost a level."
+    "building_decayed": "Upkeep ran out: {building} lost a level.",
+    "blueprint": "Blueprint found: {item}",
+    "served": "{meal} served: +{percent}% from Gather and nodes",
+    "salvaged": "{item} salvaged: {gains}"
   },
   "refusal": {
     "cooldown": "Gather is ready again in {time}.",
@@ -384,15 +490,22 @@
     "nothing_to_smelt": "Nothing to smelt, or nothing to burn.",
     "no_barrel": "The barrel drifted off.",
     "unknown": "That did not work. Try again.",
-    "workbench": "Needs a level {level} workbench.",
+    "workbench": "Needs a level {level} {station}.",
     "owned": "You already have one.",
     "box_slots": "All {slots} crate spots are used: a bigger base holds more.",
-    "queue_full": "The crafting queue is full.",
+    "queue_full": "The {station} queue is full.",
     "depleted": "Worked out: back in {time}.",
     "tool": "Your tools cannot work that yet: upgrade them.",
     "builders": "Every builder is busy: one is free in {time}.",
     "in_progress": "Already going up: it lands in {time}.",
-    "tier": "That needs a {tier} base first."
+    "tier": "That needs a {tier} base first.",
+    "station": "Build a {station} first.",
+    "blueprint": "You need the blueprint first: find it in barrels, perfect node runs or tasks.",
+    "batch": "At most {size} at once at this {station} level.",
+    "not_owned": "You have none of those.",
+    "not_meal": "That is not something to eat.",
+    "fed_better": "A better meal is still working: {time} left.",
+    "no_job": "That job is already done."
   },
   "login": {
     "title": "Wipe Day",

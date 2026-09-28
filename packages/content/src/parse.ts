@@ -11,6 +11,7 @@ import {
   activeSchema,
   baseRulesSchema,
   type Content,
+  craftingSchema,
   type DataFile,
   type EntityKind,
   FILES,
@@ -67,13 +68,20 @@ function emptyContent(): Content {
     resources: [],
     tools: [],
     baseTiers: [],
-    baseRules: { decayProductionPercent: 50, tierLossAfterHours: 72, craftQueueSize: 1 },
+    baseRules: { decayProductionPercent: 50, tierLossAfterHours: 72 },
     furnaces: [],
     items: [],
     buildings: [],
     perks: [],
     crew: [],
     recipes: [],
+    crafting: {
+      queueSlots: [1],
+      batchSize: [1],
+      salvagePercent: 0,
+      salvageScrap: { twig: 0, wood: 0, stone: 0, metal: 0, hqm: 0 },
+      blueprints: { barrelPercent: 0, perfectRunPercent: 0 },
+    },
     nodeKinds: [],
     nodes: [],
     active: {
@@ -94,6 +102,8 @@ function emptyContent(): Content {
         metal: { earliestDay: 1, latestDay: 1 },
         hqm: { earliestDay: 1, latestDay: 1 },
         buildings: { day: 1, count: 1 },
+        firstMade: {},
+        stationsWorkedByDay: 1,
       },
       optimal: { hqmNotBeforeDay: 1 },
       tierCostRatio: { min: 1, max: 1 },
@@ -155,6 +165,9 @@ export function parseContent(
   };
   single("recipes.json5", z.strictObject({ recipes: z.array(recipeSchema) }), (value) => {
     content.recipes = value.recipes;
+  });
+  single("crafting.json5", craftingSchema, (value) => {
+    content.crafting = value;
   });
   single("pacing.json5", pacingSchema, (value) => {
     content.pacing = value;
@@ -240,10 +253,19 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
     });
   }
 
-  const itemIds = new Map(content.items.map((item) => [item.id, item]));
   for (const item of content.items) {
     if (item.category === "storage" && item.capacity === undefined) {
       problems.push({ file: "items.json5", id: item.id, message: "storage items need `capacity`" });
+    }
+    const meal = item.category === "meal";
+    if (meal !== (item.boostPercent !== undefined && item.hours !== undefined)) {
+      problems.push({
+        file: "items.json5",
+        id: item.id,
+        message: meal
+          ? "meals need `boostPercent` and `hours`"
+          : "only meals have `boostPercent` and `hours`",
+      });
     }
     if (!locale.has(`item.${item.id}.effect`)) {
       problems.push({
@@ -253,33 +275,7 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
       });
     }
   }
-  for (const [index, recipe] of content.recipes.entries()) {
-    const label = recipe.item || `#${index + 1}`;
-    if (!itemIds.has(recipe.item)) {
-      problems.push({ file: "recipes.json5", id: label, message: "not an item in items.json5" });
-    }
-    checkAmounts("recipes.json5", label, "cost", recipe.cost);
-    if (content.recipes.findIndex((other) => other.item === recipe.item) !== index) {
-      problems.push({ file: "recipes.json5", id: label, message: "item has two recipes" });
-    }
-  }
-  for (const item of content.items) {
-    if (!content.recipes.some((recipe) => recipe.item === item.id)) {
-      problems.push({ file: "recipes.json5", id: item.id, message: "item has no recipe" });
-    }
-  }
-  const levelEffects = content.buildings.flatMap((building) =>
-    building.levels.map((level) => level.effects),
-  );
-  for (const level of [1, 2, 3]) {
-    if (!levelEffects.some((effects) => effects.workbench === level)) {
-      problems.push({
-        file: "buildings.json5",
-        id: "",
-        message: `no building gives workbench level ${level}`,
-      });
-    }
-  }
+  problems.push(...checkRecipes(content));
   for (const building of content.buildings) {
     if (!locale.has(`building.${building.id}.blurb`)) {
       problems.push({
@@ -365,6 +361,136 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
         id: task.id,
         message: `missing locale key \`task.${task.id}.name\``,
       });
+    }
+  }
+  return problems;
+}
+
+/**
+ * The crafting web: every recipe makes a part or an item at a real station level, every
+ * part and item has a recipe and is reachable from what the island gives (gathering,
+ * smelting, barrels, tasks), every part is used by something, and no part hides behind a
+ * blueprint (blueprints are for extras, never the road to tiers and tools).
+ */
+export function checkRecipes(content: Content): Problem[] {
+  const problems: Problem[] = [];
+  const file = "recipes.json5";
+  const resources = new Map(content.resources.map((resource) => [resource.id, resource]));
+  const items = new Set(content.items.map((item) => item.id));
+  const buildings = new Map(content.buildings.map((building) => [building.id, building]));
+  const seen = new Set<string>();
+  const stationLevels = Math.max(0, ...content.recipes.map((recipe) => recipe.level));
+
+  for (const recipe of content.recipes) {
+    const label = recipe.output;
+    if (seen.has(label)) problems.push({ file, id: label, message: "has two recipes" });
+    seen.add(label);
+    const resource = resources.get(label);
+    if (resource && resource.kind !== "part") {
+      problems.push({ file, id: label, message: `makes a ${resource.kind} resource, not a part` });
+    } else if (!resource && !items.has(label)) {
+      problems.push({ file, id: label, message: "makes neither a part nor an item" });
+    }
+    const station = buildings.get(recipe.station);
+    if (!station) {
+      problems.push({
+        file,
+        id: label,
+        message: `station \`${recipe.station}\` is not a building`,
+      });
+    } else if (recipe.level > station.levels.length) {
+      problems.push({ file, id: label, message: `${recipe.station} has no level ${recipe.level}` });
+    }
+    for (const id of Object.keys(recipe.cost)) {
+      if (!resources.has(id)) {
+        problems.push({ file, id: label, message: `cost names unknown resource \`${id}\`` });
+      }
+    }
+    if (recipe.blueprint && resource) {
+      problems.push({ file, id: label, message: "a part cannot need a blueprint" });
+    }
+  }
+  for (const resource of content.resources) {
+    if (resource.kind === "part" && !seen.has(resource.id)) {
+      problems.push({ file, id: resource.id, message: "part has no recipe" });
+    }
+  }
+  for (const item of content.items) {
+    if (!seen.has(item.id)) problems.push({ file, id: item.id, message: "item has no recipe" });
+  }
+  for (const rule of ["queueSlots", "batchSize"] as const) {
+    if (content.crafting[rule].length < stationLevels) {
+      problems.push({
+        file: "crafting.json5",
+        id: "",
+        message: `${rule} needs a value for every station level up to ${stationLevels}`,
+      });
+    }
+  }
+
+  // Everything a part can be used for.
+  const uses = new Set<string>();
+  const use = (table: Amounts) => {
+    for (const id of Object.keys(table)) uses.add(id);
+  };
+  for (const recipe of content.recipes) use(recipe.cost);
+  for (const tool of content.tools) use(tool.cost);
+  for (const tier of content.baseTiers) {
+    use(tier.cost);
+    use(tier.upkeep);
+  }
+  for (const building of content.buildings) {
+    for (const level of building.levels) {
+      use(level.cost);
+      use(level.upkeep);
+    }
+  }
+  for (const furnace of content.furnaces) uses.add(furnace.fuel);
+  for (const resource of content.resources) {
+    if (resource.kind === "part" && !uses.has(resource.id)) {
+      problems.push({ file, id: resource.id, message: "part is made but nothing uses it" });
+    }
+  }
+
+  // Reachable from what the island gives, following smelting and recipes to a fixed point.
+  const have = new Set<string>();
+  const give = (table: Amounts) => {
+    for (const id of Object.keys(table)) have.add(id);
+  };
+  for (const tool of content.tools) give(tool.rates);
+  for (const building of content.buildings) {
+    for (const level of building.levels) give(level.effects.flat ?? {});
+  }
+  for (const entry of content.active.barrels.loot) have.add(entry.resource);
+  for (const task of content.active.tasks.pool) give(task.reward);
+  for (const resource of content.resources) {
+    if (resource.smeltsInto && have.has(resource.id)) have.add(resource.smeltsInto);
+  }
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const recipe of content.recipes) {
+      if (have.has(recipe.output)) continue;
+      if (Object.keys(recipe.cost).every((id) => have.has(id))) {
+        have.add(recipe.output);
+        grew = true;
+      }
+    }
+  }
+  for (const recipe of content.recipes) {
+    if (!have.has(recipe.output)) {
+      const missing = Object.keys(recipe.cost).filter((id) => !have.has(id));
+      problems.push({
+        file,
+        id: recipe.output,
+        message: `cannot be made: nothing on the island gives ${missing.join(", ")}`,
+      });
+    }
+  }
+
+  for (const id of Object.keys(content.pacing.casual.firstMade)) {
+    if (!seen.has(id)) {
+      problems.push({ file: "pacing.json5", id, message: "firstMade names no recipe output" });
     }
   }
   return problems;

@@ -8,7 +8,7 @@
 import type { Content } from "@wipe-day/content/schema";
 import { settleBarrel, settleTasks } from "./active";
 import { type BaseState, settle } from "./base";
-import { settleCrafts } from "./craft";
+import { nextCraftAt, settleCrafts } from "./craft";
 import type { GameEvent } from "./events";
 import { settleNodes } from "./nodes";
 
@@ -20,7 +20,7 @@ export function settleAll(
   const events: GameEvent[] = [];
   const base = settle(content, state, now);
   events.push(...base.events);
-  const crafts = settleCrafts(base.state, now);
+  const crafts = settleCrafts(content, base.state, now);
   events.push(...crafts.events);
   const barrel = settleBarrel(content, crafts.state, now);
   events.push(...barrel.events);
@@ -34,7 +34,7 @@ export function settleAll(
 export function nextEventAt(state: BaseState): number | null {
   const times = [
     ...state.construction.map((job) => job.endsAt),
-    state.craftQueue[0]?.endsAt,
+    nextCraftAt(state) ?? undefined,
     state.barrel ? state.barrel.expiresAt : state.nextBarrelAt,
   ].filter((time): time is number => time !== undefined);
   return times.length > 0 ? Math.min(...times) : null;

@@ -20,19 +20,19 @@
       id: "iron_tools", tier: "stone",
       rates: { timber: 400, stone: 320, ore: 150, sulfur_ore: 60, fibre: 50, hide: 12, fat: 4 },
       bonusMinutes: 30, cooldownMinutes: 10,
-      cost: { timber: 800, stone: 600, ingots: 250 },
+      cost: { timber: 800, stone: 600, ingots: 250, planks: 60, rope: 20 },
     },
     {
       id: "salvaged_tools", tier: "metal",
       rates: { timber: 700, stone: 560, ore: 300, sulfur_ore: 130, fibre: 90, hide: 30, fat: 12 },
       bonusMinutes: 30, cooldownMinutes: 10,
-      cost: { ingots: 1500, scrap: 600 },
+      cost: { ingots: 1200, scrap: 600, gears: 40, springs: 20 },
     },
     {
       id: "power_tools", tier: "hqm",
       rates: { timber: 1200, stone: 1000, ore: 560, sulfur_ore: 260, fibre: 160, hide: 60, fat: 30 },
       bonusMinutes: 30, cooldownMinutes: 10,
-      cost: { ingots: 3000, fuel: 40, scrap: 2000 },
+      cost: { ingots: 2500, fuel: 40, scrap: 2000, gears: 80, springs: 60 },
     },
   ],
 }

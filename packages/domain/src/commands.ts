@@ -21,7 +21,7 @@ import {
   upgradeTool,
 } from "./base";
 import { type BuildStatus, startConstruction } from "./buildings";
-import { type CraftStatus, queueCraft } from "./craft";
+import { type CraftStatus, cancelCraft, queueCraft, salvage, serve } from "./craft";
 import type { GameEvent } from "./events";
 import { endNodeRun, type HitRefusal, hitNode } from "./nodes";
 import { settleAll } from "./settle";
@@ -34,7 +34,12 @@ export type Command =
   | { type: "build"; what: string }
   | { type: "smelt"; ore: string }
   | { type: "take_out" }
-  | { type: "craft"; item: string }
+  /** `count` units of the recipe that makes `recipe` (its output id). */
+  | { type: "craft"; recipe: string; count: number }
+  /** Cancels job `index` in `station`'s queue: the units not made yet are refunded. */
+  | { type: "cancel_craft"; station: string; index: number }
+  | { type: "salvage"; item: string; count: number }
+  | { type: "serve"; meal: string }
   | { type: "break_barrel" }
   | { type: "hit_node"; node: string; run: string; hit: number }
   | { type: "end_node_run"; node: string; run: string };
@@ -53,6 +58,10 @@ export type Refusal =
   | { code: "not_ore" }
   | { code: "no_barrel" }
   | Exclude<CraftStatus, { code: "ok" | "unaffordable" }>
+  | { code: "no_job" }
+  | { code: "not_owned" }
+  | { code: "not_meal" }
+  | { code: "fed_better"; until: number }
   | HitRefusal;
 
 export type CommandResult =
@@ -148,19 +157,40 @@ function step(content: Content, state: BaseState, command: Command, now: number)
       };
     }
     case "craft": {
-      const result = queueCraft(content, state, command.item, now);
+      const result = queueCraft(content, state, command.recipe, command.count, now);
       if (!result.ok) return { ok: false, refusal: result.status };
       return { ok: true, state: result.state, events: result.events, task: ["craft", 1] };
+    }
+    case "cancel_craft": {
+      const result = cancelCraft(content, state, command.station, command.index, now);
+      if (!result.ok) return { ok: false, refusal: { code: "no_job" } };
+      return { ok: true, state: result.state, events: result.events };
+    }
+    case "salvage": {
+      const result = salvage(content, state, command.item, command.count);
+      if (!result.ok) return { ok: false, refusal: { code: result.reason } };
+      return { ok: true, state: result.state, events: result.events };
+    }
+    case "serve": {
+      const result = serve(content, state, command.meal, now);
+      if (!result.ok) {
+        return {
+          ok: false,
+          refusal:
+            result.reason === "fed_better"
+              ? { code: "fed_better", until: result.until }
+              : { code: result.reason },
+        };
+      }
+      return { ok: true, state: result.state, events: result.events };
     }
     case "break_barrel": {
       const result = breakBarrel(content, state, now);
       if (!result.ok) return { ok: false, refusal: { code: "no_barrel" } };
-      return {
-        ok: true,
-        state: result.state,
-        events: [{ type: "barrel_broken", gained: result.gained }],
-        task: ["barrel", 1],
-      };
+      const events: GameEvent[] = [{ type: "barrel_broken", gained: result.gained }];
+      if (result.blueprint)
+        events.push({ type: "blueprint_found", recipe: result.blueprint, from: "barrel" });
+      return { ok: true, state: result.state, events, task: ["barrel", 1] };
     }
     case "hit_node": {
       const result = hitNode(content, state, now, command.node, command.run, command.hit);

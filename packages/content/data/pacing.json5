@@ -8,6 +8,10 @@
     hqm: { earliestDay: 15, latestDay: 28 },
     // The base fills up: buildings standing by the end of the first week (roadmap W2).
     buildings: { day: 7, count: 6 },
+    // Crafting throughput (roadmap W3): the first of each made by this season day...
+    firstMade: { planks: 2, bow: 3, leather: 9, plates: 10, springs: 18 },
+    // ...and every station has made something by this day.
+    stationsWorkedByDay: 14,
   },
   // The greedy planner with hourly check-ins must not beat these.
   optimal: {

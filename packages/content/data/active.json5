@@ -24,6 +24,7 @@
       { resource: "fibre", min: 10, max: 30, weight: 25 },
       { resource: "hide", min: 5, max: 15, weight: 15 },
       { resource: "fat", min: 3, max: 8, weight: 10 },
+      { resource: "food", min: 10, max: 30, weight: 15 },
     ],
   },
   // Daily tasks: the same picks for everyone each UTC day; ones a base cannot do yet are skipped.
@@ -36,7 +37,7 @@
       { id: "barrel_1", kind: "barrel", target: 1, reward: { scrap: 5, fibre: 20 } },
       { id: "smelt_300", kind: "smelt", target: 300, requires: "furnace", reward: { scrap: 10, ingots: 50 } },
       { id: "furnace_out_200", kind: "furnace_collect", target: 200, requires: "furnace", reward: { scrap: 8 } },
-      { id: "craft_1", kind: "craft", target: 1, requires: "workbench", reward: { scrap: 10, timber: 300 } },
+      { id: "craft_1", kind: "craft", target: 1, requires: "workbench", reward: { scrap: 10, timber: 300 }, blueprint: true },
     ],
   },
 }

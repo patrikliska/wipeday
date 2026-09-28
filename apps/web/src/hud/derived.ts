@@ -18,9 +18,19 @@ export function pendingOf(state: Pick<WorldState, "base" | "now">): Amounts {
   return pending;
 }
 
-/** Resources in display order that the base has met so far (they appear as they are found). */
+/**
+ * Gathered and smelted resources in display order that the base has met so far (they
+ * appear as they are found). Parts live in the inventory, not the top bar.
+ */
 export function knownResources(base: BaseState): string[] {
   return content.resources
-    .map((resource) => resource.id)
-    .filter((id) => base.stock[id] !== undefined);
+    .filter((resource) => resource.kind !== "part" && base.stock[resource.id] !== undefined)
+    .map((resource) => resource.id);
+}
+
+/** Parts the base has had, in display order. */
+export function knownParts(base: BaseState): string[] {
+  return content.resources
+    .filter((resource) => resource.kind === "part" && base.stock[resource.id] !== undefined)
+    .map((resource) => resource.id);
 }

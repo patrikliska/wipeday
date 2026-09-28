@@ -3,142 +3,143 @@
 // Effects are the TOTAL at that level (not added to the level below). `minTier` on a level:
 // the base tier needed to build that level; `unlockTier`: needed for level 1.
 // Names and one-line descriptions are in the locale (`building.{id}.name` / `.blurb`); the
-// effect lines are generated from `effects` (`effect.*` keys).
+// effect lines are generated from `effects` (`effect.*` keys). The workbench, loom, tannery,
+// kiln, press and campfire are also stations: their level is what recipes.json5 asks for.
 //
 // Effects: rates (% more of a resource), allRates (% more of everything), flat (per hour,
 // whatever the tool), cap (room for every resource), fuelPer100Ore (less furnace fuel),
 // smeltPercent (faster furnaces), craftPercent (faster crafting), haulMinutes (bigger daily
 // node haul), barrelLifeMinutes (barrels stay longer), barrelEveryMinutes (barrels come
-// sooner), graceHours (longer before unpaid upkeep costs a level), workbench (crafting level),
-// furnace (furnace type, 1 = the first in furnaces.json5).
+// sooner), graceHours (longer before unpaid upkeep costs a level), furnace (furnace type,
+// 1 = the first in furnaces.json5).
 {
   buildings: [
     {
       id: "workbench", unlockTier: "twig",
       levels: [
-        { cost: { timber: 500, stone: 100 }, minutes: 0, upkeep: {}, effects: { workbench: 1 } },
-        { minTier: "stone", cost: { timber: 1000, ingots: 500 }, minutes: 30, upkeep: {}, effects: { workbench: 2 } },
-        { minTier: "metal", cost: { ingots: 3000, fuel: 20 }, minutes: 120, upkeep: {}, effects: { workbench: 3 } },
+        { cost: { timber: 500, stone: 100 }, minutes: 0, upkeep: {}, effects: {} },
+        { minTier: "stone", cost: { planks: 60, ingots: 400 }, minutes: 30, upkeep: {}, effects: {} },
+        { minTier: "metal", cost: { plates: 60, gears: 20, fuel: 20 }, minutes: 120, upkeep: {}, effects: {} },
       ],
     },
     {
       id: "furnace", unlockTier: "twig",
       levels: [
         { cost: { timber: 400, stone: 300 }, minutes: 0, upkeep: {}, effects: { furnace: 1 } },
-        { minTier: "stone", cost: { stone: 3000, ingots: 600 }, minutes: 60, upkeep: {}, effects: { furnace: 2 } },
-        { minTier: "metal", cost: { ingots: 5000, fuel: 25 }, minutes: 240, upkeep: {}, effects: { furnace: 3 } },
+        { minTier: "stone", cost: { stone: 3000, ingots: 400, plates: 20 }, minutes: 60, upkeep: {}, effects: { furnace: 2 } },
+        { minTier: "metal", cost: { ingots: 4000, plates: 80, gears: 20, fuel: 25 }, minutes: 240, upkeep: {}, effects: { furnace: 3 } },
       ],
     },
     {
       id: "campfire", unlockTier: "twig",
       levels: [
         { cost: { timber: 100, stone: 50 }, minutes: 0, upkeep: {}, effects: { allRates: 2 } },
-        { minTier: "wood", cost: { timber: 800, stone: 400 }, minutes: 30, upkeep: { timber: 2 }, effects: { allRates: 4 } },
-        { minTier: "stone", cost: { stone: 3000, ingots: 300 }, minutes: 120, upkeep: { timber: 4 }, effects: { allRates: 6 } },
+        { minTier: "wood", cost: { planks: 40, stone: 400 }, minutes: 30, upkeep: { timber: 2 }, effects: { allRates: 4 } },
+        { minTier: "stone", cost: { stone: 3000, planks: 100, plates: 20 }, minutes: 120, upkeep: { timber: 4 }, effects: { allRates: 6 } },
       ],
     },
     {
       id: "warehouse", unlockTier: "wood",
       levels: [
-        { cost: { timber: 800, stone: 400 }, minutes: 20, upkeep: {}, effects: { cap: 2000 } },
-        { minTier: "stone", cost: { timber: 3000, stone: 2000 }, minutes: 120, upkeep: { timber: 5 }, effects: { cap: 6000 } },
-        { minTier: "metal", cost: { stone: 12000, ingots: 3000 }, minutes: 360, upkeep: { timber: 10 }, effects: { cap: 15000 } },
+        { cost: { planks: 60, stone: 400 }, minutes: 20, upkeep: {}, effects: { cap: 2000 } },
+        { minTier: "stone", cost: { planks: 200, stone: 2000, frames: 20 }, minutes: 120, upkeep: { timber: 5 }, effects: { cap: 6000 } },
+        { minTier: "metal", cost: { stone: 12000, frames: 80, plates: 60 }, minutes: 360, upkeep: { timber: 10 }, effects: { cap: 15000 } },
       ],
     },
     {
       id: "garden", unlockTier: "wood",
       levels: [
-        { cost: { timber: 300, fibre: 20 }, minutes: 10, upkeep: {}, effects: { flat: { fibre: 10 } } },
-        { cost: { timber: 900, fibre: 100 }, minutes: 30, upkeep: {}, effects: { flat: { fibre: 25 } } },
-        { minTier: "stone", cost: { timber: 3000, stone: 1000 }, minutes: 90, upkeep: {}, effects: { flat: { fibre: 50 } } },
+        { cost: { timber: 300, fibre: 20 }, minutes: 10, upkeep: {}, effects: { flat: { food: 10 } } },
+        { cost: { planks: 40, fibre: 100 }, minutes: 30, upkeep: {}, effects: { flat: { food: 25 } } },
+        { minTier: "stone", cost: { planks: 120, rope: 30 }, minutes: 90, upkeep: {}, effects: { flat: { food: 50 } } },
       ],
     },
     {
       id: "loom", unlockTier: "wood",
       levels: [
         { cost: { timber: 600, fibre: 60 }, minutes: 20, upkeep: {}, effects: { rates: { fibre: 15 } } },
-        { minTier: "stone", cost: { timber: 1500, ingots: 100 }, minutes: 60, upkeep: {}, effects: { rates: { fibre: 30 } } },
-        { minTier: "metal", cost: { ingots: 800, fibre: 400 }, minutes: 180, upkeep: {}, effects: { rates: { fibre: 50 } } },
+        { minTier: "stone", cost: { planks: 80, rope: 20, ingots: 100 }, minutes: 60, upkeep: {}, effects: { rates: { fibre: 30 } } },
+        { minTier: "metal", cost: { ingots: 800, frames: 20, cloth: 100 }, minutes: 180, upkeep: {}, effects: { rates: { fibre: 50 } } },
       ],
     },
     {
       id: "bunkhouse", unlockTier: "wood",
       levels: [
-        { cost: { timber: 1000, stone: 300 }, minutes: 30, upkeep: {}, effects: { haulMinutes: 30 } },
-        { minTier: "stone", cost: { timber: 2500, stone: 1500 }, minutes: 120, upkeep: { timber: 3 }, effects: { haulMinutes: 60 } },
-        { minTier: "metal", cost: { stone: 6000, ingots: 1500 }, minutes: 360, upkeep: { timber: 6 }, effects: { haulMinutes: 90 } },
+        { cost: { planks: 80, stone: 300 }, minutes: 30, upkeep: {}, effects: { haulMinutes: 30 } },
+        { minTier: "stone", cost: { planks: 200, stone: 1500, cloth: 40 }, minutes: 120, upkeep: { timber: 3 }, effects: { haulMinutes: 60 } },
+        { minTier: "metal", cost: { stone: 6000, frames: 40, cloth: 120 }, minutes: 360, upkeep: { timber: 6 }, effects: { haulMinutes: 90 } },
       ],
     },
     {
       id: "lights", unlockTier: "wood",
       levels: [
-        { cost: { timber: 200, fat: 20 }, minutes: 10, upkeep: {}, effects: { craftPercent: 10 } },
-        { minTier: "stone", cost: { ingots: 200, fat: 60 }, minutes: 30, upkeep: {}, effects: { craftPercent: 20 } },
-        { minTier: "metal", cost: { ingots: 800, fuel: 30 }, minutes: 120, upkeep: { fuel: 1 }, effects: { craftPercent: 35 } },
+        { cost: { planks: 20, fat: 20 }, minutes: 10, upkeep: {}, effects: { craftPercent: 10 } },
+        { minTier: "stone", cost: { plates: 10, fuel: 10 }, minutes: 30, upkeep: {}, effects: { craftPercent: 20 } },
+        { minTier: "metal", cost: { ingots: 800, gears: 10, fuel: 30 }, minutes: 120, upkeep: { fuel: 1 }, effects: { craftPercent: 35 } },
       ],
     },
     {
       id: "tannery", unlockTier: "stone",
       levels: [
-        { cost: { timber: 1200, stone: 600 }, minutes: 30, upkeep: {}, effects: { rates: { hide: 20 } } },
-        { cost: { timber: 3000, ingots: 400 }, minutes: 120, upkeep: {}, effects: { rates: { hide: 40 } } },
-        { minTier: "metal", cost: { ingots: 2000, hide: 300 }, minutes: 360, upkeep: {}, effects: { rates: { hide: 60 } } },
+        { cost: { planks: 80, stone: 600 }, minutes: 30, upkeep: {}, effects: { rates: { hide: 20 } } },
+        { cost: { planks: 200, ingots: 400 }, minutes: 120, upkeep: {}, effects: { rates: { hide: 40 } } },
+        { minTier: "metal", cost: { ingots: 2000, frames: 30, leather: 60 }, minutes: 360, upkeep: {}, effects: { rates: { hide: 60 } } },
       ],
     },
     {
       id: "kiln", unlockTier: "stone",
       levels: [
         { cost: { stone: 800, timber: 400 }, minutes: 30, upkeep: {}, effects: { fuelPer100Ore: 10 } },
-        { cost: { stone: 2500, ingots: 300 }, minutes: 120, upkeep: {}, effects: { fuelPer100Ore: 20 } },
-        { minTier: "metal", cost: { stone: 8000, ingots: 1500 }, minutes: 360, upkeep: {}, effects: { fuelPer100Ore: 30 } },
+        { cost: { stone: 2500, ingots: 300, planks: 60 }, minutes: 120, upkeep: {}, effects: { fuelPer100Ore: 20 } },
+        { minTier: "metal", cost: { stone: 8000, plates: 50 }, minutes: 360, upkeep: {}, effects: { fuelPer100Ore: 30 } },
       ],
     },
     {
       id: "press", unlockTier: "stone",
       levels: [
-        { cost: { timber: 700, ingots: 80 }, minutes: 30, upkeep: {}, effects: { rates: { fat: 20 } } },
-        { cost: { timber: 2000, ingots: 500 }, minutes: 120, upkeep: {}, effects: { rates: { fat: 40 } } },
-        { minTier: "metal", cost: { ingots: 2000, fat: 200 }, minutes: 360, upkeep: {}, effects: { rates: { fat: 60 } } },
+        { cost: { planks: 40, ingots: 80 }, minutes: 30, upkeep: {}, effects: { rates: { fat: 20 } } },
+        { cost: { planks: 150, ingots: 500 }, minutes: 120, upkeep: {}, effects: { rates: { fat: 40 } } },
+        { minTier: "metal", cost: { ingots: 2000, gears: 30 }, minutes: 360, upkeep: {}, effects: { rates: { fat: 60 } } },
       ],
     },
     {
       id: "watchtower", unlockTier: "stone",
       levels: [
-        { cost: { timber: 1500, stone: 800 }, minutes: 60, upkeep: {}, effects: { barrelLifeMinutes: 15 } },
-        { cost: { stone: 3000, ingots: 500 }, minutes: 180, upkeep: {}, effects: { barrelLifeMinutes: 30 } },
-        { minTier: "metal", cost: { stone: 8000, ingots: 2000 }, minutes: 480, upkeep: {}, effects: { barrelLifeMinutes: 45 } },
+        { cost: { planks: 100, stone: 800 }, minutes: 60, upkeep: {}, effects: { barrelLifeMinutes: 15 } },
+        { cost: { stone: 3000, frames: 20 }, minutes: 180, upkeep: {}, effects: { barrelLifeMinutes: 30 } },
+        { minTier: "metal", cost: { stone: 8000, frames: 60, plates: 40 }, minutes: 480, upkeep: {}, effects: { barrelLifeMinutes: 45 } },
       ],
     },
     {
       id: "walls", unlockTier: "stone",
       levels: [
         { cost: { stone: 2000 }, minutes: 60, upkeep: {}, effects: { graceHours: 12 } },
-        { cost: { stone: 6000, ingots: 800 }, minutes: 240, upkeep: {}, effects: { graceHours: 24 } },
-        { minTier: "metal", cost: { stone: 20000, ingots: 4000 }, minutes: 720, upkeep: {}, effects: { graceHours: 48 } },
+        { cost: { stone: 6000, planks: 150, plates: 20 }, minutes: 240, upkeep: {}, effects: { graceHours: 24 } },
+        { minTier: "metal", cost: { stone: 20000, plates: 150 }, minutes: 720, upkeep: {}, effects: { graceHours: 48 } },
       ],
     },
     {
       id: "generator", unlockTier: "metal",
       levels: [
-        { cost: { ingots: 2000, fuel: 30 }, minutes: 120, upkeep: { fuel: 1 }, effects: { smeltPercent: 20 } },
-        { cost: { ingots: 6000, fuel: 80 }, minutes: 360, upkeep: { fuel: 1 }, effects: { smeltPercent: 40 } },
-        { minTier: "hqm", cost: { ingots: 15000, fuel: 200 }, minutes: 720, upkeep: { fuel: 2 }, effects: { smeltPercent: 60 } },
+        { cost: { plates: 40, gears: 20, fuel: 30 }, minutes: 120, upkeep: { fuel: 1 }, effects: { smeltPercent: 20 } },
+        { cost: { ingots: 4000, gears: 60, springs: 20, fuel: 80 }, minutes: 360, upkeep: { fuel: 1 }, effects: { smeltPercent: 40 } },
+        { minTier: "hqm", cost: { ingots: 10000, gears: 120, springs: 60, fuel: 200 }, minutes: 720, upkeep: { fuel: 2 }, effects: { smeltPercent: 60 } },
       ],
     },
     {
       id: "radio_mast", unlockTier: "metal",
       levels: [
-        { cost: { ingots: 1500, timber: 3000 }, minutes: 120, upkeep: {}, effects: { barrelEveryMinutes: 30 } },
-        { cost: { ingots: 5000, timber: 6000 }, minutes: 360, upkeep: {}, effects: { barrelEveryMinutes: 60 } },
-        { minTier: "hqm", cost: { ingots: 12000 }, minutes: 720, upkeep: {}, effects: { barrelEveryMinutes: 90 } },
+        { cost: { ingots: 800, frames: 30, plates: 30 }, minutes: 120, upkeep: {}, effects: { barrelEveryMinutes: 30 } },
+        { cost: { ingots: 3000, frames: 80, gears: 40 }, minutes: 360, upkeep: {}, effects: { barrelEveryMinutes: 60 } },
+        { minTier: "hqm", cost: { ingots: 8000, springs: 60, gears: 80 }, minutes: 720, upkeep: {}, effects: { barrelEveryMinutes: 90 } },
       ],
     },
     {
       id: "dock", unlockTier: "metal",
       levels: [
-        { cost: { timber: 5000, ingots: 1000 }, minutes: 120, upkeep: {}, effects: { flat: { fat: 5 } } },
-        { cost: { timber: 10000, ingots: 4000 }, minutes: 360, upkeep: {}, effects: { flat: { fat: 12 } } },
-        { minTier: "hqm", cost: { ingots: 12000 }, minutes: 720, upkeep: {}, effects: { flat: { fat: 25 } } },
+        { cost: { planks: 300, rope: 60, ingots: 500 }, minutes: 120, upkeep: {}, effects: { flat: { food: 8 } } },
+        { cost: { planks: 600, rope: 120, cloth: 80, ingots: 2000 }, minutes: 360, upkeep: {}, effects: { flat: { food: 20 } } },
+        { minTier: "hqm", cost: { ingots: 8000, frames: 80, rope: 200 }, minutes: 720, upkeep: {}, effects: { flat: { food: 40 } } },
       ],
     },
   ],

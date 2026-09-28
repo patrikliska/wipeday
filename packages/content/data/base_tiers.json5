@@ -9,8 +9,6 @@
     decayProductionPercent: 50,
     // Unpaid for this long and the base drops one tier.
     tierLossAfterHours: 72,
-    // Items waiting in the crafting queue, including the one being made.
-    craftQueueSize: 3,
   },
   baseTiers: [
     {
@@ -26,18 +24,18 @@
     {
       id: "stone",
       storageCap: 20000, boxSlots: 8, furnaceSlots: 2, builders: 2,
-      cost: { stone: 6000, ingots: 800 }, buildMinutes: 240, upkeep: { timber: 40, stone: 100 },
+      cost: { stone: 6000, ingots: 800, planks: 200 }, buildMinutes: 240, upkeep: { timber: 40, stone: 100 },
     },
     {
       id: "metal",
       storageCap: 80000, boxSlots: 12, furnaceSlots: 3, builders: 2,
-      cost: { stone: 40000, ingots: 38000 }, buildMinutes: 720,
+      cost: { stone: 40000, ingots: 30000, plates: 300, frames: 100, leather: 40 }, buildMinutes: 720,
       upkeep: { timber: 60, stone: 150, ingots: 60 },
     },
     {
       id: "hqm",
       storageCap: 300000, boxSlots: 16, furnaceSlots: 4, builders: 2,
-      cost: { ingots: 25000, fuel: 400 }, buildMinutes: 1440,
+      cost: { ingots: 20000, plates: 600, gears: 150, springs: 100, fuel: 400 }, buildMinutes: 1440,
       upkeep: { timber: 80, stone: 200, ingots: 100, fuel: 2 },
     },
   ],

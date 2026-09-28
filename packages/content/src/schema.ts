@@ -21,10 +21,15 @@ const tier = z.enum(TIERS);
 const amounts = z.record(z.string(), z.int().min(0));
 export type Amounts = Record<string, number>;
 
+export const RESOURCE_KINDS = ["raw", "refined", "part", "currency"] as const;
+
 export const resourceSchema = z.strictObject({
   id,
-  /** raw: gathered. refined: made from a raw resource. currency: scrap. */
-  kind: z.enum(["raw", "refined", "currency"]),
+  /**
+   * raw: gathered (or grown). refined: smelted from a raw one. part: made at a station
+   * (recipes.json5), not capped by storage. currency: scrap.
+   */
+  kind: z.enum(RESOURCE_KINDS),
   /** For ores: the refined resource a furnace turns them into, 1:1. */
   smeltsInto: z.string().optional(),
 });
@@ -62,8 +67,6 @@ export const baseRulesSchema = z.strictObject({
   decayProductionPercent: z.int().min(0).max(100),
   /** Unpaid for this long and the base drops one tier. */
   tierLossAfterHours: z.int().min(1),
-  /** Items waiting in the crafting queue, including the one being made. */
-  craftQueueSize: z.int().min(1),
 });
 export type BaseRules = z.infer<typeof baseRulesSchema>;
 
@@ -78,7 +81,7 @@ export const furnaceSchema = z.strictObject({
   maxOrePerJob: z.int().min(1),
 });
 
-export const ITEM_CATEGORIES = ["storage", "med", "weapon", "armor"] as const;
+export const ITEM_CATEGORIES = ["storage", "med", "weapon", "armor", "meal"] as const;
 
 export const itemSchema = z.strictObject({
   id,
@@ -89,6 +92,9 @@ export const itemSchema = z.strictObject({
   capacity: z.int().min(1).optional(),
   /** A base holds at most one. */
   unique: z.boolean().optional(),
+  /** Meals: served, they add this percent to Gather and node hits for `hours`. */
+  boostPercent: z.int().min(1).max(100).optional(),
+  hours: z.int().min(1).max(24).optional(),
 });
 
 /** What a building level gives. All totals at that level; everything optional. */
@@ -115,8 +121,6 @@ export const effectsSchema = z.strictObject({
   barrelEveryMinutes: z.int().min(0).optional(),
   /** Hours added before unpaid upkeep costs a level. */
   graceHours: z.int().min(0).optional(),
-  /** Crafting level. */
-  workbench: z.int().min(1).max(3).optional(),
   /** Furnace type: 1 = the first in furnaces.json5. */
   furnace: z.int().min(1).optional(),
 });
@@ -149,13 +153,39 @@ export const crewSchema = z.strictObject({
 });
 
 export const recipeSchema = z.strictObject({
-  item: z.string(),
-  /** Workbench level required; 0 = bare hands. */
-  workbench: z.int().min(0).max(3),
-  /** Time in the crafting queue; 0 = ready at once. */
-  craftMinutes: z.int().min(0),
+  /** What it makes: a part (resources.json5, lands in stock) or an item (items.json5). */
+  output: z.string(),
+  /** How many of `output` one unit of this recipe makes. */
+  amount: z.int().min(1).default(1),
+  /** The building that makes it, and the level it needs. */
+  station: z.string(),
+  level: z.int().min(1),
+  /** Minutes per unit at that station, before the lights' speed-up. */
+  minutes: z.int().min(1),
+  /** Paid per unit, up front for the whole batch. */
   cost: amounts,
+  /** Known only once a blueprint is found (barrels, perfect runs, tasks). */
+  blueprint: z.boolean().optional(),
 });
+
+/** Production rules: per station level (index 0 = level 1), salvage and blueprint odds. */
+export const craftingSchema = z.strictObject({
+  /** Jobs a station holds, including the one being made. */
+  queueSlots: z.array(z.int().min(1)).min(1),
+  /** The most units in one job. */
+  batchSize: z.array(z.int().min(1)).min(1),
+  /** Salvage returns this share of an item's recipe cost (rounded down)... */
+  salvagePercent: z.int().min(0).max(100),
+  /** ...plus this much scrap, by the item's tier. */
+  salvageScrap: z.record(tier, z.int().min(0)),
+  blueprints: z.strictObject({
+    /** Chance a broken barrel also holds a blueprint. */
+    barrelPercent: z.int().min(0).max(100),
+    /** Chance a perfect node run turns one up. */
+    perfectRunPercent: z.int().min(0).max(100),
+  }),
+});
+export type Crafting = z.infer<typeof craftingSchema>;
 
 export const nodeKindSchema = z.strictObject({
   id,
@@ -186,6 +216,8 @@ export const taskSchema = z.strictObject({
   /** Swapped out for players who lack this. */
   requires: z.enum(["furnace", "workbench"]).optional(),
   reward: amounts,
+  /** Also pays a blueprint the base does not know yet (when one is left). */
+  blueprint: z.boolean().optional(),
 });
 export type Task = z.infer<typeof taskSchema>;
 
@@ -234,6 +266,10 @@ export const pacingSchema = z.strictObject({
     hqm: dayWindow,
     /** At least `count` buildings standing on season day `day`. */
     buildings: z.strictObject({ day: z.int().min(1), count: z.int().min(1) }),
+    /** Crafting throughput: the first of each output made by this day. */
+    firstMade: z.record(z.string(), z.int().min(1)),
+    /** Every station has made something by this day. */
+    stationsWorkedByDay: z.int().min(1),
   }),
   optimal: z.strictObject({ hqmNotBeforeDay: z.int().min(1) }),
   tierCostRatio: z.strictObject({ min: z.number().min(1), max: z.number().min(1) }),
@@ -264,6 +300,7 @@ export interface Content {
   perks: Perk[];
   crew: CrewMember[];
   recipes: Recipe[];
+  crafting: Crafting;
   nodeKinds: NodeKind[];
   nodes: NodeDef[];
   pacing: Pacing;
@@ -324,6 +361,7 @@ export const DATA_FILES = [
   "perks.json5",
   "crew.json5",
   "recipes.json5",
+  "crafting.json5",
   "nodes.json5",
   "active.json5",
   "pacing.json5",

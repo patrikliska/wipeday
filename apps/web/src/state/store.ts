@@ -38,6 +38,7 @@ export interface Toast {
   text: string;
   tone: Tone;
   panel?: Panel;
+  recipe?: string;
 }
 
 interface Queued {
@@ -66,6 +67,10 @@ export interface WorldState {
   weather: Weather;
   toasts: Toast[];
   panel: Panel;
+  /** The craft panel's station tab ("favourites" for the pinned ones). */
+  station: string;
+  /** The recipe open in the craft panel (by output id), or null for the list. */
+  recipe: string | null;
   demoOpen: boolean;
 }
 
@@ -80,7 +85,15 @@ interface Actions {
   /** Builds the next base tier (`"tier"`) or a building's next level. */
   build(what: string): boolean;
   upgradeTool(): boolean;
-  craft(item: string): boolean;
+  /** Queues `count` units of the recipe that makes `recipe`. */
+  craft(recipe: string, count: number): boolean;
+  cancelCraft(station: string, index: number): boolean;
+  salvage(item: string, count: number): boolean;
+  serve(meal: string): boolean;
+  /** Opens the craft panel on a recipe's detail (from a "Make planks" link). */
+  openRecipe(output: string): void;
+  /** The craft panel's list for one station; closes any open recipe. */
+  selectStation(station: string): void;
   smelt(ore: string): boolean;
   takeOut(): boolean;
   breakBarrel(): boolean;
@@ -120,7 +133,7 @@ function timedKey(event: DomainEvent): string | null {
     case "building_done":
       return `building:${event.building}:${event.level}`;
     case "crafted":
-      return `craft:${event.item}:${event.at}`;
+      return `craft:${event.station}:${event.recipe}:${event.at}`;
     case "barrel_spawned":
       return `barrel:${event.expiresAt}`;
     case "node_depleted":
@@ -152,7 +165,9 @@ const placeholder = (): BaseState => ({
   upkeepPaidUntil: 0,
   furnaceJobs: [],
   items: {},
-  craftQueue: [],
+  production: {},
+  blueprints: [],
+  wellFed: null,
   nodeRun: null,
   wear: {},
   depleted: {},
@@ -268,6 +283,8 @@ export const useWorld = create<Store>((set, get) => {
     weather: "clear",
     toasts: [],
     panel: null,
+    station: "workbench",
+    recipe: null,
     demoOpen: false,
 
     async boot() {
@@ -347,7 +364,19 @@ export const useWorld = create<Store>((set, get) => {
     collect: () => get().send({ type: "collect" }),
     build: (what) => get().send({ type: "build", what }),
     upgradeTool: () => get().send({ type: "upgrade_tool" }),
-    craft: (item) => get().send({ type: "craft", item }),
+    craft: (recipe, count) => get().send({ type: "craft", recipe, count }),
+    cancelCraft: (station, index) => get().send({ type: "cancel_craft", station, index }),
+    salvage: (item, count) => get().send({ type: "salvage", item, count }),
+    serve: (meal) => get().send({ type: "serve", meal }),
+
+    openRecipe(output) {
+      const station = content.recipes.find((recipe) => recipe.output === output)?.station;
+      set({ panel: "craft", recipe: output, ...(station ? { station } : {}) });
+    },
+
+    selectStation(station) {
+      set({ station, recipe: null });
+    },
     smelt: (ore) => get().send({ type: "smelt", ore }),
     takeOut: () => get().send({ type: "take_out" }),
     breakBarrel: () => get().send({ type: "break_barrel" }),
@@ -387,7 +416,8 @@ export const useWorld = create<Store>((set, get) => {
     },
 
     openPanel(panel) {
-      set({ panel: get().panel === panel ? null : panel });
+      // The craft panel opens on its list; a "Make planks" link uses openRecipe instead.
+      set({ panel: get().panel === panel ? null : panel, recipe: null });
     },
 
     dismissWelcome() {
@@ -398,6 +428,7 @@ export const useWorld = create<Store>((set, get) => {
       const id = ++toastId;
       const toast: Toast = { id, text: message.text, tone: message.tone };
       if (message.panel) toast.panel = message.panel;
+      if (message.recipe) toast.recipe = message.recipe;
       set({ toasts: [...get().toasts.slice(-3), toast] });
       setTimeout(() => get().dismissToast(id), 4500);
     },

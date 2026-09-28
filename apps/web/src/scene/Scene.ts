@@ -12,12 +12,13 @@ import { countFrame, isFrozen } from "../debug";
 import { type GameEvent, on } from "../state/events";
 import { seasonTime, useWorld } from "../state/store";
 import {
+  abbrev,
   content,
   dayFraction,
   duration,
   gainLines,
-  itemName,
   nodeName,
+  outputName,
   SURVIVORS,
   t,
   tierName,
@@ -430,7 +431,7 @@ export class Scene {
         this.particles.spawn("dust", BASE_X, GROUND, 16, 0x8a7a5a);
         break;
       case "craft_queued": {
-        const spot = this.base.stationPosition("workbench") ?? { x: BASE_X, y: GROUND };
+        const spot = this.base.stationPosition(event.station) ?? { x: BASE_X, y: GROUND };
         this.particles.spawn("dust", spot.x, spot.y, 6, 0xc9b78a);
         break;
       }
@@ -455,9 +456,11 @@ export class Scene {
         break;
       }
       case "crafted": {
-        const spot = this.base.stationPosition("workbench") ?? { x: BASE_X, y: GROUND };
-        this.particles.spawn("sparks", spot.x, spot.y - 44, 16);
-        this.floaters.add(spot.x, spot.y - 80, itemName(event.item), 0xffffff, this.floatSize());
+        // From the station that made it: "+10 Planks" as each unit lands.
+        const spot = this.base.stationPosition(event.station) ?? { x: BASE_X, y: GROUND };
+        this.particles.spawn("sparks", spot.x, spot.y - 44, event.done ? 16 : 6);
+        const text = `+${abbrev(event.amount)} ${outputName(event.recipe)}`;
+        this.floaters.add(spot.x, spot.y - 80, text, 0xffffff, this.floatSize());
         break;
       }
       case "smelt_started": {

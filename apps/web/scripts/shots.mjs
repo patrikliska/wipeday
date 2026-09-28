@@ -464,7 +464,7 @@ async function main() {
         lastGatherAt: now - 20 * 60,
         nextBarrelAt: now + 4 * 3600,
         barrel: { spawnedAt: now - 15 * 60, expiresAt: now + 30 * 60, seed: 42 },
-        craftQueue: [],
+        production: {},
         ...base,
       });
       world.tick();

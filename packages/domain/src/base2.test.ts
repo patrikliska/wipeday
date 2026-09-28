@@ -46,7 +46,7 @@ describe("tier builds", () => {
   it("wood -> stone runs a timer that settle completes, once", () => {
     const start = startConstruction(
       content,
-      rich({ stone: 10000, ingots: 2000, timber: 5000 }, "wood"),
+      rich({ stone: 10000, ingots: 2000, timber: 5000, planks: 500 }, "wood"),
       T0,
       "tier",
     );

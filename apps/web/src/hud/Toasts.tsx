@@ -1,5 +1,5 @@
 import { useWorld } from "../state/store";
-import { t } from "../state/world";
+import { outputName, t } from "../state/world";
 import { vars } from "./util";
 
 const TONE = {
@@ -13,6 +13,7 @@ const TONE = {
 export function Toasts() {
   const toasts = useWorld((state) => state.toasts);
   const openPanel = useWorld((state) => state.openPanel);
+  const openRecipe = useWorld((state) => state.openRecipe);
   const dismiss = useWorld((state) => state.dismissToast);
   return (
     <div className="toasts" aria-live="polite">
@@ -24,11 +25,14 @@ export function Toasts() {
               type="button"
               className="btn small"
               onClick={() => {
-                if (toast.panel) openPanel(toast.panel);
+                if (toast.recipe) openRecipe(toast.recipe);
+                else if (toast.panel) openPanel(toast.panel);
                 dismiss(toast.id);
               }}
             >
-              {t(`panel.${toast.panel}`)}
+              {toast.recipe
+                ? t("craft.make_named", { item: outputName(toast.recipe) })
+                : t(`panel.${toast.panel}`)}
             </button>
           ) : null}
         </div>
