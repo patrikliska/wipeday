@@ -462,3 +462,14 @@ countdown), and the Collect hint no longer claims the store is full.
 Also fixed in W1 (M1): a twig base can only afford the Timber tier exactly at its storage cap,
 and "storage full" made Collect glow instead of Build although there was nothing to bank. Full
 storage now advises Collect only when something is waiting behind the cap.
+
+### D68. Deployment: one container behind the owner's existing Caddy
+The VPS already runs Caddy in Docker (the `tk-toolkit` project) on ports 80/443 for two other
+sites, so a second Caddy or systemd service is out (this replaces that part of D53). Wipe Day is
+its own compose project in `~/wipeday`: one container (the API serving the web build), joined to
+the Caddy's Docker network, with the database and backups on a host volume. `scripts/deploy.sh`
+copies a `git archive` of HEAD over SSH (no GitHub key on the server), builds on the server,
+restarts only `wipeday`, and appends one validated block to the shared Caddyfile once (in place,
+because the file is bind-mounted by inode), then reloads Caddy without restarting it. Production
+starts without Discord secrets (the login card says so), so the site can go up before the owner
+adds them. Details: `docs/deploy.md`.

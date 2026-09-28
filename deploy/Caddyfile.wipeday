@@ -1,0 +1,8 @@
+
+wipeday.patrikliska.dev {
+    encode gzip zstd
+    reverse_proxy wipeday:8787 {
+        # The event stream must not be buffered.
+        flush_interval -1
+    }
+}

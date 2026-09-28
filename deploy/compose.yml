@@ -1,0 +1,25 @@
+# Wipe Day on the VPS (D68): one container, joined to the network of the existing Caddy
+# (tk-toolkit) so it can reverse-proxy wipeday.patrikliska.dev to wipeday:8787.
+# Lives in ~/wipeday on the server; `src/` holds the code, `var/` the database and backups.
+services:
+  wipeday:
+    build: ./src
+    image: wipeday:latest
+    container_name: wipeday
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PUBLIC_URL: https://wipeday.patrikliska.dev
+      API_PORT: "8787"
+      GAME_DATABASE_PATH: /app/var/wipeday.db
+      BACKUP_DIR: /app/var/backups
+    volumes:
+      - ./var:/app/var
+    networks:
+      - caddy
+
+networks:
+  caddy:
+    external: true
+    name: tk-toolkit_default

@@ -1,8 +1,9 @@
 /**
  * The API's configuration, from the environment (`.env` at the repo root in
  * development, the container's env file on the server). Discord login is
- * optional in development: without a client id the login button explains
- * itself and the dev test players still work.
+ * optional: without a client id and secret the login card says it is not set
+ * up (and, outside production, the dev test players still work), so a server
+ * can go up before its secrets are in place.
  */
 import { existsSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
@@ -57,11 +58,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, root = ROOT): C
     data.DISCORD_CLIENT_ID && data.DISCORD_CLIENT_SECRET
       ? { clientId: data.DISCORD_CLIENT_ID, clientSecret: data.DISCORD_CLIENT_SECRET }
       : null;
-  if (production && !discord) {
-    throw new Error(
-      "API configuration is invalid: production needs DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET",
-    );
-  }
   return {
     production,
     port: data.API_PORT,

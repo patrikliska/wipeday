@@ -4,6 +4,7 @@
   "private": true,
   "description": "Wipe Day: an idle survival game. Web client, API, shared domain, Discord companion.",
   "type": "module",
+  "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=22"
   },

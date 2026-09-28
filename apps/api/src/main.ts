@@ -31,6 +31,8 @@ const discord = config.discord
     )
   : null;
 const app = createApp({ db, game, hub, clock, config, discord });
+if (!discord)
+  log.warn("Discord login is not configured: set DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET");
 
 const tick = () => {
   try {
@@ -51,7 +53,7 @@ setInterval(tick, TICK_MS);
 serve({ fetch: app.fetch, port: config.port }, (info) => {
   log.info("api listening", {
     port: info.port,
-    login: discord ? "discord" : "dev only",
+    login: discord ? "discord" : config.devLogin ? "dev only" : "none",
     devLogin: config.devLogin,
     resources: content.resources.length,
   });
