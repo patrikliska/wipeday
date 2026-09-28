@@ -60,8 +60,8 @@ describe("crafting", () => {
     expect(one.state.craftQueue.map((job) => job.item)).toEqual(["hide_vest"]);
     const both = settleCrafts(vest.state, T0 + 3600);
     expect(both.events).toEqual([
-      { type: "crafted", item: "bow" },
-      { type: "crafted", item: "hide_vest" },
+      { type: "crafted", item: "bow", at: T0 + 10 * 60 },
+      { type: "crafted", item: "hide_vest", at: T0 + 20 * 60 },
     ]);
     expect(settleCrafts(both.state, T0 + 3600).events).toEqual([]);
   });

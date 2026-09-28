@@ -6,8 +6,6 @@
  * regrow clock stays until the store brings it back.
  */
 import { ColorMatrixFilter, Container, Graphics, Sprite } from "pixi.js";
-import type { Depleted } from "../state/store";
-import type { NodeKind } from "../state/world";
 import {
   FIBRE,
   MOSS,
@@ -63,8 +61,19 @@ export interface NodeRun {
   lastHitAt: number;
 }
 
+/** The node kinds the scene can draw; the ids match `nodes.json5` kinds. */
+export type NodeKind = "tree" | "stone" | "ore" | "sulfur" | "fibre";
+
+/** A worked-out node: down from `at` until `until` (game seconds), then it grows back. */
+export interface Depleted {
+  kind: string;
+  at: number;
+  until: number;
+}
+
 export interface NodeCallbacks {
-  onStart: (node: NodeDef) => void;
+  /** A tap on a standing node; false refuses the run (the store says why). */
+  onStart: (node: NodeDef) => boolean;
   onHit: (node: NodeDef, hits: number, x: number, y: number) => void;
   /** `x`, `y`: the marker's last position in world units, where the player was looking. */
   onRunOver: (node: NodeDef, hits: number, perfect: boolean, x: number, y: number) => void;
@@ -625,8 +634,11 @@ export class Nodes {
       return;
     }
     view.shake = 1;
+    // A run on another node ends first, so that node is used up like any worked node.
+    const previous = this.run ? this.views.get(this.run.node) : undefined;
+    if (previous) this.endRun(previous, false);
+    if (!this.callbacks.onStart(view.def)) return;
     this.run = { node: view.def.id, hits: 0, marker: this.randomSpot(view), lastHitAt: now };
-    this.callbacks.onStart(view.def);
   }
 
   private hit(view: NodeView): void {

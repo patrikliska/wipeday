@@ -1,423 +1,401 @@
 /**
- * The prototype store. Injected clocks (`./clocks`) drive accrual, timers and
- * the day cycle; actions mutate state and emit scene events. This is
- * placeholder logic that the real domain package will replace one function at
- * a time.
+ * The client's game state. The server (or, in demo mode, the local backend)
+ * owns the truth; this store holds:
+ *
+ * - `confirmed`: the last state the backend answered with, and `queue`: the
+ *   commands sent since and not yet answered. `base` is `confirmed` with the
+ *   queue re-applied, which is what the player sees (client prediction).
+ * - A tap runs the command through the same domain function the server uses,
+ *   shows the result and plays its effects at once, then sends it with a fresh
+ *   idempotency key. The answer replaces the prediction; a refusal the
+ *   prediction missed rolls it back with a one-line explanation.
+ * - Timers that end on screen (a build, a craft, a barrel, a regrown node) are
+ *   predicted by settling locally, and their effects play exactly once even
+ *   when the server's version of the same moment arrives later.
  */
+import type { BaseState } from "@wipe-day/domain/base";
+import type { Command } from "@wipe-day/domain/commands";
+import { applyCommand } from "@wipe-day/domain/commands";
+import type { GameEvent as DomainEvent } from "@wipe-day/domain/events";
+import { nodeKindOf, nodeStatus } from "@wipe-day/domain/nodes";
+import { nextEventAt, settleAll } from "@wipe-day/domain/settle";
+import type { PlayerView, PushMessage, StateResponse, WelcomeBack } from "@wipe-day/domain/wire";
 import { create } from "zustand";
-import { DEMO_SEASON_START, demoClocks, type WorldClocks } from "./clocks";
-import { emit } from "./events";
-import {
-  BARREL_EVERY,
-  BARREL_LIFETIME,
-  BASE_TIERS,
-  FURNACE_RATE,
-  GATHER_BONUS_MINUTES,
-  GATHER_COOLDOWN,
-  ITEMS,
-  type ItemId,
-  itemById,
-  NODE_TYPES,
-  type NodeKind,
-  nextTier,
-  type ResourceId,
-  SURVIVORS,
-  type Survivor,
-  type Task,
-  type Tier,
-  TOOLS,
-  type ToolId,
-  tierById,
-  toolOf,
-} from "./world";
+import { type Backend, newKey, type ServerConfig } from "../net/backend";
+import { HttpBackend } from "../net/http";
+import { LocalBackend } from "../net/local";
+import { DEMO_SEASON_START, demoClocks } from "./clocks";
+import { emit, type GameEvent } from "./events";
+import { eventMessage, type Message, type Panel, refusalMessage, type Tone } from "./messages";
+import { content, t } from "./world";
 
-export type Amounts = Partial<Record<ResourceId, number>>;
+export type { Panel };
 export type Weather = "clear" | "rain" | "fog";
-export type Panel = "build" | "craft" | "furnace" | "inventory" | "tasks" | "squad" | "map" | null;
-
-export interface FurnaceJob {
-  input: ResourceId;
-  output: ResourceId;
-  amount: number;
-  startedAt: number;
-  taken: number;
-}
-
-/** A worked-out node: gone from `at` until `until` (`wall` clock seconds), then it grows back. */
-export interface Depleted {
-  kind: NodeKind;
-  at: number;
-  until: number;
-}
+export type Phase = "loading" | "login" | "playing" | "offline";
 
 export interface Toast {
   id: number;
   text: string;
-  tone: "neutral" | "success" | "warning" | "danger";
+  tone: Tone;
+  panel?: Panel;
+}
+
+interface Queued {
+  key: string;
+  command: Command;
+  /** Game time the command was predicted at. */
+  at: number;
 }
 
 export interface WorldState {
-  /** The game clock at the last tick, unix seconds (fractional). Every game timestamp is on it. */
+  phase: Phase;
+  mode: "server" | "demo";
+  config: ServerConfig;
+  player: PlayerView | null;
+  /** What the player sees: `confirmed` plus the commands still in flight. */
+  base: BaseState;
+  confirmed: BaseState;
+  version: number;
+  queue: Queued[];
+  /** Game time now (seconds, fractional): the server's clock, or the demo clock. */
   now: number;
-  /**
-   * The wall clock at the last tick: real seconds for active-play timers (node regrow). It keeps
-   * running while the tab is hidden and never speeds up with the demo, so nodes are back when the
-   * player returns.
-   */
-  wallNow: number;
-  /** When the season began on the game clock; the day number and time of day count from here. */
   seasonStartedAt: number;
-  tier: Tier;
-  build: { tier: Tier; endsAt: number } | null;
-  tool: ToolId;
-  stock: Amounts;
-  /** Accrued since the last collect. */
-  pending: Amounts;
-  lastGatherAt: number;
-  items: Partial<Record<ItemId, number>>;
-  furnace: { owned: boolean; jobs: FurnaceJob[] };
-  survivors: Survivor[];
-  barrel: { expiresAt: number } | null;
-  /** Nodes on cooldown, by node id. */
-  depleted: Record<string, Depleted>;
-  nextBarrelAt: number;
+  welcomeBack: WelcomeBack | null;
+  /** The node run the scene is playing, with the id the server knows it by. */
+  run: { node: string; run: string } | null;
   weather: Weather;
-  tasks: Task[];
   toasts: Toast[];
   panel: Panel;
-  showAway: boolean;
   demoOpen: boolean;
 }
 
 interface Actions {
-  /** Reads the clocks and moves the world up to them. The scene calls it once per frame. */
+  boot(): Promise<void>;
+  /** Reads the clock and lands timers that ended. The scene calls it once per frame. */
   tick(): void;
+  /** Predicts, shows and sends one command. False when it was refused locally. */
+  send(command: Command): boolean;
   gather(): boolean;
-  collect(): void;
-  startBuild(): void;
-  craft(item: ItemId): void;
-  smelt(ore: ResourceId): void;
-  takeOut(): void;
-  breakBarrel(): void;
-  bankNodeHit(node: string, kind: NodeKind, hits: number): void;
-  depleteNode(node: string, kind: NodeKind): void;
+  collect(): boolean;
+  build(): boolean;
+  upgradeTool(): boolean;
+  buyFurnace(): boolean;
+  craft(item: string): boolean;
+  smelt(ore: string): boolean;
+  takeOut(): boolean;
+  breakBarrel(): boolean;
+  /** The scene starts a node run; returns why not when the node cannot be worked. */
+  startRun(node: string): string | null;
+  hitNode(hits: number): void;
+  endRun(perfect: boolean): void;
+  devLogin(slot: number): Promise<void>;
+  logout(): Promise<void>;
   openPanel(panel: Panel): void;
-  dismissAway(): void;
-  toast(text: string, tone?: Toast["tone"]): void;
+  dismissWelcome(): void;
+  toast(message: Message): void;
   dismissToast(id: number): void;
   setWeather(weather: Weather): void;
-  jumpTier(tier: Tier): void;
-  spawnBarrel(): void;
-  giveEverything(): void;
   setDemoOpen(open: boolean): void;
+  /** Demo mode and screenshots only: overwrite parts of the base. */
+  demoPatch(change: Partial<BaseState>): void;
 }
 
 export type Store = WorldState & Actions;
 
 let toastId = 0;
+let backend: Backend = new HttpBackend();
+let unsubscribe: (() => void) | null = null;
+let sending = false;
+/** Keys this tab sent: their pushes are echoes, the command's own answer already arrived. */
+const sentKeys = new Set<string>();
+/** Timed happenings already played: a server copy of the same moment must not replay them. */
+const played = new Set<string>();
 
-/** A clock reading in fractional seconds: smooth accrual and timers between whole seconds. */
-const seconds = (clock: WorldClocks["game"]): number => clock.nowMs() / 1000;
-
-const cap = (state: Pick<WorldState, "tier" | "items">): number => {
-  const base = tierById.get(state.tier)?.cap ?? 1500;
-  const crates = state.items.crate ?? 0;
-  return base + crates * (itemById.get("crate")?.capacity ?? 0);
-};
-
-function add(a: Amounts, b: Amounts, limit?: number): Amounts {
-  const out: Amounts = { ...a };
-  for (const [id, amount] of Object.entries(b)) {
-    const key = id as ResourceId;
-    const next = (out[key] ?? 0) + (amount ?? 0);
-    out[key] = limit === undefined ? next : Math.min(limit, next);
+/** Identity of a timed happening, for playing it once. */
+function timedKey(event: DomainEvent): string | null {
+  switch (event.type) {
+    case "build_done":
+      return `build:${event.tier}`;
+    case "crafted":
+      return `craft:${event.item}:${event.at}`;
+    case "barrel_spawned":
+      return `barrel:${event.expiresAt}`;
+    case "node_depleted":
+      return `node:${event.node}:${event.until}`;
+    default:
+      return null;
   }
-  return out;
 }
 
-function subtract(a: Amounts, b: Amounts): Amounts {
-  const out: Amounts = { ...a };
-  for (const [id, amount] of Object.entries(b)) {
-    const key = id as ResourceId;
-    out[key] = (out[key] ?? 0) - (amount ?? 0);
-  }
-  return out;
+const seconds = (): number => backend.clock.nowMs() / 1000;
+
+/** `confirmed` with every queued command re-applied at the moment it was predicted. */
+function rebase(confirmed: BaseState, queue: Queued[]): BaseState {
+  return queue.reduce(
+    (state, queued) => applyCommand(content, state, queued.command, queued.at).state,
+    confirmed,
+  );
 }
 
-function production(tool: ToolId, seconds: number): Amounts {
-  const out: Amounts = {};
-  for (const [id, perHour] of Object.entries(toolOf(tool).rates)) {
-    out[id as ResourceId] = ((perHour ?? 0) * seconds) / 3600;
-  }
-  return out;
-}
-
-const initialTasks = (): Task[] => [
-  {
-    id: "gather_4",
-    name: "Gather 4 times",
-    target: 4,
-    progress: 1,
-    reward: { scrap: 5, timber: 200 },
-    done: false,
-  },
-  {
-    id: "smelt_300",
-    name: "Smelt 300 ore",
-    target: 300,
-    progress: 0,
-    reward: { scrap: 10, ingots: 50 },
-    done: false,
-  },
-  {
-    id: "craft_1",
-    name: "Craft something",
-    target: 1,
-    progress: 0,
-    reward: { scrap: 10 },
-    done: false,
-  },
-];
-
-const initialState = (clocks: WorldClocks): WorldState => ({
-  ...startingWorld(seconds(clocks.game)),
-  wallNow: seconds(clocks.wall),
-});
-
-const startingWorld = (now: number): Omit<WorldState, "wallNow"> => ({
-  now,
-  seasonStartedAt: DEMO_SEASON_START,
-  tier: "wood",
+const placeholder = (): BaseState => ({
+  seed: 0,
+  tier: "twig",
+  toolId: content.tools[0]?.id ?? "",
+  stock: {},
+  lastCollectedAt: 0,
+  lastGatherAt: null,
   build: null,
-  tool: "stone_tools",
-  stock: { timber: 1840, stone: 1210, ore: 260, sulfur_ore: 40, fibre: 90, ingots: 120, scrap: 14 },
-  pending: { timber: 210, stone: 160, ore: 40, sulfur_ore: 12, fibre: 20 },
-  lastGatherAt: now - 20 * 60,
-  items: { workbench: 1, crate: 2, campfire: 1, bow: 1 },
-  furnace: { owned: true, jobs: [] },
-  survivors: SURVIVORS,
-  barrel: { expiresAt: now + 30 * 60 },
+  upkeepPaidUntil: 0,
+  furnaceId: null,
+  furnaceJobs: [],
+  items: {},
+  craftQueue: [],
+  nodeRun: null,
   depleted: {},
-  nextBarrelAt: now + BARREL_EVERY,
-  weather: "clear",
-  tasks: initialTasks(),
-  toasts: [],
-  panel: null,
-  showAway: true,
-  demoOpen: false,
+  haul: { day: -1, minutes: 0 },
+  barrel: null,
+  nextBarrelAt: Number.MAX_SAFE_INTEGER,
+  tasks: { day: -1, ids: [], progress: {}, done: [] },
+  hints: {},
 });
 
-function progressTask(
-  tasks: Task[],
-  id: string,
-  amount: number,
-): { tasks: Task[]; done: Task | null } {
-  let done: Task | null = null;
-  const next = tasks.map((task) => {
-    if (task.id !== id || task.done) return task;
-    const progress = Math.min(task.target, task.progress + amount);
-    const finished = progress >= task.target;
-    if (finished) done = { ...task, progress, done: true };
-    return { ...task, progress, done: finished };
-  });
-  return { tasks: next, done };
-}
-
-/** The store over the given clocks. The app's `useWorld` runs on the demo clocks. */
-export const createWorld = (clocks: WorldClocks) =>
-  create<Store>((set, get) => ({
-    ...initialState(clocks),
-
-    tick() {
-      const state = get();
-      const clock = seconds(clocks.game);
-      const realClock = seconds(clocks.wall);
-      // Stopped clocks (demo pause, a screenshot) mean a frozen world: nothing lands or spawns.
-      if (clock === state.now && realClock === state.wallNow) return;
-      // A clock set back (a screenshot jumping to the morning) accrues nothing.
-      const dt = Math.max(0, clock - state.now);
-      let next: Partial<WorldState> = { now: clock, wallNow: realClock };
-
-      // Accrual into the pending pile, each resource capped by its room.
-      const room = cap(state);
-      const gained = production(state.tool, dt);
-      const pending: Amounts = { ...state.pending };
-      for (const [id, amount] of Object.entries(gained)) {
-        const key = id as ResourceId;
-        const held = (state.stock[key] ?? 0) + (pending[key] ?? 0);
-        pending[key] = (pending[key] ?? 0) + Math.min(amount ?? 0, Math.max(0, room - held));
-      }
-      next.pending = pending;
-
-      // Builds land.
-      if (state.build && state.build.endsAt <= clock) {
-        next = { ...next, tier: state.build.tier, build: null };
-        emit({ type: "build_done", tier: state.build.tier });
-        get().toast(`Your base is now ${tierById.get(state.build.tier)?.name}.`, "success");
-      }
-
-      // Worked-out nodes grow back.
-      const back = Object.entries(state.depleted).filter(([, node]) => node.until <= realClock);
-      if (back.length > 0) {
-        const depleted = { ...state.depleted };
-        for (const [id, node] of back) {
-          delete depleted[id];
-          emit({ type: "node_respawned", node: id, kind: node.kind });
+export const useWorld = create<Store>((set, get) => {
+  /** Plays events on screen and toasts the ones worth words; timed ones only once. */
+  const play = (events: GameEvent[]): void => {
+    for (const event of events) {
+      if (event.type !== "node_respawned" && event.type !== "weather") {
+        const key = timedKey(event);
+        if (key) {
+          if (played.has(key)) continue;
+          played.add(key);
         }
-        next.depleted = depleted;
       }
+      emit(event);
+      const message = eventMessage(event);
+      if (message) get().toast(message);
+    }
+  };
 
-      // Barrels wash up and drift off.
-      if (state.barrel && clock > state.barrel.expiresAt) {
-        next.barrel = null;
+  const adopt = (response: StateResponse): void => {
+    set({
+      player: response.player,
+      confirmed: response.state,
+      version: response.version,
+      queue: [],
+      base: response.state,
+      seasonStartedAt: response.seasonStartedAt,
+      welcomeBack: response.welcomeBack,
+      now: seconds(),
+      phase: "playing",
+    });
+  };
+
+  const reload = async (): Promise<void> => {
+    try {
+      adopt(await backend.state());
+    } catch {
+      set({ phase: "offline" });
+    }
+  };
+
+  const onPush = (message: PushMessage): void => {
+    if (message.origin && sentKeys.has(message.origin)) return;
+    const state = get();
+    if (message.version <= state.version) return;
+    const base = rebase(message.state, state.queue);
+    set({ confirmed: message.state, version: message.version, base });
+    // Another tab's actions or a timer the server landed first: show the timed ones.
+    play(message.events.filter((event) => timedKey(event) !== null));
+  };
+
+  /** Sends queued commands one at a time, in order; each answer becomes the new truth. */
+  const flush = async (): Promise<void> => {
+    if (sending) return;
+    sending = true;
+    try {
+      for (;;) {
+        const next = get().queue[0];
+        if (!next) break;
+        try {
+          const response = await backend.command(next.key, next.command);
+          const rest = get().queue.slice(1);
+          set({
+            confirmed: response.state,
+            version: Math.max(get().version, response.version),
+            queue: rest,
+            base: rebase(response.state, rest),
+          });
+          if (!response.ok) {
+            // The server saw a different base than the prediction did: say why, show its state.
+            const message = refusalMessage(response.refusal, response.serverNow);
+            if (message) get().toast(message);
+          }
+        } catch {
+          set({ queue: [] });
+          get().toast({ text: t("toast.connection"), tone: "danger" });
+          await reload();
+          break;
+        }
       }
-      if (!state.barrel && clock >= state.nextBarrelAt) {
-        next.barrel = { expiresAt: clock + BARREL_LIFETIME };
-        next.nextBarrelAt = clock + BARREL_EVERY;
-        emit({ type: "barrel_spawned" });
-        get().toast("A barrel washed up on the shore.", "warning");
+    } finally {
+      sending = false;
+    }
+  };
+
+  const connect = async (): Promise<void> => {
+    unsubscribe?.();
+    unsubscribe = backend.subscribe(onPush, () => void reload());
+    await reload();
+  };
+
+  return {
+    phase: "loading",
+    mode: "server",
+    config: { devLogin: false, discordLogin: false },
+    player: null,
+    base: placeholder(),
+    confirmed: placeholder(),
+    version: 0,
+    queue: [],
+    now: 0,
+    seasonStartedAt: 0,
+    welcomeBack: null,
+    run: null,
+    weather: "clear",
+    toasts: [],
+    panel: null,
+    demoOpen: false,
+
+    async boot() {
+      const demo = new URLSearchParams(window.location.search).has("demo");
+      if (!demo) {
+        try {
+          const config = await backend.config();
+          set({ config, mode: "server" });
+          const me = await backend.me();
+          if (!me) {
+            set({ phase: "login", now: seconds() });
+            return;
+          }
+          await connect();
+          return;
+        } catch {
+          if (!import.meta.env.DEV) {
+            set({ phase: "offline", now: seconds() });
+            return;
+          }
+          // Development without the API running: play the demo instead of a dead screen.
+        }
       }
-      set(next);
+      backend = new LocalBackend();
+      set({ mode: "demo", seasonStartedAt: DEMO_SEASON_START });
+      await connect();
+      if (!demo) get().toast({ text: t("toast.demo_mode"), tone: "neutral" });
     },
 
-    gather() {
+    tick() {
+      const now = seconds();
       const state = get();
-      if (state.now - state.lastGatherAt < GATHER_COOLDOWN) return false;
-      const bonus = production(state.tool, GATHER_BONUS_MINUTES * 60);
-      const banked = add(state.pending, {}, undefined);
-      const stock = add(add(state.stock, banked), bonus, cap(state));
-      const { tasks, done } = progressTask(state.tasks, "gather_4", 1);
-      set({ stock, pending: {}, lastGatherAt: state.now, tasks });
-      emit({ type: "gathered", node: "tree_1", gained: bonus });
-      if (done) {
-        get().toast(`Task done: ${done.name}`, "success");
-        set({ stock: add(get().stock, done.reward, cap(state)) });
+      if (state.phase !== "playing") {
+        set({ now });
+        return;
       }
+      const at = Math.floor(now);
+      const base = state.base;
+      const regrown = Object.entries(base.depleted).filter(([, until]) => until <= at);
+      const due = (nextEventAt(base) ?? Number.POSITIVE_INFINITY) <= at || regrown.length > 0;
+      if (!due) {
+        set({ now });
+        return;
+      }
+      const settled = settleAll(content, base, at);
+      set({ now, base: settled.state });
+      play(settled.events);
+      play(
+        regrown.map(([node]) => ({
+          type: "node_respawned" as const,
+          node,
+          kind: nodeKindOf(content, node)?.id ?? "tree",
+        })),
+      );
+    },
+
+    send(command) {
+      const state = get();
+      if (state.phase !== "playing") return false;
+      const at = Math.floor(state.now);
+      const predicted = applyCommand(content, state.base, command, at);
+      if (!predicted.ok) {
+        set({ base: predicted.state });
+        const message = refusalMessage(predicted.refusal, at);
+        if (message) get().toast(message);
+        return false;
+      }
+      const key = newKey();
+      sentKeys.add(key);
+      set({ base: predicted.state, queue: [...state.queue, { key, command, at }] });
+      play(predicted.events);
+      void flush();
       return true;
     },
 
-    collect() {
+    gather: () => get().send({ type: "gather" }),
+    collect: () => get().send({ type: "collect" }),
+    build: () => get().send({ type: "build" }),
+    upgradeTool: () => get().send({ type: "upgrade_tool" }),
+    buyFurnace: () => get().send({ type: "buy_furnace" }),
+    craft: (item) => get().send({ type: "craft", item }),
+    smelt: (ore) => get().send({ type: "smelt", ore }),
+    takeOut: () => get().send({ type: "take_out" }),
+    breakBarrel: () => get().send({ type: "break_barrel" }),
+
+    startRun(node) {
       const state = get();
-      const gained = state.pending;
-      set({ stock: add(state.stock, gained, cap(state)), pending: {} });
-      emit({ type: "collected", gained });
+      const status = nodeStatus(content, state.base, node, Math.floor(state.now));
+      if (status.code === "tool") return t("hud.node_needs_tool");
+      if (status.code !== "ready") return null;
+      set({ run: { node, run: newKey() } });
+      return null;
     },
 
-    startBuild() {
-      const state = get();
-      const target = nextTier(state.tier);
-      if (!target || state.build) return;
-      const tier = tierById.get(target);
-      if (!tier) return;
-      const stock = subtract(state.stock, tier.cost);
-      const endsAt = state.now + tier.buildMinutes * 60;
-      if (tier.buildMinutes === 0) {
-        set({ stock, tier: target });
-        emit({ type: "build_done", tier: target });
-        get().toast(`Your base is now ${tier.name}.`, "success");
-      } else {
-        set({ stock, build: { tier: target, endsAt } });
-        emit({ type: "build_started", tier: target });
-        get().toast(`Upgrade to ${tier.name} started.`, "neutral");
-      }
+    hitNode(hits) {
+      const run = get().run;
+      if (!run) return;
+      get().send({ type: "hit_node", node: run.node, run: run.run, hit: hits });
     },
 
-    craft(itemId) {
-      const state = get();
-      const item = itemById.get(itemId);
-      if (!item) return;
-      const { tasks, done } = progressTask(state.tasks, "craft_1", 1);
-      set({
-        stock: subtract(state.stock, item.cost),
-        items: { ...state.items, [itemId]: (state.items[itemId] ?? 0) + 1 },
-        tasks,
-      });
-      emit({ type: "crafted", item: itemId });
-      get().toast(`Crafted ${item.name}.`, "success");
-      if (done) get().toast(`Task done: ${done.name}`, "success");
+    endRun(perfect) {
+      const run = get().run;
+      set({ run: null });
+      // A full run ended on the server with its fifth hit; anything shorter ends here.
+      if (run && !perfect) get().send({ type: "end_node_run", node: run.node, run: run.run });
     },
 
-    smelt(ore) {
-      const state = get();
-      const slots = tierById.get(state.tier)?.furnaceSlots ?? 1;
-      if (!state.furnace.owned || state.furnace.jobs.length >= slots) return;
-      const output: ResourceId = ore === "ore" ? "ingots" : "sulfur";
-      const amount = Math.min(state.stock[ore] ?? 0, 1000);
-      if (amount <= 0) return;
-      const fuel = Math.ceil(amount / 2);
-      const job: FurnaceJob = { input: ore, output, amount, startedAt: state.now, taken: 0 };
-      const { tasks, done } = progressTask(state.tasks, "smelt_300", amount);
-      set({
-        stock: subtract(state.stock, { [ore]: amount, timber: fuel }),
-        furnace: { ...state.furnace, jobs: [...state.furnace.jobs, job] },
-        tasks,
-      });
-      emit({ type: "smelt_started" });
-      if (done) get().toast(`Task done: ${done.name}`, "success");
+    async devLogin(slot) {
+      await backend.devLogin(slot);
+      await connect();
     },
 
-    takeOut() {
-      const state = get();
-      const gained: Amounts = {};
-      const jobs: FurnaceJob[] = [];
-      for (const job of state.furnace.jobs) {
-        const progress = Math.min(
-          job.amount,
-          Math.floor((FURNACE_RATE * (state.now - job.startedAt)) / 3600),
-        );
-        const take = progress - job.taken;
-        if (take > 0) gained[job.output] = (gained[job.output] ?? 0) + take;
-        if (progress < job.amount) jobs.push({ ...job, taken: progress });
-      }
-      set({ stock: add(state.stock, gained, cap(state)), furnace: { ...state.furnace, jobs } });
-      emit({ type: "furnace_out", gained });
-    },
-
-    breakBarrel() {
-      const state = get();
-      if (!state.barrel) return;
-      const gained: Amounts = {
-        scrap: 3 + Math.floor(Math.random() * 6),
-        fibre: 10 + Math.floor(Math.random() * 20),
-      };
-      if (Math.random() < 0.4) gained.fat = 5 + Math.floor(Math.random() * 10);
-      set({ stock: add(state.stock, gained, cap(state)), barrel: null });
-      emit({ type: "barrel_broken", gained });
-    },
-
-    bankNodeHit(node, kind, hits) {
-      const state = get();
-      if (state.depleted[node]) return;
-      const type = NODE_TYPES[kind];
-      const output = production(state.tool, type.hitMinutes * 60);
-      const slice: Amounts = {};
-      for (const [id, share] of Object.entries(type.yields)) {
-        const key = id as ResourceId;
-        slice[key] = (output[key] ?? 0) * (share ?? 0);
-      }
-      set({ stock: add(state.stock, slice, cap(state)) });
-      emit({ type: "node_hit", node, hits, gained: slice });
-    },
-
-    depleteNode(node, kind) {
-      const state = get();
-      if (state.depleted[node]) return;
-      const until = state.wallNow + NODE_TYPES[kind].respawn;
-      set({ depleted: { ...state.depleted, [node]: { kind, at: state.wallNow, until } } });
-      emit({ type: "node_depleted", node, kind });
+    async logout() {
+      await backend.logout();
+      unsubscribe?.();
+      unsubscribe = null;
+      set({ phase: "login", player: null, panel: null });
     },
 
     openPanel(panel) {
       set({ panel: get().panel === panel ? null : panel });
     },
 
-    dismissAway() {
-      set({ showAway: false });
+    dismissWelcome() {
+      set({ welcomeBack: null });
     },
 
-    toast(text, tone = "neutral") {
+    toast(message) {
       const id = ++toastId;
-      set({ toasts: [...get().toasts.slice(-3), { id, text, tone }] });
+      const toast: Toast = { id, text: message.text, tone: message.tone };
+      if (message.panel) toast.panel = message.panel;
+      set({ toasts: [...get().toasts.slice(-3), toast] });
       setTimeout(() => get().dismissToast(id), 4500);
     },
 
@@ -430,61 +408,28 @@ export const createWorld = (clocks: WorldClocks) =>
       emit({ type: "weather", weather });
     },
 
-    jumpTier(tier) {
-      set({ tier, build: null });
-      emit({ type: "build_done", tier });
-    },
-
-    spawnBarrel() {
-      set({ barrel: { expiresAt: get().now + BARREL_LIFETIME } });
-      emit({ type: "barrel_spawned" });
-    },
-
-    giveEverything() {
-      const state = get();
-      const stock: Amounts = {};
-      for (const id of [
-        "timber",
-        "stone",
-        "ore",
-        "ingots",
-        "sulfur_ore",
-        "sulfur",
-        "fibre",
-        "hide",
-        "fat",
-        "fuel",
-        "scrap",
-      ] as ResourceId[]) {
-        stock[id] = 50_000;
-      }
-      const items: Partial<Record<ItemId, number>> = {};
-      for (const item of ITEMS) items[item.id] = 1;
-      set({ stock, items: { ...items, crate: 6 }, tool: TOOLS[2]?.id ?? state.tool });
-    },
-
     setDemoOpen(demoOpen) {
       set({ demoOpen });
     },
-  }));
 
-export const useWorld = createWorld(demoClocks);
-
-/** Storage room per resource, for the HUD. */
-export function storageCap(state: Pick<WorldState, "tier" | "items">): number {
-  return cap(state);
-}
-
-export function gatherReadyIn(state: Pick<WorldState, "now" | "lastGatherAt">): number {
-  return Math.max(0, state.lastGatherAt + GATHER_COOLDOWN - state.now);
-}
+    demoPatch(change) {
+      if (!(backend instanceof LocalBackend)) return;
+      const { state, version } = backend.patch(change);
+      set({ confirmed: state, base: rebase(state, get().queue), version });
+    },
+  };
+});
 
 /** Game seconds since the season began: gives the day number and the time of day. */
-export function seasonTime(state: Pick<WorldState, "now" | "seasonStartedAt">): number {
-  return state.now - state.seasonStartedAt;
+export function seasonTime(state: Pick<WorldState, "now" | "seasonStartedAt" | "mode">): number {
+  // The live game follows the player's own day; the demo counts from its epoch season start.
+  if (state.mode === "demo") return state.now - state.seasonStartedAt;
+  return state.now - new Date(state.now * 1000).getTimezoneOffset() * 60;
 }
 
-export function nextTierInfo(state: Pick<WorldState, "tier">) {
-  const target = nextTier(state.tier);
-  return target ? (BASE_TIERS.find((tier) => tier.id === target) ?? null) : null;
+/** Day of the season, 1-based. */
+export function seasonDay(state: Pick<WorldState, "now" | "seasonStartedAt">): number {
+  return Math.floor((state.now - state.seasonStartedAt) / 86400) + 1;
 }
+
+export { demoClocks };

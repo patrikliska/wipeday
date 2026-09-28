@@ -1,24 +1,15 @@
 /**
  * One-shot happenings the scene reacts to with effects (a burst of leaves, a
- * build rising, a barrel splash). State lives in the store; this only says
- * "something just happened, here".
+ * build rising, a barrel splash). They are the domain's events, played when the
+ * client predicts them (a command, or a timer ending on screen), plus a few
+ * that only exist in the client.
  */
-import type { ItemId, NodeKind, ResourceId, Tier } from "./world";
+import type { GameEvent as DomainEvent } from "@wipe-day/domain/events";
 
 export type GameEvent =
-  | { type: "gathered"; node: string; gained: Partial<Record<ResourceId, number>> }
-  | { type: "collected"; gained: Partial<Record<ResourceId, number>> }
-  | { type: "build_started"; tier: Tier }
-  | { type: "build_done"; tier: Tier }
-  | { type: "crafted"; item: ItemId }
-  | { type: "smelt_started" }
-  | { type: "furnace_out"; gained: Partial<Record<ResourceId, number>> }
-  | { type: "barrel_spawned" }
-  | { type: "barrel_broken"; gained: Partial<Record<ResourceId, number>> }
-  | { type: "node_hit"; node: string; hits: number; gained: Partial<Record<ResourceId, number>> }
-  | { type: "node_depleted"; node: string; kind: NodeKind }
-  | { type: "node_respawned"; node: string; kind: NodeKind }
-  | { type: "task_done"; name: string }
+  | DomainEvent
+  /** A worked-out node stands again (derived from time, no domain event). */
+  | { type: "node_respawned"; node: string; kind: string }
   | { type: "weather"; weather: "clear" | "rain" | "fog" };
 
 type Listener = (event: GameEvent) => void;

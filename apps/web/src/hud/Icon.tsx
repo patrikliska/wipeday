@@ -1,5 +1,14 @@
-import { type ItemId, itemById, type ResourceId, resourceById } from "../state/world";
-import { initials, tierVar, vars } from "./util";
+import {
+  type ItemId,
+  initials,
+  itemById,
+  itemName,
+  type ResourceId,
+  resourceColor,
+  resourceInitials,
+  resourceName,
+} from "../state/world";
+import { tierVar, vars } from "./util";
 
 interface TileProps {
   color: string;
@@ -28,12 +37,12 @@ export function ResourceIcon({
   id: ResourceId;
   className?: string | undefined;
 }) {
-  const resource = resourceById.get(id);
+  const name = resourceName(id);
   return (
     <Tile
-      color={resource?.color ?? "#a49e93"}
-      label={resource?.initials ?? "??"}
-      title={resource?.name}
+      color={resourceColor(id)}
+      label={resourceInitials(id)}
+      title={name}
       className={className}
     />
   );
@@ -41,11 +50,12 @@ export function ResourceIcon({
 
 export function ItemIcon({ id, className }: { id: ItemId; className?: string | undefined }) {
   const item = itemById.get(id);
+  const name = itemName(id);
   return (
     <Tile
       color={item ? tierVar(item.tier) : "#a49e93"}
-      label={item ? initials(item.name) : "??"}
-      title={item?.name}
+      label={initials(name)}
+      title={name}
       className={className}
     />
   );

@@ -32,7 +32,8 @@ export type GameEvent =
   | { type: "task_done"; task: string; reward: Amounts }
   // Time passing (settling).
   | { type: "build_done"; tier: Tier }
-  | { type: "crafted"; item: string }
+  /** `at`: when it landed (tells two identical crafts apart). */
+  | { type: "crafted"; item: string; at: number }
   | { type: "barrel_spawned"; expiresAt: number }
   | { type: "auto_collect"; gained: Amounts }
   | { type: "upkeep_paid"; hours: number; paid: Amounts }

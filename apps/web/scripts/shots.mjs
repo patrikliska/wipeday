@@ -11,7 +11,7 @@ import { chromium } from "playwright";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const outDir = path.resolve(here, "../../../preview/web");
 const urlArg = process.argv.indexOf("--url");
-const url = urlArg >= 0 ? process.argv[urlArg + 1] : "http://localhost:5173/";
+const url = urlArg >= 0 ? process.argv[urlArg + 1] : "http://localhost:5173/?demo";
 const only = process.argv.includes("--only")
   ? process.argv[process.argv.indexOf("--only") + 1]
   : null;
@@ -20,8 +20,10 @@ const DAY = 86_400;
 const at = (day, hour) => day * DAY + hour * 3600;
 
 /**
- * Each shot: viewport, store patch, settle time. In the patch, `time` sets the game clock
- * (seconds into the demo season, which starts at the epoch) and `wall` the real clock. Optional: `act` fires a store
+ * Each shot: viewport, state patch, settle time. The page runs in demo mode (`?demo`). In the
+ * patch, `time` sets the demo game clock (seconds into the demo season, which starts at the
+ * epoch), `panel`, `weather` and `welcome` set the HUD, and every other key overwrites that
+ * field of the base (`BaseState` in the domain). Optional: `act` fires a store
  * action after the patch (for effects such as floating gains), `click` clicks a
  * point in CSS pixels instead (starting a node run), `clip` also saves
  * a 1:1 crop `{name}__zoom.png` ([x, y, width, height] in CSS pixels).
@@ -49,10 +51,11 @@ const SHOTS = [
     state: {
       time: at(1, 12),
       tier: "twig",
-      tool: "rock",
+      toolId: "rock",
       lastGatherAt: 0,
       items: {},
-      furnace: { owned: false, jobs: [] },
+      furnaceId: null,
+      furnaceJobs: [],
     },
   },
   {
@@ -61,7 +64,7 @@ const SHOTS = [
     state: {
       time: at(9, 12),
       tier: "stone",
-      items: { workbench: 1, crate: 3, campfire: 1, kiln: 1 },
+      items: { workbench_1: 1, crate: 3, campfire: 1, kiln: 1 },
     },
   },
   {
@@ -70,7 +73,7 @@ const SHOTS = [
     state: {
       time: at(15, 12),
       tier: "metal",
-      items: { workbench: 1, crate: 4, campfire: 1, kiln: 1, press: 1, lantern: 1 },
+      items: { workbench_1: 1, crate: 4, campfire: 1, kiln: 1, press: 1, lantern: 1 },
     },
   },
   {
@@ -79,7 +82,7 @@ const SHOTS = [
     state: {
       time: at(24, 22),
       tier: "hqm",
-      items: { workbench: 1, crate: 6, campfire: 1, kiln: 1, press: 1, lantern: 1 },
+      items: { workbench_1: 1, crate: 6, campfire: 1, kiln: 1, press: 1, lantern: 1 },
     },
   },
   {
@@ -103,10 +106,10 @@ const SHOTS = [
     state: {
       time: at(3, 11),
       panel: "furnace",
-      furnace: {
-        owned: true,
-        jobs: [{ input: "ore", output: "ingots", amount: 400, startedAt: at(3, 9), taken: 0 }],
-      },
+      furnaceId: "furnace",
+      furnaceJobs: [
+        { input: "ore", output: "ingots", amount: 400, startedAt: at(3, 9), collected: 0 },
+      ],
     },
   },
   {
@@ -124,11 +127,11 @@ const SHOTS = [
     viewport: [1600, 900],
     state: { time: at(3, 11), panel: "tasks" },
   },
-  { name: "desktop_away", viewport: [1600, 900], state: { time: at(3, 11), showAway: true } },
+  { name: "desktop_away", viewport: [1600, 900], state: { time: at(3, 11), welcome: true } },
   {
     name: "furnace_idle",
     viewport: [1920, 1080],
-    state: { time: at(3, 11), furnace: { owned: true, jobs: [] } },
+    state: { time: at(3, 11), furnaceId: "furnace", furnaceJobs: [] },
     clip: [700, 540, 300, 260],
   },
   {
@@ -136,10 +139,10 @@ const SHOTS = [
     viewport: [1920, 1080],
     state: {
       time: at(3, 11),
-      furnace: {
-        owned: true,
-        jobs: [{ input: "ore", output: "ingots", amount: 400, startedAt: at(3, 10), taken: 0 }],
-      },
+      furnaceId: "furnace",
+      furnaceJobs: [
+        { input: "ore", output: "ingots", amount: 400, startedAt: at(3, 10), collected: 0 },
+      ],
     },
     clip: [700, 540, 300, 260],
   },
@@ -149,11 +152,11 @@ const SHOTS = [
     state: {
       time: at(24, 22),
       tier: "hqm",
-      items: { workbench: 1, crate: 6, campfire: 1, kiln: 1, press: 1, lantern: 1 },
-      furnace: {
-        owned: true,
-        jobs: [{ input: "ore", output: "ingots", amount: 900, startedAt: at(24, 21), taken: 0 }],
-      },
+      items: { workbench_1: 1, crate: 6, campfire: 1, kiln: 1, press: 1, lantern: 1 },
+      furnaceId: "furnace",
+      furnaceJobs: [
+        { input: "ore", output: "ingots", amount: 900, startedAt: at(24, 21), collected: 0 },
+      ],
     },
     clip: [420, 500, 620, 320],
   },
@@ -213,13 +216,13 @@ const SHOTS = [
     viewport: [1920, 1080],
     state: {
       time: at(3, 11),
-      wall: 100,
+      // Back at `until` (game seconds); how far each regrow pie is follows from the kind's respawn.
       depleted: {
-        tree_1: { kind: "tree", at: 90, until: 110 },
-        tree_2: { kind: "tree", at: 95, until: 115 },
-        ore_1: { kind: "ore", at: 70, until: 115 },
-        stone_1: { kind: "stone", at: 98, until: 118 },
-        sulfur_1: { kind: "sulfur", at: 20, until: 140 },
+        tree_1: at(3, 11) + 10,
+        tree_2: at(3, 11) + 5,
+        ore_1: at(3, 11) + 15,
+        stone_1: at(3, 11) + 18,
+        sulfur_1: at(3, 11) + 100,
       },
     },
     settle: 2500,
@@ -261,7 +264,7 @@ const SHOTS = [
     name: "phone_away",
     viewport: [390, 844],
     scale: 3,
-    state: { time: at(3, 11), showAway: true },
+    state: { time: at(3, 11), welcome: true },
   },
   { name: "phone_landscape", viewport: [844, 390], scale: 3, state: { time: at(3, 11) } },
   { name: "tablet", viewport: [820, 1180], scale: 2, state: { time: at(3, 11) } },
@@ -290,23 +293,34 @@ async function main() {
     await page.waitForFunction(() => (window.__wipeDay?.frames ?? 0) > 5, null, {
       timeout: 20_000,
     });
+    await page.waitForFunction(() => window.__wipeDay?.store.getState().phase === "playing", null, {
+      timeout: 20_000,
+    });
     await page.evaluate((state) => {
-      // `time` (game clock) and `wall` (real clock) pin the injected demo clocks; both stop so
-      // the shot shows one moment. The store's readings move with them, so nothing accrues.
+      // The demo clock stops at the shot's moment. Upkeep, collection and the barrel are anchored
+      // to that moment so jumping days ahead neither decays the base nor fills storage.
       const { store, clocks } = window.__wipeDay;
-      const { time, wall, ...patch } = state;
+      const { time, panel, weather, welcome, ...base } = state;
       clocks.game.setPaused(true);
-      clocks.wall.setPaused(true);
       if (time !== undefined) clocks.game.set(time);
-      if (wall !== undefined) clocks.wall.set(wall);
+      const now = Math.floor(clocks.game.nowMs() / 1000);
+      const world = store.getState();
+      world.demoPatch({
+        upkeepPaidUntil: now,
+        lastCollectedAt: now - 3600,
+        lastGatherAt: now - 20 * 60,
+        nextBarrelAt: now + 4 * 3600,
+        barrel: { spawnedAt: now - 15 * 60, expiresAt: now + 30 * 60, seed: 42 },
+        craftQueue: [],
+        ...base,
+      });
+      world.tick();
+      if (weather) world.setWeather(weather);
       store.setState({
-        showAway: false,
-        panel: null,
+        panel: panel ?? null,
         demoOpen: false,
         toasts: [],
-        now: clocks.game.nowMs() / 1000,
-        wallNow: clocks.wall.nowMs() / 1000,
-        ...patch,
+        welcomeBack: welcome ? { awaySeconds: 3 * 3600, events: [] } : null,
       });
     }, shot.state);
     if (shot.act || shot.click) {

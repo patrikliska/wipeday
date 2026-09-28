@@ -382,3 +382,27 @@ compared with the previous set.
   exactly the old pause. All 40 shots match the previous set again: time of day, day number, the
   "lands in 3h" build timer, the welcome-back deltas, and the rubble, stumps and regrow pies in
   `nodes_depleted` (checked on two repeat runs; the crops differ only by the walking survivors).
+
+### W1: the client on the server (HUD rewritten on the domain, login, welcome back)
+
+Every HUD component now reads the domain (craft status, furnace progress, the advisor) and the
+locale; the scene reads the store's `base`. Reviewed all 40 shots (demo mode) plus a live
+end-to-end run against the API (login screen, a fresh base after logging in as a test player).
+- Iteration 1, what was wrong:
+  - Resource tiles took their letters from the names, so Iron Ore and Iron Ingots read "IO"
+    and "II".
+  - The advisor's hint line sat at 112 px and slid under the dock when the primary Gather
+    button made the dock taller (twig base, 1600x900).
+  - The full-storage hint said "Collect" while the glowing button was Gather (which banks too).
+  - Kiln and press descriptions said "(W3)", a planning code players should never see.
+  - End to end: a fresh base showed "Storage is full" (advisor fallback, D67).
+- Iteration 2, what changed:
+  - Fixed tile letters per resource (TI, ST, OR, IN, SO, SU, FI, HI, FA, FU, SC).
+  - Hint line at 128 px on desktop, 96 px on phones; clear of the dock in every shot.
+  - Hint texts rewritten to match the button that glows; station effects say "comes later".
+  - Advisor fallback fixed and tested.
+- Still open: when the advisor points at the barrel, no dock button is primary (the barrel's
+  badge in the scene carries it). A disabled Gather can be the primary while it counts down;
+  the label says when it is ready.
+- New states: the login card (over the dusk scene) and the Welcome back modal with the away
+  time and gains; both read well on a phone.

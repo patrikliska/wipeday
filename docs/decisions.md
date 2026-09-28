@@ -381,3 +381,84 @@ The bot spec wanted `pnpm sim check` in CI from Phase 2, but no test called it.
 `pnpm test` fails on a pacing regression. `apps/api` exists so the layout is complete, and for now
 it only loads and validates content with an injected clock. The HTTP framework (Hono or Fastify)
 is W1's decision.
+
+## W1 (the game on a server)
+
+### D57. The bot runs on a frozen copy of its rules and data
+The web game changes the shared domain and content (own names, node regrow, stations, timed
+crafting), which the bot cannot follow without being rewritten. The bot's domain, content, locale
+and data were copied into `apps/discord/src/legacy/` and its imports point there; it keeps running
+exactly as before (owner's choice, so the pending live test of bot phases 2/2b stays possible).
+W8 deletes `legacy/` when the bot becomes an API client.
+
+### D58. Hono on @hono/node-server for the API
+Small, typed, standard `Request`/`Response`, `app.request()` for tests without a port, built-in
+cookie helpers and SSE streaming. Fastify would add a plugin system this app does not need. The
+client is hand-written (`apps/web/src/net/http.ts`) against shared wire types in
+`@wipe-day/domain/wire`, so apps still never import each other.
+
+### D59. Commands are idempotent by client key, stored in `commands`
+Every `POST /api/commands` carries a key the client generates per intent and reuses on every retry.
+Inside one better-sqlite3 transaction the server returns the stored response for a known key, or
+runs the command, saves, logs and stores the response. A replay therefore returns the identical
+answer and changes nothing; a different key (a real second click) is judged by the state. Stored
+responses expire after 7 days. The domain adds a second guard for node hits: a hit number already
+counted is a no-op.
+
+### D60. Discord login through arctic, sessions as hashed tokens
+`identify` scope only, same Discord application as the bot. The cookie holds 32 random bytes; the
+`sessions` table holds only their SHA-256, 30-day expiry sliding once a day. Owner's choice: any
+Discord account may log in. A passwordless "test player 1-3" login exists only when the API runs
+outside production (`/api/dev/login` is not even registered in production).
+
+### D61. A base's season state is one JSON document
+`bases.state_json` holds the domain's `BaseState` whole, with a `version` counter and an indexed
+`next_event_at` for the scheduler. The bot spread the same state over five tables; but a command
+always reads and writes all of it inside one transaction, the shape changes every phase, and
+SQLite's JSON functions cover the few queries (leaderboards) that need to look inside. Analysis
+reads `event_log`, not bases. *Revisit* if a phase needs to query or index inside bases often.
+
+### D62. Fat is smelted into fuel until the oil press works
+The first pacing run put optimal play on Armored at day 10: fuel accrued directly from tools and
+was never the bottleneck, where the bot's top-tier resource (HQM) had to be smelted from a slow
+ore. Now `fat` smelts into `fuel` in the furnace (fat 4/12/30 per hour with iron/salvaged/power
+tools), which gives fat a purpose and restores the chain; the oil press takes the job over in W3.
+
+### D63. The daily node haul bounds active play
+Node runs are real-time active play (regrow in seconds), so unlimited tapping would outproduce
+the idle economy many times over. Owner's choice: hits pay in full until they have brought in
+`dailyHaulMinutes` (180) of tool production per UTC day, then `afterHaulPercent` (10%). The Tasks
+panel shows the haul as a bar. With it, active play is about 1.35x casual (guardrail: at most 1.6x)
+and optimal play reaches Armored on day 15 (floor: 14).
+
+### D64. The client predicts with the same domain, then adopts the server's answer
+`apps/web/src/state/store.ts` keeps `confirmed` (the last server state) and a queue of sent
+commands; what the player sees is `confirmed` with the queue re-applied through `applyCommand`.
+A tap updates the screen and plays its effects at once, the command goes out (one at a time, in
+order, retried with its key), and the answer becomes the new `confirmed`. A refusal the prediction
+missed rolls back with a one-line toast. Timers that end on screen are predicted by settling
+locally; timed effects are keyed (build tier, craft landing time, barrel expiry, node regrow) so
+the server's copy of the same moment never replays them. Pushes from the event stream update
+`confirmed` (other tabs, the scheduler); the tab ignores echoes of its own keys.
+
+### D65. Demo mode runs the real rules in the browser
+`LocalBackend` implements the same `Backend` interface as the HTTP client with `applyCommand` over
+the demo clock: `?demo`, the dev server without an API, and `pnpm web:shots` all use it, and the
+screenshot script patches the base through `demoPatch`. The ✦ drawer exists only in demo mode.
+Node regrow runs on the demo clock there, so at 240x it passes in a blink; in the real game both
+are real time.
+
+### D66. The web gets its data through a Vite JSON5 plugin and validates it on start
+The browser imports the same `data/*.json5` and `locale/en.json` the server loads and runs the same
+`parseContent` (split out of the Node-only loader for this). A bad data file fails loudly in both
+places. `apps/web/src/state/world.ts` is now a presentation bridge (names, colours, placeholder
+initials, number formatting); every player-visible string is in the locale.
+
+### D67. The advisor's fallback no longer claims storage is full
+Found in the end-to-end run: a new base with nothing to do and Gather cooling down showed
+"Storage is full". The advisor's fallback was "collect" whatever was waiting. It now falls back to
+Collect only when at least one unit is waiting, otherwise to Gather (whose button shows the
+countdown), and the Collect hint no longer claims the store is full.
+Also fixed in W1 (M1): a twig base can only afford the Timber tier exactly at its storage cap,
+and "storage full" made Collect glow instead of Build although there was nothing to bank. Full
+storage now advises Collect only when something is waiting behind the cap.

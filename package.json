@@ -14,7 +14,8 @@
     "test": "pnpm -r test",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "start": "pnpm --filter @wipe-day/discord start",
-    "dev": "pnpm --filter @wipe-day/discord dev",
+    "dev": "pnpm --parallel --filter @wipe-day/api --filter @wipe-day/web dev",
+    "bot:dev": "pnpm --filter @wipe-day/discord dev",
     "preview": "pnpm --filter @wipe-day/discord preview",
     "assets": "pnpm --filter @wipe-day/discord assets",
     "db:generate": "pnpm --filter @wipe-day/discord db:generate",
@@ -23,7 +24,8 @@
     "web": "pnpm --filter @wipe-day/web dev",
     "web:build": "pnpm --filter @wipe-day/web build",
     "web:typecheck": "pnpm --filter @wipe-day/web typecheck",
-    "web:shots": "pnpm --filter @wipe-day/web shots"
+    "web:shots": "pnpm --filter @wipe-day/web shots",
+    "api:dev": "pnpm --filter @wipe-day/api dev"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

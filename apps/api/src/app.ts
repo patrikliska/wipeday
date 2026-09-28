@@ -3,6 +3,7 @@
  * also serves the web build, so the game is one origin and cookies just work.
  *
  * GET  /api/health             liveness for Docker and humans
+ * GET  /api/config             which logins this server offers
  * GET  /api/auth/discord       start Discord login
  * GET  /api/auth/callback      finish it, set the session cookie, back to the game
  * POST /api/auth/logout
@@ -66,6 +67,11 @@ export function createApp(deps: AppDeps): Hono<Env> {
     setCookie(c, SESSION_COOKIE, token, { ...cookieBase, path: "/", maxAge: 30 * 86400 });
 
   app.get("/api/health", (c) => c.json({ ok: true, now: clock.now(), streams: hub.connections }));
+
+  /** What the login screen offers, before anyone is logged in. */
+  app.get("/api/config", (c) =>
+    c.json({ devLogin: config.devLogin, discordLogin: discord !== null }),
+  );
 
   app.get("/api/auth/discord", (c) => {
     if (!discord) return c.json({ error: "login_unavailable" }, 503);

@@ -1,13 +1,13 @@
 /**
- * Dev-only hook for the screenshot script and for poking the prototype from
- * the console: `__wipeDay.store.getState().jumpTier("hqm")`.
+ * Dev-only hook for the screenshot script and for poking the game from the
+ * console: `__wipeDay.store.getState().demoPatch({ tier: "hqm" })` (demo mode).
  */
 import { demoClocks } from "./state/clocks";
 import { useWorld } from "./state/store";
 
 interface DebugHook {
   store: typeof useWorld;
-  /** The demo clocks: shots pause them and set the time (`clocks.game.set(seconds)`). */
+  /** The demo clock: shots pause it and set the time (`clocks.game.set(seconds)`). */
   clocks: typeof demoClocks;
   /** Frames rendered since load; the screenshot script waits for this to move. */
   frames: number;

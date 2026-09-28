@@ -1,21 +1,34 @@
-# Web prototype (`apps/web`)
+# Web client (`apps/web`)
 
-A visual, non-playable prototype of Wipe Day as a web app: a living side-on base on a shore,
-a day cycle, weather, survivors that walk to nodes, and the HUD that the real game will use.
-Numbers and rules inside it are placeholders; the real domain package replaces them later.
+Wipe Day in the browser: a living side-on base on a shore, a day cycle, weather, crew that walk
+to nodes, and the HUD. Since W1 it plays for real: the state lives on the server (`apps/api`) and
+every rule comes from `@wipe-day/domain`, the same code the server runs.
 
 ## Run
 
 ```
 pnpm install
-pnpm web            # dev server on http://localhost:5173 (also reachable on the LAN)
+pnpm dev            # API on :8787 and the web client on http://localhost:5173 (also on the LAN)
+pnpm web            # the web client alone: without an API it falls back to demo mode
 pnpm web:typecheck  # strict TypeScript
-pnpm web:shots      # headless screenshots into preview/web/ (needs the dev server running)
-pnpm web:build      # production bundle into apps/web/dist
+pnpm web:shots      # headless screenshots into preview/web/ (needs `pnpm web` running)
+pnpm web:build      # production bundle into apps/web/dist (the API serves it in production)
 ```
 
-The `✦` button (bottom left on desktop, under the resource strip on phones) opens the demo
-drawer: time speed, pause, +1 h / +6 h, weather, base tier, spawn a barrel, give everything.
+Locally the login card offers "Test 1/2/3" (dev-only test players); Discord login appears once
+`DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` are set. Open `http://localhost:5173/?demo` for
+demo mode: the whole game in the browser on a fast clock, with the `✦` demo drawer (time speed,
+pause, +1 h / +6 h, weather, base tier, spawn a barrel, give everything).
+
+## How state flows
+
+| Piece | File | Does |
+| --- | --- | --- |
+| Content | `src/state/world.ts` | loads the shared data and locale (Vite JSON5 plugin), validates them, names, colours, formatting |
+| Backend | `src/net/http.ts`, `src/net/local.ts` | the API (fetch, retries with the same key, event stream, server clock) or demo mode (the domain in the browser) |
+| Store | `src/state/store.ts` | `confirmed` server state plus the queue of sent commands; `base` = what the player sees (D64) |
+| Messages | `src/state/messages.ts` | refusals and happenings as one-line toasts, with a button to where the missing thing comes from |
+| Events | `src/state/events.ts` | the domain's events (plus node regrow, weather) that the scene turns into effects |
 
 ## What is in the scene
 
@@ -23,20 +36,16 @@ drawer: time speed, pause, +1 h / +6 h, weather, base tier, spawn a barrel, give
 | --- | --- | --- |
 | Sky | `src/scene/sky.ts` | gradient from the palette, sun and moon arcs, stars, clouds |
 | Terrain | `src/scene/terrain.ts` | parallax ridges with treelines, island with lighthouse, ground with path, grass, pebbles, organic shoreline, waves, foam, sparkle |
-| Base | `src/scene/base.ts` | one structure per tier (Twig, Timber, Stone, Sheet Metal, Armored), stations placed around it from the store (cupboard, furnaces, kiln, press, workbench, crates, campfire, lantern), window glows, scaffold while building, chimney smoke |
-| Nodes | `src/scene/nodes.ts` | clickable trees and stone, ore and sulfur rocks; the "hit the marker" mini-game; worked-out nodes fall or crumble and regrow; the barrel on the shore |
+| Base | `src/scene/base.ts` | one structure per tier (Twig, Timber, Stone, Sheet Metal, Armored), stations placed around it from the base's items (cupboard, furnaces, kiln, press, workbench, crates, campfire, lantern), window glows, scaffold while building, chimney smoke |
+| Nodes | `src/scene/nodes.ts` | clickable trees and stone, ore and sulfur rocks; the "hit the marker" mini-game (marker placement here, hits checked by the domain); worked-out nodes fall or crumble and regrow; the barrel on the shore |
 | Actors | `src/scene/actors.ts` | survivors with hat colours walking between the base and nodes, resting at night; gulls |
 | Effects | `src/scene/effects.ts` | particles (smoke, sparks, leaves, dust, splash, coins, stone), floating gains, glows, rain and fog |
 | Palette | `src/scene/palette.ts` | time-of-day keyframes, `gloom()` for weather, tier materials, ground/sea colours |
 | Scene | `src/scene/Scene.ts` | Pixi application, camera rules, layer order, store sync, event → effect mapping |
 
-The store (`src/state/store.ts`, Zustand) holds the placeholder world. It is built by
-`createWorld(clocks)` over two injected clocks (`src/state/clocks.ts`, D51): a demo game clock
-(`scaledClock`, 240 game seconds per real second by default, driven by the demo drawer) and a
-wall clock for active-play timers such as node regrow. Each frame the scene calls `tick()`, which
-reads both clocks; the store keeps only their readings (`now`, `wallNow`). The HUD (`src/hud/*`)
-reads it with narrow selectors so the scene can tick at 60 fps without re-rendering React every
-frame.
+The HUD (`src/hud/*`) reads the store with narrow selectors so the scene can tick at 60 fps
+without re-rendering React every frame; per-frame values like "waiting to collect" go through
+`src/hud/derived.ts`, cached per second.
 
 ## Camera rules
 
@@ -53,7 +62,8 @@ frame.
 dusk, night, rain, fog, every tier, a build in progress, every panel, the welcome-back modal,
 floating gains (1080p and phone), the furnace idle, lit and at night, a node run, two hits at night and a perfect run, the survivors and both rocks close up (each with a
 1:1 `*__zoom.png` crop for judging detail), ultrawide, laptop, phone portrait and landscape,
-tablet. Each shot pins the demo clocks through `window.__wipeDay.clocks`: `time` is seconds into
-the demo season (which starts at the epoch), `wall` the real clock. `--only <text>` renders just the shots
+tablet. Shots run in demo mode (`?demo`) and pin the demo clock through `window.__wipeDay.clocks`:
+`time` is seconds into the demo season (which starts at the epoch); `panel`, `weather` and
+`welcome` set the HUD; every other key overwrites that field of the base. `--only <text>` renders just the shots
 whose name contains it. Notes per iteration live in `docs/ui-review.md`. Extend `SHOTS` in
 `apps/web/scripts/shots.mjs` when a new state appears.

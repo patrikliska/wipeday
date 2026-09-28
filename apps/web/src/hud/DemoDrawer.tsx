@@ -1,18 +1,26 @@
 import { useState } from "react";
 import { demoClocks } from "../state/clocks";
 import { useWorld } from "../state/store";
-import { BASE_TIERS } from "../state/world";
+import { content, TIERS, t, tierName } from "../state/world";
 
 const WEATHERS = ["clear", "rain", "fog"] as const;
 
-/** Showcase controls: time, weather, tier. Not part of the game UI. */
+/** Showcase controls for demo mode: time, weather, tier. Not part of the game UI. */
 export function DemoDrawer() {
+  const mode = useWorld((state) => state.mode);
   const open = useWorld((state) => state.demoOpen);
   const setOpen = useWorld((state) => state.setDemoOpen);
   // Time controls drive the demo game clock itself; the store only reads it.
   const clock = demoClocks.game;
   const [timeScale, setScaleShown] = useState(clock.scale);
   const [paused, setPausedShown] = useState(clock.paused);
+  const weather = useWorld((state) => state.weather);
+  const setWeather = useWorld((state) => state.setWeather);
+  const tier = useWorld((state) => state.base.tier);
+  const now = useWorld((state) => Math.floor(state.now));
+  const patch = useWorld((state) => state.demoPatch);
+  if (mode !== "demo") return null;
+
   const setTimeScale = (scale: number) => {
     clock.setScale(scale);
     setScaleShown(scale);
@@ -21,13 +29,24 @@ export function DemoDrawer() {
     clock.setPaused(next);
     setPausedShown(next);
   };
-  const addHours = (hours: number) => clock.advance(hours * 3600);
-  const weather = useWorld((state) => state.weather);
-  const setWeather = useWorld((state) => state.setWeather);
-  const tier = useWorld((state) => state.tier);
-  const jumpTier = useWorld((state) => state.jumpTier);
-  const spawnBarrel = useWorld((state) => state.spawnBarrel);
-  const giveEverything = useWorld((state) => state.giveEverything);
+  const giveEverything = () => {
+    const stock: Record<string, number> = {};
+    for (const resource of content.resources) stock[resource.id] = 50_000;
+    patch({
+      stock,
+      items: {
+        workbench_1: 1,
+        workbench_2: 1,
+        crate: 6,
+        campfire: 1,
+        kiln: 1,
+        press: 1,
+        lantern: 1,
+      },
+      toolId: content.tools[2]?.id ?? "rock",
+      furnaceId: content.furnaces[0]?.id ?? null,
+    });
+  };
 
   return (
     <>
@@ -35,16 +54,16 @@ export function DemoDrawer() {
         type="button"
         className={`glass demo-toggle${open ? " active" : ""}`}
         onClick={() => setOpen(!open)}
-        title="Demo controls"
-        aria-label="Demo controls"
+        title={t("demo.title")}
+        aria-label={t("demo.title")}
       >
         ✦
       </button>
       {open ? (
         <div className="glass demo">
-          <h3>Demo controls</h3>
+          <h3>{t("demo.title")}</h3>
           <label>
-            Time speed <span className="num">{timeScale}×</span>
+            {t("demo.speed")} <span className="num">{timeScale}×</span>
             <input
               type="range"
               min={1}
@@ -56,16 +75,16 @@ export function DemoDrawer() {
           </label>
           <div className="buttons">
             <button type="button" className="btn small" onClick={() => setPaused(!paused)}>
-              {paused ? "Play" : "Pause"}
+              {paused ? t("demo.play") : t("demo.pause")}
             </button>
-            <button type="button" className="btn small" onClick={() => addHours(1)}>
+            <button type="button" className="btn small" onClick={() => clock.advance(3600)}>
               +1 h
             </button>
-            <button type="button" className="btn small" onClick={() => addHours(6)}>
+            <button type="button" className="btn small" onClick={() => clock.advance(6 * 3600)}>
               +6 h
             </button>
           </div>
-          <h3>Weather</h3>
+          <h3>{t("demo.weather")}</h3>
           <div className="buttons">
             {WEATHERS.map((option) => (
               <button
@@ -74,30 +93,36 @@ export function DemoDrawer() {
                 className={`btn small${weather === option ? " selected" : ""}`}
                 onClick={() => setWeather(option)}
               >
-                {option}
+                {t(`weather.${option}`)}
               </button>
             ))}
           </div>
-          <h3>Base tier</h3>
+          <h3>{t("demo.tier")}</h3>
           <div className="buttons">
-            {BASE_TIERS.map((info) => (
+            {TIERS.map((id) => (
               <button
-                key={info.id}
+                key={id}
                 type="button"
-                className={`btn small${tier === info.id ? " selected" : ""}`}
-                onClick={() => jumpTier(info.id)}
+                className={`btn small${tier === id ? " selected" : ""}`}
+                onClick={() => patch({ tier: id, build: null })}
               >
-                {info.name}
+                {tierName(id)}
               </button>
             ))}
           </div>
-          <h3>World</h3>
+          <h3>{t("demo.world")}</h3>
           <div className="buttons">
-            <button type="button" className="btn small" onClick={spawnBarrel}>
-              Barrel
+            <button
+              type="button"
+              className="btn small"
+              onClick={() =>
+                patch({ barrel: { spawnedAt: now, expiresAt: now + 45 * 60, seed: now } })
+              }
+            >
+              {t("demo.barrel")}
             </button>
             <button type="button" className="btn small" onClick={giveEverything}>
-              Give all
+              {t("demo.give")}
             </button>
           </div>
         </div>

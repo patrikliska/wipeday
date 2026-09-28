@@ -21,6 +21,7 @@ import {
   smeltable,
   storageFill,
   tierOf,
+  total,
   workbenchLevel,
 } from "./base";
 import { craftStatus } from "./craft";
@@ -103,7 +104,8 @@ export function advise(content: Content, state: BaseState, now: number): Advice 
   if (furnaceWorthIt(content, state, now)) return "furnace";
   if (craftWorthIt(content, state, now)) return "craft";
   if (gatherReadyAt(content, state) <= now) return "gather";
-  return "collect";
+  // Nothing to spend on and Gather cooling down: bank what is waiting, or wait for Gather.
+  return total(accrued(content, state, now)) >= 1 ? "collect" : "gather";
 }
 
 /** The hint to show under the base for `advice`, or null once it has retired. */

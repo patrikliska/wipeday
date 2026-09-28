@@ -1,35 +1,31 @@
+import { storageCap } from "@wipe-day/domain/base";
 import { useShallow } from "zustand/shallow";
-import { seasonTime, storageCap, useWorld } from "../state/store";
-import {
-  abbrev,
-  clockLabel,
-  GAME_DAY,
-  type ResourceId,
-  resourceById,
-  tierById,
-} from "../state/world";
+import { seasonDay, seasonTime, useWorld } from "../state/store";
+import { abbrev, clockLabel, content, resourceName, t, tierName } from "../state/world";
+import { knownResources, pendingOf } from "./derived";
 import { ResourceIcon, Tile } from "./Icon";
 import { tierVar, vars } from "./util";
 
-const SHOWN: ResourceId[] = ["timber", "stone", "ore", "ingots", "sulfur_ore", "fibre", "scrap"];
-const WEATHER_LABEL = { clear: "Clear", rain: "Rain", fog: "Fog" } as const;
+/** The strip shows at most this many resources (fewer on phones, by CSS). */
+const SHOWN = 7;
 
 export function TopBar() {
-  const tier = useWorld((state) => state.tier);
-  const cap = useWorld((state) => storageCap(state));
+  const tier = useWorld((state) => state.base.tier);
+  const name = useWorld((state) => state.player?.name ?? t("hud.demo_player"));
+  const cap = useWorld((state) => storageCap(content, state.base));
   const clock = useWorld((state) => clockLabel(seasonTime(state)));
-  const day = useWorld((state) => Math.floor(seasonTime(state) / GAME_DAY) + 1);
+  const day = useWorld((state) => seasonDay(state));
   const weather = useWorld((state) => state.weather);
   const panel = useWorld((state) => state.panel);
   const openPanel = useWorld((state) => state.openPanel);
-  const tasksDone = useWorld((state) => state.tasks.filter((task) => task.done).length);
+  const tasksDone = useWorld((state) => state.base.tasks.done.length);
+  const ids = useWorld(useShallow((state) => knownResources(state.base).slice(0, SHOWN)));
   const amounts = useWorld(
-    useShallow((state) => SHOWN.map((id) => Math.floor(state.stock[id] ?? 0))),
+    useShallow((state) => ids.map((id) => Math.floor(state.base.stock[id] ?? 0))),
   );
   const pending = useWorld(
-    useShallow((state) => SHOWN.map((id) => Math.floor(state.pending[id] ?? 0))),
+    useShallow((state) => ids.map((id) => Math.floor(pendingOf(state)[id] ?? 0))),
   );
-  const tierName = tierById.get(tier)?.name ?? tier;
 
   return (
     <header className="topbar">
@@ -38,12 +34,12 @@ export function TopBar() {
         className={`glass identity${panel === "tasks" ? " active" : ""}`}
         style={vars({ "--tier-color": tierVar(tier) })}
         onClick={() => openPanel("tasks")}
-        title="Daily tasks"
+        title={t("panel.tasks")}
       >
-        <Tile color="#cd412b" label="YOU" />
+        <Tile color="#cd412b" label={t("hud.you")} />
         <span className="who">
-          <span className="name">Survivor</span>
-          <span className="sub">{tierName} base · Season 1</span>
+          <span className="name">{name}</span>
+          <span className="sub">{t("hud.identity_sub", { tier: tierName(tier) })}</span>
         </span>
         {tasksDone > 0 ? <span className="badge">{tasksDone}</span> : null}
       </button>
@@ -52,19 +48,19 @@ export function TopBar() {
         type="button"
         className={`glass resources${panel === "inventory" ? " active" : ""}`}
         onClick={() => openPanel("inventory")}
-        title="Inventory"
+        title={t("panel.inventory")}
       >
-        {SHOWN.map((id, index) => {
+        {ids.map((id, index) => {
           const amount = amounts[index] ?? 0;
           const extra = pending[index] ?? 0;
           const fill = Math.min(1, (amount + extra) / cap);
-          const full = fill >= 0.98;
-          const name = resourceById.get(id)?.name ?? id;
+          const full = fill >= 1;
+          const label = resourceName(id);
           return (
             <span
               className="chip"
               key={id}
-              title={`${name}: ${amount.toLocaleString()} of ${cap.toLocaleString()}`}
+              title={t("hud.chip_title", { name: label, amount: abbrev(amount), cap: abbrev(cap) })}
             >
               <ResourceIcon id={id} />
               <span className="grow">
@@ -72,7 +68,7 @@ export function TopBar() {
                   {abbrev(amount)}
                   {extra > 0 ? <span className="pending">+{abbrev(extra)}</span> : null}
                 </span>
-                <span className="label">{name}</span>
+                <span className="label">{label}</span>
                 <span
                   className="bar"
                   style={vars({ "--bar-color": full ? "var(--warning)" : "var(--success)" })}
@@ -89,7 +85,7 @@ export function TopBar() {
         <div>
           <div className="big num">{clock}</div>
           <div className="small">
-            Day {day} · {WEATHER_LABEL[weather]}
+            {t("hud.day_weather", { day, weather: t(`weather.${weather}`) })}
           </div>
         </div>
       </div>

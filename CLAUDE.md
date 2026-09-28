@@ -63,7 +63,7 @@ packages/
   content/   data/*.json5, zod schemas, loader and cross-checks, locale/en.json, tier ids
   sim/       headless simulator: archetypes, pacing check (runs inside `pnpm test`)
 apps/
-  api/       game server (W1: commands, sessions, SSE); a boot check until then
+  api/       game server: Discord login, idempotent commands, lazy settling, SSE push
   web/       the client: Vite + React 19 + PixiJS 8 + Zustand
   discord/   the bot, frozen until W8 turns it into a companion (section 11)
 docs/        game-design, roadmap, decisions, ui-review, web-prototype, archive/
@@ -268,11 +268,12 @@ At the end of each phase report: what was built, decisions added, screenshot pat
 | `pnpm check` | typecheck + lint + test across the workspace: must pass before a phase is done |
 | `pnpm typecheck` / `pnpm lint` / `pnpm test` | the three parts on their own |
 | `pnpm format` | apply formatting and safe lint fixes |
-| `pnpm web` | web dev server on http://localhost:5173 (also on the LAN) |
+| `pnpm dev` | API (:8787) and web client (http://localhost:5173) together; login as test players 1-3 |
+| `pnpm web` | web dev server alone (demo mode without the API; `?demo` forces it) |
 | `pnpm web:shots [--only x]` | headless screenshots into `preview/web/` (needs `pnpm web` running) |
 | `pnpm web:build` | production bundle into `apps/web/dist` |
-| `pnpm api` | the API process (a content boot check until W1) |
+| `pnpm api` / `pnpm api:dev` | the API process / with restart on change |
 | `pnpm sim` / `pnpm sim check` | balance simulator / pacing assertion |
-| `pnpm start` / `pnpm dev` | the Discord bot (reads `.env` at the repo root) |
+| `pnpm start` / `pnpm bot:dev` | the Discord bot (reads `.env` at the repo root) |
 | `pnpm preview` / `pnpm assets check` | bot card previews / bot asset manifest check |
 | `pnpm db:generate` | new drizzle migration after a schema change |

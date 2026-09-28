@@ -1,77 +1,423 @@
 {
   "resource": {
-    "timber": { "name": "Timber" },
-    "stone": { "name": "Stone" },
-    "ore": { "name": "Iron Ore" },
-    "ingots": { "name": "Iron Ingots" },
-    "sulfur_ore": { "name": "Sulfur Ore" },
-    "sulfur": { "name": "Sulfur" },
-    "fibre": { "name": "Fibre" },
-    "hide": { "name": "Hide" },
-    "fat": { "name": "Animal Fat" },
-    "fuel": { "name": "Fuel" },
-    "scrap": { "name": "Scrap" }
+    "timber": {
+      "name": "Timber"
+    },
+    "stone": {
+      "name": "Stone"
+    },
+    "ore": {
+      "name": "Iron Ore"
+    },
+    "ingots": {
+      "name": "Iron Ingots"
+    },
+    "sulfur_ore": {
+      "name": "Sulfur Ore"
+    },
+    "sulfur": {
+      "name": "Sulfur"
+    },
+    "fibre": {
+      "name": "Fibre"
+    },
+    "hide": {
+      "name": "Hide"
+    },
+    "fat": {
+      "name": "Animal Fat"
+    },
+    "fuel": {
+      "name": "Fuel"
+    },
+    "scrap": {
+      "name": "Scrap"
+    }
   },
   "tool": {
-    "rock": { "name": "Rock" },
-    "stone_tools": { "name": "Stone Tools" },
-    "iron_tools": { "name": "Iron Tools" },
-    "salvaged_tools": { "name": "Salvaged Tools" },
-    "power_tools": { "name": "Power Tools" }
+    "rock": {
+      "name": "Rock"
+    },
+    "stone_tools": {
+      "name": "Stone Tools"
+    },
+    "iron_tools": {
+      "name": "Iron Tools"
+    },
+    "salvaged_tools": {
+      "name": "Salvaged Tools"
+    },
+    "power_tools": {
+      "name": "Power Tools"
+    }
   },
   "base_tier": {
-    "twig": { "name": "Twig" },
-    "wood": { "name": "Timber" },
-    "stone": { "name": "Stone" },
-    "metal": { "name": "Sheet Metal" },
-    "hqm": { "name": "Armored" }
+    "twig": {
+      "name": "Twig"
+    },
+    "wood": {
+      "name": "Timber"
+    },
+    "stone": {
+      "name": "Stone"
+    },
+    "metal": {
+      "name": "Sheet Metal"
+    },
+    "hqm": {
+      "name": "Armored"
+    }
   },
   "furnace": {
-    "furnace": { "name": "Stone Furnace" },
-    "large_furnace": { "name": "Large Furnace" },
-    "electric_furnace": { "name": "Electric Smelter" }
+    "furnace": {
+      "name": "Stone Furnace"
+    },
+    "large_furnace": {
+      "name": "Large Furnace"
+    },
+    "electric_furnace": {
+      "name": "Electric Smelter"
+    }
   },
   "item": {
-    "workbench_1": { "name": "Workbench", "effect": "Unlocks crafting" },
-    "workbench_2": { "name": "Workbench II", "effect": "Unlocks level 2 recipes" },
-    "workbench_3": { "name": "Workbench III", "effect": "Unlocks level 3 recipes" },
-    "crate": { "name": "Storage Crate", "effect": "+{capacity} room for every resource" },
-    "large_crate": { "name": "Large Crate", "effect": "+{capacity} room for every resource" },
-    "campfire": { "name": "Campfire", "effect": "A warm spot for the crew at night" },
-    "kiln": { "name": "Charcoal Kiln", "effect": "Stands ready for charcoal (W3)" },
-    "press": { "name": "Oil Press", "effect": "Stands ready for fuel from fat (W3)" },
-    "lantern": { "name": "Oil Lantern", "effect": "Lights the base at night" },
-    "bandage": { "name": "Bandage", "effect": "For the crew's first scrapes" },
-    "bow": { "name": "Hunting Bow", "effect": "Crew gear for expeditions" },
-    "spear": { "name": "Iron Spear", "effect": "Crew gear for expeditions" },
-    "hide_vest": { "name": "Hide Vest", "effect": "Crew armour for expeditions" }
+    "workbench_1": {
+      "name": "Workbench",
+      "effect": "Unlocks crafting"
+    },
+    "workbench_2": {
+      "name": "Workbench II",
+      "effect": "Unlocks level 2 recipes"
+    },
+    "workbench_3": {
+      "name": "Workbench III",
+      "effect": "Unlocks level 3 recipes"
+    },
+    "crate": {
+      "name": "Storage Crate",
+      "effect": "+{capacity} room for every resource"
+    },
+    "large_crate": {
+      "name": "Large Crate",
+      "effect": "+{capacity} room for every resource"
+    },
+    "campfire": {
+      "name": "Campfire",
+      "effect": "A warm spot for the crew at night"
+    },
+    "kiln": {
+      "name": "Charcoal Kiln",
+      "effect": "Charcoal making comes later"
+    },
+    "press": {
+      "name": "Oil Press",
+      "effect": "Pressing fat into fuel comes later"
+    },
+    "lantern": {
+      "name": "Oil Lantern",
+      "effect": "Lights the base at night"
+    },
+    "bandage": {
+      "name": "Bandage",
+      "effect": "For the crew's first scrapes"
+    },
+    "bow": {
+      "name": "Hunting Bow",
+      "effect": "Crew gear for expeditions"
+    },
+    "spear": {
+      "name": "Iron Spear",
+      "effect": "Crew gear for expeditions"
+    },
+    "hide_vest": {
+      "name": "Hide Vest",
+      "effect": "Crew armour for expeditions"
+    }
   },
   "perk": {
-    "scavenger": { "name": "Scavenger", "effect": "More loot from ruins" },
-    "medic": { "name": "Medic", "effect": "Patches up the crew" },
-    "demolition": { "name": "Demolition", "effect": "Opens what others cannot" },
-    "marksman": { "name": "Marksman", "effect": "Keeps trouble at a distance" },
-    "mule": { "name": "Mule", "effect": "Carries more home" }
+    "scavenger": {
+      "name": "Scavenger",
+      "effect": "More loot from ruins"
+    },
+    "medic": {
+      "name": "Medic",
+      "effect": "Patches up the crew"
+    },
+    "demolition": {
+      "name": "Demolition",
+      "effect": "Opens what others cannot"
+    },
+    "marksman": {
+      "name": "Marksman",
+      "effect": "Keeps trouble at a distance"
+    },
+    "mule": {
+      "name": "Mule",
+      "effect": "Carries more home"
+    }
   },
   "crew": {
-    "mara": { "name": "Mara" },
-    "dax": { "name": "Dax" },
-    "ivo": { "name": "Ivo" }
+    "mara": {
+      "name": "Mara"
+    },
+    "dax": {
+      "name": "Dax"
+    },
+    "ivo": {
+      "name": "Ivo"
+    }
   },
   "node": {
-    "tree": { "name": "Tree" },
-    "stone": { "name": "Stone" },
-    "ore": { "name": "Iron Ore" },
-    "sulfur": { "name": "Sulfur Ore" },
-    "fibre": { "name": "Fibre" }
+    "tree": {
+      "name": "Tree"
+    },
+    "stone": {
+      "name": "Stone"
+    },
+    "ore": {
+      "name": "Iron Ore"
+    },
+    "sulfur": {
+      "name": "Sulfur Ore"
+    },
+    "fibre": {
+      "name": "Fibre"
+    }
   },
   "task": {
-    "gather_4": { "name": "Gather 4 times" },
-    "collect_3": { "name": "Collect 3 times" },
-    "node_hits_10": { "name": "Hit 10 node markers" },
-    "barrel_1": { "name": "Break a barrel" },
-    "smelt_300": { "name": "Smelt 300 ore" },
-    "furnace_out_200": { "name": "Take 200 out of the furnace" },
-    "craft_1": { "name": "Craft something" }
+    "gather_4": {
+      "name": "Gather 4 times"
+    },
+    "collect_3": {
+      "name": "Collect 3 times"
+    },
+    "node_hits_10": {
+      "name": "Hit 10 node markers"
+    },
+    "barrel_1": {
+      "name": "Break a barrel"
+    },
+    "smelt_300": {
+      "name": "Smelt 300 ore"
+    },
+    "furnace_out_200": {
+      "name": "Take 200 out of the furnace"
+    },
+    "craft_1": {
+      "name": "Craft something"
+    }
+  },
+  "hud": {
+    "you": "YOU",
+    "demo_player": "Survivor",
+    "identity_sub": "{tier} base",
+    "chip_title": "{name}: {amount} of {cap}",
+    "day_weather": "Day {day} · {weather}",
+    "close": "Close",
+    "actions": "Actions",
+    "free": "Free",
+    "need": "need {amount} {what}",
+    "rate": "+{amount} {what}/h",
+    "max_tier": "top tier",
+    "lands_in": "lands in {time}",
+    "instant": "instant",
+    "new_tools": "new tools ready",
+    "gather_bonus": "+{minutes} min bonus",
+    "ready_in": "ready in {time}",
+    "crafting": "{count} in the queue",
+    "recipes_ready": "{count} ready to make",
+    "nothing_affordable": "nothing affordable",
+    "not_built": "not built yet",
+    "ready_amount": "{amount} ready",
+    "smelting": "smelting",
+    "idle": "idle",
+    "crew_count": "{count} crew",
+    "tasks_done": "{done}/{total} done",
+    "perfect": "Perfect!",
+    "missed": "Missed",
+    "node_back_in": "{node} back in {time}",
+    "node_needs_tool": "Needs better tools",
+    "tier_base": "{tier} base"
+  },
+  "action": {
+    "gather": "Gather",
+    "collect": "Collect",
+    "upgrade": "Upgrade",
+    "base": "Base",
+    "craft": "Craft",
+    "furnace": "Furnace",
+    "squad": "Squad",
+    "inventory": "Inventory",
+    "tasks": "Tasks"
+  },
+  "panel": {
+    "build": "Build",
+    "craft": "Craft",
+    "furnace": "Furnace",
+    "inventory": "Inventory",
+    "tasks": "Daily tasks",
+    "squad": "Squad"
+  },
+  "weather": {
+    "clear": "Clear",
+    "rain": "Rain",
+    "fog": "Fog"
+  },
+  "category": {
+    "workbench": "Workbench",
+    "storage": "Storage",
+    "station": "Station",
+    "utility": "Utility",
+    "med": "Medical",
+    "weapon": "Weapon",
+    "armor": "Armour"
+  },
+  "hint": {
+    "gather": "Tap Gather: your crew brings in a burst of what the tools find.",
+    "collect": "Collect banks what your crew gathered. A full store stops them, so bank before it fills.",
+    "build": "You can afford the next base tier: more room, more furnaces.",
+    "tools": "Better tools are affordable: open Upgrade to gather faster.",
+    "furnace": "Ore is piling up: the furnace turns it into ingots.",
+    "craft": "Craft a workbench or a crate: they unlock recipes and room.",
+    "barrel": "A barrel washed up: tap it on the shore before it drifts off."
+  },
+  "build": {
+    "hint": "Each tier raises storage, furnace slots and what you can craft. Upkeep rises with it.",
+    "stage_past": "Built",
+    "stage_current": "Your base",
+    "stage_next": "Next",
+    "stage_later": "Later",
+    "tier_facts": "Storage {cap} · {furnaces} furnace slots · {crates} crates · bench {bench}",
+    "instant": "Instant",
+    "takes": "Builds in {time}",
+    "upkeep": "upkeep {upkeep}/h",
+    "busy": "Upgrade · build in progress",
+    "upgrade_to": "Upgrade to {tier}",
+    "upgrade_need": "Upgrade · {need}",
+    "tools_hint": "Tools: {tool}. Better tools gather more, and new kinds of things.",
+    "tool_to": "Switch to {tool}",
+    "tools_maxed": "Your tools are the best there are."
+  },
+  "craft": {
+    "hint_bench": "Make a Workbench first: it unlocks most of what is below.",
+    "make": "Make",
+    "queue": "Make · {time}",
+    "need": "Make · {need}",
+    "needs_bench": "Needs Workbench {level}",
+    "owned": "Built",
+    "owned_count": "owned {count}",
+    "no_slots": "All {slots} crate spots used",
+    "queue_full": "Queue full",
+    "making": "Making",
+    "waiting": "Waiting",
+    "ready_in": "Ready in {time}"
+  },
+  "smelt": {
+    "hint_none": "A furnace turns ore into ingots, sulfur ore into sulfur, and fat into fuel.",
+    "hint": "{furnace} · {slots} slots · {rate} per hour each",
+    "build": "Build",
+    "upgrade": "Upgrade",
+    "facts": "{rate} per hour · up to {max} a job · burns {fuel} {what} per 100",
+    "needs_tier": "Needs a {tier} base",
+    "build_it": "Build the furnace",
+    "upgrade_to": "Upgrade to {furnace}",
+    "finished": "Finished",
+    "left": "{time} left",
+    "cold": "The furnace is cold",
+    "cold_desc": "Load ore below. Ingots are what the next base tier is built from.",
+    "take_out": "Take out · {amount}",
+    "nothing_ready": "Take out · nothing ready",
+    "smelt": "Smelt {amount} {what}",
+    "no_slot": "Smelt · no free slot",
+    "need_ore": "Smelt · need {what}",
+    "need_fuel": "Smelt · need {what} to burn",
+    "have": "have {amount}",
+    "makes": "{amount} {what} in {time} · burns {fuel} {fuelName}",
+    "gather_first": "Gather some first: the rocks around the base."
+  },
+  "inventory": {
+    "cap": "Room for {cap} of each resource",
+    "collect": "Collect +{amount}",
+    "nothing": "Nothing to collect",
+    "items": "Items",
+    "no_items": "No items yet: craft some."
+  },
+  "squad": {
+    "hint": "Your crew works the nodes by day and rests by the fire at night. Expeditions come later.",
+    "health": "{health} / 100 health",
+    "expedition_soon": "Expeditions · coming later"
+  },
+  "tasks": {
+    "hint": "Three small goals a day. Rewards land the moment a task completes. New set in {time}.",
+    "done": "Done ✓",
+    "progress": "{progress} / {target}",
+    "reward": "Reward",
+    "haul": "Today's node haul",
+    "haul_amount": "{used} of {of}",
+    "haul_hint": "Nodes pay in full until the day's haul is in, then a little. Resets with the tasks.",
+    "logged_in": "Playing as {name}",
+    "logout": "Log out"
+  },
+  "welcome": {
+    "title": "Welcome back",
+    "away": "You were away {time}. Your crew kept working.",
+    "build_done": "Your base became {tier}.",
+    "decayed": "Upkeep ran out: the base fell to {tier}.",
+    "crafted": "Crafted: {items}.",
+    "barrels": "Barrels washed up while you were gone: {count}.",
+    "upkeep": "Upkeep paid for {hours} hours.",
+    "collect": "Collect everything",
+    "leave": "Leave it",
+    "continue": "Back to the base"
+  },
+  "toast": {
+    "task_done": "Task done: {task}",
+    "build_done": "Your base is now {tier}.",
+    "crafted": "{item} is ready.",
+    "barrel": "A barrel washed up on the shore.",
+    "tool": "{tool} in hand: faster gathering.",
+    "furnace": "{furnace} built.",
+    "decayed": "Upkeep ran out: your base fell to {tier}.",
+    "connection": "Lost the connection: your last action may not have landed.",
+    "demo_mode": "No server running: this is demo mode."
+  },
+  "refusal": {
+    "cooldown": "Gather is ready again in {time}.",
+    "maxed": "That is already the best there is.",
+    "building": "A build is already running: it lands in {time}.",
+    "unaffordable": "Not enough yet: {need}.",
+    "no_furnace": "Build a furnace first.",
+    "no_slot": "Every furnace slot is busy.",
+    "nothing_to_smelt": "Nothing to smelt, or nothing to burn.",
+    "no_barrel": "The barrel drifted off.",
+    "unknown": "That did not work. Try again.",
+    "workbench": "Needs a level {level} workbench.",
+    "owned": "You already have one.",
+    "box_slots": "All {slots} crate spots are used: a bigger base holds more.",
+    "queue_full": "The crafting queue is full.",
+    "depleted": "Worked out: back in {time}.",
+    "tool": "Your tools cannot work that yet: upgrade them."
+  },
+  "login": {
+    "title": "Wipe Day",
+    "pitch": "A small holdfast on a wrecked island. Gather, build, craft, and come back to see it grow.",
+    "discord": "Log in with Discord",
+    "discord_unavailable": "Discord login is not set up here",
+    "failed": "Login did not go through. Try again.",
+    "dev_hint": "Development: play as a test player.",
+    "dev_player": "Test {slot}",
+    "offline_title": "Can't reach the island",
+    "offline": "The game server did not answer. Check your connection and try again.",
+    "retry": "Try again"
+  },
+  "demo": {
+    "title": "Demo controls",
+    "speed": "Time speed",
+    "play": "Play",
+    "pause": "Pause",
+    "weather": "Weather",
+    "tier": "Base tier",
+    "world": "World",
+    "barrel": "Barrel",
+    "give": "Give all"
   }
 }

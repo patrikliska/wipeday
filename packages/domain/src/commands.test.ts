@@ -75,6 +75,13 @@ describe("advisor", () => {
     expect(hintFor(used, "gather")).toBeNull();
   });
 
+  it("with nothing to do and Gather cooling down, waits for Gather unless something can be banked", () => {
+    const gathered = applyCommand(content, fresh(), { type: "gather" }, T0);
+    if (!gathered.ok) throw new Error("expected ok");
+    expect(advise(content, gathered.state, T0 + 1)).toBe("gather");
+    expect(advise(content, gathered.state, T0 + 300)).toBe("collect");
+  });
+
   it("points at the build when the next tier is affordable, even at a full cap", () => {
     // Twig holds 1500 timber and the Timber tier costs exactly that: full, and nothing to bank.
     const base = { ...fresh(), stock: { timber: 1500, stone: 500 } };

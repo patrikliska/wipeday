@@ -92,7 +92,7 @@ export function queueCraft(
     { type: "craft_queued", item: itemId, endsAt: job.endsAt, paid: recipe.cost },
   ];
   if (job.endsAt <= now) {
-    events.push({ type: "crafted", item: itemId });
+    events.push({ type: "crafted", item: itemId, at: now });
     return {
       ok: true,
       state: { ...paid, items: { ...paid.items, [itemId]: (paid.items[itemId] ?? 0) + 1 } },
@@ -121,6 +121,6 @@ export function settleCrafts(
   for (const job of done) items[job.item] = (items[job.item] ?? 0) + 1;
   return {
     state: { ...state, items, craftQueue: state.craftQueue.filter((job) => job.endsAt > now) },
-    events: done.map((job) => ({ type: "crafted", item: job.item })),
+    events: done.map((job) => ({ type: "crafted", item: job.item, at: job.endsAt })),
   };
 }

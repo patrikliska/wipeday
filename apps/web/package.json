@@ -12,6 +12,7 @@
     "shots": "node scripts/shots.mjs"
   },
   "dependencies": {
+    "@wipe-day/content": "workspace:*",
     "@wipe-day/domain": "workspace:*",
     "pixi.js": "^8.21.0",
     "react": "^19.3.0",
@@ -24,6 +25,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "playwright": "^1.63.0",
     "typescript": "^7.0.2",
-    "vite": "^8.3.1"
+    "vite": "^8.3.1",
+    "json5": "^2.2.3"
   }
 }

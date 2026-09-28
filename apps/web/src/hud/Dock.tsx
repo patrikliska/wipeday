@@ -1,6 +1,19 @@
-import { gatherReadyIn, nextTierInfo, type Panel as PanelId, useWorld } from "../state/store";
-import { abbrev, canAfford, duration, FURNACE_RATE, ITEMS, tierById } from "../state/world";
+import { type Advice, advise, hintFor } from "@wipe-day/domain/advisor";
+import {
+  canAfford,
+  furnaceOf,
+  furnaceReady,
+  gatherReadyAt,
+  nextTier,
+  nextTool,
+  tierOf,
+  total,
+} from "@wipe-day/domain/base";
+import { craftOptions } from "@wipe-day/domain/craft";
+import { type Panel as PanelId, useWorld } from "../state/store";
+import { abbrev, content, duration, SURVIVORS, t } from "../state/world";
 import { needLabel } from "./Cost";
+import { pendingOf } from "./derived";
 import { Tile } from "./Icon";
 import { tierVar } from "./util";
 
@@ -18,109 +31,124 @@ interface Action {
   onClick: () => void;
 }
 
-/** The action bar. The advisor picks exactly one primary button. */
+/** Which dock button carries each piece of advice. */
+const DOCK_FOR: Record<Advice, string | null> = {
+  gather: "gather",
+  collect: "gather",
+  build: "build",
+  tools: "build",
+  furnace: "furnace",
+  craft: "craft",
+  // The barrel glows in the scene itself.
+  barrel: null,
+};
+
+/** The action bar. The advisor picks exactly one primary button; its hint sits above the bar. */
 export function Dock() {
   const panel = useWorld((state) => state.panel);
   const openPanel = useWorld((state) => state.openPanel);
   const gather = useWorld((state) => state.gather);
-  const readySeconds = useWorld((state) => Math.ceil(gatherReadyIn(state) / 60) * 60);
-  const tier = useWorld((state) => state.tier);
-  const buildMinutes = useWorld((state) =>
-    state.build ? Math.max(0, Math.ceil((state.build.endsAt - state.now) / 60)) : null,
-  );
-  const stock = useWorld((state) => state.stock);
-  const furnaceReady = useWorld((state) =>
-    state.furnace.jobs.reduce(
-      (sum, job) =>
-        sum +
-        Math.min(job.amount, Math.floor((FURNACE_RATE * (state.now - job.startedAt)) / 3600)) -
-        job.taken,
-      0,
-    ),
-  );
-  const furnaceBusy = useWorld((state) => state.furnace.jobs.length);
-  const survivors = useWorld((state) => state.survivors.length);
-  const tasksDone = useWorld((state) => state.tasks.filter((task) => task.done).length);
-  const tasksTotal = useWorld((state) => state.tasks.length);
+  const collect = useWorld((state) => state.collect);
+  const base = useWorld((state) => state.base);
+  // The dock reads time in whole minutes: enough for its labels, and it re-renders rarely.
+  const minute = useWorld((state) => Math.floor(state.now / 60) * 60);
+  const pendingTotal = useWorld((state) => Math.floor(total(pendingOf(state))));
+  const now = minute;
 
-  const next = nextTierInfo({ tier });
-  const slots = tierById.get(tier)?.furnaceSlots ?? 1;
-  const gatherReady = readySeconds <= 0;
-  const canBuild = next !== null && buildMinutes === null && canAfford(next.cost, stock);
-  const canSmelt = furnaceBusy < slots && (stock.ore ?? 0) >= 50 && (stock.timber ?? 0) >= 25;
-  const craftable = ITEMS.some((item) => canAfford(item.cost, stock));
+  const advice = advise(content, base, now);
+  const hint = hintFor(base, advice);
+  const primary = DOCK_FOR[advice];
 
-  let primary = "craft";
-  if (gatherReady) primary = "gather";
-  else if (canBuild) primary = "build";
-  else if (furnaceReady > 0 || canSmelt) primary = "furnace";
+  const readyIn = Math.max(0, gatherReadyAt(content, base) - now);
+  const gatherReady = readyIn <= 0;
+  const target = nextTier(base.tier);
+  const tool = nextTool(content, base);
+  const ready = total(furnaceReady(content, base, now));
+  const furnace = furnaceOf(content, base);
+  const craftable = craftOptions(content, base).filter((option) => option.status.code === "ok");
+  const tasksDone = base.tasks.done.length;
 
-  let buildSub = "max tier";
-  if (buildMinutes !== null) buildSub = `lands in ${duration(buildMinutes * 60)}`;
-  else if (next)
+  let buildSub = t("hud.max_tier");
+  if (base.build) buildSub = t("hud.lands_in", { time: duration(base.build.endsAt - now) });
+  else if (target) {
+    const tier = tierOf(content, target);
     buildSub =
-      needLabel(next.cost, stock)?.replace(/^need /, "") ??
-      (next.buildMinutes === 0 ? "instant" : duration(next.buildMinutes * 60));
+      needLabel(tier.cost, base.stock) ??
+      (tier.buildMinutes === 0 ? t("hud.instant") : duration(tier.buildMinutes * 60));
+  }
+  if (!base.build && tool && canAfford(tool.cost, base.stock)) buildSub = t("hud.new_tools");
+
+  // With gather on cooldown and a pile waiting, the first button banks the pile instead.
+  const collectMode = !gatherReady && pendingTotal > 0;
 
   const actions: Action[] = [
     {
       id: "gather",
-      name: "Gather",
-      glyph: "GA",
+      name: collectMode ? t("action.collect") : t("action.gather"),
+      glyph: collectMode ? "CO" : "GA",
       color: "#7fa043",
-      sub: gatherReady ? "+30 min bonus" : `ready in ${duration(readySeconds)}`,
-      disabled: !gatherReady,
+      sub: collectMode
+        ? `+${abbrev(pendingTotal)}`
+        : gatherReady
+          ? t("hud.gather_bonus", { minutes: content.tools[0]?.bonusMinutes ?? 0 })
+          : t("hud.ready_in", { time: duration(readyIn) }),
+      disabled: !gatherReady && !collectMode,
       onClick: () => {
-        gather();
+        if (collectMode) collect();
+        else gather();
       },
     },
     {
       id: "build",
-      name: next ? "Upgrade" : "Base",
+      name: target ? t("action.upgrade") : t("action.base"),
       glyph: "UP",
-      color: tierVar(next?.id ?? tier),
+      color: tierVar(target ?? base.tier),
       sub: buildSub,
       panel: "build",
       onClick: () => openPanel("build"),
     },
     {
       id: "craft",
-      name: "Craft",
+      name: t("action.craft"),
       glyph: "CR",
       color: "#e3a32f",
-      sub: craftable ? "recipes ready" : "nothing affordable",
+      sub:
+        base.craftQueue.length > 0
+          ? t("hud.crafting", { count: base.craftQueue.length })
+          : craftable.length > 0
+            ? t("hud.recipes_ready", { count: craftable.length })
+            : t("hud.nothing_affordable"),
       panel: "craft",
       onClick: () => openPanel("craft"),
     },
     {
       id: "furnace",
-      name: "Furnace",
+      name: t("action.furnace"),
       glyph: "FU",
       color: "#ff8a3c",
-      sub:
-        furnaceReady > 0
-          ? `${abbrev(furnaceReady)} ready`
-          : furnaceBusy > 0
-            ? "smelting"
-            : canSmelt
-              ? "load ore"
-              : "idle",
-      badge: furnaceReady > 0 ? abbrev(furnaceReady) : undefined,
+      sub: !furnace
+        ? t("hud.not_built")
+        : ready > 0
+          ? t("hud.ready_amount", { amount: abbrev(ready) })
+          : base.furnaceJobs.length > 0
+            ? t("hud.smelting")
+            : t("hud.idle"),
+      badge: ready > 0 ? abbrev(ready) : undefined,
       panel: "furnace",
       onClick: () => openPanel("furnace"),
     },
     {
       id: "squad",
-      name: "Squad",
+      name: t("action.squad"),
       glyph: "SQ",
       color: "#4a7fb5",
-      sub: `${survivors} survivors`,
+      sub: t("hud.crew_count", { count: SURVIVORS.length }),
       panel: "squad",
       onClick: () => openPanel("squad"),
     },
     {
       id: "inventory",
-      name: "Inventory",
+      name: t("action.inventory"),
       glyph: "IN",
       color: "#9aa0a6",
       extra: true,
@@ -129,10 +157,10 @@ export function Dock() {
     },
     {
       id: "tasks",
-      name: "Tasks",
+      name: t("action.tasks"),
       glyph: "TA",
       color: "#c85a2b",
-      sub: `${tasksDone}/${tasksTotal} done`,
+      sub: t("hud.tasks_done", { done: tasksDone, total: base.tasks.ids.length }),
       extra: true,
       panel: "tasks",
       onClick: () => openPanel("tasks"),
@@ -140,32 +168,39 @@ export function Dock() {
   ];
 
   return (
-    <nav className="glass dock" aria-label="Actions">
-      {actions.map((action) => {
-        const classes = [
-          "action",
-          action.id === primary ? "primary" : "",
-          action.panel && action.panel === panel ? "active" : "",
-          action.extra ? "extra" : "",
-          action.sub ? "has-sub" : "",
-        ]
-          .filter(Boolean)
-          .join(" ");
-        return (
-          <button
-            key={action.id}
-            type="button"
-            className={classes}
-            disabled={action.disabled ?? false}
-            onClick={action.onClick}
-          >
-            <Tile color={action.color} label={action.glyph} className="glyph" />
-            <span className="name">{action.name}</span>
-            {action.sub ? <span className="sub">{action.sub}</span> : null}
-            {action.badge ? <span className="badge">{action.badge}</span> : null}
-          </button>
-        );
-      })}
-    </nav>
+    <>
+      {hint ? (
+        <p className="glass advice" aria-live="polite">
+          {t(`hint.${hint}`)}
+        </p>
+      ) : null}
+      <nav className="glass dock" aria-label={t("hud.actions")}>
+        {actions.map((action) => {
+          const classes = [
+            "action",
+            action.id === primary ? "primary" : "",
+            action.panel && action.panel === panel ? "active" : "",
+            action.extra ? "extra" : "",
+            action.sub ? "has-sub" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
+          return (
+            <button
+              key={action.id}
+              type="button"
+              className={classes}
+              disabled={action.disabled ?? false}
+              onClick={action.onClick}
+            >
+              <Tile color={action.color} label={action.glyph} className="glyph" />
+              <span className="name">{action.name}</span>
+              {action.sub ? <span className="sub">{action.sub}</span> : null}
+              {action.badge ? <span className="badge">{action.badge}</span> : null}
+            </button>
+          );
+        })}
+      </nav>
+    </>
   );
 }

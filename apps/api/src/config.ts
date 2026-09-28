@@ -19,7 +19,8 @@ const schema = z.object({
   PUBLIC_URL: z.url().default("http://localhost:5173"),
   DISCORD_CLIENT_ID: z.string().min(1).optional(),
   DISCORD_CLIENT_SECRET: z.string().min(1).optional(),
-  DATABASE_PATH: z.string().min(1).default("var/wipeday.db"),
+  // Not DATABASE_PATH: that one is the Discord bot's database in the same .env.
+  GAME_DATABASE_PATH: z.string().min(1).default("var/wipeday.db"),
   BACKUP_DIR: z.string().min(1).default("var/backups"),
   WEB_DIST: z.string().min(1).default("apps/web/dist"),
 });
@@ -66,7 +67,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, root = ROOT): C
     port: data.API_PORT,
     publicUrl: data.PUBLIC_URL.replace(/\/$/, ""),
     discord,
-    databasePath: fromRoot(data.DATABASE_PATH),
+    databasePath: fromRoot(data.GAME_DATABASE_PATH),
     backupDir: fromRoot(data.BACKUP_DIR),
     webDist: fromRoot(data.WEB_DIST),
     devLogin: !production,

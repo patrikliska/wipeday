@@ -3,25 +3,30 @@
  * store state and events into motion. Game state only ever changes through
  * store actions; the scene reads it once per frame.
  */
+
+import type { Amounts } from "@wipe-day/content/schema";
+import { furnaceOf, furnaceSlots, jobProgress } from "@wipe-day/domain/base";
+import { nodeKindOf } from "@wipe-day/domain/nodes";
 import { Application, Container, Graphics, type Ticker } from "pixi.js";
 import { countFrame, isFrozen } from "../debug";
 import { type GameEvent, on } from "../state/events";
 import { seasonTime, useWorld } from "../state/store";
 import {
-  abbrev,
+  content,
   dayFraction,
-  FURNACE_RATE,
-  itemById,
-  NODE_TYPES,
-  type NodeKind,
-  type ResourceId,
-  resourceById,
-  tierById,
+  duration,
+  gainLines,
+  itemName,
+  nodeName,
+  SURVIVORS,
+  t,
+  tierName,
+  toolName,
 } from "../state/world";
 import { Actors } from "./actors";
 import { Base } from "./base";
 import { type Float, Floaters, Particles, Weather } from "./effects";
-import { Barrel, MAX_HITS, type NodeCallbacks, type NodeDef, Nodes } from "./nodes";
+import { Barrel, type Depleted, MAX_HITS, type NodeCallbacks, type NodeDef, Nodes } from "./nodes";
 import { gloom, paletteAt } from "./palette";
 import { Sky } from "./sky";
 import { Terrain } from "./terrain";
@@ -54,12 +59,10 @@ const FRONT_NODES: NodeDef[] = [
 ];
 const BARREL_SPOT = { x: 540, y: GROUND + 62 };
 
-type Amounts = Partial<Record<ResourceId, number>>;
-
 const ALL_NODES = [...BACK_NODES, ...FRONT_NODES];
 const nodeKind = new Map(ALL_NODES.map((node) => [node.id, node.kind]));
 
-function debrisFor(kind: NodeKind): { kind: "leaves" | "stone"; color: number } {
+function debrisFor(kind: string): { kind: "leaves" | "stone"; color: number } {
   if (kind === "tree") return { kind: "leaves", color: 0x5c9b4a };
   if (kind === "fibre") return { kind: "leaves", color: 0xa8c060 };
   if (kind === "sulfur") return { kind: "stone", color: 0xe3c04f };
@@ -114,34 +117,52 @@ export class Scene {
 
   constructor(private readonly host: HTMLElement) {
     const callbacks: NodeCallbacks = {
-      onStart: () => undefined,
+      onStart: (node) => {
+        const refusal = useWorld.getState().startRun(node.id);
+        if (refusal) {
+          this.floaters.add(
+            node.x,
+            node.y - 70 * node.scale,
+            refusal,
+            0xece8df,
+            this.floatSize(0.85),
+          );
+          return false;
+        }
+        return true;
+      },
       onHit: (node, hits, x, y) => {
         const debris = debrisFor(node.kind);
         this.particles.spawn(debris.kind, x, y, 10, debris.color);
         this.lastHit = { x, y };
-        useWorld.getState().bankNodeHit(node.id, node.kind, hits);
+        // The domain banks the hit (and the perfect bonus on the last one); effects follow its events.
+        useWorld.getState().hitNode(hits);
       },
-      onRunOver: (node, hits, perfect, x, y) => {
+      onRunOver: (_node, hits, perfect, x, y) => {
         // At the marker, where the eye already is; "Perfect!" sits above the bonus gain.
         this.floaters.retire(this.hitText);
-        const store = useWorld.getState();
         if (perfect) {
-          this.floaters.add(x, y - 62 / this.scale, "Perfect!", 0xffd25a, this.floatSize(1.2));
+          this.floaters.add(
+            x,
+            y - 62 / this.scale,
+            t("hud.perfect"),
+            0xffd25a,
+            this.floatSize(1.2),
+          );
           this.particles.spawn("coins", x, y, 12);
-          store.bankNodeHit(node.id, node.kind, MAX_HITS + 1);
-        } else {
-          this.floaters.add(x, y - 22 / this.scale, "Missed", 0xa49e93, this.floatSize());
+        } else if (hits > 0) {
+          this.floaters.add(x, y - 22 / this.scale, t("hud.missed"), 0xa49e93, this.floatSize());
         }
-        // Worked at all, the node is used up: the tree falls, the rock breaks.
-        if (hits > 0) store.depleteNode(node.id, node.kind);
+        useWorld.getState().endRun(perfect);
       },
       onDepletedTap: (node) => {
         const state = useWorld.getState();
-        const until = state.depleted[node.id]?.until;
+        const until = state.base.depleted[node.id];
         if (until === undefined) return;
-        const left = Math.ceil(until - state.wallNow);
-        const wait = left >= 60 ? `${Math.floor(left / 60)}m ${left % 60}s` : `${left}s`;
-        const text = `${NODE_TYPES[node.kind].name} back in ${wait}`;
+        const text = t("hud.node_back_in", {
+          node: nodeName(node.kind),
+          time: duration(Math.ceil(until - state.now)),
+        });
         this.floaters.add(node.x, node.y - 70 * node.scale, text, 0xece8df, this.floatSize(0.85));
       },
       onFelled: (node, x, y) => {
@@ -152,9 +173,11 @@ export class Scene {
     };
     this.backNodes = new Nodes(BACK_NODES, callbacks);
     this.frontNodes = new Nodes(FRONT_NODES, callbacks);
-    this.barrel = new Barrel(BARREL_SPOT.x, BARREL_SPOT.y, () => useWorld.getState().breakBarrel());
+    this.barrel = new Barrel(BARREL_SPOT.x, BARREL_SPOT.y, () => {
+      useWorld.getState().breakBarrel();
+    });
     const spots = ALL_NODES.map((node) => ({ id: node.id, x: node.x }));
-    this.actors = new Actors(useWorld.getState().survivors, GROUND, BASE_X, spots, BASE_X + 340, {
+    this.actors = new Actors(SURVIVORS, GROUND, BASE_X, spots, BASE_X + 340, {
       canWork: (node) => this.backNodes.isUp(node) || this.frontNodes.isUp(node),
       onWork: (node, x, y) => {
         this.shakeNode(node);
@@ -256,25 +279,40 @@ export class Scene {
   /** State-driven visuals, cheap enough to run every frame. */
   private sync(): void {
     const state = useWorld.getState();
-    this.base.setTier(state.tier, false);
-    const scaffold = state.build?.tier ?? null;
+    const { base, now } = state;
+    this.base.setTier(base.tier, false);
+    const scaffold = base.build?.tier ?? null;
     if (scaffold !== this.scaffoldTier) {
       this.scaffoldTier = scaffold;
       this.base.showScaffold(scaffold);
     }
+    const count = (ids: string[]) => ids.reduce((sum, id) => sum + (base.items[id] ?? 0), 0);
+    const furnace = furnaceOf(content, base);
     this.base.setStations({
-      furnace: state.furnace.owned,
-      furnaceSlots: tierById.get(state.tier)?.furnaceSlots ?? 1,
-      items: state.items,
+      furnace: furnace !== null,
+      furnaceSlots: Math.max(1, furnaceSlots(content, base)),
+      // The scene draws one workbench and one pile of crates, whatever their level or size.
+      items: {
+        workbench: count(["workbench_1", "workbench_2", "workbench_3"]),
+        crate: count(["crate", "large_crate"]),
+        campfire: base.items.campfire ?? 0,
+        kiln: base.items.kiln ?? 0,
+        press: base.items.press ?? 0,
+        lantern: base.items.lantern ?? 0,
+      },
     });
     this.base.setFurnaceActive(
-      state.furnace.jobs.some(
-        (job) => (FURNACE_RATE * (state.now - job.startedAt)) / 3600 < job.amount,
-      ),
+      furnace !== null &&
+        base.furnaceJobs.some((job) => jobProgress(furnace, job, now) < job.amount),
     );
-    this.barrel.set(state.barrel !== null);
-    this.backNodes.sync(state.depleted, state.wallNow);
-    this.frontNodes.sync(state.depleted, state.wallNow);
+    this.barrel.set(base.barrel !== null && now <= base.barrel.expiresAt);
+    const depleted: Record<string, Depleted> = {};
+    for (const [id, until] of Object.entries(base.depleted)) {
+      const kind = nodeKindOf(content, id);
+      if (kind) depleted[id] = { kind: kind.id, at: until - kind.respawnSeconds, until };
+    }
+    this.backNodes.sync(depleted, now);
+    this.frontNodes.sync(depleted, now);
     this.weather.set(state.weather);
   }
 
@@ -342,19 +380,9 @@ export class Scene {
     this.frontNodes.shake(node);
   }
 
-  /** "+214 Timber" lines for the biggest few gains, biggest first. */
-  private gainLines(gained: Amounts, limit: number): string[] {
-    return Object.entries(gained)
-      .map(([id, amount]) => [id as ResourceId, amount ?? 0] as const)
-      .filter(([, amount]) => amount >= 1)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, limit)
-      .map(([id, amount]) => `+${abbrev(amount)} ${resourceById.get(id)?.name ?? id}`);
-  }
-
   /** The biggest few gains, stacked with the biggest on top. */
   private gains(x: number, y: number, gained: Amounts, limit = 3): void {
-    this.floaters.addStack(x, y, this.gainLines(gained, limit), 0xffffff, this.floatSize());
+    this.floaters.addStack(x, y, gainLines(gained, limit), 0xffffff, this.floatSize());
   }
 
   private handle(event: GameEvent): void {
@@ -367,7 +395,30 @@ export class Scene {
           this.particles.spawn("leaves", tree.x, tree.y - 120, 14, 0x5c9b4a);
           this.shakeNode(standing);
         }
-        this.gains(BASE_X, GROUND - 210, event.gained);
+        const total: Amounts = { ...event.gained };
+        for (const [id, amount] of Object.entries(event.bonus))
+          total[id] = (total[id] ?? 0) + amount;
+        this.gains(BASE_X, GROUND - 210, total);
+        break;
+      }
+      case "tool_upgraded":
+        this.particles.spawn("sparks", BASE_X, GROUND - 120, 16, 0xffd25a);
+        this.floaters.add(
+          BASE_X,
+          GROUND - 270,
+          toolName(event.tool),
+          0xffd25a,
+          this.floatSize(1.2),
+        );
+        break;
+      case "furnace_bought": {
+        const spot = this.base.stationPosition("furnace") ?? { x: BASE_X, y: GROUND };
+        this.particles.spawn("sparks", spot.x, spot.y - 30, 20);
+        break;
+      }
+      case "craft_queued": {
+        const spot = this.base.stationPosition("workbench") ?? { x: BASE_X, y: GROUND };
+        this.particles.spawn("dust", spot.x, spot.y, 6, 0xc9b78a);
         break;
       }
       case "collected":
@@ -381,20 +432,19 @@ export class Scene {
         this.base.setTier(event.tier, true);
         this.particles.spawn("dust", BASE_X, GROUND, 30, 0xc9b78a);
         this.particles.spawn("sparks", BASE_X, GROUND - 120, 24, 0xffd25a);
-        const name = tierById.get(event.tier)?.name ?? event.tier;
-        this.floaters.add(BASE_X, GROUND - 270, `${name} base`, 0xffd25a, this.floatSize(1.3));
+        this.floaters.add(
+          BASE_X,
+          GROUND - 270,
+          t("hud.tier_base", { tier: tierName(event.tier) }),
+          0xffd25a,
+          this.floatSize(1.3),
+        );
         break;
       }
       case "crafted": {
         const spot = this.base.stationPosition("workbench") ?? { x: BASE_X, y: GROUND };
         this.particles.spawn("sparks", spot.x, spot.y - 44, 16);
-        this.floaters.add(
-          spot.x,
-          spot.y - 80,
-          itemById.get(event.item)?.name ?? event.item,
-          0xffffff,
-          this.floatSize(),
-        );
+        this.floaters.add(spot.x, spot.y - 80, itemName(event.item), 0xffffff, this.floatSize());
         break;
       }
       case "smelt_started": {
@@ -419,7 +469,7 @@ export class Scene {
         // Rises from where the player hit, just clear of the cursor: the gain, then the count.
         const spot = this.nodePosition(event.node);
         const at = this.lastHit ?? { x: spot.x, y: spot.y - 60 };
-        const lines = this.gainLines(event.gained, 1);
+        const lines = gainLines(event.gained, 1);
         if (event.hits <= MAX_HITS) lines.push(`${event.hits}/${MAX_HITS}`);
         this.floaters.retire(this.hitText);
         this.hitText = this.floaters.addStack(
@@ -432,7 +482,7 @@ export class Scene {
         break;
       }
       case "task_done":
-        this.floaters.add(BASE_X, GROUND - 300, event.name, 0x7fa043, this.floatSize(1.1));
+        this.gains(BASE_X, GROUND - 300, event.reward);
         break;
       case "node_depleted": {
         const spot = this.nodePosition(event.node);
@@ -455,6 +505,9 @@ export class Scene {
         break;
       }
       case "weather":
+      case "auto_collect":
+      case "upkeep_paid":
+      case "decayed":
         break;
     }
   }
