@@ -15,6 +15,7 @@ import { accrued, type BaseState, newBase } from "@wipe-day/domain/base";
 import type { Clock } from "@wipe-day/domain/clock";
 import { applyCommand, type Command } from "@wipe-day/domain/commands";
 import type { GameEvent } from "@wipe-day/domain/events";
+import { normalizeState } from "@wipe-day/domain/normalize";
 import { nextEventAt, settleAll } from "@wipe-day/domain/settle";
 import type {
   CommandResponse,
@@ -35,6 +36,8 @@ export const COMMAND_TTL = 7 * 86400;
 /** Event types the welcome-back summary tells about. */
 const WHILE_AWAY: GameEvent["type"][] = [
   "build_done",
+  "building_done",
+  "building_decayed",
   "crafted",
   "barrel_spawned",
   "auto_collect",
@@ -88,7 +91,8 @@ export class Game {
       return {
         seasonId: season.id,
         seasonStartedAt: season.startedAt,
-        state: JSON.parse(row.stateJson) as BaseState,
+        // Older shapes (W1 stations as items, `furnaceId`, `build`) convert on load.
+        state: normalizeState(this.deps.content, JSON.parse(row.stateJson)),
         version: row.version,
         stored: true,
       };

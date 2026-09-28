@@ -8,7 +8,6 @@ import type { GameEvent } from "./events";
 import {
   content,
   duration,
-  furnaceName,
   itemName,
   missingLabel,
   t,
@@ -41,10 +40,22 @@ export function refusalMessage(refusal: Refusal, now: number): Message | null {
       };
     case "maxed":
       return { text: t("refusal.maxed"), tone: "neutral" };
-    case "building":
+    case "in_progress":
       return {
-        text: t("refusal.building", { time: duration(refusal.endsAt - now) }),
+        text: t("refusal.in_progress", { time: duration(refusal.endsAt - now) }),
         tone: "neutral",
+      };
+    case "builders":
+      return {
+        text: t("refusal.builders", { time: duration(refusal.endsAt - now) }),
+        tone: "neutral",
+        panel: "build",
+      };
+    case "tier":
+      return {
+        text: t("refusal.tier", { tier: tierName(refusal.tier) }),
+        tone: "warning",
+        panel: "build",
       };
     case "unaffordable": {
       const first = Object.keys(refusal.missing)[0] ?? "";
@@ -112,8 +123,23 @@ export function eventMessage(event: GameEvent): Message | null {
       return { text: t("toast.barrel"), tone: "warning" };
     case "tool_upgraded":
       return { text: t("toast.tool", { tool: toolName(event.tool) }), tone: "success" };
-    case "furnace_bought":
-      return { text: t("toast.furnace", { furnace: furnaceName(event.furnace) }), tone: "success" };
+    case "building_done":
+      return {
+        text:
+          event.level === 1
+            ? t("toast.building_done", { building: t(`building.${event.building}.name`) })
+            : t("toast.building_level", {
+                building: t(`building.${event.building}.name`),
+                level: event.level,
+              }),
+        tone: "success",
+      };
+    case "building_decayed":
+      return {
+        text: t("toast.building_decayed", { building: t(`building.${event.building}.name`) }),
+        tone: "danger",
+        panel: "build",
+      };
     case "decayed":
       return {
         text: t("toast.decayed", { tier: tierName(event.to) }),

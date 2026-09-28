@@ -48,8 +48,8 @@ export const baseTierSchema = z.strictObject({
   /** How many crates count toward the cap. */
   boxSlots: z.int().min(0),
   furnaceSlots: z.int().min(0),
-  /** Highest workbench level usable at this tier. */
-  workbenchLevel: z.int().min(0).max(3),
+  /** Constructions (the tier or buildings) that can run at once. */
+  builders: z.int().min(1),
   /** Paid up front to upgrade to this tier. */
   cost: amounts,
   buildMinutes: z.int().min(0),
@@ -76,21 +76,9 @@ export const furnaceSchema = z.strictObject({
   fuel: z.string(),
   fuelPer100Ore: z.int().min(0),
   maxOrePerJob: z.int().min(1),
-  /** Paid once to buy (or upgrade to) this type. */
-  cost: amounts,
-  /** Base tier needed. */
-  minTier: tier,
 });
 
-export const ITEM_CATEGORIES = [
-  "workbench",
-  "storage",
-  "station",
-  "utility",
-  "med",
-  "weapon",
-  "armor",
-] as const;
+export const ITEM_CATEGORIES = ["storage", "med", "weapon", "armor"] as const;
 
 export const itemSchema = z.strictObject({
   id,
@@ -99,10 +87,57 @@ export const itemSchema = z.strictObject({
   tier,
   /** Storage items: how much they add to every resource's cap. */
   capacity: z.int().min(1).optional(),
-  /** Workbench items: the level they unlock. */
-  workbenchLevel: z.int().min(1).max(3).optional(),
-  /** A base holds at most one (stations, benches). */
+  /** A base holds at most one. */
   unique: z.boolean().optional(),
+});
+
+/** What a building level gives. All totals at that level; everything optional. */
+export const effectsSchema = z.strictObject({
+  /** Percent more of a resource from gathering. */
+  rates: z.record(z.string(), z.int().min(0)).optional(),
+  /** Percent more of every gathered resource. */
+  allRates: z.int().min(0).optional(),
+  /** Per hour, whatever the tool. */
+  flat: z.record(z.string(), z.int().min(0)).optional(),
+  /** Room for every resource. */
+  cap: z.int().min(0).optional(),
+  /** Less furnace fuel per 100 ore. */
+  fuelPer100Ore: z.int().min(0).optional(),
+  /** Percent faster furnaces. */
+  smeltPercent: z.int().min(0).optional(),
+  /** Percent faster crafting. */
+  craftPercent: z.int().min(0).optional(),
+  /** Minutes added to the daily node haul. */
+  haulMinutes: z.int().min(0).optional(),
+  /** Minutes a barrel stays longer. */
+  barrelLifeMinutes: z.int().min(0).optional(),
+  /** Minutes sooner the next barrel comes. */
+  barrelEveryMinutes: z.int().min(0).optional(),
+  /** Hours added before unpaid upkeep costs a level. */
+  graceHours: z.int().min(0).optional(),
+  /** Crafting level. */
+  workbench: z.int().min(1).max(3).optional(),
+  /** Furnace type: 1 = the first in furnaces.json5. */
+  furnace: z.int().min(1).optional(),
+});
+export type Effects = z.infer<typeof effectsSchema>;
+
+export const buildingLevelSchema = z.strictObject({
+  /** Base tier needed for this level (level 1 also needs the building's `unlockTier`). */
+  minTier: tier.optional(),
+  cost: amounts,
+  /** Builder time; 0 = at once. */
+  minutes: z.int().min(0),
+  /** Added to the base's upkeep per hour while this level stands. */
+  upkeep: amounts,
+  effects: effectsSchema,
+});
+
+export const buildingSchema = z.strictObject({
+  id,
+  /** Base tier needed to build level 1. */
+  unlockTier: tier,
+  levels: z.array(buildingLevelSchema).min(1),
 });
 
 export const perkSchema = z.strictObject({ id });
@@ -193,7 +228,13 @@ export type Active = z.infer<typeof activeSchema>;
 
 const dayWindow = z.strictObject({ earliestDay: z.int().min(1), latestDay: z.int().min(1) });
 export const pacingSchema = z.strictObject({
-  casual: z.strictObject({ stone: dayWindow, metal: dayWindow, hqm: dayWindow }),
+  casual: z.strictObject({
+    stone: dayWindow,
+    metal: dayWindow,
+    hqm: dayWindow,
+    /** At least `count` buildings standing on season day `day`. */
+    buildings: z.strictObject({ day: z.int().min(1), count: z.int().min(1) }),
+  }),
   optimal: z.strictObject({ hqmNotBeforeDay: z.int().min(1) }),
   tierCostRatio: z.strictObject({ min: z.number().min(1), max: z.number().min(1) }),
 });
@@ -206,6 +247,8 @@ export type Item = z.infer<typeof itemSchema>;
 export type Perk = z.infer<typeof perkSchema>;
 export type CrewMember = z.infer<typeof crewSchema>;
 export type Recipe = z.infer<typeof recipeSchema>;
+export type Building = z.infer<typeof buildingSchema>;
+export type BuildingLevel = z.infer<typeof buildingLevelSchema>;
 export type NodeKind = z.infer<typeof nodeKindSchema>;
 export type NodeDef = z.infer<typeof nodeSchema>;
 export type Pacing = z.infer<typeof pacingSchema>;
@@ -217,6 +260,7 @@ export interface Content {
   baseRules: BaseRules;
   furnaces: Furnace[];
   items: Item[];
+  buildings: Building[];
   perks: Perk[];
   crew: CrewMember[];
   recipes: Recipe[];
@@ -255,6 +299,13 @@ export const FILES = [
     schema: furnaceSchema,
   },
   { file: "items.json5", key: "items", field: "items", kind: "item", schema: itemSchema },
+  {
+    file: "buildings.json5",
+    key: "buildings",
+    field: "buildings",
+    kind: "building",
+    schema: buildingSchema,
+  },
   { file: "perks.json5", key: "perks", field: "perks", kind: "perk", schema: perkSchema },
   { file: "crew.json5", key: "crew", field: "crew", kind: "crew", schema: crewSchema },
   { file: "nodes.json5", key: "kinds", field: "nodeKinds", kind: "node", schema: nodeKindSchema },
@@ -269,6 +320,7 @@ export const DATA_FILES = [
   "base_tiers.json5",
   "furnaces.json5",
   "items.json5",
+  "buildings.json5",
   "perks.json5",
   "crew.json5",
   "recipes.json5",

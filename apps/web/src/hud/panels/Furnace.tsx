@@ -1,6 +1,4 @@
-import { TIERS } from "@wipe-day/content/tiers";
 import {
-  canAfford,
   fuelFor,
   furnaceOf,
   furnaceReady,
@@ -8,19 +6,22 @@ import {
   jobEndsAt,
   jobProgress,
   smeltable,
+  smeltRate,
   total,
 } from "@wipe-day/domain/base";
+import { buildingLevel, buildStatus, nextBuild } from "@wipe-day/domain/buildings";
 import { useWorld } from "../../state/store";
 import {
   abbrev,
   content,
   duration,
   furnaceName,
+  missingLabel,
   resourceName,
   t,
   tierName,
 } from "../../state/world";
-import { Cost, needLabel } from "../Cost";
+import { Cost } from "../Cost";
 import { ResourceIcon, Tile } from "../Icon";
 import { vars } from "../util";
 
@@ -31,54 +32,69 @@ export function FurnacePanel() {
   const now = useWorld((state) => Math.floor(state.now / 30) * 30);
   const smelt = useWorld((state) => state.smelt);
   const takeOut = useWorld((state) => state.takeOut);
-  const buyFurnace = useWorld((state) => state.buyFurnace);
+  const build = useWorld((state) => state.build);
+  const openPanel = useWorld((state) => state.openPanel);
   const furnace = furnaceOf(content, base);
-  const index = content.furnaces.findIndex((candidate) => candidate.id === base.furnaceId);
-  const upgrade = content.furnaces[index + 1] ?? null;
-  const upgradeTierOk =
-    upgrade !== null && TIERS.indexOf(upgrade.minTier) <= TIERS.indexOf(base.tier);
-  const ready = total(furnaceReady(content, base, now));
+  const level = buildingLevel(base, "furnace");
+  const upgrade = nextBuild(content, base, "furnace");
+  const status = buildStatus(content, base, "furnace");
+  const nextType = content.furnaces[level];
+  const ready = total(furnaceReady(base, now));
 
-  const buyCard = upgrade ? (
-    <div className="card">
-      <Tile color="#ff8a3c" label="FU" />
-      <div className="main">
-        <div className="title">
-          <b>{furnaceName(upgrade.id)}</b>
-          <span className="lvl">{furnace ? t("smelt.upgrade") : t("smelt.build")}</span>
+  const upgradeLabel = (): string => {
+    switch (status.code) {
+      case "ok":
+        return furnace
+          ? t("smelt.upgrade_to", { furnace: furnaceName(nextType?.id ?? "") })
+          : t("smelt.build_it");
+      case "unaffordable":
+        return t("craft.need", { need: missingLabel(status.missing) ?? "" });
+      case "tier":
+        return t("smelt.needs_tier", { tier: tierName(status.tier) });
+      case "in_progress":
+        return t("build.in_progress", { time: duration(status.endsAt - now) });
+      case "builders":
+        return t("build.builders_busy", { time: duration(status.endsAt - now) });
+      default:
+        return t("build.maxed");
+    }
+  };
+
+  const buildCard =
+    upgrade && nextType ? (
+      <div className="card">
+        <Tile color="#ff8a3c" label="FU" />
+        <div className="main">
+          <div className="title">
+            <b>{furnaceName(nextType.id)}</b>
+            <span className="lvl">{furnace ? t("smelt.upgrade") : t("smelt.build")}</span>
+          </div>
+          <div className="desc">
+            {t("smelt.facts", {
+              rate: abbrev(nextType.orePerHour),
+              max: abbrev(nextType.maxOrePerJob),
+              fuel: nextType.fuelPer100Ore,
+              what: resourceName(nextType.fuel).toLowerCase(),
+            })}
+          </div>
+          {status.code !== "tier" ? <Cost cost={upgrade.cost} stock={base.stock} /> : null}
+          <button
+            type="button"
+            className={`btn${!furnace && status.code === "ok" ? " primary" : ""}`}
+            disabled={status.code !== "ok"}
+            onClick={() => build("furnace")}
+          >
+            {upgradeLabel()}
+          </button>
         </div>
-        <div className="desc">
-          {t("smelt.facts", {
-            rate: abbrev(upgrade.orePerHour),
-            max: abbrev(upgrade.maxOrePerJob),
-            fuel: upgrade.fuelPer100Ore,
-            what: resourceName(upgrade.fuel).toLowerCase(),
-          })}
-        </div>
-        <Cost cost={upgrade.cost} stock={base.stock} />
-        <button
-          type="button"
-          className={`btn${!furnace && upgradeTierOk && canAfford(upgrade.cost, base.stock) ? " primary" : ""}`}
-          disabled={!upgradeTierOk || !canAfford(upgrade.cost, base.stock)}
-          onClick={buyFurnace}
-        >
-          {!upgradeTierOk
-            ? t("smelt.needs_tier", { tier: tierName(upgrade.minTier) })
-            : canAfford(upgrade.cost, base.stock)
-              ? furnace
-                ? t("smelt.upgrade_to", { furnace: furnaceName(upgrade.id) })
-                : t("smelt.build_it")
-              : t("craft.need", { need: needLabel(upgrade.cost, base.stock) ?? "" })}
-        </button>
       </div>
-    </div>
-  ) : null;
+    ) : null;
 
   if (!furnace) {
     return (
       <>
         <p className="hint">{t("smelt.hint_none")}</p>
-        {buyCard}
+        {buildCard}
       </>
     );
   }
@@ -90,11 +106,11 @@ export function FurnacePanel() {
         {t("smelt.hint", {
           furnace: furnaceName(furnace.id),
           slots,
-          rate: abbrev(furnace.orePerHour),
+          rate: abbrev(smeltRate(content, base, furnace)),
         })}
       </p>
       {base.furnaceJobs.map((job) => {
-        const done = jobProgress(furnace, job, now);
+        const done = jobProgress(job, now);
         return (
           <div key={`${job.input}-${job.startedAt}`} className="card">
             <ResourceIcon id={job.output} />
@@ -111,7 +127,7 @@ export function FurnacePanel() {
               <div className="desc">
                 {done >= job.amount
                   ? t("smelt.finished")
-                  : t("smelt.left", { time: duration(jobEndsAt(furnace, job) - now) })}
+                  : t("smelt.left", { time: duration(jobEndsAt(job) - now) })}
               </div>
             </div>
           </div>
@@ -139,7 +155,7 @@ export function FurnacePanel() {
         const output = ore.smeltsInto ?? "";
         const have = Math.floor(base.stock[ore.id] ?? 0);
         const amount = smeltable(content, base, ore.id);
-        const fuel = fuelFor(furnace, amount);
+        const fuel = fuelFor(content, base, furnace, amount);
         const slotFree = base.furnaceJobs.length < slots;
         let label = t("smelt.smelt", { amount: abbrev(amount), what: resourceName(ore.id) });
         if (!slotFree) label = t("smelt.no_slot");
@@ -160,7 +176,7 @@ export function FurnacePanel() {
                   ? t("smelt.makes", {
                       amount: abbrev(amount),
                       what: resourceName(output),
-                      time: duration((amount * 3600) / furnace.orePerHour),
+                      time: duration((amount * 3600) / smeltRate(content, base, furnace)),
                       fuel: abbrev(fuel),
                       fuelName: resourceName(furnace.fuel).toLowerCase(),
                     })
@@ -178,7 +194,10 @@ export function FurnacePanel() {
           </div>
         );
       })}
-      {buyCard}
+      {buildCard}
+      <button type="button" className="btn small" onClick={() => openPanel("build")}>
+        {t("smelt.more_buildings")}
+      </button>
     </>
   );
 }

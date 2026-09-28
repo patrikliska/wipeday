@@ -1,20 +1,12 @@
 // Everything that can sit in the inventory or stand in the base. Names and one-line
 // effects are in the locale (`item.{id}.name`, `item.{id}.effect`). Recipes are in recipes.json5.
 // tier: rarity on the base-tier colour scale. capacity: crates add this to every resource's
-// cap. workbenchLevel: the crafting level a bench unlocks. unique: a base holds at most one.
-// Stations (campfire, kiln, press) and gear stand in the scene now and get their jobs in
-// W2 (buildings), W3 (crafting chains) and W4 (crew).
+// cap. unique: a base holds at most one. Stations (workbench, furnace, campfire, kiln...)
+// are buildings (buildings.json5); gear gets its job with the crew in W4.
 {
   items: [
-    { id: "workbench_1", category: "workbench", tier: "wood", workbenchLevel: 1, unique: true },
-    { id: "workbench_2", category: "workbench", tier: "stone", workbenchLevel: 2, unique: true },
-    { id: "workbench_3", category: "workbench", tier: "metal", workbenchLevel: 3, unique: true },
     { id: "crate", category: "storage", tier: "wood", capacity: 1000 },
     { id: "large_crate", category: "storage", tier: "stone", capacity: 4000 },
-    { id: "campfire", category: "station", tier: "twig", unique: true },
-    { id: "kiln", category: "station", tier: "stone", unique: true },
-    { id: "press", category: "station", tier: "stone", unique: true },
-    { id: "lantern", category: "utility", tier: "stone", unique: true },
     { id: "bandage", category: "med", tier: "twig" },
     { id: "bow", category: "weapon", tier: "twig" },
     { id: "spear", category: "weapon", tier: "stone" },

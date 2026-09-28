@@ -151,15 +151,15 @@ describe("state and commands", () => {
     patch(1, (base) => ({
       ...base,
       tier: "stone",
-      furnaceId: "furnace",
-      items: { workbench_1: 1 },
+      buildings: { furnace: 1, workbench: 1 },
       stock: { timber: 700, stone: 50, ore: 1000 },
     }));
-    // One campfire only: the second click is refused, not charged.
-    const fire = await send(cookie, "key-fire-1", { type: "craft", item: "campfire" });
-    const fireAgain = await send(cookie, "key-fire-2", { type: "craft", item: "campfire" });
+    // The campfire lands at once; the second click aims at level 2, which the base cannot
+    // afford: refused, nothing charged.
+    const fire = await send(cookie, "key-fire-1", { type: "build", what: "campfire" });
+    const fireAgain = await send(cookie, "key-fire-2", { type: "build", what: "campfire" });
     expect(fire.ok).toBe(true);
-    expect(fireAgain).toMatchObject({ ok: false, refusal: { code: "owned" } });
+    expect(fireAgain).toMatchObject({ ok: false, refusal: { code: "unaffordable" } });
     expect(fireAgain.state.stock.timber).toBe(600);
     // 600 timber fuels 1000 ore (50 per 100): the second smelt finds nothing left to smelt.
     const smelt = await send(cookie, "key-smelt-1", { type: "smelt", ore: "ore" });
@@ -218,6 +218,7 @@ describe("time", () => {
     await state(cookie);
     patch(1, (base) => ({
       ...base,
+      // A W1-shaped base (the workbench as an item): loading converts it to a building.
       items: { workbench_1: 1 },
       stock: { timber: 500, fibre: 100 },
     }));

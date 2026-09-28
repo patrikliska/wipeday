@@ -15,15 +15,16 @@ import {
   furnaceSlots,
   isEmpty,
   newBase,
-  nextFurnace,
   nextTier,
   nextTool,
   smeltable,
   storageCap,
   storageFill,
   tierOf,
-  workbenchLevel,
+  total,
+  upkeepOf,
 } from "@wipe-day/domain/base";
+import { buildingCount, buildStatus, nextBuild } from "@wipe-day/domain/buildings";
 import { manualClock } from "@wipe-day/domain/clock";
 import { applyCommand, type Command } from "@wipe-day/domain/commands";
 import { craftStatus } from "@wipe-day/domain/craft";
@@ -54,6 +55,8 @@ export interface DayRow {
   fuel: number;
   scrap: number;
   items: number;
+  /** Buildings standing (level 1 or more). */
+  buildings: number;
   building: boolean;
 }
 
@@ -92,46 +95,68 @@ export function checkIn(
     }
   }
   if (s.barrel) s = act(content, s, { type: "break_barrel" }, now);
-  if (!isEmpty(furnaceReady(content, s, now))) s = act(content, s, { type: "take_out" }, now);
+  if (!isEmpty(furnaceReady(s, now))) s = act(content, s, { type: "take_out" }, now);
 
   // Spend, most valuable first. Loop because one purchase can enable another.
   for (let guard = 0; guard < 8; guard++) {
     const before = s;
 
-    s = act(content, s, { type: "build" }, now);
+    s = act(content, s, { type: "build", what: "tier" }, now);
 
     // Keep the base fed: never spend below the next 24 h of upkeep (48 h for casual).
     const reserveHours = archetype === "casual" ? 48 : 24;
     const spendable = { ...s.stock };
-    for (const [id, perHour] of Object.entries(tierOf(content, s.tier).upkeep)) {
+    for (const [id, perHour] of Object.entries(upkeepOf(content, s))) {
       spendable[id] = (spendable[id] ?? 0) - perHour * reserveHours;
     }
+    const affordable = (what: string): boolean => {
+      const next = nextBuild(content, s, what);
+      return (
+        next !== null &&
+        buildStatus(content, s, what).code === "ok" &&
+        canAfford(next.cost, spendable)
+      );
+    };
 
     const tool = nextTool(content, s);
     if (tool && canAfford(tool.cost, spendable)) s = act(content, s, { type: "upgrade_tool" }, now);
 
-    // Furnace: buy the first one as soon as ore is being gathered; upgrade when affordable.
+    // Furnace: build it as soon as ore is being gathered; upgrade when affordable.
     const gathersOre = Object.keys(s.stock).some((id) =>
       content.resources.some((resource) => resource.id === id && resource.smeltsInto),
     );
-    const furnace = nextFurnace(content, s);
-    if (furnace && gathersOre && canAfford(furnace.cost, spendable)) {
-      s = act(content, s, { type: "buy_furnace" }, now);
+    if (gathersOre && affordable("furnace"))
+      s = act(content, s, { type: "build", what: "furnace" }, now);
+    // The workbench next (it opens crafting), then the cheapest other building a builder can take.
+    if (affordable("workbench")) s = act(content, s, { type: "build", what: "workbench" }, now);
+    // Other buildings only from what is left after saving for the next tier: half its cost
+    // while it is far off, all of it once it is within reach (70% affordable).
+    const saving = { ...spendable };
+    const upcoming = nextBuild(content, s, "tier");
+    if (upcoming && !s.construction.some((job) => job.target.kind === "tier")) {
+      const nearlyThere = Object.entries(upcoming.cost).every(
+        ([id, amount]) => (s.stock[id] ?? 0) >= amount * 0.7,
+      );
+      for (const [id, amount] of Object.entries(upcoming.cost)) {
+        saving[id] = (saving[id] ?? 0) - (nearlyThere ? amount : amount / 2);
+      }
     }
+    const spare = (what: string): boolean => {
+      const next = nextBuild(content, s, what);
+      return (
+        next !== null && buildStatus(content, s, what).code === "ok" && canAfford(next.cost, saving)
+      );
+    };
+    const others = content.buildings
+      .map((building) => building.id)
+      .filter((id) => id !== "furnace" && id !== "workbench" && spare(id))
+      .sort(
+        (a, b) =>
+          total(nextBuild(content, s, a)?.cost ?? {}) - total(nextBuild(content, s, b)?.cost ?? {}),
+      );
+    const cheapest = others[0];
+    if (cheapest) s = act(content, s, { type: "build", what: cheapest }, now);
 
-    // Workbench, then crates when storage is getting tight.
-    const level = workbenchLevel(content, s);
-    const bench = content.items.find((item) => item.workbenchLevel === level + 1);
-    const benchRecipe = bench && content.recipes.find((recipe) => recipe.item === bench.id);
-    if (
-      bench &&
-      benchRecipe &&
-      level < tierOf(content, s.tier).workbenchLevel &&
-      craftStatus(content, s, bench.id).code === "ok" &&
-      canAfford(benchRecipe.cost, spendable)
-    ) {
-      s = act(content, s, { type: "craft", item: bench.id }, now);
-    }
     if (storageFill(content, s, now).fraction > 0.7) {
       const crates = content.items
         .filter((item) => item.category === "storage")
@@ -190,7 +215,8 @@ export function simulate(content: Content, archetype: Archetype, days: number): 
       fuel: settledState.stock.fuel ?? 0,
       scrap: settledState.stock.scrap ?? 0,
       items: Object.values(settledState.items).reduce((sum, count) => sum + count, 0),
-      building: settledState.build !== null,
+      buildings: buildingCount(settledState),
+      building: settledState.construction.length > 0,
     });
   }
   return { archetype, rows, reached };
@@ -221,6 +247,13 @@ export function checkPacing(content: Content, days = 35): CheckFailure[] {
         message: `casual reached ${tier} on day ${day}, target day ${window.earliestDay}-${window.latestDay}`,
       });
     }
+  }
+  const { day: buildDay, count: buildTarget } = pacing.casual.buildings;
+  const built = casual.rows[buildDay - 1]?.buildings ?? 0;
+  if (built < buildTarget) {
+    failures.push({
+      message: `casual has ${built} buildings on day ${buildDay}, target at least ${buildTarget}`,
+    });
   }
   const optimalHqm = optimal.reached.hqm;
   if (optimalHqm !== undefined && optimalHqm < pacing.optimal.hqmNotBeforeDay) {

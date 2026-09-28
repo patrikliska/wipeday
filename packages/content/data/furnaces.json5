@@ -1,22 +1,20 @@
-// Furnace types, in upgrade order. A base owns one type; the tier gives the slots.
+// Furnace types, in upgrade order: the furnace building's level picks the type (its cost and
+// tier needs are in buildings.json5); the base tier gives the slots.
 // orePerHour: smelting speed per slot. fuel + fuelPer100Ore: burned up front when a job starts.
-// maxOrePerJob: the most one job takes. minTier: base tier needed to buy it.
+// maxOrePerJob: the most one job takes.
 {
   furnaces: [
     {
       id: "furnace", tier: "wood",
       orePerHour: 120, fuel: "timber", fuelPer100Ore: 50, maxOrePerJob: 1000,
-      cost: { timber: 400, stone: 300 }, minTier: "twig",
     },
     {
       id: "large_furnace", tier: "stone",
       orePerHour: 400, fuel: "timber", fuelPer100Ore: 35, maxOrePerJob: 5000,
-      cost: { stone: 3000, ingots: 600 }, minTier: "stone",
     },
     {
       id: "electric_furnace", tier: "metal",
       orePerHour: 1200, fuel: "timber", fuelPer100Ore: 0, maxOrePerJob: 20000,
-      cost: { ingots: 5000, fuel: 25 }, minTier: "metal",
     },
   ],
 }

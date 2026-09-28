@@ -15,6 +15,7 @@ import {
   workbenchLevel,
 } from "./base";
 import type { GameEvent } from "./events";
+import { modifiers } from "./modifiers";
 
 /** Why a recipe cannot be queued right now; `ok` when it can. */
 export type CraftStatus =
@@ -30,6 +31,13 @@ export interface CraftOption {
   recipe: Recipe;
   item: Item;
   status: CraftStatus;
+}
+
+/** How long a recipe takes here: its minutes, sped up by the buildings (the lights). */
+export function craftSeconds(content: Content, state: BaseState, recipe: Recipe): number {
+  return Math.round(
+    (recipe.craftMinutes * 60 * 100) / (100 + modifiers(content, state).craftPercent),
+  );
 }
 
 /** Owned plus waiting in the queue. */
@@ -86,7 +94,7 @@ export function queueCraft(
   const recipe = content.recipes.find((candidate) => candidate.item === itemId);
   if (!recipe) return { ok: false, status: { code: "unknown" } };
   const startsAt = Math.max(now, state.craftQueue.at(-1)?.endsAt ?? now);
-  const job: CraftJob = { item: itemId, endsAt: startsAt + recipe.craftMinutes * 60 };
+  const job: CraftJob = { item: itemId, endsAt: startsAt + craftSeconds(content, state, recipe) };
   const paid = { ...state, stock: subtract(state.stock, recipe.cost) };
   const events: GameEvent[] = [
     { type: "craft_queued", item: itemId, endsAt: job.endsAt, paid: recipe.cost },

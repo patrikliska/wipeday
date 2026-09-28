@@ -13,15 +13,14 @@ import { breakBarrel, progressTasks } from "./active";
 import type { Advice } from "./advisor";
 import {
   type BaseState,
-  buyFurnace,
   collect,
   collectFurnaces,
   gather,
   smelt,
-  startBuild,
   total,
   upgradeTool,
 } from "./base";
+import { type BuildStatus, startConstruction } from "./buildings";
 import { type CraftStatus, queueCraft } from "./craft";
 import type { GameEvent } from "./events";
 import { endNodeRun, type HitRefusal, hitNode } from "./nodes";
@@ -31,8 +30,8 @@ export type Command =
   | { type: "gather" }
   | { type: "collect" }
   | { type: "upgrade_tool" }
-  | { type: "build" }
-  | { type: "buy_furnace" }
+  /** `what`: "tier" for the next base tier, or a building id. */
+  | { type: "build"; what: string }
   | { type: "smelt"; ore: string }
   | { type: "take_out" }
   | { type: "craft"; item: string }
@@ -46,8 +45,8 @@ export type CommandType = Command["type"];
 export type Refusal =
   | { code: "cooldown"; readyAt: number }
   | { code: "maxed" }
-  | { code: "building"; endsAt: number }
   | { code: "unaffordable"; missing: Amounts }
+  | Exclude<BuildStatus, { code: "ok" | "unaffordable" | "unknown" | "maxed" }>
   | { code: "no_furnace" }
   | { code: "no_slot" }
   | { code: "nothing_to_smelt" }
@@ -66,7 +65,6 @@ const HINT_OF: Partial<Record<CommandType, Advice>> = {
   collect: "collect",
   upgrade_tool: "tools",
   build: "build",
-  buy_furnace: "furnace",
   smelt: "furnace",
   take_out: "furnace",
   craft: "craft",
@@ -120,35 +118,13 @@ function step(content: Content, state: BaseState, command: Command, now: number)
       return { ok: true, state: result.state, events };
     }
     case "build": {
-      const result = startBuild(content, state, now);
+      const result = startConstruction(content, state, now, command.what);
       if (!result.ok) {
-        if (result.reason === "maxed") return { ok: false, refusal: { code: "maxed" } };
-        if (result.reason === "building")
-          return { ok: false, refusal: { code: "building", endsAt: result.endsAt } };
-        return { ok: false, refusal: { code: "unaffordable", missing: result.missing } };
+        const { status } = result;
+        // An unknown building id is a malformed request, not something to explain.
+        return { ok: false, refusal: status.code === "unknown" ? { code: "unknown" } : status };
       }
-      const events: GameEvent[] = [
-        { type: "build_started", tier: result.tier.id, endsAt: result.endsAt, paid: result.paid },
-      ];
-      if (result.state.build === null) events.push({ type: "build_done", tier: result.tier.id });
-      return { ok: true, state: result.state, events };
-    }
-    case "buy_furnace": {
-      const result = buyFurnace(content, state);
-      if (!result.ok) {
-        return {
-          ok: false,
-          refusal:
-            result.reason === "maxed"
-              ? { code: "maxed" }
-              : { code: "unaffordable", missing: result.missing },
-        };
-      }
-      return {
-        ok: true,
-        state: result.state,
-        events: [{ type: "furnace_bought", furnace: result.furnace.id, paid: result.paid }],
-      };
+      return { ok: true, state: result.state, events: result.events };
     }
     case "smelt": {
       const result = smelt(content, state, now, command.ore);
@@ -224,7 +200,12 @@ export function applyCommand(
     next = progressed.state;
     events.push(...progressed.events);
   }
-  const hint = HINT_OF[command.type];
+  const hint =
+    command.type === "build" && command.what !== "tier"
+      ? command.what === "furnace"
+        ? "furnace"
+        : "building"
+      : HINT_OF[command.type];
   if (hint) next = { ...next, hints: { ...next.hints, [hint]: (next.hints[hint] ?? 0) + 1 } };
   return { ok: true, state: next, events };
 }

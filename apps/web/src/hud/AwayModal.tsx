@@ -14,6 +14,10 @@ function summary(events: GameEvent[]): string[] {
     if (event.type === "build_done")
       lines.push(t("welcome.build_done", { tier: tierName(event.tier) }));
     if (event.type === "decayed") lines.push(t("welcome.decayed", { tier: tierName(event.to) }));
+    if (event.type === "building_done")
+      lines.push(t("welcome.building_done", { building: t(`building.${event.building}.name`) }));
+    if (event.type === "building_decayed")
+      lines.push(t("toast.building_decayed", { building: t(`building.${event.building}.name`) }));
   }
   const crafted = events.filter((event) => event.type === "crafted");
   if (crafted.length > 0) {

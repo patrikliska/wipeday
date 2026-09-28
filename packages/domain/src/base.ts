@@ -5,12 +5,14 @@
  * exactly this code (through `commands.ts`).
  *
  * Time is UTC unix seconds; amounts are integers. Lazy evaluation: nothing
- * ticks. Resources are computed from `lastCollectedAt`; builds, crafts, barrels
- * and upkeep resolve in `settleAll` (`settle.ts`), which every command runs first.
+ * ticks. Resources are computed from `lastCollectedAt`; constructions, crafts,
+ * barrels and upkeep resolve in `settleAll` (`settle.ts`), which every command
+ * runs first. What the buildings add comes from `modifiers.ts`.
  */
 import type { Amounts, BaseTier, Content, Furnace, Tool } from "@wipe-day/content/schema";
 import { TIERS, type Tier } from "@wipe-day/content/tiers";
 import type { GameEvent } from "./events";
+import { modifiers } from "./modifiers";
 
 export interface FurnaceJob {
   /** Ore id. */
@@ -21,11 +23,24 @@ export interface FurnaceJob {
   startedAt: number;
   /** Output already taken out. */
   collected: number;
+  /** Ore per hour, fixed when the job starts (so a later upgrade cannot re-price it). */
+  perHour: number;
 }
 
 export interface CraftJob {
   item: string;
   /** Lands in the inventory at this moment. Jobs run one after another, in order. */
+  endsAt: number;
+}
+
+/** What a builder is putting up: the next base tier, or a building's next level. */
+export type Target =
+  | { kind: "tier"; tier: Tier }
+  | { kind: "building"; building: string; level: number };
+
+export interface Construction {
+  target: Target;
+  startedAt: number;
   endsAt: number;
 }
 
@@ -63,12 +78,12 @@ export interface BaseState {
   lastCollectedAt: number;
   /** Null until the first Gather. */
   lastGatherAt: number | null;
-  /** A running tier upgrade. */
-  build: { tier: Tier; endsAt: number } | null;
+  /** Building id -> level (absent = not built). See `buildings.ts`. */
+  buildings: Record<string, number>;
+  /** What the builders are working on, earliest first. */
+  construction: Construction[];
   /** Upkeep is covered up to this moment; earlier than `now` means decaying. */
   upkeepPaidUntil: number;
-  /** Furnace type owned, if any. Slots come from the base tier. */
-  furnaceId: string | null;
   furnaceJobs: FurnaceJob[];
   /** Inventory: item id -> count. */
   items: Record<string, number>;
@@ -105,9 +120,9 @@ export function newBase(content: Content, now: number, seed: number): BaseState 
     stock,
     lastCollectedAt: now,
     lastGatherAt: null,
-    build: null,
+    buildings: {},
+    construction: [],
     upkeepPaidUntil: now,
-    furnaceId: null,
     furnaceJobs: [],
     items: {},
     craftQueue: [],
@@ -143,37 +158,27 @@ export function nextTier(tier: Tier): Tier | null {
   return TIERS[TIERS.indexOf(tier) + 1] ?? null;
 }
 
-export function furnaceOf(content: Content, state: BaseState): Furnace | null {
-  if (state.furnaceId === null) return null;
-  const found = content.furnaces.find((candidate) => candidate.id === state.furnaceId);
-  if (!found) throw new Error(`unknown furnace ${state.furnaceId}`);
-  return found;
+/** Whether the base has reached `tier`. */
+export function tierAtLeast(state: Pick<BaseState, "tier">, tier: Tier): boolean {
+  return TIERS.indexOf(state.tier) >= TIERS.indexOf(tier);
 }
 
-/** The furnace type after the owned one (or the first), if the tier allows it. */
-export function nextFurnace(content: Content, state: BaseState): Furnace | null {
-  const index = content.furnaces.findIndex((furnace) => furnace.id === state.furnaceId);
-  const candidate = content.furnaces[index + 1] ?? null;
-  if (!candidate) return null;
-  return TIERS.indexOf(candidate.minTier) <= TIERS.indexOf(state.tier) ? candidate : null;
+/** The furnace type the furnace building's level gives, or null without one. */
+export function furnaceOf(content: Content, state: BaseState): Furnace | null {
+  const level = modifiers(content, state).furnace;
+  return level > 0 ? (content.furnaces[level - 1] ?? null) : null;
 }
 
 export function furnaceSlots(content: Content, state: BaseState): number {
-  return state.furnaceId === null ? 0 : tierOf(content, state.tier).furnaceSlots;
+  return furnaceOf(content, state) ? tierOf(content, state.tier).furnaceSlots : 0;
 }
 
-/** Highest workbench level usable: owned workbench, capped by the tier. */
+/** Crafting level the buildings give (the workbench). */
 export function workbenchLevel(content: Content, state: BaseState): number {
-  let owned = 0;
-  for (const item of content.items) {
-    if (item.workbenchLevel !== undefined && (state.items[item.id] ?? 0) > 0) {
-      owned = Math.max(owned, item.workbenchLevel);
-    }
-  }
-  return Math.min(owned, tierOf(content, state.tier).workbenchLevel);
+  return modifiers(content, state).workbench;
 }
 
-/** Boxes counting toward storage: the biggest ones first, up to the tier's slots. */
+/** Crates counting toward storage: the biggest ones first, up to the tier's slots. */
 export function boxesInUse(content: Content, state: BaseState): number {
   let count = 0;
   for (const item of content.items) {
@@ -182,7 +187,7 @@ export function boxesInUse(content: Content, state: BaseState): number {
   return Math.min(count, tierOf(content, state.tier).boxSlots);
 }
 
-/** Room per resource: the tier's cap plus the boxes in use. Every resource has its own. */
+/** Room per resource: the tier's cap, the crates in use and the buildings. */
 export function storageCap(content: Content, state: BaseState): number {
   const tier = tierOf(content, state.tier);
   const boxes = content.items
@@ -190,7 +195,8 @@ export function storageCap(content: Content, state: BaseState): number {
     .flatMap((item) => Array<number>(state.items[item.id] ?? 0).fill(item.capacity ?? 0))
     .sort((a, b) => b - a)
     .slice(0, tier.boxSlots);
-  return tier.storageCap + boxes.reduce((sum, capacity) => sum + capacity, 0);
+  const crates = boxes.reduce((sum, capacity) => sum + capacity, 0);
+  return tier.storageCap + crates + modifiers(content, state).cap;
 }
 
 export function total(amounts: Amounts): number {
@@ -246,6 +252,20 @@ export function production(rates: Amounts, seconds: number, percent = 100): Amou
   return out;
 }
 
+/**
+ * Gathering per hour: the tool's rates raised by the buildings' percentages,
+ * plus what buildings produce on their own (a garden grows fibre with any tool).
+ */
+export function effectiveRates(content: Content, state: BaseState): Amounts {
+  const mods = modifiers(content, state);
+  const out: Amounts = {};
+  for (const [id, perHour] of Object.entries(toolOf(content, state).rates)) {
+    out[id] = Math.floor((perHour * (100 + mods.allRates + (mods.rates[id] ?? 0))) / 100);
+  }
+  for (const [id, perHour] of Object.entries(mods.flat)) out[id] = (out[id] ?? 0) + perHour;
+  return out;
+}
+
 /** Clamps each wanted amount to the room its resource has left. Never overflows. */
 export function clampToCap(cap: number, stock: Amounts, wanted: Amounts): Amounts {
   const out: Amounts = {};
@@ -273,18 +293,28 @@ export function storageFill(
   return best;
 }
 
+/** Upkeep per hour: the tier's plus every building level's. */
+export function upkeepOf(content: Content, state: BaseState): Amounts {
+  let out: Amounts = { ...tierOf(content, state.tier).upkeep };
+  for (const building of content.buildings) {
+    const level = building.levels[(state.buildings[building.id] ?? 0) - 1];
+    if (level) out = add(out, level.upkeep);
+  }
+  return out;
+}
+
 /**
  * True once a full hour of upkeep has gone unpaid. Upkeep is settled in whole
  * hours, so `upkeepPaidUntil` lags `now` by up to an hour on a healthy base.
- * Tiers without upkeep never decay.
+ * A base without upkeep never decays.
  */
 export function isDecaying(content: Content, state: BaseState, now: number): boolean {
-  return !isEmpty(tierOf(content, state.tier).upkeep) && now - state.upkeepPaidUntil >= HOUR;
+  return !isEmpty(upkeepOf(content, state)) && now - state.upkeepPaidUntil >= HOUR;
 }
 
-/** Hours of upkeep the banked stock can still cover at this tier. */
+/** Hours of upkeep the banked stock can still cover. */
 export function upkeepCoverHours(content: Content, state: BaseState): number {
-  const upkeep = tierOf(content, state.tier).upkeep;
+  const upkeep = upkeepOf(content, state);
   if (isEmpty(upkeep)) return Number.POSITIVE_INFINITY;
   return Math.min(
     ...Object.entries(upkeep).map(([id, perHour]) => Math.floor((state.stock[id] ?? 0) / perHour)),
@@ -300,10 +330,10 @@ export function upkeepCoverHours(content: Content, state: BaseState): number {
 export function accrued(content: Content, state: BaseState, now: number): Amounts {
   const from = state.lastCollectedAt;
   const to = Math.max(now, from);
-  const hasUpkeep = !isEmpty(tierOf(content, state.tier).upkeep);
+  const hasUpkeep = !isEmpty(upkeepOf(content, state));
   // Decay starts with the first *full* unpaid hour (see `isDecaying`).
   const paidUntil = hasUpkeep ? Math.min(Math.max(state.upkeepPaidUntil + HOUR, from), to) : to;
-  const rates = toolOf(content, state).rates;
+  const rates = effectiveRates(content, state);
   const healthy = production(rates, paidUntil - from);
   const decayed = production(rates, to - paidUntil, content.baseRules.decayProductionPercent);
   return clampToCap(storageCap(content, state), state.stock, add(healthy, decayed));
@@ -313,7 +343,7 @@ export function accrued(content: Content, state: BaseState, now: number): Amount
 export function isStorageFull(content: Content, state: BaseState, now: number): boolean {
   const cap = storageCap(content, state);
   const waiting = accrued(content, state, now);
-  return Object.keys(toolOf(content, state).rates).some(
+  return Object.keys(effectiveRates(content, state)).some(
     (id) => (state.stock[id] ?? 0) + (waiting[id] ?? 0) >= cap,
   );
 }
@@ -355,7 +385,7 @@ export function gather(content: Content, state: BaseState, now: number): GatherR
   if (now < readyAt) return { ok: false, reason: "cooldown", readyAt };
   const banked = collect(content, state, now);
   const tool = toolOf(content, state);
-  const wanted = production(tool.rates, tool.bonusMinutes * 60);
+  const wanted = production(effectiveRates(content, state), tool.bonusMinutes * 60);
   const bonus = clampToCap(storageCap(content, state), banked.state.stock, wanted);
   return {
     ok: true,
@@ -365,38 +395,73 @@ export function gather(content: Content, state: BaseState, now: number): GatherR
   };
 }
 
-// --- settle: builds and upkeep -----------------------------------------------
+// --- settle: constructions and upkeep ------------------------------------------
 
 export type SettleEvent = Extract<
   GameEvent,
-  { type: "build_done" | "auto_collect" | "upkeep_paid" | "decayed" }
+  {
+    type:
+      | "build_done"
+      | "building_done"
+      | "auto_collect"
+      | "upkeep_paid"
+      | "decayed"
+      | "building_decayed";
+  }
 >;
 
+/** Lands every construction whose time is up, earliest first. */
+function settleConstruction(
+  state: BaseState,
+  now: number,
+): { state: BaseState; events: SettleEvent[] } {
+  const done = state.construction.filter((job) => job.endsAt <= now);
+  if (done.length === 0) return { state, events: [] };
+  const events: SettleEvent[] = [];
+  let next: BaseState = {
+    ...state,
+    construction: state.construction.filter((job) => job.endsAt > now),
+  };
+  for (const job of [...done].sort((a, b) => a.endsAt - b.endsAt)) {
+    if (job.target.kind === "tier") {
+      events.push({ type: "build_done", tier: job.target.tier });
+      next = {
+        ...next,
+        tier: job.target.tier,
+        upkeepPaidUntil: Math.max(next.upkeepPaidUntil, job.endsAt),
+      };
+    } else {
+      const { building, level } = job.target;
+      events.push({ type: "building_done", building, level });
+      next = { ...next, buildings: { ...next.buildings, [building]: level } };
+    }
+  }
+  return { state: next, events };
+}
+
+/** Total cost of a building's current level: decay takes the dearest first. */
+function levelCost(content: Content, id: string, level: number): number {
+  const building = content.buildings.find((candidate) => candidate.id === id);
+  return total(building?.levels[level - 1]?.cost ?? {});
+}
+
 /**
- * Brings the state up to `now`: a finished build lands; upkeep is paid hour
- * by hour from stock, pulling from the nodes (an implicit collect) when stock
- * is short; a base unpaid for too long drops a tier. Idempotent: settling
- * twice at the same instant changes nothing the second time.
+ * Brings the state up to `now`: finished constructions land; upkeep is paid
+ * hour by hour from stock, pulling from the nodes (an implicit collect) when
+ * stock is short; a base unpaid for too long loses a level of its dearest
+ * building, or a tier when no building is left. Idempotent: settling twice at
+ * the same instant changes nothing the second time.
  */
 export function settle(
   content: Content,
   state: BaseState,
   now: number,
 ): { state: BaseState; events: SettleEvent[] } {
-  const events: SettleEvent[] = [];
-  let next = state;
+  const landed = settleConstruction(state, now);
+  const events: SettleEvent[] = [...landed.events];
+  let next = landed.state;
 
-  if (next.build && next.build.endsAt <= now) {
-    events.push({ type: "build_done", tier: next.build.tier });
-    next = {
-      ...next,
-      tier: next.build.tier,
-      build: null,
-      upkeepPaidUntil: Math.max(next.upkeepPaidUntil, next.build.endsAt),
-    };
-  }
-
-  const upkeep = tierOf(content, next.tier).upkeep;
+  const upkeep = upkeepOf(content, next);
   if (isEmpty(upkeep)) {
     return { state: { ...next, upkeepPaidUntil: Math.max(next.upkeepPaidUntil, now) }, events };
   }
@@ -430,17 +495,31 @@ export function settle(
     }
   }
 
-  if (now - next.upkeepPaidUntil >= content.baseRules.tierLossAfterHours * HOUR) {
-    const lower = TIERS[Math.max(0, TIERS.indexOf(next.tier) - 1)] ?? "twig";
-    if (lower !== next.tier) {
-      events.push({ type: "decayed", from: next.tier, to: lower });
-      next = { ...next, tier: lower, upkeepPaidUntil: now };
+  const grace = content.baseRules.tierLossAfterHours + modifiers(content, next).graceHours;
+  if (now - next.upkeepPaidUntil >= grace * HOUR) {
+    const standing = Object.entries(next.buildings)
+      .filter(([, level]) => level > 0)
+      .sort((a, b) => levelCost(content, b[0], b[1]) - levelCost(content, a[0], a[1]));
+    const dearest = standing[0];
+    if (dearest) {
+      const [building, level] = dearest;
+      const buildings = { ...next.buildings };
+      if (level > 1) buildings[building] = level - 1;
+      else delete buildings[building];
+      events.push({ type: "building_decayed", building, level: level - 1 });
+      next = { ...next, buildings, upkeepPaidUntil: now };
+    } else {
+      const lower = TIERS[Math.max(0, TIERS.indexOf(next.tier) - 1)] ?? "twig";
+      if (lower !== next.tier) {
+        events.push({ type: "decayed", from: next.tier, to: lower });
+        next = { ...next, tier: lower, upkeepPaidUntil: now };
+      }
     }
   }
   return { state: next, events };
 }
 
-// --- upgrades ----------------------------------------------------------------
+// --- tools -------------------------------------------------------------------
 
 export type UpgradeResult =
   | { ok: true; state: BaseState; tool: Tool; gained: Amounts; paid: Amounts }
@@ -470,53 +549,26 @@ export function upgradeTool(content: Content, state: BaseState, now: number): Up
   };
 }
 
-export type BuildResult =
-  | { ok: true; state: BaseState; tier: BaseTier; paid: Amounts; endsAt: number }
-  | { ok: false; reason: "maxed" }
-  | { ok: false; reason: "building"; endsAt: number }
-  | { ok: false; reason: "unaffordable"; tier: BaseTier; missing: Amounts };
-
-/** Pays for the next base tier and starts its timer (instant when 0 minutes). */
-export function startBuild(content: Content, state: BaseState, now: number): BuildResult {
-  if (state.build) return { ok: false, reason: "building", endsAt: state.build.endsAt };
-  const target = nextTier(state.tier);
-  if (!target) return { ok: false, reason: "maxed" };
-  const tier = tierOf(content, target);
-  const missing = shortfall(tier.cost, state.stock);
-  if (Object.keys(missing).length > 0) return { ok: false, reason: "unaffordable", tier, missing };
-  const endsAt = now + tier.buildMinutes * 60;
-  const paid = { ...state, stock: subtract(state.stock, tier.cost) };
-  const next =
-    tier.buildMinutes === 0
-      ? { ...paid, tier: target, upkeepPaidUntil: Math.max(paid.upkeepPaidUntil, now) }
-      : { ...paid, build: { tier: target, endsAt } };
-  return { ok: true, state: next, tier, paid: tier.cost, endsAt };
-}
-
 // --- furnaces ----------------------------------------------------------------
 
-export type BuyFurnaceResult =
-  | { ok: true; state: BaseState; furnace: Furnace; paid: Amounts }
-  | { ok: false; reason: "maxed" }
-  | { ok: false; reason: "unaffordable"; furnace: Furnace; missing: Amounts };
-
-export function buyFurnace(content: Content, state: BaseState): BuyFurnaceResult {
-  const furnace = nextFurnace(content, state);
-  if (!furnace) return { ok: false, reason: "maxed" };
-  const missing = shortfall(furnace.cost, state.stock);
-  if (Object.keys(missing).length > 0)
-    return { ok: false, reason: "unaffordable", furnace, missing };
-  return {
-    ok: true,
-    state: { ...state, stock: subtract(state.stock, furnace.cost), furnaceId: furnace.id },
-    furnace,
-    paid: furnace.cost,
-  };
+/** Fuel per 100 ore after the buildings' savings (the kiln). */
+export function fuelPer100(content: Content, state: BaseState, furnace: Furnace): number {
+  return Math.max(0, furnace.fuelPer100Ore - modifiers(content, state).fuelPer100Ore);
 }
 
 /** Fuel for smelting `amount` ore, in `furnace.fuel`. */
-export function fuelFor(furnace: Furnace, amount: number): number {
-  return Math.ceil((amount * furnace.fuelPer100Ore) / 100);
+export function fuelFor(
+  content: Content,
+  state: BaseState,
+  furnace: Furnace,
+  amount: number,
+): number {
+  return Math.ceil((amount * fuelPer100(content, state, furnace)) / 100);
+}
+
+/** Ore per hour a new job runs at: the furnace type sped up by the buildings (the generator). */
+export function smeltRate(content: Content, state: BaseState, furnace: Furnace): number {
+  return Math.floor((furnace.orePerHour * (100 + modifiers(content, state).smeltPercent)) / 100);
 }
 
 /** How much of `ore` a new job would take: all in stock, limited by fuel and the job cap. */
@@ -524,10 +576,11 @@ export function smeltable(content: Content, state: BaseState, ore: string): numb
   const furnace = furnaceOf(content, state);
   if (!furnace) return 0;
   let amount = Math.min(state.stock[ore] ?? 0, furnace.maxOrePerJob);
-  if (furnace.fuelPer100Ore > 0) {
+  const per100 = fuelPer100(content, state, furnace);
+  if (per100 > 0) {
     // Burning the ore's own stock as fuel (never the case today) would double-count it.
     const fuelStock = (state.stock[furnace.fuel] ?? 0) - (furnace.fuel === ore ? amount : 0);
-    const byFuel = Math.floor((Math.max(0, fuelStock) * 100) / furnace.fuelPer100Ore);
+    const byFuel = Math.floor((Math.max(0, fuelStock) * 100) / per100);
     amount = Math.min(amount, byFuel);
   }
   return amount;
@@ -548,8 +601,15 @@ export function smelt(content: Content, state: BaseState, now: number, ore: stri
   }
   const amount = smeltable(content, state, ore);
   if (amount <= 0) return { ok: false, reason: "nothing_to_smelt" };
-  const fuel = fuelFor(furnace, amount);
-  const job: FurnaceJob = { input: ore, output, amount, startedAt: now, collected: 0 };
+  const fuel = fuelFor(content, state, furnace, amount);
+  const job: FurnaceJob = {
+    input: ore,
+    output,
+    amount,
+    startedAt: now,
+    collected: 0,
+    perHour: smeltRate(content, state, furnace),
+  };
   const paid: Amounts = { [ore]: amount };
   if (fuel > 0) paid[furnace.fuel] = (paid[furnace.fuel] ?? 0) + fuel;
   const stock = subtract(state.stock, paid);
@@ -563,24 +623,19 @@ export function smelt(content: Content, state: BaseState, now: number, ore: stri
 }
 
 /** Units smelted so far, whether or not taken out. */
-export function jobProgress(furnace: Furnace, job: FurnaceJob, now: number): number {
-  return Math.min(
-    job.amount,
-    Math.floor((furnace.orePerHour * Math.max(0, now - job.startedAt)) / HOUR),
-  );
+export function jobProgress(job: FurnaceJob, now: number): number {
+  return Math.min(job.amount, Math.floor((job.perHour * Math.max(0, now - job.startedAt)) / HOUR));
 }
 
-export function jobEndsAt(furnace: Furnace, job: FurnaceJob): number {
-  return job.startedAt + Math.ceil((job.amount * HOUR) / furnace.orePerHour);
+export function jobEndsAt(job: FurnaceJob): number {
+  return job.startedAt + Math.ceil((job.amount * HOUR) / job.perHour);
 }
 
 /** Output waiting in every slot, by refined resource. */
-export function furnaceReady(content: Content, state: BaseState, now: number): Amounts {
-  const furnace = furnaceOf(content, state);
+export function furnaceReady(state: BaseState, now: number): Amounts {
   const out: Amounts = {};
-  if (!furnace) return out;
   for (const job of state.furnaceJobs) {
-    const ready = jobProgress(furnace, job, now) - job.collected;
+    const ready = jobProgress(job, now) - job.collected;
     if (ready > 0) out[job.output] = (out[job.output] ?? 0) + ready;
   }
   return out;
@@ -588,14 +643,12 @@ export function furnaceReady(content: Content, state: BaseState, now: number): A
 
 /** Takes finished output out of every slot (as far as storage allows); finished jobs free their slot. */
 export function collectFurnaces(content: Content, state: BaseState, now: number): Collected {
-  const furnace = furnaceOf(content, state);
-  if (!furnace) return { state, gained: {} };
   const cap = storageCap(content, state);
   let stock = { ...state.stock };
   const gained: Amounts = {};
   const jobs: FurnaceJob[] = [];
   for (const job of state.furnaceJobs) {
-    const ready = jobProgress(furnace, job, now) - job.collected;
+    const ready = jobProgress(job, now) - job.collected;
     const take = Math.max(0, Math.min(ready, cap - (stock[job.output] ?? 0)));
     if (take > 0) {
       gained[job.output] = (gained[job.output] ?? 0) + take;

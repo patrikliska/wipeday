@@ -13,6 +13,7 @@ import {
   workbenchLevel,
 } from "./base";
 import type { GameEvent } from "./events";
+import { modifiers } from "./modifiers";
 import { pickWeighted, rng, seedOf } from "./rng";
 
 const DAY = 86400;
@@ -26,8 +27,10 @@ export function settleBarrel(
   now: number,
 ): { state: BaseState; events: GameEvent[] } {
   const { barrels } = content.active;
-  const every = barrels.everyMinutes * 60;
-  const lifetime = barrels.expiresMinutes * 60;
+  const mods = modifiers(content, state);
+  // The radio mast brings them sooner (never more than hourly); the watchtower keeps them longer.
+  const every = Math.max(60, barrels.everyMinutes - mods.barrelEveryMinutes) * 60;
+  const lifetime = (barrels.expiresMinutes + mods.barrelLifeMinutes) * 60;
   let next = state;
   if (next.barrel && now > next.barrel.expiresAt) next = { ...next, barrel: null };
   if (next.barrel || now < next.nextBarrelAt) return { state: next, events: [] };

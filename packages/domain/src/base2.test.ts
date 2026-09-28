@@ -1,4 +1,4 @@
-/** Builds, upkeep and decay, furnaces. */
+/** Tier builds, upkeep and decay, furnaces. */
 
 import { loadContent, loadLocale } from "@wipe-day/content/load";
 import { contentPaths } from "@wipe-day/content/paths";
@@ -7,7 +7,6 @@ import { describe, expect, it } from "vitest";
 import {
   accrued,
   type BaseState,
-  buyFurnace,
   collectFurnaces,
   furnaceReady,
   isDecaying,
@@ -15,11 +14,11 @@ import {
   newBase,
   settle,
   smelt,
-  startBuild,
   tierOf,
   total,
   upkeepCoverHours,
 } from "./base";
+import { startConstruction } from "./buildings";
 
 const content = loadContent(contentPaths.data, loadLocale());
 const T0 = 1_700_000_000;
@@ -33,44 +32,54 @@ const rich = (extra: Record<string, number>, tier: Tier = "twig"): BaseState => 
   stock: { timber: 0, stone: 0, ...extra },
 });
 
-describe("builds", () => {
+describe("tier builds", () => {
   it("twig -> wood is instant and starts upkeep from now", () => {
-    const result = startBuild(content, rich({ timber: 2000, stone: 1000 }), T0);
-    if (!result.ok) throw new Error(`expected ok, got ${result.reason}`);
+    const result = startConstruction(content, rich({ timber: 2000, stone: 1000 }), T0, "tier");
+    if (!result.ok) throw new Error(`expected ok, got ${result.status.code}`);
     expect(result.state.tier).toBe("wood");
-    expect(result.state.build).toBeNull();
+    expect(result.state.construction).toEqual([]);
     expect(result.state.stock).toMatchObject({ timber: 2000 - (wood.cost.timber ?? 0) });
     expect(result.state.upkeepPaidUntil).toBe(T0);
+    expect(result.events.map((event) => event.type)).toEqual(["build_started", "build_done"]);
   });
 
   it("wood -> stone runs a timer that settle completes, once", () => {
-    const start = startBuild(
+    const start = startConstruction(
       content,
       rich({ stone: 10000, ingots: 2000, timber: 5000 }, "wood"),
       T0,
+      "tier",
     );
     if (!start.ok) throw new Error("expected ok");
+    const endsAt = T0 + stone.buildMinutes * 60;
     expect(start.state.tier).toBe("wood");
-    expect(start.state.build).toEqual({ tier: "stone", endsAt: T0 + stone.buildMinutes * 60 });
-    expect(startBuild(content, start.state, T0 + 1)).toMatchObject({
+    expect(start.state.construction).toEqual([
+      { target: { kind: "tier", tier: "stone" }, startedAt: T0, endsAt },
+    ]);
+    expect(startConstruction(content, start.state, T0 + 1, "tier")).toMatchObject({
       ok: false,
-      reason: "building",
+      status: { code: "in_progress", endsAt },
     });
 
     const early = settle(content, start.state, T0 + 60);
     expect(early.state.tier).toBe("wood");
-    const done = settle(content, start.state, start.endsAt);
+    const done = settle(content, start.state, endsAt);
     expect(done.state.tier).toBe("stone");
     expect(done.events[0]).toEqual({ type: "build_done", tier: "stone" });
-    expect(settle(content, done.state, start.endsAt).events).toEqual([]);
+    expect(settle(content, done.state, endsAt).events).toEqual([]);
   });
 
   it("refuses when unaffordable and at the top", () => {
-    expect(startBuild(content, rich({}), T0)).toMatchObject({ ok: false, reason: "unaffordable" });
-    expect(startBuild(content, { ...rich({ fuel: 1e6 }), tier: "hqm" }, T0)).toEqual({
+    expect(startConstruction(content, rich({}), T0, "tier")).toMatchObject({
       ok: false,
-      reason: "maxed",
+      status: { code: "unaffordable" },
     });
+    expect(startConstruction(content, { ...rich({ fuel: 1e6 }), tier: "hqm" }, T0, "tier")).toEqual(
+      {
+        ok: false,
+        status: { code: "maxed" },
+      },
+    );
   });
 });
 
@@ -122,7 +131,7 @@ describe("upkeep and decay", () => {
     expect(total(decayed)).toBe(total(healthy) * 0.75);
   });
 
-  it("drops one tier after 72 unpaid hours, then restarts the clock", () => {
+  it("drops one tier after 72 unpaid hours when no building is left, then restarts the clock", () => {
     // Metal tier wants ingots, which no tool gathers: nothing can be paid.
     const broke = rich({}, "metal");
     const almost = settle(content, broke, T0 + 71 * HOUR);
@@ -138,22 +147,19 @@ describe("upkeep and decay", () => {
 describe("furnaces", () => {
   const furnace = content.furnaces[0];
   if (!furnace) throw new Error("no furnaces");
+  const withFurnace = (extra: Record<string, number>): BaseState => ({
+    ...rich(extra, "stone"),
+    buildings: { furnace: 1 },
+  });
 
-  it("is bought, then smelts all ore the fuel allows, then hands out output over time", () => {
-    const bought = buyFurnace(content, rich({ timber: 5000, stone: 1000, ore: 500 }, "stone"));
-    if (!bought.ok) throw new Error("expected ok");
-    expect(bought.state.furnaceId).toBe(furnace.id);
-
-    const job = smelt(content, bought.state, T0, "ore");
+  it("smelts all ore the fuel allows, then hands out output over time", () => {
+    const job = smelt(content, withFurnace({ timber: 5000, ore: 500 }), T0, "ore");
     if (!job.ok) throw new Error(`expected ok, got ${job.reason}`);
-    expect(job.job).toMatchObject({ input: "ore", output: "ingots", amount: 500 });
+    expect(job.job).toMatchObject({ input: "ore", output: "ingots", amount: 500, perHour: 120 });
     expect(job.fuel).toBe(250);
     expect(job.state.stock.ore).toBe(0);
     expect(job.state.stock.ingots).toBe(0);
-    expect(smelt(content, job.state, T0, "ore")).toEqual({
-      ok: false,
-      reason: "nothing_to_smelt",
-    });
+    expect(smelt(content, job.state, T0, "ore")).toEqual({ ok: false, reason: "nothing_to_smelt" });
     expect(smelt(content, job.state, T0, "timber")).toEqual({ ok: false, reason: "not_ore" });
     // Stone tier runs two slots: a second job fits, a third does not.
     const more = { ...job.state, stock: { ...job.state.stock, ore: 100 } };
@@ -163,36 +169,27 @@ describe("furnaces", () => {
     expect(smelt(content, third, T0, "ore")).toEqual({ ok: false, reason: "no_slot" });
 
     // 120 ore/h: half done after 2.5 h.
-    expect(furnaceReady(content, job.state, T0 + 2.5 * HOUR)).toEqual({ ingots: 300 });
+    expect(furnaceReady(job.state, T0 + 2.5 * HOUR)).toEqual({ ingots: 300 });
     const half = collectFurnaces(content, job.state, T0 + 2.5 * HOUR);
     expect(half.gained).toEqual({ ingots: 300 });
     expect(half.state.furnaceJobs[0]?.collected).toBe(300);
     expect(collectFurnaces(content, half.state, T0 + 2.5 * HOUR).gained).toEqual({});
 
-    const endsAt = jobEndsAt(furnace, job.job);
-    const done = collectFurnaces(content, half.state, endsAt);
+    const done = collectFurnaces(content, half.state, jobEndsAt(job.job));
     expect(done.gained).toEqual({ ingots: 200 });
     expect(done.state.furnaceJobs).toEqual([]);
     expect(done.state.stock.ingots).toBe(500);
   });
 
-  it("is limited by fuel and refuses with nothing to smelt", () => {
-    const bought = buyFurnace(content, rich({ timber: 750, stone: 1000, ore: 5000 }, "stone"));
-    if (!bought.ok) throw new Error("expected ok");
-    // 350 timber left after buying -> 700 ore worth of fuel.
-    const job = smelt(content, bought.state, T0, "ore");
+  it("is limited by fuel, and needs the furnace building", () => {
+    const job = smelt(content, withFurnace({ timber: 350, ore: 5000 }), T0, "ore");
     if (!job.ok) throw new Error("expected ok");
+    // 350 timber at 50 per 100 ore -> 700 ore.
     expect(job.job.amount).toBe(700);
     expect(job.state.stock.timber).toBe(0);
-    expect(smelt(content, { ...job.state, furnaceJobs: [] }, T0, "sulfur_ore")).toEqual({
+    expect(smelt(content, rich({ timber: 1000, ore: 100 }, "stone"), T0, "ore")).toEqual({
       ok: false,
-      reason: "nothing_to_smelt",
+      reason: "no_furnace",
     });
-  });
-
-  it("cannot be bought above the tier's furnace type", () => {
-    const base = { ...rich({ stone: 1e6, ingots: 1e6 }), furnaceId: "furnace" };
-    expect(buyFurnace(content, base)).toEqual({ ok: false, reason: "maxed" });
-    expect(buyFurnace(content, { ...base, tier: "stone" })).toMatchObject({ ok: true });
   });
 });

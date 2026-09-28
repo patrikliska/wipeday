@@ -77,9 +77,9 @@ interface Actions {
   send(command: Command): boolean;
   gather(): boolean;
   collect(): boolean;
-  build(): boolean;
+  /** Builds the next base tier (`"tier"`) or a building's next level. */
+  build(what: string): boolean;
   upgradeTool(): boolean;
-  buyFurnace(): boolean;
   craft(item: string): boolean;
   smelt(ore: string): boolean;
   takeOut(): boolean;
@@ -116,6 +116,8 @@ function timedKey(event: DomainEvent): string | null {
   switch (event.type) {
     case "build_done":
       return `build:${event.tier}`;
+    case "building_done":
+      return `building:${event.building}:${event.level}`;
     case "crafted":
       return `craft:${event.item}:${event.at}`;
     case "barrel_spawned":
@@ -144,9 +146,9 @@ const placeholder = (): BaseState => ({
   stock: {},
   lastCollectedAt: 0,
   lastGatherAt: null,
-  build: null,
+  buildings: {},
+  construction: [],
   upkeepPaidUntil: 0,
-  furnaceId: null,
   furnaceJobs: [],
   items: {},
   craftQueue: [],
@@ -341,9 +343,8 @@ export const useWorld = create<Store>((set, get) => {
 
     gather: () => get().send({ type: "gather" }),
     collect: () => get().send({ type: "collect" }),
-    build: () => get().send({ type: "build" }),
+    build: (what) => get().send({ type: "build", what }),
     upgradeTool: () => get().send({ type: "upgrade_tool" }),
-    buyFurnace: () => get().send({ type: "buy_furnace" }),
     craft: (item) => get().send({ type: "craft", item }),
     smelt: (ore) => get().send({ type: "smelt", ore }),
     takeOut: () => get().send({ type: "take_out" }),

@@ -38,6 +38,7 @@ const DOCK_FOR: Record<Advice, string | null> = {
   build: "build",
   tools: "build",
   furnace: "furnace",
+  building: "build",
   craft: "craft",
   // The barrel glows in the scene itself.
   barrel: null,
@@ -63,20 +64,23 @@ export function Dock() {
   const gatherReady = readyIn <= 0;
   const target = nextTier(base.tier);
   const tool = nextTool(content, base);
-  const ready = total(furnaceReady(content, base, now));
+  const ready = total(furnaceReady(base, now));
   const furnace = furnaceOf(content, base);
   const craftable = craftOptions(content, base).filter((option) => option.status.code === "ok");
   const tasksDone = base.tasks.done.length;
 
+  // The builders first: what is going up and when it lands; then what can be built next.
+  const first = [...base.construction].sort((a, b) => a.endsAt - b.endsAt)[0];
   let buildSub = t("hud.max_tier");
-  if (base.build) buildSub = t("hud.lands_in", { time: duration(base.build.endsAt - now) });
+  if (first) buildSub = t("hud.lands_in", { time: duration(first.endsAt - now) });
+  else if (advice === "building") buildSub = t("hud.can_build");
   else if (target) {
     const tier = tierOf(content, target);
     buildSub =
       needLabel(tier.cost, base.stock) ??
       (tier.buildMinutes === 0 ? t("hud.instant") : duration(tier.buildMinutes * 60));
   }
-  if (!base.build && tool && canAfford(tool.cost, base.stock)) buildSub = t("hud.new_tools");
+  if (!first && tool && canAfford(tool.cost, base.stock)) buildSub = t("hud.new_tools");
 
   // With gather on cooldown and a pile waiting, the first button banks the pile instead.
   const collectMode = !gatherReady && pendingTotal > 0;

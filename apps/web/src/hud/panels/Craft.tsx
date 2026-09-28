@@ -1,3 +1,4 @@
+import { workbenchLevel } from "@wipe-day/domain/base";
 import { type CraftOption, craftOptions } from "@wipe-day/domain/craft";
 import { useWorld } from "../../state/store";
 import { content, duration, itemName, missingLabel, t } from "../../state/world";
@@ -46,9 +47,7 @@ export function CraftPanel() {
     (a, b) => RANK[a.status.code] - RANK[b.status.code],
   );
   const primary = options.find((option) => option.status.code === "ok")?.item.id;
-  const hasBench = options.some(
-    (o) => o.item.category === "workbench" && (base.items[o.item.id] ?? 0) > 0,
-  );
+  const hasBench = workbenchLevel(content, base) > 0;
 
   return (
     <>

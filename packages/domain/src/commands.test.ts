@@ -30,7 +30,7 @@ describe("applyCommand", () => {
     expect(second).toMatchObject({ ok: false, refusal: { code: "cooldown", readyAt: T0 + 600 } });
     expect(second.state.hints.gather).toBe(1);
 
-    const build = applyCommand(content, fresh(), { type: "build" }, T0);
+    const build = applyCommand(content, fresh(), { type: "build", what: "tier" }, T0);
     expect(build).toMatchObject({ ok: false, refusal: { code: "unaffordable" } });
     const craft = applyCommand(content, fresh(), { type: "craft", item: "crate" }, T0);
     expect(craft).toMatchObject({ ok: false, refusal: { code: "workbench", needed: 1 } });
@@ -40,7 +40,7 @@ describe("applyCommand", () => {
     const base: BaseState = {
       ...fresh(),
       stock: { timber: 1000, stone: 1000, fibre: 100 },
-      items: { workbench_1: 1 },
+      buildings: { workbench: 1 },
     };
     const queued = applyCommand(content, base, { type: "craft", item: "bow" }, T0);
     if (!queued.ok) throw new Error("expected ok");

@@ -13,7 +13,7 @@ export type GameEvent =
   | { type: "collected"; gained: Amounts }
   | { type: "tool_upgraded"; tool: string; paid: Amounts }
   | { type: "build_started"; tier: Tier; endsAt: number; paid: Amounts }
-  | { type: "furnace_bought"; furnace: string; paid: Amounts }
+  | { type: "building_started"; building: string; level: number; endsAt: number; paid: Amounts }
   | { type: "smelt_started"; ore: string; amount: number; fuel: number }
   | { type: "furnace_out"; gained: Amounts }
   | { type: "craft_queued"; item: string; endsAt: number; paid: Amounts }
@@ -32,6 +32,9 @@ export type GameEvent =
   | { type: "task_done"; task: string; reward: Amounts }
   // Time passing (settling).
   | { type: "build_done"; tier: Tier }
+  | { type: "building_done"; building: string; level: number }
+  /** Unpaid upkeep cost this building a level (`level` is what is left; 0 = gone). */
+  | { type: "building_decayed"; building: string; level: number }
   /** `at`: when it landed (tells two identical crafts apart). */
   | { type: "crafted"; item: string; at: number }
   | { type: "barrel_spawned"; expiresAt: number }

@@ -33,7 +33,7 @@ export function settleAll(
 /** The next moment settling would change something on its own, for the server's timer. */
 export function nextEventAt(state: BaseState): number | null {
   const times = [
-    state.build?.endsAt,
+    ...state.construction.map((job) => job.endsAt),
     state.craftQueue[0]?.endsAt,
     state.barrel ? state.barrel.expiresAt : state.nextBarrelAt,
   ].filter((time): time is number => time !== undefined);

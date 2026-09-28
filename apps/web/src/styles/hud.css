@@ -926,3 +926,30 @@ a.btn {
     border-radius: 14px;
   }
 }
+
+/* --- W2: build panel sections, level pips ----------------------------------------- */
+.panel .body h3.section {
+  margin: 10px 2px 2px;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pips {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+.pips i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--tier-color, var(--muted));
+  background: transparent;
+}
+.pips i.on {
+  background: var(--tier-color, var(--accent));
+}
+.card .desc.next {
+  color: var(--success);
+}

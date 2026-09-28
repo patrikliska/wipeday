@@ -15,18 +15,24 @@ import {
   gatherReadyAt,
   isEmpty,
   isStorageFull,
-  nextFurnace,
-  nextTier,
   nextTool,
   smeltable,
   storageFill,
   tierOf,
   total,
-  workbenchLevel,
 } from "./base";
+import { buildingCount, buildStatus, nextBuild } from "./buildings";
 import { craftStatus } from "./craft";
 
-export type Advice = "collect" | "barrel" | "build" | "tools" | "furnace" | "craft" | "gather";
+export type Advice =
+  | "collect"
+  | "barrel"
+  | "build"
+  | "tools"
+  | "furnace"
+  | "building"
+  | "craft"
+  | "gather";
 
 /** A hint is shown until its action has been used this many times. */
 export const HINT_RETIRE_AFTER = 2;
@@ -50,35 +56,43 @@ export function revealed(content: Content, state: BaseState): Revealed {
     (recipe) => craftStatus(content, state, recipe.item).code === "ok",
   );
   return {
-    furnace: state.furnaceId !== null || hasOre,
+    furnace: furnaceOf(content, state) !== null || hasOre,
     craft: hasItems || anyCraftable || state.craftQueue.length > 0,
     inventory: hasItems,
   };
 }
 
-/** True when the furnace has something useful to do right now. */
+/** True when the furnace has something useful to do right now, or the first one can be built. */
 export function furnaceWorthIt(content: Content, state: BaseState, now: number): boolean {
-  if (!isEmpty(furnaceReady(content, state, now))) return true;
+  if (!isEmpty(furnaceReady(state, now))) return true;
   if (furnaceOf(content, state)) {
     if (state.furnaceJobs.length >= furnaceSlots(content, state)) return false;
     return content.resources.some(
       (resource) => resource.smeltsInto && smeltable(content, state, resource.id) >= SMELT_WORTH,
     );
   }
-  const first = nextFurnace(content, state);
   const hasOre = content.resources.some(
     (resource) => resource.smeltsInto && (state.stock[resource.id] ?? 0) >= SMELT_WORTH,
   );
-  return first !== null && hasOre && canAfford(first.cost, state.stock);
+  return hasOre && buildStatus(content, state, "furnace").code === "ok";
 }
 
-/** True when crafting is the natural next step: a workbench, or a crate when storage is tight. */
+/**
+ * The building most worth putting a free builder on: the workbench first (it
+ * opens crafting), then the cheapest affordable one. Null when none is.
+ */
+export function buildingWorthIt(content: Content, state: BaseState): string | null {
+  const ready = content.buildings
+    .map((building) => building.id)
+    .filter((id) => id !== "furnace" && buildStatus(content, state, id).code === "ok");
+  if (ready.includes("workbench") && (state.buildings.workbench ?? 0) === 0) return "workbench";
+  const cost = (id: string) => total(nextBuild(content, state, id)?.cost ?? {});
+  return ready.sort((a, b) => cost(a) - cost(b))[0] ?? null;
+}
+
+/** True when a crate is the natural next step: storage is tight and one fits. */
 export function craftWorthIt(content: Content, state: BaseState, now: number): boolean {
-  const level = workbenchLevel(content, state);
   const tier = tierOf(content, state.tier);
-  const bench = content.items.find((item) => item.workbenchLevel === level + 1);
-  if (bench && level < tier.workbenchLevel && craftStatus(content, state, bench.id).code === "ok")
-    return true;
   if (
     storageFill(content, state, now).fraction >= 0.8 &&
     boxesInUse(content, state) < tier.boxSlots
@@ -96,12 +110,11 @@ export function advise(content: Content, state: BaseState, now: number): Advice 
   if (isStorageFull(content, state, now) && !isEmpty(accrued(content, state, now)))
     return "collect";
   if (state.barrel && now <= state.barrel.expiresAt) return "barrel";
-  const target = nextTier(state.tier);
-  if (!state.build && target && canAfford(tierOf(content, target).cost, state.stock))
-    return "build";
+  if (buildStatus(content, state, "tier").code === "ok") return "build";
   const tool = nextTool(content, state);
   if (tool && canAfford(tool.cost, state.stock)) return "tools";
   if (furnaceWorthIt(content, state, now)) return "furnace";
+  if (buildingWorthIt(content, state) !== null) return "building";
   if (craftWorthIt(content, state, now)) return "craft";
   if (gatherReadyAt(content, state) <= now) return "gather";
   // Nothing to spend on and Gather cooling down: bank what is waiting, or wait for Gather.
@@ -112,3 +125,6 @@ export function advise(content: Content, state: BaseState, now: number): Advice 
 export function hintFor(state: BaseState, advice: Advice): Advice | null {
   return (state.hints[advice] ?? 0) < HINT_RETIRE_AFTER ? advice : null;
 }
+
+/** How many buildings stand: for the dock and the simulator. */
+export { buildingCount };

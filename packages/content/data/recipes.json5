@@ -3,18 +3,11 @@
 // paid when the item is queued. One recipe makes one unit.
 {
   recipes: [
-    { item: "workbench_1", workbench: 0, craftMinutes: 0, cost: { timber: 500, stone: 100 } },
-    { item: "campfire", workbench: 0, craftMinutes: 0, cost: { timber: 100, stone: 50 } },
     { item: "crate", workbench: 1, craftMinutes: 0, cost: { timber: 300 } },
     { item: "bandage", workbench: 1, craftMinutes: 0, cost: { fibre: 4 } },
     { item: "bow", workbench: 1, craftMinutes: 10, cost: { timber: 200, fibre: 50 } },
     { item: "hide_vest", workbench: 1, craftMinutes: 10, cost: { hide: 15, fibre: 10 } },
-    { item: "kiln", workbench: 1, craftMinutes: 20, cost: { stone: 400, timber: 200 } },
-    { item: "workbench_2", workbench: 1, craftMinutes: 30, cost: { timber: 1000, ingots: 500 } },
     { item: "large_crate", workbench: 2, craftMinutes: 10, cost: { timber: 500, ingots: 100 } },
     { item: "spear", workbench: 2, craftMinutes: 10, cost: { timber: 100, ingots: 25 } },
-    { item: "lantern", workbench: 2, craftMinutes: 10, cost: { ingots: 10, fuel: 5 } },
-    { item: "press", workbench: 2, craftMinutes: 30, cost: { timber: 350, ingots: 40 } },
-    { item: "workbench_3", workbench: 2, craftMinutes: 120, cost: { ingots: 3000, fuel: 20 } },
   ],
 }

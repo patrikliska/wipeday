@@ -34,17 +34,9 @@ export function DemoDrawer() {
     for (const resource of content.resources) stock[resource.id] = 50_000;
     patch({
       stock,
-      items: {
-        workbench_1: 1,
-        workbench_2: 1,
-        crate: 6,
-        campfire: 1,
-        kiln: 1,
-        press: 1,
-        lantern: 1,
-      },
+      items: { crate: 6, bow: 1 },
       toolId: content.tools[2]?.id ?? "rock",
-      furnaceId: content.furnaces[0]?.id ?? null,
+      buildings: Object.fromEntries(content.buildings.map((building) => [building.id, 1])),
     });
   };
 
@@ -104,7 +96,7 @@ export function DemoDrawer() {
                 key={id}
                 type="button"
                 className={`btn small${tier === id ? " selected" : ""}`}
-                onClick={() => patch({ tier: id, build: null })}
+                onClick={() => patch({ tier: id, construction: [] })}
               >
                 {tierName(id)}
               </button>

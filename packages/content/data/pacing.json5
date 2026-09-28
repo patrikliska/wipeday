@@ -6,6 +6,8 @@
     stone: { earliestDay: 3, latestDay: 4 },
     metal: { earliestDay: 12, latestDay: 14 },
     hqm: { earliestDay: 15, latestDay: 28 },
+    // The base fills up: buildings standing by the end of the first week (roadmap W2).
+    buildings: { day: 7, count: 6 },
   },
   // The greedy planner with hourly check-ins must not beat these.
   optimal: {

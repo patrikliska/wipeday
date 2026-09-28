@@ -11,13 +11,14 @@ import {
   add,
   type BaseState,
   clampToCap,
+  effectiveRates,
   isEmpty,
   type NodeRun,
   production,
   storageCap,
-  toolOf,
 } from "./base";
 import type { GameEvent } from "./events";
+import { modifiers } from "./modifiers";
 
 const DAY = 86400;
 
@@ -27,7 +28,7 @@ export function haulLeft(
   state: BaseState,
   now: number,
 ): { minutes: number; of: number } {
-  const of = content.active.node.dailyHaulMinutes;
+  const of = content.active.node.dailyHaulMinutes + modifiers(content, state).haulMinutes;
   const used = state.haul.day === Math.floor(now / DAY) ? state.haul.minutes : 0;
   return { minutes: Math.max(0, of - used), of };
 }
@@ -40,7 +41,7 @@ export function nodeKindOf(content: Content, nodeId: string): NodeKind | null {
 
 /** What one hit on a node of `kind` banks with the current tool, before storage caps. */
 export function nodeSlice(content: Content, state: BaseState, kind: NodeKind): Amounts {
-  const rates = toolOf(content, state).rates;
+  const rates = effectiveRates(content, state);
   const slice: Amounts = {};
   for (const [id, share] of Object.entries(kind.yields)) {
     const perHour = rates[id] ?? 0;

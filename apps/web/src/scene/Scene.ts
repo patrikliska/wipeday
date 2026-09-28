@@ -281,29 +281,30 @@ export class Scene {
     const state = useWorld.getState();
     const { base, now } = state;
     this.base.setTier(base.tier, false);
-    const scaffold = base.build?.tier ?? null;
+    const tierJob = base.construction.find((job) => job.target.kind === "tier");
+    const scaffold = tierJob?.target.kind === "tier" ? tierJob.target.tier : null;
     if (scaffold !== this.scaffoldTier) {
       this.scaffoldTier = scaffold;
       this.base.showScaffold(scaffold);
     }
     const count = (ids: string[]) => ids.reduce((sum, id) => sum + (base.items[id] ?? 0), 0);
+    const built = (id: string) => base.buildings[id] ?? 0;
     const furnace = furnaceOf(content, base);
     this.base.setStations({
       furnace: furnace !== null,
       furnaceSlots: Math.max(1, furnaceSlots(content, base)),
       // The scene draws one workbench and one pile of crates, whatever their level or size.
       items: {
-        workbench: count(["workbench_1", "workbench_2", "workbench_3"]),
+        workbench: built("workbench"),
         crate: count(["crate", "large_crate"]),
-        campfire: base.items.campfire ?? 0,
-        kiln: base.items.kiln ?? 0,
-        press: base.items.press ?? 0,
-        lantern: base.items.lantern ?? 0,
+        campfire: built("campfire"),
+        kiln: built("kiln"),
+        press: built("press"),
+        lantern: built("lights"),
       },
     });
     this.base.setFurnaceActive(
-      furnace !== null &&
-        base.furnaceJobs.some((job) => jobProgress(furnace, job, now) < job.amount),
+      furnace !== null && base.furnaceJobs.some((job) => jobProgress(job, now) < job.amount),
     );
     this.barrel.set(base.barrel !== null && now <= base.barrel.expiresAt);
     const depleted: Record<string, Depleted> = {};
@@ -411,11 +412,15 @@ export class Scene {
           this.floatSize(1.2),
         );
         break;
-      case "furnace_bought": {
-        const spot = this.base.stationPosition("furnace") ?? { x: BASE_X, y: GROUND };
-        this.particles.spawn("sparks", spot.x, spot.y - 30, 20);
+      case "building_started":
+        this.particles.spawn("dust", BASE_X, GROUND, 12, 0xc9b78a);
         break;
-      }
+      case "building_done":
+        this.particles.spawn("sparks", BASE_X, GROUND - 60, 18, 0xffd25a);
+        break;
+      case "building_decayed":
+        this.particles.spawn("dust", BASE_X, GROUND, 16, 0x8a7a5a);
+        break;
       case "craft_queued": {
         const spot = this.base.stationPosition("workbench") ?? { x: BASE_X, y: GROUND };
         this.particles.spawn("dust", spot.x, spot.y, 6, 0xc9b78a);

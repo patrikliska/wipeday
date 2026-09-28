@@ -80,18 +80,6 @@
     }
   },
   "item": {
-    "workbench_1": {
-      "name": "Workbench",
-      "effect": "Unlocks crafting"
-    },
-    "workbench_2": {
-      "name": "Workbench II",
-      "effect": "Unlocks level 2 recipes"
-    },
-    "workbench_3": {
-      "name": "Workbench III",
-      "effect": "Unlocks level 3 recipes"
-    },
     "crate": {
       "name": "Storage Crate",
       "effect": "+{capacity} room for every resource"
@@ -99,22 +87,6 @@
     "large_crate": {
       "name": "Large Crate",
       "effect": "+{capacity} room for every resource"
-    },
-    "campfire": {
-      "name": "Campfire",
-      "effect": "A warm spot for the crew at night"
-    },
-    "kiln": {
-      "name": "Charcoal Kiln",
-      "effect": "Charcoal making comes later"
-    },
-    "press": {
-      "name": "Oil Press",
-      "effect": "Pressing fat into fuel comes later"
-    },
-    "lantern": {
-      "name": "Oil Lantern",
-      "effect": "Lights the base at night"
     },
     "bandage": {
       "name": "Bandage",
@@ -236,7 +208,8 @@
     "missed": "Missed",
     "node_back_in": "{node} back in {time}",
     "node_needs_tool": "Needs better tools",
-    "tier_base": "{tier} base"
+    "tier_base": "{tier} base",
+    "can_build": "a building is ready"
   },
   "action": {
     "gather": "Gather",
@@ -263,10 +236,7 @@
     "fog": "Fog"
   },
   "category": {
-    "workbench": "Workbench",
     "storage": "Storage",
-    "station": "Station",
-    "utility": "Utility",
     "med": "Medical",
     "weapon": "Weapon",
     "armor": "Armour"
@@ -276,17 +246,18 @@
     "collect": "Collect banks what your crew gathered. A full store stops them, so bank before it fills.",
     "build": "You can afford the next base tier: more room, more furnaces.",
     "tools": "Better tools are affordable: open Upgrade to gather faster.",
-    "furnace": "Ore is piling up: the furnace turns it into ingots.",
-    "craft": "Craft a workbench or a crate: they unlock recipes and room.",
-    "barrel": "A barrel washed up: tap it on the shore before it drifts off."
+    "furnace": "Ore is piling up: build or feed the furnace to turn it into ingots.",
+    "craft": "Storage is tight: craft a crate for more room.",
+    "barrel": "A barrel washed up: tap it on the shore before it drifts off.",
+    "building": "A builder is free and a building is affordable: open Upgrade to put it up."
   },
   "build": {
-    "hint": "Each tier raises storage, furnace slots and what you can craft. Upkeep rises with it.",
+    "hint": "Each tier raises storage, furnace slots and builders. Upkeep rises with it.",
     "stage_past": "Built",
     "stage_current": "Your base",
     "stage_next": "Next",
     "stage_later": "Later",
-    "tier_facts": "Storage {cap} · {furnaces} furnace slots · {crates} crates · bench {bench}",
+    "tier_facts": "Storage {cap} · {furnaces} furnace slots · {crates} crates · {builders} builders",
     "instant": "Instant",
     "takes": "Builds in {time}",
     "upkeep": "upkeep {upkeep}/h",
@@ -295,7 +266,26 @@
     "upgrade_need": "Upgrade · {need}",
     "tools_hint": "Tools: {tool}. Better tools gather more, and new kinds of things.",
     "tool_to": "Switch to {tool}",
-    "tools_maxed": "Your tools are the best there are."
+    "tools_maxed": "Your tools are the best there are.",
+    "build_it": "Build {building}",
+    "level_up": "Upgrade to level {level}",
+    "builders": "Builders free: {free} of {slots}",
+    "builders_busy": "Builders busy · {time}",
+    "building_now": "Building",
+    "in_progress": "Going up · {time}",
+    "job_tier": "{tier} base",
+    "job_building": "{building} level {level}",
+    "level": "Level {level} of {of}",
+    "maxed": "Fully built",
+    "needs_tier": "Needs a {tier} base",
+    "none": "none",
+    "now": "Now: {what}",
+    "gives": "Gives: {what}",
+    "next": "Next: {what}",
+    "section_base": "Base",
+    "section_buildings": "Buildings",
+    "section_tools": "Tools · {tool}",
+    "upkeep_total": "upkeep {upkeep}/h"
   },
   "craft": {
     "hint_bench": "Make a Workbench first: it unlocks most of what is below.",
@@ -332,7 +322,8 @@
     "need_fuel": "Smelt · need {what} to burn",
     "have": "have {amount}",
     "makes": "{amount} {what} in {time} · burns {fuel} {fuelName}",
-    "gather_first": "Gather some first: the rocks around the base."
+    "gather_first": "Gather some first: the rocks around the base.",
+    "more_buildings": "More buildings"
   },
   "inventory": {
     "cap": "Room for {cap} of each resource",
@@ -367,7 +358,8 @@
     "upkeep": "Upkeep paid for {hours} hours.",
     "collect": "Collect everything",
     "leave": "Leave it",
-    "continue": "Back to the base"
+    "continue": "Back to the base",
+    "building_done": "{building} was built."
   },
   "toast": {
     "task_done": "Task done: {task}",
@@ -375,15 +367,16 @@
     "crafted": "{item} is ready.",
     "barrel": "A barrel washed up on the shore.",
     "tool": "{tool} in hand: faster gathering.",
-    "furnace": "{furnace} built.",
     "decayed": "Upkeep ran out: your base fell to {tier}.",
     "connection": "Lost the connection: your last action may not have landed.",
-    "demo_mode": "No server running: this is demo mode."
+    "demo_mode": "No server running: this is demo mode.",
+    "building_done": "{building} is built.",
+    "building_level": "{building} is now level {level}.",
+    "building_decayed": "Upkeep ran out: {building} lost a level."
   },
   "refusal": {
     "cooldown": "Gather is ready again in {time}.",
     "maxed": "That is already the best there is.",
-    "building": "A build is already running: it lands in {time}.",
     "unaffordable": "Not enough yet: {need}.",
     "no_furnace": "Build a furnace first.",
     "no_slot": "Every furnace slot is busy.",
@@ -395,7 +388,10 @@
     "box_slots": "All {slots} crate spots are used: a bigger base holds more.",
     "queue_full": "The crafting queue is full.",
     "depleted": "Worked out: back in {time}.",
-    "tool": "Your tools cannot work that yet: upgrade them."
+    "tool": "Your tools cannot work that yet: upgrade them.",
+    "builders": "Every builder is busy: one is free in {time}.",
+    "in_progress": "Already going up: it lands in {time}.",
+    "tier": "That needs a {tier} base first."
   },
   "login": {
     "title": "Wipe Day",
@@ -419,5 +415,86 @@
     "world": "World",
     "barrel": "Barrel",
     "give": "Give all"
+  },
+  "building": {
+    "workbench": {
+      "name": "Workbench",
+      "blurb": "Where tools and gear are made. Each level opens more recipes."
+    },
+    "furnace": {
+      "name": "Furnace",
+      "blurb": "Turns ore into ingots, sulfur ore into sulfur and fat into fuel."
+    },
+    "campfire": {
+      "name": "Campfire",
+      "blurb": "A fire to gather round; grows into a kitchen that keeps the crew going."
+    },
+    "warehouse": {
+      "name": "Warehouse",
+      "blurb": "Shelves and sheds: more room for everything."
+    },
+    "garden": {
+      "name": "Garden",
+      "blurb": "Plots of flax and greens that grow fibre on their own."
+    },
+    "loom": {
+      "name": "Loom",
+      "blurb": "Spins fibre faster; cloth and rope come later."
+    },
+    "bunkhouse": {
+      "name": "Bunkhouse",
+      "blurb": "Beds for the crew: they work the nodes longer each day."
+    },
+    "lights": {
+      "name": "Lights",
+      "blurb": "Lamps around the yard, so work goes on after dark."
+    },
+    "tannery": {
+      "name": "Tannery",
+      "blurb": "Racks and vats: more hide from every hunt."
+    },
+    "kiln": {
+      "name": "Charcoal Kiln",
+      "blurb": "Charcoal burns hotter: the furnace needs less fuel."
+    },
+    "press": {
+      "name": "Oil Press",
+      "blurb": "Presses every scrap of fat out of what the crew brings in."
+    },
+    "watchtower": {
+      "name": "Watchtower",
+      "blurb": "A lookout that spots barrels early, so they wait longer."
+    },
+    "walls": {
+      "name": "Walls",
+      "blurb": "A wall around the base: it holds together longer when upkeep runs short."
+    },
+    "generator": {
+      "name": "Generator",
+      "blurb": "Power for the furnace blowers: faster smelting, burns a little fuel."
+    },
+    "radio_mast": {
+      "name": "Radio Mast",
+      "blurb": "Listens for wreck chatter: barrels wash up more often."
+    },
+    "dock": {
+      "name": "Dock",
+      "blurb": "A jetty and a boat: fishing brings in fat every hour."
+    }
+  },
+  "effect": {
+    "rates": "+{value}% {what}",
+    "allRates": "+{value}% on all gathering",
+    "flat": "+{value} {what} an hour",
+    "cap": "+{value} room for everything",
+    "fuelPer100Ore": "{value} less fuel per 100 ore",
+    "smeltPercent": "furnaces {value}% faster",
+    "craftPercent": "crafting {value}% faster",
+    "haulMinutes": "+{value} min of node haul a day",
+    "barrelLifeMinutes": "barrels stay {value} min longer",
+    "barrelEveryMinutes": "barrels come {value} min sooner",
+    "graceHours": "+{value} h before upkeep costs a level",
+    "workbench": "workbench level {value}",
+    "furnace": "{value}"
   }
 }

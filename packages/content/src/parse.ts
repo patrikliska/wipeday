@@ -70,6 +70,7 @@ function emptyContent(): Content {
     baseRules: { decayProductionPercent: 50, tierLossAfterHours: 72, craftQueueSize: 1 },
     furnaces: [],
     items: [],
+    buildings: [],
     perks: [],
     crew: [],
     recipes: [],
@@ -92,6 +93,7 @@ function emptyContent(): Content {
         stone: { earliestDay: 1, latestDay: 1 },
         metal: { earliestDay: 1, latestDay: 1 },
         hqm: { earliestDay: 1, latestDay: 1 },
+        buildings: { day: 1, count: 1 },
       },
       optimal: { hqmNotBeforeDay: 1 },
       tierCostRatio: { min: 1, max: 1 },
@@ -200,7 +202,6 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
     checkAmounts("base_tiers.json5", tier.id, "upkeep", tier.upkeep);
   }
   for (const furnace of content.furnaces) {
-    checkAmounts("furnaces.json5", furnace.id, "cost", furnace.cost);
     if (!resourceIds.has(furnace.fuel)) {
       problems.push({
         file: "furnaces.json5",
@@ -244,13 +245,6 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
     if (item.category === "storage" && item.capacity === undefined) {
       problems.push({ file: "items.json5", id: item.id, message: "storage items need `capacity`" });
     }
-    if (item.category === "workbench" && item.workbenchLevel === undefined) {
-      problems.push({
-        file: "items.json5",
-        id: item.id,
-        message: "workbench items need `workbenchLevel`",
-      });
-    }
     if (!locale.has(`item.${item.id}.effect`)) {
       problems.push({
         file: "items.json5",
@@ -274,13 +268,40 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
       problems.push({ file: "recipes.json5", id: item.id, message: "item has no recipe" });
     }
   }
+  const levelEffects = content.buildings.flatMap((building) =>
+    building.levels.map((level) => level.effects),
+  );
   for (const level of [1, 2, 3]) {
-    if (!content.items.some((candidate) => candidate.workbenchLevel === level)) {
+    if (!levelEffects.some((effects) => effects.workbench === level)) {
       problems.push({
-        file: "items.json5",
+        file: "buildings.json5",
         id: "",
-        message: `no workbench item for level ${level}`,
+        message: `no building gives workbench level ${level}`,
       });
+    }
+  }
+  for (const building of content.buildings) {
+    if (!locale.has(`building.${building.id}.blurb`)) {
+      problems.push({
+        file: "buildings.json5",
+        id: building.id,
+        message: `missing locale key \`building.${building.id}.blurb\``,
+      });
+    }
+    for (const [index, level] of building.levels.entries()) {
+      const label = `${building.id} level ${index + 1}`;
+      checkAmounts("buildings.json5", label, "cost", level.cost);
+      checkAmounts("buildings.json5", label, "upkeep", level.upkeep);
+      checkAmounts("buildings.json5", label, "rates", level.effects.rates ?? {});
+      checkAmounts("buildings.json5", label, "flat", level.effects.flat ?? {});
+      const furnace = level.effects.furnace;
+      if (furnace !== undefined && furnace > content.furnaces.length) {
+        problems.push({
+          file: "buildings.json5",
+          id: label,
+          message: `furnace ${furnace} does not exist (furnaces.json5 lists ${content.furnaces.length})`,
+        });
+      }
     }
   }
 
