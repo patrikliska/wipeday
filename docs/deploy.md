@@ -42,7 +42,7 @@ Application (the bot's) -> OAuth2:
 
 ```sh
 cd ~/wipeday && docker compose logs -f --tail=100   # the game's log
-docker compose restart wipeday                      # after editing .env
+docker compose up -d --force-recreate wipeday       # after editing .env (restart does not re-read it)
 ls ~/wipeday/var/backups                            # nightly backups
 ```
 

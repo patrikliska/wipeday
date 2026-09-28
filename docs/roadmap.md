@@ -7,10 +7,10 @@ agent should think at each step**.
 ## Where we are (2026-09-28)
 
 - W0 done: the monorepo, the web spec in `CLAUDE.md`, an injected `Clock` everywhere.
-- W1 built and deployed at https://wipeday.patrikliska.dev: own-IP content and rules in
-  `packages/domain`, the API (`apps/api`: Discord login, idempotent commands, lazy settling, SSE,
-  nightly backup), and the web client playing on it with client prediction (D57-D68). Left for
-  the owner: the Discord OAuth secret and redirect (docs/deploy.md), then logging in from a phone.
+- W1 done and live at https://wipeday.patrikliska.dev (Discord login confirmed from the owner's
+  phone): own-IP content and rules in `packages/domain`, the API (`apps/api`: Discord login,
+  idempotent commands, lazy settling, SSE, nightly backup), and the web client playing on it with
+  client prediction (D57-D68). Next: W2, buildings.
 - Discord bot (`apps/discord`): phases 0-2b, frozen on its own copy of the old rules (D57).
 - Decision: the web app is the main client, Discord becomes a companion (D40).
 
@@ -98,7 +98,7 @@ Build:
 Done when: `pnpm -r typecheck lint test` pass; the bot still starts; the prototype still runs;
 the new `CLAUDE.md` is the only spec.
 
-### W1. Real domain, API and login (built; waiting for the owner's Discord secret)
+### W1. Real domain, API and login (done)
 
 *Goal:* two people can play the current prototype's features for real, from a phone and a
 desktop, with the state on the server.

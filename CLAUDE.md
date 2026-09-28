@@ -248,7 +248,7 @@ Acceptance criteria per phase are in `docs/roadmap.md`.
 | Phase | Goal |
 | --- | --- |
 | W0 Re-baseline | monorepo, this spec, storage and hosting decisions, injected `Clock` (done) |
-| W1 Domain, API, auth | two people play the prototype's features for real, state on the server |
+| W1 Domain, API, auth | two people play the prototype's features for real, state on the server (done) |
 | W2 Buildings | the base fills with buildings the player chose |
 | W3 Crafting web | chains, intermediates, blueprints, timed queues |
 | W4 Survivors, expeditions | crew, the map, confirm and report cards, the feed |
