@@ -651,3 +651,94 @@ The tier cost-ratio warning now prices parts by what they are made of.
 - Pins are a per-device view preference in localStorage.
 - In the scene, a working station shows an amber progress ring for the run in progress (fixed
   size on screen, D48), and the kiln and press smoke only while they work.
+
+## W4a (crew, the fogged island, scouting and expeditions)
+
+### D84. The crew is real: arrivals, traits, levels, gear and injuries (injuries only, no death)
+Survivors are state now, not scenery.
+- The crew starts with Mara, Dax and Ivo. The rest of a pool of 12 named survivors arrive by
+  boat every 24 hours while there is room.
+- Room is 4, plus the bunkhouse's new `crew` effect (+1/+2/+3).
+- Each survivor has two traits from `traits.json5`, with data effects on trips: success,
+  hazard bonuses, loot, extra loot rolls, shorter trips, fewer injuries, faster recovery,
+  rarer finds. Cook and tinkerer get their jobs in W4b.
+- Levels come from trip XP and add success. W7 makes them persist across seasons.
+- Gear: one weapon and one armour, moved out of the inventory while worn. Weapons add success
+  at hostile sites; armour lowers injury risk.
+- The owner chose injuries only. A hurt survivor rests by the fire for a few hours; the medic
+  trait, bandages and first aid kits shorten it. Nobody dies.
+- In the scene, survivors walk down to the shore when they leave, come back up from it, and
+  arrivals step up from the boat.
+
+### D85. One island per season, under each player's own fog; scouting is the fee to lift it
+The owner chose one island for everyone, each with their own fog, and suggested the scouting
+fee. The island is data (`regions.json5`, `sites.json5`): nine regions in rings round the
+holdfast and eight ruins in tiers 1-3.
+- A region can be scouted when it borders a known one and its ring is within the base tier's
+  range: Timber reaches ring 1, Stone ring 2, Sheet Metal ring 3.
+- Scouting costs a fee (food, scrap, fuel further out) and a survivor's time. On return the
+  fog lifts and the region's ruins appear.
+- Tier-1 ruins also drop map scraps that lift a neighbouring region for free.
+- The far north and the sea are drawn under permanent cloud until W4b charts them.
+- W7 varies the layout per season.
+
+### D86. Trips are lazy and rolled from a seed; the confirm shows exactly what gets rolled
+A mission stores its seed and the odds computed when it left (`tripOdds`): success,
+at-least-partial, injury per member, time, loot rolls and rare chances. Settling at its end
+rolls from those, so what the confirm screen promised is what happens, and a replay rolls the
+same.
+- A success brings every loot roll, a partial half, a failure none.
+- Injuries double on a failure.
+- XP is full, half or a quarter.
+- Loot follows storage caps; parts come home whole.
+- Every return writes a report (the last 20 are kept) and a `mission_back` event, which the
+  welcome-back summary and the toasts read.
+
+### D87. Tools have a minimum base tier; sites became the scrap source
+- Site loot made scrap plentiful, and the optimal player bought Power Tools at a Sheet Metal
+  base on day 8. Tools gain `minTier`: Salvaged Tools need Sheet Metal, Power Tools need
+  Armored.
+- Sheet Metal and Armored cost more ingots:
+  - Sheet Metal: stone 48,000, ingots 38,000.
+  - Armored: ingots 45,000, plates 900, gears 200, springs 150.
+
+  This corrects Armored costing less in raw terms than the tier before it.
+- Site loot and trip times were re-tuned from the simulator.
+
+Results:
+- Casual: Stone on day 4, Sheet Metal on day 13, Armored on day 26. First trip on day 1,
+  tier 2 on day 5, tier 3 on day 13. Five survivors by day 10, Salvaged Tools on day 16.
+- Optimal: Armored on day 14, the floor; tier 3 on day 8.
+- Two first-made targets moved, with reasons:
+  - the bow to day 4: early food and fibre now go to scouting fees and rations;
+  - tier-3 sites to day 14: ring 3 opens with Sheet Metal on days 12-14, and a scout takes
+    hours.
+- Scrap piles up by week 3 (casual about 3.3k on day 21). W5's market and casino are the sinks.
+
+### D88. The map is a full-screen chart; Map takes the fifth phone dock slot
+- The owner chose a full-screen drawn map. `MapView` draws the island in PixiJS on the same app
+  as the base, which rests while the map is open:
+  - terrain patches and doodles per region;
+  - drifting cloud over unknown regions, which snaps in on first show and parts slowly when a
+    scout returns;
+  - ruin markers at a fixed on-screen size with a bigger tap area (D48);
+  - dashed routes with a dot walking out and back;
+  - labels in screen space (D46);
+  - pan, pinch and wheel zoom.
+- The dock's fifth phone action is now Map (Holdfast while on the map), with the count away or
+  the reports waiting. Squad moved to the desktop-only extras and opens from the map panel.
+  This amends D45.
+- A tap opens the map panel:
+  - on a region: the fog, the fee, who goes;
+  - on a ruin: the party picker, the four numbers (success, something, injury risk, time),
+    what the hauls can be, rations and what is left, and one Send button;
+  - with nothing tapped: who is away and the reports.
+- The report card: the outcome, a story line per site and outcome, the loot, what was mapped,
+  XP and level-ups, injuries, and "Send again" (or "See it on the map").
+
+### D89. Map advice waits for the first tier; the dev API runs without `tsx watch`
+- A brand-new base glowed Map instead of Gather, since the Beach Wreck needs no rations. The
+  advisor now suggests the map only from Timber on; unread reports always count. The Map button
+  is visible from the start (no hidden features).
+- On this Windows machine `tsx watch` under `pnpm dev` hung before listening. For owner
+  previews the API ran as a plain `tsx src/main.ts`, restarted by hand when rules change.

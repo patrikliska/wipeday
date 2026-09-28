@@ -22,13 +22,13 @@ function table(run: Run): string {
     `${run.archetype}  (reached: ${Object.entries(run.reached)
       .map(([tier, day]) => `${tier} d${day}`)
       .join(", ")})`,
-    "day  tier   tool             fill                cap   ingots    fuel   scrap  items  parts  bldgs  build",
+    "day  tier   tool             fill                cap   ingots    fuel   scrap  items  parts  bldgs  crew  known  build",
   ];
   for (const row of run.rows) {
     lines.push(
       `${String(row.day).padStart(3)}  ${row.tier.padEnd(6)} ${row.tool.padEnd(16)} ` +
         `${row.fill.padEnd(18)} ${String(row.cap).padStart(6)} ${String(row.ingots).padStart(8)} ` +
-        `${String(row.fuel).padStart(7)} ${String(row.scrap).padStart(7)}  ${String(row.items).padStart(5)}  ${String(row.parts).padStart(5)}  ${String(row.buildings).padStart(5)}  ${row.building ? "yes" : ""}`,
+        `${String(row.fuel).padStart(7)} ${String(row.scrap).padStart(7)}  ${String(row.items).padStart(5)}  ${String(row.parts).padStart(5)}  ${String(row.buildings).padStart(5)}  ${String(row.crew).padStart(4)}  ${String(row.known).padStart(5)}  ${row.building ? "yes" : ""}`,
     );
   }
   return lines.join("\n");

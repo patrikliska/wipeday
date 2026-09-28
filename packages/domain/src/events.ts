@@ -29,8 +29,26 @@ export type GameEvent =
   | { type: "craft_cancelled"; recipe: string; station: string; refunded: Amounts }
   | { type: "salvaged"; item: string; count: number; gained: Amounts }
   | { type: "served"; meal: string; percent: number; until: number }
-  /** A blueprint turned up: `from` says where (a barrel, a perfect node run, a task). */
-  | { type: "blueprint_found"; recipe: string; from: "barrel" | "node" | "task" }
+  /** A blueprint turned up: `from` says where (a barrel, a perfect node run, a task, a site). */
+  | { type: "blueprint_found"; recipe: string; from: "barrel" | "node" | "task" | "site" }
+  | {
+      type: "scout_started";
+      mission: string;
+      region: string;
+      survivor: string;
+      endsAt: number;
+      paid: Amounts;
+    }
+  | {
+      type: "trip_started";
+      mission: string;
+      site: string;
+      crew: string[];
+      endsAt: number;
+      paid: Amounts;
+    }
+  | { type: "equipped"; survivor: string; slot: "weapon" | "armor"; item: string | null }
+  | { type: "treated"; survivor: string; item: string; until: number }
   | { type: "barrel_broken"; gained: Amounts }
   | {
       type: "node_hit";
@@ -64,6 +82,19 @@ export type GameEvent =
       done: boolean;
     }
   | { type: "barrel_spawned"; expiresAt: number }
+  /** A scout or a party came home. The full story is the report with the same id. */
+  | {
+      type: "mission_back";
+      mission: string;
+      kind: "scout" | "trip";
+      target: string;
+      outcome: "success" | "partial" | "fail";
+      crew: string[];
+      gained: Amounts;
+      at: number;
+    }
+  | { type: "region_revealed"; region: string; from: "scout" | "fragment" }
+  | { type: "survivor_arrived"; survivor: string; at: number }
   | { type: "auto_collect"; gained: Amounts }
   | { type: "upkeep_paid"; hours: number; paid: Amounts }
   | { type: "decayed"; from: Tier; to: Tier };

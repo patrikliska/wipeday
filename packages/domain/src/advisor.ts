@@ -19,11 +19,14 @@ import {
   nextTool,
   smeltable,
   storageFill,
+  tierAtLeast,
   tierOf,
+  toolUnlocked,
   total,
 } from "./base";
 import { buildingCount, buildStatus, nextBuild } from "./buildings";
 import { craftStatus } from "./craft";
+import { crewCap, isFit, scoutStatus, sitesIn, tripStatus } from "./missions";
 import { partsToMake } from "./recipes";
 
 export type Advice =
@@ -34,6 +37,7 @@ export type Advice =
   | "furnace"
   | "building"
   | "craft"
+  | "map"
   | "gather";
 
 /** A hint is shown until its action has been used this many times. */
@@ -107,7 +111,7 @@ export function partWorthIt(
   if (tier && !state.construction.some((job) => job.target.kind === "tier"))
     goals.push(tierOf(content, tier).cost);
   const tool = nextTool(content, state);
-  if (tool) goals.push(tool.cost);
+  if (tool && toolUnlocked(state, tool)) goals.push(tool.cost);
   for (const cost of goals) {
     for (const { recipe, units } of partsToMake(content, state.stock, cost)) {
       if (craftStatus(content, state, recipe.output).code === "ok")
@@ -132,6 +136,29 @@ export function craftWorthIt(content: Content, state: BaseState, now: number): b
   return false;
 }
 
+/**
+ * True when someone at home could go out: a trip to a known site one fit survivor can
+ * make now, or a region to scout. Unread reports count too (the map shows them).
+ */
+export function mapWorthIt(content: Content, state: BaseState, now: number): boolean {
+  if (state.reports.some((report) => !report.read)) return true;
+  // Onboarding: the map waits until the first tier is built (one new thing at a time).
+  if (!tierAtLeast(state, "wood")) return false;
+  const fit = state.crew.find((member) => isFit(member, now));
+  if (!fit) return false;
+  for (const region of state.known) {
+    for (const site of sitesIn(content, region)) {
+      if (tripStatus(content, state, site.id, [fit.id], now).code === "ok") return true;
+    }
+  }
+  return content.regions.some(
+    (region) => scoutStatus(content, state, region.id, now, fit.id).code === "ok",
+  );
+}
+
+/** Room for another survivor, for the crew panel. */
+export { crewCap };
+
 export function advise(content: Content, state: BaseState, now: number): Advice {
   // Full storage with something waiting: bank it. Full with nothing waiting means
   // collecting would do nothing, so the advice moves on to spending.
@@ -140,9 +167,10 @@ export function advise(content: Content, state: BaseState, now: number): Advice 
   if (state.barrel && now <= state.barrel.expiresAt) return "barrel";
   if (buildStatus(content, state, "tier").code === "ok") return "build";
   const tool = nextTool(content, state);
-  if (tool && canAfford(tool.cost, state.stock)) return "tools";
+  if (tool && toolUnlocked(state, tool) && canAfford(tool.cost, state.stock)) return "tools";
   if (furnaceWorthIt(content, state, now)) return "furnace";
   if (buildingWorthIt(content, state) !== null) return "building";
+  if (mapWorthIt(content, state, now)) return "map";
   if (craftWorthIt(content, state, now)) return "craft";
   if (gatherReadyAt(content, state) <= now) return "gather";
   // Nothing to spend on and Gather cooling down: bank what is waiting, or wait for Gather.

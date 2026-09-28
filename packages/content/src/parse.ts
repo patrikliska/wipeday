@@ -12,10 +12,12 @@ import {
   baseRulesSchema,
   type Content,
   craftingSchema,
+  crewRulesSchema,
   DATA_FILES,
   type DataFile,
   type EntityKind,
   FILES,
+  mapRulesSchema,
   nodeSchema,
   pacingSchema,
   recipeSchema,
@@ -73,8 +75,20 @@ function emptyContent(): Content {
     furnaces: [],
     items: [],
     buildings: [],
-    perks: [],
+    traits: [],
     crew: [],
+    crewRules: {
+      start: [],
+      baseCap: 1,
+      arrivalHours: 1,
+      levels: [1],
+      successPerLevel: 0,
+      successPerCompanion: 0,
+      treat: {},
+    },
+    regions: [],
+    mapRules: { range: { twig: 1, wood: 1, stone: 1, metal: 1, hqm: 1 }, maxParty: 1 },
+    sites: [],
     recipes: [],
     crafting: {
       queueSlots: [1],
@@ -105,8 +119,12 @@ function emptyContent(): Content {
         buildings: { day: 1, count: 1 },
         firstMade: {},
         stationsWorkedByDay: 1,
+        firstTripByDay: 1,
+        tierThreeSiteByDay: 1,
+        crew: { day: 1, count: 1 },
+        tool: { id: "", byDay: 1 },
       },
-      optimal: { hqmNotBeforeDay: 1 },
+      optimal: { hqmNotBeforeDay: 1, tierThreeSiteNotBeforeDay: 1 },
       tierCostRatio: { min: 1, max: 1 },
     },
   };
@@ -139,7 +157,11 @@ export function parseContent(
         ? { rules: baseRulesSchema }
         : field === "nodeKinds"
           ? { nodes: z.array(nodeSchema) }
-          : {};
+          : field === "crew"
+            ? { rules: crewRulesSchema }
+            : field === "regions"
+              ? { rules: mapRulesSchema }
+              : {};
     const parsed = z.strictObject({ [key]: z.array(z.unknown()), ...extras }).safeParse(data);
     if (!parsed.success) {
       problems.push({ file, id: "", message: issuesOf(parsed.error).join("; ") });
@@ -148,6 +170,10 @@ export function parseContent(
     if (field === "baseTiers")
       content.baseRules = (parsed.data as { rules: Content["baseRules"] }).rules;
     if (field === "nodeKinds") content.nodes = (parsed.data as { nodes: Content["nodes"] }).nodes;
+    if (field === "crew")
+      content.crewRules = (parsed.data as { rules: Content["crewRules"] }).rules;
+    if (field === "regions")
+      content.mapRules = (parsed.data as { rules: Content["mapRules"] }).rules;
     const rows = (parsed.data as Record<string, unknown[]>)[key] ?? [];
     for (const [index, row] of rows.entries()) {
       const result = schema.safeParse(row);
@@ -308,16 +334,7 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
     }
   }
 
-  const perkIds = new Set(content.perks.map((perk) => perk.id));
-  for (const member of content.crew) {
-    if (!perkIds.has(member.perk)) {
-      problems.push({
-        file: "crew.json5",
-        id: member.id,
-        message: `unknown perk \`${member.perk}\``,
-      });
-    }
-  }
+  problems.push(...checkCrewAndMap(content, locale));
 
   const kindIds = new Set(content.nodeKinds.map((kind) => kind.id));
   for (const kind of content.nodeKinds) {
@@ -498,6 +515,142 @@ export function checkRecipes(content: Content): Problem[] {
   for (const id of Object.keys(content.pacing.casual.firstMade)) {
     if (!seen.has(id)) {
       problems.push({ file: "pacing.json5", id, message: "firstMade names no recipe output" });
+    }
+  }
+  return problems;
+}
+
+/**
+ * Survivors and the island: traits and treatment items exist, the start crew is in the pool,
+ * every region is reachable from the one at ring 0 through two-way neighbours, every site
+ * sits in a region with loot that names real resources, and the locale has every blurb and
+ * report line the map and the report cards show.
+ */
+export function checkCrewAndMap(content: Content, locale: Locale): Problem[] {
+  const problems: Problem[] = [];
+  const traits = new Set(content.traits.map((trait) => trait.id));
+  const crew = new Set(content.crew.map((member) => member.id));
+  const items = new Set(content.items.map((item) => item.id));
+  const resources = new Set(content.resources.map((resource) => resource.id));
+  for (const member of content.crew) {
+    for (const trait of member.traits) {
+      if (!traits.has(trait)) {
+        problems.push({ file: "crew.json5", id: member.id, message: `unknown trait \`${trait}\`` });
+      }
+    }
+  }
+  for (const id of content.crewRules.start) {
+    if (!crew.has(id)) {
+      problems.push({ file: "crew.json5", id, message: "start names no survivor in `crew`" });
+    }
+  }
+  for (const id of Object.keys(content.crewRules.treat)) {
+    if (!items.has(id)) problems.push({ file: "crew.json5", id, message: "treat names no item" });
+  }
+  for (const trait of content.traits) {
+    if (!locale.has(`trait.${trait.id}.effect`)) {
+      problems.push({
+        file: "traits.json5",
+        id: trait.id,
+        message: `missing locale key \`trait.${trait.id}.effect\``,
+      });
+    }
+  }
+
+  const regions = new Map(content.regions.map((region) => [region.id, region]));
+  const homes = content.regions.filter((region) => region.ring === 0);
+  if (content.regions.length > 0 && homes.length !== 1) {
+    problems.push({
+      file: "regions.json5",
+      id: "",
+      message: `exactly one region must be ring 0, found ${homes.length}`,
+    });
+  }
+  for (const region of content.regions) {
+    for (const other of region.neighbours) {
+      const neighbour = regions.get(other);
+      if (!neighbour) {
+        problems.push({
+          file: "regions.json5",
+          id: region.id,
+          message: `unknown neighbour \`${other}\``,
+        });
+      } else if (!neighbour.neighbours.includes(region.id)) {
+        problems.push({
+          file: "regions.json5",
+          id: region.id,
+          message: `\`${other}\` does not list it back as a neighbour`,
+        });
+      }
+    }
+    for (const id of Object.keys(region.scout.cost)) {
+      if (!resources.has(id)) {
+        problems.push({
+          file: "regions.json5",
+          id: region.id,
+          message: `scout cost names unknown resource \`${id}\``,
+        });
+      }
+    }
+    if (!locale.has(`region.${region.id}.blurb`)) {
+      problems.push({
+        file: "regions.json5",
+        id: region.id,
+        message: `missing locale key \`region.${region.id}.blurb\``,
+      });
+    }
+  }
+  const home = homes[0];
+  if (home) {
+    const seen = new Set([home.id]);
+    const queue = [home.id];
+    while (queue.length > 0) {
+      const next = regions.get(queue.shift() ?? "");
+      for (const other of next?.neighbours ?? []) {
+        if (!seen.has(other) && regions.has(other)) {
+          seen.add(other);
+          queue.push(other);
+        }
+      }
+    }
+    for (const region of content.regions) {
+      if (!seen.has(region.id)) {
+        problems.push({
+          file: "regions.json5",
+          id: region.id,
+          message: "cannot be reached from ring 0",
+        });
+      }
+    }
+  }
+
+  for (const site of content.sites) {
+    const file = "sites.json5";
+    if (!regions.has(site.region)) {
+      problems.push({ file, id: site.id, message: `unknown region \`${site.region}\`` });
+    }
+    for (const entry of site.loot) {
+      if (!resources.has(entry.resource)) {
+        problems.push({
+          file,
+          id: site.id,
+          message: `loot names unknown resource \`${entry.resource}\``,
+        });
+      }
+    }
+    for (const id of Object.keys(site.rations)) {
+      if (!resources.has(id)) {
+        problems.push({ file, id: site.id, message: `rations name unknown resource \`${id}\`` });
+      }
+    }
+    for (const key of [
+      `site.${site.id}.blurb`,
+      `story.${site.id}.success`,
+      `story.${site.id}.partial`,
+      `story.${site.id}.fail`,
+    ]) {
+      if (!locale.has(key))
+        problems.push({ file, id: site.id, message: `missing locale key \`${key}\`` });
     }
   }
   return problems;

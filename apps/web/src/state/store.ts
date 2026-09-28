@@ -39,6 +39,7 @@ export interface Toast {
   tone: Tone;
   panel?: Panel;
   recipe?: string;
+  report?: string;
 }
 
 interface Queued {
@@ -71,6 +72,12 @@ export interface WorldState {
   station: string;
   /** The recipe open in the craft panel (by output id), or null for the list. */
   recipe: string | null;
+  /** The base scene or the island map. */
+  view: "base" | "map";
+  /** What the map panel shows: a region or a site, or null for the overview. */
+  mapFocus: { kind: "region" | "site"; id: string } | null;
+  /** The report card open (by report id), or null. */
+  report: string | null;
   demoOpen: boolean;
 }
 
@@ -94,6 +101,15 @@ interface Actions {
   openRecipe(output: string): void;
   /** The craft panel's list for one station; closes any open recipe. */
   selectStation(station: string): void;
+  setView(view: "base" | "map"): void;
+  /** Opens the map panel on a region or a site (from a tap on the map). */
+  focusMap(focus: { kind: "region" | "site"; id: string } | null): void;
+  scout(region: string, survivor: string): boolean;
+  sendTrip(site: string, crew: string[]): boolean;
+  equip(survivor: string, slot: "weapon" | "armor", item: string | null): boolean;
+  treat(survivor: string, item: string): boolean;
+  /** Opens a report card (and marks it read); null closes it. */
+  openReport(id: string | null): void;
   smelt(ore: string): boolean;
   takeOut(): boolean;
   breakBarrel(): boolean;
@@ -168,6 +184,12 @@ const placeholder = (): BaseState => ({
   production: {},
   blueprints: [],
   wellFed: null,
+  crew: [],
+  nextArrivalAt: 0,
+  known: [],
+  missions: [],
+  reports: [],
+  missionSeq: 0,
   nodeRun: null,
   wear: {},
   depleted: {},
@@ -285,6 +307,9 @@ export const useWorld = create<Store>((set, get) => {
     panel: null,
     station: "workbench",
     recipe: null,
+    view: "base",
+    mapFocus: null,
+    report: null,
     demoOpen: false,
 
     async boot() {
@@ -377,6 +402,28 @@ export const useWorld = create<Store>((set, get) => {
     selectStation(station) {
       set({ station, recipe: null });
     },
+
+    setView(view) {
+      set({
+        view,
+        panel: view === "map" ? get().panel : get().panel === "map" ? null : get().panel,
+      });
+    },
+
+    focusMap(focus) {
+      set({ view: "map", mapFocus: focus, panel: "map" });
+    },
+
+    scout: (region, survivor) => get().send({ type: "scout", region, survivor }),
+    sendTrip: (site, crew) => get().send({ type: "send_trip", site, crew }),
+    equip: (survivor, slot, item) => get().send({ type: "equip", survivor, slot, item }),
+    treat: (survivor, item) => get().send({ type: "treat", survivor, item }),
+
+    openReport(id) {
+      set({ report: id });
+      const report = id ? get().base.reports.find((candidate) => candidate.id === id) : undefined;
+      if (report && !report.read) get().send({ type: "read_report", id: report.id });
+    },
     smelt: (ore) => get().send({ type: "smelt", ore }),
     takeOut: () => get().send({ type: "take_out" }),
     breakBarrel: () => get().send({ type: "break_barrel" }),
@@ -429,6 +476,7 @@ export const useWorld = create<Store>((set, get) => {
       const toast: Toast = { id, text: message.text, tone: message.tone };
       if (message.panel) toast.panel = message.panel;
       if (message.recipe) toast.recipe = message.recipe;
+      if (message.report) toast.report = message.report;
       set({ toasts: [...get().toasts.slice(-3), toast] });
       setTimeout(() => get().dismissToast(id), 4500);
     },

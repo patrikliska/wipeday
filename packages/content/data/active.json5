@@ -37,6 +37,7 @@
       { id: "barrel_1", kind: "barrel", target: 1, reward: { scrap: 5, fibre: 20 } },
       { id: "smelt_300", kind: "smelt", target: 300, requires: "furnace", reward: { scrap: 10, ingots: 50 } },
       { id: "furnace_out_200", kind: "furnace_collect", target: 200, requires: "furnace", reward: { scrap: 8 } },
+      { id: "trip_1", kind: "trip", target: 1, reward: { scrap: 10, food: 40 } },
       { id: "craft_1", kind: "craft", target: 1, requires: "workbench", reward: { scrap: 10, timber: 300 }, blueprint: true },
     ],
   },

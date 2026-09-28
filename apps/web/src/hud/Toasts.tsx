@@ -14,13 +14,25 @@ export function Toasts() {
   const toasts = useWorld((state) => state.toasts);
   const openPanel = useWorld((state) => state.openPanel);
   const openRecipe = useWorld((state) => state.openRecipe);
+  const openReport = useWorld((state) => state.openReport);
   const dismiss = useWorld((state) => state.dismissToast);
   return (
     <div className="toasts" aria-live="polite">
       {toasts.map((toast) => (
         <div key={toast.id} className="toast" style={vars({ "--tone": TONE[toast.tone] })}>
           {toast.text}
-          {toast.panel ? (
+          {toast.report ? (
+            <button
+              type="button"
+              className="btn small"
+              onClick={() => {
+                if (toast.report) openReport(toast.report);
+                dismiss(toast.id);
+              }}
+            >
+              {t("map.read_report")}
+            </button>
+          ) : toast.panel ? (
             <button
               type="button"
               className="btn small"

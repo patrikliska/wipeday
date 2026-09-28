@@ -9,6 +9,7 @@ import { type BaseState, furnaceOf, furnaceSlots, jobProgress } from "@wipe-day/
 import { nodeKindOf } from "@wipe-day/domain/nodes";
 import { Application, Container, Graphics, type Ticker } from "pixi.js";
 import { countFrame, isFrozen } from "../debug";
+import { MapView } from "../map/MapView";
 import { type GameEvent, on } from "../state/events";
 import { seasonTime, useWorld } from "../state/store";
 import {
@@ -19,7 +20,7 @@ import {
   gainLines,
   nodeName,
   outputName,
-  SURVIVORS,
+  survivorLook,
   t,
   tierName,
   toolName,
@@ -73,6 +74,13 @@ function debrisFor(kind: string): { kind: "leaves" | "stone"; color: number } {
   return { kind: "stone", color: 0x9aa0a6 };
 }
 
+/** The HUD's bands the map must stay clear of: under the top bar, above the dock (CSS px). */
+function hudInsets(viewH: number): { top: number; bottom: number } {
+  const top = document.querySelector(".topbar")?.getBoundingClientRect().bottom ?? 80;
+  const dock = document.querySelector(".dock")?.getBoundingClientRect().top ?? viewH - 100;
+  return { top: top + 8, bottom: Math.max(0, viewH - dock) + 8 };
+}
+
 export class Scene {
   private readonly app = new Application();
   private readonly world = new Container();
@@ -80,6 +88,8 @@ export class Scene {
   private readonly ambient = new Graphics();
   /** World-aligned top layer: the node markers, above every effect and the weather. */
   private readonly markers = new Container();
+  /** The crew the actors last showed, so they are only re-cast when it changes. */
+  private crewKey = "";
   /** A progress ring over each station at work (fixed size on screen, D48). */
   private readonly workRings = new Map<string, Graphics>();
   /** Where the last node hit landed, so its gain rises from the cursor. */
@@ -106,6 +116,11 @@ export class Scene {
   private readonly frontNodes: Nodes;
   private readonly barrel: Barrel;
   private readonly actors: Actors;
+  /** The island chart, drawn instead of the base while the map is open. */
+  private readonly map = new MapView({
+    onRegion: (id) => useWorld.getState().focusMap({ kind: "region", id }),
+    onSite: (id) => useWorld.getState().focusMap({ kind: "site", id }),
+  });
   private unsubscribe: (() => void) | null = null;
   private destroyed = false;
   private ready = false;
@@ -184,7 +199,7 @@ export class Scene {
       useWorld.getState().breakBarrel();
     });
     const spots = ALL_NODES.map((node) => ({ id: node.id, x: node.x }));
-    this.actors = new Actors(SURVIVORS, GROUND, BASE_X, spots, BASE_X + 340, {
+    this.actors = new Actors(GROUND, BASE_X, spots, BASE_X + 340, SHORE_X + 20, {
       canWork: (node) => this.backNodes.isUp(node) || this.frontNodes.isUp(node),
       onWork: (node, x, y) => {
         this.shakeNode(node);
@@ -233,6 +248,7 @@ export class Scene {
       this.floaters.container,
       this.weather.container,
       this.markers,
+      this.map.container,
     );
     this.unsubscribe = on((event) => this.handle(event));
     if (window.__wipeDay) {
@@ -283,6 +299,25 @@ export class Scene {
     this.weather.resize(vw, vh);
   }
 
+  /** Who walks about the base: the crew at home; the hurt ones rest by the fire. */
+  private syncCrew(base: BaseState, now: number): void {
+    const key = base.crew
+      .map(
+        (member) => `${member.id}:${member.away ?? ""}:${(member.injuredUntil ?? 0) > now ? 1 : 0}`,
+      )
+      .join(",");
+    if (key === this.crewKey) return;
+    this.crewKey = key;
+    const home = base.crew.filter((member) => member.away === null);
+    const hurt = new Set(
+      home.filter((member) => (member.injuredUntil ?? 0) > now).map((member) => member.id),
+    );
+    this.actors.sync(
+      home.map((member) => survivorLook(member.id)),
+      hurt,
+    );
+  }
+
   /** Rings over the stations at work: how far the current unit is, like the regrow clocks. */
   private syncWork(base: BaseState, now: number): void {
     const busy = new Set<string>();
@@ -329,6 +364,7 @@ export class Scene {
   private sync(): void {
     const state = useWorld.getState();
     const { base, now } = state;
+    this.syncCrew(base, now);
     this.base.setTier(base.tier, false);
     const tierJob = base.construction.find((job) => job.target.kind === "tier");
     const scaffold = tierJob?.target.kind === "tier" ? tierJob.target.tier : null;
@@ -374,8 +410,27 @@ export class Scene {
   private step(dt: number): void {
     this.layout();
     useWorld.getState().tick();
-    this.sync();
     const state = useWorld.getState();
+    // The map replaces the base on screen; the base rests (nothing there needs the frames).
+    const onMap = state.view === "map";
+    this.map.show(onMap);
+    for (const layer of [
+      this.world,
+      this.ambient,
+      this.lights,
+      this.floaters.container,
+      this.weather.container,
+      this.markers,
+    ]) {
+      layer.visible = !onMap;
+    }
+    if (onMap) {
+      this.map.layout(this.viewW, this.viewH, hudInsets(this.viewH));
+      this.map.setFocus(state.mapFocus?.id ?? null);
+      this.map.update(dt, state.base, state.now);
+      return;
+    }
+    this.sync();
     const fraction = dayFraction(seasonTime(state));
     const rain = this.weather.rainAmount;
     const gloomAmount = clamp(rain + (state.weather === "fog" ? 0.5 : 0), 0, 1);

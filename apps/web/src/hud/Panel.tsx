@@ -4,6 +4,7 @@ import { BuildPanel } from "./panels/Build";
 import { CraftPanel } from "./panels/Craft";
 import { FurnacePanel } from "./panels/Furnace";
 import { InventoryPanel } from "./panels/Inventory";
+import { MapPanel } from "./panels/MapPanel";
 import { SquadPanel } from "./panels/Squad";
 import { TasksPanel } from "./panels/Tasks";
 
@@ -33,6 +34,7 @@ export function Panel() {
         {panel === "inventory" ? <InventoryPanel /> : null}
         {panel === "tasks" ? <TasksPanel /> : null}
         {panel === "squad" ? <SquadPanel /> : null}
+        {panel === "map" ? <MapPanel /> : null}
       </div>
     </aside>
   );

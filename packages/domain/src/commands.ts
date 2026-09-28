@@ -23,6 +23,16 @@ import {
 import { type BuildStatus, startConstruction } from "./buildings";
 import { type CraftStatus, cancelCraft, queueCraft, salvage, serve } from "./craft";
 import type { GameEvent } from "./events";
+import {
+  type CrewRefusal,
+  equip,
+  readReport,
+  type ScoutStatus,
+  startScout,
+  startTrip,
+  type TripStatus,
+  treat,
+} from "./missions";
 import { endNodeRun, type HitRefusal, hitNode } from "./nodes";
 import { settleAll } from "./settle";
 
@@ -40,6 +50,12 @@ export type Command =
   | { type: "cancel_craft"; station: string; index: number }
   | { type: "salvage"; item: string; count: number }
   | { type: "serve"; meal: string }
+  | { type: "scout"; region: string; survivor: string }
+  | { type: "send_trip"; site: string; crew: string[] }
+  /** `item` null takes the gear off. */
+  | { type: "equip"; survivor: string; slot: "weapon" | "armor"; item: string | null }
+  | { type: "treat"; survivor: string; item: string }
+  | { type: "read_report"; id: string }
   | { type: "break_barrel" }
   | { type: "hit_node"; node: string; run: string; hit: number }
   | { type: "end_node_run"; node: string; run: string };
@@ -62,6 +78,8 @@ export type Refusal =
   | { code: "not_owned" }
   | { code: "not_meal" }
   | { code: "fed_better"; until: number }
+  | Exclude<TripStatus | ScoutStatus, { code: "ok" | "unaffordable" | "unknown" }>
+  | CrewRefusal
   | HitRefusal;
 
 export type CommandResult =
@@ -77,6 +95,8 @@ const HINT_OF: Partial<Record<CommandType, Advice>> = {
   smelt: "furnace",
   take_out: "furnace",
   craft: "craft",
+  scout: "map",
+  send_trip: "map",
   break_barrel: "barrel",
 };
 
@@ -118,7 +138,9 @@ function step(content: Content, state: BaseState, command: Command, now: number)
           refusal:
             result.reason === "maxed"
               ? { code: "maxed" }
-              : { code: "unaffordable", missing: result.missing },
+              : result.reason === "tier"
+                ? { code: "tier", tier: result.tier }
+                : { code: "unaffordable", missing: result.missing },
         };
       }
       const events: GameEvent[] = [];
@@ -184,6 +206,28 @@ function step(content: Content, state: BaseState, command: Command, now: number)
       }
       return { ok: true, state: result.state, events: result.events };
     }
+    case "scout": {
+      const result = startScout(content, state, command.region, command.survivor, now);
+      if (!result.ok) return { ok: false, refusal: result.status };
+      return { ok: true, state: result.state, events: result.events };
+    }
+    case "send_trip": {
+      const result = startTrip(content, state, command.site, command.crew, now);
+      if (!result.ok) return { ok: false, refusal: result.status };
+      return { ok: true, state: result.state, events: result.events, task: ["trip", 1] };
+    }
+    case "equip": {
+      const result = equip(content, state, command.survivor, command.slot, command.item);
+      if (!result.ok) return { ok: false, refusal: result.refusal };
+      return { ok: true, state: result.state, events: result.events };
+    }
+    case "treat": {
+      const result = treat(content, state, command.survivor, command.item, now);
+      if (!result.ok) return { ok: false, refusal: result.refusal };
+      return { ok: true, state: result.state, events: result.events };
+    }
+    case "read_report":
+      return { ok: true, state: readReport(state, command.id), events: [] };
     case "break_barrel": {
       const result = breakBarrel(content, state, now);
       if (!result.ok) return { ok: false, refusal: { code: "no_barrel" } };

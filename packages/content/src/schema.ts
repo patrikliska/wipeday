@@ -44,6 +44,8 @@ export const toolSchema = z.strictObject({
   cooldownMinutes: z.int().min(1),
   /** Paid once to upgrade to this tool. */
   cost: amounts,
+  /** Base tier needed to buy it (a tool never outranks the holdfast that keeps it running). */
+  minTier: tier.optional(),
 });
 
 export const baseTierSchema = z.strictObject({
@@ -95,6 +97,10 @@ export const itemSchema = z.strictObject({
   /** Meals: served, they add this percent to Gather and node hits for `hours`. */
   boostPercent: z.int().min(1).max(100).optional(),
   hours: z.int().min(1).max(24).optional(),
+  /** Weapons: success points at hostile sites for the survivor carrying it. */
+  power: z.int().min(1).max(50).optional(),
+  /** Armour: percent lower injury chance for the survivor wearing it. */
+  protection: z.int().min(1).max(90).optional(),
 });
 
 /** What a building level gives. All totals at that level; everything optional. */
@@ -121,6 +127,8 @@ export const effectsSchema = z.strictObject({
   barrelEveryMinutes: z.int().min(0).optional(),
   /** Hours added before unpaid upkeep costs a level. */
   graceHours: z.int().min(0).optional(),
+  /** Room for more survivors. */
+  crew: z.int().min(0).optional(),
   /** Furnace type: 1 = the first in furnaces.json5. */
   furnace: z.int().min(1).optional(),
 });
@@ -144,13 +152,60 @@ export const buildingSchema = z.strictObject({
   levels: z.array(buildingLevelSchema).min(1),
 });
 
-export const perkSchema = z.strictObject({ id });
+export const HAZARDS = ["hostile", "blocked", "unstable", "flooded"] as const;
+export type Hazard = (typeof HAZARDS)[number];
+
+/** What a survivor is good at on trips; see traits.json5 for the meaning of each field. */
+export const traitSchema = z.strictObject({
+  id,
+  success: z.int().min(0).max(50).optional(),
+  hazard: z.partialRecord(z.enum(HAZARDS), z.int().min(0).max(50)).optional(),
+  loot: z.int().min(0).max(200).optional(),
+  lootRolls: z.int().min(0).max(5).optional(),
+  tripTime: z.int().min(0).max(80).optional(),
+  injury: z.int().min(0).max(90).optional(),
+  recovery: z.int().min(0).max(90).optional(),
+  rare: z.int().min(0).max(300).optional(),
+});
 
 export const crewSchema = z.strictObject({
   id,
-  perk: z.string(),
-  health: z.int().min(1).max(100),
+  traits: z.array(z.string()).length(2),
 });
+
+export const crewRulesSchema = z.strictObject({
+  /** Survivors every base starts with, in order. */
+  start: z.array(z.string()).min(1),
+  baseCap: z.int().min(1),
+  arrivalHours: z.int().min(1),
+  /** Cumulative XP to reach level 2, 3, ... */
+  levels: z.array(z.int().min(1)).min(1),
+  successPerLevel: z.int().min(0),
+  successPerCompanion: z.int().min(0),
+  /** Item id -> injury hours it takes off. */
+  treat: z.record(z.string(), z.int().min(1)),
+});
+export type CrewRules = z.infer<typeof crewRulesSchema>;
+
+export const TERRAINS = ["shore", "marsh", "forest", "hills", "ruins", "cliffs"] as const;
+
+export const regionSchema = z.strictObject({
+  id,
+  x: z.int().min(0).max(1000),
+  y: z.int().min(0).max(1000),
+  /** Distance from the holdfast; ring 0 is known from the start. */
+  ring: z.int().min(0),
+  terrain: z.enum(TERRAINS),
+  neighbours: z.array(z.string()).min(1),
+  scout: z.strictObject({ cost: amounts, minutes: z.int().min(1) }),
+});
+
+export const mapRulesSchema = z.strictObject({
+  /** Highest ring a scout can reach, by base tier: a stronger holdfast supplies longer trips. */
+  range: z.record(tier, z.int().min(1)),
+  maxParty: z.int().min(1),
+});
+export type MapRules = z.infer<typeof mapRulesSchema>;
 
 export const recipeSchema = z.strictObject({
   /** What it makes: a part (resources.json5, lands in stock) or an item (items.json5). */
@@ -207,6 +262,7 @@ export const TASK_KINDS = [
   "smelt",
   "furnace_collect",
   "craft",
+  "trip",
 ] as const;
 
 export const taskSchema = z.strictObject({
@@ -221,7 +277,7 @@ export const taskSchema = z.strictObject({
 });
 export type Task = z.infer<typeof taskSchema>;
 
-const lootEntry = z
+export const lootEntry = z
   .strictObject({
     resource: z.string(),
     min: z.int().min(1),
@@ -258,6 +314,24 @@ export const activeSchema = z.strictObject({
 });
 export type Active = z.infer<typeof activeSchema>;
 
+export const siteSchema = z.strictObject({
+  id,
+  region: z.string(),
+  tier: z.int().min(1).max(5),
+  minutes: z.int().min(1),
+  party: z.int().min(1),
+  chance: z.int().min(1).max(100),
+  hazard: z.enum(HAZARDS),
+  injury: z.int().min(0).max(100),
+  injuryHours: z.int().min(1),
+  rations: amounts,
+  rolls: z.int().min(1),
+  xp: z.int().min(0),
+  blueprint: z.int().min(0).max(100),
+  fragment: z.int().min(0).max(100),
+  loot: z.array(lootEntry).min(1),
+});
+
 const dayWindow = z.strictObject({ earliestDay: z.int().min(1), latestDay: z.int().min(1) });
 export const pacingSchema = z.strictObject({
   casual: z.strictObject({
@@ -270,8 +344,17 @@ export const pacingSchema = z.strictObject({
     firstMade: z.record(z.string(), z.int().min(1)),
     /** Every station has made something by this day. */
     stationsWorkedByDay: z.int().min(1),
+    /** Expeditions (W4a): the first trip, the first trip to a tier-3 site, the crew size. */
+    firstTripByDay: z.int().min(1),
+    tierThreeSiteByDay: z.int().min(1),
+    crew: z.strictObject({ day: z.int().min(1), count: z.int().min(1) }),
+    /** Scrap from the sites pays for this tool by this day. */
+    tool: z.strictObject({ id: z.string(), byDay: z.int().min(1) }),
   }),
-  optimal: z.strictObject({ hqmNotBeforeDay: z.int().min(1) }),
+  optimal: z.strictObject({
+    hqmNotBeforeDay: z.int().min(1),
+    tierThreeSiteNotBeforeDay: z.int().min(1),
+  }),
   tierCostRatio: z.strictObject({ min: z.number().min(1), max: z.number().min(1) }),
 });
 
@@ -280,8 +363,10 @@ export type Tool = z.infer<typeof toolSchema>;
 export type BaseTier = z.infer<typeof baseTierSchema>;
 export type Furnace = z.infer<typeof furnaceSchema>;
 export type Item = z.infer<typeof itemSchema>;
-export type Perk = z.infer<typeof perkSchema>;
+export type Trait = z.infer<typeof traitSchema>;
 export type CrewMember = z.infer<typeof crewSchema>;
+export type Region = z.infer<typeof regionSchema>;
+export type Site = z.infer<typeof siteSchema>;
 export type Recipe = z.infer<typeof recipeSchema>;
 export type Building = z.infer<typeof buildingSchema>;
 export type BuildingLevel = z.infer<typeof buildingLevelSchema>;
@@ -297,8 +382,12 @@ export interface Content {
   furnaces: Furnace[];
   items: Item[];
   buildings: Building[];
-  perks: Perk[];
+  traits: Trait[];
   crew: CrewMember[];
+  crewRules: CrewRules;
+  regions: Region[];
+  mapRules: MapRules;
+  sites: Site[];
   recipes: Recipe[];
   crafting: Crafting;
   nodeKinds: NodeKind[];
@@ -343,8 +432,16 @@ export const FILES = [
     kind: "building",
     schema: buildingSchema,
   },
-  { file: "perks.json5", key: "perks", field: "perks", kind: "perk", schema: perkSchema },
+  { file: "traits.json5", key: "traits", field: "traits", kind: "trait", schema: traitSchema },
   { file: "crew.json5", key: "crew", field: "crew", kind: "crew", schema: crewSchema },
+  {
+    file: "regions.json5",
+    key: "regions",
+    field: "regions",
+    kind: "region",
+    schema: regionSchema,
+  },
+  { file: "sites.json5", key: "sites", field: "sites", kind: "site", schema: siteSchema },
   { file: "nodes.json5", key: "kinds", field: "nodeKinds", kind: "node", schema: nodeKindSchema },
 ] as const;
 
@@ -358,8 +455,10 @@ export const DATA_FILES = [
   "furnaces.json5",
   "items.json5",
   "buildings.json5",
-  "perks.json5",
+  "traits.json5",
   "crew.json5",
+  "regions.json5",
+  "sites.json5",
   "recipes.json5",
   "crafting.json5",
   "nodes.json5",

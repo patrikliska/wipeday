@@ -1,7 +1,17 @@
 import { total } from "@wipe-day/domain/base";
 import type { GameEvent } from "@wipe-day/domain/events";
 import { useWorld } from "../state/store";
-import { abbrev, duration, outputName, resourceName, t, tierName } from "../state/world";
+import {
+  abbrev,
+  duration,
+  outputName,
+  regionName,
+  resourceName,
+  siteName,
+  survivorName,
+  t,
+  tierName,
+} from "../state/world";
 import { pendingOf } from "./derived";
 import { ResourceIcon } from "./Icon";
 
@@ -23,6 +33,16 @@ function summary(events: GameEvent[]): string[] {
   if (crafted.length > 0) {
     const names = [...new Set(crafted.map((event) => outputName(event.recipe)))].join(", ");
     lines.push(t("welcome.crafted", { items: names }));
+  }
+  for (const event of events) {
+    if (event.type === "mission_back")
+      lines.push(
+        event.kind === "scout"
+          ? t("welcome.scouted", { region: regionName(event.target) })
+          : t(`welcome.trip_${event.outcome}`, { site: siteName(event.target) }),
+      );
+    if (event.type === "survivor_arrived")
+      lines.push(t("welcome.arrived", { name: survivorName(event.survivor) }));
   }
   const barrels = events.filter((event) => event.type === "barrel_spawned").length;
   if (barrels > 0) lines.push(t("welcome.barrels", { count: barrels }));

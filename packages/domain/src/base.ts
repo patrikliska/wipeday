@@ -13,6 +13,7 @@ import type { Amounts, BaseTier, Content, Furnace, Tool } from "@wipe-day/conten
 import { TIERS, type Tier } from "@wipe-day/content/tiers";
 import type { CraftJob } from "./craft";
 import type { GameEvent } from "./events";
+import type { Mission, Report, Survivor } from "./missions";
 import { modifiers } from "./modifiers";
 
 export interface FurnaceJob {
@@ -91,6 +92,18 @@ export interface BaseState {
   blueprints: string[];
   /** A served meal's boost to Gather and node hits, until `until`. */
   wellFed: { percent: number; until: number } | null;
+  /** The crew, in arrival order. See `crew.ts`. */
+  crew: Survivor[];
+  /** When the next survivor steps off a boat (if there is room). */
+  nextArrivalAt: number;
+  /** Regions the base has scouted (the home one from the start). See `map.ts`. */
+  known: string[];
+  /** Scouts and trips out right now. See `missions.ts`. */
+  missions: Mission[];
+  /** What came back, newest first (the last 20). */
+  reports: Report[];
+  /** Counter for mission ids. */
+  missionSeq: number;
   /** The node mini-game. See `nodes.ts`. */
   nodeRun: NodeRun | null;
   /** Worked-out nodes: node id -> when it stands again. */
@@ -132,6 +145,19 @@ export function newBase(content: Content, now: number, seed: number): BaseState 
     production: {},
     blueprints: [],
     wellFed: null,
+    crew: content.crewRules.start.map((id) => ({
+      id,
+      level: 1,
+      xp: 0,
+      gear: { weapon: null, armor: null },
+      injuredUntil: null,
+      away: null,
+    })),
+    nextArrivalAt: now + content.crewRules.arrivalHours * 3600,
+    known: content.regions.filter((region) => region.ring === 0).map((region) => region.id),
+    missions: [],
+    reports: [],
+    missionSeq: 0,
     nodeRun: null,
     depleted: {},
     wear: {},
@@ -147,6 +173,11 @@ export function toolOf(content: Content, state: BaseState): Tool {
   const tool = content.tools.find((candidate) => candidate.id === state.toolId);
   if (!tool) throw new Error(`unknown tool ${state.toolId}`);
   return tool;
+}
+
+/** Whether the base tier allows buying `tool` (its `minTier`). */
+export function toolUnlocked(state: Pick<BaseState, "tier">, tool: Tool): boolean {
+  return !tool.minTier || tierAtLeast(state, tool.minTier);
 }
 
 /** The tool after the current one, or null at the top. */
@@ -529,6 +560,7 @@ export function settle(
 export type UpgradeResult =
   | { ok: true; state: BaseState; tool: Tool; gained: Amounts; paid: Amounts }
   | { ok: false; reason: "maxed" }
+  | { ok: false; reason: "tier"; tool: Tool; tier: Tier }
   | { ok: false; reason: "unaffordable"; tool: Tool; missing: Amounts };
 
 /**
@@ -539,6 +571,8 @@ export type UpgradeResult =
 export function upgradeTool(content: Content, state: BaseState, now: number): UpgradeResult {
   const tool = nextTool(content, state);
   if (!tool) return { ok: false, reason: "maxed" };
+  if (tool.minTier && !tierAtLeast(state, tool.minTier))
+    return { ok: false, reason: "tier", tool, tier: tool.minTier };
   const missing = shortfall(tool.cost, state.stock);
   if (Object.keys(missing).length > 0) return { ok: false, reason: "unaffordable", tool, missing };
   const banked = collect(content, state, now);

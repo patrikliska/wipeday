@@ -23,6 +23,16 @@ export const commandSchema = z.discriminatedUnion("type", [
   }),
   z.strictObject({ type: z.literal("salvage"), item: id, count: z.int().min(1).max(1000) }),
   z.strictObject({ type: z.literal("serve"), meal: id }),
+  z.strictObject({ type: z.literal("scout"), region: id, survivor: id }),
+  z.strictObject({ type: z.literal("send_trip"), site: id, crew: z.array(id).min(1).max(5) }),
+  z.strictObject({
+    type: z.literal("equip"),
+    survivor: id,
+    slot: z.enum(["weapon", "armor"]),
+    item: id.nullable(),
+  }),
+  z.strictObject({ type: z.literal("treat"), survivor: id, item: id }),
+  z.strictObject({ type: z.literal("read_report"), id }),
   z.strictObject({ type: z.literal("break_barrel") }),
   z.strictObject({
     type: z.literal("hit_node"),

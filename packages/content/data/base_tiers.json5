@@ -29,13 +29,13 @@
     {
       id: "metal",
       storageCap: 80000, boxSlots: 12, furnaceSlots: 3, builders: 2,
-      cost: { stone: 40000, ingots: 30000, plates: 300, frames: 100, leather: 40 }, buildMinutes: 720,
+      cost: { stone: 48000, ingots: 38000, plates: 300, frames: 100, leather: 40 }, buildMinutes: 720,
       upkeep: { timber: 60, stone: 150, ingots: 60 },
     },
     {
       id: "hqm",
       storageCap: 300000, boxSlots: 16, furnaceSlots: 4, builders: 2,
-      cost: { ingots: 20000, plates: 600, gears: 150, springs: 100, fuel: 400 }, buildMinutes: 1440,
+      cost: { ingots: 45000, plates: 900, gears: 200, springs: 150, fuel: 400 }, buildMinutes: 1440,
       upkeep: { timber: 80, stone: 200, ingots: 100, fuel: 2 },
     },
   ],

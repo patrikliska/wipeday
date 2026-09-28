@@ -10,6 +10,7 @@ import { settleBarrel, settleTasks } from "./active";
 import { type BaseState, settle } from "./base";
 import { nextCraftAt, settleCrafts } from "./craft";
 import type { GameEvent } from "./events";
+import { nextMissionAt, settleArrivals, settleMissions } from "./missions";
 import { settleNodes } from "./nodes";
 
 export function settleAll(
@@ -22,7 +23,11 @@ export function settleAll(
   events.push(...base.events);
   const crafts = settleCrafts(content, base.state, now);
   events.push(...crafts.events);
-  const barrel = settleBarrel(content, crafts.state, now);
+  const missions = settleMissions(content, crafts.state, now);
+  events.push(...missions.events);
+  const arrivals = settleArrivals(content, missions.state, now);
+  events.push(...arrivals.events);
+  const barrel = settleBarrel(content, arrivals.state, now);
   events.push(...barrel.events);
   const tasks = settleTasks(content, barrel.state, now);
   const nodes = settleNodes(content, tasks, now);
@@ -35,6 +40,8 @@ export function nextEventAt(state: BaseState): number | null {
   const times = [
     ...state.construction.map((job) => job.endsAt),
     nextCraftAt(state) ?? undefined,
+    nextMissionAt(state) ?? undefined,
+    state.nextArrivalAt,
     state.barrel ? state.barrel.expiresAt : state.nextBarrelAt,
   ].filter((time): time is number => time !== undefined);
   return times.length > 0 ? Math.min(...times) : null;

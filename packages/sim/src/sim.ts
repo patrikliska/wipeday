@@ -21,6 +21,7 @@ import {
   storageCap,
   storageFill,
   tierOf,
+  toolUnlocked,
   total,
   upkeepOf,
 } from "@wipe-day/domain/base";
@@ -29,6 +30,15 @@ import { manualClock } from "@wipe-day/domain/clock";
 import { applyCommand, type Command } from "@wipe-day/domain/commands";
 import { boostPercent, craftStatus, maxBatch, queueOf } from "@wipe-day/domain/craft";
 import type { GameEvent } from "@wipe-day/domain/events";
+import {
+  isFit,
+  partyLimit,
+  scoutStatus,
+  siteOf,
+  sitesIn,
+  tripOdds,
+  tripStatus,
+} from "@wipe-day/domain/missions";
 import { nodeStatus } from "@wipe-day/domain/nodes";
 import { expandNeeds, type Need, partsToMake, stations } from "@wipe-day/domain/recipes";
 import { settleAll } from "@wipe-day/domain/settle";
@@ -59,6 +69,10 @@ export interface DayRow {
   items: number;
   /** Part units in stock, all kinds together. */
   parts: number;
+  /** Survivors in the crew. */
+  crew: number;
+  /** Regions known. */
+  known: number;
   /** Buildings standing (level 1 or more). */
   buildings: number;
   building: boolean;
@@ -73,6 +87,10 @@ export interface Run {
   firstMade: Record<string, number>;
   /** Season day on which each station first finished something. */
   stationsWorked: Record<string, number>;
+  /** Season day of the first trip to a site of each tier. */
+  firstTrip: Partial<Record<number, number>>;
+  /** Season day on which each tool was first held. */
+  tools: Record<string, number>;
 }
 
 /** Where a run's events go while it plays (the first-made days are read from them). */
@@ -140,7 +158,8 @@ export function checkIn(
     };
 
     const tool = nextTool(content, s);
-    if (tool && canAfford(tool.cost, spendable)) s = act(content, s, { type: "upgrade_tool" }, now);
+    if (tool && toolUnlocked(s, tool) && canAfford(tool.cost, spendable))
+      s = act(content, s, { type: "upgrade_tool" }, now);
 
     // Furnace: build it as soon as ore is being gathered; upgrade when affordable.
     const gathersOre = Object.keys(s.stock).some((id) =>
@@ -206,7 +225,7 @@ export function checkIn(
     };
     if (upcoming && !s.construction.some((job) => job.target.kind === "tier"))
       partsFor(upcoming.cost);
-    if (tool) partsFor(tool.cost);
+    if (tool && toolUnlocked(s, tool)) partsFor(tool.cost);
     const rawOnly = (cost: Amounts): Amounts =>
       Object.fromEntries(
         Object.entries(cost).filter(([id]) =>
@@ -265,6 +284,8 @@ export function checkIn(
     if (s === before) break;
   }
 
+  s = expeditions(content, s, now);
+
   // Smelt whatever ore is waiting, the ore the next tier needs first.
   const wanted = nextTier(s.tier)
     ? Object.keys(tierOf(content, nextTier(s.tier) ?? s.tier).cost)
@@ -285,6 +306,65 @@ export function checkIn(
   return s;
 }
 
+/**
+ * The crew's turn: gear up, treat the hurt, send one scout toward the nearest unknown
+ * region, and send the rest in parties to the best site they can do with even odds or
+ * better (the highest tier, then the shortest trip). Keeps a day of rations for scouting.
+ */
+function expeditions(content: Content, state: BaseState, now: number): BaseState {
+  let s = state;
+  // Gear: the strongest weapon and armour owned go to whoever has none.
+  for (const slot of ["weapon", "armor"] as const) {
+    const best = content.items
+      .filter((item) => item.category === slot && (s.items[item.id] ?? 0) > 0)
+      .sort((a, b) => (b.power ?? b.protection ?? 0) - (a.power ?? a.protection ?? 0));
+    for (const item of best) {
+      const bare = s.crew.find((member) => member.away === null && member.gear[slot] === null);
+      if (!bare) break;
+      s = act(content, s, { type: "equip", survivor: bare.id, slot, item: item.id }, now);
+    }
+  }
+  for (const member of s.crew) {
+    if (member.injuredUntil === null || member.injuredUntil <= now) continue;
+    const kit = ["first_aid_kit", "bandage"].find((id) => (s.items[id] ?? 0) > 0);
+    if (kit) s = act(content, s, { type: "treat", survivor: member.id, item: kit }, now);
+  }
+  // One scout at a time, toward the cheapest region that is open to scouting.
+  if (!s.missions.some((mission) => mission.kind === "scout")) {
+    const scout = s.crew.find((member) => isFit(member, now));
+    const region = content.regions
+      .filter(
+        (candidate) => scout && scoutStatus(content, s, candidate.id, now, scout.id).code === "ok",
+      )
+      .sort((a, b) => a.ring - b.ring || total(a.scout.cost) - total(b.scout.cost))[0];
+    if (scout && region)
+      s = act(content, s, { type: "scout", region: region.id, survivor: scout.id }, now);
+  }
+  // Parties: the strongest fit survivors first.
+  for (let guard = 0; guard < 6; guard++) {
+    const fit = s.crew
+      .filter((member) => isFit(member, now))
+      .sort((a, b) => b.level - a.level)
+      .map((member) => member.id);
+    if (fit.length === 0) break;
+    const options = s.known
+      .flatMap((region) => sitesIn(content, region))
+      .map((site) => {
+        const party = fit.slice(0, partyLimit(content, site));
+        return { site, party, odds: tripOdds(content, s, site, party) };
+      })
+      .filter(
+        ({ site, party, odds }) =>
+          odds.success >= 50 && tripStatus(content, s, site.id, party, now).code === "ok",
+      )
+      .sort((a, b) => b.site.tier - a.site.tier || a.site.minutes - b.site.minutes);
+    const best = options[0];
+    if (!best) break;
+    s = act(content, s, { type: "send_trip", site: best.site.id, crew: best.party }, now);
+  }
+  return s;
+}
+
 export function simulate(content: Content, archetype: Archetype, days: number): Run {
   const start = 1_700_000_000;
   const clock = manualClock(start);
@@ -293,8 +373,15 @@ export function simulate(content: Content, archetype: Archetype, days: number): 
   const reached: Partial<Record<Tier, number>> = { twig: 1 };
   const firstMade: Record<string, number> = {};
   const stationsWorked: Record<string, number> = {};
+  const firstTrip: Partial<Record<number, number>> = {};
+  const tools: Record<string, number> = {};
   let today = 1;
   const record = (event: GameEvent) => {
+    if (event.type === "trip_started") {
+      const tier = siteOf(content, event.site)?.tier ?? 0;
+      firstTrip[tier] ??= today;
+      return;
+    }
     if (event.type !== "crafted") return;
     // A unit that landed before the check-in counts for the day it landed on.
     const day = Math.min(today, Math.floor((event.at - start) / DAY) + 1);
@@ -315,6 +402,7 @@ export function simulate(content: Content, archetype: Archetype, days: number): 
     const settled = settleAll(content, state, endOfDay);
     for (const event of settled.events) record(event);
     const settledState = settled.state;
+    tools[settledState.toolId] ??= day;
     if (reached[settledState.tier] === undefined) reached[settledState.tier] = day;
     rows.push({
       day,
@@ -329,12 +417,14 @@ export function simulate(content: Content, archetype: Archetype, days: number): 
       parts: content.resources
         .filter((resource) => resource.kind === "part")
         .reduce((sum, resource) => sum + (settledState.stock[resource.id] ?? 0), 0),
+      crew: settledState.crew.length,
+      known: settledState.known.length,
       buildings: buildingCount(settledState),
       building: settledState.construction.length > 0,
     });
   }
   listener = null;
-  return { archetype, rows, reached, firstMade, stationsWorked };
+  return { archetype, rows, reached, firstMade, stationsWorked, firstTrip, tools };
 }
 
 /** `cost` with every part broken down into what it is made of, down to gathered resources. */
@@ -399,6 +489,37 @@ export function checkPacing(content: Content, days = 35): CheckFailure[] {
         message: `casual's ${station} first worked on ${day === undefined ? "no day" : `day ${day}`}, target by day ${workedBy}`,
       });
     }
+  }
+  const firstTrip = Math.min(...Object.values(casual.firstTrip).filter((day) => day !== undefined));
+  if (!(firstTrip <= pacing.casual.firstTripByDay)) {
+    failures.push({
+      message: `casual's first trip left on day ${Number.isFinite(firstTrip) ? firstTrip : "never"}, target by day ${pacing.casual.firstTripByDay}`,
+    });
+  }
+  const tierThree = casual.firstTrip[3];
+  if (tierThree === undefined || tierThree > pacing.casual.tierThreeSiteByDay) {
+    failures.push({
+      message: `casual first went to a tier-3 site on ${tierThree === undefined ? "no day" : `day ${tierThree}`}, target by day ${pacing.casual.tierThreeSiteByDay}`,
+    });
+  }
+  const crewTarget = pacing.casual.crew;
+  const crewThen = casual.rows[crewTarget.day - 1]?.crew ?? 0;
+  if (crewThen < crewTarget.count) {
+    failures.push({
+      message: `casual has ${crewThen} survivors on day ${crewTarget.day}, target at least ${crewTarget.count}`,
+    });
+  }
+  const toolDay = casual.tools[pacing.casual.tool.id];
+  if (toolDay === undefined || toolDay > pacing.casual.tool.byDay) {
+    failures.push({
+      message: `casual got ${pacing.casual.tool.id} on ${toolDay === undefined ? "no day" : `day ${toolDay}`}, target by day ${pacing.casual.tool.byDay}`,
+    });
+  }
+  const optimalThree = optimal.firstTrip[3];
+  if (optimalThree !== undefined && optimalThree < pacing.optimal.tierThreeSiteNotBeforeDay) {
+    failures.push({
+      message: `optimal went to a tier-3 site on day ${optimalThree}, must not be before day ${pacing.optimal.tierThreeSiteNotBeforeDay}`,
+    });
   }
   const optimalHqm = optimal.reached.hqm;
   if (optimalHqm !== undefined && optimalHqm < pacing.optimal.hqmNotBeforeDay) {

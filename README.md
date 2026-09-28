@@ -6,7 +6,7 @@ browser, with a Discord bot as a companion. Private, single-server.
 - Spec: [CLAUDE.md](CLAUDE.md). Design: [docs/game-design.md](docs/game-design.md). Next phases:
   [docs/roadmap.md](docs/roadmap.md). Why things are the way they are:
   [docs/decisions.md](docs/decisions.md).
-- Current state: **W3** (the crafting web). Play at https://wipeday.patrikliska.dev
+- Current state: **W4a** (crew, the fogged island, expeditions). Play at https://wipeday.patrikliska.dev
   (Discord login). Locally, `pnpm dev` runs the API and the web client with dev test players.
   The Discord bot (`apps/discord`) is frozen on its old rules until W8.
 

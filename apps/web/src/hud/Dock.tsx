@@ -11,7 +11,7 @@ import {
 } from "@wipe-day/domain/base";
 import { craftOptions, jobEndsAt } from "@wipe-day/domain/craft";
 import { type Panel as PanelId, useWorld } from "../state/store";
-import { abbrev, content, duration, outputName, SURVIVORS, t } from "../state/world";
+import { abbrev, content, duration, outputName, t } from "../state/world";
 import { needLabel } from "./Cost";
 import { pendingOf } from "./derived";
 import { Tile } from "./Icon";
@@ -40,6 +40,7 @@ const DOCK_FOR: Record<Advice, string | null> = {
   furnace: "furnace",
   building: "build",
   craft: "craft",
+  map: "map",
   // The barrel glows in the scene itself.
   barrel: null,
 };
@@ -49,6 +50,8 @@ export function Dock() {
   const panel = useWorld((state) => state.panel);
   const openPanel = useWorld((state) => state.openPanel);
   const openRecipe = useWorld((state) => state.openRecipe);
+  const view = useWorld((state) => state.view);
+  const setView = useWorld((state) => state.setView);
   const gather = useWorld((state) => state.gather);
   const collect = useWorld((state) => state.collect);
   const base = useWorld((state) => state.base);
@@ -75,6 +78,8 @@ export function Dock() {
     .sort((a, b) => jobEndsAt(a) - jobEndsAt(b))[0];
   // The part the next tier or tool waits on: Craft opens straight on its recipe.
   const part = partWorthIt(content, base);
+  const unread = base.reports.filter((report) => !report.read).length;
+  const soonestBack = [...base.missions].sort((a, b) => a.endsAt - b.endsAt)[0];
   const tasksDone = base.tasks.done.length;
 
   // The builders first: what is going up and when it lands; then what can be built next.
@@ -106,6 +111,8 @@ export function Dock() {
           : t("hud.ready_in", { time: duration(readyIn) }),
       disabled: !gatherReady && !collectMode,
       onClick: () => {
+        // Gathering happens at the holdfast: from the map, go home first.
+        setView("base");
         if (collectMode) collect();
         else gather();
       },
@@ -154,11 +161,30 @@ export function Dock() {
       onClick: () => openPanel("furnace"),
     },
     {
+      // The fifth phone action (D84): the island; on the map it takes you home.
+      id: "map",
+      name: view === "map" ? t("action.holdfast") : t("action.map"),
+      glyph: "MA",
+      color: "#3aa0a0",
+      sub:
+        unread > 0
+          ? t("hud.reports", { count: unread })
+          : soonestBack
+            ? t("hud.away", {
+                count: base.missions.length,
+                time: duration(Math.max(0, soonestBack.endsAt - now)),
+              })
+            : t("hud.explore"),
+      badge: unread > 0 ? String(unread) : undefined,
+      onClick: () => setView(view === "map" ? "base" : "map"),
+    },
+    {
       id: "squad",
       name: t("action.squad"),
       glyph: "SQ",
       color: "#4a7fb5",
-      sub: t("hud.crew_count", { count: SURVIVORS.length }),
+      sub: t("hud.crew_count", { count: base.crew.length }),
+      extra: true,
       panel: "squad",
       onClick: () => openPanel("squad"),
     },
@@ -186,7 +212,7 @@ export function Dock() {
   return (
     <>
       {/* The hint points at the dock; with a panel open (a sheet on phones) it would cover it. */}
-      {hint && !panelOpen ? (
+      {hint && !panelOpen && view === "base" ? (
         <p className="glass advice" aria-live="polite">
           {t(`hint.${hint}`)}
         </p>

@@ -82,6 +82,23 @@ export function normalizeState(content: Content, stored: unknown): BaseState {
     production: raw.production ?? {},
     blueprints: raw.blueprints ?? [],
     wellFed: raw.wellFed ?? null,
+    // W4: the crew stops being scenery. W3 bases get the starting crew and the home shore.
+    crew:
+      raw.crew ??
+      content.crewRules.start.map((id) => ({
+        id,
+        level: 1,
+        xp: 0,
+        gear: { weapon: null, armor: null },
+        injuredUntil: null,
+        away: null,
+      })),
+    nextArrivalAt:
+      raw.nextArrivalAt ?? (raw.lastCollectedAt ?? 0) + content.crewRules.arrivalHours * 3600,
+    known: raw.known ?? content.regions.filter((region) => region.ring === 0).map((r) => r.id),
+    missions: raw.missions ?? [],
+    reports: raw.reports ?? [],
+    missionSeq: raw.missionSeq ?? 0,
     nodeRun: raw.nodeRun ? { ...raw.nodeRun, from: raw.nodeRun.from ?? 0 } : null,
     hints: raw.hints ?? {},
   };

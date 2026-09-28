@@ -11,14 +11,17 @@ import {
   gainLines,
   missingLabel,
   outputName,
+  regionName,
+  siteName,
   stationName,
+  survivorName,
   t,
   taskName,
   tierName,
   toolName,
 } from "./world";
 
-export type Panel = "build" | "craft" | "furnace" | "inventory" | "tasks" | "squad" | null;
+export type Panel = "build" | "craft" | "furnace" | "inventory" | "tasks" | "squad" | "map" | null;
 export type Tone = "neutral" | "success" | "warning" | "danger";
 
 export interface Message {
@@ -28,6 +31,8 @@ export interface Message {
   panel?: Panel;
   /** A recipe that makes what was missing: the button opens it ("Make planks"). */
   recipe?: string;
+  /** A report to read: the button opens its card. */
+  report?: string;
 }
 
 /** Refined resources come out of the furnace; everything else from gathering. */
@@ -35,6 +40,12 @@ const refined = new Set(
   content.resources.filter((resource) => resource.kind === "refined").map((r) => r.id),
 );
 const made = new Set(content.recipes.map((recipe) => recipe.output));
+
+/** The lowest base tier whose scouts reach `ring`. */
+function tierForRange(ring: number): string {
+  const tiers = ["twig", "wood", "stone", "metal", "hqm"] as const;
+  return tiers.find((tier) => (content.mapRules.range[tier] ?? 0) >= ring) ?? "hqm";
+}
 
 export function refusalMessage(refusal: Refusal, now: number): Message | null {
   switch (refusal.code) {
@@ -110,6 +121,35 @@ export function refusalMessage(refusal: Refusal, now: number): Message | null {
       return { text: t("refusal.not_owned"), tone: "neutral" };
     case "not_meal":
       return { text: t("refusal.not_meal"), tone: "danger" };
+    case "known":
+      return { text: t("refusal.known"), tone: "neutral" };
+    case "scouting":
+      return { text: t("refusal.scouting"), tone: "neutral" };
+    case "hidden":
+      return { text: t("refusal.hidden"), tone: "neutral" };
+    case "far":
+      return {
+        text: t("refusal.far", { tier: tierName(tierForRange(refusal.ring)) }),
+        tone: "warning",
+        panel: "build",
+      };
+    case "no_survivor":
+      return { text: t("refusal.no_survivor"), tone: "neutral", panel: "squad" };
+    case "unfit":
+      return {
+        text: t("refusal.unfit", { name: survivorName(refusal.survivor) }),
+        tone: "neutral",
+        panel: "squad",
+      };
+    case "no_party":
+      return { text: t("refusal.no_party"), tone: "neutral" };
+    case "party_size":
+      return { text: t("refusal.party_size", { most: refusal.most }), tone: "neutral" };
+    case "away":
+      return { text: t("refusal.away"), tone: "neutral" };
+    case "wrong_slot":
+    case "not_injured":
+      return { text: t("refusal.unknown"), tone: "neutral" };
     case "fed_better":
       return {
         text: t("refusal.fed_better", { time: duration(refusal.until - now) }),
@@ -154,6 +194,24 @@ export function eventMessage(event: GameEvent): Message | null {
       // Units land one by one; the toast waits for the job's last.
       if (!event.done) return null;
       return { text: t("toast.crafted", { item: outputName(event.recipe) }), tone: "success" };
+    case "mission_back":
+      return {
+        text:
+          event.kind === "scout"
+            ? t("toast.scout_back", {
+                name: survivorName(event.crew[0] ?? ""),
+                region: regionName(event.target),
+              })
+            : t(`toast.trip_${event.outcome}`, { site: siteName(event.target) }),
+        tone: event.outcome === "fail" ? "warning" : "success",
+        report: event.mission,
+      };
+    case "survivor_arrived":
+      return {
+        text: t("toast.arrived", { name: survivorName(event.survivor) }),
+        tone: "success",
+        panel: "squad",
+      };
     case "blueprint_found":
       return {
         text: t("toast.blueprint", { item: outputName(event.recipe) }),

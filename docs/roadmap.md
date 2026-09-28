@@ -14,8 +14,10 @@ agent should think at each step**.
 - W2 done: 16 building types with 3 levels each, builders, decay by building, the scene's
   fixed spots and a wider phone view (D69-D75).
 - W3 done: parts on the road to every tier, a queue per station, blueprints for extras, meals,
-  salvage, the recipe browser; worn nodes instead of lost ones (D76-D83). Next: W4, survivors
-  and expeditions.
+  salvage, the recipe browser; worn nodes instead of lost ones (D76-D83).
+- W4a done: a real crew (arrivals, traits, levels, gear, injuries), the fogged island with
+  scouting for a fee, trips to eight ruins in tiers 1-3, report cards (D84-D89). Next: W4b,
+  crew jobs, trip events, keycodes, the sea and the far north, the feed.
 - Discord bot (`apps/discord`): phases 0-2b, frozen on its own copy of the old rules (D57).
 - Decision: the web app is the main client, Discord becomes a companion (D40).
 
@@ -170,7 +172,7 @@ Result:
     sites and raids that use it;
   - pins are per device, not per account.
 
-### W4. Survivors and expeditions
+### W4. Survivors and expeditions (W4a done, W4b next)
 
 *Goal:* the second big loop: send people out, get stories and loot back.
 

@@ -159,28 +159,6 @@
       "effect": "Serve it: +{percent}% from Gather and node hits for {hours}h"
     }
   },
-  "perk": {
-    "scavenger": {
-      "name": "Scavenger",
-      "effect": "More loot from ruins"
-    },
-    "medic": {
-      "name": "Medic",
-      "effect": "Patches up the crew"
-    },
-    "demolition": {
-      "name": "Demolition",
-      "effect": "Opens what others cannot"
-    },
-    "marksman": {
-      "name": "Marksman",
-      "effect": "Keeps trouble at a distance"
-    },
-    "mule": {
-      "name": "Mule",
-      "effect": "Carries more home"
-    }
-  },
   "crew": {
     "mara": {
       "name": "Mara"
@@ -190,6 +168,33 @@
     },
     "ivo": {
       "name": "Ivo"
+    },
+    "rook": {
+      "name": "Rook"
+    },
+    "sela": {
+      "name": "Sela"
+    },
+    "bram": {
+      "name": "Bram"
+    },
+    "wren": {
+      "name": "Wren"
+    },
+    "otto": {
+      "name": "Otto"
+    },
+    "juno": {
+      "name": "Juno"
+    },
+    "pike": {
+      "name": "Pike"
+    },
+    "hale": {
+      "name": "Hale"
+    },
+    "tamsin": {
+      "name": "Tamsin"
     }
   },
   "node": {
@@ -230,6 +235,9 @@
     },
     "craft_1": {
       "name": "Craft something"
+    },
+    "trip_1": {
+      "name": "Send a party out on a trip"
     }
   },
   "hud": {
@@ -266,7 +274,10 @@
     "can_build": "a building is ready",
     "building_level": "{building} level {level}",
     "crafting_now": "{item} · {time}",
-    "well_fed": "Well fed +{percent}% · {time}"
+    "well_fed": "Well fed +{percent}% · {time}",
+    "away": "{count} out · {time}",
+    "explore": "Explore",
+    "reports": "{count} back"
   },
   "action": {
     "gather": "Gather",
@@ -277,7 +288,9 @@
     "furnace": "Furnace",
     "squad": "Squad",
     "inventory": "Inventory",
-    "tasks": "Tasks"
+    "tasks": "Tasks",
+    "map": "Map",
+    "holdfast": "Holdfast"
   },
   "panel": {
     "build": "Build",
@@ -285,7 +298,8 @@
     "furnace": "Furnace",
     "inventory": "Inventory",
     "tasks": "Daily tasks",
-    "squad": "Squad"
+    "squad": "Squad",
+    "map": "The Island"
   },
   "weather": {
     "clear": "Clear",
@@ -307,7 +321,8 @@
     "furnace": "Ore is piling up: build or feed the furnace to turn it into ingots.",
     "craft": "Storage is tight: craft a crate for more room.",
     "barrel": "A barrel washed up: tap it on the shore before it drifts off.",
-    "building": "A builder is free and a building is affordable: open Upgrade to put it up."
+    "building": "A builder is free and a building is affordable: open Upgrade to put it up.",
+    "map": "Your crew can head out: open the Map, scout the fog, send a party to the ruins."
   },
   "build": {
     "hint": "Each tier raises storage, furnace slots and builders. Upkeep rises with it.",
@@ -439,9 +454,19 @@
     "parts_hint": "Made at the stations. No storage limit; tap one to make more."
   },
   "squad": {
-    "hint": "Your crew works the nodes by day and rests by the fire at night. Expeditions come later.",
-    "health": "{health} / 100 health",
-    "expedition_soon": "Expeditions · coming later"
+    "count": "Crew {count} of {cap}",
+    "next_boat": "next boat in {time}",
+    "level": "Level {level}",
+    "home": "At the holdfast",
+    "hurt": "Hurt: resting for {time}",
+    "scouting": "Scouting {place} · back in {time}",
+    "on_trip": "At the {place} · back in {time}",
+    "weapon": "Weapon",
+    "armor": "Armour",
+    "no_weapon": "No weapon",
+    "no_armor": "No armour",
+    "treat": "Treat with a {item} · −{hours}h",
+    "treat_none": "Make bandages at the loom to treat injuries"
   },
   "tasks": {
     "hint": "Three small goals a day. Rewards land the moment a task completes. New set in {time}.",
@@ -465,7 +490,12 @@
     "collect": "Collect everything",
     "leave": "Leave it",
     "continue": "Back to the base",
-    "building_done": "{building} was built."
+    "building_done": "{building} was built.",
+    "scouted": "A scout mapped {region}.",
+    "trip_success": "A party came back from the {site} with a haul.",
+    "trip_partial": "A party came back from the {site} with a little.",
+    "trip_fail": "A party came back from the {site} empty-handed.",
+    "arrived": "{name} arrived by boat and joined the crew."
   },
   "toast": {
     "task_done": "Task done: {task}",
@@ -481,7 +511,12 @@
     "building_decayed": "Upkeep ran out: {building} lost a level.",
     "blueprint": "Blueprint found: {item}",
     "served": "{meal} served: +{percent}% from Gather and nodes",
-    "salvaged": "{item} salvaged: {gains}"
+    "salvaged": "{item} salvaged: {gains}",
+    "arrived": "{name} stepped off a boat and joined the crew.",
+    "scout_back": "{name} is back: {region} is on the map.",
+    "trip_success": "The party is back from the {site} with a haul.",
+    "trip_partial": "The party is back from the {site} with a little.",
+    "trip_fail": "The party is back from the {site} empty-handed."
   },
   "refusal": {
     "cooldown": "Gather is ready again in {time}.",
@@ -507,7 +542,16 @@
     "not_owned": "You have none of those.",
     "not_meal": "That is not something to eat.",
     "fed_better": "A better meal is still working: {time} left.",
-    "no_job": "That job is already done."
+    "no_job": "That job is already done.",
+    "known": "That region is already scouted.",
+    "scouting": "A scout is already on the way there.",
+    "hidden": "Scout the regions next to it first.",
+    "far": "Too far for now: a {tier} base can supply a scout that far.",
+    "no_survivor": "Everyone is out or hurt right now.",
+    "unfit": "{name} is out or hurt.",
+    "no_party": "Pick who goes first.",
+    "party_size": "At most {most} can go there.",
+    "away": "They are out on a mission."
   },
   "login": {
     "title": "Wipe Day",
@@ -612,5 +656,234 @@
     "graceHours": "+{value} h before upkeep costs a level",
     "workbench": "workbench level {value}",
     "furnace": "{value}"
+  },
+  "trait": {
+    "scavenger": {
+      "name": "Scavenger",
+      "effect": "+20% loot from every trip"
+    },
+    "mule": {
+      "name": "Mule",
+      "effect": "Carries one more haul home"
+    },
+    "navigator": {
+      "name": "Navigator",
+      "effect": "Trips 15% shorter; sure-footed in flooded places"
+    },
+    "marksman": {
+      "name": "Marksman",
+      "effect": "Better odds where it turns hostile"
+    },
+    "demolition": {
+      "name": "Demolition",
+      "effect": "Better odds where the way is blocked"
+    },
+    "medic": {
+      "name": "Medic",
+      "effect": "Fewer injuries in the party; heals faster"
+    },
+    "cautious": {
+      "name": "Cautious",
+      "effect": "Fewer injuries; careful where the ground is unstable"
+    },
+    "brave": {
+      "name": "Brave",
+      "effect": "Better odds everywhere"
+    },
+    "lucky": {
+      "name": "Lucky",
+      "effect": "Finds blueprints and map scraps more often"
+    },
+    "cook": {
+      "name": "Cook",
+      "effect": "Good with a pot and a fire"
+    },
+    "tinkerer": {
+      "name": "Tinkerer",
+      "effect": "Good with tools and broken things"
+    }
+  },
+  "region": {
+    "landing": {
+      "name": "The Landing",
+      "blurb": "Your stretch of shore. The wreck on the rocks is the first place worth a look."
+    },
+    "tidal_flats": {
+      "name": "Tidal Flats",
+      "blurb": "Mud, reeds and an old campground half sunk in them."
+    },
+    "pine_ridge": {
+      "name": "Pine Ridge",
+      "blurb": "Dark pines on the rise behind the holdfast; paths lead on north and east."
+    },
+    "ferry_point": {
+      "name": "Ferry Point",
+      "blurb": "Where the ferry used to dock: ticket halls and rows of rusted cars."
+    },
+    "rust_bay": {
+      "name": "Rust Bay",
+      "blurb": "A bay of red water below the old cannery."
+    },
+    "quarry_hills": {
+      "name": "Quarry Hills",
+      "blurb": "Terraced stone and a flooded pit, machines still standing in it."
+    },
+    "stormcap": {
+      "name": "Stormcap",
+      "blurb": "Bare cliffs where the wind never stops. Someone kept a weather station up here."
+    },
+    "sulfur_springs": {
+      "name": "Sulfur Springs",
+      "blurb": "Yellow pools and the smell of eggs. The mine shafts start here."
+    },
+    "signal_hill": {
+      "name": "Signal Hill",
+      "blurb": "The island's high point, crowned by a white dome."
+    }
+  },
+  "site": {
+    "beach_wreck": {
+      "name": "Beach Wreck",
+      "blurb": "A fishing boat broken on the rocks, still full of rope and nets."
+    },
+    "old_campground": {
+      "name": "Old Campground",
+      "blurb": "Tents, a shop shell and whatever the campers left behind."
+    },
+    "quarry": {
+      "name": "Quarry",
+      "blurb": "Cut stone, loose ore, and workshops with gears in the drawers."
+    },
+    "cannery": {
+      "name": "Cannery",
+      "blurb": "Rusted lines and a cold store. Something else has moved in."
+    },
+    "ferry_terminal": {
+      "name": "Ferry Terminal",
+      "blurb": "Cars, halls, a lost-luggage room nobody emptied."
+    },
+    "observatory": {
+      "name": "Observatory",
+      "blurb": "Lenses, springs, clockwork and a library of plans."
+    },
+    "weather_station": {
+      "name": "Weather Station",
+      "blurb": "Instruments, plates and fuel, in rooms the sea keeps reaching."
+    },
+    "flooded_mine": {
+      "name": "Flooded Mine",
+      "blurb": "Sulfur veins and ore, deep in dark water."
+    }
+  },
+  "story": {
+    "beach_wreck": {
+      "success": "{name} climbed through the wheelhouse and came back hauling rope and a sack of odds and ends.",
+      "partial": "{name} got aboard, but the tide came in fast; they grabbed what they could.",
+      "fail": "The hull shifted under {name}. Nothing came back but wet boots."
+    },
+    "old_campground": {
+      "success": "{name} cleared the shop shell and found the campers' stores untouched.",
+      "partial": "{name} dug through the tents; most had been picked over already.",
+      "fail": "{name} found the paths choked with fallen trees and turned back."
+    },
+    "quarry": {
+      "success": "{name} got the old winch going and hauled up a load of stone and ore.",
+      "partial": "{name} worked the loose rock at the edge of the pit and filled a cart.",
+      "fail": "A slide closed the ramp. {name} walked the long way home empty-handed."
+    },
+    "cannery": {
+      "success": "{name} slipped past the squatters and cleared the cold store.",
+      "partial": "{name} was spotted at the loading bay but got away with a few crates.",
+      "fail": "{name} was chased off the lines before reaching anything worth taking."
+    },
+    "ferry_terminal": {
+      "success": "{name} cracked the lost-luggage room: scrap, cloth, and more.",
+      "partial": "{name} went through the cars in the lot; slim pickings, but something.",
+      "fail": "Someone else had the terminal. {name} kept their head down and left."
+    },
+    "observatory": {
+      "success": "{name} brought back clockwork from the dome and a roll of old plans.",
+      "partial": "{name} reached the lower floor before the stairs gave out.",
+      "fail": "The dome groaned in the wind and {name} decided it was not worth it."
+    },
+    "weather_station": {
+      "success": "{name} got between the waves and cleared the instrument rooms.",
+      "partial": "{name} salvaged the outer sheds while the sea was out.",
+      "fail": "The spray never let up. {name} could not get near the door."
+    },
+    "flooded_mine": {
+      "success": "{name} waded the first shaft and brought up sulfur and ore.",
+      "partial": "{name} worked the dry end of the tunnel and filled a few sacks.",
+      "fail": "The water was higher than the charts said. {name} turned back."
+    }
+  },
+  "map": {
+    "home": "Your holdfast",
+    "scout": "Scout",
+    "too_far": "Too far",
+    "scouting": "Scouting · {time}",
+    "overview_hint": "Tap a region to scout it, a ruin to send a party.",
+    "away": "Out now",
+    "reports": "Reports",
+    "outcome_success": "Success",
+    "outcome_partial": "Partly",
+    "outcome_fail": "Came back empty",
+    "outcome_scouted": "Scouted",
+    "busy": "Out on a mission",
+    "hurt": "Hurt: resting",
+    "back": "‹ The island",
+    "back_to": "‹ {region}",
+    "known": "Scouted",
+    "fogged": "Under fog",
+    "fog_blurb": "Nobody knows what is out there yet. Send someone to look.",
+    "sites_here": "Ruins here",
+    "no_sites": "Nothing worth a trip here; the way on runs through it.",
+    "tier": "Tier {tier}",
+    "far": "Too far for now: a {tier} base can supply a scout that far.",
+    "hidden": "Scout the regions next to it first.",
+    "scouting_now": "A scout is on the way there.",
+    "no_one": "Everyone is out or hurt.",
+    "unfit": "They are out or hurt.",
+    "need": "Need {need}",
+    "scout_who": "Who goes",
+    "scout_cost": "The fee",
+    "scout_line": "A scout needs {time} there and back.",
+    "left_after": "Leaves {list}.",
+    "scout_go": "Send {name} · {time}",
+    "hazard_hostile": "Hostile",
+    "hazard_blocked": "Blocked",
+    "hazard_unstable": "Unstable",
+    "hazard_flooded": "Flooded",
+    "party_there": "A party is there: back in {time}.",
+    "party": "The party (up to {most})",
+    "odds": "The odds",
+    "success": "Success",
+    "something": "Something",
+    "injury": "Injury risk",
+    "time": "Time",
+    "loot_line": "A success brings {rolls} hauls, each one of: {loot}.",
+    "blueprint_chance": "{percent}% chance of a blueprint.",
+    "fragment_chance": "{percent}% chance of a map scrap.",
+    "rations": "Rations",
+    "pick_party": "Pick who goes",
+    "party_size": "At most {most} can go",
+    "send": "Send {count} · {time}",
+    "read_report": "Read"
+  },
+  "report": {
+    "success": "Success",
+    "partial": "Partly",
+    "fail": "Came back empty",
+    "scout_back": "Scout's back",
+    "and": "and",
+    "scouted": "{name} walked {region} end to end and mapped what is there.",
+    "revealed": "Mapped: {regions}.",
+    "blueprint": "Blueprint found: {item}.",
+    "xp": "+{xp} XP each.",
+    "level_up": "Level up: {names}!",
+    "injured": "{name} got hurt: resting for {time}.",
+    "close": "Close",
+    "again": "Send again",
+    "see_map": "See it on the map"
   }
 }

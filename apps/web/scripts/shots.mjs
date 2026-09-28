@@ -68,6 +68,96 @@ const CRAFT_STOCK = {
   cloth: 10,
   plates: 12,
 };
+/** The crew a week in: levels, gear, one hurt, two out on missions. */
+const CREW = (day) => [
+  {
+    id: "mara",
+    level: 3,
+    xp: 300,
+    gear: { weapon: "bow", armor: null },
+    injuredUntil: null,
+    away: "m7",
+  },
+  {
+    id: "dax",
+    level: 2,
+    xp: 180,
+    gear: { weapon: null, armor: "leather_vest" },
+    injuredUntil: null,
+    away: "m7",
+  },
+  {
+    id: "ivo",
+    level: 2,
+    xp: 140,
+    gear: { weapon: null, armor: null },
+    injuredUntil: at(day, 13),
+    away: null,
+  },
+  {
+    id: "rook",
+    level: 1,
+    xp: 40,
+    gear: { weapon: "spear", armor: null },
+    injuredUntil: null,
+    away: null,
+  },
+  {
+    id: "sela",
+    level: 1,
+    xp: 0,
+    gear: { weapon: null, armor: null },
+    injuredUntil: null,
+    away: null,
+  },
+];
+const KNOWN = ["landing", "tidal_flats", "pine_ridge", "ferry_point", "quarry_hills"];
+const MISSIONS = (day) => [
+  {
+    id: "m7",
+    kind: "trip",
+    target: "quarry",
+    crew: ["mara", "dax"],
+    startedAt: at(day, 10),
+    endsAt: at(day, 12.5),
+    seed: 7,
+    odds: {
+      success: 78,
+      partial: 89,
+      injury: [11, 8],
+      minutes: 150,
+      rolls: 3,
+      loot: 20,
+      blueprint: 5,
+      fragment: 12,
+    },
+  },
+];
+const REPORT = (day, outcome) => ({
+  id: "m6",
+  kind: "trip",
+  target: "beach_wreck",
+  outcome,
+  crew: ["rook", "sela"],
+  gained: outcome === "fail" ? {} : { scrap: 11, rope: 7, food: 18 },
+  injured: outcome === "fail" ? [{ id: "rook", until: at(day, 13) }] : [],
+  xp: outcome === "fail" ? 5 : 20,
+  levelUps: outcome === "success" ? ["sela"] : [],
+  revealed: outcome === "success" ? ["rust_bay"] : [],
+  blueprint: null,
+  at: at(day, 10.5),
+  read: false,
+});
+const MAP_STATE = (day) => ({
+  time: at(day, 11),
+  tier: "stone",
+  buildings: MIDGAME,
+  stock: CRAFT_STOCK,
+  crew: CREW(day),
+  known: KNOWN,
+  missions: MISSIONS(day),
+  items: { bandage: 2, crate: 2 },
+});
 /** Two stations at work: planks at the workbench, a queue at the loom. */
 const BUSY = (day) => ({
   workbench: [
@@ -482,6 +572,84 @@ const SHOTS = [
     },
   },
   {
+    name: "map_fresh",
+    viewport: [1600, 900],
+    state: { time: at(1, 11), view: "map" },
+  },
+  {
+    name: "map_desktop",
+    viewport: [1600, 900],
+    state: { ...MAP_STATE(7), view: "map" },
+  },
+  {
+    name: "map_site_desktop",
+    viewport: [1600, 900],
+    state: {
+      ...MAP_STATE(7),
+      view: "map",
+      panel: "map",
+      mapFocus: { kind: "site", id: "old_campground" },
+    },
+  },
+  {
+    name: "phone_map",
+    viewport: [390, 844],
+    scale: 3,
+    state: { ...MAP_STATE(7), view: "map" },
+  },
+  {
+    name: "phone_map_region",
+    viewport: [390, 844],
+    scale: 3,
+    state: {
+      ...MAP_STATE(7),
+      view: "map",
+      panel: "map",
+      mapFocus: { kind: "region", id: "rust_bay" },
+    },
+  },
+  {
+    name: "phone_map_site",
+    viewport: [390, 844],
+    scale: 3,
+    state: {
+      ...MAP_STATE(7),
+      view: "map",
+      panel: "map",
+      mapFocus: { kind: "site", id: "old_campground" },
+    },
+  },
+  {
+    name: "phone_map_site_odds",
+    viewport: [390, 844],
+    scale: 3,
+    state: {
+      ...MAP_STATE(7),
+      view: "map",
+      panel: "map",
+      mapFocus: { kind: "site", id: "old_campground" },
+    },
+    scrollTo: ".panel .odds",
+  },
+  {
+    name: "phone_report_success",
+    viewport: [390, 844],
+    scale: 3,
+    state: { ...MAP_STATE(7), reports: [REPORT(7, "success")], report: "m6" },
+  },
+  {
+    name: "phone_report_fail",
+    viewport: [390, 844],
+    scale: 3,
+    state: { ...MAP_STATE(7), reports: [REPORT(7, "fail")], report: "m6" },
+  },
+  {
+    name: "phone_crew",
+    viewport: [390, 844],
+    scale: 3,
+    state: { ...MAP_STATE(7), panel: "squad" },
+  },
+  {
     name: "phone_craft",
     viewport: [390, 844],
     scale: 3,
@@ -608,7 +776,8 @@ async function main() {
       // The demo clock stops at the shot's moment. Upkeep, collection and the barrel are anchored
       // to that moment so jumping days ahead neither decays the base nor fills storage.
       const { store, clocks } = window.__wipeDay;
-      const { time, panel, station, recipe, weather, welcome, ...base } = state;
+      const { time, panel, station, recipe, view, mapFocus, report, weather, welcome, ...base } =
+        state;
       clocks.game.setPaused(true);
       if (time !== undefined) clocks.game.set(time);
       const now = Math.floor(clocks.game.nowMs() / 1000);
@@ -628,6 +797,9 @@ async function main() {
         panel: panel ?? null,
         station: station ?? "workbench",
         recipe: recipe ?? null,
+        view: view ?? "base",
+        mapFocus: mapFocus ?? null,
+        report: report ?? null,
         demoOpen: false,
         toasts: [],
         welcomeBack: welcome ? { awaySeconds: 3 * 3600, events: [] } : null,

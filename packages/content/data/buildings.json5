@@ -10,8 +10,8 @@
 // whatever the tool), cap (room for every resource), fuelPer100Ore (less furnace fuel),
 // smeltPercent (faster furnaces), craftPercent (faster crafting), haulMinutes (bigger daily
 // node haul), barrelLifeMinutes (barrels stay longer), barrelEveryMinutes (barrels come
-// sooner), graceHours (longer before unpaid upkeep costs a level), furnace (furnace type,
-// 1 = the first in furnaces.json5).
+// sooner), graceHours (longer before unpaid upkeep costs a level), crew (room for more
+// survivors), furnace (furnace type, 1 = the first in furnaces.json5).
 {
   buildings: [
     {
@@ -65,9 +65,9 @@
     {
       id: "bunkhouse", unlockTier: "wood",
       levels: [
-        { cost: { planks: 80, stone: 300 }, minutes: 30, upkeep: {}, effects: { haulMinutes: 30 } },
-        { minTier: "stone", cost: { planks: 200, stone: 1500, cloth: 40 }, minutes: 120, upkeep: { timber: 3 }, effects: { haulMinutes: 60 } },
-        { minTier: "metal", cost: { stone: 6000, frames: 40, cloth: 120 }, minutes: 360, upkeep: { timber: 6 }, effects: { haulMinutes: 90 } },
+        { cost: { planks: 80, stone: 300 }, minutes: 30, upkeep: {}, effects: { haulMinutes: 30, crew: 1 } },
+        { minTier: "stone", cost: { planks: 200, stone: 1500, cloth: 40 }, minutes: 120, upkeep: { timber: 3 }, effects: { haulMinutes: 60, crew: 2 } },
+        { minTier: "metal", cost: { stone: 6000, frames: 40, cloth: 120 }, minutes: 360, upkeep: { timber: 6 }, effects: { haulMinutes: 90, crew: 3 } },
       ],
     },
     {

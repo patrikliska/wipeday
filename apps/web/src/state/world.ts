@@ -13,10 +13,13 @@ import furnacesFile from "@wipe-day/content/data/furnaces.json5";
 import itemsFile from "@wipe-day/content/data/items.json5";
 import nodesFile from "@wipe-day/content/data/nodes.json5";
 import pacingFile from "@wipe-day/content/data/pacing.json5";
-import perksFile from "@wipe-day/content/data/perks.json5";
+
 import recipesFile from "@wipe-day/content/data/recipes.json5";
+import regionsFile from "@wipe-day/content/data/regions.json5";
 import resourcesFile from "@wipe-day/content/data/resources.json5";
+import sitesFile from "@wipe-day/content/data/sites.json5";
 import toolsFile from "@wipe-day/content/data/tools.json5";
+import traitsFile from "@wipe-day/content/data/traits.json5";
 import { Locale, type LocaleArgs } from "@wipe-day/content/locale";
 import en from "@wipe-day/content/locale/en.json";
 import { parseContent } from "@wipe-day/content/parse";
@@ -42,7 +45,9 @@ export const content: Content = parseContent(
     "furnaces.json5": furnacesFile,
     "items.json5": itemsFile,
     "buildings.json5": buildingsFile,
-    "perks.json5": perksFile,
+    "traits.json5": traitsFile,
+    "regions.json5": regionsFile,
+    "sites.json5": sitesFile,
     "crew.json5": crewFile,
     "recipes.json5": recipesFile,
     "crafting.json5": craftingFile,
@@ -133,24 +138,48 @@ export function initials(name: string): string {
   return `${first}${second}`.toUpperCase();
 }
 
-/** A crew member as the scene and the squad panel draw them. */
-export interface Survivor {
+/** How a survivor looks, for the scene and the crew panel (their state is in the base). */
+export interface SurvivorLook {
   id: string;
   name: string;
   /** Hat colour, the one thing that tells them apart until portraits exist. */
   hat: string;
-  perk: string;
-  health: number;
+  traits: string[];
+  /** Fixed per survivor: clothes, hair and hat shape. */
+  style: number;
 }
 
-const HATS: Record<string, string> = { mara: "#c85a2b", dax: "#4a7fb5", ivo: "#7fa043" };
-export const SURVIVORS: Survivor[] = content.crew.map((member) => ({
-  id: member.id,
-  name: t(`crew.${member.id}.name`),
-  hat: HATS[member.id] ?? "#a49e93",
-  perk: member.perk,
-  health: member.health,
-}));
+const HATS: Record<string, string> = {
+  mara: "#c85a2b",
+  dax: "#4a7fb5",
+  ivo: "#7fa043",
+  rook: "#8a5ab0",
+  sela: "#d8b24a",
+  bram: "#6e5a3a",
+  wren: "#3aa0a0",
+  otto: "#b04a4a",
+  juno: "#d87aa0",
+  pike: "#4a6e4a",
+  hale: "#e08a3a",
+  tamsin: "#5a6ec8",
+};
+
+export const survivorName = (id: string): string => t(`crew.${id}.name`);
+
+export function survivorLook(id: string): SurvivorLook {
+  const index = content.crew.findIndex((member) => member.id === id);
+  return {
+    id,
+    name: survivorName(id),
+    hat: HATS[id] ?? "#a49e93",
+    traits: content.crew[index]?.traits ?? [],
+    style: Math.max(0, index),
+  };
+}
+
+export const regionName = (id: string): string => t(`region.${id}.name`);
+export const siteName = (id: string): string => t(`site.${id}.name`);
+export const traitName = (id: string): string => t(`trait.${id}.name`);
 
 export const GAME_DAY = 86_400;
 

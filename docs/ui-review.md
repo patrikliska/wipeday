@@ -513,3 +513,44 @@ reviewed over three iterations.
   - The scene floater from a station behind the side panel (desktop) is partly covered.
   - Station tabs past the fifth scroll sideways on a phone with no visible hint that more
     exist.
+
+### W4a: the island map, the trip confirm, the report card, the crew
+
+New shots:
+- map: `map_fresh`, `map_desktop`, `map_site_desktop`, `phone_map`, `phone_map_region`,
+  `phone_map_site`, `phone_map_site_odds`;
+- reports: `phone_report_success`, `phone_report_fail`;
+- crew: `phone_crew`.
+
+68 shots in all, no console errors.
+
+- Map, iteration 1, what was wrong:
+  - The five known regions were still under fog in every shot: the fog eased out over a few
+    seconds even on the first frame.
+  - The ruins were hidden under the fog.
+  - The advisor's barrel hint sat over the map.
+- Map, iteration 2, what changed and what was still wrong:
+  - Fog snaps to its state on first show and parts slowly only when a scout returns.
+  - The hint pill hides while the map is open.
+  - Still wrong:
+    - ruin markers were oversized, about 30 CSS px, the Beach Wreck's covering the holdfast;
+    - "Quarry · 1h 30m" ran into "Pine Ridge";
+    - the island left room unused on a phone.
+- Map, iteration 3, what changed:
+  - Markers are drawn 22 px across, with a 48 px tap area kept apart from the drawing (D48).
+  - The holdfast sits north of its region's centre, its name above its roof.
+  - Regions without ruins centre their name.
+  - The island fills the phone's width.
+- Trip confirm:
+  - The loot line read "24–144 food, 36–216 fibre", which suggests all of it. It now says "3
+    hauls, each one of: 24–48 food, 36–72 fibre…", which is the truth.
+  - "There and back" wrapped in the odds box: now "Time".
+  - The party picker dims and explains who can't go ("Out on a mission", "Hurt: resting").
+  - One primary button: Send.
+- Report card: the outcome in its colour, a story line with every name, loot chips, what was
+  mapped, XP and level-ups, injuries in amber, and "Send again" or "See it on the map".
+- Crew panel: gear dropdowns for survivors away looked enabled: now dimmed.
+- Still open:
+  - On desktop the side panel covers the island's east coast; it can be panned.
+  - The map has no night look yet.
+  - The crew panel's big faces are placeholders until portraits exist.

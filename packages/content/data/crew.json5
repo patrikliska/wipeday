@@ -1,9 +1,31 @@
-// The crew every base starts with. Names are in the locale (`crew.{id}.name`); perks in
-// perks.json5. Crew get jobs, levels and injuries in W4; until then they live in the scene.
+// Survivors. The first ones start at the holdfast; the rest arrive by boat, one every
+// `arrivalHours`, while the crew is under its cap (baseCap plus the bunkhouse's `crew`
+// effect). Names are in the locale (`crew.{id}.name`); traits in traits.json5.
 {
+  rules: {
+    start: ["mara", "dax", "ivo"],
+    baseCap: 4,
+    arrivalHours: 24,
+    // XP to reach level 2, 3, ... (cumulative). Each level adds successPerLevel points.
+    levels: [100, 250, 450, 700, 1000, 1400, 1900, 2500, 3200],
+    successPerLevel: 3,
+    // Each extra member of a party adds this much success (they cover each other).
+    successPerCompanion: 5,
+    // Items that treat an injury, and how many hours each takes off.
+    treat: { bandage: 2, first_aid_kit: 6 },
+  },
   crew: [
-    { id: "mara", perk: "scavenger", health: 100 },
-    { id: "dax", perk: "demolition", health: 100 },
-    { id: "ivo", perk: "medic", health: 64 },
+    { id: "mara", traits: ["scavenger", "cautious"] },
+    { id: "dax", traits: ["demolition", "brave"] },
+    { id: "ivo", traits: ["medic", "navigator"] },
+    { id: "rook", traits: ["marksman", "mule"] },
+    { id: "sela", traits: ["lucky", "scavenger"] },
+    { id: "bram", traits: ["mule", "cook"] },
+    { id: "wren", traits: ["navigator", "marksman"] },
+    { id: "otto", traits: ["tinkerer", "demolition"] },
+    { id: "juno", traits: ["medic", "brave"] },
+    { id: "pike", traits: ["cautious", "lucky"] },
+    { id: "hale", traits: ["brave", "marksman"] },
+    { id: "tamsin", traits: ["cook", "navigator"] },
   ],
 }
