@@ -36,7 +36,8 @@ pause, +1 h / +6 h, weather, base tier, spawn a barrel, give everything).
 | --- | --- | --- |
 | Sky | `src/scene/sky.ts` | gradient from the palette, sun and moon arcs, stars, clouds |
 | Terrain | `src/scene/terrain.ts` | parallax ridges with treelines, island with lighthouse, ground with path, grass, pebbles, organic shoreline, waves, foam, sparkle |
-| Base | `src/scene/base.ts` | one structure per tier (Twig, Timber, Stone, Sheet Metal, Armored), stations placed around it from the base's items (cupboard, furnaces, kiln, press, workbench, crates, campfire, lantern), window glows, scaffold while building, chimney smoke |
+| Base | `src/scene/base.ts` | one structure per tier (Twig, Timber, Stone, Sheet Metal, Armored); every building at its fixed spot and level (`SPOTS`, D75), the cupboard and crates, window glows, scaffolds over whatever is being built, chimney smoke |
+| Buildings | `src/scene/buildings.ts` | one drawing per building type and level (1 to 3), with its lights and moving parts |
 | Nodes | `src/scene/nodes.ts` | clickable trees and stone, ore and sulfur rocks; the "hit the marker" mini-game (marker placement here, hits checked by the domain); worked-out nodes fall or crumble and regrow; the barrel on the shore |
 | Actors | `src/scene/actors.ts` | survivors with hat colours walking between the base and nodes, resting at night; gulls |
 | Effects | `src/scene/effects.ts` | particles (smoke, sparks, leaves, dust, splash, coins, stone), floating gains, glows, rain and fog |
@@ -52,7 +53,7 @@ without re-rendering React every frame; per-frame values like "waiting to collec
 - Design stage 1600×900, ground line at y=560, base at x=1000, sea left of x≈480.
 - Wide screens: scale so that 800 stage units fill the height (a 12% zoom); the ground line sits
   at 72% of the viewport.
-- Tall screens: never fewer than 760 stage units across, centred on x=930; the ground line sits
+- Tall screens: never fewer than 880 stage units across, centred on x=915 (D75); the ground line sits
   at 66% of the viewport.
 - Sky and ground extend 800 units past the stage so no aspect ratio shows an edge.
 

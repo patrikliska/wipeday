@@ -19,6 +19,40 @@ const only = process.argv.includes("--only")
 const DAY = 86_400;
 const at = (day, hour) => day * DAY + hour * 3600;
 
+/** Every building type (buildings.json5), for the "whole base" shots. */
+const BUILDINGS = [
+  "workbench",
+  "furnace",
+  "campfire",
+  "warehouse",
+  "garden",
+  "loom",
+  "bunkhouse",
+  "lights",
+  "tannery",
+  "kiln",
+  "press",
+  "watchtower",
+  "walls",
+  "generator",
+  "radio_mast",
+  "dock",
+];
+const allAt = (level) => Object.fromEntries(BUILDINGS.map((id) => [id, level]));
+/** A believable mid-game base: the early buildings at level 1 and 2. */
+const MIDGAME = {
+  workbench: 2,
+  furnace: 2,
+  campfire: 2,
+  warehouse: 1,
+  garden: 2,
+  loom: 1,
+  bunkhouse: 1,
+  lights: 1,
+  kiln: 1,
+  walls: 1,
+};
+
 /**
  * Each shot: viewport, state patch, settle time. The page runs in demo mode (`?demo`). In the
  * patch, `time` sets the demo game clock (seconds into the demo season, which starts at the
@@ -26,7 +60,8 @@ const at = (day, hour) => day * DAY + hour * 3600;
  * field of the base (`BaseState` in the domain). Optional: `act` fires a store
  * action after the patch (for effects such as floating gains), `click` clicks a
  * point in CSS pixels instead (starting a node run), `clip` also saves
- * a 1:1 crop `{name}__zoom.png` ([x, y, width, height] in CSS pixels).
+ * a 1:1 crop `{name}__zoom.png` ([x, y, width, height] in CSS pixels), `scrollTo` scrolls
+ * the element matching that selector to the top of its panel before the picture.
  */
 const SHOTS = [
   { name: "desktop_day", viewport: [1600, 900], state: { time: at(3, 11) } },
@@ -54,7 +89,7 @@ const SHOTS = [
       toolId: "rock",
       lastGatherAt: 0,
       items: {},
-      furnaceId: null,
+      buildings: {},
       furnaceJobs: [],
     },
   },
@@ -64,7 +99,8 @@ const SHOTS = [
     state: {
       time: at(9, 12),
       tier: "stone",
-      items: { workbench_1: 1, crate: 3, campfire: 1, kiln: 1 },
+      items: { crate: 3 },
+      buildings: MIDGAME,
     },
   },
   {
@@ -73,7 +109,8 @@ const SHOTS = [
     state: {
       time: at(15, 12),
       tier: "metal",
-      items: { workbench_1: 1, crate: 4, campfire: 1, kiln: 1, press: 1, lantern: 1 },
+      items: { crate: 4 },
+      buildings: allAt(2),
     },
   },
   {
@@ -82,7 +119,8 @@ const SHOTS = [
     state: {
       time: at(24, 22),
       tier: "hqm",
-      items: { workbench_1: 1, crate: 6, campfire: 1, kiln: 1, press: 1, lantern: 1 },
+      items: { crate: 6 },
+      buildings: allAt(3),
     },
   },
   {
@@ -96,6 +134,12 @@ const SHOTS = [
     state: { time: at(3, 11), panel: "build" },
   },
   {
+    name: "desktop_panel_buildings",
+    viewport: [1600, 900],
+    state: { time: at(9, 11), tier: "stone", buildings: MIDGAME, panel: "build" },
+    scrollTo: ".panel h3.section:nth-of-type(3)",
+  },
+  {
     name: "desktop_panel_craft",
     viewport: [1600, 900],
     state: { time: at(3, 11), panel: "craft" },
@@ -106,9 +150,15 @@ const SHOTS = [
     state: {
       time: at(3, 11),
       panel: "furnace",
-      furnaceId: "furnace",
       furnaceJobs: [
-        { input: "ore", output: "ingots", amount: 400, startedAt: at(3, 9), collected: 0 },
+        {
+          input: "ore",
+          output: "ingots",
+          amount: 400,
+          perHour: 120,
+          startedAt: at(3, 9),
+          collected: 0,
+        },
       ],
     },
   },
@@ -131,20 +181,26 @@ const SHOTS = [
   {
     name: "furnace_idle",
     viewport: [1920, 1080],
-    state: { time: at(3, 11), furnaceId: "furnace", furnaceJobs: [] },
-    clip: [700, 540, 300, 260],
+    state: { time: at(3, 11), furnaceJobs: [] },
+    clip: [641, 540, 300, 260],
   },
   {
     name: "furnace_lit",
     viewport: [1920, 1080],
     state: {
       time: at(3, 11),
-      furnaceId: "furnace",
       furnaceJobs: [
-        { input: "ore", output: "ingots", amount: 400, startedAt: at(3, 10), collected: 0 },
+        {
+          input: "ore",
+          output: "ingots",
+          amount: 400,
+          perHour: 120,
+          startedAt: at(3, 10),
+          collected: 0,
+        },
       ],
     },
-    clip: [700, 540, 300, 260],
+    clip: [641, 540, 300, 260],
   },
   {
     name: "furnace_night_hqm",
@@ -152,64 +208,71 @@ const SHOTS = [
     state: {
       time: at(24, 22),
       tier: "hqm",
-      items: { workbench_1: 1, crate: 6, campfire: 1, kiln: 1, press: 1, lantern: 1 },
-      furnaceId: "furnace",
+      items: { crate: 6 },
+      buildings: allAt(3),
       furnaceJobs: [
-        { input: "ore", output: "ingots", amount: 900, startedAt: at(24, 21), collected: 0 },
+        {
+          input: "ore",
+          output: "ingots",
+          amount: 900,
+          perHour: 1200,
+          startedAt: at(24, 21.8),
+          collected: 0,
+        },
       ],
     },
-    clip: [420, 500, 620, 320],
+    clip: [361, 500, 620, 320],
   },
   {
     name: "node_marker",
     viewport: [1920, 1080],
     state: { time: at(3, 11) },
-    click: [772, 795],
-    clip: [640, 640, 280, 220],
+    click: [651, 849],
+    clip: [520, 694, 280, 220],
   },
   {
     name: "node_hits",
     viewport: [1920, 1080],
     state: { time: at(3, 22) },
-    click: [772, 795],
+    click: [651, 849],
     hits: 2,
-    clip: [600, 560, 360, 300],
+    clip: [480, 614, 360, 300],
   },
   {
     name: "node_perfect",
     viewport: [1920, 1080],
     state: { time: at(3, 11) },
-    click: [772, 795],
+    click: [651, 849],
     hits: 5,
-    clip: [600, 560, 360, 300],
+    clip: [480, 614, 360, 300],
   },
   {
     name: "ore_node",
     viewport: [1920, 1080],
     scale: 2,
     state: { time: at(3, 11) },
-    clip: [690, 700, 190, 130],
+    clip: [570, 754, 190, 130],
   },
   {
     name: "barrel",
     viewport: [1920, 1080],
     scale: 2,
     state: { time: at(3, 11) },
-    clip: [470, 735, 170, 170],
+    clip: [411, 735, 170, 170],
   },
   {
     name: "sulfur_node",
     viewport: [1920, 1080],
     scale: 2,
     state: { time: at(3, 11) },
-    clip: [1490, 790, 190, 120],
+    clip: [1358, 812, 190, 120],
   },
   {
     name: "stone_node",
     viewport: [1920, 1080],
     scale: 2,
     state: { time: at(3, 11) },
-    clip: [1300, 780, 150, 100],
+    clip: [1241, 780, 150, 100],
   },
   {
     name: "nodes_depleted",
@@ -226,23 +289,75 @@ const SHOTS = [
       },
     },
     settle: 2500,
-    clip: [640, 640, 1000, 300],
+    clip: [500, 640, 1080, 300],
   },
   {
     name: "survivors",
     viewport: [1920, 1080],
     scale: 2,
     state: { time: at(3, 11) },
-    clip: [980, 650, 260, 160],
+    clip: [921, 650, 260, 160],
   },
-  { name: "desktop_ultrawide", viewport: [2560, 1080], state: { time: at(3, 11) } },
+  {
+    name: "buildings_level1",
+    viewport: [1920, 1080],
+    state: { time: at(9, 11), tier: "stone", items: { crate: 2 }, buildings: allAt(1) },
+  },
+  {
+    name: "buildings_level3",
+    viewport: [1920, 1080],
+    state: { time: at(24, 11), tier: "hqm", items: { crate: 6 }, buildings: allAt(3) },
+  },
+  {
+    name: "buildings_night",
+    viewport: [1920, 1080],
+    state: { time: at(24, 22), tier: "hqm", items: { crate: 6 }, buildings: allAt(3) },
+  },
+  {
+    name: "buildings_construction",
+    viewport: [1920, 1080],
+    state: {
+      time: at(9, 11),
+      tier: "stone",
+      buildings: MIDGAME,
+      construction: [
+        {
+          target: { kind: "building", building: "warehouse", level: 2 },
+          startedAt: at(9, 10),
+          endsAt: at(9, 12),
+        },
+        {
+          target: { kind: "building", building: "bunkhouse", level: 2 },
+          startedAt: at(9, 10),
+          endsAt: at(9, 13),
+        },
+      ],
+    },
+  },
+  {
+    name: "phone_buildings",
+    viewport: [390, 844],
+    scale: 3,
+    state: { time: at(9, 11), tier: "stone", items: { crate: 3 }, buildings: MIDGAME },
+  },
+  {
+    name: "phone_buildings_full",
+    viewport: [390, 844],
+    scale: 3,
+    state: { time: at(24, 11), tier: "hqm", items: { crate: 6 }, buildings: allAt(3) },
+  },
+  {
+    name: "desktop_ultrawide",
+    viewport: [2560, 1080],
+    state: { time: at(3, 11) },
+  },
   { name: "laptop", viewport: [1366, 768], state: { time: at(3, 11) } },
   {
     name: "desktop_gains",
     viewport: [1920, 1080],
     state: { time: at(3, 11), lastGatherAt: 0 },
     act: "gather",
-    clip: [860, 320, 500, 220],
+    clip: [801, 320, 500, 220],
   },
   { name: "phone_day", viewport: [390, 844], scale: 3, state: { time: at(3, 11) } },
   { name: "phone_night", viewport: [390, 844], scale: 3, state: { time: at(3, 23) } },
@@ -259,6 +374,36 @@ const SHOTS = [
     viewport: [390, 844],
     scale: 3,
     state: { time: at(3, 11), panel: "build" },
+  },
+  {
+    name: "phone_panel_buildings",
+    viewport: [390, 844],
+    scale: 3,
+    state: { time: at(9, 11), tier: "stone", buildings: MIDGAME, panel: "build" },
+    scrollTo: ".panel h3.section:nth-of-type(3)",
+  },
+  {
+    name: "phone_panel_buildings_busy",
+    viewport: [390, 844],
+    scale: 3,
+    state: {
+      time: at(9, 11),
+      tier: "stone",
+      buildings: MIDGAME,
+      panel: "build",
+      construction: [
+        {
+          target: { kind: "building", building: "warehouse", level: 2 },
+          startedAt: at(9, 10),
+          endsAt: at(9, 12),
+        },
+        {
+          target: { kind: "building", building: "bunkhouse", level: 2 },
+          startedAt: at(9, 10),
+          endsAt: at(9, 13),
+        },
+      ],
+    },
   },
   {
     name: "phone_away",
@@ -346,6 +491,12 @@ async function main() {
       });
     } else {
       await page.waitForTimeout(shot.settle ?? 1600);
+    }
+    if (shot.scrollTo) {
+      await page.evaluate((selector) => {
+        document.querySelector(selector)?.scrollIntoView({ block: "start" });
+      }, shot.scrollTo);
+      await page.waitForTimeout(200);
     }
     if (shot.clip) {
       const [x, y, clipWidth, clipHeight] = shot.clip;

@@ -51,6 +51,7 @@ export function Dock() {
   const gather = useWorld((state) => state.gather);
   const collect = useWorld((state) => state.collect);
   const base = useWorld((state) => state.base);
+  const panelOpen = useWorld((state) => state.panel !== null);
   // The dock reads time in whole minutes: enough for its labels, and it re-renders rarely.
   const minute = useWorld((state) => Math.floor(state.now / 60) * 60);
   const pendingTotal = useWorld((state) => Math.floor(total(pendingOf(state))));
@@ -173,7 +174,8 @@ export function Dock() {
 
   return (
     <>
-      {hint ? (
+      {/* The hint points at the dock; with a panel open (a sheet on phones) it would cover it. */}
+      {hint && !panelOpen ? (
         <p className="glass advice" aria-live="polite">
           {t(`hint.${hint}`)}
         </p>

@@ -406,3 +406,48 @@ end-to-end run against the API (login screen, a fresh base after logging in as a
   the label says when it is ready.
 - New states: the login card (over the dusk scene) and the Welcome back modal with the away
   time and gains; both read well on a phone.
+
+### W2: buildings around the base, the build panel
+
+New shots: `buildings_level1`, `buildings_level3`, `buildings_night`, `buildings_construction`,
+`phone_buildings`, `phone_buildings_full`, `desktop_panel_buildings`, `phone_panel_buildings`,
+`phone_panel_buildings_busy`. Reviewed all 49 shots over three iterations.
+- Iteration 1, what was wrong:
+  - Phone (390 px): the camera showed x 465 to 1225, so everything right of the door
+    (workbench, crates, kitchen, loom, tannery, radio mast) was cut off. A full base spans about
+    880 world units.
+  - Left of the house, the watchtower, dock, barrel, bunkhouse, kiln, generator and furnaces
+    piled into one blob, and the dock sat behind the barrel.
+  - The slope buildings were drawn after the wall, so the fence cut through them. At level 1,
+    most of them hid behind the furnaces.
+  - The radio mast and loom were invisible behind the kitchen at level 3.
+- Iteration 2, what changed:
+  - Phone view widened to 880 units and centred on x 905 (D75).
+  - Kiln and press moved up the slope. The tannery moved to the yard, the crates to the house
+    wall left of the door, and the dock out over the water left of the barrel.
+  - Slope buildings now draw before the wall, so they peek over it. The kitchen lost its side
+    table and fits the strip.
+  - The ore rock moved forward to the sand's edge, clear of the furnaces.
+- Iteration 3, what was still wrong, and what changed:
+  - The kitchen was cut at the phone's right edge: focus moved to x 915.
+  - The loom was still hidden: the loom and generator went further up the slope.
+  - The sulfur rock showed half a rock at the edge: moved inside the view.
+  - The level 3 electric furnaces were the same blue-grey as the Armored wall: now warm dark
+    steel.
+  - The workbench lamp flared white at night: smaller and dimmer.
+- Build panel:
+  - The tier card said "1 furnace slots · 1 builders": now "furnace slots 1 · builders 1".
+  - Construction bars were the accent red, which reads as danger: now the builder amber, the
+    scaffold's colour in the scene.
+  - On phones, the advisor's hint pill sat on top of the open bottom sheet: it now hides while
+    a panel is open.
+- Harness:
+  - The furnace shots showed unlit furnaces: their jobs predated `perHour`, so progress was NaN.
+  - After the camera move, every crop and node click point moved about 59 CSS px at 1920 wide.
+    All of them were re-aimed.
+  - New `scrollTo` option to shoot the Buildings section of the panel.
+- Still open:
+  - On phones the scene sits in the lower half, under a lot of sky, and the crew are small
+    (about 17 CSS px). A full base needs the width. Raising the ground line on tall screens is
+    a camera change for later.
+  - The tannery racks stand in front of the furnace block and read a little like a table.

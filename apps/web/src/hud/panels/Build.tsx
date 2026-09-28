@@ -207,7 +207,7 @@ export function BuildPanel() {
                 <b>{constructionName(job)}</b>
                 <span className="lvl">{t("build.building_now")}</span>
               </div>
-              <div className="progress">
+              <div className="progress" style={vars({ "--bar-color": "#e3a32f" })}>
                 <i style={{ width: `${Math.round((1 - left / length) * 100)}%` }} />
               </div>
               <div className="desc">{t("hud.lands_in", { time: duration(left) })}</div>

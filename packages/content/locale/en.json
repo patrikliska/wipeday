@@ -209,7 +209,8 @@
     "node_back_in": "{node} back in {time}",
     "node_needs_tool": "Needs better tools",
     "tier_base": "{tier} base",
-    "can_build": "a building is ready"
+    "can_build": "a building is ready",
+    "building_level": "{building} level {level}"
   },
   "action": {
     "gather": "Gather",
@@ -257,7 +258,7 @@
     "stage_current": "Your base",
     "stage_next": "Next",
     "stage_later": "Later",
-    "tier_facts": "Storage {cap} · {furnaces} furnace slots · {crates} crates · {builders} builders",
+    "tier_facts": "Storage {cap} · furnace slots {furnaces} · crates {crates} · builders {builders}",
     "instant": "Instant",
     "takes": "Builds in {time}",
     "upkeep": "upkeep {upkeep}/h",
@@ -303,7 +304,7 @@
   },
   "smelt": {
     "hint_none": "A furnace turns ore into ingots, sulfur ore into sulfur, and fat into fuel.",
-    "hint": "{furnace} · {slots} slots · {rate} per hour each",
+    "hint": "{furnace} · slots {slots} · {rate} per hour each",
     "build": "Build",
     "upgrade": "Upgrade",
     "facts": "{rate} per hour · up to {max} a job · burns {fuel} {what} per 100",

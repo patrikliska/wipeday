@@ -10,7 +10,9 @@ agent should think at each step**.
 - W1 done and live at https://wipeday.patrikliska.dev (Discord login confirmed from the owner's
   phone): own-IP content and rules in `packages/domain`, the API (`apps/api`: Discord login,
   idempotent commands, lazy settling, SSE, nightly backup), and the web client playing on it with
-  client prediction (D57-D68). Next: W2, buildings.
+  client prediction (D57-D68).
+- W2 done: 16 building types with 3 levels each, builders, decay by building, the scene's
+  fixed spots and a wider phone view (D69-D75). Next: W3, the crafting web.
 - Discord bot (`apps/discord`): phases 0-2b, frozen on its own copy of the old rules (D57).
 - Decision: the web app is the main client, Discord becomes a companion (D40).
 
@@ -119,7 +121,7 @@ Done when: two test accounts play at the same time; a refresh mid-action never d
 reward (tests: double click, stale message, replayed command); offline accrual equals the
 simulator's number; login works from a phone on the LAN.
 
-### W2. Buildings that grow the base
+### W2. Buildings that grow the base (done)
 
 *Goal:* the "microcivilization" feel: the base fills with buildings the player chose.
 
@@ -134,6 +136,11 @@ Build:
 
 Done when: at least 14 building types render at 2+ levels each; the simulator shows the casual
 player has 6+ buildings by day 7; screenshots pass the review checklist at 390 px.
+
+Result: 16 types render at levels 1 to 3 (`buildings_level1`, `buildings_level3`,
+`buildings_night`, `phone_buildings_full`); the casual player has 10 buildings on day 7. The
+kitchen is the campfire's level 3. The rain collector and traps wait for the phases that give
+them a job (water in W3, defense in W6).
 
 ### W3. The crafting web
 

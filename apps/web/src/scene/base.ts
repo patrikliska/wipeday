@@ -3,32 +3,50 @@
  * the build animation. Everything the player owns should be visible here.
  */
 import { Container, Graphics } from "pixi.js";
-import type { ItemId, Tier } from "../state/world";
+import type { Tier } from "../state/world";
+import { drawFlame, FOOTPRINTS, makeBuilding } from "./buildings";
 import { Glow, type Particles } from "./effects";
 import { MATERIALS, type Material } from "./palette";
+import type { Station } from "./station";
 import { clamp, easeOutBack, lerp, rand, shade } from "./util";
 
-type StationId = ItemId | "furnace" | "cupboard";
-
-interface Station {
-  id: StationId;
-  container: Container;
-  glow?: Glow;
-  /** Per-frame animation (flames). */
-  animate?: (t: number) => void;
-  /** Where smoke and sparks come from, relative to the station. */
-  chimney?: { x: number; y: number };
-  /** Shown only while the station is working (the furnace's lit interior and flames). */
-  fire?: Container;
-  /** The station's fire and glow, moved to the light layer when the station is placed. */
-  light?: Container;
-}
-
+/** What stands around the base, as the scene reads it from the store. */
 interface Owned {
-  furnace: boolean;
+  /** Building id -> level. */
+  buildings: Record<string, number>;
   furnaceSlots: number;
-  items: Partial<Record<ItemId, number>>;
+  /** Crates in the inventory. */
+  crates: number;
+  /** Buildings going up right now, by id (their scaffold shows). */
+  constructing: string[];
 }
+
+/**
+ * Where each building stands, in world units from the base's door (x) and the ground line
+ * (y, negative = up the slope behind). Layers: `back` up the slope, peeking over the strip
+ * and the wall; `front` in the yard. Everything fits the phone view (about -535 to +345
+ * from the door, D69); the dock reaches out over the water past its left edge on purpose.
+ * The cupboard and furnaces (left) and the workbench and campfire (right) keep the strip
+ * either side of the house; crates stack by the door.
+ */
+const SPOTS: Record<string, { x: number; y: number; layer: "back" | "front" }> = {
+  watchtower: { x: -480, y: -10, layer: "back" },
+  bunkhouse: { x: -410, y: -44, layer: "back" },
+  warehouse: { x: -318, y: -48, layer: "back" },
+  kiln: { x: -246, y: -46, layer: "back" },
+  press: { x: -198, y: -42, layer: "back" },
+  radio_mast: { x: 196, y: -40, layer: "back" },
+  generator: { x: 250, y: -56, layer: "back" },
+  loom: { x: 310, y: -60, layer: "back" },
+  dock: { x: -505, y: 22, layer: "front" },
+  tannery: { x: -272, y: 40, layer: "front" },
+  garden: { x: -150, y: 58, layer: "front" },
+  lights: { x: -10, y: 44, layer: "front" },
+};
+/** The wall runs behind everything, from here to here (world units from the door). */
+const WALL_SPAN: [number, number] = [-390, 410];
+/** The station layers are drawn at this scale; spots above are in world units. */
+const STATION_SCALE = 0.85;
 
 interface WindowRect {
   x: number;
@@ -218,22 +236,6 @@ function drawCupboard(): Container {
   return c;
 }
 
-function drawWorkbench(): Container {
-  const c = new Container();
-  const g = new Graphics();
-  g.rect(-44, -40, 88, 8).fill(0x8a5a30).rect(-44, -40, 88, 3).fill(0xa06a36);
-  g.rect(-40, -32, 6, 32).fill(0x5a3d26).rect(34, -32, 6, 32).fill(0x5a3d26);
-  g.rect(-36, -18, 72, 4).fill(0x5a3d26);
-  g.rect(-30, -52, 14, 12)
-    .fill(0x9aa0a6)
-    .rect(-8, -50, 22, 10)
-    .fill(0x5a5a5a)
-    .circle(22, -46, 6)
-    .fill(0x6c97bc);
-  c.addChild(g);
-  return c;
-}
-
 function drawCrates(count: number): Container {
   const c = new Container();
   const g = new Graphics();
@@ -256,52 +258,6 @@ function drawCrates(count: number): Container {
   return c;
 }
 
-function drawKiln(): Container {
-  const c = new Container();
-  const g = new Graphics();
-  g.moveTo(-28, 0).lineTo(-20, -60).lineTo(20, -60).lineTo(28, 0).closePath().fill(0x7a5a3a);
-  g.rect(-8, -80, 16, 22).fill(0x5a4a3a).roundRect(-9, -26, 18, 20, 4).fill(0x1b1a18);
-  c.addChild(g);
-  return c;
-}
-
-function drawPress(): Container {
-  const c = new Container();
-  const g = new Graphics();
-  g.rect(-30, -14, 60, 14)
-    .fill(0x5a3d26)
-    .rect(-24, -60, 8, 46)
-    .fill(0x6c97bc)
-    .rect(16, -60, 8, 46)
-    .fill(0x6c97bc);
-  g.rect(-28, -66, 56, 8)
-    .fill(0x46607a)
-    .rect(-6, -58, 12, 30)
-    .fill(0x8a8f94)
-    .rect(-16, -28, 32, 10)
-    .fill(0x9aa0a6);
-  g.rect(-20, -8, 12, 6).fill(0xc85a2b);
-  c.addChild(g);
-  return c;
-}
-
-/** Two flame shapes, redrawn each frame with a flicker factor. */
-function drawFlame(flame: Graphics, f: number, scale: number): void {
-  flame.clear();
-  flame
-    .moveTo(-10 * scale, 0)
-    .quadraticCurveTo(-13 * scale, -14 * f * scale, 0, -30 * f * scale)
-    .quadraticCurveTo(13 * scale, -14 * f * scale, 10 * scale, 0)
-    .closePath()
-    .fill(0xff7a2b);
-  flame
-    .moveTo(-5 * scale, 0)
-    .quadraticCurveTo(-7 * scale, -9 * f * scale, 0, -18 * f * scale)
-    .quadraticCurveTo(7 * scale, -9 * f * scale, 5 * scale, 0)
-    .closePath()
-    .fill(0xffd25a);
-}
-
 /** Half-width of the furnace body at height y (it tapers from 32 at the base to 23 under the cap). */
 const furnaceHalfWidth = (y: number): number => lerp(32, 23, clamp((-y - 8) / 62, 0, 1));
 
@@ -315,8 +271,43 @@ function furnaceMouth(g: Graphics, halfWidth: number, bottom: number, springY: n
     .closePath();
 }
 
-function makeFurnace(index: number): Station {
+/** The electric smelter (furnace level 3): a riveted cabinet with a glowing window. */
+function makeElectricFurnace(index: number): Station {
   const container = new Container();
+  const g = new Graphics();
+  g.ellipse(0, 0, 38, 7).fill({ color: 0x000000, alpha: 0.22 });
+  g.roundRect(-32, -86, 64, 86, 4).fill(0x6b625a);
+  g.rect(-32, -86, 8, 86).fill({ color: 0xffffff, alpha: 0.08 });
+  g.rect(24, -86, 8, 86).fill({ color: 0x000000, alpha: 0.18 });
+  for (const y of [-78, -8]) for (const x of [-26, -10, 10, 26]) g.circle(x, y, 1.6).fill(0x9aa0a6);
+  g.roundRect(-20, -58, 40, 30, 3).fill(0x1b1a18);
+  g.rect(-4, -106, 8, 20).fill(0x3b3833);
+  g.rect(20, -24, 10, 6).fill(0x9fd4ff);
+  const fire = new Container();
+  const window_ = new Graphics();
+  fire.addChild(window_);
+  const glow = new Glow(0xff8a3c, 120, 1);
+  glow.sprite.position.set(0, -44);
+  container.addChild(g, fire, glow.sprite);
+  return {
+    id: "furnace",
+    container,
+    glow,
+    fire,
+    chimney: { x: 0, y: -106 },
+    animate: (t) => {
+      const f = 0.8 + Math.sin(t * 11 + index) * 0.2;
+      window_
+        .clear()
+        .roundRect(-17, -55, 34, 24, 2)
+        .fill({ color: 0xff6a1a, alpha: 0.6 + 0.4 * f });
+    },
+  };
+}
+
+function makeFurnace(index: number, size = 1): Station {
+  const container = new Container();
+  container.scale.set(size);
   const g = new Graphics();
   // Contact shadow and plinth.
   g.ellipse(0, 0, 40, 7).fill({ color: 0x000000, alpha: 0.22 });
@@ -389,38 +380,6 @@ function makeFurnace(index: number): Station {
   };
 }
 
-function makeCampfire(): Station {
-  const container = new Container();
-  const g = new Graphics();
-  g.ellipse(0, -2, 26, 8).fill(0x3a3a3a);
-  g.rect(-16, -8, 30, 7).fill(0x5a3d26);
-  g.rect(-12, -12, 30, 7).fill(0x6b4423);
-  for (let i = 0; i < 8; i++) g.circle(-20 + i * 6, 0, 3).fill(0x6a6d70);
-  const flame = new Graphics();
-  flame.position.set(0, -10);
-  const glow = new Glow(0xffa64d, 220, 1);
-  glow.sprite.position.set(0, -24);
-  container.addChild(g, flame, glow.sprite);
-  return {
-    id: "campfire",
-    container,
-    glow,
-    chimney: { x: 0, y: -34 },
-    animate: (t) => drawFlame(flame, 0.8 + Math.sin(t * 13) * 0.2, 1),
-  };
-}
-
-function makeLantern(): Station {
-  const container = new Container();
-  const g = new Graphics();
-  g.rect(-2, -70, 4, 70).fill(0x3f2a16).rect(-14, -70, 28, 4).fill(0x3f2a16);
-  g.roundRect(-8, -66, 16, 20, 3).fill(0x2a2a2a).rect(-5, -63, 10, 14).fill(0xffe08a);
-  const glow = new Glow(0xffe08a, 220, 1);
-  glow.sprite.position.set(0, -56);
-  container.addChild(g, glow.sprite);
-  return { id: "lantern", container, glow };
-}
-
 // --- the base -------------------------------------------------------------------------
 
 export class Base {
@@ -432,6 +391,12 @@ export class Base {
   readonly lights = new Container();
   private readonly lightStations = new Container();
   private readonly stationsLayer = new Container();
+  /** Buildings up the slope behind the house, and the wall. */
+  private readonly backLayer = new Container();
+  /** Buildings in the yard in front of the house (garden, lamp posts). */
+  private readonly frontLayer = new Container();
+  /** Scaffolds over buildings being built. */
+  private scaffolds: Graphics[] = [];
   private readonly structureLayer = new Container();
   private readonly glowLayer = new Container();
   private structure: Container | null = null;
@@ -447,9 +412,17 @@ export class Base {
   private furnaceActive = false;
 
   constructor(private readonly particles: Particles) {
-    this.stationsLayer.scale.set(0.85);
-    this.container.addChild(this.stationsLayer, this.structureLayer, this.glowLayer);
-    this.lightStations.scale.set(0.85);
+    for (const layer of [this.backLayer, this.stationsLayer, this.frontLayer]) {
+      layer.scale.set(STATION_SCALE);
+    }
+    this.container.addChild(
+      this.backLayer,
+      this.stationsLayer,
+      this.structureLayer,
+      this.glowLayer,
+      this.frontLayer,
+    );
+    this.lightStations.scale.set(STATION_SCALE);
     this.lights.addChild(this.lightStations);
   }
 
@@ -516,7 +489,7 @@ export class Base {
     this.structureLayer.addChild(g);
   }
 
-  /** Rebuilds the stations: what is owned appears, in a fixed layout around the structure. */
+  /** Rebuilds what stands around the base: every building at its spot and level. */
   setStations(owned: Owned): void {
     const key = `${this.tier}:${JSON.stringify(owned)}`;
     if (key === this.stationsKey) return;
@@ -525,13 +498,29 @@ export class Base {
       station.container.destroy({ children: true });
       station.light?.destroy({ children: true });
     }
+    for (const scaffold of this.scaffolds) scaffold.destroy();
     this.stations = [];
-    const half = this.tier ? FOOTPRINT[this.tier][0] / 2 : 110;
-    const add = (station: Station, x: number, y = 0, scale = 1): void => {
+    this.scaffolds = [];
+    const level = (id: string) => owned.buildings[id] ?? 0;
+    const building = (id: string) => level(id) > 0 || owned.constructing.includes(id);
+    const layers = { back: this.backLayer, strip: this.stationsLayer, front: this.frontLayer };
+
+    /** Places a station (container units) and moves its fire and glows to the light layer. */
+    const add = (
+      station: Station,
+      x: number,
+      y = 0,
+      scale = 1,
+      layer: keyof typeof layers = "strip",
+    ): void => {
       station.container.position.set(x, y);
       station.container.scale.set(scale);
-      this.stationsLayer.addChild(station.container);
-      const emissive = [station.fire, station.glow?.sprite].filter((item) => item !== undefined);
+      layers[layer].addChild(station.container);
+      const emissive = [
+        station.fire,
+        station.glow?.sprite,
+        ...(station.glows ?? []).map((glow) => glow.sprite),
+      ].filter((item) => item !== undefined);
       if (emissive.length > 0) {
         const light = new Container();
         light.position.set(x, y);
@@ -543,45 +532,107 @@ export class Base {
       this.stations.push(station);
     };
 
-    // Left of the door: cupboard, furnaces two by two (the second pair behind), kiln, press.
+    /** A pulsing frame where a building is going up. */
+    const scaffold = (id: string, x: number, y: number, layer: keyof typeof layers): void => {
+      if (!owned.constructing.includes(id)) return;
+      const [w, h] = FOOTPRINTS[id] ?? [80, 80];
+      const g = new Graphics();
+      for (let px = -w / 2; px < w / 2; px += 14) {
+        g.moveTo(px, -h)
+          .lineTo(px + 7, -h)
+          .moveTo(px, 0)
+          .lineTo(px + 7, 0);
+      }
+      for (let py = -h; py < 0; py += 14) {
+        g.moveTo(-w / 2, py)
+          .lineTo(-w / 2, py + 7)
+          .moveTo(w / 2, py)
+          .lineTo(w / 2, py + 7);
+      }
+      g.stroke({ width: 3, color: 0xe3a32f, alpha: 0.95 });
+      g.rect(-w / 2 - 8, -h - 12, 5, h + 12)
+        .fill(0x8a6a3a)
+        .rect(w / 2 + 3, -h - 12, 5, h + 12)
+        .fill(0x8a6a3a);
+      g.position.set(x, y);
+      layers[layer].addChild(g);
+      this.scaffolds.push(g);
+    };
+
+    // Up the slope and in the yard: every building with a spot of its own.
+    for (const [id, spot] of Object.entries(SPOTS)) {
+      if (!building(id)) continue;
+      const x = spot.x / STATION_SCALE;
+      const y = spot.y / STATION_SCALE;
+      // Up the slope things are further away: a little smaller.
+      const scale = spot.layer === "back" && id !== "watchtower" ? 0.82 : 1;
+      if (level(id) > 0) {
+        const drawn = makeBuilding(id, level(id));
+        if (drawn) add(drawn, x, y, scale, spot.layer);
+      }
+      scaffold(id, x, y, spot.layer);
+    }
+
+    // The wall runs in front of the slope, behind the strip.
+    const wall = level("walls");
+    if (building("walls")) {
+      const [from, to] = WALL_SPAN.map((x) => x / STATION_SCALE) as [number, number];
+      if (wall > 0) {
+        const drawn = makeBuilding("walls", wall, [from, to]);
+        if (drawn) add(drawn, 0, -14 / STATION_SCALE, 1, "back");
+      }
+      scaffold("walls", from + 80, -14 / STATION_SCALE, "back");
+    }
+
+    // Left of the door: cupboard, furnaces two by two (the second pair behind).
+    const half = this.tier ? FOOTPRINT[this.tier][0] / 2 : 110;
     let left = -half - 24;
     add({ id: "cupboard", container: drawCupboard() }, left - 18);
     left -= 36 + 12;
-    if (owned.furnace) {
+    if (building("furnace")) {
+      const furnace = level("furnace");
       const slots = Math.max(1, owned.furnaceSlots);
       const columns = Math.min(2, slots);
-      for (let i = 2; i < slots; i++) add(makeFurnace(i), left - 78 - (i - 2) * 80, -30, 0.88);
-      for (let i = 0; i < columns; i++) add(makeFurnace(i), left - 38 - i * 80);
+      const make = (i: number) =>
+        furnace >= 3 ? makeElectricFurnace(i) : makeFurnace(i, furnace === 2 ? 1.14 : 1);
+      if (furnace > 0) {
+        for (let i = 2; i < slots; i++) add(make(i), left - 78 - (i - 2) * 80, -30, 0.88);
+        for (let i = 0; i < columns; i++) add(make(i), left - 38 - i * 80);
+      }
+      scaffold("furnace", left - 38, 0, "strip");
       left -= columns * 80 + 4;
     }
-    if (owned.items.kiln) {
-      add({ id: "kiln", container: drawKiln() }, left - 30);
-      left -= 60 + 12;
+
+    // Right of the door: workbench, campfire (a kitchen at level 3).
+    let right = half + 24;
+    if (building("workbench")) {
+      const drawn = level("workbench") > 0 ? makeBuilding("workbench", level("workbench")) : null;
+      if (drawn) add(drawn, right + 45);
+      scaffold("workbench", right + 45, 0, "strip");
+      right += 90 + 12 + (level("workbench") >= 3 ? 34 : 0);
     }
-    if (owned.items.press) {
-      add({ id: "press", container: drawPress() }, left - 32);
-      left -= 64 + 12;
+    if (building("campfire")) {
+      const drawn = level("campfire") > 0 ? makeBuilding("campfire", level("campfire")) : null;
+      if (drawn) add(drawn, right + 34);
+      scaffold("campfire", right + 34, 0, "strip");
+      right += 80;
     }
 
-    // Right of the door: workbench, crates, campfire, lantern.
-    let right = half + 24;
-    if (owned.items.workbench) {
-      add({ id: "workbench", container: drawWorkbench() }, right + 45);
-      right += 90 + 12;
+    // Crates stack against the wall left of the door, between the lamp posts.
+    if (owned.crates > 0) {
+      add(
+        { id: "crate", container: drawCrates(owned.crates) },
+        -132 / STATION_SCALE,
+        4,
+        1,
+        "front",
+      );
     }
-    const crates = owned.items.crate ?? 0;
-    if (crates > 0) {
-      add({ id: "crate", container: drawCrates(crates) }, right + 28);
-      right += 56 + 12;
-    }
-    if (owned.items.campfire) {
-      add(makeCampfire(), right + 30);
-      right += 60 + 12;
-    }
-    if (owned.items.lantern) {
-      add(makeLantern(), right + 15);
-      right += 30 + 12;
-    }
+  }
+
+  /** World position of a building (for the "it landed" pulse), or null when not drawn. */
+  buildingPosition(id: string): { x: number; y: number } | null {
+    return this.stationPosition(id);
   }
 
   /** A point on a station, in world space (the station strip is scaled down a little). */
@@ -598,7 +649,7 @@ export class Base {
   }
 
   /** World position of a station, for effects and actors. */
-  stationPosition(id: StationId): { x: number; y: number } | null {
+  stationPosition(id: string): { x: number; y: number } | null {
     const station = this.stations.find((candidate) => candidate.id === id);
     return station ? this.stationWorld(station) : null;
   }
@@ -624,6 +675,7 @@ export class Base {
       }
     }
     if (this.scaffold) this.scaffold.alpha = 0.7 + Math.sin(this.time * 4) * 0.3;
+    for (const scaffold of this.scaffolds) scaffold.alpha = 0.65 + Math.sin(this.time * 4) * 0.35;
 
     for (const glow of this.windowGlows) glow.update(darkness, Math.sin(this.time * 3.1) * 0.03);
     this.floodGlow?.update(darkness, Math.sin(this.time * 9) * 0.02);
@@ -641,6 +693,7 @@ export class Base {
       else if (station.id === "campfire")
         station.glow?.update(0.12 + darkness * 0.88, Math.sin(this.time * 13) * 0.08);
       else station.glow?.update(darkness, Math.sin(this.time * 7) * 0.05);
+      for (const glow of station.glows ?? []) glow.update(darkness, Math.sin(this.time * 5) * 0.03);
     }
 
     this.smokeTimer -= dt;

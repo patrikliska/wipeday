@@ -42,9 +42,9 @@ const BASE_X = 1000;
 /** Sky and ground continue this far past the stage so no screen shape shows an edge. */
 const EXTEND = 800;
 /** Narrow screens always see at least this many world units across... */
-const MIN_VISIBLE_W = 760;
+const MIN_VISIBLE_W = 880;
 /** ...centred here, so the base and the shore both fit on a phone. */
-const FOCUS_X = 845;
+const FOCUS_X = 915;
 
 const BACK_NODES: NodeDef[] = [
   { id: "tree_1", kind: "tree", x: 834, y: GROUND + 2, scale: 1, fall: -1 },
@@ -53,9 +53,9 @@ const BACK_NODES: NodeDef[] = [
   { id: "tree_4", kind: "tree", x: 1560, y: GROUND + 2, scale: 1.05 },
 ];
 const FRONT_NODES: NodeDef[] = [
-  { id: "ore_1", kind: "ore", x: 705, y: GROUND + 30, scale: 1 },
+  { id: "ore_1", kind: "ore", x: 660, y: GROUND + 70, scale: 1 },
   { id: "stone_1", kind: "stone", x: 1150, y: GROUND + 52, scale: 0.8 },
-  { id: "sulfur_1", kind: "sulfur", x: 1350, y: GROUND + 84, scale: 0.85 },
+  { id: "sulfur_1", kind: "sulfur", x: 1296, y: GROUND + 100, scale: 0.85 },
 ];
 const BARREL_SPOT = { x: 540, y: GROUND + 62 };
 
@@ -287,21 +287,14 @@ export class Scene {
       this.scaffoldTier = scaffold;
       this.base.showScaffold(scaffold);
     }
-    const count = (ids: string[]) => ids.reduce((sum, id) => sum + (base.items[id] ?? 0), 0);
-    const built = (id: string) => base.buildings[id] ?? 0;
     const furnace = furnaceOf(content, base);
     this.base.setStations({
-      furnace: furnace !== null,
+      buildings: base.buildings,
       furnaceSlots: Math.max(1, furnaceSlots(content, base)),
-      // The scene draws one workbench and one pile of crates, whatever their level or size.
-      items: {
-        workbench: built("workbench"),
-        crate: count(["crate", "large_crate"]),
-        campfire: built("campfire"),
-        kiln: built("kiln"),
-        press: built("press"),
-        lantern: built("lights"),
-      },
+      crates: (base.items.crate ?? 0) + (base.items.large_crate ?? 0),
+      constructing: base.construction.flatMap((job) =>
+        job.target.kind === "building" ? [job.target.building] : [],
+      ),
     });
     this.base.setFurnaceActive(
       furnace !== null && base.furnaceJobs.some((job) => jobProgress(job, now) < job.amount),
@@ -412,12 +405,22 @@ export class Scene {
           this.floatSize(1.2),
         );
         break;
-      case "building_started":
-        this.particles.spawn("dust", BASE_X, GROUND, 12, 0xc9b78a);
+      case "building_started": {
+        const spot = this.base.buildingPosition(event.building) ?? { x: BASE_X, y: GROUND };
+        this.particles.spawn("dust", spot.x, spot.y, 12, 0xc9b78a);
         break;
-      case "building_done":
-        this.particles.spawn("sparks", BASE_X, GROUND - 60, 18, 0xffd25a);
+      }
+      case "building_done": {
+        // What's new: dust, sparks and the name rising where it now stands.
+        const spot = this.base.buildingPosition(event.building) ?? { x: BASE_X, y: GROUND };
+        this.particles.spawn("dust", spot.x, spot.y, 18, 0xc9b78a);
+        this.particles.spawn("sparks", spot.x, spot.y - 50, 18, 0xffd25a);
+        const name = t(`building.${event.building}.name`);
+        const label =
+          event.level > 1 ? t("hud.building_level", { building: name, level: event.level }) : name;
+        this.floaters.add(spot.x, spot.y - 110, label, 0xffd25a, this.floatSize(1.1));
         break;
+      }
       case "building_decayed":
         this.particles.spawn("dust", BASE_X, GROUND, 16, 0x8a7a5a);
         break;

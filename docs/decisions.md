@@ -473,3 +473,63 @@ restarts only `wipeday`, and appends one validated block to the shared Caddyfile
 because the file is bind-mounted by inode), then reloads Caddy without restarting it. Production
 starts without Discord secrets (the login card says so), so the site can go up before the owner
 adds them. Details: `docs/deploy.md`.
+
+## W2 (buildings)
+
+### D69. Buildings are data with levels; one modifier system applies them
+`data/buildings.json5` holds 16 building types with 3 levels each (cost, build minutes, upkeep,
+effects). A level's `effects` are totals, not increments, so the card can say "Now" and "Next"
+without arithmetic. Effects are a small closed set (`rates`, `allRates`, `flat`, `cap`,
+`fuelPer100Ore`, `smeltPercent`, `craftPercent`, `haulMinutes`, `barrelLifeMinutes`,
+`barrelEveryMinutes`, `graceHours`, `workbench`, `furnace`). `modifiers(content, state)` in the
+domain sums them once per `buildings` object, and every rule that a building touches (accrual,
+gather, node slices, storage, furnace type, fuel and speed, craft time, barrels, haul, decay
+grace) reads from it. The owner chose "a small real bonus now": the deeper roles (queues,
+leather, crew, raid warnings) arrive with W3, W4 and W6 on the same ids.
+
+### D70. The workbench and the furnace are buildings; station items are gone
+Workbench levels 1 to 3 and the furnace type were items (`workbench_1..3`) or a purchase
+(`buy_furnace`). Both are now building levels; the campfire, kiln, press and lantern (now
+"lights") too. Items are only things you carry or store (crates, meds, gear). One `build`
+command covers everything: `{ type: "build", what: "tier" | building id }`.
+
+### D71. Construction runs on builders: one, a second from the Stone tier
+`BaseState.construction` replaces the single `build` field: a list of jobs, each on a builder.
+Builder slots are data per tier (`base_tiers.json5`: twig and wood 1, stone and up 2; the
+owner's choice). A 0-minute level (the first workbench and furnace) lands at once. A building
+already under construction cannot be started again; the refusal says when it lands, and
+"every builder is busy" says when one is free.
+
+### D72. Decay takes the dearest building level first, the tier last
+When unpaid upkeep outlasts the grace (walls add hours), the most expensive building level goes
+first (`building_decayed`), and the tier drops only when no buildings are left. Losing a level
+of the warehouse hurts less than losing the tier with all its storage, and it is visible in the
+scene. Upkeep is the tier's plus every building level's.
+
+### D73. Old W1 bases convert on load (`normalizeState`)
+The API and demo mode read every stored state through `normalizeState`: `workbench_1..3`, the
+campfire, kiln, press and lantern items become building levels, `furnaceId` becomes the furnace
+building, the old `build` becomes a construction job, and furnace jobs without `perHour` get
+the rate of the furnace the base had. Live bases keep what they built; nothing is migrated
+in SQL.
+
+### D74. Simulated players save for the next tier before extra buildings
+The simulator's archetypes build the tier first, then tools, the furnace and the workbench, then
+the cheapest other building with what is left after reserving half the next tier's cost (all of
+it once they can afford 70%). Building greedily starved the Armored target; always saving
+blocked buildings entirely. Result: the casual player has 10 buildings on day 7 (gate: 6+),
+reaches Stone on day 3, Sheet Metal on day 13 and Armored on day 28, the last day of its target
+window. W3's intermediate costs will move this, so the gate stays in `pacing.json5`.
+
+### D75. Scene layout: fixed spots in three rows, and a wider phone view
+Each building has one spot, in world units from the door (`SPOTS` in `scene/base.ts`):
+- the strip either side of the house: cupboard and furnaces left, workbench and campfire (a
+  kitchen at level 3) right;
+- up the slope behind, drawn smaller and peeking over the wall: watchtower, bunkhouse,
+  warehouse, kiln and press on the left, radio mast, generator and loom on the right;
+- the yard in front: tannery racks, garden beds, lamp posts, crates stacked by the door;
+- the dock reaches out over the water past the phone's left edge on purpose.
+A fully built Armored base spans about 880 world units, so the phone's minimum view grew from
+760 to 880 units and its focus moved from x 845 to 915 (this amends D42): the barrel, the dock's
+boathouse and the kitchen all fit at 390 px. The ore rock moved forward to the sand's edge
+(660, +70) and the sulfur rock inside the phone view (1296, +100).

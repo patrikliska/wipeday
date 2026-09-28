@@ -113,8 +113,8 @@ Dependency rules:
 - **Scene** in PixiJS: procedural flat-vector art from `apps/web/src/scene/palette.ts` (D41),
   layered so an illustrator can replace one layer at a time. **Panels** in React (HTML/CSS):
   HUD, dock, side panel or bottom sheet, modals, toasts.
-- **Camera** (D42): design stage 1600×900, ground line at y=560, base at x=1000, sea left of
-  x≈480. Wide screens fill the height (800 units); tall screens never show fewer than 760 units
+- **Camera** (D42, D75): design stage 1600×900, ground line at y=560, base at x=1000, sea left of
+  x≈480. Wide screens fill the height (800 units); tall screens never show fewer than 880 units
   across. Sky and ground extend 800 units past the stage so no aspect ratio shows an edge.
 - **Text in the scene lives in screen space** (D46): anchor in the world, draw on the screen at
   the display resolution, sizes in CSS px. Never text inside the zoomed world.
