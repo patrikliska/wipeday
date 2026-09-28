@@ -2,19 +2,32 @@
   "name": "@wipe-day/api",
   "version": "0.1.0",
   "private": true,
-  "description": "The game server: commands, lazy settling, sessions, push. Built in W1; a boot check until then.",
+  "description": "The game server: login, idempotent commands, lazy settling, push; serves the web build in production.",
   "type": "module",
   "scripts": {
     "start": "tsx src/main.ts",
-    "typecheck": "tsc --noEmit"
+    "dev": "tsx watch src/main.ts",
+    "db:generate": "drizzle-kit generate",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@hono/node-server": "^2.1.1",
     "@wipe-day/content": "workspace:*",
-    "@wipe-day/domain": "workspace:*"
+    "@wipe-day/domain": "workspace:*",
+    "arctic": "^3.7.0",
+    "better-sqlite3": "^12.11.1",
+    "drizzle-orm": "^0.45.3",
+    "hono": "^4.13.10",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.6.2",
+    "@wipe-day/sim": "workspace:*",
+    "drizzle-kit": "^0.31.11",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
   }
 }

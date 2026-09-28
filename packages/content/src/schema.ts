@@ -1,18 +1,12 @@
 /**
  * Shapes of the data files (`data/*.json5`). Every entity has an `id` that is
- * also its asset file name and its locale key.
- *
- * Each phase adds the balance fields it needs here. Files from docs/archive/discord-bot-spec.md
- * section 8 that have no entities yet (loot tables, casino, ...) are
- * introduced by the phase that first reads them.
+ * also its locale key (`{kind}.{id}.name`) and, later, its asset name.
+ * Browser-safe: no file access here (that is `load.ts`).
  */
 import { z } from "zod";
 import { TIERS } from "./tiers";
 
-/** Highest phase number in docs/archive/discord-bot-spec.md section 11. */
-export const LAST_PHASE = 7;
-
-/** Ids become file names and Discord emoji names. */
+/** Ids become locale keys and asset file names. */
 export const ID_PATTERN = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
 
 const id = z
@@ -21,16 +15,6 @@ const id = z
   .max(32, "id must be 2 to 32 characters")
   .regex(ID_PATTERN, "id must be lowercase snake_case (a-z, 0-9, _ between words)");
 
-const identity = {
-  id,
-  /** Rust item shortname or monument name, so the owner knows what to source. */
-  rustRef: z.string().min(1),
-  /** Unicode stand-in used inline until the application emoji is supplied. */
-  fallbackEmoji: z.string().trim().min(1, "fallbackEmoji is empty"),
-  /** First phase that uses the entity. */
-  phase: z.int().min(0).max(LAST_PHASE),
-};
-
 const tier = z.enum(TIERS);
 
 /** `{ resourceId: amount }`. Keys are checked against resources.json5 in crossCheck. */
@@ -38,30 +22,30 @@ const amounts = z.record(z.string(), z.int().min(0));
 export type Amounts = Record<string, number>;
 
 export const resourceSchema = z.strictObject({
-  ...identity,
-  /** raw: gathered from nodes. refined: produced by furnaces. currency: scrap. */
+  id,
+  /** raw: gathered. refined: made from a raw resource. currency: scrap. */
   kind: z.enum(["raw", "refined", "currency"]),
   /** For ores: the refined resource a furnace turns them into, 1:1. */
   smeltsInto: z.string().optional(),
 });
 
 export const toolSchema = z.strictObject({
-  ...identity,
+  id,
   tier,
   /** Passive gathering per hour, by resource. */
   rates: amounts,
-  /** The manual Gather click grants this many minutes of production. */
+  /** One Gather grants this many minutes of production. */
   bonusMinutes: z.int().min(1),
   cooldownMinutes: z.int().min(1),
-  /** Paid once to upgrade to this tier. */
+  /** Paid once to upgrade to this tool. */
   cost: amounts,
 });
 
 export const baseTierSchema = z.strictObject({
-  ...identity,
-  /** How much of each resource the base can hold, before boxes. */
+  id: tier,
+  /** How much of each resource the base can hold, before crates. */
   storageCap: z.int().min(1),
-  /** How many storage boxes count toward the cap. */
+  /** How many crates count toward the cap. */
   boxSlots: z.int().min(0),
   furnaceSlots: z.int().min(0),
   /** Highest workbench level usable at this tier. */
@@ -78,16 +62,19 @@ export const baseRulesSchema = z.strictObject({
   decayProductionPercent: z.int().min(0).max(100),
   /** Unpaid for this long and the base drops one tier. */
   tierLossAfterHours: z.int().min(1),
+  /** Items waiting in the crafting queue, including the one being made. */
+  craftQueueSize: z.int().min(1),
 });
 export type BaseRules = z.infer<typeof baseRulesSchema>;
 
 export const furnaceSchema = z.strictObject({
-  ...identity,
+  id,
   tier,
   /** Smelting speed per slot. */
   orePerHour: z.int().min(1),
-  /** Fuel, burned up front. */
-  woodPer100Ore: z.int().min(0),
+  /** The resource burned as fuel, up front when a job starts. */
+  fuel: z.string(),
+  fuelPer100Ore: z.int().min(0),
   maxOrePerJob: z.int().min(1),
   /** Paid once to buy (or upgrade to) this type. */
   cost: amounts,
@@ -96,19 +83,17 @@ export const furnaceSchema = z.strictObject({
 });
 
 export const ITEM_CATEGORIES = [
+  "workbench",
+  "storage",
+  "station",
+  "utility",
+  "med",
   "weapon",
   "armor",
-  "med",
-  "explosive",
-  "defense",
-  "keycard",
-  "component",
-  "storage",
-  "workbench",
 ] as const;
 
 export const itemSchema = z.strictObject({
-  ...identity,
+  id,
   category: z.enum(ITEM_CATEGORIES),
   /** Rarity, on the base-tier colour scale. */
   tier,
@@ -116,24 +101,38 @@ export const itemSchema = z.strictObject({
   capacity: z.int().min(1).optional(),
   /** Workbench items: the level they unlock. */
   workbenchLevel: z.int().min(1).max(3).optional(),
+  /** A base holds at most one (stations, benches). */
+  unique: z.boolean().optional(),
 });
 
-export const monumentSchema = z.strictObject({
-  ...identity,
-  /** Position in the chain, 1 = easiest. Unique and contiguous. */
-  order: z.int().min(1),
-  /** Keycard item id required to enter, if any. */
-  keycard: z.string().optional(),
-});
+export const perkSchema = z.strictObject({ id });
 
-export const perkSchema = z.strictObject({ ...identity });
+export const crewSchema = z.strictObject({
+  id,
+  perk: z.string(),
+  health: z.int().min(1).max(100),
+});
 
 export const recipeSchema = z.strictObject({
   item: z.string(),
   /** Workbench level required; 0 = bare hands. */
   workbench: z.int().min(0).max(3),
+  /** Time in the crafting queue; 0 = ready at once. */
+  craftMinutes: z.int().min(0),
   cost: amounts,
 });
+
+export const nodeKindSchema = z.strictObject({
+  id,
+  /** One hit banks this many minutes of the tool's production of `yields`. */
+  hitMinutes: z.int().min(1),
+  /** Share of the slice per resource; 1 = all of it. */
+  yields: z.record(z.string(), z.number().min(0).max(1)),
+  /** Real seconds from worked out to standing again. */
+  respawnSeconds: z.int().min(1),
+});
+
+export const nodeSchema = z.strictObject({ id, kind: z.string() });
 
 export const TASK_KINDS = [
   "gather",
@@ -157,23 +156,26 @@ export type Task = z.infer<typeof taskSchema>;
 
 const lootEntry = z
   .strictObject({
-    resource: z.string().optional(),
-    item: z.string().optional(),
+    resource: z.string(),
     min: z.int().min(1),
     max: z.int().min(1),
     weight: z.int().min(0),
-  })
-  .refine((entry) => (entry.resource === undefined) !== (entry.item === undefined), {
-    message: "a loot entry names exactly one of resource or item",
   })
   .refine((entry) => entry.max >= entry.min, { message: "max must be >= min" });
 
 export const activeSchema = z.strictObject({
   node: z.strictObject({
     maxHits: z.int().min(1),
-    hitPercentOfBonus: z.int().min(0).max(100),
-    hitWindowSeconds: z.int().min(1),
-    positions: z.int().min(2).max(5),
+    /** What the player sees: the marker fades this long after the last hit. */
+    hitWindowSeconds: z.number().positive(),
+    /** Extra time the server allows for network lag. */
+    graceSeconds: z.number().min(0),
+    /** Extra slices for a full run. */
+    perfectBonusHits: z.int().min(0),
+    /** Minutes of production that node hits pay in full per UTC day. */
+    dailyHaulMinutes: z.int().min(1),
+    /** What a hit pays once the day's haul is in, as a percentage. */
+    afterHaulPercent: z.int().min(0).max(100),
   }),
   barrels: z.strictObject({
     firstAfterMinutes: z.int().min(0),
@@ -201,9 +203,11 @@ export type Tool = z.infer<typeof toolSchema>;
 export type BaseTier = z.infer<typeof baseTierSchema>;
 export type Furnace = z.infer<typeof furnaceSchema>;
 export type Item = z.infer<typeof itemSchema>;
-export type Monument = z.infer<typeof monumentSchema>;
 export type Perk = z.infer<typeof perkSchema>;
+export type CrewMember = z.infer<typeof crewSchema>;
 export type Recipe = z.infer<typeof recipeSchema>;
+export type NodeKind = z.infer<typeof nodeKindSchema>;
+export type NodeDef = z.infer<typeof nodeSchema>;
 export type Pacing = z.infer<typeof pacingSchema>;
 
 export interface Content {
@@ -213,26 +217,63 @@ export interface Content {
   baseRules: BaseRules;
   furnaces: Furnace[];
   items: Item[];
-  monuments: Monument[];
   perks: Perk[];
+  crew: CrewMember[];
   recipes: Recipe[];
+  nodeKinds: NodeKind[];
+  nodes: NodeDef[];
   pacing: Pacing;
   active: Active;
 }
 
 /**
- * One row per entity file: file name, the top-level key holding the entity
- * array, the `Content` field it fills, and the locale namespace (`kind`) whose
+ * One row per entity list: file, the top-level key holding the array, the
+ * `Content` field it fills, and the locale namespace (`kind`) whose
  * `{kind}.{id}.name` key every entity must have.
  */
 export const FILES = [
-  { file: "resources.json5", field: "resources", kind: "resource", schema: resourceSchema },
-  { file: "tools.json5", field: "tools", kind: "tool", schema: toolSchema },
-  { file: "base_tiers.json5", field: "baseTiers", kind: "base_tier", schema: baseTierSchema },
-  { file: "furnaces.json5", field: "furnaces", kind: "furnace", schema: furnaceSchema },
-  { file: "items.json5", field: "items", kind: "item", schema: itemSchema },
-  { file: "monuments.json5", field: "monuments", kind: "monument", schema: monumentSchema },
-  { file: "survivor_perks.json5", field: "perks", kind: "perk", schema: perkSchema },
+  {
+    file: "resources.json5",
+    key: "resources",
+    field: "resources",
+    kind: "resource",
+    schema: resourceSchema,
+  },
+  { file: "tools.json5", key: "tools", field: "tools", kind: "tool", schema: toolSchema },
+  {
+    file: "base_tiers.json5",
+    key: "baseTiers",
+    field: "baseTiers",
+    kind: "base_tier",
+    schema: baseTierSchema,
+  },
+  {
+    file: "furnaces.json5",
+    key: "furnaces",
+    field: "furnaces",
+    kind: "furnace",
+    schema: furnaceSchema,
+  },
+  { file: "items.json5", key: "items", field: "items", kind: "item", schema: itemSchema },
+  { file: "perks.json5", key: "perks", field: "perks", kind: "perk", schema: perkSchema },
+  { file: "crew.json5", key: "crew", field: "crew", kind: "crew", schema: crewSchema },
+  { file: "nodes.json5", key: "kinds", field: "nodeKinds", kind: "node", schema: nodeKindSchema },
 ] as const;
 
 export type EntityKind = (typeof FILES)[number]["kind"];
+
+/** Every data file, for loaders that fetch or bundle them (the browser). */
+export const DATA_FILES = [
+  "resources.json5",
+  "tools.json5",
+  "base_tiers.json5",
+  "furnaces.json5",
+  "items.json5",
+  "perks.json5",
+  "crew.json5",
+  "recipes.json5",
+  "nodes.json5",
+  "active.json5",
+  "pacing.json5",
+] as const;
+export type DataFile = (typeof DATA_FILES)[number];

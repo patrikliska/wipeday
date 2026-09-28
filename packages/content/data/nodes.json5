@@ -1,0 +1,24 @@
+// Resource nodes around the base: the "work the node" mini-game.
+// kinds: hitMinutes = one hit banks that many minutes of the current tool's production of
+// the kind's yields (share 1 = the full slice); respawnSeconds = real seconds from worked
+// out to back (active play: seconds, never hours). A tool that does not produce a node's
+// resource cannot work that node yet.
+// nodes: the ones standing in the world. Ids must match the scene's placement.
+{
+  kinds: [
+    { id: "tree", hitMinutes: 6, yields: { timber: 1 }, respawnSeconds: 20 },
+    { id: "stone", hitMinutes: 6, yields: { stone: 1 }, respawnSeconds: 20 },
+    { id: "ore", hitMinutes: 12, yields: { ore: 1 }, respawnSeconds: 45 },
+    { id: "sulfur", hitMinutes: 24, yields: { sulfur_ore: 1 }, respawnSeconds: 120 },
+    { id: "fibre", hitMinutes: 6, yields: { fibre: 1 }, respawnSeconds: 20 },
+  ],
+  nodes: [
+    { id: "tree_1", kind: "tree" },
+    { id: "tree_2", kind: "tree" },
+    { id: "tree_3", kind: "tree" },
+    { id: "tree_4", kind: "tree" },
+    { id: "ore_1", kind: "ore" },
+    { id: "stone_1", kind: "stone" },
+    { id: "sulfur_1", kind: "sulfur" },
+  ],
+}

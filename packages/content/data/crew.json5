@@ -1,0 +1,9 @@
+// The crew every base starts with. Names are in the locale (`crew.{id}.name`); perks in
+// perks.json5. Crew get jobs, levels and injuries in W4; until then they live in the scene.
+{
+  crew: [
+    { id: "mara", perk: "scavenger", health: 100 },
+    { id: "dax", perk: "demolition", health: 100 },
+    { id: "ivo", perk: "medic", health: 64 },
+  ],
+}

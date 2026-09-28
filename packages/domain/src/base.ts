@@ -1,15 +1,16 @@
 /**
  * The season-layer base, as pure functions: state + content + `now` in, new
- * state + what happened out. No Discord, no database, no clock. The simulator
- * and the unit tests drive exactly this code.
+ * state + what happened out. No IO, no clock, no unseeded randomness. The API,
+ * the web client's prediction, the simulator and the unit tests all drive
+ * exactly this code (through `commands.ts`).
  *
  * Time is UTC unix seconds; amounts are integers. Lazy evaluation: nothing
- * ticks. Resources are computed from `lastCollectedAt`, builds complete and
- * upkeep is paid in `settle`, which every action runs first.
+ * ticks. Resources are computed from `lastCollectedAt`; builds, crafts, barrels
+ * and upkeep resolve in `settleAll` (`settle.ts`), which every command runs first.
  */
-import type { Amounts, BaseTier, Content, Furnace, Recipe, Tool } from "@wipe-day/content/schema";
+import type { Amounts, BaseTier, Content, Furnace, Tool } from "@wipe-day/content/schema";
 import { TIERS, type Tier } from "@wipe-day/content/tiers";
-import { type Barrel, type DailyTasks, type NodeRun, newActive } from "./active";
+import type { GameEvent } from "./events";
 
 export interface FurnaceJob {
   /** Ore id. */
@@ -22,7 +23,39 @@ export interface FurnaceJob {
   collected: number;
 }
 
+export interface CraftJob {
+  item: string;
+  /** Lands in the inventory at this moment. Jobs run one after another, in order. */
+  endsAt: number;
+}
+
+/** The node being worked right now. */
+export interface NodeRun {
+  node: string;
+  /** Client-chosen id of this run, so retries and a second tab cannot mix runs. */
+  run: string;
+  hits: number;
+  lastHitAt: number;
+}
+
+export interface Barrel {
+  spawnedAt: number;
+  expiresAt: number;
+  seed: number;
+}
+
+export interface DailyTasks {
+  /** UTC day index these tasks belong to; -1 before the first roll. */
+  day: number;
+  /** Active task ids, in display order. */
+  ids: string[];
+  progress: Record<string, number>;
+  done: string[];
+}
+
 export interface BaseState {
+  /** Per-base random seed, fixed at creation: barrel loot and anything else rolled. */
+  seed: number;
   tier: Tier;
   toolId: string;
   /** Banked resources. A key is present from the moment the player first gains it. */
@@ -39,23 +72,34 @@ export interface BaseState {
   furnaceJobs: FurnaceJob[];
   /** Inventory: item id -> count. */
   items: Record<string, number>;
-  /** Node mini-game, barrel and daily tasks: see `active.ts`. */
+  /** Paid for, waiting to land. See `craft.ts`. */
+  craftQueue: CraftJob[];
+  /** The node mini-game. See `nodes.ts`. */
   nodeRun: NodeRun | null;
+  /** Worked-out nodes: node id -> when it stands again. */
+  depleted: Record<string, number>;
+  /** Minutes of production node hits have paid in full on UTC day `day`. */
+  haul: { day: number; minutes: number };
   barrel: Barrel | null;
+  /** When the next barrel is scheduled to wash up. */
   nextBarrelAt: number;
   tasks: DailyTasks;
+  /** Uses per hint key: a hint retires after two uses (see `advisor.ts`). */
+  hints: Record<string, number>;
 }
 
 const HOUR = 3600;
 
 // --- lookups -----------------------------------------------------------------
 
-export function newBase(content: Content, now: number): BaseState {
+/** A fresh twig base. `seed` makes its rolls its own (the server picks it at random). */
+export function newBase(content: Content, now: number, seed: number): BaseState {
   const tool = content.tools[0];
   if (!tool) throw new Error("tools.json5 lists no tools");
   const stock: Amounts = {};
   for (const id of Object.keys(tool.rates)) stock[id] = 0;
   return {
+    seed: seed >>> 0,
     tier: "twig",
     toolId: tool.id,
     stock,
@@ -66,7 +110,14 @@ export function newBase(content: Content, now: number): BaseState {
     furnaceId: null,
     furnaceJobs: [],
     items: {},
-    ...newActive(content, now),
+    craftQueue: [],
+    nodeRun: null,
+    depleted: {},
+    haul: { day: -1, minutes: 0 },
+    barrel: null,
+    nextBarrelAt: now + content.active.barrels.firstAfterMinutes * 60,
+    tasks: { day: -1, ids: [], progress: {}, done: [] },
+    hints: {},
   };
 }
 
@@ -158,7 +209,7 @@ export function add(stock: Amounts, gained: Amounts): Amounts {
   return out;
 }
 
-function subtract(stock: Amounts, cost: Amounts): Amounts {
+export function subtract(stock: Amounts, cost: Amounts): Amounts {
   const out = { ...stock };
   for (const [id, amount] of Object.entries(cost)) out[id] = (out[id] ?? 0) - amount;
   return out;
@@ -187,7 +238,7 @@ export function canAfford(cost: Amounts, stock: Amounts): boolean {
 // --- accrual -----------------------------------------------------------------
 
 /** What a span of production yields, per resource, rounded down. */
-function production(rates: Amounts, seconds: number, percent = 100): Amounts {
+export function production(rates: Amounts, seconds: number, percent = 100): Amounts {
   const out: Amounts = {};
   for (const [id, perHour] of Object.entries(rates)) {
     out[id] = Math.floor((perHour * seconds * percent) / (HOUR * 100));
@@ -212,7 +263,7 @@ export function storageFill(
 ): { resource: string; fraction: number } {
   const cap = storageCap(content, state);
   const waiting = accrued(content, state, now);
-  let best = { resource: "wood", fraction: 0 };
+  let best = { resource: content.resources[0]?.id ?? "", fraction: 0 };
   for (const resource of content.resources) {
     if (state.stock[resource.id] === undefined) continue;
     const held = (state.stock[resource.id] ?? 0) + (waiting[resource.id] ?? 0);
@@ -316,11 +367,10 @@ export function gather(content: Content, state: BaseState, now: number): GatherR
 
 // --- settle: builds and upkeep -----------------------------------------------
 
-export type SettleEvent =
-  | { type: "build_done"; tier: Tier }
-  | { type: "auto_collect"; gained: Amounts }
-  | { type: "upkeep_paid"; hours: number; paid: Amounts }
-  | { type: "decayed"; from: Tier; to: Tier };
+export type SettleEvent = Extract<
+  GameEvent,
+  { type: "build_done" | "auto_collect" | "upkeep_paid" | "decayed" }
+>;
 
 /**
  * Brings the state up to `now`: a finished build lands; upkeep is paid hour
@@ -464,9 +514,9 @@ export function buyFurnace(content: Content, state: BaseState): BuyFurnaceResult
   };
 }
 
-/** Fuel for smelting `amount` ore. */
+/** Fuel for smelting `amount` ore, in `furnace.fuel`. */
 export function fuelFor(furnace: Furnace, amount: number): number {
-  return Math.ceil((amount * furnace.woodPer100Ore) / 100);
+  return Math.ceil((amount * furnace.fuelPer100Ore) / 100);
 }
 
 /** How much of `ore` a new job would take: all in stock, limited by fuel and the job cap. */
@@ -474,8 +524,10 @@ export function smeltable(content: Content, state: BaseState, ore: string): numb
   const furnace = furnaceOf(content, state);
   if (!furnace) return 0;
   let amount = Math.min(state.stock[ore] ?? 0, furnace.maxOrePerJob);
-  if (furnace.woodPer100Ore > 0) {
-    const byFuel = Math.floor(((state.stock.wood ?? 0) * 100) / furnace.woodPer100Ore);
+  if (furnace.fuelPer100Ore > 0) {
+    // Burning the ore's own stock as fuel (never the case today) would double-count it.
+    const fuelStock = (state.stock[furnace.fuel] ?? 0) - (furnace.fuel === ore ? amount : 0);
+    const byFuel = Math.floor((Math.max(0, fuelStock) * 100) / furnace.fuelPer100Ore);
     amount = Math.min(amount, byFuel);
   }
   return amount;
@@ -498,7 +550,9 @@ export function smelt(content: Content, state: BaseState, now: number, ore: stri
   if (amount <= 0) return { ok: false, reason: "nothing_to_smelt" };
   const fuel = fuelFor(furnace, amount);
   const job: FurnaceJob = { input: ore, output, amount, startedAt: now, collected: 0 };
-  const stock = subtract(state.stock, { [ore]: amount, ...(fuel > 0 ? { wood: fuel } : {}) });
+  const paid: Amounts = { [ore]: amount };
+  if (fuel > 0) paid[furnace.fuel] = (paid[furnace.fuel] ?? 0) + fuel;
+  const stock = subtract(state.stock, paid);
   stock[output] ??= 0;
   return {
     ok: true,
@@ -551,52 +605,4 @@ export function collectFurnaces(content: Content, state: BaseState, now: number)
     if (collected < job.amount) jobs.push({ ...job, collected });
   }
   return { state: { ...state, stock, furnaceJobs: jobs }, gained };
-}
-
-// --- crafting ----------------------------------------------------------------
-
-export type CraftResult =
-  | { ok: true; state: BaseState; recipe: Recipe; paid: Amounts }
-  | { ok: false; reason: "unknown" }
-  | { ok: false; reason: "workbench"; needed: number; have: number }
-  | { ok: false; reason: "box_slots"; slots: number }
-  | { ok: false; reason: "unaffordable"; missing: Amounts };
-
-/** Crafts one unit, instantly (decision D30). */
-export function craft(content: Content, state: BaseState, itemId: string): CraftResult {
-  const recipe = content.recipes.find((candidate) => candidate.item === itemId);
-  const item = content.items.find((candidate) => candidate.id === itemId);
-  if (!recipe || !item) return { ok: false, reason: "unknown" };
-  const have = workbenchLevel(content, state);
-  if (recipe.workbench > have)
-    return { ok: false, reason: "workbench", needed: recipe.workbench, have };
-  if (item.category === "storage") {
-    const slots = tierOf(content, state.tier).boxSlots;
-    if (boxesInUse(content, state) >= slots) return { ok: false, reason: "box_slots", slots };
-  }
-  const missing = shortfall(recipe.cost, state.stock);
-  if (Object.keys(missing).length > 0) return { ok: false, reason: "unaffordable", missing };
-  return {
-    ok: true,
-    state: {
-      ...state,
-      stock: subtract(state.stock, recipe.cost),
-      items: { ...state.items, [itemId]: (state.items[itemId] ?? 0) + 1 },
-    },
-    recipe,
-    paid: recipe.cost,
-  };
-}
-
-/** Recipes the player can see at all, with whether each is craftable now. */
-export function craftable(
-  content: Content,
-  state: BaseState,
-): Array<{ recipe: Recipe; unlocked: boolean; missing: Amounts }> {
-  const level = workbenchLevel(content, state);
-  return content.recipes.map((recipe) => ({
-    recipe,
-    unlocked: recipe.workbench <= level,
-    missing: shortfall(recipe.cost, state.stock),
-  }));
 }

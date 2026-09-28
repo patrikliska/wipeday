@@ -1,545 +1,77 @@
 {
   "resource": {
-    "wood": {
-      "name": "Wood"
-    },
-    "stone": {
-      "name": "Stone"
-    },
-    "metal_ore": {
-      "name": "Metal Ore"
-    },
-    "metal_fragments": {
-      "name": "Metal Frags"
-    },
-    "sulfur_ore": {
-      "name": "Sulfur Ore"
-    },
-    "sulfur": {
-      "name": "Sulfur"
-    },
-    "hqm_ore": {
-      "name": "HQM Ore"
-    },
-    "hqm": {
-      "name": "HQM"
-    },
-    "cloth": {
-      "name": "Cloth"
-    },
-    "leather": {
-      "name": "Leather"
-    },
-    "low_grade_fuel": {
-      "name": "Low Grade"
-    },
-    "scrap": {
-      "name": "Scrap"
-    }
+    "timber": { "name": "Timber" },
+    "stone": { "name": "Stone" },
+    "ore": { "name": "Iron Ore" },
+    "ingots": { "name": "Iron Ingots" },
+    "sulfur_ore": { "name": "Sulfur Ore" },
+    "sulfur": { "name": "Sulfur" },
+    "fibre": { "name": "Fibre" },
+    "hide": { "name": "Hide" },
+    "fat": { "name": "Animal Fat" },
+    "fuel": { "name": "Fuel" },
+    "scrap": { "name": "Scrap" }
   },
   "tool": {
-    "rock": {
-      "name": "Rock"
-    },
-    "stone_tools": {
-      "name": "Stone Tools"
-    },
-    "metal_tools": {
-      "name": "Metal Tools"
-    },
-    "salvaged_tools": {
-      "name": "Salvaged Tools"
-    },
-    "power_tools": {
-      "name": "Power Tools"
-    }
+    "rock": { "name": "Rock" },
+    "stone_tools": { "name": "Stone Tools" },
+    "iron_tools": { "name": "Iron Tools" },
+    "salvaged_tools": { "name": "Salvaged Tools" },
+    "power_tools": { "name": "Power Tools" }
   },
   "base_tier": {
-    "twig": {
-      "name": "Twig"
-    },
-    "wood": {
-      "name": "Wood"
-    },
-    "stone": {
-      "name": "Stone"
-    },
-    "metal": {
-      "name": "Sheet Metal"
-    },
-    "hqm": {
-      "name": "Armored"
-    }
+    "twig": { "name": "Twig" },
+    "wood": { "name": "Timber" },
+    "stone": { "name": "Stone" },
+    "metal": { "name": "Sheet Metal" },
+    "hqm": { "name": "Armored" }
   },
   "furnace": {
-    "furnace": {
-      "name": "Furnace"
-    },
-    "large_furnace": {
-      "name": "Large Furnace"
-    },
-    "electric_furnace": {
-      "name": "Electric Furnace"
-    }
-  },
-  "perk": {
-    "scavenger": {
-      "name": "Scavenger"
-    },
-    "medic": {
-      "name": "Medic"
-    },
-    "demolition": {
-      "name": "Demolition"
-    },
-    "marksman": {
-      "name": "Marksman"
-    },
-    "mule": {
-      "name": "Mule"
-    }
-  },
-  "monument": {
-    "supermarket": {
-      "name": "Abandoned Supermarket"
-    },
-    "gas_station": {
-      "name": "Oxum's Gas Station"
-    },
-    "lighthouse": {
-      "name": "Lighthouse"
-    },
-    "dome": {
-      "name": "The Dome"
-    },
-    "harbor": {
-      "name": "Harbor"
-    },
-    "satellite_dish": {
-      "name": "Satellite Dish"
-    },
-    "airfield": {
-      "name": "Airfield"
-    },
-    "train_yard": {
-      "name": "Train Yard"
-    },
-    "water_treatment": {
-      "name": "Water Treatment Plant"
-    },
-    "power_plant": {
-      "name": "Power Plant"
-    },
-    "military_tunnels": {
-      "name": "Military Tunnels"
-    },
-    "launch_site": {
-      "name": "Launch Site"
-    },
-    "small_oil_rig": {
-      "name": "Small Oil Rig"
-    },
-    "large_oil_rig": {
-      "name": "Large Oil Rig"
-    }
+    "furnace": { "name": "Stone Furnace" },
+    "large_furnace": { "name": "Large Furnace" },
+    "electric_furnace": { "name": "Electric Smelter" }
   },
   "item": {
-    "wood_box": {
-      "name": "Wood Box"
-    },
-    "large_box": {
-      "name": "Large Box"
-    },
-    "workbench_1": {
-      "name": "Workbench 1"
-    },
-    "workbench_2": {
-      "name": "Workbench 2"
-    },
-    "workbench_3": {
-      "name": "Workbench 3"
-    },
-    "bandage": {
-      "name": "Bandage"
-    },
-    "syringe": {
-      "name": "Syringe"
-    },
-    "medkit": {
-      "name": "Medkit"
-    },
-    "bow": {
-      "name": "Hunting Bow"
-    },
-    "crossbow": {
-      "name": "Crossbow"
-    },
-    "eoka": {
-      "name": "Eoka Pistol"
-    },
-    "waterpipe": {
-      "name": "Waterpipe Shotgun"
-    },
-    "revolver": {
-      "name": "Revolver"
-    },
-    "double_barrel": {
-      "name": "Double Barrel"
-    },
-    "semi_pistol": {
-      "name": "Semi Pistol"
-    },
-    "python": {
-      "name": "Python Revolver"
-    },
-    "pump_shotgun": {
-      "name": "Pump Shotgun"
-    },
-    "custom_smg": {
-      "name": "Custom SMG"
-    },
-    "thompson": {
-      "name": "Thompson"
-    },
-    "semi_rifle": {
-      "name": "Semi Rifle"
-    },
-    "mp5": {
-      "name": "MP5A4"
-    },
-    "ak47": {
-      "name": "Assault Rifle"
-    },
-    "bolt_rifle": {
-      "name": "Bolt Action Rifle"
-    },
-    "m249": {
-      "name": "M249"
-    },
-    "burlap_shirt": {
-      "name": "Burlap Shirt"
-    },
-    "hide_poncho": {
-      "name": "Hide Poncho"
-    },
-    "wood_armor": {
-      "name": "Wood Chestplate"
-    },
-    "bone_armor": {
-      "name": "Bone Armor"
-    },
-    "hazmat_suit": {
-      "name": "Hazmat Suit"
-    },
-    "roadsign_jacket": {
-      "name": "Road Sign Jacket"
-    },
-    "coffee_can_helmet": {
-      "name": "Coffee Can Helmet"
-    },
-    "metal_facemask": {
-      "name": "Metal Facemask"
-    },
-    "metal_chestplate": {
-      "name": "Metal Chestplate"
-    },
-    "keycard_green": {
-      "name": "Green Keycard"
-    },
-    "keycard_blue": {
-      "name": "Blue Keycard"
-    },
-    "keycard_red": {
-      "name": "Red Keycard"
-    },
-    "fuse": {
-      "name": "Electric Fuse"
-    },
-    "gears": {
-      "name": "Gears"
-    },
-    "metal_pipe": {
-      "name": "Metal Pipe"
-    },
-    "metal_spring": {
-      "name": "Metal Spring"
-    },
-    "semi_body": {
-      "name": "Semi Automatic Body"
-    },
-    "smg_body": {
-      "name": "SMG Body"
-    },
-    "rifle_body": {
-      "name": "Rifle Body"
-    },
-    "tech_trash": {
-      "name": "Tech Trash"
-    },
-    "targeting_computer": {
-      "name": "Targeting PC"
-    },
-    "beancan_grenade": {
-      "name": "Beancan Grenade"
-    },
-    "satchel_charge": {
-      "name": "Satchel Charge"
-    },
-    "explosive_ammo": {
-      "name": "Explosive Ammo"
-    },
-    "rocket": {
-      "name": "Rocket"
-    },
-    "c4": {
-      "name": "C4"
-    },
-    "wooden_barricade": {
-      "name": "Wooden Barricade"
-    },
-    "snap_trap": {
-      "name": "Snap Trap"
-    },
-    "landmine": {
-      "name": "Landmine"
-    },
-    "shotgun_trap": {
-      "name": "Shotgun Trap"
-    },
-    "flame_turret": {
-      "name": "Flame Turret"
-    },
-    "stone_wall": {
-      "name": "High Stone Wall"
-    },
-    "auto_turret": {
-      "name": "Auto Turret"
-    }
+    "workbench_1": { "name": "Workbench", "effect": "Unlocks crafting" },
+    "workbench_2": { "name": "Workbench II", "effect": "Unlocks level 2 recipes" },
+    "workbench_3": { "name": "Workbench III", "effect": "Unlocks level 3 recipes" },
+    "crate": { "name": "Storage Crate", "effect": "+{capacity} room for every resource" },
+    "large_crate": { "name": "Large Crate", "effect": "+{capacity} room for every resource" },
+    "campfire": { "name": "Campfire", "effect": "A warm spot for the crew at night" },
+    "kiln": { "name": "Charcoal Kiln", "effect": "Stands ready for charcoal (W3)" },
+    "press": { "name": "Oil Press", "effect": "Stands ready for fuel from fat (W3)" },
+    "lantern": { "name": "Oil Lantern", "effect": "Lights the base at night" },
+    "bandage": { "name": "Bandage", "effect": "For the crew's first scrapes" },
+    "bow": { "name": "Hunting Bow", "effect": "Crew gear for expeditions" },
+    "spear": { "name": "Iron Spear", "effect": "Crew gear for expeditions" },
+    "hide_vest": { "name": "Hide Vest", "effect": "Crew armour for expeditions" }
   },
-  "card": {
-    "base": {
-      "subtitle": "{tier} base · Day {day}",
-      "storage": "Storage",
-      "storage_full": "FULL · collect now",
-      "tool": "Gathering tool",
-      "storage_of": "{resource} {value} / {cap}",
-      "storage_full_of": "{resource} FULL"
-    },
-    "inventory": {
-      "title": "Inventory",
-      "subtitle": "{count} items · Workbench {level}",
-      "subtitle_none": "Nothing here yet",
-      "empty": "Craft something at the workbench and it shows up here.",
-      "boxes": "Boxes {used} / {slots}"
-    }
+  "perk": {
+    "scavenger": { "name": "Scavenger", "effect": "More loot from ruins" },
+    "medic": { "name": "Medic", "effect": "Patches up the crew" },
+    "demolition": { "name": "Demolition", "effect": "Opens what others cannot" },
+    "marksman": { "name": "Marksman", "effect": "Keeps trouble at a distance" },
+    "mule": { "name": "Mule", "effect": "Carries more home" }
   },
-  "nav": {
-    "back": "Back",
-    "home": "Home"
+  "crew": {
+    "mara": { "name": "Mara" },
+    "dax": { "name": "Dax" },
+    "ivo": { "name": "Ivo" }
   },
-  "screen": {
-    "debug_card": {
-      "title": "Render pipeline check",
-      "status": "Rendered in {ms} ms · {assets}",
-      "status_cached": "Served from cache in {ms} ms · {assets}",
-      "assets": "{present}/{planned} assets supplied",
-      "detail": "This is the base card with sample data. Missing pictures show as tinted tiles.",
-      "rerender": "Render again",
-      "full": "Worst case",
-      "empty": "New player",
-      "normal": "Typical player"
-    },
-    "base": {
-      "title": "{name}'s base",
-      "status_full": "{resource} storage full · collect or spend it",
-      "status": "Storage {pct}% ({resource}) · {waiting} waiting",
-      "status_nothing": "Storage {pct}% ({resource}) · nothing waiting yet",
-      "collected": "Collected {amounts}",
-      "collected_nothing": "Nothing to collect yet.",
-      "gathered": "Gather bonus {bonus}",
-      "gathered_with": "Gather bonus {bonus} · collected {amounts}",
-      "cooldown": "Gather ready {when}",
-      "cooldown_hit": "Gather is still on cooldown, ready {when}.",
-      "upgraded": "Upgraded to {tool}.",
-      "collect": "Collect",
-      "gather": "Gather",
-      "gather_locked": "Gather · on cooldown",
-      "tools": "Tools",
-      "refresh": "Refresh",
-      "title_s": "{name}' base",
-      "status_building": "Upgrading to {tier} · done {when}",
-      "upkeep": "Upkeep {rates} · stock covers {time}",
-      "upkeep_decaying": "DECAYING · not enough for upkeep · base drops a tier {when}",
-      "furnace_ready": "Furnace: {amounts} ready to take out",
-      "furnace_busy": "Furnace: {count} smelting, next done {when}",
-      "built": "Your base is now {tier}.",
-      "build_started": "Upgrade to {tier} started · done {when}",
-      "decayed": "Upkeep ran out: your base dropped to {tier}.",
-      "build": "Build",
-      "furnace": "Furnace",
-      "craft": "Craft",
-      "inventory": "Inventory",
-      "barrel": "Break barrel",
-      "barrel_line": "🛢️ A barrel washed up · gone {when}",
-      "barrel_broken": "Barrel: {loot}",
-      "barrel_empty": "The barrel was empty.",
-      "barrel_gone": "That barrel drifted off already.",
-      "tasks": "Tasks",
-      "tasks_line": "Tasks {done}/{total} · {summary}",
-      "task_done": "Task done: {task} · {reward}",
-      "node_result_perfect": "Perfect run at the node: {banked}",
-      "node_result_part": "Node run: {hits} hits · {banked}"
-    },
-    "tools": {
-      "title": "Upgrade to {tool}",
-      "title_maxed": "Gathering tools",
-      "status": "Costs {cost} · you have {have}",
-      "status_maxed": "{tool}: the best there is. Nothing to upgrade.",
-      "rates": "Gathering per hour after the upgrade:",
-      "rate_line": "{resource} {before} → {after}",
-      "rate_new": "{resource} {after} (new)",
-      "after": "Left after paying: {stock}",
-      "missing": "Still missing: {missing}",
-      "upgrade": "Upgrade",
-      "upgrade_locked": "Upgrade · need {missing}",
-      "done_title": "Upgraded to {tool}",
-      "done_status": "Paid {paid}",
-      "done_detail": "Gathering per hour now: {rates}"
-    },
-    "help": {
-      "title": "Wipe Day",
-      "body": "A Rust idle game. /start builds your base; everything else happens on your base message. Collect what piled up, Gather for a bonus, upgrade Tools. That's it for now: more unlocks as you grow."
-    },
-    "build": {
-      "title": "Upgrade to {tier}",
-      "title_building": "Upgrading to {tier}",
-      "title_maxed": "Base upgrades",
-      "status": "Costs {cost} · you have {have}",
-      "status_building": "Done {when}",
-      "status_maxed": "{tier}: the top tier. Nothing left to build.",
-      "duration": "Build time: {time}",
-      "duration_instant": "Build time: instant",
-      "unlocks": "Unlocks: {cap} of each resource · {boxes} box slots · {furnaces} furnace slot(s) · workbench {workbench}",
-      "upkeep": "Upkeep after: {rates}",
-      "upkeep_none": "Upkeep after: none",
-      "after": "Left after paying: {stock}",
-      "missing": "Still missing: {missing}",
-      "build": "Build",
-      "build_locked": "Build · need {missing}",
-      "done_title": "Upgrade to {tier} started",
-      "done_status": "Done {when} · paid {paid}",
-      "done_now_title": "Your base is now {tier}",
-      "done_now_status": "Paid {paid}"
-    },
-    "furnace": {
-      "title": "Furnace",
-      "title_none": "No furnace yet",
-      "status_none": "A furnace turns ore into metal. {furnace} costs {cost}.",
-      "status": "{furnace} · {busy} of {slots} slots busy",
-      "slot_empty": "Slot {n}: empty",
-      "slot_busy": "Slot {n}: {amount} {ore} → {output} · done {when}",
-      "slot_done": "Slot {n}: {ready} {output} ready to take out",
-      "select": "Smelt which ore?",
-      "option_label": "Smelt {amount} {ore}",
-      "option_desc": "→ {amount} {output} · {fuel} wood · {time}",
-      "option_no_fuel": "no wood for fuel",
-      "ready": "Ready to take out: {amounts}",
-      "collect": "Take out",
-      "buy": "Buy {furnace}",
-      "buy_locked": "{furnace} · need {missing}",
-      "upgrade": "Upgrade: {furnace}",
-      "upgrade_locked": "Upgrade · need {missing}",
-      "collected_title": "Took out {amounts}",
-      "collected_none": "Nothing was ready.",
-      "started_title": "Smelting {amount} {ore}",
-      "started_status": "Done {when} · {fuel} wood burned",
-      "bought_title": "Bought {furnace}",
-      "bought_status": "Paid {paid} · {rate} ore per hour per slot"
-    },
-    "craft": {
-      "title": "Craft",
-      "status": "Workbench level {level} · {count} recipes",
-      "status_none": "No workbench yet. Craft one below to unlock more.",
-      "select": "Craft what?",
-      "option_desc": "{cost}",
-      "option_locked": "needs {missing}",
-      "effect_storage": "+{capacity} storage per resource",
-      "effect_workbench": "Workbench level {level}",
-      "locked_line": "Level {level} unlocks: {items}",
-      "done_title": "Crafted {item}",
-      "done_status": "Paid {paid}",
-      "again": "Craft again",
-      "inventory": "Inventory"
-    },
-    "inventory": {
-      "title": "Inventory",
-      "status": "{count} items · boxes {used} / {slots}",
-      "status_empty": "Nothing here yet",
-      "craft": "Craft"
-    },
-    "node": {
-      "title": "Work the node",
-      "status": "Hit the glowing button · {hits}/{max} · marker fades {when}",
-      "status_perfect": "Perfect run · {hits}/{max}",
-      "status_missed": "Missed · {hits}/{max} hits kept",
-      "status_faded": "The marker faded · {hits}/{max} hits kept",
-      "banked": "Banked so far: {banked}",
-      "banked_none": "Nothing banked yet.",
-      "hint": "Every hit banks {perHit}. Miss once and the run is over.",
-      "position": "{n}"
-    },
-    "tasks": {
-      "title": "Daily tasks",
-      "status": "{done}/{total} done · new tasks {when}",
-      "status_all": "All done · new tasks {when}",
-      "line": "{check} {task} · {bar} {progress}/{target} · {reward}"
-    }
-  },
-  "error": {
-    "not_your_message": "That's someone else's base. Use /base to open yours.",
-    "stale_message": "That message is from an older version. Use /base to open a fresh one.",
-    "unexpected": "Something went wrong on our side. Nothing was spent. Try again in a moment.",
-    "admin_only": "That command is for server admins only.",
-    "no_base": "You don't have a base yet. Use /start to build one.",
-    "home_moved": "Your base is here: {link}",
-    "no_slot": "Every furnace slot is busy. Take out what's ready or wait for one to finish.",
-    "box_slots": "All {slots} box slots are in use. Upgrade the base for more.",
-    "workbench": "That needs workbench level {needed}; you have level {have}."
-  },
-  "player": {
-    "anonymous": "Survivor"
-  },
-  "hint": {
-    "gather": "Tap Gather to grab your first wood and stone.",
-    "collect": "Resources pile up while you're away. Collect them whenever you check in.",
-    "tools": "You can afford {tool}. Better tools gather faster.",
-    "build": "You can afford a {tier} base: more storage, more room to grow.",
-    "furnace": "Ore only becomes metal in a furnace. You can afford one.",
-    "craft": "A workbench lets you craft boxes for more storage.",
-    "furnace_use": "Ore is waiting. Smelt it at the furnace to get metal.",
-    "barrel": "A barrel washed up. Break it before it drifts off."
+  "node": {
+    "tree": { "name": "Tree" },
+    "stone": { "name": "Stone" },
+    "ore": { "name": "Iron Ore" },
+    "sulfur": { "name": "Sulfur Ore" },
+    "fibre": { "name": "Fibre" }
   },
   "task": {
-    "gather_4": {
-      "name": "Gather 4 times"
-    },
-    "collect_3": {
-      "name": "Collect 3 times"
-    },
-    "node_hits_10": {
-      "name": "Hit the node 10 times"
-    },
-    "barrel_1": {
-      "name": "Break a barrel"
-    },
-    "smelt_300": {
-      "name": "Smelt 300 ore"
-    },
-    "furnace_out_200": {
-      "name": "Take 200 metal out of the furnace"
-    },
-    "craft_1": {
-      "name": "Craft something"
-    }
+    "gather_4": { "name": "Gather 4 times" },
+    "collect_3": { "name": "Collect 3 times" },
+    "node_hits_10": { "name": "Hit 10 node markers" },
+    "barrel_1": { "name": "Break a barrel" },
+    "smelt_300": { "name": "Smelt 300 ore" },
+    "furnace_out_200": { "name": "Take 200 out of the furnace" },
+    "craft_1": { "name": "Craft something" }
   }
 }

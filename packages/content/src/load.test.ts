@@ -30,7 +30,8 @@ describe("the shipped data files", () => {
   it("load with no problems", () => {
     const content = loadContent(paths.data, locale);
     expect(content.resources.map((resource) => resource.id)).toContain("sulfur_ore");
-    expect(content.monuments).toHaveLength(14);
+    expect(content.nodes.map((node) => node.id)).toContain("tree_1");
+    expect(content.baseRules.craftQueueSize).toBeGreaterThan(0);
   });
 });
 
@@ -38,30 +39,25 @@ describe("validation", () => {
   it("reports every problem at once, with file and id", () => {
     const dir = dataWith("resources.json5", (text) =>
       text
-        .replace('id: "stone"', 'id: "wood"')
-        .replace('id: "cloth"', 'id: "Bad-Id"')
+        .replace('id: "stone"', 'id: "timber"')
+        .replace('id: "fibre"', 'id: "Bad-Id"')
         .replace('kind: "currency"', 'kind: "gold", cost: -5'),
     );
     const problems = problemsOf(dir);
-    expect(problems).toContain("resources.json5 `wood`: id is used more than once");
+    expect(problems).toContain("resources.json5 `timber`: id is used more than once");
     expect(problems.some((p) => p.includes("`Bad-Id`") && p.includes("snake_case"))).toBe(true);
     expect(problems.some((p) => p.includes("`scrap`") && p.includes("kind"))).toBe(true);
     expect(problems.some((p) => p.includes("`scrap`") && p.includes("cost"))).toBe(true);
   });
 
-  it("requires a locale name for every entity", () => {
+  it("requires a locale name for every entity and an effect for every item", () => {
     const problems = problemsOf(paths.data, Locale.fromObject({}));
-    expect(problems).toContain("resources.json5 `wood`: missing locale key `resource.wood.name`");
-    expect(problems).toContain("base_tiers.json5 `hqm`: missing locale key `base_tier.hqm.name`");
-  });
-
-  it("requires a contiguous monument chain gated by real keycards", () => {
-    const dir = dataWith("monuments.json5", (text) =>
-      text.replace("order: 3,", "order: 30,").replace('"keycard_red"', '"syringe"'),
+    expect(problems).toContain(
+      "resources.json5 `timber`: missing locale key `resource.timber.name`",
     );
-    const problems = problemsOf(dir);
-    expect(problems.some((p) => p.includes("no gaps or repeats"))).toBe(true);
-    expect(problems.some((p) => p.includes("`syringe` is not a keycard item"))).toBe(true);
+    expect(problems).toContain("base_tiers.json5 `hqm`: missing locale key `base_tier.hqm.name`");
+    expect(problems).toContain("items.json5 `crate`: missing locale key `item.crate.effect`");
+    expect(problems).toContain("nodes.json5 `tree`: missing locale key `node.tree.name`");
   });
 
   it("requires tool rates and costs to name real resources", () => {
@@ -71,8 +67,17 @@ describe("validation", () => {
     expect(problemsOf(dir)).toContain("tools.json5 `rock`: rates names unknown resource `gold`");
   });
 
-  it("requires base tiers to match the theme's tier list", () => {
+  it("requires base tiers to match the fixed tier list", () => {
     const dir = dataWith("base_tiers.json5", (text) => text.replace('id: "twig"', 'id: "mud"'));
     expect(problemsOf(dir).some((p) => p.includes("must list exactly [twig, wood"))).toBe(true);
+  });
+
+  it("requires every placed node to have a known kind, and every item a recipe", () => {
+    const nodes = dataWith("nodes.json5", (text) =>
+      text.replace('{ id: "ore_1", kind: "ore" }', '{ id: "ore_1", kind: "gold" }'),
+    );
+    expect(problemsOf(nodes)).toContain("nodes.json5 `ore_1`: unknown node kind `gold`");
+    const recipes = dataWith("recipes.json5", (text) => text.replace(/\{ item: "spear".*\n/, ""));
+    expect(problemsOf(recipes)).toContain("recipes.json5 `spear`: item has no recipe");
   });
 });

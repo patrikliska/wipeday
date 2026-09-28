@@ -1,18 +1,19 @@
-// Season-layer resources. Order here is display order on every card and screen.
-// `smeltsInto`: what a furnace turns this ore into, 1:1.
+// Everything the base stores, in display order. Names live in locale/en.json
+// (`resource.{id}.name`); colours and icons live with the web client.
+// kind: raw = gathered, refined = made from a raw one (`smeltsInto`, 1:1 in a furnace),
+// currency = scrap. Fat renders into fuel in the furnace until the oil press gets its job (W3).
 {
   resources: [
-    { id: "wood", kind: "raw", phase: 1, fallbackEmoji: "🪵", rustRef: "wood" },
-    { id: "stone", kind: "raw", phase: 1, fallbackEmoji: "🪨", rustRef: "stones" },
-    { id: "metal_ore", kind: "raw", phase: 1, fallbackEmoji: "🟤", rustRef: "metal.ore", smeltsInto: "metal_fragments" },
-    { id: "metal_fragments", kind: "refined", phase: 2, fallbackEmoji: "🔩", rustRef: "metal.fragments" },
-    { id: "sulfur_ore", kind: "raw", phase: 1, fallbackEmoji: "🟡", rustRef: "sulfur.ore", smeltsInto: "sulfur" },
-    { id: "sulfur", kind: "refined", phase: 2, fallbackEmoji: "🧪", rustRef: "sulfur" },
-    { id: "hqm_ore", kind: "raw", phase: 1, fallbackEmoji: "🔷", rustRef: "hq.metal.ore", smeltsInto: "hqm" },
-    { id: "hqm", kind: "refined", phase: 2, fallbackEmoji: "💎", rustRef: "metal.refined" },
-    { id: "cloth", kind: "raw", phase: 1, fallbackEmoji: "🧵", rustRef: "cloth" },
-    { id: "leather", kind: "raw", phase: 1, fallbackEmoji: "🟫", rustRef: "leather" },
-    { id: "low_grade_fuel", kind: "raw", phase: 1, fallbackEmoji: "⛽", rustRef: "lowgradefuel" },
-    { id: "scrap", kind: "currency", phase: 1, fallbackEmoji: "⚙️", rustRef: "scrap" },
+    { id: "timber", kind: "raw" },
+    { id: "stone", kind: "raw" },
+    { id: "ore", kind: "raw", smeltsInto: "ingots" },
+    { id: "ingots", kind: "refined" },
+    { id: "sulfur_ore", kind: "raw", smeltsInto: "sulfur" },
+    { id: "sulfur", kind: "refined" },
+    { id: "fibre", kind: "raw" },
+    { id: "hide", kind: "raw" },
+    { id: "fat", kind: "raw", smeltsInto: "fuel" },
+    { id: "fuel", kind: "refined" },
+    { id: "scrap", kind: "currency" },
   ],
 }

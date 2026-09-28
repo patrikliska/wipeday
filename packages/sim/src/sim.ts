@@ -9,39 +9,26 @@
 import type { Content } from "@wipe-day/content/schema";
 import { TIERS, type Tier } from "@wipe-day/content/tiers";
 import {
-  breakBarrel,
-  hitNode,
-  progressTasks,
-  settleAll,
-  startNodeRun,
-} from "@wipe-day/domain/active";
-import {
   type BaseState,
-  buyFurnace,
   canAfford,
-  collect,
-  collectFurnaces,
-  craft,
   furnaceReady,
   furnaceSlots,
-  gather,
   isEmpty,
   newBase,
   nextFurnace,
   nextTier,
   nextTool,
-  smelt,
   smeltable,
-  startBuild,
   storageCap,
   storageFill,
   tierOf,
-  total,
-  upgradeTool,
   workbenchLevel,
 } from "@wipe-day/domain/base";
 import { manualClock } from "@wipe-day/domain/clock";
-import { seedOf } from "@wipe-day/domain/rng";
+import { applyCommand, type Command } from "@wipe-day/domain/commands";
+import { craftStatus } from "@wipe-day/domain/craft";
+import { nodeStatus } from "@wipe-day/domain/nodes";
+import { settleAll } from "@wipe-day/domain/settle";
 
 export const ARCHETYPES = ["casual", "active", "optimal"] as const;
 export type Archetype = (typeof ARCHETYPES)[number];
@@ -63,8 +50,8 @@ export interface DayRow {
   /** Fullest resource and its fill, what the storage bar would show. */
   fill: string;
   cap: number;
-  metalFragments: number;
-  hqm: number;
+  ingots: number;
+  fuel: number;
   scrap: number;
   items: number;
   building: boolean;
@@ -77,60 +64,51 @@ export interface Run {
   reached: Partial<Record<Tier, number>>;
 }
 
-/** One check-in: settle, collect, gather, then spend greedily. */
+/** Applies one command the way the server would; a refusal keeps the settled state. */
+function act(content: Content, state: BaseState, command: Command, now: number): BaseState {
+  return applyCommand(content, state, command, now).state;
+}
+
+/** Nodes an active player works after a gather, most valuable first. */
+const NODE_PREFERENCE = ["ore_1", "sulfur_1", "stone_1", "tree_1"];
+
+/** One check-in: collect, gather, work a node, then spend greedily. Every step is a command. */
 export function checkIn(
   content: Content,
   state: BaseState,
   now: number,
   archetype: Archetype,
 ): BaseState {
-  let s = settleAll(content, state, now).state;
-  const collected = collect(content, s, now);
-  s = collected.state;
-  if (total(collected.gained) > 0) s = progressTasks(content, s, "collect", 1).state;
-  const gathered = gather(content, s, now);
-  if (gathered.ok) {
-    s = progressTasks(content, gathered.state, "gather", 1).state;
-    // Active players work the node after every gather, perfectly.
-    if (archetype !== "casual") {
-      s = startNodeRun(content, s, now, seedOf(now));
-      for (let hit = 0; hit < content.active.node.maxHits; hit++) {
-        const result = hitNode(content, s, now + hit, s.nodeRun?.marker ?? 0);
-        if (!result.ok) break;
-        s = progressTasks(content, result.state, "node_hits", 1).state;
+  let s = act(content, state, { type: "collect" }, now);
+  const gathered = applyCommand(content, s, { type: "gather" }, now);
+  s = gathered.state;
+  // Active players work a node after every gather, perfectly.
+  if (gathered.ok && archetype !== "casual") {
+    const node = NODE_PREFERENCE.find((id) => nodeStatus(content, s, id, now).code === "ready");
+    if (node) {
+      for (let hit = 1; hit <= content.active.node.maxHits; hit++) {
+        s = act(content, s, { type: "hit_node", node, run: `sim-${now}`, hit }, now + hit);
       }
     }
   }
-  if (s.barrel) {
-    const broken = breakBarrel(content, s, now);
-    if (broken.ok) s = progressTasks(content, broken.state, "barrel", 1).state;
-  }
-  if (!isEmpty(furnaceReady(content, s, now))) {
-    const out = collectFurnaces(content, s, now);
-    s = progressTasks(content, out.state, "furnace_collect", total(out.gained)).state;
-  }
+  if (s.barrel) s = act(content, s, { type: "break_barrel" }, now);
+  if (!isEmpty(furnaceReady(content, s, now))) s = act(content, s, { type: "take_out" }, now);
 
   // Spend, most valuable first. Loop because one purchase can enable another.
   for (let guard = 0; guard < 8; guard++) {
     const before = s;
 
-    const build = startBuild(content, s, now);
-    if (build.ok) s = build.state;
+    s = act(content, s, { type: "build" }, now);
 
     // Keep the base fed: never spend below the next 24 h of upkeep (48 h for casual).
     const reserveHours = archetype === "casual" ? 48 : 24;
-    const reserve: Record<string, number> = {};
-    for (const [id, perHour] of Object.entries(tierOf(content, s.tier).upkeep)) {
-      reserve[id] = perHour * reserveHours;
-    }
     const spendable = { ...s.stock };
-    for (const [id, keep] of Object.entries(reserve)) spendable[id] = (spendable[id] ?? 0) - keep;
+    for (const [id, perHour] of Object.entries(tierOf(content, s.tier).upkeep)) {
+      spendable[id] = (spendable[id] ?? 0) - perHour * reserveHours;
+    }
 
     const tool = nextTool(content, s);
-    if (tool && canAfford(tool.cost, spendable)) {
-      const result = upgradeTool(content, s, now);
-      if (result.ok) s = result.state;
-    }
+    if (tool && canAfford(tool.cost, spendable)) s = act(content, s, { type: "upgrade_tool" }, now);
 
     // Furnace: buy the first one as soon as ore is being gathered; upgrade when affordable.
     const gathersOre = Object.keys(s.stock).some((id) =>
@@ -138,35 +116,28 @@ export function checkIn(
     );
     const furnace = nextFurnace(content, s);
     if (furnace && gathersOre && canAfford(furnace.cost, spendable)) {
-      const result = buyFurnace(content, s);
-      if (result.ok) s = result.state;
+      s = act(content, s, { type: "buy_furnace" }, now);
     }
 
-    // Workbench, then boxes when storage is getting tight.
+    // Workbench, then crates when storage is getting tight.
     const level = workbenchLevel(content, s);
-    const benchItem = content.items.find((item) => item.workbenchLevel === level + 1);
-    const benchRecipe = benchItem && content.recipes.find((recipe) => recipe.item === benchItem.id);
+    const bench = content.items.find((item) => item.workbenchLevel === level + 1);
+    const benchRecipe = bench && content.recipes.find((recipe) => recipe.item === bench.id);
     if (
+      bench &&
       benchRecipe &&
       level < tierOf(content, s.tier).workbenchLevel &&
+      craftStatus(content, s, bench.id).code === "ok" &&
       canAfford(benchRecipe.cost, spendable)
     ) {
-      const result = craft(content, s, benchRecipe.item);
-      if (result.ok) s = progressTasks(content, result.state, "craft", 1).state;
+      s = act(content, s, { type: "craft", item: bench.id }, now);
     }
     if (storageFill(content, s, now).fraction > 0.7) {
-      const boxes = content.recipes
-        .filter(
-          (recipe) => content.items.find((item) => item.id === recipe.item)?.category === "storage",
-        )
-        .sort((a, b) => b.workbench - a.workbench);
-      for (const recipe of boxes) {
-        const result = craft(content, s, recipe.item);
-        if (result.ok) {
-          s = progressTasks(content, result.state, "craft", 1).state;
-          break;
-        }
-      }
+      const crates = content.items
+        .filter((item) => item.category === "storage")
+        .sort((a, b) => (b.capacity ?? 0) - (a.capacity ?? 0));
+      const crate = crates.find((item) => craftStatus(content, s, item.id).code === "ok");
+      if (crate) s = act(content, s, { type: "craft", item: crate.id }, now);
     }
 
     if (s === before) break;
@@ -184,9 +155,9 @@ export function checkIn(
     );
   for (const ore of ores) {
     while (s.furnaceJobs.length < furnaceSlots(content, s) && smeltable(content, s, ore.id) > 0) {
-      const result = smelt(content, s, now, ore.id);
+      const result = applyCommand(content, s, { type: "smelt", ore: ore.id }, now);
+      s = result.state;
       if (!result.ok) break;
-      s = progressTasks(content, result.state, "smelt", result.job.amount).state;
     }
   }
   return s;
@@ -195,7 +166,7 @@ export function checkIn(
 export function simulate(content: Content, archetype: Archetype, days: number): Run {
   const start = 1_700_000_000;
   const clock = manualClock(start);
-  let state = newBase(content, clock.now());
+  let state = newBase(content, clock.now(), 1);
   const rows: DayRow[] = [];
   const reached: Partial<Record<Tier, number>> = { twig: 1 };
 
@@ -215,8 +186,8 @@ export function simulate(content: Content, archetype: Archetype, days: number): 
       tool: settledState.toolId,
       fill: `${Math.round(storageFill(content, settledState, endOfDay).fraction * 100)}% ${storageFill(content, settledState, endOfDay).resource}`,
       cap: storageCap(content, settledState),
-      metalFragments: settledState.stock.metal_fragments ?? 0,
-      hqm: settledState.stock.hqm ?? 0,
+      ingots: settledState.stock.ingots ?? 0,
+      fuel: settledState.stock.fuel ?? 0,
       scrap: settledState.stock.scrap ?? 0,
       items: Object.values(settledState.items).reduce((sum, count) => sum + count, 0),
       building: settledState.build !== null,
