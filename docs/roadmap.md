@@ -4,17 +4,15 @@ Companion to `docs/game-design.md` (what the game becomes) and `docs/decisions.m
 are the way they are). This file says **what to build next, in which order, and how hard the
 agent should think at each step**.
 
-## Where we are (2026-09-27)
+## Where we are (2026-09-28)
 
-- W0 is done: a pnpm monorepo (`packages/domain`, `packages/content`, `packages/sim`,
-  `apps/api`, `apps/web`, `apps/discord`), a new `CLAUDE.md` for the web, storage, hosting and
-  backup decisions (D52–D54), and an injected `Clock` everywhere (D51). 124 tests.
-- Discord bot (`apps/discord`): phases 0, 1, 2 and 2b built; frozen until W8.
-- Web: a visual, non-playable prototype in `apps/web` (Vite, React, PixiJS). Own-IP names,
-  procedural art, day cycle, weather, five base tiers, HUD, headless screenshot review
-  (`pnpm web:shots`). Its rules are still placeholders in `state/world.ts` and `state/store.ts`;
-  W1 replaces them with the domain.
-- Decision: the web app becomes the main client, Discord becomes a companion (D40).
+- W0 done: the monorepo, the web spec in `CLAUDE.md`, an injected `Clock` everywhere.
+- W1 built and deployed at https://wipeday.patrikliska.dev: own-IP content and rules in
+  `packages/domain`, the API (`apps/api`: Discord login, idempotent commands, lazy settling, SSE,
+  nightly backup), and the web client playing on it with client prediction (D57-D68). Left for
+  the owner: the Discord OAuth secret and redirect (docs/deploy.md), then logging in from a phone.
+- Discord bot (`apps/discord`): phases 0-2b, frozen on its own copy of the old rules (D57).
+- Decision: the web app is the main client, Discord becomes a companion (D40).
 
 ## How to run a phase with an agent
 
@@ -100,7 +98,7 @@ Build:
 Done when: `pnpm -r typecheck lint test` pass; the bot still starts; the prototype still runs;
 the new `CLAUDE.md` is the only spec.
 
-### W1. Real domain, API and login
+### W1. Real domain, API and login (built; waiting for the owner's Discord secret)
 
 *Goal:* two people can play the current prototype's features for real, from a phone and a
 desktop, with the state on the server.

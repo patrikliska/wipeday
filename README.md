@@ -6,9 +6,9 @@ browser, with a Discord bot as a companion. Private, single-server.
 - Spec: [CLAUDE.md](CLAUDE.md). Design: [docs/game-design.md](docs/game-design.md). Next phases:
   [docs/roadmap.md](docs/roadmap.md). Why things are the way they are:
   [docs/decisions.md](docs/decisions.md).
-- Current state: **W0 done** (monorepo, new spec, injected clock). The web client is a visual
-  prototype (`apps/web`); the Discord bot (`apps/discord`) is playable through its Phase 2b
-  (node mini-game, barrels, daily tasks). W1 puts the game state on a server.
+- Current state: **W1** (the game on a server). Play at https://wipeday.patrikliska.dev
+  (Discord login). Locally, `pnpm dev` runs the API and the web client with dev test players.
+  The Discord bot (`apps/discord`) is frozen on its old rules until W8.
 
 ## Run it
 
@@ -16,12 +16,13 @@ Requires Node 22+ and pnpm.
 
 ```sh
 pnpm install
-pnpm web                  # web prototype on http://localhost:5173 (also on the LAN)
+pnpm dev                  # API + web on http://localhost:5173; log in as test player 1-3
 pnpm check                # typecheck + lint + test, everything
+scripts/deploy.sh         # ship the committed HEAD to the VPS (docs/deploy.md)
 ```
 
-The `✦` button in the web prototype opens the demo drawer: time speed, pause, +1 h / +6 h,
-weather, base tier, spawn a barrel, give everything.
+`http://localhost:5173/?demo` plays the whole game in the browser on a fast clock; its `✦`
+drawer controls time speed, weather, base tier, barrels and "give everything".
 
 ## Where things are
 
@@ -30,7 +31,7 @@ packages/domain    pure game rules (state + now in, state + events out), Clock
 packages/content   data/*.json5 balance and content, zod schemas, loader, locale/en.json
 packages/sim       headless balance simulator (archetypes, pacing check)
 apps/web           the client: PixiJS scene + React panels (docs/web-prototype.md)
-apps/api           the game server (arrives in W1)
+apps/api           the game server: login, idempotent commands, lazy settling, push
 apps/discord       the Discord bot (frozen until W8 makes it a companion)
 docs/              game-design, roadmap, decisions, ui-review, web-prototype, archive/
 ```
@@ -40,11 +41,12 @@ docs/              game-design, roadmap, decisions, ui-review, web-prototype, ar
 | Command | What it does |
 | --- | --- |
 | `pnpm check` | typecheck + lint + test across the workspace |
-| `pnpm web` / `pnpm web:build` | web dev server / production bundle |
+| `pnpm dev` | API and web client together, with dev test players |
+| `pnpm web` / `pnpm web:build` | web dev server alone (demo mode) / production bundle |
 | `pnpm web:shots [--only x]` | headless screenshots of the web client into `preview/web/` (needs `pnpm web` running) |
 | `pnpm sim` / `pnpm sim check` | simulate casual/active/optimal players for 35 days; `check` asserts `data/pacing.json5` |
-| `pnpm api` | the API process (a content check until W1) |
-| `pnpm start` / `pnpm dev` | run the Discord bot |
+| `pnpm api` | the API process |
+| `pnpm start` / `pnpm bot:dev` | run the Discord bot |
 | `pnpm preview` | render every bot card in every state to `preview/`, plus `preview/index.html` |
 | `pnpm assets check` | regenerate the bot's asset list and report missing or unusable files |
 | `pnpm assets import <dir>` | resize every known `name.png` in `<dir>` into each bot asset folder that needs it |
@@ -55,7 +57,7 @@ docs/              game-design, roadmap, decisions, ui-review, web-prototype, ar
 
 ```sh
 cp .env.example .env      # then fill in DISCORD_TOKEN and DISCORD_GUILD_ID
-pnpm start                # or: pnpm dev (restarts on change)
+pnpm start                # or: pnpm bot:dev (restarts on change)
 ```
 
 `.env` and the database (`var/`) live at the repo root. Creating the bot (once):
