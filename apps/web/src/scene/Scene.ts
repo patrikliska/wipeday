@@ -5,7 +5,7 @@
  */
 
 import type { Amounts } from "@wipe-day/content/schema";
-import { furnaceOf, furnaceSlots, jobProgress } from "@wipe-day/domain/base";
+import { type BaseState, furnaceOf, furnaceSlots, jobProgress } from "@wipe-day/domain/base";
 import { nodeKindOf } from "@wipe-day/domain/nodes";
 import { Application, Container, Graphics, type Ticker } from "pixi.js";
 import { countFrame, isFrozen } from "../debug";
@@ -38,6 +38,8 @@ const W = 1600;
 const H = 900;
 const HORIZON = 520;
 const GROUND = 560;
+/** Radius of the progress ring over a working station, in CSS pixels. */
+const WORK_RING_PX = 9;
 const SHORE_X = 540;
 const BASE_X = 1000;
 /** Sky and ground continue this far past the stage so no screen shape shows an edge. */
@@ -78,6 +80,8 @@ export class Scene {
   private readonly ambient = new Graphics();
   /** World-aligned top layer: the node markers, above every effect and the weather. */
   private readonly markers = new Container();
+  /** A progress ring over each station at work (fixed size on screen, D48). */
+  private readonly workRings = new Map<string, Graphics>();
   /** Where the last node hit landed, so its gain rises from the cursor. */
   private lastHit: { x: number; y: number } | null = null;
   /** The previous hit's text, faded out when the next hit lands so quick hits never pile up. */
@@ -279,6 +283,48 @@ export class Scene {
     this.weather.resize(vw, vh);
   }
 
+  /** Rings over the stations at work: how far the current unit is, like the regrow clocks. */
+  private syncWork(base: BaseState, now: number): void {
+    const busy = new Set<string>();
+    for (const [station, jobs] of Object.entries(base.production)) {
+      const job = jobs[0];
+      if (!job || now < job.startedAt) continue;
+      const spot = this.base.stationTop(station);
+      if (!spot) continue;
+      busy.add(station);
+      let ring = this.workRings.get(station);
+      if (!ring) {
+        ring = new Graphics();
+        ring.eventMode = "none";
+        this.markers.addChild(ring);
+        this.workRings.set(station, ring);
+      }
+      const unit = ((now - job.startedAt) % job.unitSeconds) / job.unitSeconds;
+      const r = WORK_RING_PX;
+      const end = -Math.PI / 2 + unit * Math.PI * 2;
+      ring.clear();
+      // A pale rim so the ring holds its shape against the night sky too.
+      ring
+        .circle(0, 0, r * 1.25)
+        .fill({ color: 0x1b1a18, alpha: 0.72 })
+        .stroke({ width: 1.5, color: 0xece8df, alpha: 0.55 });
+      ring
+        .moveTo(0, 0)
+        .lineTo(0, -r)
+        .arc(0, 0, r, -Math.PI / 2, end)
+        .closePath()
+        .fill(0xe3a32f);
+      ring.position.set(spot.x, spot.y - 18 / this.scale);
+      ring.scale.set(1 / this.scale);
+    }
+    for (const [station, ring] of this.workRings) {
+      if (busy.has(station)) continue;
+      ring.destroy();
+      this.workRings.delete(station);
+    }
+    this.base.setBusy(busy);
+  }
+
   /** State-driven visuals, cheap enough to run every frame. */
   private sync(): void {
     const state = useWorld.getState();
@@ -303,6 +349,7 @@ export class Scene {
       furnace !== null && base.furnaceJobs.some((job) => jobProgress(job, now) < job.amount),
     );
     this.barrel.set(base.barrel !== null && now <= base.barrel.expiresAt);
+    this.syncWork(base, state.now);
     const depleted: Record<string, Depleted> = {};
     for (const [id, until] of Object.entries(base.depleted)) {
       const kind = nodeKindOf(content, id);

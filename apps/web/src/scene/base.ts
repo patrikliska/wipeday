@@ -43,6 +43,9 @@ const SPOTS: Record<string, { x: number; y: number; layer: "back" | "front" }> =
   garden: { x: -150, y: 58, layer: "front" },
   lights: { x: -10, y: 44, layer: "front" },
 };
+/** Stations whose chimney shows work, not just a fire: they smoke only while making something. */
+const CRAFTING = new Set(["kiln", "press"]);
+
 /** The wall runs behind everything, from here to here (world units from the door). */
 const WALL_SPAN: [number, number] = [-390, 410];
 /** The station layers are drawn at this scale; spots above are in world units. */
@@ -410,6 +413,8 @@ export class Base {
   private time = 0;
   private smokeTimer = 0;
   private furnaceActive = false;
+  /** Crafting stations with a job running: their chimneys smoke only then. */
+  private busy = new Set<string>();
 
   constructor(private readonly particles: Particles) {
     for (const layer of [this.backLayer, this.stationsLayer, this.frontLayer]) {
@@ -648,10 +653,21 @@ export class Base {
     this.furnaceActive = active;
   }
 
+  /** Which crafting stations are working (the kiln and press smoke while they do). */
+  setBusy(stations: ReadonlySet<string>): void {
+    this.busy = new Set(stations);
+  }
+
   /** World position of a station, for effects and actors. */
   stationPosition(id: string): { x: number; y: number } | null {
     const station = this.stations.find((candidate) => candidate.id === id);
     return station ? this.stationWorld(station) : null;
+  }
+
+  /** World position just above a station's roof or top, for badges over it. */
+  stationTop(id: string): { x: number; y: number } | null {
+    const station = this.stations.find((candidate) => candidate.id === id);
+    return station ? this.stationWorld(station, 0, -(FOOTPRINTS[id]?.[1] ?? 60)) : null;
   }
 
   update(dt: number, darkness: number, wind: number): void {
@@ -712,6 +728,7 @@ export class Base {
       for (const station of this.stations) {
         if (!station.chimney) continue;
         if (station.id === "furnace" && !this.furnaceActive) continue;
+        if (CRAFTING.has(station.id) && !this.busy.has(station.id)) continue;
         const { x: sx, y } = this.stationWorld(station, station.chimney.x, station.chimney.y);
         const x = sx + wind * 0.2;
         this.particles.spawn("smoke", x, y, 1, station.id === "furnace" ? 0x7a7a7a : 0x9a9a9a);

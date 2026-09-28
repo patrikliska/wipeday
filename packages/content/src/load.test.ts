@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ContentError, formatProblem, loadContent, loadLocale } from "./load";
 import { Locale } from "./locale";
+import { parseContent } from "./parse";
 import { contentPaths as paths } from "./paths";
 
 const locale = loadLocale();
@@ -128,5 +129,11 @@ describe("the crafting web", () => {
     expect(problemsOf(dir)).toContain(
       "recipes.json5 `roast`: cannot be made: nothing on the island gives sulfur",
     );
+  });
+});
+
+describe("parseContent", () => {
+  it("reports a data file that did not arrive (a bundler that forgot one)", () => {
+    expect(() => parseContent({}, locale)).toThrow(/crafting\.json5: file is missing/);
   });
 });

@@ -51,6 +51,8 @@ import { ItemIcon, ResourceIcon } from "../Icon";
 import { tierVar, vars } from "../util";
 
 const PINNED = "pinned";
+/** "Used for" names this many, then "and 5 more". */
+const USES_SHOWN = 6;
 const STORE_KEY = "wipeday.pinned";
 
 /** Pinned recipes are a view preference: kept per device. */
@@ -95,7 +97,9 @@ const RANK: Record<CraftStatus["code"], number> = {
 function statusLabel(status: CraftStatus, time: string, count: number): string {
   switch (status.code) {
     case "ok":
-      return count > 1 ? t("craft.make_count", { count, time }) : t("craft.queue", { time });
+      return count > 1
+        ? t("craft.make_count", { count: abbrev(count), time })
+        : t("craft.queue", { time });
     case "unaffordable":
       return t("craft.need", { need: missingLabel(status.missing) ?? "" });
     case "workbench":
@@ -314,8 +318,8 @@ function Queue({ station }: { station: string }) {
                 <span className="desc grow">
                   {started
                     ? t("craft.job_progress", {
-                        done,
-                        count: job.count,
+                        done: abbrev(done * (recipe?.amount ?? 1)),
+                        count: abbrev(job.count * (recipe?.amount ?? 1)),
                         time: duration(jobEndsAt(job) - now),
                       })
                     : t("craft.job_waiting", { time: duration(job.startedAt - now) })}
@@ -417,7 +421,7 @@ function RecipeDetail({
               {t("craft.at_station", { station: stationName(recipe.station), level: recipe.level })}
             </span>
           </div>
-          <div className="desc">{blurb(recipe)}</div>
+          {itemById.has(recipe.output) ? <div className="desc">{blurb(recipe)}</div> : null}
           <div className="desc">
             {t("craft.per_unit", { amount: recipe.amount, time: duration(unit) })}
           </div>
@@ -427,7 +431,12 @@ function RecipeDetail({
       {uses.length > 0 ? (
         <>
           <h3 className="section">{t("craft.used_for")}</h3>
-          <p className="uses">{uses.map(useText).join(" · ")}</p>
+          <p className="uses">
+            {uses.slice(0, USES_SHOWN).map(useText).join(" · ")}
+            {uses.length > USES_SHOWN
+              ? ` ${t("craft.uses_more", { count: uses.length - USES_SHOWN })}`
+              : ""}
+          </p>
         </>
       ) : null}
 
@@ -451,7 +460,7 @@ function RecipeDetail({
             >
               −
             </button>
-            <b className="num count">{units}</b>
+            <b className="num count">{abbrev(units * recipe.amount)}</b>
             <button
               type="button"
               className="btn"
@@ -467,7 +476,7 @@ function RecipeDetail({
               disabled={most < 1}
               onClick={() => setCount(Math.max(1, most))}
             >
-              {t("craft.all_you_can", { count: most })}
+              {t("craft.all_you_can", { count: abbrev(most * recipe.amount) })}
             </button>
           </div>
           <p className="hint">
@@ -489,7 +498,7 @@ function RecipeDetail({
               if (craft(recipe.output, units)) setCount(1);
             }}
           >
-            {statusLabel(status, time, units)}
+            {statusLabel(status, time, units * recipe.amount)}
           </button>
         </>
       ) : null}

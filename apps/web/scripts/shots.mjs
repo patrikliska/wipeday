@@ -52,6 +52,30 @@ const MIDGAME = {
   kiln: 1,
   walls: 1,
 };
+/** Mid-game stock with parts, for the crafting shots. */
+const CRAFT_STOCK = {
+  timber: 4200,
+  stone: 3100,
+  ore: 900,
+  ingots: 640,
+  fibre: 380,
+  hide: 120,
+  fat: 40,
+  food: 150,
+  scrap: 60,
+  planks: 45,
+  rope: 0,
+  cloth: 10,
+  plates: 12,
+};
+/** Two stations at work: planks at the workbench, a queue at the loom. */
+const BUSY = (day) => ({
+  workbench: [
+    { recipe: "planks", count: 20, done: 6, unitSeconds: 120, startedAt: at(day, 11) - 780 },
+    { recipe: "frames", count: 4, done: 0, unitSeconds: 300, startedAt: at(day, 11) + 1620 },
+  ],
+  loom: [{ recipe: "rope", count: 8, done: 2, unitSeconds: 180, startedAt: at(day, 11) - 400 }],
+});
 
 /**
  * Each shot: viewport, state patch, settle time. The page runs in demo mode (`?demo`). In the
@@ -126,7 +150,12 @@ const SHOTS = [
   {
     name: "desktop_building",
     viewport: [1600, 900],
-    state: { time: at(5, 12), build: { tier: "stone", endsAt: at(5, 15) } },
+    state: {
+      time: at(5, 12),
+      construction: [
+        { target: { kind: "tier", tier: "stone" }, startedAt: at(5, 11), endsAt: at(5, 15) },
+      ],
+    },
   },
   {
     name: "desktop_panel_build",
@@ -143,6 +172,31 @@ const SHOTS = [
     name: "desktop_panel_craft",
     viewport: [1600, 900],
     state: { time: at(3, 11), panel: "craft" },
+  },
+  {
+    name: "desktop_craft_busy",
+    viewport: [1600, 900],
+    state: {
+      time: at(9, 11),
+      tier: "stone",
+      buildings: MIDGAME,
+      stock: CRAFT_STOCK,
+      production: BUSY(9),
+      panel: "craft",
+      station: "workbench",
+    },
+  },
+  {
+    name: "desktop_recipe_frames",
+    viewport: [1600, 900],
+    state: {
+      time: at(9, 11),
+      tier: "stone",
+      buildings: MIDGAME,
+      stock: CRAFT_STOCK,
+      panel: "craft",
+      recipe: "frames",
+    },
   },
   {
     name: "desktop_panel_furnace",
@@ -165,7 +219,15 @@ const SHOTS = [
   {
     name: "desktop_panel_inventory",
     viewport: [1600, 900],
-    state: { time: at(3, 11), panel: "inventory" },
+    state: {
+      time: at(9, 11),
+      tier: "stone",
+      buildings: MIDGAME,
+      stock: CRAFT_STOCK,
+      items: { crate: 3, bow: 1, roast: 2, stew: 1 },
+      wellFed: { percent: 10, until: at(9, 13) },
+      panel: "inventory",
+    },
   },
   {
     name: "desktop_panel_squad",
@@ -384,6 +446,99 @@ const SHOTS = [
     state: { time: at(3, 11), panel: "build" },
   },
   {
+    // Three stations at work, no panel: the rings over them and the kiln's smoke.
+    name: "stations_busy",
+    viewport: [1920, 1080],
+    state: {
+      time: at(9, 11),
+      tier: "stone",
+      buildings: MIDGAME,
+      stock: CRAFT_STOCK,
+      production: {
+        ...BUSY(9),
+        kiln: [
+          { recipe: "charcoal", count: 6, done: 1, unitSeconds: 240, startedAt: at(9, 11) - 330 },
+        ],
+      },
+    },
+    clip: [760, 480, 900, 260],
+  },
+  {
+    name: "stations_busy_night",
+    viewport: [1920, 1080],
+    state: {
+      time: at(9, 22),
+      tier: "stone",
+      buildings: MIDGAME,
+      stock: CRAFT_STOCK,
+      production: {
+        workbench: [
+          { recipe: "planks", count: 20, done: 6, unitSeconds: 120, startedAt: at(9, 22) - 780 },
+        ],
+        kiln: [
+          { recipe: "charcoal", count: 6, done: 1, unitSeconds: 240, startedAt: at(9, 22) - 330 },
+        ],
+      },
+    },
+  },
+  {
+    name: "phone_craft",
+    viewport: [390, 844],
+    scale: 3,
+    state: {
+      time: at(9, 11),
+      tier: "stone",
+      buildings: MIDGAME,
+      stock: CRAFT_STOCK,
+      production: BUSY(9),
+      panel: "craft",
+      station: "workbench",
+    },
+  },
+  {
+    // A new player's first look at the bow: planks in hand, rope still to make.
+    name: "phone_recipe_bow",
+    viewport: [390, 844],
+    scale: 3,
+    state: {
+      time: at(2, 11),
+      tier: "wood",
+      buildings: { workbench: 1, campfire: 1, loom: 1 },
+      stock: { timber: 900, stone: 400, fibre: 60, planks: 12 },
+      panel: "craft",
+      recipe: "bow",
+    },
+  },
+  {
+    name: "phone_recipe_bow_tree",
+    viewport: [390, 844],
+    scale: 3,
+    state: {
+      time: at(2, 11),
+      tier: "wood",
+      buildings: { workbench: 1, campfire: 1, loom: 1 },
+      stock: { timber: 900, stone: 400, fibre: 60, planks: 12 },
+      panel: "craft",
+      recipe: "bow",
+    },
+    scrollTo: ".panel .needs",
+  },
+  {
+    name: "phone_inventory",
+    viewport: [390, 844],
+    scale: 3,
+    state: {
+      time: at(9, 11),
+      tier: "stone",
+      buildings: MIDGAME,
+      stock: CRAFT_STOCK,
+      items: { crate: 3, bow: 1, roast: 2 },
+      wellFed: { percent: 10, until: at(9, 13) },
+      panel: "inventory",
+    },
+    scrollTo: ".panel h3.section",
+  },
+  {
     name: "phone_panel_buildings",
     viewport: [390, 844],
     scale: 3,
@@ -453,7 +608,7 @@ async function main() {
       // The demo clock stops at the shot's moment. Upkeep, collection and the barrel are anchored
       // to that moment so jumping days ahead neither decays the base nor fills storage.
       const { store, clocks } = window.__wipeDay;
-      const { time, panel, weather, welcome, ...base } = state;
+      const { time, panel, station, recipe, weather, welcome, ...base } = state;
       clocks.game.setPaused(true);
       if (time !== undefined) clocks.game.set(time);
       const now = Math.floor(clocks.game.nowMs() / 1000);
@@ -471,6 +626,8 @@ async function main() {
       if (weather) world.setWeather(weather);
       store.setState({
         panel: panel ?? null,
+        station: station ?? "workbench",
+        recipe: recipe ?? null,
         demoOpen: false,
         toasts: [],
         welcomeBack: welcome ? { awaySeconds: 3 * 3600, events: [] } : null,

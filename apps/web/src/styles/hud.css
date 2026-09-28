@@ -356,13 +356,13 @@
   font-size: 13px;
   color: var(--muted);
 }
-.card .cost {
+.panel .cost {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 2px;
 }
-.card .cost span {
+.panel .cost span {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -371,10 +371,10 @@
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.05);
 }
-.card .cost span.short {
+.panel .cost span.short {
   color: var(--danger);
 }
-.card .cost .tile {
+.panel .cost .tile {
   width: 16px;
   height: 16px;
   font-size: 8px;
@@ -958,6 +958,7 @@ a.btn {
 
 /* Station tabs: one row that scrolls sideways on phones, never wraps. */
 .tabs {
+  flex: none;
   display: flex;
   gap: 6px;
   overflow-x: auto;

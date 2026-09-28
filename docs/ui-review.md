@@ -461,3 +461,55 @@ New shot `worn_nodes` (2x crop): the ore rock at 3 hits, tree_1 at 4, the stone 
   rock. The notch moved to chest height, where it shows between the crates and the canopy.
 - The miss floater now says how far the node is ("Missed · 3/5"), and the cracks grow live with
   every hit of a run.
+
+### W3: the recipe browser, parts in the inventory, stations at work
+
+New shots:
+- craft: `phone_craft`, `desktop_craft_busy`, `phone_recipe_bow`, `phone_recipe_bow_tree`,
+  `desktop_recipe_frames`;
+- inventory: `phone_inventory`;
+- scene: `stations_busy` (with a crop), `stations_busy_night`.
+
+`desktop_building` was fixed: it still set the pre-W2 `build` field, so it had shown no
+scaffold since W2. The panel shots moved to the new crafting state. All 58 shots were
+reviewed over three iterations.
+
+- Iteration 1, what was wrong:
+  - The station tabs were squeezed to a thin line with no labels: the panel body shrinks its
+    children, and the tab row had no `flex: none`.
+  - Wording counted runs ("Makes 10 per batch unit", "6 of 20 units", stepper "1", "All you
+    can · 0"): jargon a player should never see.
+  - The web bundle never loaded `crafting.json5` and silently ran on defaults (1 slot, runs of
+    1). Found in code while wiring the panel; now an error (D81).
+- Iteration 2, what changed and what was still wrong:
+  - Everything is counted in outputs: "Planks ×200 · 60 of 200 done", stepper "2", "All you can
+    · 8".
+  - Still wrong:
+    - the cost chips were unstyled outside a card ("PL 10IN 8");
+    - the locked button said "Need need 5 rope";
+    - the recipe header said "Makes 2 at a time" and "2 every 4m";
+    - "Used for" ran to three lines.
+- Iteration 3, what changed:
+  - Cost chips styled anywhere in a panel.
+  - "Make · need 5 rope".
+  - The header says "Makes 2 every 4m" once.
+  - "Used for" names six and adds "and 6 more".
+  - The Parts heading in the inventory was a whole sentence in capitals; now a short heading
+    and a hint.
+- Scene:
+  - The progress ring over the workbench sat inside its level 2 tool board (its footprint
+    height predated the board): raised.
+  - At night the ring's dark disc vanished against the sky: it has a pale rim now.
+  - The kiln and press used to smoke all the time, so smoke meant nothing: now only while
+    they work.
+- Checked against 6.3:
+  - One primary per view: Make Planks, the part the next tier needs; in a recipe, the Make
+    button.
+  - Every locked recipe says why: "Build a Tannery first", "Needs Workbench level 2",
+    "Blueprint needed".
+  - Every short input has a Make or Furnace button.
+  - The detail view has a back button to its station.
+- Still open:
+  - The scene floater from a station behind the side panel (desktop) is partly covered.
+  - Station tabs past the fifth scroll sideways on a phone with no visible hint that more
+    exist.

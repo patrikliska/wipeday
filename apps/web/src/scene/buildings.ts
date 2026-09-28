@@ -653,7 +653,7 @@ export const FOOTPRINTS: Record<string, [number, number]> = {
   dock: [120, 40],
   kiln: [60, 80],
   press: [60, 70],
-  workbench: [90, 60],
+  workbench: [90, 96],
   campfire: [60, 40],
   furnace: [70, 100],
 };

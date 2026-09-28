@@ -546,3 +546,108 @@ a player hit four times, miss on purpose and restart forever, skipping the regro
 wear kept, what one node pays per lifetime is unchanged. The perfect bonus still needs every
 hit in one streak. The scene shows wear as axe cuts in a trunk and cracks in a rock, and a miss
 says "Missed · 3/5".
+
+### D77. Parts are a resource kind, uncapped, and sit on the road to every tier
+The owner chose "parts on the main road". Ten parts, each made at a station:
+- planks (timber), rope and cloth (fibre), leather (hide), charcoal (timber);
+- fuel (fat, at the oil press; this ends D62's furnace stopgap);
+- plates, frames, gears and springs (ingots, planks, charcoal).
+
+Parts are `kind: "part"` resources in `stock`, so every cost stays one `Amounts` table and W5's
+market and W6's raids see them like anything else.
+- They are not capped by storage. They are made from capped resources, and the queues are the
+  throttle.
+- The top bar leaves them out; the inventory lists them.
+
+Where they enter:
+- Stone needs planks. Sheet Metal needs plates, frames and leather. Armored needs plates,
+  gears, springs and fuel.
+- Iron tools need planks and rope; the later tools need gears and springs.
+- Most building levels 2 and 3 need a fitting part.
+
+Food is a new raw resource: the garden and the dock now grow food, not fibre and fat.
+
+### D78. Every station runs its own queue of batches
+The owner chose "each building runs its own queue". Stations are the workbench, loom,
+tannery, kiln, oil press and campfire (the kitchen at level 3).
+- Recipes name their station and level. The old `workbench` effect is gone: the station level
+  is the building level.
+- A job is a batch of runs, paid up front. Each run makes the recipe's `amount` and takes its
+  `minutes`, sped up by the lights.
+- Runs land one by one as settling passes them, with no collect step. The next job starts when
+  the one before it ends.
+- Station level sets queue slots (2/3/4) and the most runs per job (10/25/50), in
+  `crafting.json5`.
+- Cancelling refunds the runs not made yet in full, and the jobs behind move up.
+- Queuing counts as one step toward the daily craft task, however big the batch.
+- The UI speaks in outputs ("Planks ×200, 60 of 200 done"), never in runs.
+
+### D79. Blueprints are for extras, found in barrels, perfect runs and a daily task
+The owner chose "found, for optional recipes". Four recipes need a blueprint: the strongbox,
+the first aid kit, the crossbow and the feast.
+- The validator fails the build if a part ever needs one, so no blueprint stands between a
+  player and a tier or a tool.
+- A barrel holds one 8% of the time and a perfect node run 3%. The daily craft task always pays
+  one while any are left to find.
+- Draws are seeded per base and moment (replayable) and only draw recipes the base does not
+  know.
+- Locked recipes stay visible and say where blueprints come from.
+- Found blueprints live in the base state; W7 moves them to the legacy layer.
+
+### D80. A served meal boosts Gather and node hits, not accrual
+The owner chose "meals give a timed boost". Roast (+10% for 4h), stew (+20% for 6h) and feast
+(+30% for 8h) are cooked from food at the campfire.
+- Serving one adds its percent to the Gather bonus and to node hits.
+- Those are instant payouts. A boost on passive accrual would have to split every accrual
+  window at the moment the boost ends; this keeps accrual one simple multiplication.
+- A weaker meal cannot cut a stronger one short (the refusal says how long is left); an equal
+  or better one replaces it.
+- A "Well fed +20% · 3h" line shows in the clock chip. W4 adds meals as crew rations.
+
+### D81. The content validator guards the crafting web, and a missing data file is an error
+`checkRecipes` in `parse.ts` fails the build when:
+- a recipe names no real station level;
+- a part or item has no recipe;
+- a part is made but used by nothing;
+- anything cannot be reached from what the island gives (gathering, smelting, barrels, tasks);
+- a part needs a blueprint.
+
+`parseContent` now also reports any data file that did not arrive. The web bundle had silently
+run on defaults twice (W2's `buildings.json5`, W3's `crafting.json5`).
+
+### D82. The simulator makes parts for its goals; crafting targets join the pacing check
+At each check-in the planner:
+- works out the parts its next tier, next tool and cheapest part-blocked building need, deepest
+  first;
+- builds or upgrades whichever station blocks a part;
+- queues batches without touching the upkeep reserve;
+- cooks meals and serves the best one before gathering;
+- makes each piece of gear once, like a curious player.
+
+`pacing.json5` gains first-made days (planks 2, bow 3, leather 9, plates 10, springs 18) and
+"every station works by day 14".
+
+Results:
+- Casual: Stone day 4, Sheet Metal day 12, Armored day 26, 9 buildings on day 7. First bow on
+  day 2, leather and plates on day 5, springs on day 15. All six stations work by day 7.
+- Active: Armored on day 20.
+- Optimal: Armored on day 15 (the floor is 14).
+
+The tier cost-ratio warning now prices parts by what they are made of.
+
+### D83. The craft panel is a recipe browser; "Make planks" is one tap from anywhere
+- Station tabs, with a dot on busy ones and unbuilt ones dimmed but open.
+- Each station shows its queue (progress, cancel) and its recipes, with one primary button:
+  the part the next tier or tool waits on, else the first thing makeable.
+- A recipe opens into:
+  - what it is for (the first six uses, then "and N more");
+  - "what it takes" as a tree with have/need, where each input comes from, and a Make or
+    Furnace button beside anything short;
+  - a stepper with "All you can";
+  - the cost, the time and what is left after.
+- Missing parts in the build panel get "Make planks" buttons.
+- A refusal toast for a missing part offers the same button.
+- When the advisor picks crafting, the Craft dock button opens straight on that part.
+- Pins are a per-device view preference in localStorage.
+- In the scene, a working station shows an amber progress ring for the run in progress (fixed
+  size on screen, D48), and the kiln and press smoke only while they work.

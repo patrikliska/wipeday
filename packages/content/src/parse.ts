@@ -12,6 +12,7 @@ import {
   baseRulesSchema,
   type Content,
   craftingSchema,
+  DATA_FILES,
   type DataFile,
   type EntityKind,
   FILES,
@@ -122,6 +123,12 @@ export function parseContent(
 ): Content {
   const problems: Problem[] = [...readProblems];
   const content = emptyContent();
+  // Every file must arrive: a bundler that forgets one would otherwise run on defaults.
+  for (const file of DATA_FILES) {
+    if (raw[file] === undefined && !readProblems.some((problem) => problem.file === file)) {
+      problems.push({ file, id: "", message: "file is missing" });
+    }
+  }
 
   for (const { file, key, field, schema } of FILES) {
     const data = raw[file];

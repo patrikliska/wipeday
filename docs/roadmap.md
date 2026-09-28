@@ -12,7 +12,10 @@ agent should think at each step**.
   idempotent commands, lazy settling, SSE, nightly backup), and the web client playing on it with
   client prediction (D57-D68).
 - W2 done: 16 building types with 3 levels each, builders, decay by building, the scene's
-  fixed spots and a wider phone view (D69-D75). Next: W3, the crafting web.
+  fixed spots and a wider phone view (D69-D75).
+- W3 done: parts on the road to every tier, a queue per station, blueprints for extras, meals,
+  salvage, the recipe browser; worn nodes instead of lost ones (D76-D83). Next: W4, survivors
+  and expeditions.
 - Discord bot (`apps/discord`): phases 0-2b, frozen on its own copy of the old rules (D57).
 - Decision: the web app is the main client, Discord becomes a companion (D40).
 
@@ -142,7 +145,7 @@ Result: 16 types render at levels 1 to 3 (`buildings_level1`, `buildings_level3`
 kitchen is the campfire's level 3. The rain collector and traps wait for the phases that give
 them a job (water in W3, defense in W6).
 
-### W3. The crafting web
+### W3. The crafting web (done)
 
 *Goal:* crafting is a hobby in itself: chains, intermediate goods, blueprints, queues.
 
@@ -156,6 +159,16 @@ Build:
 
 Done when: every item is reachable; `pnpm sim check` hits the crafting throughput targets; a
 new player can find and craft a bow without reading anything.
+
+Result:
+- The validator proves every part and item reachable (D81), and `sim check` asserts the
+  first-made days and "every station works by day 14" (D82).
+- The bow sits on the workbench tab from the start. Its recipe shows planks (made at the
+  Workbench) and rope (made at the Loom), each with a Make button (`phone_recipe_bow`).
+- Deferred:
+  - the design doc's full graph (sulfur and gunpowder, electronics, HQ metal) waits for the
+    sites and raids that use it;
+  - pins are per device, not per account.
 
 ### W4. Survivors and expeditions
 

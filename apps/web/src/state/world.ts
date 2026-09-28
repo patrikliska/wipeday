@@ -7,6 +7,7 @@
 import activeFile from "@wipe-day/content/data/active.json5";
 import baseTiersFile from "@wipe-day/content/data/base_tiers.json5";
 import buildingsFile from "@wipe-day/content/data/buildings.json5";
+import craftingFile from "@wipe-day/content/data/crafting.json5";
 import crewFile from "@wipe-day/content/data/crew.json5";
 import furnacesFile from "@wipe-day/content/data/furnaces.json5";
 import itemsFile from "@wipe-day/content/data/items.json5";
@@ -44,6 +45,7 @@ export const content: Content = parseContent(
     "perks.json5": perksFile,
     "crew.json5": crewFile,
     "recipes.json5": recipesFile,
+    "crafting.json5": craftingFile,
     "nodes.json5": nodesFile,
     "active.json5": activeFile,
     "pacing.json5": pacingFile,

@@ -78,6 +78,7 @@ export function InventoryPanel() {
       {parts.length > 0 ? (
         <>
           <h3 className="section">{t("inventory.parts")}</h3>
+          <p className="hint">{t("inventory.parts_hint")}</p>
           <div className="grid">
             {parts.map((id, index) => (
               <button
