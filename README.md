@@ -10,12 +10,46 @@ browser, with a Discord bot as a companion. Private, single-server.
   (Discord login). Locally, `pnpm dev` runs the API and the web client with dev test players.
   The Discord bot (`apps/discord`) is frozen on its old rules until W8.
 
+## Start here (a new computer)
+
+Where the project stands and what comes next: **[docs/roadmap.md, "Where we are"](docs/roadmap.md)**.
+The rules for working on it (for you and for Claude Code): [CLAUDE.md](CLAUDE.md).
+
+1. Install **Node 24** (the server runs `node:24`; 22+ works), **Git**, and on Windows **Git
+   Bash** (the deploy script is bash).
+2. Get the code and the tools:
+
+   ```sh
+   git clone https://github.com/patrikliska/wipeday.git
+   cd wipeday
+   corepack enable                 # gives the pinned pnpm (package.json: pnpm@10.33.0)
+   pnpm install
+   pnpm --filter @wipe-day/web exec playwright install chromium   # for pnpm web:shots
+   ```
+
+3. Check everything is green: `pnpm check` (typecheck, lint, all tests, the balance check).
+4. Run the game locally:
+
+   ```sh
+   pnpm dev          # API (:8787) + web (http://localhost:5173); log in as test player 1-3
+   ```
+
+   If the API part stays silent (seen on the old Windows machine: `tsx watch` hung before
+   listening, D89), use two terminals instead: `pnpm api` (plain, restart it by hand after
+   rule changes) and `pnpm web`. `http://localhost:5173/?demo` needs no API at all.
+   No `.env` is needed for local play; copy `.env.example` to `.env` only for Discord login or
+   the bot.
+5. Deploying needs SSH access to the VPS from this computer: see
+   [docs/deploy.md, "From a new computer"](docs/deploy.md). The old computer's key stays there.
+
+Continuing with Claude Code: open the repo and ask it to read `CLAUDE.md`, `docs/roadmap.md`
+and `docs/decisions.md`, then start the next phase (the kickoff prompt is in the roadmap). The
+session memory of the old computer does not come along: everything that matters is in these
+files.
+
 ## Run it
 
-Requires Node 22+ and pnpm.
-
 ```sh
-pnpm install
 pnpm dev                  # API + web on http://localhost:5173; log in as test player 1-3
 pnpm check                # typecheck + lint + test, everything
 scripts/deploy.sh         # ship the committed HEAD to the VPS (docs/deploy.md)
@@ -45,7 +79,7 @@ docs/              game-design, roadmap, decisions, ui-review, web-prototype, ar
 | `pnpm web` / `pnpm web:build` | web dev server alone (demo mode) / production bundle |
 | `pnpm web:shots [--only x]` | headless screenshots of the web client into `preview/web/` (needs `pnpm web` running) |
 | `pnpm sim` / `pnpm sim check` | simulate casual/active/optimal players for 35 days; `check` asserts `data/pacing.json5` |
-| `pnpm api` | the API process |
+| `pnpm api` / `pnpm api:dev` | the API process / with restart on change (`tsx watch`) |
 | `pnpm start` / `pnpm bot:dev` | run the Discord bot |
 | `pnpm preview` | render every bot card in every state to `preview/`, plus `preview/index.html` |
 | `pnpm assets check` | regenerate the bot's asset list and report missing or unusable files |

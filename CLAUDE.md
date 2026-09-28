@@ -50,6 +50,9 @@ mobile-first instead.
 - Never commit tokens, `.env`, the database or third-party game assets.
 - Owner screenshots (phone and desktop) are bugs with priority over new features.
 - Stay inside the phase. Redesigning things outside it is how phases go over budget.
+- Where the project stands and the next phase's scope: `docs/roadmap.md` ("Where we are").
+  Setting up a new computer: `README.md` ("Start here"). Deploying and the rules for the
+  shared VPS (never touch the tk-toolkit containers): `docs/deploy.md`.
 
 ## 3. Repository layout
 
@@ -272,7 +275,7 @@ At the end of each phase report: what was built, decisions added, screenshot pat
 | `pnpm web` | web dev server alone (demo mode without the API; `?demo` forces it) |
 | `pnpm web:shots [--only x]` | headless screenshots into `preview/web/` (needs `pnpm web` running) |
 | `pnpm web:build` | production bundle into `apps/web/dist` |
-| `pnpm api` / `pnpm api:dev` | the API process / with restart on change |
+| `pnpm api` / `pnpm api:dev` | the API process / with restart on change (if `pnpm dev`'s API part hangs, run `pnpm api` + `pnpm web`) |
 | `pnpm sim` / `pnpm sim check` | balance simulator / pacing assertion |
 | `pnpm start` / `pnpm bot:dev` | the Discord bot (reads `.env` at the repo root) |
 | `pnpm preview` / `pnpm assets check` | bot card previews / bot asset manifest check |

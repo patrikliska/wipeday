@@ -29,7 +29,62 @@ pnpm check && git commit ...   # deploy ships the committed HEAD
 scripts/deploy.sh              # copy, build, restart, add the Caddy block once, health check
 ```
 
-The script needs SSH access as `vpsuser` (`DEPLOY_HOST`, `DEPLOY_KEY` override the defaults).
+The script needs SSH access as `vpsuser` (`DEPLOY_HOST`, `DEPLOY_KEY` override the defaults;
+the default key is `~/.ssh/claude_temp_key`, which exists only on the first computer).
+
+### The checklist (every deploy)
+
+1. `pnpm check` passes and everything is committed (the script refuses a dirty tree).
+2. Take a database copy first (the nightly backup may be hours old):
+
+   ```sh
+   ssh -i ~/.ssh/<key> vpsuser@37.46.209.127 'docker exec -w /app/apps/api wipeday node -e "const D=require(\"better-sqlite3\"); new D(\"/app/var/wipeday.db\").backup(\"/app/var/backups/wipeday-pre-<phase>.db\").then(()=>console.log(\"ok\"))"'
+   ```
+
+3. `DEPLOY_KEY=~/.ssh/<key> scripts/deploy.sh` and wait for `{"ok":true,...}`.
+4. Check that all four sites answer 200 (the other three share the server or the DNS):
+
+   ```sh
+   for u in https://wipeday.patrikliska.dev/ https://patrikliska.dev/ https://daisingo.patrikliska.dev/ https://travian.patrikliska.dev/; do curl -s -o /dev/null -w "%{http_code} $u\n" "$u"; done
+   ```
+
+5. Glance at the log for errors: `docker compose logs --since 5m` in `~/wipeday` (on the server).
+6. `git push`.
+
+### From a new computer
+
+The deploy key is per computer. On the new one:
+
+```sh
+ssh-keygen -t ed25519 -f ~/.ssh/wipeday_deploy -C "wipeday deploy"   # no passphrase is simplest
+cat ~/.ssh/wipeday_deploy.pub                                         # copy this one line
+```
+
+Then add that line to the server, from any place that can already log in (the old computer, or
+the VPS console in the Czechia admin at admin.czechia.com, logged in as `vpsuser`):
+
+```sh
+echo "<the line>" >> ~/.ssh/authorized_keys
+```
+
+Test it: `ssh -i ~/.ssh/wipeday_deploy vpsuser@37.46.209.127 'echo OK'`. From then on deploy
+with `DEPLOY_KEY=~/.ssh/wipeday_deploy scripts/deploy.sh` (in Git Bash on Windows).
+
+## Rules for the shared server (never break these)
+
+- The server also runs the owner's other projects: **travian.patrikliska.dev** (tk-toolkit
+  frontend and backend) and **daisingo.patrikliska.dev** (static files in `~/daisingo`). Their
+  containers come from `~/tk-toolkit/docker-compose.yml`.
+- Never restart, recreate or `docker compose up` anything in `~/tk-toolkit`. The only thing
+  Wipe Day does there is append its block to `~/tk-toolkit/Caddyfile` (once, in place: the file
+  is bind-mounted by inode) and then `caddy validate` + `caddy reload` inside
+  `tk-toolkit-caddy-1`. The script does exactly that; a backup is `Caddyfile.bak-wipeday`.
+- **patrikliska.dev** and www are on separate Czechia webhosting (217.198.114.187), not this
+  server: never touch them. DNS is in the Czechia DNS manager; the owner adds records.
+- `sudo` on the server needs the owner's password: never needed for Wipe Day.
+- Never commit or print `.env` or its secrets; the server's `~/wipeday/.env` is written by the
+  owner.
+- The server is small (2 vCPU, 1.9 GB RAM, about 1 GB free): one container, no extra services.
 
 ## Discord developer portal (once)
 

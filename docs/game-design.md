@@ -191,6 +191,10 @@ scrap + wiring + batteries ──► electronics ──► radio, turret brain, 
 
 ### 5.7 Expeditions and the map
 
+- *(Built in W4a, D85-D88.)* The island starts under fog; a survivor scouts a region for a fee
+  (food, scrap, fuel further out) and the fog lifts on their return, showing its ruins. How far
+  a scout reaches grows with the base tier. One island layout per season for everyone, each
+  player with their own fog.
 - A map of the island with sites in tiers; the radio mast and the dock extend range. Each site:
   duration (20 min → 8 h), difficulty, loot table, hazard type, keycode requirement.
 - Confirm screen shows success chance, loot range, injury risk, rations needed. Reports come
@@ -321,6 +325,6 @@ keys, unbounded PvP loss, hidden odds, punishment for days away beyond a full st
 
 1. Names: keep "Wipe Day" as the title? The world glossary in section 4 needs your pass.
 2. Alliances: do you want them in season one, or solo play first?
-3. Death: keep rare permadeath within a season (memorable) or injuries only (safer)?
+3. ~~Death~~: answered in W4a: injuries only, nobody dies (D84).
 4. Season length: a calendar month, or 28 days so it always starts on the same weekday?
 5. Art: procedural vector (extend what exists) or commissioned layered illustrations?

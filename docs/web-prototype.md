@@ -39,10 +39,11 @@ pause, +1 h / +6 h, weather, base tier, spawn a barrel, give everything).
 | Base | `src/scene/base.ts` | one structure per tier (Twig, Timber, Stone, Sheet Metal, Armored); every building at its fixed spot and level (`SPOTS`, D75), the cupboard and crates, window glows, scaffolds over whatever is being built, chimney smoke |
 | Buildings | `src/scene/buildings.ts` | one drawing per building type and level (1 to 3), with its lights and moving parts |
 | Nodes | `src/scene/nodes.ts` | clickable trees and stone, ore and sulfur rocks; the "hit the marker" mini-game (marker placement here, hits checked by the domain); worked-out nodes fall or crumble and regrow; the barrel on the shore |
-| Actors | `src/scene/actors.ts` | survivors with hat colours walking between the base and nodes, resting at night; gulls |
+| Actors | `src/scene/actors.ts` | the crew at home (from the base state), walking between the base and nodes, resting at night or while hurt, leaving for and coming back from the shore; gulls |
 | Effects | `src/scene/effects.ts` | particles (smoke, sparks, leaves, dust, splash, coins, stone), floating gains, glows, rain and fog |
 | Palette | `src/scene/palette.ts` | time-of-day keyframes, `gloom()` for weather, tier materials, ground/sea colours |
-| Scene | `src/scene/Scene.ts` | Pixi application, camera rules, layer order, store sync, event → effect mapping |
+| Scene | `src/scene/Scene.ts` | Pixi application, camera rules, layer order, store sync, event → effect mapping; switches to the map when `view` is `"map"` |
+| Map | `src/map/MapView.ts` | the island chart (D88): terrain per region, fog that parts when a scout returns, ruin markers, mission routes, screen-space labels, pan and pinch |
 
 The HUD (`src/hud/*`) reads the store with narrow selectors so the scene can tick at 60 fps
 without re-rendering React every frame; per-frame values like "waiting to collect" go through
