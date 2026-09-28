@@ -205,7 +205,7 @@
     "crew_count": "{count} crew",
     "tasks_done": "{done}/{total} done",
     "perfect": "Perfect!",
-    "missed": "Missed",
+    "missed_wear": "Missed · {hits}/{max}",
     "node_back_in": "{node} back in {time}",
     "node_needs_tool": "Needs better tools",
     "tier_base": "{tier} base",

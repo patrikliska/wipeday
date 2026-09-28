@@ -451,3 +451,13 @@ New shots: `buildings_level1`, `buildings_level3`, `buildings_night`, `buildings
     (about 17 CSS px). A full base needs the width. Raising the ground line on tall screens is
     a camera change for later.
   - The tannery racks stand in front of the furnace block and read a little like a table.
+
+### W3 M0: worn nodes (owner: a missed streak must not destroy the node)
+
+New shot `worn_nodes` (2x crop): the ore rock at 3 hits, tree_1 at 4, the stone at 2.
+- Iteration 1, what was wrong: the rock cracks were plain dark lines that read as drawn on. The
+  tree's axe notch sat at the foot of the trunk, hidden behind the crates by the cupboard.
+- Iteration 2, what changed: each crack has a pale lip under it, so it looks cut into the
+  rock. The notch moved to chest height, where it shows between the crates and the canopy.
+- The miss floater now says how far the node is ("Missed · 3/5"), and the cracks grow live with
+  every hit of a run.

@@ -44,6 +44,10 @@ interface NodeView {
   remnant: Container;
   /** Small pie clock over the remnant: how far the regrow is. */
   clock: Graphics;
+  /** Axe cuts or cracks on a standing node that was hit but not worked out. */
+  cracks: Graphics;
+  /** How many hits `cracks` shows. */
+  worn: number;
   state: NodeState;
   /** 0..1 through the current fall or grow animation. */
   anim: number;
@@ -56,7 +60,10 @@ interface NodeView {
 
 export interface NodeRun {
   node: string;
+  /** The node's hits so far, counting its wear from earlier runs (D76). */
   hits: number;
+  /** The wear the run started from: only a run from 0 can be perfect. */
+  from: number;
   marker: { x: number; y: number };
   lastHitAt: number;
 }
@@ -72,11 +79,19 @@ export interface Depleted {
 }
 
 export interface NodeCallbacks {
-  /** A tap on a standing node; false refuses the run (the store says why). */
-  onStart: (node: NodeDef) => boolean;
+  /** A tap on a standing node: the node's wear to start from, or null to refuse (the store says why). */
+  onStart: (node: NodeDef) => number | null;
   onHit: (node: NodeDef, hits: number, x: number, y: number) => void;
-  /** `x`, `y`: the marker's last position in world units, where the player was looking. */
-  onRunOver: (node: NodeDef, hits: number, perfect: boolean, x: number, y: number) => void;
+  /**
+   * The run ended: `done` when the node took its last hit (the server ended it), `from` the
+   * wear it started at. `x`, `y`: the marker's last position, where the player was looking.
+   */
+  onRunOver: (
+    node: NodeDef,
+    run: { hits: number; from: number; done: boolean },
+    x: number,
+    y: number,
+  ) => void;
   /** A tap on a stump or rubble. */
   onDepletedTap: (node: NodeDef) => void;
   /** A felled tree hit the ground at (x, y), or a rock finished crumbling. */
@@ -480,6 +495,59 @@ function drawBody(def: NodeDef, silhouette = false): Container {
   return drawRock(def.kind, def.scale, silhouette);
 }
 
+/** Rock cracks, one more per hit; each a jagged line in the rock's own units. */
+const CRACKS: readonly (readonly Point[])[] = [
+  [
+    [-18, -40],
+    [-12, -30],
+    [-16, -22],
+    [-9, -12],
+  ],
+  [
+    [6, -44],
+    [2, -34],
+    [9, -26],
+    [4, -16],
+  ],
+  [
+    [-30, -24],
+    [-22, -20],
+    [-18, -26],
+  ],
+  [
+    [-6, -30],
+    [4, -30],
+    [12, -36],
+  ],
+];
+
+/** What `hits` of wear look like: axe cuts in a trunk, cracks in a rock. */
+function drawWear(g: Graphics, kind: NodeKind, hits: number): void {
+  g.clear();
+  if (hits <= 0) return;
+  if (kind === "tree") {
+    // A notch cut into the trunk that deepens with every hit, pale wood inside.
+    // Chest height, where a swing lands (and clear of anything standing at the foot).
+    const depth = Math.min(4, hits) * 2.4;
+    g.poly([6.5, -44, 6.5 - depth, -38, 6.5, -32]).fill(0x3a2615);
+    g.poly([6.5, -42, 6.5 - depth * 0.7, -38, 6.5, -36]).fill(0xd9b98a);
+    return;
+  }
+  // A dark crack with a pale lip below it, so it reads as cut into the rock.
+  for (const [dx, dy, color, alpha] of [
+    [0.9, 1.1, 0xffffff, 0.3],
+    [0, 0, 0x24211d, 0.85],
+  ] as const) {
+    for (const crack of CRACKS.slice(0, hits)) {
+      const [first, ...rest] = crack;
+      if (!first) continue;
+      g.moveTo(first[0] + dx, first[1] + dy);
+      for (const [x, y] of rest) g.lineTo(x + dx, y + dy);
+    }
+    g.stroke({ width: 1.8, color, alpha, join: "round", cap: "round" });
+  }
+}
+
 function drawRemnant(def: NodeDef): Container {
   return def.kind === "tree" ? drawStump(def.scale) : drawRubble(def.kind, def.scale);
 }
@@ -530,6 +598,8 @@ export class Nodes {
   ) {
     for (const def of defs) {
       const body = drawBody(def);
+      const cracks = new Graphics();
+      body.addChild(cracks);
       const outline = new Container();
       for (const [dx, dy] of RIM_OFFSETS) {
         const copy = drawBody(def, true);
@@ -563,6 +633,8 @@ export class Nodes {
         body,
         remnant,
         clock,
+        cracks,
+        worn: 0,
         state: "up",
         anim: 1,
         regrow: 0,
@@ -634,11 +706,18 @@ export class Nodes {
       return;
     }
     view.shake = 1;
-    // A run on another node ends first, so that node is used up like any worked node.
+    // A run on another node ends first; that node keeps its wear.
     const previous = this.run ? this.views.get(this.run.node) : undefined;
     if (previous) this.endRun(previous, false);
-    if (!this.callbacks.onStart(view.def)) return;
-    this.run = { node: view.def.id, hits: 0, marker: this.randomSpot(view), lastHitAt: now };
+    const from = this.callbacks.onStart(view.def);
+    if (from === null) return;
+    this.run = {
+      node: view.def.id,
+      hits: from,
+      from,
+      marker: this.randomSpot(view),
+      lastHitAt: now,
+    };
   }
 
   private hit(view: NodeView): void {
@@ -660,14 +739,14 @@ export class Nodes {
     }
   }
 
-  private endRun(view: NodeView, perfect: boolean): void {
+  private endRun(view: NodeView, done: boolean): void {
     const marker = this.run?.marker ?? { x: 0, y: -40 };
     const hits = this.run?.hits ?? 0;
+    const from = this.run?.from ?? 0;
     this.run = null;
     this.callbacks.onRunOver(
       view.def,
-      hits,
-      perfect,
+      { hits, from, done },
       view.container.x + marker.x,
       view.container.y + marker.y,
     );
@@ -724,8 +803,18 @@ export class Nodes {
   }
 
   /** Follows the store: fells nodes that went on cooldown, grows back the ones that are done. */
-  sync(depleted: Readonly<Record<string, Depleted>>, clock: number): void {
+  /** `wear`: hits each standing node has taken, including the run in progress. */
+  sync(
+    depleted: Readonly<Record<string, Depleted>>,
+    clock: number,
+    wear: Readonly<Record<string, number>>,
+  ): void {
     for (const view of this.views.values()) {
+      const worn = depleted[view.def.id] ? 0 : (wear[view.def.id] ?? 0);
+      if (worn !== view.worn) {
+        view.worn = worn;
+        drawWear(view.cracks, view.def.kind, worn);
+      }
       const entry = depleted[view.def.id];
       if (entry) {
         view.regrow = clamp((clock - entry.at) / Math.max(1, entry.until - entry.at), 0, 1);

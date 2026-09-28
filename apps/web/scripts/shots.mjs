@@ -254,6 +254,14 @@ const SHOTS = [
     clip: [570, 754, 190, 130],
   },
   {
+    // Nodes hit but not worked out keep standing with cuts and cracks (D76).
+    name: "worn_nodes",
+    viewport: [1920, 1080],
+    scale: 2,
+    state: { time: at(3, 11), toolId: "stone_tools", wear: { ore_1: 3, tree_1: 4, stone_1: 2 } },
+    clip: [540, 560, 480, 340],
+  },
+  {
     name: "barrel",
     viewport: [1920, 1080],
     scale: 2,

@@ -127,9 +127,9 @@ export class Scene {
             0xece8df,
             this.floatSize(0.85),
           );
-          return false;
+          return null;
         }
-        return true;
+        return useWorld.getState().base.wear[node.id] ?? 0;
       },
       onHit: (node, hits, x, y) => {
         const debris = debrisFor(node.kind);
@@ -138,10 +138,10 @@ export class Scene {
         // The domain banks the hit (and the perfect bonus on the last one); effects follow its events.
         useWorld.getState().hitNode(hits);
       },
-      onRunOver: (_node, hits, perfect, x, y) => {
+      onRunOver: (_node, { hits, from, done }, x, y) => {
         // At the marker, where the eye already is; "Perfect!" sits above the bonus gain.
         this.floaters.retire(this.hitText);
-        if (perfect) {
+        if (done && from === 0) {
           this.floaters.add(
             x,
             y - 62 / this.scale,
@@ -150,10 +150,12 @@ export class Scene {
             this.floatSize(1.2),
           );
           this.particles.spawn("coins", x, y, 12);
-        } else if (hits > 0) {
-          this.floaters.add(x, y - 22 / this.scale, t("hud.missed"), 0xa49e93, this.floatSize());
+        } else if (!done && hits > from) {
+          // The node stays up with its wear: say how far along it is.
+          const text = t("hud.missed_wear", { hits, max: MAX_HITS });
+          this.floaters.add(x, y - 22 / this.scale, text, 0xa49e93, this.floatSize());
         }
-        useWorld.getState().endRun(perfect);
+        useWorld.getState().endRun(done);
       },
       onDepletedTap: (node) => {
         const state = useWorld.getState();
@@ -305,8 +307,11 @@ export class Scene {
       const kind = nodeKindOf(content, id);
       if (kind) depleted[id] = { kind: kind.id, at: until - kind.respawnSeconds, until };
     }
-    this.backNodes.sync(depleted, now);
-    this.frontNodes.sync(depleted, now);
+    // Cracks follow the hits live: the run in progress, else what earlier runs left.
+    const run = base.nodeRun;
+    const wear = run ? { ...base.wear, [run.node]: run.hits } : base.wear;
+    this.backNodes.sync(depleted, now, wear);
+    this.frontNodes.sync(depleted, now, wear);
     this.weather.set(state.weather);
   }
 

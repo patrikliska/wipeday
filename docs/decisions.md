@@ -533,3 +533,16 @@ A fully built Armored base spans about 880 world units, so the phone's minimum v
 760 to 880 units and its focus moved from x 845 to 915 (this amends D42): the barrel, the dock's
 boathouse and the kitchen all fit at 390 px. The ore rock moved forward to the sand's edge
 (660, +70) and the sulfur rock inside the phone view (1296, +100).
+
+## W3 (the crafting web)
+
+### D76. A node goes down only once it is worked all the way; misses leave wear
+The owner found that missing the hit streak knocked the node down and made them wait for the
+regrow. The domain ended every run that had any hit by depleting the node. Now a node keeps
+the hits it has taken (`BaseState.wear`). A run that stops short leaves it standing. The next
+run carries on from there and hit numbers count the node's hits, so a run on a node at 3 starts
+at hit 4. The node goes down at `maxHits` hits in total. Not depleting on a miss alone would let
+a player hit four times, miss on purpose and restart forever, skipping the regrow. With the
+wear kept, what one node pays per lifetime is unchanged. The perfect bonus still needs every
+hit in one streak. The scene shows wear as axe cuts in a trunk and cracks in a rock, and a miss
+says "Missed · 3/5".

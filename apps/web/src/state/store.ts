@@ -87,7 +87,8 @@ interface Actions {
   /** The scene starts a node run; returns why not when the node cannot be worked. */
   startRun(node: string): string | null;
   hitNode(hits: number): void;
-  endRun(perfect: boolean): void;
+  /** `done`: the node took its last hit, which ended the run on the server already. */
+  endRun(done: boolean): void;
   devLogin(slot: number): Promise<void>;
   logout(): Promise<void>;
   openPanel(panel: Panel): void;
@@ -153,6 +154,7 @@ const placeholder = (): BaseState => ({
   items: {},
   craftQueue: [],
   nodeRun: null,
+  wear: {},
   depleted: {},
   haul: { day: -1, minutes: 0 },
   barrel: null,
@@ -365,11 +367,11 @@ export const useWorld = create<Store>((set, get) => {
       get().send({ type: "hit_node", node: run.node, run: run.run, hit: hits });
     },
 
-    endRun(perfect) {
+    endRun(done) {
       const run = get().run;
       set({ run: null });
-      // A full run ended on the server with its fifth hit; anything shorter ends here.
-      if (run && !perfect) get().send({ type: "end_node_run", node: run.node, run: run.run });
+      // The node's last hit ended the run on the server; anything shorter ends here.
+      if (run && !done) get().send({ type: "end_node_run", node: run.node, run: run.run });
     },
 
     async devLogin(slot) {

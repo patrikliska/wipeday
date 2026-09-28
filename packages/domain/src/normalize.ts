@@ -6,7 +6,7 @@
  * state passes through unchanged.
  */
 import type { Content } from "@wipe-day/content/schema";
-import type { BaseState, Construction, FurnaceJob } from "./base";
+import type { BaseState, Construction, FurnaceJob, NodeRun } from "./base";
 
 /** W1 station items and the building (and level) each became. */
 const STATION_ITEMS: Record<string, [string, number]> = {
@@ -23,6 +23,7 @@ type Stored = Partial<BaseState> & {
   furnaceId?: string | null;
   build?: { tier: BaseState["tier"]; endsAt: number } | null;
   furnaceJobs?: Array<Omit<FurnaceJob, "perHour"> & { perHour?: number }>;
+  nodeRun?: (Omit<NodeRun, "from"> & { from?: number }) | null;
 };
 
 export function normalizeState(content: Content, stored: unknown): BaseState {
@@ -65,6 +66,8 @@ export function normalizeState(content: Content, stored: unknown): BaseState {
     items,
     furnaceJobs,
     haul: raw.haul ?? { day: -1, minutes: 0 },
+    wear: raw.wear ?? {},
+    nodeRun: raw.nodeRun ? { ...raw.nodeRun, from: raw.nodeRun.from ?? 0 } : null,
     hints: raw.hints ?? {},
   };
 }

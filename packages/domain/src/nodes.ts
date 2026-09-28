@@ -2,9 +2,12 @@
  * Work the node: the active mini-game on the trees and rocks around the base.
  * Where the marker appears is presentation (the client draws it); what the
  * server checks is here: the node exists and stands, the current tool can work
- * it, hits come in order and within the window, at most `maxHits` of them, and
- * the perfect bonus only for a full run. A node that was worked goes down for
- * `respawnSeconds` of real time.
+ * it, hits come in order and within the window, and the perfect bonus only for
+ * all `maxHits` in one streak. A node goes down for `respawnSeconds` of real
+ * time only once it has taken `maxHits` hits in total: a run that stops short
+ * leaves it standing with its wear, and the next run carries on (D76).
+ * Hit numbers count the node's hits, not the run's: a run on a node worn to 3
+ * starts at hit 4.
  */
 import type { Amounts, Content, NodeKind } from "@wipe-day/content/schema";
 import {
@@ -79,7 +82,15 @@ function fadesAt(content: Content, run: NodeRun): number {
   return run.lastHitAt + Math.ceil(hitWindowSeconds + graceSeconds);
 }
 
-/** Ends `run`: a node that was worked at all goes down. */
+/** The node's hits so far, before any run on it. */
+export function nodeWear(state: BaseState, nodeId: string): number {
+  return state.wear[nodeId] ?? 0;
+}
+
+/**
+ * Ends `run`. A node worked all the way (`maxHits` hits in total) goes down and
+ * forgets its wear; a run that stopped short leaves the node standing with it.
+ */
 function finishRun(
   content: Content,
   state: BaseState,
@@ -88,11 +99,18 @@ function finishRun(
 ): { state: BaseState; events: GameEvent[] } {
   const kind = nodeKindOf(content, run.node);
   const cleared = { ...state, nodeRun: null };
-  if (!kind || run.hits === 0) return { state: cleared, events: [] };
-  const until = at + kind.respawnSeconds;
+  if (!kind || run.hits <= run.from) return { state: cleared, events: [] };
+  const { [run.node]: _worn, ...wear } = cleared.wear;
+  if (run.hits >= content.active.node.maxHits) {
+    const until = at + kind.respawnSeconds;
+    return {
+      state: { ...cleared, wear, depleted: { ...cleared.depleted, [run.node]: until } },
+      events: [{ type: "node_depleted", node: run.node, kind: kind.id, until }],
+    };
+  }
   return {
-    state: { ...cleared, depleted: { ...cleared.depleted, [run.node]: until } },
-    events: [{ type: "node_depleted", node: run.node, kind: kind.id, until }],
+    state: { ...cleared, wear: { ...wear, [run.node]: run.hits } },
+    events: [{ type: "node_run_ended", node: run.node, hits: run.hits }],
   };
 }
 
@@ -108,9 +126,9 @@ export type HitResult =
   | { ok: false; state: BaseState; events: GameEvent[]; refusal: HitRefusal };
 
 /**
- * Hit number `hit` (1-based) of run `runId` on `nodeId`. A repeat of a hit
- * already counted is a harmless no-op, so a retried request never banks twice.
- * A hit on another run ends the previous one first.
+ * Hit number `hit` (1-based, counting the node's wear) of run `runId` on
+ * `nodeId`. A repeat of a hit already counted is a harmless no-op, so a retried
+ * request never banks twice. A hit on another run ends the previous one first.
  */
 export function hitNode(
   content: Content,
@@ -157,14 +175,22 @@ export function hitNode(
     if (status.code === "depleted" || status.code === "tool" || status.code === "unknown") {
       return { ok: false, state: next, events, refusal: status };
     }
-    if (hit !== 1) {
-      return { ok: false, state: next, events, refusal: { code: "out_of_order", expected: 1 } };
+    const wear = nodeWear(next, nodeId);
+    if (hit !== wear + 1) {
+      return {
+        ok: false,
+        state: next,
+        events,
+        refusal: { code: "out_of_order", expected: wear + 1 },
+      };
     }
-    run = { node: nodeId, run: runId, hits: 0, lastHitAt: now };
+    run = { node: nodeId, run: runId, hits: wear, from: wear, lastHitAt: now };
   }
 
   const hits = run.hits + 1;
-  const perfect = hits >= maxHits;
+  const done = hits >= maxHits;
+  // The bonus is for the whole node in one streak, not for finishing a worn one.
+  const perfect = done && run.from === 0;
   const slice = nodeSlice(content, next, kind);
   const slices = perfect ? 1 + perfectBonusHits : 1;
   // The daily haul: a hit pays in full while any of today's haul is left (the last one may
@@ -186,7 +212,7 @@ export function hitNode(
   events.push({ type: "node_hit", node: nodeId, kind: kind.id, hits, gained, perfect, reduced });
 
   const updated: NodeRun = { ...run, hits, lastHitAt: now };
-  if (perfect) {
+  if (done) {
     const finished = finishRun(content, next, updated, now);
     return { ok: true, state: finished.state, events: [...events, ...finished.events] };
   }

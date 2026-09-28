@@ -49,7 +49,10 @@ export interface NodeRun {
   node: string;
   /** Client-chosen id of this run, so retries and a second tab cannot mix runs. */
   run: string;
+  /** The node's hits so far, counting the ones taken before this run (`from`). */
   hits: number;
+  /** The node's wear when this run began: 0 means a full streak can still be perfect. */
+  from: number;
   lastHitAt: number;
 }
 
@@ -93,6 +96,8 @@ export interface BaseState {
   nodeRun: NodeRun | null;
   /** Worked-out nodes: node id -> when it stands again. */
   depleted: Record<string, number>;
+  /** Standing nodes that were hit but not worked out: node id -> hits taken (D76). */
+  wear: Record<string, number>;
   /** Minutes of production node hits have paid in full on UTC day `day`. */
   haul: { day: number; minutes: number };
   barrel: Barrel | null;
@@ -128,6 +133,7 @@ export function newBase(content: Content, now: number, seed: number): BaseState 
     craftQueue: [],
     nodeRun: null,
     depleted: {},
+    wear: {},
     haul: { day: -1, minutes: 0 },
     barrel: null,
     nextBarrelAt: now + content.active.barrels.firstAfterMinutes * 60,

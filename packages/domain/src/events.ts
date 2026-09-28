@@ -29,6 +29,8 @@ export type GameEvent =
       reduced: boolean;
     }
   | { type: "node_depleted"; node: string; kind: string; until: number }
+  /** A run stopped short: the node stands, keeping `hits` of wear for the next run. */
+  | { type: "node_run_ended"; node: string; hits: number }
   | { type: "task_done"; task: string; reward: Amounts }
   // Time passing (settling).
   | { type: "build_done"; tier: Tier }
