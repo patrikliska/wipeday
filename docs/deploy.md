@@ -70,6 +70,37 @@ echo "<the line>" >> ~/.ssh/authorized_keys
 Test it: `ssh -i ~/.ssh/wipeday_deploy vpsuser@37.46.209.127 'echo OK'`. From then on deploy
 with `DEPLOY_KEY=~/.ssh/wipeday_deploy scripts/deploy.sh` (in Git Bash on Windows).
 
+## Working from two computers
+
+Only the first computer has deploy access (the other plays and develops on localhost). `main`
+is always what is live; each phase gets its own branch.
+
+On the computer without deploy access (work and test locally):
+
+```sh
+git checkout main && git pull    # start from what is live
+git checkout -b w4b              # once per phase (w4b, then w5, ...)
+# ... work, pnpm check, commit ...
+git push -u origin w4b           # the first time; afterwards just: git push
+```
+
+On the computer that deploys:
+
+```sh
+git checkout main && git pull
+git fetch && git merge origin/w4b   # bring the branch's work in
+pnpm install                        # in case dependencies changed
+pnpm check                          # must pass before deploying
+scripts/deploy.sh                   # ships the committed HEAD: deploy from main only
+git push                            # main on GitHub now matches what is live
+```
+
+- Always push before switching computers: unpushed commits stay behind.
+- To try the branch here before merging: `git checkout w4b`, `pnpm dev`, then `git checkout main`.
+- Local test bases live in `var/` (not in git): each computer has its own; the live game's data
+  is only on the server.
+- After a phase is merged and deployed: `git branch -d w4b` and `git push origin --delete w4b`.
+
 ## Rules for the shared server (never break these)
 
 - The server also runs the owner's other projects: **travian.patrikliska.dev** (tk-toolkit

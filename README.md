@@ -41,6 +41,8 @@ The rules for working on it (for you and for Claude Code): [CLAUDE.md](CLAUDE.md
    the bot.
 5. Deploying needs SSH access to the VPS from this computer: see
    [docs/deploy.md, "From a new computer"](docs/deploy.md). The old computer's key stays there.
+   Working on one computer and deploying from the other: work on a branch per phase and merge
+   it into `main` where you deploy ([docs/deploy.md, "Working from two computers"](docs/deploy.md)).
 
 Continuing with Claude Code: open the repo and ask it to read `CLAUDE.md`, `docs/roadmap.md`
 and `docs/decisions.md`, then start the next phase (the kickoff prompt is in the roadmap). The
