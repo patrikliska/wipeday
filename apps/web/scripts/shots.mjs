@@ -287,6 +287,37 @@ const BUSY = (day) => ({
  * a 1:1 crop `{name}__zoom.png` ([x, y, width, height] in CSS pixels), `scrollTo` scrolls
  * the element matching that selector to the top of its panel before the picture.
  */
+/**
+ * A Stone holdfast on day 9 with the Den open (W5): scrap and goods to trade, today's
+ * counter and contracts (one deliverable), one listing up. `extra` overrides any field.
+ */
+const DEN = (extra = {}) => ({
+  time: at(9, 11),
+  tier: "stone",
+  buildings: MIDGAME,
+  stock: { ...CRAFT_STOCK, scrap: 640, fibre: 900, rope: 140 },
+  items: { crate: 3, bow: 2, tin_keycode: 1 },
+  den: {
+    day: 9,
+    tier: "stone",
+    offers: ["planks_lot", "rope_lot", "leather_lot", "stew_lot", "blueprint_lot"],
+    bought: { rope_lot: 1 },
+  },
+  contracts: {
+    day: 9,
+    tier: "stone",
+    ids: ["net_fibre", "jetty_timber", "rigging_rope"],
+    done: [],
+  },
+  listings: [
+    { id: "l1", good: "cloth", amount: 60, price: 18, listedAt: at(9, 8), expiresAt: at(11, 8) },
+  ],
+  listingSeq: 1,
+  casino: { day: 9, wagered: 20, won: 22 },
+  panel: "den",
+  ...extra,
+});
+
 const SHOTS = [
   { name: "desktop_day", viewport: [1600, 900], state: { time: at(3, 11) } },
   { name: "desktop_morning", viewport: [1600, 900], state: { time: at(3, 7) } },
@@ -991,6 +1022,123 @@ const SHOTS = [
     scale: 3,
     state: { time: at(3, 11), welcome: true },
   },
+  // --- the Den (W5) ---
+  { name: "phone_den_market", viewport: [390, 844], scale: 3, state: DEN() },
+  {
+    name: "phone_den_players",
+    viewport: [390, 844],
+    scale: 3,
+    state: DEN(),
+    scrollTo: ".panel h3.section:nth-of-type(2)",
+  },
+  { name: "phone_den_sell", viewport: [390, 844], scale: 3, state: DEN({ denSell: "rope" }) },
+  { name: "phone_den_sell_pick", viewport: [390, 844], scale: 3, state: DEN({ denSell: null }) },
+  {
+    name: "phone_den_contracts",
+    viewport: [390, 844],
+    scale: 3,
+    state: DEN({ denTab: "contracts" }),
+  },
+  {
+    name: "phone_den_wheel",
+    viewport: [390, 844],
+    scale: 3,
+    state: DEN({
+      denTab: "games",
+      game: "wheel",
+      wheelBets: [{ round: Math.floor(at(9, 11) / 30), segment: "crab", amount: 10 }],
+      denBets: [
+        {
+          round: Math.floor(at(9, 11) / 30),
+          playerId: 9,
+          name: "Hollis",
+          segment: "gull",
+          amount: 10,
+        },
+        {
+          round: Math.floor(at(9, 11) / 30),
+          playerId: 9,
+          name: "Hollis",
+          segment: "crown",
+          amount: 5,
+        },
+      ],
+    }),
+  },
+  {
+    name: "phone_den_slots",
+    viewport: [390, 844],
+    scale: 3,
+    state: DEN({
+      denTab: "games",
+      game: "slots",
+      jackpot: 48_200,
+      roll: { game: "slots", result: [3, 3, 3], bet: 10, payout: 400 },
+    }),
+  },
+  {
+    name: "phone_den_bones",
+    viewport: [390, 844],
+    scale: 3,
+    state: DEN({
+      denTab: "games",
+      game: "dice",
+      roll: { game: "dice", result: [5, 4], bet: 10, payout: 22 },
+    }),
+  },
+  {
+    name: "phone_den_capped",
+    viewport: [390, 844],
+    scale: 3,
+    state: DEN({
+      denTab: "games",
+      game: "slots",
+      casino: { day: 9, wagered: 50, won: 30 },
+    }),
+  },
+  {
+    name: "phone_den_closed",
+    viewport: [390, 844],
+    scale: 3,
+    state: { time: at(3, 11), panel: "den" },
+  },
+  {
+    name: "phone_ranks",
+    viewport: [390, 844],
+    scale: 3,
+    state: { ...DEN(), panel: "feed", feedTab: "ranks" },
+  },
+  { name: "desktop_den", viewport: [1600, 900], state: DEN() },
+  {
+    name: "desktop_den_wheel",
+    viewport: [1600, 900],
+    state: DEN({ denTab: "games", game: "wheel" }),
+  },
+  {
+    name: "skiff_day",
+    viewport: [390, 844],
+    scale: 3,
+    state: { ...DEN(), panel: null, time: at(9, 11) },
+    clip: [0, 480, 260, 200],
+  },
+  {
+    name: "skiff_night",
+    viewport: [390, 844],
+    scale: 3,
+    state: { ...DEN(), panel: null, time: at(9, 23) },
+    clip: [0, 480, 260, 200],
+  },
+  {
+    name: "skiff_desktop",
+    viewport: [1600, 900],
+    state: { ...DEN(), panel: null, time: at(9, 19) },
+  },
+  {
+    name: "map_den_locked",
+    viewport: [390, 844],
+    scale: 3,
+    state: { time: at(3, 11), view: "map" },
+  },
   { name: "phone_landscape", viewport: [844, 390], scale: 3, state: { time: at(3, 11) } },
   { name: "tablet", viewport: [820, 1180], scale: 2, state: { time: at(3, 11) } },
 ];
@@ -1036,6 +1184,14 @@ async function main() {
         weather,
         welcome,
         feed,
+        denTab,
+        denSell,
+        game,
+        feedTab,
+        roll,
+        spin,
+        denBets,
+        jackpot,
         ...base
       } = state;
       clocks.game.setPaused(true);
@@ -1064,7 +1220,20 @@ async function main() {
         toasts: [],
         welcomeBack: welcome ? { awaySeconds: 3 * 3600, events: [] } : null,
         ...(feed ? { feed, feedSeen: 0 } : {}),
+        denTab: denTab ?? "market",
+        denSell,
+        game: game ?? "wheel",
+        feedTab: feedTab ?? "feed",
+        roll: roll ? { ...roll, at: 0 } : null,
+        spin: spin ?? null,
       });
+      if (denBets || jackpot !== undefined)
+        world.demoDen({
+          ...(denBets ? { bets: denBets } : {}),
+          ...(jackpot !== undefined ? { jackpot } : {}),
+        });
+      if (panel === "den") void world.loadDen();
+      if (panel === "feed" && feedTab === "ranks") void world.loadRanks();
     }, shot.state);
     if (shot.act || shot.click) {
       // Let the scene pick up the patch, fire the action, then catch the effect in flight:

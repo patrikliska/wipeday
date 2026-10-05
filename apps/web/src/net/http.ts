@@ -8,8 +8,12 @@ import type { Command } from "@wipe-day/domain/commands";
 import type { FeedItem, NotifyPrefs } from "@wipe-day/domain/feed";
 import type {
   CommandResponse,
+  DenBoard,
+  DenPush,
   MeResponse,
+  PriceHistory,
   PushMessage,
+  RanksResponse,
   StateResponse,
 } from "@wipe-day/domain/wire";
 import {
@@ -124,14 +128,32 @@ export class HttpBackend implements Backend {
     });
   }
 
+  async den(): Promise<DenBoard> {
+    const board = await this.request<DenBoard>("/api/den");
+    this.clock.sync(board.serverNow);
+    return board;
+  }
+
+  history(good: string): Promise<PriceHistory> {
+    return this.request<PriceHistory>(`/api/den/history?good=${encodeURIComponent(good)}`);
+  }
+
+  ranks(): Promise<RanksResponse> {
+    return this.request<RanksResponse>("/api/ranks");
+  }
+
   subscribe(
     onPush: (message: PushMessage) => void,
     onReconnect: () => void,
     onFeed: (items: FeedItem[]) => void,
+    onDen: (message: DenPush) => void,
   ): () => void {
     const source = new EventSource("/api/events");
     source.addEventListener("feed", (event) => {
       onFeed(JSON.parse((event as MessageEvent<string>).data) as FeedItem[]);
+    });
+    source.addEventListener("den", (event) => {
+      onDen(JSON.parse((event as MessageEvent<string>).data) as DenPush);
     });
     let opened = false;
     source.addEventListener("ready", () => {

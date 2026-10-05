@@ -9,15 +9,21 @@
  */
 import type { Region } from "@wipe-day/content/schema";
 import type { BaseState } from "@wipe-day/domain/base";
+import { denOpen } from "@wipe-day/domain/den";
 import { bordersKnown, scoutRange } from "@wipe-day/domain/missions";
 import { Container, Graphics, Text, type TextStyleOptions } from "pixi.js";
 import { hash, shade } from "../scene/util";
-import { content, duration, regionName, siteName, t } from "../state/world";
+import { content, duration, regionName, siteName, t, tierName } from "../state/world";
 
 export interface MapCallbacks {
   onRegion: (id: string) => void;
   onSite: (id: string) => void;
+  /** The Den's marker (W5). */
+  onDen: () => void;
 }
+
+/** The Den's colour: its pennant on the skiff, its dock button, its marker here. */
+const DEN_COLOR = 0xc0607f;
 
 /** The island's outline on the map canvas, clockwise from the west coast. */
 const COAST: readonly [number, number][] = [
@@ -194,6 +200,8 @@ export class MapView {
   private readonly siteLayer = new Container();
   /** Screen-space text over everything. */
   private readonly labels = new Container();
+  private readonly den = new Container();
+  private readonly denLabel: Text;
   private readonly regions: RegionView[] = [];
   private readonly sites: SiteView[] = [];
   private readonly home: Text;
@@ -321,6 +329,21 @@ export class MapView {
       this.sites.push({ id: site.id, x, y, marker, label });
     }
 
+    // The Den (W5): a flag on the south shore, there from the start (no hidden features).
+    const flag = new Graphics();
+    flag.roundRect(-13, -15, 26, 26, 7).fill({ color: 0x000000, alpha: 0.35 });
+    flag.roundRect(-12, -16, 24, 24, 7).fill(0x1b1a18).stroke({ width: 3, color: DEN_COLOR });
+    flag.rect(-6, -11, 2.5, 15).fill(0xece8df);
+    flag.poly([-3.5, -11, 7, -7.5, -3.5, -4]).fill(DEN_COLOR);
+    this.den.addChild(flag);
+    this.den.position.set(content.den.map.x, content.den.map.y);
+    this.den.eventMode = "static";
+    this.den.cursor = "pointer";
+    this.den.on("pointertap", () => {
+      if (!this.dragStart?.moved) this.callbacks.onDen();
+    });
+    this.denLabel = this.text(t("map.den"), 12, 0xffffff);
+
     this.chart.addChild(
       sea,
       island,
@@ -329,6 +352,7 @@ export class MapView {
       lanes,
       holdfast,
       this.siteLayer,
+      this.den,
       this.routes,
       this.fogLayer,
     );
@@ -457,6 +481,20 @@ export class MapView {
       site.label.position.set(at.x, at.y + SITE_PX + 3);
     }
 
+    // The Den: dim with its opening tier until it deals with the holdfast.
+    const open = denOpen(content, state);
+    const denScale = SITE_PX / 12 / this.scale;
+    this.den.scale.set(denScale);
+    this.den.alpha = open ? 1 : 0.6;
+    this.den.hitArea = {
+      contains: (x: number, y: number) => Math.hypot(x, y) * denScale * this.scale <= SITE_TAP_PX,
+    };
+    this.denLabel.text = open
+      ? t("map.den")
+      : t("map.den_closed", { tier: tierName(content.den.open.tier) });
+    const denAt = this.toScreen(content.den.map.x, content.den.map.y);
+    this.denLabel.position.set(denAt.x, denAt.y + SITE_PX + 3);
+
     this.settled = true;
     const homeRegion = content.regions.find((region) => region.ring === 0);
     // The holdfast's name sits above its roof, clear of the ruin below it.
@@ -558,8 +596,11 @@ export class MapView {
       const d = Math.hypot(mx - view.region.x, (my - view.region.y) * 1.2);
       if (d < REGION_R && (!best || d < best.d)) best = { id: view.region.id, d };
     }
+    const onDen =
+      Math.hypot(mx - content.den.map.x, my - content.den.map.y) * this.scale < SITE_TAP_PX;
     if (
       best &&
+      !onDen &&
       !this.sites.some(
         (site) =>
           site.marker.visible && Math.hypot(mx - site.x, my - site.y) * this.scale < SITE_TAP_PX,

@@ -5,8 +5,10 @@
  */
 
 import type { Amounts } from "@wipe-day/content/schema";
+import { denWorthIt } from "@wipe-day/domain/advisor";
 import { type BaseState, furnaceOf, furnaceSlots, jobProgress } from "@wipe-day/domain/base";
 import { isAsleep } from "@wipe-day/domain/crew";
+import { denOpen } from "@wipe-day/domain/den";
 import { nodeKindOf } from "@wipe-day/domain/nodes";
 import { Application, Container, Graphics, type Ticker } from "pixi.js";
 import { countFrame, isFrozen } from "../debug";
@@ -28,6 +30,7 @@ import {
 } from "../state/world";
 import { Actors, type Post } from "./actors";
 import { Base } from "./base";
+import { Skiff } from "./den";
 import { type Float, Floaters, Particles, Weather } from "./effects";
 import { Barrel, type Depleted, MAX_HITS, type NodeCallbacks, type NodeDef, Nodes } from "./nodes";
 import { gloom, paletteAt } from "./palette";
@@ -63,6 +66,8 @@ const FRONT_NODES: NodeDef[] = [
   { id: "sulfur_1", kind: "sulfur", x: 1296, y: GROUND + 100, scale: 0.85 },
 ];
 const BARREL_SPOT = { x: 540, y: GROUND + 62 };
+/** The Den's skiff, pulled up on the beach below the barrel (W5): inside the phone view. */
+const SKIFF_SPOT = { x: 548, y: GROUND + 114 };
 
 const ALL_NODES = [...BACK_NODES, ...FRONT_NODES];
 const nodeKind = new Map(ALL_NODES.map((node) => [node.id, node.kind]));
@@ -116,11 +121,15 @@ export class Scene {
   private readonly backNodes: Nodes;
   private readonly frontNodes: Nodes;
   private readonly barrel: Barrel;
+  private readonly skiff: Skiff;
+  /** The base the skiff's glow was worked out for (the check is not free every frame). */
+  private skiffFor: unknown = null;
   private readonly actors: Actors;
   /** The island chart, drawn instead of the base while the map is open. */
   private readonly map = new MapView({
     onRegion: (id) => useWorld.getState().focusMap({ kind: "region", id }),
     onSite: (id) => useWorld.getState().focusMap({ kind: "site", id }),
+    onDen: () => useWorld.getState().openDen(),
   });
   private unsubscribe: (() => void) | null = null;
   private destroyed = false;
@@ -199,6 +208,10 @@ export class Scene {
     this.barrel = new Barrel(BARREL_SPOT.x, BARREL_SPOT.y, () => {
       useWorld.getState().breakBarrel();
     });
+    this.skiff = new Skiff(SKIFF_SPOT.x, SKIFF_SPOT.y, () => {
+      const state = useWorld.getState();
+      state.openDen(denWorthIt(content, state.base) ? "contracts" : undefined);
+    });
     this.actors = new Actors(GROUND, BASE_X, BASE_X + 340, SHORE_X + 20, {
       canWork: (node) => this.backNodes.isUp(node) || this.frontNodes.isUp(node),
       onWork: (node, x, y) => {
@@ -210,7 +223,7 @@ export class Scene {
     });
     this.base.container.position.set(BASE_X, GROUND);
     this.base.lights.position.set(BASE_X, GROUND);
-    this.lights.addChild(this.base.lights);
+    this.lights.addChild(this.base.lights, this.skiff.light);
     this.markers.addChild(this.backNodes.overlay, this.frontNodes.overlay);
     this.ambient.blendMode = "multiply";
     this.world.addChild(
@@ -222,6 +235,7 @@ export class Scene {
       this.frontNodes.container,
       this.actors.container,
       this.barrel.container,
+      this.skiff.container,
       this.particles.container,
       this.terrain.front,
     );
@@ -418,6 +432,10 @@ export class Scene {
       furnace !== null && base.furnaceJobs.some((job) => jobProgress(job, now) < job.amount),
     );
     this.barrel.set(base.barrel !== null && now <= base.barrel.expiresAt);
+    if (this.skiffFor !== base) {
+      this.skiffFor = base;
+      this.skiff.set(denOpen(content, base), denWorthIt(content, base));
+    }
     this.syncWork(base, state.now);
     const depleted: Record<string, Depleted> = {};
     for (const [id, until] of Object.entries(base.depleted)) {
@@ -491,6 +509,7 @@ export class Scene {
     this.backNodes.update(dt, this.wind);
     this.frontNodes.update(dt, this.wind);
     this.barrel.update(dt, darkness);
+    this.skiff.update(dt, darkness, this.scale);
     this.actors.setNight(fraction < 0.23 || fraction > 0.8);
     this.actors.update(dt, this.wind);
     this.particles.update(dt, this.wind);

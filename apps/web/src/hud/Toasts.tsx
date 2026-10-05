@@ -13,6 +13,7 @@ const TONE = {
 export function Toasts() {
   const toasts = useWorld((state) => state.toasts);
   const openPanel = useWorld((state) => state.openPanel);
+  const openDen = useWorld((state) => state.openDen);
   const openRecipe = useWorld((state) => state.openRecipe);
   const openReport = useWorld((state) => state.openReport);
   const dismiss = useWorld((state) => state.dismissToast);
@@ -38,6 +39,7 @@ export function Toasts() {
               className="btn small"
               onClick={() => {
                 if (toast.recipe) openRecipe(toast.recipe);
+                else if (toast.panel === "den") openDen();
                 else if (toast.panel) openPanel(toast.panel);
                 dismiss(toast.id);
               }}

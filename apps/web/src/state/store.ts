@@ -12,17 +12,31 @@
  * - Timers that end on screen (a build, a craft, a barrel, a regrown node) are
  *   predicted by settling locally, and their effects play exactly once even
  *   when the server's version of the same moment arrives later.
+ * - The Den (W5): a purchase from another player and the casino's rolls cannot
+ *   be predicted (`SERVER_ONLY`): they wait for the server, shown as pending, and
+ *   their events play when the answer arrives. The board and the wheel follow the
+ *   event stream's `den` messages.
  */
+
+import type { DiceOption } from "@wipe-day/content/schema";
 import type { BaseState } from "@wipe-day/domain/base";
 import type { Command } from "@wipe-day/domain/commands";
-import { applyCommand } from "@wipe-day/domain/commands";
+import { applyCommand, SERVER_ONLY } from "@wipe-day/domain/commands";
 import type { Job } from "@wipe-day/domain/crew";
 import type { GameEvent as DomainEvent } from "@wipe-day/domain/events";
 import type { FeedItem } from "@wipe-day/domain/feed";
 import { nodeKindOf, nodeStatus } from "@wipe-day/domain/nodes";
 import { nextEventAt, settleAll } from "@wipe-day/domain/settle";
 import { newStats } from "@wipe-day/domain/stats";
-import type { PlayerView, PushMessage, StateResponse, WelcomeBack } from "@wipe-day/domain/wire";
+import type {
+  DenBoard,
+  DenPush,
+  PlayerView,
+  PushMessage,
+  RanksResponse,
+  StateResponse,
+  WelcomeBack,
+} from "@wipe-day/domain/wire";
 import { create } from "zustand";
 import { type Backend, newKey, type ServerConfig } from "../net/backend";
 import { HttpBackend } from "../net/http";
@@ -49,6 +63,22 @@ interface Queued {
   key: string;
   command: Command;
   /** Game time the command was predicted at. */
+  at: number;
+  /** False for server-only commands: nothing was shown yet, the answer plays its events. */
+  predicted: boolean;
+}
+
+export type DenTab = "market" | "contracts" | "games";
+export type FeedTab = "feed" | "ranks";
+export type Game = "wheel" | "slots" | "dice";
+
+/** The last roll the player made, for the tables to show (W5). */
+export interface Roll {
+  game: Game;
+  result: number[];
+  bet: number;
+  payout: number;
+  /** When the answer arrived (seconds of the wall clock), so a table can animate it once. */
   at: number;
 }
 
@@ -88,6 +118,21 @@ export interface WorldState {
   feedSeen: number;
   /** More feed further back. */
   feedMore: boolean;
+  // The Den (W5).
+  denTab: DenTab;
+  /** The sell form: undefined = closed, null = picking a good, else the good being listed. */
+  denSell: string | null | undefined;
+  game: Game;
+  feedTab: FeedTab;
+  /** The board as last loaded and kept up to date from the stream; null before. */
+  board: DenBoard | null;
+  ranks: RanksResponse | null;
+  /** Keys of server-only commands waiting for their answer. */
+  pending: string[];
+  /** The newest wheel result the stream announced, for the spin. */
+  spin: { round: number; segment: number } | null;
+  /** The player's last slots spin or dice roll. */
+  roll: Roll | null;
 }
 
 interface Actions {
@@ -144,6 +189,24 @@ interface Actions {
   loadFeed(older?: boolean): Promise<void>;
   /** The feed was looked at: the dot goes out. */
   markFeedSeen(): void;
+  /** Opens the Den on a tab (the skiff, the map marker, the dock, a toast). */
+  openDen(tab?: DenTab): void;
+  setDenTab(tab: DenTab): void;
+  setDenSell(good: string | null | undefined): void;
+  setGame(game: Game): void;
+  setFeedTab(tab: FeedTab): void;
+  loadDen(): Promise<void>;
+  loadRanks(): Promise<void>;
+  list(good: string, amount: number, price: number): boolean;
+  cancelListing(listing: string): boolean;
+  buyListing(listing: number): boolean;
+  denBuy(offer: string, lots: number): boolean;
+  deliver(contract: string): boolean;
+  wheelBet(segment: string, amount: number): boolean;
+  spinSlots(amount: number): boolean;
+  rollDice(option: DiceOption, amount: number): boolean;
+  /** Screenshots: other players' wheel bets and the jackpot in the demo Den. */
+  demoDen(change: { bets?: DenBoard["bets"]; jackpot?: number }): void;
 }
 
 const FEED_SEEN = "wd.feedSeen";
@@ -184,6 +247,13 @@ function timedKey(event: DomainEvent): string | null {
       return `barrel:${event.expiresAt}`;
     case "node_depleted":
       return `node:${event.node}:${event.until}`;
+    // The Den (W5): happenings that reach this tab by push, played once.
+    case "sold":
+      return `sold:${event.listing}`;
+    case "listing_expired":
+      return `listing:${event.listing}`;
+    case "wager":
+      return event.game === "wheel" ? `wheel:${event.round}:${event.option}` : null;
     default:
       return null;
   }
@@ -238,6 +308,8 @@ const placeholder = (): BaseState => ({
   wheelBets: [],
   stats: newStats(),
 });
+
+const isServerOnly = (command: Command): boolean => SERVER_ONLY.includes(command.type);
 
 export const useWorld = create<Store>((set, get) => {
   /** Plays events on screen and toasts the ones worth words; timed ones only once. */
@@ -304,14 +376,31 @@ export const useWorld = create<Store>((set, get) => {
             version: Math.max(get().version, response.version),
             queue: rest,
             base: rebase(response.state, rest),
+            pending: get().pending.filter((key) => key !== next.key),
           });
+          if (!next.predicted && response.ok) {
+            // Nothing was shown for it yet: its events play now, and a roll goes to its table.
+            play(response.events);
+            const wager = response.events.find((event) => event.type === "wager");
+            if (wager?.type === "wager" && wager.game !== "wheel") {
+              set({
+                roll: {
+                  game: wager.game,
+                  result: wager.result,
+                  bet: wager.bet,
+                  payout: wager.payout,
+                  at: performance.now() / 1000,
+                },
+              });
+            }
+          }
           if (!response.ok) {
             // The server saw a different base than the prediction did: say why, show its state.
             const message = refusalMessage(response.refusal, response.serverNow);
             if (message) get().toast(message);
           }
         } catch {
-          set({ queue: [] });
+          set({ queue: [], pending: [] });
           get().toast({ text: t("toast.connection"), tone: "danger" });
           await reload();
           break;
@@ -329,11 +418,50 @@ export const useWorld = create<Store>((set, get) => {
     if (fresh.length > 0) set({ feed: [...fresh, ...get().feed] });
   };
 
+  /** The Den's news from the stream: bets and spins on the wheel, the jackpot, the board. */
+  const onDen = (message: DenPush): void => {
+    const board = get().board;
+    switch (message.kind) {
+      case "bet":
+        if (board) set({ board: { ...board, bets: [...board.bets, message.bet] } });
+        break;
+      case "result":
+        set({
+          spin: { round: message.round, segment: message.segment },
+          ...(board
+            ? {
+                board: {
+                  ...board,
+                  round: Math.max(board.round, message.round + 1),
+                  bets: board.bets.filter((bet) => bet.round > message.round),
+                  results: [
+                    { round: message.round, segment: message.segment },
+                    ...board.results.filter((result) => result.round !== message.round),
+                  ].slice(0, 10),
+                },
+              }
+            : {}),
+        });
+        break;
+      case "jackpot":
+        if (board) set({ board: { ...board, jackpot: message.jackpot } });
+        break;
+      case "board":
+        if (get().panel === "den") void get().loadDen();
+        break;
+    }
+  };
+
   const connect = async (): Promise<void> => {
     unsubscribe?.();
-    unsubscribe = backend.subscribe(onPush, () => void reload(), onFeed);
+    unsubscribe = backend.subscribe(onPush, () => void reload(), onFeed, onDen);
     await reload();
     void get().loadFeed();
+    // A "sold" notification opens the Den (`/?den`).
+    if (new URLSearchParams(window.location.search).has("den")) {
+      get().openDen("market");
+      window.history.replaceState(null, "", window.location.pathname);
+    }
     // A notification's tap opens the game on its report (`/?report=m12`).
     const report = new URLSearchParams(window.location.search).get("report");
     if (report && get().base.reports.some((candidate) => candidate.id === report)) {
@@ -367,6 +495,68 @@ export const useWorld = create<Store>((set, get) => {
     feed: [],
     feedSeen: storedFeedSeen(),
     feedMore: false,
+    denTab: "market",
+    denSell: undefined,
+    game: "wheel",
+    feedTab: "feed",
+    board: null,
+    ranks: null,
+    pending: [],
+    spin: null,
+    roll: null,
+
+    openDen(tab) {
+      set({ panel: "den", recipe: null, ...(tab ? { denTab: tab } : {}) });
+      void get().loadDen();
+    },
+
+    setDenTab(denTab) {
+      set({ denTab, denSell: undefined });
+    },
+
+    setDenSell(denSell) {
+      set({ denSell });
+    },
+
+    setGame(game) {
+      set({ game });
+    },
+
+    setFeedTab(feedTab) {
+      set({ feedTab });
+      if (feedTab === "ranks") void get().loadRanks();
+    },
+
+    async loadDen() {
+      try {
+        set({ board: await backend.den() });
+      } catch {
+        // The board is a view: a failed load keeps what was there.
+      }
+    },
+
+    async loadRanks() {
+      try {
+        set({ ranks: await backend.ranks() });
+      } catch {
+        // Same: the tables stay as they were.
+      }
+    },
+
+    list: (good, amount, price) => get().send({ type: "market_list", good, amount, price }),
+    cancelListing: (listing) => get().send({ type: "market_cancel", listing }),
+    buyListing: (listing) => get().send({ type: "market_buy", listing }),
+    denBuy: (offer, lots) => get().send({ type: "den_buy", offer, lots }),
+    deliver: (contract) => get().send({ type: "deliver", contract }),
+    wheelBet: (segment, amount) => get().send({ type: "wheel_bet", segment, amount }),
+    spinSlots: (amount) => get().send({ type: "slots_spin", amount }),
+    rollDice: (option, amount) => get().send({ type: "dice_roll", option, amount }),
+
+    demoDen(change) {
+      if (!(backend instanceof LocalBackend)) return;
+      backend.patchDen(change);
+      void get().loadDen();
+    },
 
     async loadFeed(older = false) {
       try {
@@ -453,6 +643,17 @@ export const useWorld = create<Store>((set, get) => {
       const state = get();
       if (state.phase !== "playing") return false;
       const at = Math.floor(state.now);
+      if (isServerOnly(command)) {
+        // It needs the server (another base, a secret roll): send it and wait for the answer.
+        const key = newKey();
+        sentKeys.add(key);
+        set({
+          queue: [...state.queue, { key, command, at, predicted: false }],
+          pending: [...state.pending, key],
+        });
+        void flush();
+        return true;
+      }
       const predicted = applyCommand(content, state.base, command, at);
       if (!predicted.ok) {
         set({ base: predicted.state });
@@ -462,7 +663,10 @@ export const useWorld = create<Store>((set, get) => {
       }
       const key = newKey();
       sentKeys.add(key);
-      set({ base: predicted.state, queue: [...state.queue, { key, command, at }] });
+      set({
+        base: predicted.state,
+        queue: [...state.queue, { key, command, at, predicted: true }],
+      });
       play(predicted.events);
       void flush();
       return true;

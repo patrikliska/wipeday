@@ -10,8 +10,9 @@ import {
   total,
 } from "@wipe-day/domain/base";
 import { craftOptions, jobEndsAt } from "@wipe-day/domain/craft";
+import { denOpen } from "@wipe-day/domain/den";
 import { type Panel as PanelId, useWorld } from "../state/store";
-import { abbrev, content, duration, outputName, t } from "../state/world";
+import { abbrev, content, duration, outputName, t, tierName } from "../state/world";
 import { needLabel } from "./Cost";
 import { crewSummary } from "./crew";
 import { pendingOf } from "./derived";
@@ -55,6 +56,7 @@ export function Dock() {
   const panel = useWorld((state) => state.panel);
   const openPanel = useWorld((state) => state.openPanel);
   const openRecipe = useWorld((state) => state.openRecipe);
+  const openDen = useWorld((state) => state.openDen);
   const view = useWorld((state) => state.view);
   const setView = useWorld((state) => state.setView);
   const gather = useWorld((state) => state.gather);
@@ -201,6 +203,22 @@ export function Dock() {
       extra: true,
       panel: "inventory",
       onClick: () => openPanel("inventory"),
+    },
+    {
+      // Desktop only: on phones the skiff at the shore and the map's marker open the Den.
+      id: "den",
+      name: t("action.den"),
+      glyph: "DE",
+      color: "#c0607f",
+      sub: denOpen(content, base)
+        ? advice === "den"
+          ? t("hud.den_contract")
+          : t("hud.den_open")
+        : t("hud.den_closed", { tier: tierName(content.den.open.tier) }),
+      extra: true,
+      disabled: !denOpen(content, base),
+      panel: "den",
+      onClick: () => openDen(advice === "den" ? "contracts" : undefined),
     },
     {
       id: "feed",

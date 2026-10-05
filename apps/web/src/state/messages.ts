@@ -462,6 +462,23 @@ export function eventMessage(event: GameEvent): Message | null {
       };
     case "contract_done":
       return { text: t("toast.contract_done", { pay: abbrev(event.pay) }), tone: "success" };
+    case "wager": {
+      // The table shows slots and dice as they land; the wheel spins while the panel may
+      // be shut, so its result gets a line.
+      if (event.game !== "wheel") return null;
+      const segment = content.den.casino.wheel.segments[event.result[0] ?? 0]?.id ?? "";
+      const where = t(`casino.segment.${segment}`);
+      return event.payout > 0
+        ? {
+            text: t("toast.wheel_won", { segment: where, amount: abbrev(event.payout) }),
+            tone: "success",
+          }
+        : {
+            text: t("toast.wheel_lost", { segment: where, amount: abbrev(event.bet) }),
+            tone: "neutral",
+            panel: "den",
+          };
+    }
     case "jackpot_won":
       return { text: t("toast.jackpot", { amount: abbrev(event.amount) }), tone: "success" };
     default:

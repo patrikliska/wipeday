@@ -547,7 +547,7 @@ export class Game {
     out: Outbox,
   ): { listing: MarketListing; seller: Seller | null } | null {
     const row = this.den.listing(listingId);
-    if (!row || row.status !== "open") return null;
+    if (row?.status !== "open") return null;
     const { status: _status, seasonId: _season, ...listing } = row;
     if (row.seller === buyerId) return { listing, seller: null };
     const settled = this.settleStored(row.seller, now, out);

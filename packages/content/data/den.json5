@@ -5,7 +5,7 @@
 {
   open: { tier: "stone" },
   // Where the Den's marker sits on the island map (regions.json5 coordinates, 1000 x 1000).
-  map: { region: "landing", x: 395, y: 880 },
+  map: { region: "landing", x: 610, y: 878 },
 
   market: {
     // What a good is worth, in scrap per 100 units. Every resource but scrap and every item
