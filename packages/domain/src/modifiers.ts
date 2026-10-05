@@ -25,6 +25,8 @@ export interface Modifiers {
   crew: number;
   /** Furnace type, 1-based; 0 = no furnace. */
   furnace: number;
+  /** Rings a scout reaches beyond the base tier's range. */
+  scoutRange: number;
 }
 
 const NONE: Modifiers = {
@@ -41,6 +43,7 @@ const NONE: Modifiers = {
   graceHours: 0,
   crew: 0,
   furnace: 0,
+  scoutRange: 0,
 };
 
 /** Levels are replaced, never mutated, so the levels object identifies the result. */
@@ -71,6 +74,7 @@ export function modifiers(content: Content, state: Pick<BaseState, "buildings">)
     out.graceHours += effects.graceHours ?? 0;
     out.crew += effects.crew ?? 0;
     out.furnace = Math.max(out.furnace, effects.furnace ?? 0);
+    out.scoutRange += effects.scoutRange ?? 0;
   }
   cache.set(state.buildings, { content, value: out });
   return out;

@@ -29,7 +29,7 @@
     {
       id: "metal",
       storageCap: 80000, boxSlots: 12, furnaceSlots: 3, builders: 2,
-      cost: { stone: 48000, ingots: 38000, plates: 300, frames: 100, leather: 40 }, buildMinutes: 720,
+      cost: { stone: 54000, ingots: 43000, plates: 300, frames: 100, leather: 40 }, buildMinutes: 720,
       upkeep: { timber: 60, stone: 150, ingots: 60 },
     },
     {

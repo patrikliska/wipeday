@@ -22,7 +22,9 @@ import {
 } from "./base";
 import { type BuildStatus, startConstruction } from "./buildings";
 import { type CraftStatus, cancelCraft, queueCraft, salvage, serve } from "./craft";
+import type { Job } from "./crew";
 import type { GameEvent } from "./events";
+import { assign, type JobRefusal, rest, restTired } from "./jobs";
 import {
   type CrewRefusal,
   equip,
@@ -55,6 +57,11 @@ export type Command =
   /** `item` null takes the gear off. */
   | { type: "equip"; survivor: string; slot: "weapon" | "armor"; item: string | null }
   | { type: "treat"; survivor: string; item: string }
+  /** `job` null frees the survivor. */
+  | { type: "assign"; survivor: string; job: Job | null }
+  | { type: "rest"; survivor: string }
+  /** Sends every tired worker at home to bed. */
+  | { type: "rest_tired" }
   | { type: "read_report"; id: string }
   | { type: "break_barrel" }
   | { type: "hit_node"; node: string; run: string; hit: number }
@@ -80,6 +87,7 @@ export type Refusal =
   | { code: "fed_better"; until: number }
   | Exclude<TripStatus | ScoutStatus, { code: "ok" | "unaffordable" | "unknown" }>
   | CrewRefusal
+  | JobRefusal
   | HitRefusal;
 
 export type CommandResult =
@@ -223,6 +231,21 @@ function step(content: Content, state: BaseState, command: Command, now: number)
     }
     case "treat": {
       const result = treat(content, state, command.survivor, command.item, now);
+      if (!result.ok) return { ok: false, refusal: result.refusal };
+      return { ok: true, state: result.state, events: result.events };
+    }
+    case "assign": {
+      const result = assign(content, state, command.survivor, command.job, now);
+      if (!result.ok) return { ok: false, refusal: result.refusal };
+      return { ok: true, state: result.state, events: result.events };
+    }
+    case "rest": {
+      const result = rest(content, state, command.survivor, now);
+      if (!result.ok) return { ok: false, refusal: result.refusal };
+      return { ok: true, state: result.state, events: result.events };
+    }
+    case "rest_tired": {
+      const result = restTired(content, state, now);
       if (!result.ok) return { ok: false, refusal: result.refusal };
       return { ok: true, state: result.state, events: result.events };
     }

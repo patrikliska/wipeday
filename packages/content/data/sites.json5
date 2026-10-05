@@ -1,5 +1,5 @@
 // Ruins to send parties to, each in a region (regions.json5): seen once the region is known.
-//   tier        1-3 (4-5 arrive in W4b), on the base-tier colour scale for the marker
+//   tier        1-5, on the base-tier colour scale for the marker
 //   minutes     the trip there and back
 //   party       most survivors that can go (regions.json5 rules cap it too)
 //   chance      base success chance in percent, before the party's levels, traits and gear
@@ -10,6 +10,8 @@
 //   rolls       loot rolls on a success (half of them on a partial success)
 //   loot        weighted rolls, like barrels; blueprint / fragment: percent chances on a success
 //   xp          per member on a success (half on a partial, a quarter on a failure)
+//   keycode     an item spent on the way in (W4b): the upper sites need one
+//   finds       items a success may bring home, each with its percent chance
 // Names, blurbs and the report lines are in the locale (`site.{id}.*`, `story.{id}.*`).
 {
   sites: [
@@ -58,6 +60,7 @@
         { resource: "plates", min: 1, max: 3, weight: 15 },
         { resource: "springs", min: 1, max: 2, weight: 15 },
       ],
+      finds: [{ item: "tin_keycode", chance: 15 }],
     },
     {
       id: "ferry_terminal", region: "ferry_point", tier: 2, minutes: 210, party: 3,
@@ -69,6 +72,7 @@
         { resource: "gears", min: 1, max: 3, weight: 20 },
         { resource: "cloth", min: 5, max: 12, weight: 25 },
       ],
+      finds: [{ item: "tin_keycode", chance: 40 }],
     },
     {
       id: "observatory", region: "signal_hill", tier: 3, minutes: 360, party: 3,
@@ -85,6 +89,7 @@
       id: "weather_station", region: "stormcap", tier: 3, minutes: 420, party: 3,
       chance: 50, hazard: "flooded", injury: 24, injuryHours: 6,
       rations: { food: 60, fuel: 8 }, rolls: 4, xp: 100, blueprint: 10, fragment: 10,
+      keycode: "tin_keycode", finds: [{ item: "copper_keycode", chance: 50 }],
       loot: [
         { resource: "scrap", min: 30, max: 60, weight: 35 },
         { resource: "plates", min: 3, max: 6, weight: 25 },
@@ -101,6 +106,56 @@
         { resource: "ore", min: 150, max: 400, weight: 30 },
         { resource: "scrap", min: 20, max: 40, weight: 25 },
         { resource: "charcoal", min: 20, max: 50, weight: 15 },
+      ],
+    },
+    // The far north: tier 4, behind copper keycodes.
+    {
+      id: "rail_depot", region: "rail_yards", tier: 4, minutes: 540, party: 3,
+      chance: 50, hazard: "hostile", injury: 26, injuryHours: 8,
+      rations: { food: 90, fuel: 12 }, rolls: 5, xp: 140, blueprint: 15, fragment: 8,
+      keycode: "copper_keycode", finds: [{ item: "copper_keycode", chance: 20 }],
+      loot: [
+        { resource: "scrap", min: 40, max: 80, weight: 30 },
+        { resource: "plates", min: 4, max: 8, weight: 25 },
+        { resource: "gears", min: 3, max: 6, weight: 25 },
+        { resource: "frames", min: 3, max: 6, weight: 20 },
+      ],
+    },
+    {
+      id: "power_station", region: "north_dam", tier: 4, minutes: 600, party: 3,
+      chance: 45, hazard: "unstable", injury: 28, injuryHours: 8,
+      rations: { food: 100, fuel: 15 }, rolls: 5, xp: 150, blueprint: 15, fragment: 8,
+      keycode: "copper_keycode", finds: [{ item: "brass_keycode", chance: 40 }],
+      loot: [
+        { resource: "scrap", min: 40, max: 90, weight: 30 },
+        { resource: "springs", min: 3, max: 6, weight: 25 },
+        { resource: "gears", min: 3, max: 6, weight: 20 },
+        { resource: "fuel", min: 20, max: 45, weight: 25 },
+      ],
+    },
+    // The sea: tier 5, behind brass keycodes, by boat.
+    {
+      id: "submarine_pen", region: "the_narrows", tier: 5, minutes: 660, party: 3,
+      chance: 40, hazard: "flooded", injury: 30, injuryHours: 10,
+      rations: { food: 110, fuel: 25 }, rolls: 5, xp: 180, blueprint: 30, fragment: 0,
+      keycode: "brass_keycode",
+      loot: [
+        { resource: "scrap", min: 60, max: 120, weight: 30 },
+        { resource: "plates", min: 6, max: 12, weight: 25 },
+        { resource: "springs", min: 4, max: 8, weight: 25 },
+        { resource: "gears", min: 4, max: 8, weight: 20 },
+      ],
+    },
+    {
+      id: "offshore_platform", region: "open_water", tier: 5, minutes: 720, party: 3,
+      chance: 35, hazard: "hostile", injury: 32, injuryHours: 12,
+      rations: { food: 140, fuel: 40 }, rolls: 6, xp: 220, blueprint: 35, fragment: 0,
+      keycode: "brass_keycode",
+      loot: [
+        { resource: "scrap", min: 80, max: 160, weight: 30 },
+        { resource: "fuel", min: 40, max: 80, weight: 25 },
+        { resource: "plates", min: 8, max: 14, weight: 25 },
+        { resource: "springs", min: 5, max: 10, weight: 20 },
       ],
     },
   ],

@@ -13,6 +13,22 @@
     successPerCompanion: 5,
     // Items that treat an injury, and how many hours each takes off.
     treat: { bandage: 2, first_aid_kit: 6 },
+    // Work at home (W4b). A node worker adds nodePercent of the current tool's rate for the
+    // node's yields (traits' `job` adds more); a station worker makes that station's crafting
+    // stationPercent faster (traits' `craft` adds more; one worker per station); a guard adds
+    // guardScore defence (traits' `guard` adds more; raids use it from W6). A worker tires
+    // awakeHours after their last rest and then works at tiredPercent; a rest takes
+    // sleepHours, after which they go back to their job on their own.
+    jobs: {
+      nodePercent: 15,
+      stationPercent: 15,
+      guardScore: 5,
+      awakeHours: 16,
+      sleepHours: 8,
+      tiredPercent: 50,
+    },
+    // Pairs who have been out together `trips` times add `success` points when they go again.
+    bonds: { trips: 3, success: 4 },
   },
   crew: [
     { id: "mara", traits: ["scavenger", "cautious"] },

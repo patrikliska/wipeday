@@ -9,11 +9,11 @@ import baseTiersFile from "@wipe-day/content/data/base_tiers.json5";
 import buildingsFile from "@wipe-day/content/data/buildings.json5";
 import craftingFile from "@wipe-day/content/data/crafting.json5";
 import crewFile from "@wipe-day/content/data/crew.json5";
+import eventsFile from "@wipe-day/content/data/events.json5";
 import furnacesFile from "@wipe-day/content/data/furnaces.json5";
 import itemsFile from "@wipe-day/content/data/items.json5";
 import nodesFile from "@wipe-day/content/data/nodes.json5";
 import pacingFile from "@wipe-day/content/data/pacing.json5";
-
 import recipesFile from "@wipe-day/content/data/recipes.json5";
 import regionsFile from "@wipe-day/content/data/regions.json5";
 import resourcesFile from "@wipe-day/content/data/resources.json5";
@@ -48,6 +48,7 @@ export const content: Content = parseContent(
     "traits.json5": traitsFile,
     "regions.json5": regionsFile,
     "sites.json5": sitesFile,
+    "events.json5": eventsFile,
     "crew.json5": crewFile,
     "recipes.json5": recipesFile,
     "crafting.json5": craftingFile,

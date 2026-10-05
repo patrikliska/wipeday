@@ -12,6 +12,7 @@
 import type { Amounts, BaseTier, Content, Furnace, Tool } from "@wipe-day/content/schema";
 import { TIERS, type Tier } from "@wipe-day/content/tiers";
 import type { CraftJob } from "./craft";
+import { crewOutput, newShift } from "./crew";
 import type { GameEvent } from "./events";
 import type { Mission, Report, Survivor } from "./missions";
 import { modifiers } from "./modifiers";
@@ -92,8 +93,12 @@ export interface BaseState {
   blueprints: string[];
   /** A served meal's boost to Gather and node hits, until `until`. */
   wellFed: { percent: number; until: number } | null;
-  /** The crew, in arrival order. See `crew.ts`. */
+  /** The crew, in arrival order. See `missions.ts` and, for jobs and rest, `crew.ts`. */
   crew: Survivor[];
+  /** Trips each pair has taken together (`bondKey`): bonded pairs go out with better odds. */
+  bonds: Record<string, number>;
+  /** Successes at a site since its find (a keycode) last turned up there: site id -> count. */
+  dry: Record<string, number>;
   /** When the next survivor steps off a boat (if there is room). */
   nextArrivalAt: number;
   /** Regions the base has scouted (the home one from the start). See `map.ts`. */
@@ -145,14 +150,9 @@ export function newBase(content: Content, now: number, seed: number): BaseState 
     production: {},
     blueprints: [],
     wellFed: null,
-    crew: content.crewRules.start.map((id) => ({
-      id,
-      level: 1,
-      xp: 0,
-      gear: { weapon: null, armor: null },
-      injuredUntil: null,
-      away: null,
-    })),
+    crew: content.crewRules.start.map((id) => newSurvivor(content, id, now)),
+    bonds: {},
+    dry: {},
     nextArrivalAt: now + content.crewRules.arrivalHours * 3600,
     known: content.regions.filter((region) => region.ring === 0).map((region) => region.id),
     missions: [],
@@ -166,6 +166,20 @@ export function newBase(content: Content, now: number, seed: number): BaseState 
     nextBarrelAt: now + content.active.barrels.firstAfterMinutes * 60,
     tasks: { day: -1, ids: [], progress: {}, done: [] },
     hints: {},
+  };
+}
+
+/** A survivor as they arrive: level 1, no gear, no job, rested. */
+export function newSurvivor(content: Content, id: string, at: number): Survivor {
+  return {
+    id,
+    level: 1,
+    xp: 0,
+    gear: { weapon: null, armor: null },
+    injuredUntil: null,
+    away: null,
+    job: null,
+    shift: newShift(content, at),
   };
 }
 
@@ -356,8 +370,10 @@ export function upkeepCoverHours(content: Content, state: BaseState): number {
 }
 
 /**
- * What has piled up since the last collect, already capped by storage space.
- * Time spent with unpaid upkeep produces at the decay percentage.
+ * What has piled up since the last collect, already capped by storage space:
+ * the tool and buildings' production plus what the node workers made (`crewOutput`).
+ * Time spent with unpaid upkeep produces at the decay percentage (the crew's work is
+ * not slowed by it).
  * Fractions of a unit are dropped, so collecting twice within a second loses
  * at most one unit per resource; accepted for the simplicity of integer state.
  */
@@ -370,7 +386,8 @@ export function accrued(content: Content, state: BaseState, now: number): Amount
   const rates = effectiveRates(content, state);
   const healthy = production(rates, paidUntil - from);
   const decayed = production(rates, to - paidUntil, content.baseRules.decayProductionPercent);
-  return clampToCap(storageCap(content, state), state.stock, add(healthy, decayed));
+  const crew = crewOutput(content, state, from, to);
+  return clampToCap(storageCap(content, state), state.stock, add(add(healthy, decayed), crew));
 }
 
 /** True when a gathered resource has no room left: its accrual has stopped. */

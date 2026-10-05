@@ -6,6 +6,7 @@
  */
 import type { Amounts } from "@wipe-day/content/schema";
 import type { Tier } from "@wipe-day/content/tiers";
+import type { Job } from "./crew";
 
 export type GameEvent =
   // Player actions.
@@ -46,9 +47,15 @@ export type GameEvent =
       crew: string[];
       endsAt: number;
       paid: Amounts;
+      /** The keycode spent on the way in. */
+      keycode?: string;
     }
   | { type: "equipped"; survivor: string; slot: "weapon" | "armor"; item: string | null }
   | { type: "treated"; survivor: string; item: string; until: number }
+  /** A survivor took a job at home (null: free again). */
+  | { type: "assigned"; survivor: string; job: Job | null }
+  /** A survivor went to bed until `until`. */
+  | { type: "rested"; survivor: string; until: number }
   | { type: "barrel_broken"; gained: Amounts }
   | {
       type: "node_hit";
@@ -94,7 +101,13 @@ export type GameEvent =
       at: number;
     }
   | { type: "region_revealed"; region: string; from: "scout" | "fragment" }
-  | { type: "survivor_arrived"; survivor: string; at: number }
+  /** A survivor joined: off the boat, or rescued on a trip. */
+  | { type: "survivor_arrived"; survivor: string; at: number; from: "boat" | "rescue" }
+  /** Something happened on a trip (events.json5); the report has the line. */
+  | { type: "trip_event"; mission: string; event: string; site: string; at: number }
+  | { type: "level_up"; survivor: string; level: number; at: number }
+  /** An item (a keycode) came home from `from` (a site). */
+  | { type: "item_found"; item: string; from: string; at: number }
   | { type: "auto_collect"; gained: Amounts }
   | { type: "upkeep_paid"; hours: number; paid: Amounts }
   | { type: "decayed"; from: Tier; to: Tier };

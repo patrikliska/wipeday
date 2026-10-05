@@ -8,6 +8,12 @@ import { z } from "zod";
 
 const id = z.string().min(1).max(64);
 
+const job = z.discriminatedUnion("kind", [
+  z.strictObject({ kind: z.literal("node"), node: id }),
+  z.strictObject({ kind: z.literal("station"), station: id }),
+  z.strictObject({ kind: z.literal("guard") }),
+]);
+
 export const commandSchema = z.discriminatedUnion("type", [
   z.strictObject({ type: z.literal("gather") }),
   z.strictObject({ type: z.literal("collect") }),
@@ -32,6 +38,9 @@ export const commandSchema = z.discriminatedUnion("type", [
     item: id.nullable(),
   }),
   z.strictObject({ type: z.literal("treat"), survivor: id, item: id }),
+  z.strictObject({ type: z.literal("assign"), survivor: id, job: job.nullable() }),
+  z.strictObject({ type: z.literal("rest"), survivor: id }),
+  z.strictObject({ type: z.literal("rest_tired") }),
   z.strictObject({ type: z.literal("read_report"), id }),
   z.strictObject({ type: z.literal("break_barrel") }),
   z.strictObject({

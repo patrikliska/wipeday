@@ -50,6 +50,8 @@ const TERRAIN: Record<Region["terrain"], number> = {
   hills: 0xb09a6a,
   ruins: 0x9a958c,
   cliffs: 0x7b8088,
+  tundra: 0xc9d2d4,
+  sea: 0x3d7ea6,
 };
 /** Site markers by tier: the base-tier colours, one step up per tier. */
 const SITE_COLOR = [0xc2a868, 0x9aa0a6, 0x6c97bc, 0x45c2c0, 0xcd412b];

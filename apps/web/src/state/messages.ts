@@ -9,6 +9,7 @@ import {
   content,
   duration,
   gainLines,
+  itemName,
   missingLabel,
   outputName,
   regionName,
@@ -45,6 +46,15 @@ const made = new Set(content.recipes.map((recipe) => recipe.output));
 function tierForRange(ring: number): string {
   const tiers = ["twig", "wood", "stone", "metal", "hqm"] as const;
   return tiers.find((tier) => (content.mapRules.range[tier] ?? 0) >= ring) ?? "hqm";
+}
+
+/** The building that adds scout range (the radio mast), and how much its first level adds. */
+const rangeBuilding = content.buildings.find((b) => (b.levels[0]?.effects.scoutRange ?? 0) > 0);
+
+/** Where a keycode turns up: the first site that finds it. */
+function keycodeSource(item: string): string | null {
+  const site = content.sites.find((s) => s.finds?.some((find) => find.item === item));
+  return site ? siteName(site.id) : null;
 }
 
 export function refusalMessage(refusal: Refusal, now: number): Message | null {
@@ -127,12 +137,68 @@ export function refusalMessage(refusal: Refusal, now: number): Message | null {
       return { text: t("refusal.scouting"), tone: "neutral" };
     case "hidden":
       return { text: t("refusal.hidden"), tone: "neutral" };
-    case "far":
+    case "far": {
+      const mast = rangeBuilding?.levels[0]?.effects.scoutRange ?? 0;
+      if (rangeBuilding && refusal.ring <= refusal.range + mast) {
+        return {
+          text: t("refusal.far_building", { building: stationName(rangeBuilding.id) }),
+          tone: "warning",
+          panel: "build",
+        };
+      }
       return {
         text: t("refusal.far", { tier: tierName(tierForRange(refusal.ring)) }),
         tone: "warning",
         panel: "build",
       };
+    }
+    case "no_dock":
+      return {
+        text:
+          refusal.level > 1
+            ? t("refusal.no_dock_level", {
+                building: stationName(refusal.building),
+                level: refusal.level,
+              })
+            : t("refusal.no_dock", { building: stationName(refusal.building) }),
+        tone: "warning",
+        panel: "build",
+      };
+    case "no_navigator":
+      return { text: t("refusal.no_navigator"), tone: "neutral" };
+    case "keycode": {
+      const source = keycodeSource(refusal.item);
+      return {
+        text: source
+          ? t("refusal.keycode", { item: itemName(refusal.item), site: source })
+          : t("refusal.keycode_nowhere", { item: itemName(refusal.item) }),
+        tone: "warning",
+        panel: "map",
+      };
+    }
+    case "no_yield":
+      return { text: t("refusal.no_yield"), tone: "neutral", panel: "build" };
+    case "no_station":
+      return {
+        text: t("refusal.no_station", { station: stationName(refusal.station) }),
+        tone: "warning",
+        panel: "build",
+      };
+    case "station_taken":
+      return {
+        text: t("refusal.station_taken", {
+          name: survivorName(refusal.by),
+          station: stationName(refusal.station).toLowerCase(),
+        }),
+        tone: "neutral",
+      };
+    case "asleep":
+      return {
+        text: t("refusal.asleep", { time: duration(refusal.until - now) }),
+        tone: "neutral",
+      };
+    case "nobody_tired":
+      return { text: t("refusal.nobody_tired"), tone: "neutral" };
     case "no_survivor":
       return { text: t("refusal.no_survivor"), tone: "neutral", panel: "squad" };
     case "unfit":

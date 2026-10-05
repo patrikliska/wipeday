@@ -185,6 +185,8 @@ const placeholder = (): BaseState => ({
   blueprints: [],
   wellFed: null,
   crew: [],
+  bonds: {},
+  dry: {},
   nextArrivalAt: 0,
   known: [],
   missions: [],

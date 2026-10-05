@@ -11,7 +11,8 @@
 // smeltPercent (faster furnaces), craftPercent (faster crafting), haulMinutes (bigger daily
 // node haul), barrelLifeMinutes (barrels stay longer), barrelEveryMinutes (barrels come
 // sooner), graceHours (longer before unpaid upkeep costs a level), crew (room for more
-// survivors), furnace (furnace type, 1 = the first in furnaces.json5).
+// survivors), furnace (furnace type, 1 = the first in furnaces.json5), scoutRange (rings a
+// scout reaches beyond the base tier's range).
 {
   buildings: [
     {
@@ -129,9 +130,9 @@
     {
       id: "radio_mast", unlockTier: "metal",
       levels: [
-        { cost: { ingots: 800, frames: 30, plates: 30 }, minutes: 120, upkeep: {}, effects: { barrelEveryMinutes: 30 } },
-        { cost: { ingots: 3000, frames: 80, gears: 40 }, minutes: 360, upkeep: {}, effects: { barrelEveryMinutes: 60 } },
-        { minTier: "hqm", cost: { ingots: 8000, springs: 60, gears: 80 }, minutes: 720, upkeep: {}, effects: { barrelEveryMinutes: 90 } },
+        { cost: { ingots: 800, frames: 30, plates: 30 }, minutes: 120, upkeep: {}, effects: { barrelEveryMinutes: 30, scoutRange: 1 } },
+        { cost: { ingots: 3000, frames: 80, gears: 40 }, minutes: 360, upkeep: {}, effects: { barrelEveryMinutes: 60, scoutRange: 1 } },
+        { minTier: "hqm", cost: { ingots: 8000, springs: 60, gears: 80 }, minutes: 720, upkeep: {}, effects: { barrelEveryMinutes: 90, scoutRange: 1 } },
       ],
     },
     {
@@ -139,7 +140,7 @@
       levels: [
         { cost: { planks: 300, rope: 60, ingots: 500 }, minutes: 120, upkeep: {}, effects: { flat: { food: 8 } } },
         { cost: { planks: 600, rope: 120, cloth: 80, ingots: 2000 }, minutes: 360, upkeep: {}, effects: { flat: { food: 20 } } },
-        { minTier: "hqm", cost: { ingots: 8000, frames: 80, rope: 200 }, minutes: 720, upkeep: {}, effects: { flat: { food: 40 } } },
+        { minTier: "hqm", cost: { ingots: 8000, frames: 80, rope: 200 }, minutes: 1440, upkeep: {}, effects: { flat: { food: 40 } } },
       ],
     },
   ],

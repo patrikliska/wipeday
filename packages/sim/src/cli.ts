@@ -21,7 +21,9 @@ function table(run: Run): string {
   const lines = [
     `${run.archetype}  (reached: ${Object.entries(run.reached)
       .map(([tier, day]) => `${tier} d${day}`)
-      .join(", ")})`,
+      .join(", ")}; first trips: ${Object.entries(run.firstTrip)
+      .map(([tier, day]) => `t${tier} d${day}`)
+      .join(", ")}; first job d${run.firstJob ?? "-"})`,
     "day  tier   tool             fill                cap   ingots    fuel   scrap  items  parts  bldgs  crew  known  build",
   ];
   for (const row of run.rows) {

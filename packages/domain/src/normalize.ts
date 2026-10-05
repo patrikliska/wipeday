@@ -8,7 +8,14 @@
  * current state passes through unchanged.
  */
 import type { Content } from "@wipe-day/content/schema";
-import type { BaseState, Construction, FurnaceJob, NodeRun } from "./base";
+import {
+  type BaseState,
+  type Construction,
+  type FurnaceJob,
+  type NodeRun,
+  newSurvivor,
+} from "./base";
+import type { Survivor } from "./missions";
 
 /** Items that were renamed, old id -> new id. */
 const RENAMED: Record<string, string> = { hide_vest: "leather_vest" };
@@ -82,17 +89,16 @@ export function normalizeState(content: Content, stored: unknown): BaseState {
     production: raw.production ?? {},
     blueprints: raw.blueprints ?? [],
     wellFed: raw.wellFed ?? null,
-    // W4: the crew stops being scenery. W3 bases get the starting crew and the home shore.
-    crew:
-      raw.crew ??
-      content.crewRules.start.map((id) => ({
-        id,
-        level: 1,
-        xp: 0,
-        gear: { weapon: null, armor: null },
-        injuredUntil: null,
-        away: null,
-      })),
+    // W4: the crew stops being scenery. W3 bases get the starting crew and the home shore;
+    // W4b gives every survivor a job slot (free) and a rested shift.
+    crew: (raw.crew ?? content.crewRules.start.map((id) => ({ id }) as Partial<Survivor>)).map(
+      (member) => ({
+        ...newSurvivor(content, member.id ?? "", raw.lastCollectedAt ?? 0),
+        ...member,
+      }),
+    ),
+    bonds: raw.bonds ?? {},
+    dry: raw.dry ?? {},
     nextArrivalAt:
       raw.nextArrivalAt ?? (raw.lastCollectedAt ?? 0) + content.crewRules.arrivalHours * 3600,
     known: raw.known ?? content.regions.filter((region) => region.ring === 0).map((r) => r.id),

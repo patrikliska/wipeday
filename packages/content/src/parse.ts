@@ -21,6 +21,7 @@ import {
   nodeSchema,
   pacingSchema,
   recipeSchema,
+  tripEventRulesSchema,
 } from "./schema";
 import { TIERS } from "./tiers";
 
@@ -85,10 +86,27 @@ function emptyContent(): Content {
       successPerLevel: 0,
       successPerCompanion: 0,
       treat: {},
+      jobs: {
+        nodePercent: 1,
+        stationPercent: 0,
+        guardScore: 0,
+        awakeHours: 1,
+        sleepHours: 1,
+        tiredPercent: 100,
+      },
+      bonds: { trips: 1, success: 0 },
     },
     regions: [],
-    mapRules: { range: { twig: 1, wood: 1, stone: 1, metal: 1, hqm: 1 }, maxParty: 1 },
+    mapRules: {
+      range: { twig: 1, wood: 1, stone: 1, metal: 1, hqm: 1 },
+      maxParty: 1,
+      boatBuilding: "",
+      boatTrait: "",
+      findPity: 1,
+    },
     sites: [],
+    tripEvents: [],
+    tripEventRules: { most: 1 },
     recipes: [],
     crafting: {
       queueSlots: [1],
@@ -121,10 +139,17 @@ function emptyContent(): Content {
         stationsWorkedByDay: 1,
         firstTripByDay: 1,
         tierThreeSiteByDay: 1,
+        jobsByDay: 1,
+        tierFourSiteByDay: 1,
+        tierFiveSiteByDay: 1,
         crew: { day: 1, count: 1 },
         tool: { id: "", byDay: 1 },
       },
-      optimal: { hqmNotBeforeDay: 1, tierThreeSiteNotBeforeDay: 1 },
+      optimal: {
+        hqmNotBeforeDay: 1,
+        tierThreeSiteNotBeforeDay: 1,
+        lastSite: { id: "", notBeforeDay: 1 },
+      },
       tierCostRatio: { min: 1, max: 1 },
     },
   };
@@ -161,7 +186,9 @@ export function parseContent(
             ? { rules: crewRulesSchema }
             : field === "regions"
               ? { rules: mapRulesSchema }
-              : {};
+              : field === "tripEvents"
+                ? { rules: tripEventRulesSchema }
+                : {};
     const parsed = z.strictObject({ [key]: z.array(z.unknown()), ...extras }).safeParse(data);
     if (!parsed.success) {
       problems.push({ file, id: "", message: issuesOf(parsed.error).join("; ") });
@@ -174,6 +201,8 @@ export function parseContent(
       content.crewRules = (parsed.data as { rules: Content["crewRules"] }).rules;
     if (field === "regions")
       content.mapRules = (parsed.data as { rules: Content["mapRules"] }).rules;
+    if (field === "tripEvents")
+      content.tripEventRules = (parsed.data as { rules: Content["tripEventRules"] }).rules;
     const rows = (parsed.data as Record<string, unknown[]>)[key] ?? [];
     for (const [index, row] of rows.entries()) {
       const result = schema.safeParse(row);
@@ -440,6 +469,8 @@ export function checkRecipes(content: Content): Problem[] {
     }
   }
   for (const item of content.items) {
+    // Keycodes are only ever found (sites.json5 `finds`), never made.
+    if (item.category === "keycode") continue;
     if (!seen.has(item.id)) problems.push({ file, id: item.id, message: "item has no recipe" });
   }
   for (const rule of ["queueSlots", "batchSize"] as const) {
@@ -547,7 +578,17 @@ export function checkCrewAndMap(content: Content, locale: Locale): Problem[] {
   for (const id of Object.keys(content.crewRules.treat)) {
     if (!items.has(id)) problems.push({ file: "crew.json5", id, message: "treat names no item" });
   }
+  const buildings = new Set(content.buildings.map((building) => building.id));
   for (const trait of content.traits) {
+    for (const station of Object.keys(trait.craft ?? {})) {
+      if (station !== "any" && !buildings.has(station)) {
+        problems.push({
+          file: "traits.json5",
+          id: trait.id,
+          message: `craft names unknown station \`${station}\``,
+        });
+      }
+    }
     if (!locale.has(`trait.${trait.id}.effect`)) {
       problems.push({
         file: "traits.json5",
@@ -557,6 +598,23 @@ export function checkCrewAndMap(content: Content, locale: Locale): Problem[] {
     }
   }
 
+  const { boatBuilding, boatTrait } = content.mapRules;
+  if (content.regions.some((region) => region.access === "sea")) {
+    if (!buildings.has(boatBuilding)) {
+      problems.push({
+        file: "regions.json5",
+        id: "",
+        message: `boatBuilding names unknown building \`${boatBuilding}\``,
+      });
+    }
+    if (!traits.has(boatTrait)) {
+      problems.push({
+        file: "regions.json5",
+        id: "",
+        message: `boatTrait names unknown trait \`${boatTrait}\``,
+      });
+    }
+  }
   const regions = new Map(content.regions.map((region) => [region.id, region]));
   const homes = content.regions.filter((region) => region.ring === 0);
   if (content.regions.length > 0 && homes.length !== 1) {
@@ -591,6 +649,20 @@ export function checkCrewAndMap(content: Content, locale: Locale): Problem[] {
           message: `scout cost names unknown resource \`${id}\``,
         });
       }
+    }
+    // A boat leaves from the shore: every sea region touches a shore or another sea region.
+    if (
+      region.access === "sea" &&
+      !region.neighbours.some((other) => {
+        const neighbour = regions.get(other);
+        return neighbour?.terrain === "shore" || neighbour?.access === "sea";
+      })
+    ) {
+      problems.push({
+        file: "regions.json5",
+        id: region.id,
+        message: "a sea region must border a shore or another sea region",
+      });
     }
     if (!locale.has(`region.${region.id}.blurb`)) {
       problems.push({
@@ -643,6 +715,23 @@ export function checkCrewAndMap(content: Content, locale: Locale): Problem[] {
         problems.push({ file, id: site.id, message: `rations name unknown resource \`${id}\`` });
       }
     }
+    const keycodes = [site.keycode, ...(site.finds ?? []).map((find) => find.item)];
+    for (const id of keycodes) {
+      if (id !== undefined && !items.has(id)) {
+        problems.push({ file, id: site.id, message: `names unknown item \`${id}\`` });
+      }
+    }
+    // A keycode must drop somewhere, or the site behind it can never be reached.
+    if (
+      site.keycode &&
+      !content.sites.some((other) => other.finds?.some((find) => find.item === site.keycode))
+    ) {
+      problems.push({
+        file,
+        id: site.id,
+        message: `no site finds its keycode \`${site.keycode}\``,
+      });
+    }
     for (const key of [
       `site.${site.id}.blurb`,
       `story.${site.id}.success`,
@@ -651,6 +740,25 @@ export function checkCrewAndMap(content: Content, locale: Locale): Problem[] {
     ]) {
       if (!locale.has(key))
         problems.push({ file, id: site.id, message: `missing locale key \`${key}\`` });
+    }
+  }
+
+  for (const event of content.tripEvents) {
+    for (const id of Object.keys(event.traits ?? {})) {
+      if (!traits.has(id)) {
+        problems.push({
+          file: "events.json5",
+          id: event.id,
+          message: `unknown trait \`${id}\``,
+        });
+      }
+    }
+    if (!locale.has(`trip_event.${event.id}.line`)) {
+      problems.push({
+        file: "events.json5",
+        id: event.id,
+        message: `missing locale key \`trip_event.${event.id}.line\``,
+      });
     }
   }
   return problems;

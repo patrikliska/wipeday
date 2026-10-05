@@ -18,5 +18,9 @@
     { id: "roast", category: "meal", tier: "wood", boostPercent: 10, hours: 4 },
     { id: "stew", category: "meal", tier: "stone", boostPercent: 20, hours: 6 },
     { id: "feast", category: "meal", tier: "metal", boostPercent: 30, hours: 8 },
+    // Keycodes open the upper sites (sites.json5 `keycode`) and are spent on the way in.
+    { id: "tin_keycode", category: "keycode", tier: "stone" },
+    { id: "copper_keycode", category: "keycode", tier: "metal" },
+    { id: "brass_keycode", category: "keycode", tier: "hqm" },
   ],
 }

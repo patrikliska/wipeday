@@ -157,6 +157,18 @@
     "feast": {
       "name": "Feast",
       "effect": "Serve it: +{percent}% from Gather and node hits for {hours}h"
+    },
+    "tin_keycode": {
+      "name": "Tin Keycode",
+      "effect": "Opens the weather station's doors; spent on the way in"
+    },
+    "copper_keycode": {
+      "name": "Copper Keycode",
+      "effect": "Opens the far north's ruins; spent on the way in"
+    },
+    "brass_keycode": {
+      "name": "Brass Keycode",
+      "effect": "Opens the sea ruins; spent on the way in"
     }
   },
   "crew": {
@@ -551,7 +563,18 @@
     "unfit": "{name} is out or hurt.",
     "no_party": "Pick who goes first.",
     "party_size": "At most {most} can go there.",
-    "away": "They are out on a mission."
+    "away": "They are out on a mission.",
+    "far_building": "Too far for now: a {building} lets scouts reach that far.",
+    "no_dock": "That is out at sea: build a {building} first.",
+    "no_navigator": "Out at sea, someone in the party has to be a navigator.",
+    "keycode": "The doors need a {item}: one turns up at the {site}.",
+    "keycode_nowhere": "The doors need a {item}.",
+    "no_yield": "Your tools get nothing from that node yet.",
+    "no_station": "Build the {station} first.",
+    "station_taken": "{name} already works the {station}.",
+    "asleep": "Asleep: up in {time}.",
+    "nobody_tired": "Nobody is tired right now.",
+    "no_dock_level": "That far out, the {building} has to be level {level}."
   },
   "login": {
     "title": "Wipe Day",
@@ -655,7 +678,9 @@
     "barrelEveryMinutes": "barrels come {value} min sooner",
     "graceHours": "+{value} h before upkeep costs a level",
     "workbench": "workbench level {value}",
-    "furnace": "{value}"
+    "furnace": "{value}",
+    "scoutRange": "scouts reach {value} ring further",
+    "crew": "room for {value} more survivors"
   },
   "trait": {
     "scavenger": {
@@ -664,7 +689,7 @@
     },
     "mule": {
       "name": "Mule",
-      "effect": "Carries one more haul home"
+      "effect": "Carries one more haul home; +15% at a node"
     },
     "navigator": {
       "name": "Navigator",
@@ -672,7 +697,7 @@
     },
     "marksman": {
       "name": "Marksman",
-      "effect": "Better odds where it turns hostile"
+      "effect": "Better odds where it turns hostile; a sharp guard"
     },
     "demolition": {
       "name": "Demolition",
@@ -688,7 +713,7 @@
     },
     "brave": {
       "name": "Brave",
-      "effect": "Better odds everywhere"
+      "effect": "Better odds everywhere; steady on guard"
     },
     "lucky": {
       "name": "Lucky",
@@ -696,11 +721,11 @@
     },
     "cook": {
       "name": "Cook",
-      "effect": "Good with a pot and a fire"
+      "effect": "At the campfire: meals 50% faster"
     },
     "tinkerer": {
       "name": "Tinkerer",
-      "effect": "Good with tools and broken things"
+      "effect": "At any station: crafting 30% faster"
     }
   },
   "region": {
@@ -739,6 +764,22 @@
     "signal_hill": {
       "name": "Signal Hill",
       "blurb": "The island's high point, crowned by a white dome."
+    },
+    "rail_yards": {
+      "name": "Rail Yards",
+      "blurb": "Frozen sidings and a depot full of locomotives nobody will drive again."
+    },
+    "north_dam": {
+      "name": "North Dam",
+      "blurb": "A concrete wall across the valley, and the power station under it."
+    },
+    "the_narrows": {
+      "name": "The Narrows",
+      "blurb": "A strait of fast water off the west coast; something was built into the cliffs."
+    },
+    "open_water": {
+      "name": "Open Water",
+      "blurb": "Past the last rocks, a platform stands on stilts in the swell."
     }
   },
   "site": {
@@ -773,6 +814,22 @@
     "flooded_mine": {
       "name": "Flooded Mine",
       "blurb": "Sulfur veins and ore, deep in dark water."
+    },
+    "rail_depot": {
+      "name": "Rail Depot",
+      "blurb": "Locomotives, cranes and sheds of spare parts, behind a copper-keyed gate."
+    },
+    "power_station": {
+      "name": "Power Station",
+      "blurb": "Turbines in the dark, and a control room with a brass-keyed safe."
+    },
+    "submarine_pen": {
+      "name": "Submarine Pen",
+      "blurb": "A bunker cut into the cliffs, its pens half full of sea."
+    },
+    "offshore_platform": {
+      "name": "Offshore Platform",
+      "blurb": "The season's peak: everything is out here, and so is everyone else."
     }
   },
   "story": {
@@ -815,6 +872,26 @@
       "success": "{name} waded the first shaft and brought up sulfur and ore.",
       "partial": "{name} worked the dry end of the tunnel and filled a few sacks.",
       "fail": "The water was higher than the charts said. {name} turned back."
+    },
+    "rail_depot": {
+      "success": "{name} swiped the copper key and walked the sheds end to end with a cart.",
+      "partial": "{name} worked the yard outside the sheds before the guards came round.",
+      "fail": "{name} found the depot occupied and kept to the frozen ditches all the way home."
+    },
+    "power_station": {
+      "success": "{name} got the control room open and stripped the spare-parts store.",
+      "partial": "{name} reached the turbine hall; the stairs down were gone.",
+      "fail": "The dam groaned and {name} decided the dark could keep its secrets."
+    },
+    "submarine_pen": {
+      "success": "{name} brought the boat in on the tide and cleared the dry pens.",
+      "partial": "{name} searched the upper gantries while the water rose.",
+      "fail": "The current pushed the boat off the cliffs. {name} never got inside."
+    },
+    "offshore_platform": {
+      "success": "{name} climbed the stilts at dawn and emptied the platform's stores.",
+      "partial": "{name} got onto the lower deck and grabbed what was in reach.",
+      "fail": "The swell was too high to tie up. {name} circled once and came home."
     }
   },
   "map": {
@@ -885,5 +962,19 @@
     "close": "Close",
     "again": "Send again",
     "see_map": "See it on the map"
+  },
+  "trip_event": {
+    "ambush": {
+      "name": "Ambush",
+      "line": "Ambushed on the way: they dropped part of the haul to get away."
+    },
+    "cache": {
+      "name": "Hidden cache",
+      "line": "A hidden cache under the floor: {rolls} more hauls."
+    },
+    "stranger": {
+      "name": "A stranger",
+      "line": "{name} found someone hiding in the ruins and brought them home."
+    }
   }
 }

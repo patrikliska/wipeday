@@ -4,11 +4,22 @@
  * recipe, paid up front; units land one by one as settling passes them, parts
  * into stock (uncapped) and items into the inventory. The next job starts when
  * the one before it ends. The station's level sets its queue slots and batch
- * size (`crafting.json5`); the lights shorten every unit. Also here: salvage
+ * size (`crafting.json5`); the lights and a survivor working the station (`crew.ts`)
+ * shorten every unit. Also here: salvage
  * (an item back into part of its cost) and serving a meal.
  */
 import type { Amounts, Content, Item, Recipe } from "@wipe-day/content/schema";
-import { add, type BaseState, boxesInUse, clampToCap, shortfall, storageCap, tierOf } from "./base";
+import {
+  add,
+  type BaseState,
+  boxesInUse,
+  clampToCap,
+  collect,
+  shortfall,
+  storageCap,
+  tierOf,
+} from "./base";
+import { stationBoost } from "./crew";
 import type { GameEvent } from "./events";
 import { modifiers } from "./modifiers";
 import { isPart, knows, recipeFor, stationLevel, stations } from "./recipes";
@@ -56,12 +67,52 @@ export function batchSize(content: Content, state: BaseState, station: string): 
   return levelRule(content.crafting.batchSize, stationLevel(state, station));
 }
 
-/** Seconds one unit takes here: its minutes, sped up by the buildings (the lights). */
+/** Percent faster crafting at `station`: the buildings (the lights) and the station's worker. */
+export function craftSpeed(content: Content, state: BaseState, station: string): number {
+  return modifiers(content, state).craftPercent + stationBoost(content, state, station);
+}
+
+/** Seconds one unit takes here: its minutes, sped up by `craftSpeed`. */
 export function unitSeconds(content: Content, state: BaseState, recipe: Recipe): number {
   return Math.max(
     1,
-    Math.round((recipe.minutes * 60 * 100) / (100 + modifiers(content, state).craftPercent)),
+    Math.round((recipe.minutes * 60 * 100) / (100 + craftSpeed(content, state, recipe.station))),
   );
+}
+
+/**
+ * Re-prices `station`'s queue at today's speed (a worker came or went), from `now`: units
+ * that landed stay landed, the unit in progress keeps its share done, and the jobs behind
+ * it are laid end to end again. Expects a state settled to `now`.
+ */
+export function repriceStation(
+  content: Content,
+  state: BaseState,
+  station: string,
+  now: number,
+): BaseState {
+  const queue = queueOf(state, station);
+  if (queue.length === 0) return state;
+  let at = now;
+  const jobs = queue.map((job, index) => {
+    const recipe = recipeFor(content, job.recipe);
+    const seconds = recipe ? unitSeconds(content, state, recipe) : job.unitSeconds;
+    if (index === 0 && now > job.startedAt) {
+      // Units done plus the share of the one in progress, at the new pace.
+      const progress = Math.min(job.count, (now - job.startedAt) / job.unitSeconds);
+      const moved = {
+        ...job,
+        unitSeconds: seconds,
+        startedAt: now - Math.ceil(progress * seconds),
+      };
+      at = jobEndsAt(moved);
+      return moved;
+    }
+    const moved = { ...job, unitSeconds: seconds, startedAt: Math.max(at, now) };
+    at = jobEndsAt(moved);
+    return moved;
+  });
+  return { ...state, production: { ...state.production, [station]: jobs } };
 }
 
 export function jobEndsAt(job: CraftJob): number {
@@ -368,8 +419,9 @@ export type ServeResult =
   | { ok: false; reason: "fed_better"; until: number };
 
 /**
- * Serves one meal: its boost runs for its hours from now. A weaker meal cannot
- * cut a stronger one short; an equal or better one replaces it.
+ * Serves one meal: its boost runs for its hours from now, on Gather, node hits and the
+ * crew's work (morale). A weaker meal cannot cut a stronger one short; an equal or better
+ * one replaces it. Banks first, so the crew's work so far is paid at the old morale.
  */
 export function serve(
   content: Content,
@@ -385,12 +437,13 @@ export function serve(
   const current = boostPercent(state, now);
   if (current > meal.boostPercent && state.wellFed)
     return { ok: false, reason: "fed_better", until: state.wellFed.until };
-  const items = { ...state.items, [mealId]: owned - 1 };
+  const banked = collect(content, state, now).state;
+  const items = { ...banked.items, [mealId]: owned - 1 };
   if (items[mealId] === 0) delete items[mealId];
   const wellFed = { percent: meal.boostPercent, until: now + meal.hours * 3600 };
   return {
     ok: true,
-    state: { ...state, items, wellFed },
+    state: { ...banked, items, wellFed },
     events: [{ type: "served", meal: mealId, percent: wellFed.percent, until: wellFed.until }],
   };
 }

@@ -1,0 +1,32 @@
+// Things that can happen on a trip (W4b). Rolled when the party comes back, from the
+// mission's seed, with the chances fixed when it left (the confirm screen shows them).
+//   chance    percent by site tier (tier 1 first)
+//   hazard    + points at sites with that hazard
+//   traits    + (or -) points for each party member with the trait
+//   weapon    - points per armed member
+//   outcomes  the outcomes it can happen on
+// Effects: loot (percent more or less of every loot amount), rolls (extra loot rolls),
+// injury (percent more injury chance for everyone), rescue (a stranger joins the crew; with no
+// room, the next boat comes at once). Map scraps stay a site's own `fragment` chance.
+// Lines for the report card are in the locale (`trip_event.{id}.line`).
+{
+  rules: {
+    // The most events one trip can have.
+    most: 2,
+  },
+  events: [
+    {
+      id: "ambush", chance: [0, 6, 10, 14, 18], hazard: { hostile: 8 },
+      traits: { marksman: -4, cautious: -3 }, weapon: 3,
+      outcomes: ["success", "partial", "fail"], loot: -30, injury: 50,
+    },
+    {
+      id: "cache", chance: [6, 8, 10, 12, 14], traits: { scavenger: 3, lucky: 4 },
+      outcomes: ["success", "partial"], rolls: 2,
+    },
+    {
+      id: "stranger", chance: [3, 4, 5, 6, 6], traits: { brave: 2 },
+      outcomes: ["success"], rescue: true,
+    },
+  ],
+}

@@ -83,7 +83,7 @@ export const furnaceSchema = z.strictObject({
   maxOrePerJob: z.int().min(1),
 });
 
-export const ITEM_CATEGORIES = ["storage", "med", "weapon", "armor", "meal"] as const;
+export const ITEM_CATEGORIES = ["storage", "med", "weapon", "armor", "meal", "keycode"] as const;
 
 export const itemSchema = z.strictObject({
   id,
@@ -131,6 +131,8 @@ export const effectsSchema = z.strictObject({
   crew: z.int().min(0).optional(),
   /** Furnace type: 1 = the first in furnaces.json5. */
   furnace: z.int().min(1).optional(),
+  /** Rings a scout reaches beyond the base tier's range. */
+  scoutRange: z.int().min(0).optional(),
 });
 export type Effects = z.infer<typeof effectsSchema>;
 
@@ -166,6 +168,12 @@ export const traitSchema = z.strictObject({
   injury: z.int().min(0).max(90).optional(),
   recovery: z.int().min(0).max(90).optional(),
   rare: z.int().min(0).max(300).optional(),
+  /** Percent more output on a node job. */
+  job: z.int().min(0).max(200).optional(),
+  /** Percent faster crafting on a station job: by station id, or `any`. */
+  craft: z.record(z.string(), z.int().min(0).max(200)).optional(),
+  /** Defence points on guard duty. */
+  guard: z.int().min(0).max(50).optional(),
 });
 
 export const crewSchema = z.strictObject({
@@ -184,10 +192,36 @@ export const crewRulesSchema = z.strictObject({
   successPerCompanion: z.int().min(0),
   /** Item id -> injury hours it takes off. */
   treat: z.record(z.string(), z.int().min(1)),
+  /** Work at home (W4b): node, station and guard jobs, and the rest a worker needs. */
+  jobs: z.strictObject({
+    /** A node worker adds this percent of the tool's rate for the node's yields. */
+    nodePercent: z.int().min(1).max(200),
+    /** A station worker makes that station's crafting this much faster. */
+    stationPercent: z.int().min(0).max(200),
+    /** Defence points per guard, before traits. */
+    guardScore: z.int().min(0),
+    /** Hours awake before a worker tires. */
+    awakeHours: z.int().min(1).max(24),
+    /** Hours a rest takes. */
+    sleepHours: z.int().min(1).max(24),
+    /** A tired worker works at this percent of the pace. */
+    tiredPercent: z.int().min(0).max(100),
+  }),
+  /** Pairs who have been out together `trips` times add `success` points when they go again. */
+  bonds: z.strictObject({ trips: z.int().min(1), success: z.int().min(0).max(20) }),
 });
 export type CrewRules = z.infer<typeof crewRulesSchema>;
 
-export const TERRAINS = ["shore", "marsh", "forest", "hills", "ruins", "cliffs"] as const;
+export const TERRAINS = [
+  "shore",
+  "marsh",
+  "forest",
+  "hills",
+  "ruins",
+  "cliffs",
+  "tundra",
+  "sea",
+] as const;
 
 export const regionSchema = z.strictObject({
   id,
@@ -198,12 +232,22 @@ export const regionSchema = z.strictObject({
   terrain: z.enum(TERRAINS),
   neighbours: z.array(z.string()).min(1),
   scout: z.strictObject({ cost: amounts, minutes: z.int().min(1) }),
+  /** `sea`: reached by boat only: the dock, and a navigator in every party. */
+  access: z.enum(["sea"]).optional(),
+  /** Sea regions: the dock level a boat needs to get there (1 when not given). */
+  dock: z.int().min(1).optional(),
 });
 
 export const mapRulesSchema = z.strictObject({
   /** Highest ring a scout can reach, by base tier: a stronger holdfast supplies longer trips. */
   range: z.record(tier, z.int().min(1)),
   maxParty: z.int().min(1),
+  /** The building whose first level launches boats to the sea regions. */
+  boatBuilding: z.string(),
+  /** The trait a scout at sea needs, and at least one member of every party at sea. */
+  boatTrait: z.string(),
+  /** After this many successes at a site without its find, the next success brings it. */
+  findPity: z.int().min(1),
 });
 export type MapRules = z.infer<typeof mapRulesSchema>;
 
@@ -330,7 +374,42 @@ export const siteSchema = z.strictObject({
   blueprint: z.int().min(0).max(100),
   fragment: z.int().min(0).max(100),
   loot: z.array(lootEntry).min(1),
+  /** An item (a keycode) spent when the party leaves. */
+  keycode: z.string().optional(),
+  /** Items a success may bring home, each with its percent chance. */
+  finds: z.array(z.strictObject({ item: z.string(), chance: z.int().min(1).max(100) })).optional(),
 });
+
+export const OUTCOMES = ["success", "partial", "fail"] as const;
+
+/**
+ * Something that can happen on a trip (events.json5). Chances are percent by site tier
+ * (index 0 = tier 1), plus `hazard` points at sites with that hazard, plus `traits` points
+ * for each member with the trait, minus `weapon` points per armed member.
+ */
+export const tripEventSchema = z.strictObject({
+  id,
+  chance: z.array(z.int().min(0).max(100)).length(5),
+  hazard: z.partialRecord(z.enum(HAZARDS), z.int().min(-50).max(50)).optional(),
+  traits: z.record(z.string(), z.int().min(-50).max(50)).optional(),
+  weapon: z.int().min(0).max(50).optional(),
+  /** The outcomes it can happen on. */
+  outcomes: z.array(z.enum(OUTCOMES)).min(1),
+  /** Percent more (or less) of every loot amount. */
+  loot: z.int().min(-90).max(200).optional(),
+  /** Extra loot rolls. */
+  rolls: z.int().min(0).max(5).optional(),
+  /** Percent more injury chance for every member. */
+  injury: z.int().min(0).max(200).optional(),
+  /** A stranger joins the crew (or the next boat comes at once when there is no room). */
+  rescue: z.boolean().optional(),
+});
+
+export const tripEventRulesSchema = z.strictObject({
+  /** The most events one trip can have. */
+  most: z.int().min(1),
+});
+export type TripEventRules = z.infer<typeof tripEventRulesSchema>;
 
 const dayWindow = z.strictObject({ earliestDay: z.int().min(1), latestDay: z.int().min(1) });
 export const pacingSchema = z.strictObject({
@@ -347,6 +426,10 @@ export const pacingSchema = z.strictObject({
     /** Expeditions (W4a): the first trip, the first trip to a tier-3 site, the crew size. */
     firstTripByDay: z.int().min(1),
     tierThreeSiteByDay: z.int().min(1),
+    /** W4b: a survivor on a job by this day, and the first trips to tier 4 and 5 sites. */
+    jobsByDay: z.int().min(1),
+    tierFourSiteByDay: z.int().min(1),
+    tierFiveSiteByDay: z.int().min(1),
     crew: z.strictObject({ day: z.int().min(1), count: z.int().min(1) }),
     /** Scrap from the sites pays for this tool by this day. */
     tool: z.strictObject({ id: z.string(), byDay: z.int().min(1) }),
@@ -354,6 +437,8 @@ export const pacingSchema = z.strictObject({
   optimal: z.strictObject({
     hqmNotBeforeDay: z.int().min(1),
     tierThreeSiteNotBeforeDay: z.int().min(1),
+    /** The end of the site chain: the first trip to this site never before this day. */
+    lastSite: z.strictObject({ id: z.string(), notBeforeDay: z.int().min(1) }),
   }),
   tierCostRatio: z.strictObject({ min: z.number().min(1), max: z.number().min(1) }),
 });
@@ -367,6 +452,8 @@ export type Trait = z.infer<typeof traitSchema>;
 export type CrewMember = z.infer<typeof crewSchema>;
 export type Region = z.infer<typeof regionSchema>;
 export type Site = z.infer<typeof siteSchema>;
+export type TripEvent = z.infer<typeof tripEventSchema>;
+export type Outcome = (typeof OUTCOMES)[number];
 export type Recipe = z.infer<typeof recipeSchema>;
 export type Building = z.infer<typeof buildingSchema>;
 export type BuildingLevel = z.infer<typeof buildingLevelSchema>;
@@ -388,6 +475,8 @@ export interface Content {
   regions: Region[];
   mapRules: MapRules;
   sites: Site[];
+  tripEvents: TripEvent[];
+  tripEventRules: TripEventRules;
   recipes: Recipe[];
   crafting: Crafting;
   nodeKinds: NodeKind[];
@@ -442,6 +531,13 @@ export const FILES = [
     schema: regionSchema,
   },
   { file: "sites.json5", key: "sites", field: "sites", kind: "site", schema: siteSchema },
+  {
+    file: "events.json5",
+    key: "events",
+    field: "tripEvents",
+    kind: "trip_event",
+    schema: tripEventSchema,
+  },
   { file: "nodes.json5", key: "kinds", field: "nodeKinds", kind: "node", schema: nodeKindSchema },
 ] as const;
 
@@ -459,6 +555,7 @@ export const DATA_FILES = [
   "crew.json5",
   "regions.json5",
   "sites.json5",
+  "events.json5",
   "recipes.json5",
   "crafting.json5",
   "nodes.json5",

@@ -6,8 +6,18 @@
  * settling passes their end. The odds the confirm screen shows are the odds
  * that get rolled: `tripOdds` is stored on the mission when it leaves.
  */
-import type { Amounts, Content, Region, Site, Trait } from "@wipe-day/content/schema";
-import { add, type BaseState, clampToCap, shortfall, storageCap, subtract } from "./base";
+import type { Amounts, Content, Region, Site, TripEvent } from "@wipe-day/content/schema";
+import {
+  add,
+  type BaseState,
+  clampToCap,
+  collect,
+  newSurvivor,
+  shortfall,
+  storageCap,
+  subtract,
+} from "./base";
+import { bondedPairs, type Job, pairsOf, type Shift, traitsOf, wake } from "./crew";
 import type { GameEvent } from "./events";
 import { modifiers } from "./modifiers";
 import { drawBlueprint, isPart } from "./recipes";
@@ -22,7 +32,12 @@ export interface Survivor {
   injuredUntil: number | null;
   /** The mission they are on, or null at home. */
   away: string | null;
+  /** What they do at home (W4b); null = free. See `crew.ts`. */
+  job: Job | null;
+  shift: Shift;
 }
+
+export { traitsOf };
 
 /** What was promised when the party left: exactly what gets rolled. */
 export interface Odds {
@@ -39,6 +54,8 @@ export interface Odds {
   /** Percent chances, on a success. */
   blueprint: number;
   fragment: number;
+  /** Percent chance of each trip event (events.json5), by id. Absent on W4a missions. */
+  events?: Record<string, number>;
 }
 
 export interface Mission {
@@ -70,6 +87,12 @@ export interface Report {
   /** Regions the trip revealed (the scouted one, or a map fragment's). */
   revealed: string[];
   blueprint: string | null;
+  /** Trip events that happened, in order (W4b; absent on older reports). */
+  events?: string[];
+  /** Items brought home (keycodes). */
+  found?: string[];
+  /** A stranger who joined the crew, or null. */
+  rescued?: string | null;
   at: number;
   read: boolean;
 }
@@ -85,14 +108,6 @@ export function regionOf(content: Content, id: string): Region | undefined {
 
 export function siteOf(content: Content, id: string): Site | undefined {
   return content.sites.find((site) => site.id === id);
-}
-
-export function traitsOf(content: Content, survivorId: string): Trait[] {
-  const member = content.crew.find((candidate) => candidate.id === survivorId);
-  return (member?.traits ?? []).flatMap((id) => {
-    const trait = content.traits.find((candidate) => candidate.id === id);
-    return trait ? [trait] : [];
-  });
 }
 
 export function survivorIn(state: BaseState, id: string): Survivor | undefined {
@@ -138,20 +153,10 @@ export function settleArrivals(
     const at = next.nextArrivalAt;
     next = {
       ...next,
-      crew: [
-        ...next.crew,
-        {
-          id: newcomer.id,
-          level: 1,
-          xp: 0,
-          gear: { weapon: null, armor: null },
-          injuredUntil: null,
-          away: null,
-        },
-      ],
+      crew: [...next.crew, newSurvivor(content, newcomer.id, at)],
       nextArrivalAt: at + every,
     };
-    events.push({ type: "survivor_arrived", survivor: newcomer.id, at });
+    events.push({ type: "survivor_arrived", survivor: newcomer.id, at, from: "boat" });
   }
   // A full crew waits for room: the next boat comes one interval after room appears.
   if (next.crew.length >= crewCap(content, next) && now >= next.nextArrivalAt) {
@@ -224,13 +229,15 @@ export function treat(
   const hours = content.crewRules.treat[itemId];
   if (hours === undefined) return { ok: false, refusal: { code: "wrong_slot" } };
   if ((state.items[itemId] ?? 0) < 1) return { ok: false, refusal: { code: "not_owned" } };
-  const items = { ...state.items, [itemId]: (state.items[itemId] ?? 0) - 1 };
+  // Bank first: a worker's output counts from the end of the injury, which moves now.
+  const banked = collect(content, state, now).state;
+  const items = { ...banked.items, [itemId]: (banked.items[itemId] ?? 0) - 1 };
   if (items[itemId] === 0) delete items[itemId];
   const until = survivor.injuredUntil - hours * HOUR;
   const healed = until <= now;
   return {
     ok: true,
-    state: withSurvivor({ ...state, items }, { ...survivor, injuredUntil: healed ? null : until }),
+    state: withSurvivor({ ...banked, items }, { ...survivor, injuredUntil: healed ? null : until }),
     events: [{ type: "treated", survivor: survivorId, item: itemId, until: healed ? now : until }],
   };
 }
@@ -246,11 +253,34 @@ export type ScoutStatus =
   | { code: "hidden" }
   | { code: "no_survivor" }
   | { code: "unfit"; survivor: string }
+  | { code: "no_dock"; building: string; level: number }
+  | { code: "no_navigator"; trait: string }
   | { code: "unaffordable"; missing: Amounts };
 
-/** The highest ring a scout from this base can reach (it grows with the base tier). */
+/** The highest ring a scout from this base can reach: the base tier's, plus the radio mast. */
 export function scoutRange(content: Content, state: BaseState): number {
-  return content.mapRules.range[state.tier] ?? 1;
+  return (content.mapRules.range[state.tier] ?? 1) + modifiers(content, state).scoutRange;
+}
+
+/** Whether a region is reached by boat. */
+export function atSea(content: Content, regionId: string): boolean {
+  return regionOf(content, regionId)?.access === "sea";
+}
+
+/** The dock level a boat needs to reach `regionId` (0 for land). */
+export function dockNeeded(content: Content, regionId: string): number {
+  const region = regionOf(content, regionId);
+  return region?.access === "sea" ? (region.dock ?? 1) : 0;
+}
+
+/** Whether the base's dock can launch a boat to `regionId`. */
+export function hasBoat(content: Content, state: BaseState, regionId: string): boolean {
+  return (state.buildings[content.mapRules.boatBuilding] ?? 0) >= dockNeeded(content, regionId);
+}
+
+/** Whether `survivorId` can steer a boat. */
+export function canSteer(content: Content, survivorId: string): boolean {
+  return traitsOf(content, survivorId).some((trait) => trait.id === content.mapRules.boatTrait);
 }
 
 /** Whether a region borders one the base knows (so a scout can find the way). */
@@ -275,12 +305,20 @@ export function scoutStatus(
   if (!bordersKnown(content, state, regionId)) return { code: "hidden" };
   const range = scoutRange(content, state);
   if (region.ring > range) return { code: "far", ring: region.ring, range };
+  const sea = region.access === "sea";
+  const { boatBuilding, boatTrait } = content.mapRules;
+  if (sea && !hasBoat(content, state, regionId))
+    return { code: "no_dock", building: boatBuilding, level: dockNeeded(content, regionId) };
   if (survivorId !== undefined) {
     const survivor = survivorIn(state, survivorId);
     if (!survivor) return { code: "no_survivor" };
     if (!isFit(survivor, now)) return { code: "unfit", survivor: survivorId };
-  } else if (!state.crew.some((member) => isFit(member, now))) {
-    return { code: "no_survivor" };
+    if (sea && !canSteer(content, survivorId)) return { code: "no_navigator", trait: boatTrait };
+  } else {
+    const fit = state.crew.filter((member) => isFit(member, now));
+    if (fit.length === 0) return { code: "no_survivor" };
+    if (sea && !fit.some((member) => canSteer(content, member.id)))
+      return { code: "no_navigator", trait: boatTrait };
   }
   const missing = shortfall(region.scout.cost, state.stock);
   if (Object.keys(missing).length > 0) return { code: "unaffordable", missing };
@@ -299,10 +337,36 @@ function clampPercent(value: number, low = 5, high = 95): number {
   return Math.max(low, Math.min(high, Math.round(value)));
 }
 
+/**
+ * Percent chance of `event` for this party at this site: the tier's chance, the hazard's
+ * points, each member's trait points and weapons. A stranger only turns up while someone
+ * is still left in the pool.
+ */
+export function eventChance(
+  content: Content,
+  state: BaseState,
+  site: Site,
+  crewIds: string[],
+  event: TripEvent,
+): number {
+  let chance = (event.chance[site.tier - 1] ?? 0) + (event.hazard?.[site.hazard] ?? 0);
+  for (const id of crewIds) {
+    for (const trait of traitsOf(content, id)) chance += event.traits?.[trait.id] ?? 0;
+    if (survivorIn(state, id)?.gear.weapon) chance -= event.weapon ?? 0;
+  }
+  // A stranger needs someone left in the pool and a bunk to come home to.
+  if (event.rescue) {
+    const pool = content.crew.some((member) => !survivorIn(state, member.id));
+    if (!pool || state.crew.length >= crewCap(content, state)) return 0;
+  }
+  return Math.max(0, Math.min(50, Math.round(chance)));
+}
+
 /** The odds a party has at a site: what the confirm screen shows and what gets rolled. */
 export function tripOdds(content: Content, state: BaseState, site: Site, crewIds: string[]): Odds {
   const rules = content.crewRules;
   let success = site.chance + Math.max(0, crewIds.length - 1) * rules.successPerCompanion;
+  success += bondedPairs(content, state, crewIds).length * rules.bonds.success;
   let partyInjury = 0;
   let rolls = site.rolls;
   let loot = 0;
@@ -339,6 +403,12 @@ export function tripOdds(content: Content, state: BaseState, site: Site, crewIds
     loot,
     blueprint: Math.min(100, Math.round((site.blueprint * (100 + rare)) / 100)),
     fragment: Math.min(100, Math.round((site.fragment * (100 + rare)) / 100)),
+    events: Object.fromEntries(
+      content.tripEvents.map((event) => [
+        event.id,
+        eventChance(content, state, site, crewIds, event),
+      ]),
+    ),
   };
 }
 
@@ -364,6 +434,9 @@ export type TripStatus =
   | { code: "party_size"; most: number }
   | { code: "no_survivor" }
   | { code: "unfit"; survivor: string }
+  | { code: "no_dock"; building: string; level: number }
+  | { code: "no_navigator"; trait: string }
+  | { code: "keycode"; item: string }
   | { code: "unaffordable"; missing: Amounts };
 
 export function partyLimit(content: Content, site: Site): number {
@@ -390,9 +463,28 @@ export function tripStatus(
     if (!survivor) return { code: "no_survivor" };
     if (!isFit(survivor, now)) return { code: "unfit", survivor: id };
   }
+  if (atSea(content, site.region)) {
+    const { boatBuilding, boatTrait } = content.mapRules;
+    if (!hasBoat(content, state, site.region))
+      return { code: "no_dock", building: boatBuilding, level: dockNeeded(content, site.region) };
+    if (!crewIds.some((id) => canSteer(content, id)))
+      return { code: "no_navigator", trait: boatTrait };
+  }
+  if (site.keycode && (state.items[site.keycode] ?? 0) < 1)
+    return { code: "keycode", item: site.keycode };
   const missing = shortfall(site.rations, state.stock);
   if (Object.keys(missing).length > 0) return { code: "unaffordable", missing };
   return { code: "ok" };
+}
+
+/** Successes left at `siteId` before its find is sure (0: the next success brings it). */
+export function triesToSure(content: Content, state: BaseState, siteId: string): number {
+  return Math.max(0, content.mapRules.findPity - (state.dry[siteId] ?? 0));
+}
+
+/** Sites whose finds include `item`: where to look for a keycode. */
+export function sitesFinding(content: Content, item: string): Site[] {
+  return content.sites.filter((site) => site.finds?.some((find) => find.item === item));
 }
 
 // --- leaving ------------------------------------------------------------------------------
@@ -402,24 +494,36 @@ export type LeaveResult =
   | { ok: false; status: Exclude<TripStatus | ScoutStatus, { code: "ok" }> };
 
 function depart(
-  state: BaseState,
+  content: Content,
+  before: BaseState,
   mission: Omit<Mission, "id" | "seed">,
   paid: Amounts,
+  keycode?: string,
 ): { state: BaseState; mission: Mission } {
+  // What the leavers made at home so far is banked before they stop.
+  const state = collect(content, before, mission.startedAt).state;
   const seq = state.missionSeq + 1;
   const full: Mission = {
     ...mission,
     id: `m${seq}`,
     seed: seedOf(state.seed, mission.startedAt, seq),
   };
+  const items = { ...state.items };
+  if (keycode) {
+    items[keycode] = (items[keycode] ?? 0) - 1;
+    if (items[keycode] <= 0) delete items[keycode];
+  }
   return {
     state: {
       ...state,
       stock: subtract(state.stock, paid),
+      items,
       missionSeq: seq,
       missions: [...state.missions, full],
       crew: state.crew.map((member) =>
-        mission.crew.includes(member.id) ? { ...member, away: full.id } : member,
+        mission.crew.includes(member.id)
+          ? { ...wake(content, member, mission.startedAt), away: full.id }
+          : member,
       ),
     },
     mission: full,
@@ -452,6 +556,7 @@ export function startScout(
     fragment: 0,
   };
   const left = depart(
+    content,
     state,
     {
       kind: "scout",
@@ -493,6 +598,7 @@ export function startTrip(
   if (!site) return { ok: false, status: { code: "unknown" } };
   const odds = tripOdds(content, state, site, crewIds);
   const left = depart(
+    content,
     state,
     {
       kind: "trip",
@@ -503,6 +609,7 @@ export function startTrip(
       odds,
     },
     site.rations,
+    site.keycode,
   );
   return {
     ok: true,
@@ -515,6 +622,7 @@ export function startTrip(
         crew: crewIds,
         endsAt: left.mission.endsAt,
         paid: site.rations,
+        ...(site.keycode ? { keycode: site.keycode } : {}),
       },
     ],
   };
@@ -534,7 +642,7 @@ function fragmentTargets(content: Content, state: BaseState): string[] {
     .map((region) => region.id);
 }
 
-function rollLoot(site: Site, odds: Odds, rolls: number, random: Rng): Amounts {
+function rollLoot(site: Site, odds: Odds, rolls: number, random: Rng, extraPercent = 0): Amounts {
   const loot: Amounts = {};
   for (let roll = 0; roll < rolls; roll++) {
     const entry =
@@ -545,7 +653,9 @@ function rollLoot(site: Site, odds: Odds, rolls: number, random: Rng): Amounts {
         )
       ];
     if (!entry) continue;
-    const amount = Math.floor((random.int(entry.min, entry.max) * (100 + odds.loot)) / 100);
+    const amount = Math.floor(
+      (random.int(entry.min, entry.max) * (100 + odds.loot + extraPercent)) / 100,
+    );
     loot[entry.resource] = (loot[entry.resource] ?? 0) + amount;
   }
   return loot;
@@ -567,6 +677,9 @@ function resolve(
   let injuryHours = 3;
   const revealed: string[] = [];
   let blueprint: string | null = null;
+  const happened: TripEvent[] = [];
+  const found: string[] = [];
+  let rescued: string | null = null;
 
   if (mission.kind === "scout") {
     revealed.push(mission.target);
@@ -575,14 +688,25 @@ function resolve(
     const roll = random.next() * 100;
     outcome =
       roll < mission.odds.success ? "success" : roll < mission.odds.partial ? "partial" : "fail";
+    // Trip events (W4b): each rolled once, at most `most` of them. W4a missions carry no
+    // event odds and roll exactly as they did.
+    for (const event of content.tripEvents) {
+      const chance = mission.odds.events?.[event.id];
+      if (chance === undefined) continue;
+      const hit = random.next() * 100 < chance;
+      if (hit && event.outcomes.includes(outcome) && happened.length < content.tripEventRules.most)
+        happened.push(event);
+    }
     if (site) {
-      const rolls =
+      const base =
         outcome === "success"
           ? mission.odds.rolls
           : outcome === "partial"
             ? Math.ceil(mission.odds.rolls / 2)
             : 0;
-      wanted = rollLoot(site, mission.odds, rolls, random);
+      const rolls = base + happened.reduce((sum, event) => sum + (event.rolls ?? 0), 0);
+      const extra = happened.reduce((sum, event) => sum + (event.loot ?? 0), 0);
+      wanted = rollLoot(site, mission.odds, rolls, random, extra);
       xp =
         outcome === "success"
           ? site.xp
@@ -595,11 +719,23 @@ function resolve(
       }
       if (outcome === "success" && random.next() * 100 < mission.odds.fragment) {
         const targets = fragmentTargets(content, next);
-        const found = targets[Math.floor(random.next() * targets.length)];
-        if (found) revealed.push(found);
+        const scrap = targets[Math.floor(random.next() * targets.length)];
+        if (scrap) revealed.push(scrap);
+      }
+      if (outcome === "success" && mission.odds.events !== undefined && site.finds) {
+        // Bad luck is capped: a dry streak of `findPity` successes makes the next one sure.
+        const sure = (next.dry[site.id] ?? 0) >= content.mapRules.findPity;
+        for (const find of site.finds) {
+          if (random.next() * 100 < find.chance || sure) found.push(find.item);
+        }
+        next = {
+          ...next,
+          dry: { ...next.dry, [site.id]: found.length > 0 ? 0 : (next.dry[site.id] ?? 0) + 1 },
+        };
       }
     }
   }
+  const injuryPercent = 100 + happened.reduce((sum, event) => sum + (event.injury ?? 0), 0);
 
   // Loot: parts come home whole, the rest up to the room there is.
   const parts: Amounts = {};
@@ -620,7 +756,8 @@ function resolve(
     crew: next.crew.map((member) => {
       const index = mission.crew.indexOf(member.id);
       if (index < 0) return member;
-      const chance = (mission.odds.injury[index] ?? 0) * (outcome === "fail" ? 2 : 1);
+      const chance =
+        ((mission.odds.injury[index] ?? 0) * (outcome === "fail" ? 2 : 1) * injuryPercent) / 100;
       let injuredUntil = member.injuredUntil;
       if (random.next() * 100 < Math.min(95, chance)) {
         const recovery = Math.max(
@@ -634,9 +771,49 @@ function resolve(
       const total = member.xp + xp;
       const level = levelFor(content, total);
       if (level > member.level) levelUps.push(member.id);
-      return { ...member, away: null, xp: total, level, injuredUntil };
+      // Home again: their job picks up from here (after the injury, if any).
+      const shift = { ...member.shift, since: Math.max(member.shift.since, at) };
+      return { ...member, away: null, xp: total, level, injuredUntil, shift };
     }),
   };
+  for (const id of levelUps) {
+    const level = survivorIn(next, id)?.level ?? 1;
+    events.push({ type: "level_up", survivor: id, level, at });
+  }
+  // Out together once more: bonds grow, whatever the outcome.
+  if (mission.kind === "trip" && mission.crew.length > 1) {
+    const bonds = { ...next.bonds };
+    for (const key of pairsOf(mission.crew)) bonds[key] = (bonds[key] ?? 0) + 1;
+    next = { ...next, bonds };
+  }
+  if (found.length > 0) {
+    const items = { ...next.items };
+    for (const item of found) {
+      items[item] = (items[item] ?? 0) + 1;
+      events.push({ type: "item_found", item, from: mission.target, at });
+    }
+    next = { ...next, items };
+  }
+  if (happened.some((event) => event.rescue)) {
+    const stranger = content.crew.find((member) => !survivorIn(next, member.id));
+    if (stranger && next.crew.length < crewCap(content, next)) {
+      rescued = stranger.id;
+      next = { ...next, crew: [...next.crew, newSurvivor(content, stranger.id, at)] };
+      events.push({ type: "survivor_arrived", survivor: stranger.id, at, from: "rescue" });
+    } else if (stranger) {
+      // No room yet: they make their own way and come with the next boat that has room.
+      next = { ...next, nextArrivalAt: Math.min(next.nextArrivalAt, at) };
+    }
+  }
+  for (const event of happened) {
+    events.push({
+      type: "trip_event",
+      mission: mission.id,
+      event: event.id,
+      site: mission.target,
+      at,
+    });
+  }
 
   for (const region of revealed) {
     if (next.known.includes(region)) continue;
@@ -664,6 +841,9 @@ function resolve(
     levelUps,
     revealed,
     blueprint,
+    events: happened.map((event) => event.id),
+    found,
+    rescued,
     at,
     read: false,
   };

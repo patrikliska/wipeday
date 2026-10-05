@@ -16,6 +16,10 @@
     // and site scrap paying for the salvaged tools.
     firstTripByDay: 2,
     tierThreeSiteByDay: 14,
+    // W4b: someone on a job early, and the far north and the sea within the season.
+    jobsByDay: 3,
+    tierFourSiteByDay: 26,
+    tierFiveSiteByDay: 31,
     crew: { day: 10, count: 5 },
     tool: { id: "salvaged_tools", byDay: 18 },
   },
@@ -23,6 +27,8 @@
   optimal: {
     hqmNotBeforeDay: 14,
     tierThreeSiteNotBeforeDay: 7,
+    // The end of the site chain (the season's peak) never before this day.
+    lastSite: { id: "offshore_platform", notBeforeDay: 18 },
   },
   // Each tier costs roughly this much more than the previous one (by resource-hours).
   tierCostRatio: { min: 3, max: 6 },

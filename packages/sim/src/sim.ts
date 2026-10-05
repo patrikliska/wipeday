@@ -6,7 +6,7 @@
  * Archetypes are decision policies run at each check-in; the domain does the
  * rest. Deterministic: every roll is seeded from the check-in time.
  */
-import type { Amounts, Content } from "@wipe-day/content/schema";
+import type { Amounts, Content, Site } from "@wipe-day/content/schema";
 import { TIERS, type Tier } from "@wipe-day/content/tiers";
 import {
   type BaseState,
@@ -17,6 +17,7 @@ import {
   newBase,
   nextTier,
   nextTool,
+  shortfall,
   smeltable,
   storageCap,
   storageFill,
@@ -29,8 +30,12 @@ import { buildingCount, buildStatus, nextBuild } from "@wipe-day/domain/building
 import { manualClock } from "@wipe-day/domain/clock";
 import { applyCommand, type Command } from "@wipe-day/domain/commands";
 import { boostPercent, craftStatus, maxBatch, queueOf } from "@wipe-day/domain/craft";
+import { type Job, nodeJobRates, stationWorker, traitsOf } from "@wipe-day/domain/crew";
 import type { GameEvent } from "@wipe-day/domain/events";
+import { jobStatus, tiredWorkers } from "@wipe-day/domain/jobs";
 import {
+  atSea,
+  canSteer,
   isFit,
   partyLimit,
   scoutStatus,
@@ -87,10 +92,13 @@ export interface Run {
   firstMade: Record<string, number>;
   /** Season day on which each station first finished something. */
   stationsWorked: Record<string, number>;
-  /** Season day of the first trip to a site of each tier. */
+  /** Season day of the first trip to a site of each tier, and to each site. */
   firstTrip: Partial<Record<number, number>>;
+  firstSite: Record<string, number>;
   /** Season day on which each tool was first held. */
   tools: Record<string, number>;
+  /** Season day a survivor first took a job at home. */
+  firstJob: number | null;
 }
 
 /** Where a run's events go while it plays (the first-made days are read from them). */
@@ -307,9 +315,64 @@ export function checkIn(
 }
 
 /**
+ * The node kind whose resource the next tier lacks most, in hours of the tool's rate
+ * (refined resources count as their ore). Timber when nothing is missing.
+ */
+function neededNode(content: Content, s: BaseState): string {
+  const next = nextTier(s.tier);
+  const cost = next ? rawCost(content, tierOf(content, next).cost) : {};
+  let best = { kind: "tree", hours: -1 };
+  for (const kind of content.nodeKinds) {
+    for (const id of Object.keys(kind.yields)) {
+      // Ore counts for the ingots the tier asks for too.
+      const refined = content.resources.find((resource) => resource.id === id)?.smeltsInto;
+      const wanted = (cost[id] ?? 0) + (refined ? (cost[refined] ?? 0) : 0);
+      const need = wanted - (s.stock[id] ?? 0);
+      const rate = content.tools.find((tool) => tool.id === s.toolId)?.rates[id] ?? 0;
+      if (rate <= 0) continue;
+      const hours = need / rate;
+      if (hours > best.hours) best = { kind: kind.id, hours };
+    }
+  }
+  return best.kind;
+}
+
+/**
+ * Work at home: the cook takes the campfire and the tinkerer the busiest station once
+ * they stand; everyone else works the node the next tier needs most (W4b). Jobs stay
+ * while someone is out on a trip.
+ */
+function jobs(content: Content, state: BaseState, now: number): BaseState {
+  let s = state;
+  const node = neededNode(content, s);
+  for (const member of s.crew) {
+    let job: Job = { kind: "node", node };
+    for (const trait of traitsOf(content, member.id)) {
+      for (const station of Object.keys(trait.craft ?? {})) {
+        const target =
+          station === "any"
+            ? (["workbench", "loom", "campfire"].find((id) => queueOf(s, id).length > 0) ??
+              "workbench")
+            : station;
+        const taken = stationWorker(s, target);
+        if ((s.buildings[target] ?? 0) > 0 && (!taken || taken.id === member.id))
+          job = { kind: "station", station: target };
+      }
+    }
+    if (job.kind === "node" && Object.keys(nodeJobRates(content, s, member.id, node)).length === 0)
+      continue;
+    if (jobStatus(content, s, member.id, job) !== null) continue;
+    s = act(content, s, { type: "assign", survivor: member.id, job }, now);
+  }
+  if (tiredWorkers(s, now).length > 0) s = act(content, s, { type: "rest_tired" }, now);
+  return s;
+}
+
+/**
  * The crew's turn: gear up, treat the hurt, send one scout toward the nearest unknown
  * region, and send the rest in parties to the best site they can do with even odds or
  * better (the highest tier, then the shortest trip). Keeps a day of rations for scouting.
+ * Whoever stays home goes to work, and the tired rest.
  */
 function expeditions(content: Content, state: BaseState, now: number): BaseState {
   let s = state;
@@ -329,16 +392,24 @@ function expeditions(content: Content, state: BaseState, now: number): BaseState
     const kit = ["first_aid_kit", "bandage"].find((id) => (s.items[id] ?? 0) > 0);
     if (kit) s = act(content, s, { type: "treat", survivor: member.id, item: kit }, now);
   }
-  // One scout at a time, toward the cheapest region that is open to scouting.
+  // One scout at a time, toward the cheapest region that is open to scouting (a navigator
+  // for the sea).
   if (!s.missions.some((mission) => mission.kind === "scout")) {
-    const scout = s.crew.find((member) => isFit(member, now));
-    const region = content.regions
-      .filter(
-        (candidate) => scout && scoutStatus(content, s, candidate.id, now, scout.id).code === "ok",
-      )
-      .sort((a, b) => a.ring - b.ring || total(a.scout.cost) - total(b.scout.cost))[0];
-    if (scout && region)
-      s = act(content, s, { type: "scout", region: region.id, survivor: scout.id }, now);
+    const options = content.regions
+      .flatMap((region) => {
+        const scout = s.crew.find(
+          (member) =>
+            isFit(member, now) && scoutStatus(content, s, region.id, now, member.id).code === "ok",
+        );
+        return scout ? [{ region, scout }] : [];
+      })
+      .sort(
+        (a, b) =>
+          a.region.ring - b.region.ring || total(a.region.scout.cost) - total(b.region.scout.cost),
+      );
+    const pick = options[0];
+    if (pick)
+      s = act(content, s, { type: "scout", region: pick.region.id, survivor: pick.scout.id }, now);
   }
   // Parties: the strongest fit survivors first.
   for (let guard = 0; guard < 6; guard++) {
@@ -347,25 +418,72 @@ function expeditions(content: Content, state: BaseState, now: number): BaseState
       .sort((a, b) => b.level - a.level)
       .map((member) => member.id);
     if (fit.length === 0) break;
+    // A site is worth the highest tier it opens: its own, or that of a known site whose
+    // keycode it finds while the base has none (half a tier more: opening beats a tie).
+    const wantedKeys = new Map<string, number>();
+    for (const site of s.known.flatMap((region) => sitesIn(content, region))) {
+      if (site.keycode && !(s.items[site.keycode] ?? 0))
+        wantedKeys.set(site.keycode, Math.max(wantedKeys.get(site.keycode) ?? 0, site.tier));
+    }
+    const worth = (site: Site): number =>
+      Math.max(
+        site.tier,
+        ...(site.finds ?? []).map((find) =>
+          wantedKeys.has(find.item) ? (wantedKeys.get(find.item) ?? 0) + 0.5 : 0,
+        ),
+      );
+    // Curiosity: of two equal sites, the one not seen lately.
+    const visited = (site: Site): number =>
+      s.reports.some((report) => report.target === site.id) ? 1 : 0;
     const options = s.known
       .flatMap((region) => sitesIn(content, region))
       .map((site) => {
         const party = fit.slice(0, partyLimit(content, site));
+        // At sea, a navigator takes the last place if nobody in the party can steer.
+        if (atSea(content, site.region) && !party.some((id) => canSteer(content, id))) {
+          const navigator = fit.find((id) => canSteer(content, id));
+          if (navigator && party.length > 0) party[party.length - 1] = navigator;
+        }
         return { site, party, odds: tripOdds(content, s, site, party) };
       })
       .filter(
         ({ site, party, odds }) =>
           odds.success >= 50 && tripStatus(content, s, site.id, party, now).code === "ok",
       )
-      .sort((a, b) => b.site.tier - a.site.tier || a.site.minutes - b.site.minutes);
+      .sort(
+        (a, b) =>
+          worth(b.site) - worth(a.site) ||
+          b.site.tier - a.site.tier ||
+          visited(a.site) - visited(b.site) ||
+          a.site.minutes - b.site.minutes,
+      );
     const best = options[0];
+    // Rations a better site is waiting on (fuel, mostly): make them for the next check-in.
+    const blocked = s.known
+      .flatMap((region) => sitesIn(content, region))
+      .filter((site) => worth(site) > (best ? worth(best.site) : 0))
+      .sort((a, b) => worth(b) - worth(a))[0];
+    if (blocked && guard === 0) {
+      for (const [id, missing] of Object.entries(shortfall(blocked.rations, s.stock))) {
+        const recipe = content.recipes.find((candidate) => candidate.output === id);
+        if (!recipe || queueOf(s, recipe.station).length > 0) continue;
+        const count = Math.min(Math.ceil(missing / recipe.amount), maxBatch(content, s, id));
+        if (count > 0) s = act(content, s, { type: "craft", recipe: id, count }, now);
+      }
+    }
     if (!best) break;
     s = act(content, s, { type: "send_trip", site: best.site.id, crew: best.party }, now);
   }
-  return s;
+  return jobs(content, s, now);
 }
 
-export function simulate(content: Content, archetype: Archetype, days: number): Run {
+/** `onEvent` sees every event as it happens, with its season day (for debugging balance). */
+export function simulate(
+  content: Content,
+  archetype: Archetype,
+  days: number,
+  onEvent?: (event: GameEvent, day: number, state: () => BaseState) => void,
+): Run {
   const start = 1_700_000_000;
   const clock = manualClock(start);
   let state = newBase(content, clock.now(), 1);
@@ -374,12 +492,17 @@ export function simulate(content: Content, archetype: Archetype, days: number): 
   const firstMade: Record<string, number> = {};
   const stationsWorked: Record<string, number> = {};
   const firstTrip: Partial<Record<number, number>> = {};
+  const firstSite: Record<string, number> = {};
   const tools: Record<string, number> = {};
+  let firstJob: number | null = null;
   let today = 1;
   const record = (event: GameEvent) => {
+    onEvent?.(event, today, () => state);
+    if (event.type === "assigned" && event.job !== null) firstJob ??= today;
     if (event.type === "trip_started") {
       const tier = siteOf(content, event.site)?.tier ?? 0;
       firstTrip[tier] ??= today;
+      firstSite[event.site] ??= today;
       return;
     }
     if (event.type !== "crafted") return;
@@ -424,7 +547,17 @@ export function simulate(content: Content, archetype: Archetype, days: number): 
     });
   }
   listener = null;
-  return { archetype, rows, reached, firstMade, stationsWorked, firstTrip, tools };
+  return {
+    archetype,
+    rows,
+    reached,
+    firstMade,
+    stationsWorked,
+    firstTrip,
+    firstSite,
+    tools,
+    firstJob,
+  };
 }
 
 /** `cost` with every part broken down into what it is made of, down to gathered resources. */
@@ -513,6 +646,29 @@ export function checkPacing(content: Content, days = 35): CheckFailure[] {
   if (toolDay === undefined || toolDay > pacing.casual.tool.byDay) {
     failures.push({
       message: `casual got ${pacing.casual.tool.id} on ${toolDay === undefined ? "no day" : `day ${toolDay}`}, target by day ${pacing.casual.tool.byDay}`,
+    });
+  }
+  if (casual.firstJob === null || casual.firstJob > pacing.casual.jobsByDay) {
+    failures.push({
+      message: `casual first put someone to work on ${casual.firstJob === null ? "no day" : `day ${casual.firstJob}`}, target by day ${pacing.casual.jobsByDay}`,
+    });
+  }
+  for (const [tier, byDay] of [
+    [4, pacing.casual.tierFourSiteByDay],
+    [5, pacing.casual.tierFiveSiteByDay],
+  ] as const) {
+    const day = casual.firstTrip[tier];
+    if (day === undefined || day > byDay) {
+      failures.push({
+        message: `casual first went to a tier-${tier} site on ${day === undefined ? "no day" : `day ${day}`}, target by day ${byDay}`,
+      });
+    }
+  }
+  const last = pacing.optimal.lastSite;
+  const optimalLast = optimal.firstSite[last.id];
+  if (optimalLast !== undefined && optimalLast < last.notBeforeDay) {
+    failures.push({
+      message: `optimal first went to ${last.id} on day ${optimalLast}, must not be before day ${last.notBeforeDay}`,
     });
   }
   const optimalThree = optimal.firstTrip[3];
