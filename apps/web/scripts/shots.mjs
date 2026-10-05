@@ -163,6 +163,53 @@ const ALL_LAND = [
   "sulfur_springs",
   "signal_hill",
 ];
+/** A few hours of the island's feed: two friends and the player ("Survivor", id 0). */
+const FEED = (day) =>
+  [
+    [
+      0,
+      "Survivor",
+      {
+        type: "mission_back",
+        mission: "m40",
+        kind: "trip",
+        target: "weather_station",
+        outcome: "success",
+        crew: ["mara"],
+        gained: {},
+        at: 0,
+      },
+    ],
+    [7, "Nia", { type: "item_found", item: "brass_keycode", from: "power_station", at: 0 }],
+    [
+      7,
+      "Nia",
+      {
+        type: "mission_back",
+        mission: "m31",
+        kind: "trip",
+        target: "power_station",
+        outcome: "partial",
+        crew: ["dax"],
+        gained: {},
+        at: 0,
+      },
+    ],
+    [9, "Tomas the Unusually Long-Named Builder", { type: "build_done", tier: "hqm" }],
+    [7, "Nia", { type: "survivor_arrived", survivor: "hale", at: 0, from: "rescue" }],
+    [0, "Survivor", { type: "level_up", survivor: "dax", level: 5, at: 0 }],
+    [
+      9,
+      "Tomas the Unusually Long-Named Builder",
+      { type: "blueprint_found", recipe: "crossbow", from: "site" },
+    ],
+  ].map(([playerId, playerName, event], index) => ({
+    id: 900 - index,
+    at: at(day, 10.8) - index * 2400,
+    playerId,
+    playerName,
+    event,
+  }));
 /** Late season: Sheet Metal, a radio mast and a dock, the north and the narrows charted. */
 const LATE_MAP = (day) => ({
   time: at(day, 11),
@@ -822,6 +869,23 @@ const SHOTS = [
     },
   },
   {
+    name: "phone_feed",
+    viewport: [390, 844],
+    scale: 3,
+    state: { ...LATE_MAP(20), panel: "feed", feed: FEED(20) },
+  },
+  {
+    name: "desktop_feed",
+    viewport: [1600, 900],
+    state: { ...LATE_MAP(20), panel: "feed", feed: FEED(20) },
+  },
+  {
+    name: "phone_feed_dot",
+    viewport: [390, 844],
+    scale: 3,
+    state: { ...LATE_MAP(20), feed: FEED(20) },
+  },
+  {
     name: "scene_workers",
     viewport: [1600, 900],
     state: { ...LATE_MAP(20), time: at(20, 11) },
@@ -961,8 +1025,19 @@ async function main() {
       // The demo clock stops at the shot's moment. Upkeep, collection and the barrel are anchored
       // to that moment so jumping days ahead neither decays the base nor fills storage.
       const { store, clocks } = window.__wipeDay;
-      const { time, panel, station, recipe, view, mapFocus, report, weather, welcome, ...base } =
-        state;
+      const {
+        time,
+        panel,
+        station,
+        recipe,
+        view,
+        mapFocus,
+        report,
+        weather,
+        welcome,
+        feed,
+        ...base
+      } = state;
       clocks.game.setPaused(true);
       if (time !== undefined) clocks.game.set(time);
       const now = Math.floor(clocks.game.nowMs() / 1000);
@@ -988,6 +1063,7 @@ async function main() {
         demoOpen: false,
         toasts: [],
         welcomeBack: welcome ? { awaySeconds: 3 * 3600, events: [] } : null,
+        ...(feed ? { feed, feedSeen: 0 } : {}),
       });
     }, shot.state);
     if (shot.act || shot.click) {

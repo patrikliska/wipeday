@@ -302,7 +302,8 @@
     "inventory": "Inventory",
     "tasks": "Tasks",
     "map": "Map",
-    "holdfast": "Holdfast"
+    "holdfast": "Holdfast",
+    "feed": "Feed"
   },
   "panel": {
     "build": "Build",
@@ -311,7 +312,8 @@
     "inventory": "Inventory",
     "tasks": "Daily tasks",
     "squad": "Squad",
-    "map": "The Island"
+    "map": "The map",
+    "feed": "The island"
   },
   "weather": {
     "clear": "Clear",
@@ -1019,5 +1021,50 @@
     "summary_free": "{count} free",
     "summary_away": "{count} out",
     "summary_working": "all at work"
+  },
+  "push": {
+    "party_back": "Your party is back",
+    "scout_back": "Your scout is back",
+    "outcome_success": "{place}: a success. Come and see the haul.",
+    "outcome_partial": "{place}: they got something.",
+    "outcome_fail": "{place}: they came back empty, but home.",
+    "outcome_scouted": "{place} is mapped.",
+    "arrived_title": "Someone new",
+    "arrived": "{name} joined the crew.",
+    "built_title": "The builders are done",
+    "tier_done": "Your {tier} base is finished.",
+    "building_done": "{building} level {level} is up."
+  },
+  "feed": {
+    "hint": "What everyone on the island is up to.",
+    "empty": "Nothing yet. Send a party out: trips that come back with something show up here.",
+    "older": "Older",
+    "you": "You",
+    "new": "Something new on the island",
+    "ago": "{time} ago",
+    "trip_success": "{who}: a party cleared the {site}.",
+    "trip_partial": "{who}: a party got something out of the {site}.",
+    "rescued": "{who}: {name} was found in the ruins and joined the crew.",
+    "tier": "{who} finished a {tier} base.",
+    "level_up": "{who}: {name} reached level {level}.",
+    "blueprint": "{who} found a blueprint: {item}.",
+    "found": "{who} found a {item} at the {site}.",
+    "notifications": "Notifications",
+    "demo": "Notifications come with the live game, not the demo.",
+    "ios": "On iPhone: tap Share, then Add to Home Screen, open Wipe Day from there, and turn notifications on here.",
+    "unsupported": "This browser cannot show notifications.",
+    "denied": "Notifications are blocked for this site: allow them in the browser's site settings.",
+    "device_on": "On for this device.",
+    "device_off": "Off on this device.",
+    "turn_on": "Turn on",
+    "turn_off": "Turn off",
+    "kind_party_back": "Party back",
+    "kind_party_back_sub": "A scout or a party is home.",
+    "kind_raided": "Raided",
+    "kind_raided_sub": "Raiders hit the holdfast (raids arrive later this season).",
+    "kind_arrivals": "Newcomers",
+    "kind_arrivals_sub": "Someone new steps off the boat.",
+    "kind_builds_done": "Builds done",
+    "kind_builds_done_sub": "The builders finished a tier or a building."
   }
 }

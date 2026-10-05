@@ -2,6 +2,7 @@ import { useWorld } from "../state/store";
 import { t } from "../state/world";
 import { BuildPanel } from "./panels/Build";
 import { CraftPanel } from "./panels/Craft";
+import { FeedPanel } from "./panels/Feed";
 import { FurnacePanel } from "./panels/Furnace";
 import { InventoryPanel } from "./panels/Inventory";
 import { MapPanel } from "./panels/MapPanel";
@@ -35,6 +36,7 @@ export function Panel() {
         {panel === "tasks" ? <TasksPanel /> : null}
         {panel === "squad" ? <SquadPanel /> : null}
         {panel === "map" ? <MapPanel /> : null}
+        {panel === "feed" ? <FeedPanel /> : null}
       </div>
     </aside>
   );

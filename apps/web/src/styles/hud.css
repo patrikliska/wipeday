@@ -1171,6 +1171,90 @@ a.btn {
   font: inherit;
   font-size: 14px;
 }
+/* The clock chip opens the feed; a dot says something new happened. */
+button.clockchip {
+  position: relative;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.clockchip .dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e0563d;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.4);
+}
+
+/* The feed (W4b). */
+.feed {
+  display: grid;
+  gap: 6px;
+}
+.feed-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+}
+.feed-row.mine {
+  background: rgba(58, 160, 160, 0.1);
+}
+.feed-row .who-tile {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border-soft);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.feed-row .line {
+  display: block;
+  font-size: 14px;
+}
+.feed-row .when {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+.toggles {
+  display: grid;
+  gap: 6px;
+}
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+}
+.toggle input {
+  width: 20px;
+  height: 20px;
+  accent-color: #3aa0a0;
+}
+.toggle b {
+  display: block;
+  font-size: 14px;
+}
+.toggle .sub {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 /* What might happen on a trip, and bonds: small tags under the odds. */
 .chips {
   display: flex;

@@ -18,6 +18,7 @@ import type { Command } from "@wipe-day/domain/commands";
 import { applyCommand } from "@wipe-day/domain/commands";
 import type { Job } from "@wipe-day/domain/crew";
 import type { GameEvent as DomainEvent } from "@wipe-day/domain/events";
+import type { FeedItem } from "@wipe-day/domain/feed";
 import { nodeKindOf, nodeStatus } from "@wipe-day/domain/nodes";
 import { nextEventAt, settleAll } from "@wipe-day/domain/settle";
 import type { PlayerView, PushMessage, StateResponse, WelcomeBack } from "@wipe-day/domain/wire";
@@ -80,6 +81,12 @@ export interface WorldState {
   /** The report card open (by report id), or null. */
   report: string | null;
   demoOpen: boolean;
+  /** The season's feed (W4b), newest first, as far back as loaded. */
+  feed: FeedItem[];
+  /** The newest feed item the player has seen (the clock chip's dot is for newer ones). */
+  feedSeen: number;
+  /** More feed further back. */
+  feedMore: boolean;
 }
 
 interface Actions {
@@ -132,6 +139,24 @@ interface Actions {
   setDemoOpen(open: boolean): void;
   /** Demo mode and screenshots only: overwrite parts of the base. */
   demoPatch(change: Partial<BaseState>): void;
+  /** Loads the feed's newest page, or (`older`) the page before the oldest loaded. */
+  loadFeed(older?: boolean): Promise<void>;
+  /** The feed was looked at: the dot goes out. */
+  markFeedSeen(): void;
+}
+
+const FEED_SEEN = "wd.feedSeen";
+function storedFeedSeen(): number {
+  try {
+    return Number(localStorage.getItem(FEED_SEEN)) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** The backend in use: the feed panel talks to it for notifications. */
+export function currentBackend(): Backend {
+  return backend;
 }
 
 export type Store = WorldState & Actions;
@@ -289,10 +314,24 @@ export const useWorld = create<Store>((set, get) => {
     }
   };
 
+  /** New feed items from the stream: in front, once each. */
+  const onFeed = (items: FeedItem[]): void => {
+    const known = new Set(get().feed.map((item) => item.id));
+    const fresh = items.filter((item) => !known.has(item.id)).sort((a, b) => b.id - a.id);
+    if (fresh.length > 0) set({ feed: [...fresh, ...get().feed] });
+  };
+
   const connect = async (): Promise<void> => {
     unsubscribe?.();
-    unsubscribe = backend.subscribe(onPush, () => void reload());
+    unsubscribe = backend.subscribe(onPush, () => void reload(), onFeed);
     await reload();
+    void get().loadFeed();
+    // A notification's tap opens the game on its report (`/?report=m12`).
+    const report = new URLSearchParams(window.location.search).get("report");
+    if (report && get().base.reports.some((candidate) => candidate.id === report)) {
+      get().openReport(report);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
   };
 
   return {
@@ -317,6 +356,34 @@ export const useWorld = create<Store>((set, get) => {
     mapFocus: null,
     report: null,
     demoOpen: false,
+    feed: [],
+    feedSeen: storedFeedSeen(),
+    feedMore: false,
+
+    async loadFeed(older = false) {
+      try {
+        const before = older ? get().feed.at(-1)?.id : undefined;
+        const page = await backend.feed(before);
+        set({
+          feed: older ? [...get().feed, ...page] : page,
+          // A full page means there may be more behind it.
+          feedMore: page.length >= 40,
+        });
+      } catch {
+        // The feed is a nicety: a failed load leaves what was there.
+      }
+    },
+
+    markFeedSeen() {
+      const newest = get().feed[0]?.id ?? 0;
+      if (newest <= get().feedSeen) return;
+      set({ feedSeen: newest });
+      try {
+        localStorage.setItem(FEED_SEEN, String(newest));
+      } catch {
+        // Private mode: the dot comes back next visit, nothing worse.
+      }
+    },
 
     async boot() {
       const demo = new URLSearchParams(window.location.search).has("demo");

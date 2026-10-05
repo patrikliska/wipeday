@@ -22,6 +22,8 @@ export function TopBar() {
   const panel = useWorld((state) => state.panel);
   const openPanel = useWorld((state) => state.openPanel);
   const tasksDone = useWorld((state) => state.base.tasks.done.length);
+  // The feed's dot: someone did something since the player last looked.
+  const feedNew = useWorld((state) => (state.feed[0]?.id ?? 0) > state.feedSeen);
   // The crew chip (phones; desktop has the Squad dock button): count, who needs a look, and
   // the glow when the advisor picks the crew. Read once a minute.
   const crew = useWorld(
@@ -118,7 +120,12 @@ export function TopBar() {
         </span>
       </button>
 
-      <div className="glass clockchip">
+      <button
+        type="button"
+        className={`glass clockchip${panel === "feed" ? " active" : ""}`}
+        onClick={() => openPanel("feed")}
+        title={feedNew ? t("feed.new") : t("panel.feed")}
+      >
         <div>
           <div className="big num">{clock}</div>
           <div className="small">
@@ -133,7 +140,8 @@ export function TopBar() {
             </div>
           ) : null}
         </div>
-      </div>
+        {feedNew ? <span className="dot" /> : null}
+      </button>
     </header>
   );
 }

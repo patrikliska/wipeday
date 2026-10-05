@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { loadGame } from "@wipe-day/content/load";
 import { accrued, type BaseState, newBase } from "@wipe-day/domain/base";
 import { type ManualClock, manualClock } from "@wipe-day/domain/clock";
+import { nextEventAt } from "@wipe-day/domain/settle";
 import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createApp } from "./app";
@@ -11,10 +12,12 @@ import type { DiscordAuth } from "./auth";
 import type { Config } from "./config";
 import { type CommandResponse, Game, type PushMessage, type StateResponse } from "./game";
 import { EventHub } from "./hub";
+import { log } from "./log";
+import { Notifier, type Subscription } from "./push";
 import { openDb } from "./store/db";
 import { bases, eventLog } from "./store/schema";
 
-const { content } = loadGame();
+const { content, locale } = loadGame();
 const T0 = 1_700_000_000;
 
 const config: Config = {
@@ -36,8 +39,23 @@ const discord: DiscordAuth = {
 function setup(file = ":memory:", clock: ManualClock = manualClock(T0)) {
   const db = openDb(file);
   const hub = new EventHub();
-  const game = new Game({ db, content, clock, hub, newSeed: () => 7 });
-  const app = createApp({ db, game, hub, clock, config, discord });
+  /** What the push service was asked to deliver; a 410 for endpoints marked gone. */
+  const sent: { endpoint: string; payload: { kind: string; title: string; body: string } }[] = [];
+  const gone = new Set<string>();
+  const notifier = new Notifier(db, locale, log, "mailto:test@localhost.invalid", async (s, p) => {
+    if (gone.has(s.endpoint)) throw Object.assign(new Error("gone"), { statusCode: 410 });
+    sent.push({ endpoint: s.endpoint, payload: JSON.parse(p) });
+    return { statusCode: 201 };
+  });
+  const game = new Game({
+    db,
+    content,
+    clock,
+    hub,
+    newSeed: () => 7,
+    notify: (playerId, events) => notifier.notify(playerId, events),
+  });
+  const app = createApp({ db, game, hub, clock, config, discord, notifier });
   /** The `name=value` of the cookie a response sets (the session one unless named). */
   const cookieOf = (response: Response, name = "wd_session"): string =>
     response.headers
@@ -69,8 +87,10 @@ function setup(file = ":memory:", clock: ManualClock = manualClock(T0)) {
   const patch = (playerId: number, change: (state: BaseState) => BaseState) => {
     const row = db.select().from(bases).where(eq(bases.playerId, playerId)).get();
     if (!row) throw new Error("no base");
+    const next = change(JSON.parse(row.stateJson) as BaseState);
+    // The scheduler finds bases by this column: keep it in step, as `save` does.
     db.update(bases)
-      .set({ stateJson: JSON.stringify(change(JSON.parse(row.stateJson) as BaseState)) })
+      .set({ stateJson: JSON.stringify(next), nextEventAt: nextEventAt(next) })
       .where(eq(bases.playerId, playerId))
       .run();
   };
@@ -80,7 +100,31 @@ function setup(file = ":memory:", clock: ManualClock = manualClock(T0)) {
       .from(eventLog)
       .where(and(eq(eventLog.playerId, playerId), eq(eventLog.type, type)))
       .all().length;
-  return { db, hub, game, app, clock, login, state, send, patch, logged, cookieOf };
+  const json = async (cookie: string, path: string, method = "GET", body?: unknown) => {
+    const response = await app.request(path, {
+      method,
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      headers: { cookie, "content-type": "application/json" },
+    });
+    return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+  };
+  return {
+    db,
+    hub,
+    game,
+    app,
+    clock,
+    login,
+    state,
+    send,
+    patch,
+    logged,
+    cookieOf,
+    json,
+    sent,
+    gone,
+    notifier,
+  };
 }
 
 describe("login", () => {
@@ -247,5 +291,113 @@ describe("time", () => {
     await send(cookie, "key-gather-9", { type: "gather" });
     expect(pushed).toHaveLength(1);
     expect(pushed[0]?.origin).toBe("key-gather-9");
+  });
+});
+
+/** A party out at the beach wreck that is sure to come back with something at `endsAt`. */
+function sureTrip(base: BaseState, endsAt: number): BaseState {
+  return {
+    ...base,
+    crew: base.crew.map((m) => (m.id === "mara" ? { ...m, away: "m1" } : m)),
+    missionSeq: 1,
+    missions: [
+      {
+        id: "m1",
+        kind: "trip",
+        target: "beach_wreck",
+        crew: ["mara"],
+        startedAt: endsAt - 1800,
+        endsAt,
+        seed: 3,
+        odds: {
+          success: 100,
+          partial: 100,
+          injury: [0],
+          minutes: 30,
+          rolls: 2,
+          loot: 0,
+          blueprint: 0,
+          fragment: 0,
+          events: {},
+        },
+      },
+    ],
+  };
+}
+
+const DEVICE: Subscription = {
+  endpoint: "https://push.test/device-1",
+  keys: { p256dh: "BPk", auth: "au" },
+};
+
+describe("the feed (W4b)", () => {
+  it("shows one player's party back to everyone, and broadcasts it as it lands", async () => {
+    const { login, state, patch, game, hub, clock, json } = setup();
+    const one = await login(1);
+    const two = await login(2);
+    await state(one);
+    await state(two);
+    patch(1, (base) => sureTrip(base, T0 + 600));
+    const heard: string[] = [];
+    hub.subscribeFeed((items) => heard.push(...items.map((item) => item.event.type)));
+    clock.advance(900);
+    game.tick();
+    expect(heard).toEqual(["mission_back"]);
+    const feed = await json(two, "/api/feed");
+    expect(feed.status).toBe(200);
+    expect(feed.body.items).toMatchObject([
+      { playerName: "Test Player 1", event: { type: "mission_back", target: "beach_wreck" } },
+    ]);
+    // Paging back past the oldest item is empty.
+    const items = feed.body.items as { id: number }[];
+    const older = await json(two, `/api/feed?before=${items.at(-1)?.id}`);
+    expect(older.body.items).toEqual([]);
+  });
+});
+
+describe("notifications (W4b)", () => {
+  it("defaults to party back and raided, and takes changes per kind", async () => {
+    const { login, json } = setup();
+    const cookie = await login(1);
+    const first = await json(cookie, "/api/notify");
+    expect(first.body.prefs).toEqual({
+      party_back: true,
+      raided: true,
+      arrivals: false,
+      builds_done: false,
+    });
+    expect(typeof first.body.publicKey).toBe("string");
+    const changed = await json(cookie, "/api/notify", "PUT", { arrivals: true, party_back: false });
+    expect(changed.body.prefs).toMatchObject({ arrivals: true, party_back: false });
+    expect((await json(cookie, "/api/notify", "PUT", { teleport: true })).status).toBe(400);
+  });
+
+  it("pings the devices for kinds that are on, never for those off, and drops gone ones", async () => {
+    const { login, state, patch, game, clock, json, sent, gone, notifier } = setup();
+    const cookie = await login(1);
+    await state(cookie);
+    expect((await json(cookie, "/api/push/subscribe", "POST", DEVICE)).status).toBe(200);
+
+    patch(1, (base) => sureTrip(base, T0 + 600));
+    clock.advance(900);
+    game.tick();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.payload).toMatchObject({ kind: "party_back", title: "Your party is back" });
+
+    await json(cookie, "/api/notify", "PUT", { party_back: false });
+    patch(1, (base) => sureTrip(base, clock.now() + 600));
+    clock.advance(900);
+    game.tick();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(sent).toHaveLength(1);
+
+    await json(cookie, "/api/notify", "PUT", { party_back: true });
+    gone.add(DEVICE.endpoint);
+    patch(1, (base) => sureTrip(base, clock.now() + 600));
+    clock.advance(900);
+    game.tick();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(notifier.devices(1)).toBe(0);
   });
 });

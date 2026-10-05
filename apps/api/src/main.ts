@@ -13,16 +13,28 @@ import { loadConfig } from "./config";
 import { Game } from "./game";
 import { EventHub } from "./hub";
 import { log } from "./log";
+import { Notifier } from "./push";
 import { openDb } from "./store/db";
 
 const TICK_MS = 60_000;
 
 const config = loadConfig();
 const clock = systemClock;
-const { content } = loadGame((key) => log.warn("missing locale key", { key }));
+const { content, locale } = loadGame((key) => log.warn("missing locale key", { key }));
 const db = openDb(config.databasePath);
 const hub = new EventHub();
-const game = new Game({ db, content, clock, hub });
+// Web Push wants an https URL or a mailto: as the VAPID subject; localhost is neither.
+const subject = config.publicUrl.startsWith("https://")
+  ? config.publicUrl
+  : "mailto:wipeday@localhost.invalid";
+const notifier = new Notifier(db, locale, log, subject);
+const game = new Game({
+  db,
+  content,
+  clock,
+  hub,
+  notify: (playerId, events) => notifier.notify(playerId, events),
+});
 const discord = config.discord
   ? discordAuth(
       config.discord.clientId,
@@ -30,7 +42,7 @@ const discord = config.discord
       `${config.publicUrl}/api/auth/callback`,
     )
   : null;
-const app = createApp({ db, game, hub, clock, config, discord });
+const app = createApp({ db, game, hub, clock, config, discord, notifier });
 if (!discord)
   log.warn("Discord login is not configured: set DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET");
 

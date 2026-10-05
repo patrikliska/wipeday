@@ -6,6 +6,8 @@
  */
 import { type BaseState, newBase } from "@wipe-day/domain/base";
 import { applyCommand, type Command } from "@wipe-day/domain/commands";
+import type { GameEvent } from "@wipe-day/domain/events";
+import { type FeedItem, isFeedWorthy, type NotifyPrefs } from "@wipe-day/domain/feed";
 import { settleAll } from "@wipe-day/domain/settle";
 import type {
   CommandResponse,
@@ -15,7 +17,7 @@ import type {
 } from "@wipe-day/domain/wire";
 import { DEMO_SEASON_START, demoClocks } from "../state/clocks";
 import { content, t } from "../state/world";
-import type { Backend, ServerConfig } from "./backend";
+import type { Backend, NotifySettings, ServerConfig } from "./backend";
 
 /** A base a few days in, so the demo shows the living base rather than an empty shore. */
 function demoBase(now: number): BaseState {
@@ -55,6 +57,9 @@ export class LocalBackend implements Backend {
   readonly loginUrl = "";
   private base: BaseState;
   private version = 1;
+  /** The demo's feed: only the player's own happenings (there is nobody else). */
+  private feedItems: FeedItem[] = [];
+  private feedListener: ((items: FeedItem[]) => void) | null = null;
   private readonly player: MeResponse = {
     id: 0,
     name: t("hud.demo_player"),
@@ -93,6 +98,7 @@ export class LocalBackend implements Backend {
     const result = applyCommand(content, this.base, command, now);
     this.base = result.state;
     this.version += 1;
+    this.record(result.events, now);
     return result.ok
       ? {
           ok: true,
@@ -111,9 +117,45 @@ export class LocalBackend implements Backend {
         };
   }
 
-  subscribe(_onPush: (message: PushMessage) => void, _onReconnect: () => void): () => void {
-    return () => undefined;
+  private record(events: GameEvent[], at: number): void {
+    const items = events.filter(isFeedWorthy).map((event, index) => ({
+      id: this.version * 100 + index,
+      at,
+      playerId: this.player.id,
+      playerName: this.player.name,
+      event,
+    }));
+    if (items.length === 0) return;
+    this.feedItems = [...items.reverse(), ...this.feedItems].slice(0, 100);
+    this.feedListener?.(items);
   }
+
+  subscribe(
+    _onPush: (message: PushMessage) => void,
+    _onReconnect: () => void,
+    onFeed: (items: FeedItem[]) => void,
+  ): () => void {
+    this.feedListener = onFeed;
+    return () => {
+      this.feedListener = null;
+    };
+  }
+
+  async feed(before?: number): Promise<FeedItem[]> {
+    return this.feedItems.filter((item) => before === undefined || item.id < before);
+  }
+
+  /** The demo has no server to push from. */
+  async notify(): Promise<NotifySettings | null> {
+    return null;
+  }
+
+  async setNotify(): Promise<NotifyPrefs> {
+    throw new Error("no notifications in demo mode");
+  }
+
+  async pushSubscribe(): Promise<void> {}
+  async pushUnsubscribe(): Promise<void> {}
 
   /** Demo drawer and screenshots: overwrite parts of the base. Returns the new base. */
   patch(change: Partial<BaseState>): { state: BaseState; version: number } {

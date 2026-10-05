@@ -5,13 +5,20 @@
  */
 import { type Clock, systemClock } from "@wipe-day/domain/clock";
 import type { Command } from "@wipe-day/domain/commands";
+import type { FeedItem, NotifyPrefs } from "@wipe-day/domain/feed";
 import type {
   CommandResponse,
   MeResponse,
   PushMessage,
   StateResponse,
 } from "@wipe-day/domain/wire";
-import { type Backend, HttpError, type ServerConfig } from "./backend";
+import {
+  type Backend,
+  type DeviceSubscription,
+  HttpError,
+  type NotifySettings,
+  type ServerConfig,
+} from "./backend";
 
 /** Real time shifted to the server's: one reading source, corrected on every answer. */
 class ServerClock implements Clock {
@@ -88,8 +95,44 @@ export class HttpBackend implements Backend {
     }
   }
 
-  subscribe(onPush: (message: PushMessage) => void, onReconnect: () => void): () => void {
+  async feed(before?: number): Promise<FeedItem[]> {
+    const query = before ? `?before=${before}` : "";
+    return (await this.request<{ items: FeedItem[] }>(`/api/feed${query}`)).items;
+  }
+
+  notify(): Promise<NotifySettings | null> {
+    return this.request<NotifySettings>("/api/notify");
+  }
+
+  async setNotify(change: Partial<NotifyPrefs>): Promise<NotifyPrefs> {
+    const body = JSON.stringify(change);
+    return (await this.request<{ prefs: NotifyPrefs }>("/api/notify", { method: "PUT", body }))
+      .prefs;
+  }
+
+  async pushSubscribe(subscription: DeviceSubscription): Promise<void> {
+    await this.request("/api/push/subscribe", {
+      method: "POST",
+      body: JSON.stringify(subscription),
+    });
+  }
+
+  async pushUnsubscribe(endpoint: string): Promise<void> {
+    await this.request("/api/push/unsubscribe", {
+      method: "POST",
+      body: JSON.stringify({ endpoint }),
+    });
+  }
+
+  subscribe(
+    onPush: (message: PushMessage) => void,
+    onReconnect: () => void,
+    onFeed: (items: FeedItem[]) => void,
+  ): () => void {
     const source = new EventSource("/api/events");
+    source.addEventListener("feed", (event) => {
+      onFeed(JSON.parse((event as MessageEvent<string>).data) as FeedItem[]);
+    });
     let opened = false;
     source.addEventListener("ready", () => {
       // The stream came back after a drop: anything pushed meanwhile is missed, so reload.

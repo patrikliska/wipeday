@@ -4,6 +4,7 @@
  * toast. Every string comes from the locale.
  */
 import type { Refusal } from "@wipe-day/domain/commands";
+import type { FeedEvent } from "@wipe-day/domain/feed";
 import { sitesFinding } from "@wipe-day/domain/missions";
 import type { GameEvent } from "./events";
 import {
@@ -23,7 +24,16 @@ import {
   toolName,
 } from "./world";
 
-export type Panel = "build" | "craft" | "furnace" | "inventory" | "tasks" | "squad" | "map" | null;
+export type Panel =
+  | "build"
+  | "craft"
+  | "furnace"
+  | "inventory"
+  | "tasks"
+  | "squad"
+  | "map"
+  | "feed"
+  | null;
 export type Tone = "neutral" | "success" | "warning" | "danger";
 
 export interface Message {
@@ -247,6 +257,27 @@ export function refusalMessage(refusal: Refusal, now: number): Message | null {
     case "run_over":
       // The node run lost sync with the server (a slow network): nothing to tell.
       return null;
+  }
+}
+
+/** One line of the feed, about `who` (a player's name, or "You"). */
+export function feedLine(event: FeedEvent, who: string): string {
+  switch (event.type) {
+    case "mission_back":
+      return t(`feed.trip_${event.outcome === "success" ? "success" : "partial"}`, {
+        who,
+        site: siteName(event.target),
+      });
+    case "survivor_arrived":
+      return t("feed.rescued", { who, name: survivorName(event.survivor) });
+    case "build_done":
+      return t("feed.tier", { who, tier: tierName(event.tier) });
+    case "level_up":
+      return t("feed.level_up", { who, name: survivorName(event.survivor), level: event.level });
+    case "blueprint_found":
+      return t("feed.blueprint", { who, item: outputName(event.recipe) });
+    case "item_found":
+      return t("feed.found", { who, item: itemName(event.item), site: siteName(event.from) });
   }
 }
 

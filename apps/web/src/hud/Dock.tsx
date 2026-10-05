@@ -201,6 +201,15 @@ export function Dock() {
       onClick: () => openPanel("inventory"),
     },
     {
+      id: "feed",
+      name: t("action.feed"),
+      glyph: "FE",
+      color: "#8a6fb5",
+      extra: true,
+      panel: "feed",
+      onClick: () => openPanel("feed"),
+    },
+    {
       id: "tasks",
       name: t("action.tasks"),
       glyph: "TA",

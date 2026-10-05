@@ -5,6 +5,7 @@
  */
 import type { Clock } from "@wipe-day/domain/clock";
 import type { Command } from "@wipe-day/domain/commands";
+import type { FeedItem, NotifyPrefs } from "@wipe-day/domain/feed";
 import type {
   CommandResponse,
   MeResponse,
@@ -19,6 +20,19 @@ export interface ServerConfig {
   discordLogin: boolean;
 }
 
+/** `GET /api/notify`: the kinds on, the server's push key, devices with notifications on. */
+export interface NotifySettings {
+  prefs: NotifyPrefs;
+  publicKey: string;
+  devices: number;
+}
+
+/** What a browser's push subscription serialises to. */
+export interface DeviceSubscription {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}
+
 export interface Backend {
   readonly mode: "server" | "demo";
   /** Game time: the server's clock, or the demo clock. */
@@ -29,8 +43,22 @@ export interface Backend {
   state(): Promise<StateResponse>;
   /** Idempotent by `key`: a retry with the same key never runs the command twice. */
   command(key: string, command: Command): Promise<CommandResponse>;
-  /** Pushed changes (another tab, timers). `onReconnect` fires after the stream was lost. */
-  subscribe(onPush: (message: PushMessage) => void, onReconnect: () => void): () => void;
+  /**
+   * Pushed changes (another tab, timers) and new feed items from everyone. `onReconnect`
+   * fires after the stream was lost.
+   */
+  subscribe(
+    onPush: (message: PushMessage) => void,
+    onReconnect: () => void,
+    onFeed: (items: FeedItem[]) => void,
+  ): () => void;
+  /** The season's feed, newest first; `before` pages back by item id. */
+  feed(before?: number): Promise<FeedItem[]>;
+  /** Notification settings; null where there are none (demo mode). */
+  notify(): Promise<NotifySettings | null>;
+  setNotify(change: Partial<NotifyPrefs>): Promise<NotifyPrefs>;
+  pushSubscribe(subscription: DeviceSubscription): Promise<void>;
+  pushUnsubscribe(endpoint: string): Promise<void>;
   devLogin(slot: number): Promise<void>;
   logout(): Promise<void>;
   readonly loginUrl: string;

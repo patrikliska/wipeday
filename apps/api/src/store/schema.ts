@@ -20,6 +20,8 @@ export const players = sqliteTable("players", {
   createdAt: integer("created_at").notNull(),
   /** Last `GET /state` or command: drives the welcome-back summary. */
   lastSeenAt: integer("last_seen_at").notNull(),
+  /** Notification preferences by kind (JSON, over the defaults in `@wipe-day/domain/feed`). */
+  notifyJson: text("notify_json"),
 });
 
 /** Login sessions. Only the SHA-256 of the cookie token is stored. */
@@ -99,4 +101,25 @@ export const eventLog = sqliteTable(
     index("event_log_player_at").on(table.playerId, table.at),
     index("event_log_type_at").on(table.type, table.at),
   ],
+);
+
+/** Server settings that are generated once and kept (the Web Push VAPID keys). */
+export const settings = sqliteTable("settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+});
+
+/** Web Push subscriptions: one per device a player turned notifications on for. */
+export const pushSubscriptions = sqliteTable(
+  "push_subscriptions",
+  {
+    endpoint: text("endpoint").primaryKey(),
+    playerId: integer("player_id")
+      .notNull()
+      .references(() => players.id),
+    /** JSON: the browser's `p256dh` and `auth` keys. */
+    keysJson: text("keys_json").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [index("push_subscriptions_player").on(table.playerId)],
 );

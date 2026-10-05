@@ -7,7 +7,10 @@
  * - `command`: idempotent by the client's key (D59): the first run stores its
  *   response, a replay returns exactly that response and changes nothing.
  * - `tick`: settle every base whose next timed event is due, so builds and
- *   crafts land (and are pushed) even when nobody is looking.
+ *   crafts land (and are pushed) even when nobody is looking; the player's phone
+ *   gets a notification for the kinds they turned on (W4b).
+ * - `feed`: the happenings worth telling everyone, newest first (W4b); new ones are
+ *   broadcast to every open tab as they are logged.
  */
 import { randomInt } from "node:crypto";
 import type { Content } from "@wipe-day/content/schema";
@@ -15,6 +18,7 @@ import { accrued, type BaseState, newBase } from "@wipe-day/domain/base";
 import type { Clock } from "@wipe-day/domain/clock";
 import { applyCommand, type Command } from "@wipe-day/domain/commands";
 import type { GameEvent } from "@wipe-day/domain/events";
+import { FEED_TYPES, type FeedItem, isFeedWorthy } from "@wipe-day/domain/feed";
 import { normalizeState } from "@wipe-day/domain/normalize";
 import { nextEventAt, settleAll } from "@wipe-day/domain/settle";
 import type {
@@ -24,7 +28,7 @@ import type {
   StateResponse,
   WelcomeBack,
 } from "@wipe-day/domain/wire";
-import { and, eq, gt, inArray, isNull, lt, lte } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNull, lt, lte } from "drizzle-orm";
 import type { EventHub } from "./hub";
 import type { Db } from "./store/db";
 import { bases, commands, eventLog, players, seasons } from "./store/schema";
@@ -42,6 +46,8 @@ const WHILE_AWAY: GameEvent["type"][] = [
   "mission_back",
   "region_revealed",
   "survivor_arrived",
+  "item_found",
+  "level_up",
   "barrel_spawned",
   "auto_collect",
   "upkeep_paid",
@@ -57,7 +63,12 @@ export interface GameDeps {
   hub: EventHub;
   /** Seed for a new base; random in production, fixed in tests. */
   newSeed?: () => number;
+  /** Pings a player's devices about what the scheduler settled (W4b push); optional. */
+  notify?: (playerId: number, events: GameEvent[]) => Promise<unknown>;
 }
+
+/** Feed items per page. */
+export const FEED_PAGE = 40;
 
 interface Loaded {
   seasonId: number;
@@ -133,14 +144,63 @@ export class Game {
     return version;
   }
 
-  private log(playerId: number, seasonId: number, events: GameEvent[], now: number): void {
+  /** Writes the events to the log; returns the ones worth the feed, for the broadcast. */
+  private log(playerId: number, seasonId: number, events: GameEvent[], now: number): FeedItem[] {
+    const feed: FeedItem[] = [];
+    let playerName: string | null = null;
     for (const event of events) {
       const { type, ...payload } = event;
-      this.db
+      const row = this.db
         .insert(eventLog)
         .values({ at: now, playerId, seasonId, type, payload: JSON.stringify(payload) })
-        .run();
+        .returning({ id: eventLog.id })
+        .get();
+      if (isFeedWorthy(event)) {
+        playerName ??= this.player(playerId).name;
+        feed.push({ id: row.id, at: now, playerId, playerName, event });
+      }
     }
+    return feed;
+  }
+
+  /** The feed for the running season, newest first; `before` pages back by item id. */
+  feed(before?: number, limit = FEED_PAGE): FeedItem[] {
+    const now = this.deps.clock.now();
+    const season = this.currentSeason(now);
+    const items: FeedItem[] = [];
+    let cursor = before;
+    // Rows of the feed's types that are not worth it (a failed trip) are skipped: page on.
+    for (let page = 0; page < 5 && items.length < limit; page++) {
+      const rows = this.db
+        .select({ row: eventLog, name: players.name })
+        .from(eventLog)
+        .innerJoin(players, eq(players.id, eventLog.playerId))
+        .where(
+          and(
+            eq(eventLog.seasonId, season.id),
+            inArray(eventLog.type, [...FEED_TYPES]),
+            cursor !== undefined ? lt(eventLog.id, cursor) : undefined,
+          ),
+        )
+        .orderBy(desc(eventLog.id))
+        .limit(limit * 2)
+        .all();
+      for (const { row, name } of rows) {
+        const event = { type: row.type, ...JSON.parse(row.payload) } as GameEvent;
+        if (isFeedWorthy(event) && items.length < limit) {
+          items.push({
+            id: row.id,
+            at: row.at,
+            playerId: row.playerId ?? 0,
+            playerName: name,
+            event,
+          });
+        }
+      }
+      if (rows.length < limit * 2) break;
+      cursor = rows.at(-1)?.row.id;
+    }
+    return items;
   }
 
   private player(playerId: number): PlayerView & { lastSeenAt: number } {
@@ -157,6 +217,7 @@ export class Game {
   look(playerId: number): StateResponse {
     const now = this.deps.clock.now();
     let push: PushMessage | null = null;
+    let feed: FeedItem[] = [];
     const response = this.db.transaction(() => {
       const { lastSeenAt, ...player } = this.player(playerId);
       const loaded = this.load(playerId, now);
@@ -164,7 +225,7 @@ export class Game {
       let version = loaded.version;
       if (!loaded.stored || JSON.stringify(settled.state) !== JSON.stringify(loaded.state)) {
         version = this.save(playerId, loaded, settled.state, now);
-        this.log(playerId, loaded.seasonId, settled.events, now);
+        feed = this.log(playerId, loaded.seasonId, settled.events, now);
         if (loaded.stored) {
           push = {
             version,
@@ -191,6 +252,7 @@ export class Game {
       };
     });
     if (push) this.deps.hub.publish(playerId, push);
+    this.deps.hub.broadcast(feed);
     return response;
   }
 
@@ -217,6 +279,7 @@ export class Game {
   command(playerId: number, key: string, command: Command): CommandResponse {
     const now = this.deps.clock.now();
     let push: PushMessage | null = null;
+    let feed: FeedItem[] = [];
     const response = this.db.transaction(() => {
       const stored = this.db
         .select()
@@ -230,7 +293,7 @@ export class Game {
       const changed =
         !loaded.stored || JSON.stringify(result.state) !== JSON.stringify(loaded.state);
       const version = changed ? this.save(playerId, loaded, result.state, now) : loaded.version;
-      this.log(playerId, loaded.seasonId, result.events, now);
+      feed = this.log(playerId, loaded.seasonId, result.events, now);
       const response: CommandResponse = result.ok
         ? { ok: true, serverNow: now, version, state: result.state, events: result.events }
         : {
@@ -251,6 +314,7 @@ export class Game {
       return response;
     });
     if (push) this.deps.hub.publish(playerId, push);
+    this.deps.hub.broadcast(feed);
     return response;
   }
 
@@ -268,12 +332,13 @@ export class Game {
     const changed: number[] = [];
     for (const { playerId } of due) {
       let push: PushMessage | null = null;
+      let feed: FeedItem[] = [];
       this.db.transaction(() => {
         const loaded = this.load(playerId, now);
         if (!loaded.stored) return;
         const settled = settleAll(this.deps.content, loaded.state, now);
         const version = this.save(playerId, loaded, settled.state, now);
-        this.log(playerId, loaded.seasonId, settled.events, now);
+        feed = this.log(playerId, loaded.seasonId, settled.events, now);
         push = {
           version,
           serverNow: now,
@@ -282,9 +347,13 @@ export class Game {
           origin: null,
         };
       });
+      this.deps.hub.broadcast(feed);
       if (push) {
-        this.deps.hub.publish(playerId, push);
+        const message: PushMessage = push;
+        this.deps.hub.publish(playerId, message);
         changed.push(playerId);
+        // The phone: fire and forget (the push service answers in its own time).
+        void this.deps.notify?.(playerId, message.events);
       }
     }
     this.db
