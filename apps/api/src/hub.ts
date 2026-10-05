@@ -4,14 +4,27 @@
  * open tab of every player. In-process only, which is all one API process needs.
  */
 import type { FeedItem } from "@wipe-day/domain/feed";
+import type { DenPush } from "@wipe-day/domain/wire";
 import type { PushMessage } from "./game";
 
 type Listener = (message: PushMessage) => void;
 type FeedListener = (items: FeedItem[]) => void;
+type DenListener = (message: DenPush) => void;
 
 export class EventHub {
   private readonly listeners = new Map<number, Set<Listener>>();
   private readonly feedListeners = new Set<FeedListener>();
+  private readonly denListeners = new Set<DenListener>();
+
+  /** The Den's goings-on (W5): bets, spins, the jackpot, a changed board. */
+  subscribeDen(listener: DenListener): () => void {
+    this.denListeners.add(listener);
+    return () => this.denListeners.delete(listener);
+  }
+
+  broadcastDen(message: DenPush): void {
+    for (const listener of this.denListeners) listener(message);
+  }
 
   subscribeFeed(listener: FeedListener): () => void {
     this.feedListeners.add(listener);

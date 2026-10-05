@@ -15,6 +15,13 @@
       "when": 1791229736990,
       "tag": "0001_w4b_feed_push",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791235150301,
+      "tag": "0002_w5_den",
+      "breakpoints": true
     }
   ]
 }

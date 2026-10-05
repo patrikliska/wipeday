@@ -336,9 +336,12 @@ function step(
       return { ok: true, state: result.state, events: result.events };
     }
     case "market_buy": {
-      const listing = world?.listing;
-      if (!listing) return { ok: false, refusal: { code: "server_only" } };
-      if (listing.id !== command.listing) return { ok: false, refusal: { code: "listing_gone" } };
+      // No world: the client, which cannot see the seller. A world without the listing: the
+      // server looked and it is sold, cancelled or expired.
+      if (!world) return { ok: false, refusal: { code: "server_only" } };
+      const listing = world.listing;
+      if (!listing || listing.id !== command.listing)
+        return { ok: false, refusal: { code: "listing_gone" } };
       const result = buyListing(content, state, listing, world.self, now);
       if (!result.ok) return { ok: false, refusal: result.status };
       return { ok: true, state: result.state, events: result.events };

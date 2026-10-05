@@ -5,6 +5,8 @@
 import type { BaseState } from "./base";
 import type { Refusal } from "./commands";
 import type { GameEvent } from "./events";
+import type { Leaderboards, SeasonSummary } from "./leaderboard";
+import type { MarketListing } from "./market";
 
 export interface PlayerView {
   id: number;
@@ -55,3 +57,48 @@ export interface MeResponse extends PlayerView {
   /** The dev-only test login is available on this server. */
   devLogin: boolean;
 }
+
+// --- the Den (W5) ---------------------------------------------------------------------
+
+/** A bet on the wheel as the table shows it: who is on which segment this round. */
+export interface WheelBetView {
+  round: number;
+  playerId: number;
+  name: string;
+  segment: string;
+  amount: number;
+}
+
+/** `GET /api/den`: the market board and the tables. */
+export interface DenBoard {
+  serverNow: number;
+  /** Every open player listing, newest first (the player's own included). */
+  listings: MarketListing[];
+  /** The wheel round running now, and the bets on it and the next one. */
+  round: number;
+  bets: WheelBetView[];
+  /** The last spins, newest first: segment index by round. */
+  results: { round: number; segment: number }[];
+  /** The slots' shared pool, in hundredths of scrap. */
+  jackpot: number;
+}
+
+/** `GET /api/den/history?good=`: what players paid per 100 units, by UTC day. */
+export interface PriceHistory {
+  good: string;
+  days: { day: number; per100: number; amount: number }[];
+}
+
+/** `GET /api/ranks`: every category's table and the player's own season card. */
+export interface RanksResponse {
+  boards: Leaderboards;
+  me: SeasonSummary;
+}
+
+/** One `den` message on the event stream. */
+export type DenPush =
+  | { kind: "bet"; bet: WheelBetView }
+  | { kind: "result"; round: number; segment: number }
+  /** Listings changed: the board is stale. */
+  | { kind: "board" }
+  | { kind: "jackpot"; jackpot: number };
