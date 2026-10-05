@@ -8,6 +8,7 @@ import type { FeedEvent } from "@wipe-day/domain/feed";
 import { sitesFinding } from "@wipe-day/domain/missions";
 import type { GameEvent } from "./events";
 import {
+  abbrev,
   content,
   duration,
   gainLines,
@@ -33,6 +34,7 @@ export type Panel =
   | "squad"
   | "map"
   | "feed"
+  | "den"
   | null;
 export type Tone = "neutral" | "success" | "warning" | "danger";
 
@@ -257,6 +259,65 @@ export function refusalMessage(refusal: Refusal, now: number): Message | null {
     case "run_over":
       // The node run lost sync with the server (a slow network): nothing to tell.
       return null;
+    case "server_only":
+      // Not a refusal: the Den answers in a moment (the store waits for it).
+      return null;
+    case "den_closed":
+      return {
+        text: t("refusal.den_closed", { tier: tierName(refusal.tier) }),
+        tone: "warning",
+        panel: "build",
+      };
+    case "not_tradeable":
+      return { text: t("refusal.not_tradeable"), tone: "neutral" };
+    case "listing_cap":
+      return {
+        text: t("refusal.listing_cap", { count: refusal.count }),
+        tone: "neutral",
+        panel: "den",
+      };
+    case "price_floor":
+      return { text: t("refusal.price_floor", { price: refusal.price }), tone: "neutral" };
+    case "no_room":
+      return {
+        text: t("refusal.no_room", { room: abbrev(refusal.room) }),
+        tone: "warning",
+        panel: "build",
+      };
+    case "listing_gone":
+      return { text: t("refusal.listing_gone"), tone: "neutral", panel: "den" };
+    case "own_listing":
+      return { text: t("refusal.own_listing"), tone: "neutral", panel: "den" };
+    case "not_listed":
+      return { text: t("refusal.not_listed"), tone: "neutral" };
+    case "no_offer":
+      return { text: t("refusal.no_offer"), tone: "neutral", panel: "den" };
+    case "sold_out":
+      return {
+        text: t("refusal.sold_out", { time: duration(refusal.resetAt - now) }),
+        tone: "neutral",
+      };
+    case "all_known":
+      return { text: t("refusal.all_known"), tone: "neutral" };
+    case "no_contract":
+      return { text: t("refusal.no_contract"), tone: "neutral" };
+    case "bad_option":
+      return { text: t("refusal.bad_option"), tone: "danger" };
+    case "bad_bet":
+      return { text: t("refusal.bad_bet", { step: refusal.step }), tone: "neutral" };
+    case "max_bet":
+      return {
+        text: t("refusal.max_bet", { amount: refusal.amount, tier: tierName(refusal.tier) }),
+        tone: "neutral",
+      };
+    case "wager_cap":
+      return {
+        text: t("refusal.wager_cap", {
+          left: refusal.left,
+          time: duration(refusal.resetAt - now),
+        }),
+        tone: "neutral",
+      };
   }
 }
 
@@ -278,6 +339,21 @@ export function feedLine(event: FeedEvent, who: string): string {
       return t("feed.blueprint", { who, item: outputName(event.recipe) });
     case "item_found":
       return t("feed.found", { who, item: itemName(event.item), site: siteName(event.from) });
+    case "sold":
+      return t("feed.sold", {
+        who,
+        amount: abbrev(event.amount),
+        good: outputName(event.good),
+        price: abbrev(event.price),
+      });
+    case "big_win":
+      return t("feed.big_win", {
+        who,
+        payout: abbrev(event.payout),
+        game: t(`casino.game.${event.game}`),
+      });
+    case "jackpot_won":
+      return t("feed.jackpot", { who, amount: abbrev(event.amount) });
   }
 }
 
@@ -365,6 +441,29 @@ export function eventMessage(event: GameEvent): Message | null {
         tone: "danger",
         panel: "build",
       };
+    case "sold":
+      return {
+        text: t("toast.sold", {
+          amount: abbrev(event.amount),
+          good: outputName(event.good),
+          price: abbrev(event.price),
+        }),
+        tone: "success",
+        panel: "den",
+      };
+    case "listing_expired":
+      return {
+        text: t("toast.listing_expired", {
+          amount: abbrev(event.amount),
+          good: outputName(event.good),
+        }),
+        tone: "neutral",
+        panel: "den",
+      };
+    case "contract_done":
+      return { text: t("toast.contract_done", { pay: abbrev(event.pay) }), tone: "success" };
+    case "jackpot_won":
+      return { text: t("toast.jackpot", { amount: abbrev(event.amount) }), tone: "success" };
     default:
       return null;
   }

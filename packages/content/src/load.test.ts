@@ -137,3 +137,33 @@ describe("parseContent", () => {
     expect(() => parseContent({}, locale)).toThrow(/crafting\.json5: file is missing/);
   });
 });
+
+describe("the Den's checks (W5)", () => {
+  it("keeps every bet option at a 5-10% edge and whole-scrap payouts", () => {
+    const dir = dataWith("den.json5", (text) =>
+      text.replace(
+        '{ id: "crab", weight: 12, pays: 380 }',
+        '{ id: "crab", weight: 12, pays: 470 }',
+      ),
+    );
+    const problems = problemsOf(dir);
+    expect(problems.some((p) => p.includes("`crab`") && p.includes("outside 90-95%"))).toBe(true);
+    expect(problems.some((p) => p.includes("`crab`") && p.includes("not whole scrap"))).toBe(true);
+  });
+
+  it("refuses contracts that pay more than the Den sells for", () => {
+    const dir = dataWith("den.json5", (text) =>
+      text
+        .replace("payPercent: 60", "payPercent: 100")
+        .replace("markupPercent: 250", "markupPercent: 100"),
+    );
+    expect(problemsOf(dir)).toContain(
+      "den.json5 `contracts`: payPercent must be below the stock's markupPercent (no arbitrage)",
+    );
+  });
+
+  it("needs a price for every tradeable good", () => {
+    const dir = dataWith("den.json5", (text) => text.replace("gears: 400, ", ""));
+    expect(problemsOf(dir)).toContain("den.json5 `gears`: tradeable good has no refPer100");
+  });
+});

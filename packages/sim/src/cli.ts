@@ -1,12 +1,14 @@
 /**
  * `pnpm sim [days]`         per-day table for every archetype, plus CSV in var/sim/
  * `pnpm sim check [days]`   assert the pacing targets; exit 1 on failure
+ * `pnpm sim rtp [spins]`    the casino's measured return per bet option against its exact odds
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadContent, loadLocale } from "@wipe-day/content/load";
 import { contentPaths } from "@wipe-day/content/paths";
+import { measureAll } from "./rtp";
 import { ARCHETYPES, checkPacing, type Run, simulate } from "./sim";
 
 /** CSV output goes to `var/sim/` at the repo root, next to the other local runtime state. */
@@ -15,7 +17,8 @@ const content = loadContent(contentPaths.data, loadLocale());
 
 const args = process.argv.slice(2);
 const check = args[0] === "check";
-const days = Number(args[check ? 1 : 0] ?? 35);
+const rtp = args[0] === "rtp";
+const days = Number(args[check || rtp ? 1 : 0] ?? 35);
 
 function table(run: Run): string {
   const lines = [
@@ -36,7 +39,17 @@ function table(run: Run): string {
   return lines.join("\n");
 }
 
-if (check) {
+if (rtp) {
+  const spins = Number(args[1] ?? 1_000_000);
+  console.log(`game   option      exact   measured   diff  (${spins} rounds each)`);
+  for (const row of measureAll(content, spins)) {
+    const pct = (value: number) => `${(value * 100).toFixed(2)}%`.padStart(8);
+    console.log(
+      `${row.game.padEnd(6)} ${(row.option ?? "-").padEnd(10)} ${pct(row.exact)} ${pct(row.measured)} ${((row.measured - row.exact) * 100).toFixed(2).padStart(6)}` +
+        (row.jackpots !== undefined ? `  jackpots ${row.jackpots}` : ""),
+    );
+  }
+} else if (check) {
   const results = checkPacing(content, days);
   for (const result of results)
     console.log(`${result.warning ? "WARN" : "FAIL"}  ${result.message}`);

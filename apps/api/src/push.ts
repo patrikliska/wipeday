@@ -98,6 +98,20 @@ export function notificationFor(locale: Locale, event: GameEvent): Notification 
         tag: `building-${event.building}`,
         url: "/",
       };
+    case "sold":
+      return {
+        kind,
+        title: t("push.sold_title"),
+        body: t("push.sold", {
+          amount: event.amount,
+          good: t(
+            `${locale.has(`item.${event.good}.name`) ? "item" : "resource"}.${event.good}.name`,
+          ),
+          price: event.price,
+        }),
+        tag: `sold-${event.listing}`,
+        url: "/?den",
+      };
     default:
       return null;
   }

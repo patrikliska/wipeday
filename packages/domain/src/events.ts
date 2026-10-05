@@ -4,9 +4,11 @@
  * (floating gains, dust, sparks), and the welcome-back summary is built from the
  * ones that happened while the player was away.
  */
+import type { CasinoGame } from "@wipe-day/content/odds";
 import type { Amounts } from "@wipe-day/content/schema";
 import type { Tier } from "@wipe-day/content/tiers";
 import type { Job } from "./crew";
+import type { Listing } from "./market";
 
 export type GameEvent =
   // Player actions.
@@ -31,7 +33,11 @@ export type GameEvent =
   | { type: "salvaged"; item: string; count: number; gained: Amounts }
   | { type: "served"; meal: string; percent: number; until: number }
   /** A blueprint turned up: `from` says where (a barrel, a perfect node run, a task, a site). */
-  | { type: "blueprint_found"; recipe: string; from: "barrel" | "node" | "task" | "site" }
+  | {
+      type: "blueprint_found";
+      recipe: string;
+      from: "barrel" | "node" | "task" | "site" | "den" | "contract";
+    }
   | {
       type: "scout_started";
       mission: string;
@@ -71,6 +77,43 @@ export type GameEvent =
   /** A run stopped short: the node stands, keeping `hits` of wear for the next run. */
   | { type: "node_run_ended"; node: string; hits: number }
   | { type: "task_done"; task: string; reward: Amounts }
+  // The Den (W5).
+  /** Goods went up on the market; `fee` is what the Den kept. */
+  | { type: "listed"; listing: Listing; fee: number }
+  | { type: "listing_cancelled"; listing: string; good: string; amount: number }
+  /** The buyer's side of a sale (`listing` is the server's row id). */
+  | {
+      type: "bought";
+      listing: number;
+      good: string;
+      amount: number;
+      price: number;
+      seller: number;
+      sellerName: string;
+    }
+  /** Bought from the Den's own counter (a blueprint arrives as `blueprint_found` too). */
+  | { type: "den_bought"; offer: string; good: string; amount: number; price: number }
+  | { type: "contract_done"; contract: string; good: string; amount: number; pay: number }
+  /** A bet on the wheel, waiting for round `round` to spin. */
+  | { type: "wheel_bet"; round: number; segment: string; amount: number }
+  /**
+   * A bet resolved. `result`: the wheel's segment index, the three reels or the two dice.
+   * `feed`: hundredths of scrap the stake added to the slots' jackpot.
+   */
+  | {
+      type: "wager";
+      game: CasinoGame;
+      option: string | null;
+      bet: number;
+      payout: number;
+      result: number[];
+      feed: number;
+      at: number;
+      round?: number;
+    }
+  /** A payout of at least `bigWin` times the bet: for the feed. */
+  | { type: "big_win"; game: CasinoGame; bet: number; payout: number; at: number }
+  | { type: "jackpot_won"; amount: number; at: number }
   // Time passing (settling).
   | { type: "build_done"; tier: Tier }
   | { type: "building_done"; building: string; level: number }
@@ -108,6 +151,9 @@ export type GameEvent =
   | { type: "level_up"; survivor: string; level: number; at: number }
   /** An item (a keycode) came home from `from` (a site). */
   | { type: "item_found"; item: string; from: string; at: number }
+  /** The seller's side of a sale (time passing for them: someone bought it). */
+  | { type: "sold"; listing: string; good: string; amount: number; price: number; at: number }
+  | { type: "listing_expired"; listing: string; good: string; amount: number; at: number }
   | { type: "auto_collect"; gained: Amounts }
   | { type: "upkeep_paid"; hours: number; paid: Amounts }
   | { type: "decayed"; from: Tier; to: Tier };

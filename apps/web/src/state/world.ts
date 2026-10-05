@@ -9,6 +9,7 @@ import baseTiersFile from "@wipe-day/content/data/base_tiers.json5";
 import buildingsFile from "@wipe-day/content/data/buildings.json5";
 import craftingFile from "@wipe-day/content/data/crafting.json5";
 import crewFile from "@wipe-day/content/data/crew.json5";
+import denFile from "@wipe-day/content/data/den.json5";
 import eventsFile from "@wipe-day/content/data/events.json5";
 import furnacesFile from "@wipe-day/content/data/furnaces.json5";
 import itemsFile from "@wipe-day/content/data/items.json5";
@@ -55,6 +56,7 @@ export const content: Content = parseContent(
     "nodes.json5": nodesFile,
     "active.json5": activeFile,
     "pacing.json5": pacingFile,
+    "den.json5": denFile,
   },
   locale,
 );
@@ -239,5 +241,5 @@ export function gainLines(gained: Amounts, limit: number): string[] {
 export function missingLabel(missing: Amounts): string | null {
   const first = Object.entries(missing).find(([, amount]) => amount > 0);
   if (!first) return null;
-  return t("hud.need", { amount: abbrev(first[1]), what: resourceName(first[0]).toLowerCase() });
+  return t("hud.need", { amount: abbrev(first[1]), what: outputName(first[0]).toLowerCase() });
 }

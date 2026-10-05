@@ -21,6 +21,7 @@ import type { GameEvent as DomainEvent } from "@wipe-day/domain/events";
 import type { FeedItem } from "@wipe-day/domain/feed";
 import { nodeKindOf, nodeStatus } from "@wipe-day/domain/nodes";
 import { nextEventAt, settleAll } from "@wipe-day/domain/settle";
+import { newStats } from "@wipe-day/domain/stats";
 import type { PlayerView, PushMessage, StateResponse, WelcomeBack } from "@wipe-day/domain/wire";
 import { create } from "zustand";
 import { type Backend, newKey, type ServerConfig } from "../net/backend";
@@ -229,6 +230,13 @@ const placeholder = (): BaseState => ({
   nextBarrelAt: Number.MAX_SAFE_INTEGER,
   tasks: { day: -1, ids: [], progress: {}, done: [] },
   hints: {},
+  listings: [],
+  listingSeq: 0,
+  den: { day: -1, tier: "twig", offers: [], bought: {} },
+  contracts: { day: -1, tier: "twig", ids: [], done: [] },
+  casino: { day: -1, wagered: 0, won: 0 },
+  wheelBets: [],
+  stats: newStats(),
 });
 
 export const useWorld = create<Store>((set, get) => {
@@ -422,7 +430,9 @@ export const useWorld = create<Store>((set, get) => {
       const at = Math.floor(now);
       const base = state.base;
       const regrown = Object.entries(base.depleted).filter(([, until]) => until <= at);
-      const due = (nextEventAt(base) ?? Number.POSITIVE_INFINITY) <= at || regrown.length > 0;
+      const due =
+        (nextEventAt(content, base, { wheel: false }) ?? Number.POSITIVE_INFINITY) <= at ||
+        regrown.length > 0;
       if (!due) {
         set({ now });
         return;

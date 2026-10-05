@@ -44,6 +44,8 @@ const DOCK_FOR: Record<Advice, string | null> = {
   map: "map",
   // Desktop: the Squad button; phones: the crew chip in the top bar.
   crew: "squad",
+  // Desktop: the Den button; phones: the skiff glows in the scene, like the barrel.
+  den: "den",
   // The barrel glows in the scene itself.
   barrel: null,
 };

@@ -90,7 +90,7 @@ function setup(file = ":memory:", clock: ManualClock = manualClock(T0)) {
     const next = change(JSON.parse(row.stateJson) as BaseState);
     // The scheduler finds bases by this column: keep it in step, as `save` does.
     db.update(bases)
-      .set({ stateJson: JSON.stringify(next), nextEventAt: nextEventAt(next) })
+      .set({ stateJson: JSON.stringify(next), nextEventAt: nextEventAt(content, next) })
       .where(eq(bases.playerId, playerId))
       .run();
   };
@@ -365,6 +365,7 @@ describe("notifications (W4b)", () => {
       raided: true,
       arrivals: false,
       builds_done: false,
+      sold: false,
     });
     expect(typeof first.body.publicKey).toBe("string");
     const changed = await json(cookie, "/api/notify", "PUT", { arrivals: true, party_back: false });

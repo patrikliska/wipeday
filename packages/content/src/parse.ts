@@ -6,6 +6,7 @@
  */
 import { z } from "zod";
 import type { Locale } from "./locale";
+import { betOptions, exactRtp } from "./odds";
 import {
   type Amounts,
   activeSchema,
@@ -15,6 +16,7 @@ import {
   crewRulesSchema,
   DATA_FILES,
   type DataFile,
+  denSchema,
   type EntityKind,
   FILES,
   mapRulesSchema,
@@ -152,6 +154,28 @@ function emptyContent(): Content {
       },
       tierCostRatio: { min: 1, max: 1 },
     },
+    den: {
+      open: { tier: "stone" },
+      map: { region: "", x: 0, y: 0 },
+      market: {
+        refPer100: {},
+        floorPercent: 50,
+        feePercent: 0,
+        minFee: 0,
+        maxListings: 1,
+        listingHours: 1,
+      },
+      stock: { perDay: 1, markupPercent: 100, blueprintPrice: 1, pool: [] },
+      contracts: { perDay: 1, payPercent: 1, pool: [] },
+      casino: {
+        betStep: 1,
+        limits: {},
+        bigWin: 2,
+        wheel: { roundSeconds: 30, closeSeconds: 0, segments: [] },
+        slots: { symbols: [], jackpot: { feedPercent: 0, pays: 0 } },
+        dice: { options: [] },
+      },
+    },
   };
 }
 
@@ -236,6 +260,9 @@ export function parseContent(
   });
   single("active.json5", activeSchema, (value) => {
     content.active = value;
+  });
+  single("den.json5", denSchema, (value) => {
+    content.den = value;
   });
 
   problems.push(...crossCheck(content, locale));
@@ -364,6 +391,7 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
   }
 
   problems.push(...checkCrewAndMap(content, locale));
+  problems.push(...checkDen(content, locale));
 
   const kindIds = new Set(content.nodeKinds.map((kind) => kind.id));
   for (const kind of content.nodeKinds) {
@@ -760,6 +788,98 @@ export function checkCrewAndMap(content: Content, locale: Locale): Problem[] {
         message: `missing locale key \`trip_event.${event.id}.line\``,
       });
     }
+  }
+  return problems;
+}
+
+/** Every bet option returns between these (a 5-10% edge for the Den, CLAUDE.md section 8). */
+export const RTP_RANGE = { min: 0.9, max: 0.95 } as const;
+
+/**
+ * The Den (W5): every tradeable good has a price, the stock and the contracts name real
+ * goods, nothing can be bought from the Den and delivered back at a profit, every bet
+ * option keeps the Den's edge between 5 and 10% and pays whole scrap, and the locale has a
+ * name for every contract, wheel segment, slot symbol and dice option.
+ */
+export function checkDen(content: Content, locale: Locale): Problem[] {
+  const problems: Problem[] = [];
+  const file = "den.json5";
+  const { den } = content;
+  const goods = new Set([
+    ...content.resources.filter((resource) => resource.kind !== "currency").map((r) => r.id),
+    ...content.items.map((item) => item.id),
+  ]);
+  const add = (id: string, message: string) => problems.push({ file, id, message });
+  if (content.resources.length === 0) return problems;
+
+  if (!content.regions.some((region) => region.id === den.map.region))
+    add("map", `unknown region \`${den.map.region}\``);
+  for (const good of goods) {
+    if (den.market.refPer100[good] === undefined) add(good, "tradeable good has no refPer100");
+  }
+  for (const good of Object.keys(den.market.refPer100)) {
+    if (!goods.has(good)) add(good, "refPer100 names no tradeable resource or item");
+  }
+  for (const offer of den.stock.pool) {
+    if (offer.good !== "blueprint" && !goods.has(offer.good))
+      add(offer.id, `stock names unknown good \`${offer.good}\``);
+  }
+  // Contracts pay below what the Den sells for: buy-and-deliver can never make scrap.
+  if (den.contracts.payPercent >= den.stock.markupPercent) {
+    add("contracts", "payPercent must be below the stock's markupPercent (no arbitrage)");
+  }
+  for (const contract of den.contracts.pool) {
+    if (!goods.has(contract.good))
+      add(contract.id, `contract names unknown good \`${contract.good}\``);
+    if (Object.keys(contract.amount).length === 0) add(contract.id, "wants nothing at any tier");
+    if (!locale.has(`contract.${contract.id}.line`))
+      add(contract.id, `missing locale key \`contract.${contract.id}.line\``);
+  }
+
+  const { casino } = den;
+  const openAt = TIERS.indexOf(den.open.tier);
+  for (const tier of TIERS.slice(openAt)) {
+    const limit = casino.limits[tier];
+    if (!limit) {
+      add(tier, "casino needs limits for every tier the Den is open at");
+      continue;
+    }
+    if (limit.maxBet % casino.betStep !== 0) add(tier, "maxBet must be a whole number of chips");
+    if (limit.maxBet > limit.dailyWager) add(tier, "maxBet is above the daily wager cap");
+  }
+  if (casino.wheel.closeSeconds >= casino.wheel.roundSeconds)
+    add("wheel", "closeSeconds must be shorter than roundSeconds");
+  const allPays = [
+    ...casino.wheel.segments.map((segment) => [segment.id, segment.pays] as const),
+    ...casino.slots.symbols.flatMap((symbol) => [
+      [symbol.id, symbol.three ?? 0] as const,
+      [symbol.id, symbol.two ?? 0] as const,
+    ]),
+    ...casino.dice.options.map((option) => [option.id, option.pays] as const),
+    ["jackpot", casino.slots.jackpot.pays] as const,
+  ];
+  for (const [id, pay] of allPays) {
+    if ((casino.betStep * pay) % 100 !== 0)
+      add(id, `pays ${pay}% of a ${casino.betStep}-scrap chip is not whole scrap`);
+  }
+  const jackpots = casino.slots.symbols.filter((symbol) => symbol.jackpot);
+  if (jackpots.length !== 1) add("slots", "exactly one symbol must be the jackpot");
+  for (const { game, option } of betOptions(casino)) {
+    const rtp = exactRtp(casino, game, option);
+    if (rtp < RTP_RANGE.min || rtp > RTP_RANGE.max) {
+      add(
+        option ?? game,
+        `${game} returns ${(rtp * 100).toFixed(1)}%, outside ${RTP_RANGE.min * 100}-${RTP_RANGE.max * 100}%`,
+      );
+    }
+  }
+  const named = [
+    ...casino.wheel.segments.map((segment) => `casino.segment.${segment.id}`),
+    ...casino.slots.symbols.map((symbol) => `casino.symbol.${symbol.id}`),
+    ...casino.dice.options.map((option) => `casino.dice.${option.id}`),
+  ];
+  for (const key of named) {
+    if (!locale.has(key)) add("casino", `missing locale key \`${key}\``);
   }
   return problems;
 }

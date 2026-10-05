@@ -126,7 +126,7 @@ export class Game {
     const values = {
       stateJson: JSON.stringify(state),
       version,
-      nextEventAt: nextEventAt(state),
+      nextEventAt: nextEventAt(this.deps.content, state),
       updatedAt: now,
     };
     if (loaded.stored) {
