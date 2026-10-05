@@ -334,7 +334,8 @@
     "craft": "Storage is tight: craft a crate for more room.",
     "barrel": "A barrel washed up: tap it on the shore before it drifts off.",
     "building": "A builder is free and a building is affordable: open Upgrade to put it up.",
-    "map": "Your crew can head out: open the Map, scout the fog, send a party to the ruins."
+    "map": "Your crew can head out: open the Map, scout the fog, send a party to the ruins.",
+    "crew": "Give your free crew a job: they work whenever they are home."
   },
   "build": {
     "hint": "Each tier raises storage, furnace slots and builders. Upkeep rises with it.",
@@ -469,7 +470,7 @@
     "count": "Crew {count} of {cap}",
     "next_boat": "next boat in {time}",
     "level": "Level {level}",
-    "home": "At the holdfast",
+    "home": "Free at the holdfast",
     "hurt": "Hurt: resting for {time}",
     "scouting": "Scouting {place} · back in {time}",
     "on_trip": "At the {place} · back in {time}",
@@ -478,7 +479,14 @@
     "no_weapon": "No weapon",
     "no_armor": "No armour",
     "treat": "Treat with a {item} · −{hours}h",
-    "treat_none": "Make bandages at the loom to treat injuries"
+    "treat_none": "Make bandages at the loom to treat injuries",
+    "job": "Job",
+    "rest": "Rest",
+    "rest_title": "Sleep {hours}h, then back to work",
+    "rest_tired": "Rest the tired ({count}) · {hours}h",
+    "jobs_hint": "Give everyone a job: they keep it while out on trips and pick it up when back.",
+    "defence": "defence {points}",
+    "at_work": "At work"
   },
   "tasks": {
     "hint": "Three small goals a day. Rewards land the moment a task completes. New set in {time}.",
@@ -528,7 +536,9 @@
     "scout_back": "{name} is back: {region} is on the map.",
     "trip_success": "The party is back from the {site} with a haul.",
     "trip_partial": "The party is back from the {site} with a little.",
-    "trip_fail": "The party is back from the {site} empty-handed."
+    "trip_fail": "The party is back from the {site} empty-handed.",
+    "rescued": "{name} was found hiding in the ruins and joined the crew.",
+    "found": "{item} found at the {site}."
   },
   "refusal": {
     "cooldown": "Gather is ready again in {time}.",
@@ -945,7 +955,24 @@
     "pick_party": "Pick who goes",
     "party_size": "At most {most} can go",
     "send": "Send {count} · {time}",
-    "read_report": "Read"
+    "read_report": "Read",
+    "crew": "Your crew",
+    "asleep": "Asleep (wakes to go) · {traits}",
+    "steers": "Can steer a boat · {traits}",
+    "far_building": "Too far for now: a {building} lets scouts reach that far.",
+    "need_dock": "Out at sea: build a {building} first.",
+    "need_dock_level": "That far out, the {building} has to be level {level}.",
+    "need_navigator": "Out at sea, someone has to be a navigator.",
+    "need_keycode": "Need a {item}",
+    "by_boat": "By boat from the {building} (level {level}): a navigator goes with them.",
+    "find_chance": "{percent}% chance of a {item}.",
+    "find_sure": "Sure within {count} successes.",
+    "might_happen": "Might happen on the way",
+    "bond": "{names}: +{points}% together",
+    "keycode": "Keycode",
+    "keycode_have": "Spends a {item} on the way in. You have {count} ({left} left after).",
+    "keycode_none": "The doors need a {item}: one turns up at the {site}.",
+    "go_to": "Go to the {site}"
   },
   "report": {
     "success": "Success",
@@ -961,7 +988,9 @@
     "injured": "{name} got hurt: resting for {time}.",
     "close": "Close",
     "again": "Send again",
-    "see_map": "See it on the map"
+    "see_map": "See it on the map",
+    "found": "Found: {item}!",
+    "someone": "someone"
   },
   "trip_event": {
     "ambush": {
@@ -974,7 +1003,21 @@
     },
     "stranger": {
       "name": "A stranger",
-      "line": "{name} found someone hiding in the ruins and brought them home."
+      "line": "{name} found {stranger} hiding in the ruins and brought them home to the crew."
     }
+  },
+  "work": {
+    "per_hour": "+{amount} {what}/h",
+    "job_free": "Free: no job",
+    "job_guard": "Guard · +{points} defence",
+    "job_station": "{station} · {percent}% faster",
+    "job_node": "{node} · {gain}",
+    "station_taken": "{name} works it",
+    "asleep": "Asleep · up in {time}",
+    "tired": "Tired: half pace until they rest",
+    "summary_tired": "{count} tired",
+    "summary_free": "{count} free",
+    "summary_away": "{count} out",
+    "summary_working": "all at work"
   }
 }

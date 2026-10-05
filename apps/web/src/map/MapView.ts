@@ -157,7 +157,31 @@ function doodles(g: Graphics, region: Region, seed: number): void {
       case "shore":
         g.circle(px, py, 3).fill(0xb9a97a);
         break;
+      case "tundra":
+        // Snowy mounds, and rails on the first two.
+        g.moveTo(px - 14, py + 5)
+          .quadraticCurveTo(px, py - 9, px + 14, py + 5)
+          .fill(0xf1f4f5);
+        if (i < 2)
+          g.moveTo(px - 20, py + 10)
+            .lineTo(px + 20, py + 10)
+            .moveTo(px - 20, py + 14)
+            .lineTo(px + 20, py + 14)
+            .stroke({ width: 1.5, color: 0x6e6a64 });
+        break;
+      case "sea":
+        g.moveTo(px - 10, py)
+          .quadraticCurveTo(px - 5, py - 5, px, py)
+          .quadraticCurveTo(px + 5, py + 5, px + 10, py)
+          .stroke({ width: 2, color: 0xffffff, alpha: 0.55 });
+        break;
     }
+  }
+  if (region.terrain === "sea") {
+    // A buoy: someone marked the way out here once.
+    g.rect(x + 30, y - 30, 8, 14).fill(0xcd412b);
+    g.rect(x + 30, y - 24, 8, 3).fill(0xffffff);
+    g.circle(x + 34, y - 32, 3).fill(0xffd25a);
   }
 }
 
@@ -213,38 +237,34 @@ export class MapView {
 
     const terrain = new Graphics();
     for (const [index, region] of content.regions.entries()) {
+      // The sea regions are open water: a lighter patch, not land.
+      const sea = region.access === "sea";
       smoothShape(terrain, blob(region.x, region.y, REGION_R * 0.85, index * 13.7)).fill({
-        color: TERRAIN[region.terrain],
-        alpha: 0.85,
+        color: sea ? SEA_LIGHT : TERRAIN[region.terrain],
+        alpha: sea ? 0.45 : 0.85,
       });
       doodles(terrain, region, index * 21.3);
     }
-    // Roads between neighbours: dashed tracks.
+    // Roads between neighbours: dashed tracks on land, pale sea lanes to the sea regions.
     const roads = new Graphics();
+    const lanes = new Graphics();
     for (const region of content.regions) {
       for (const other of region.neighbours) {
         const target = content.regions.find((candidate) => candidate.id === other);
         if (!target || target.id < region.id) continue;
+        const layer = region.access === "sea" || target.access === "sea" ? lanes : roads;
         const steps = 14;
         for (let i = 0; i < steps; i += 2) {
           const a = i / steps;
           const b = (i + 1) / steps;
-          roads
+          layer
             .moveTo(region.x + (target.x - region.x) * a, region.y + (target.y - region.y) * a)
             .lineTo(region.x + (target.x - region.x) * b, region.y + (target.y - region.y) * b);
         }
       }
     }
     roads.stroke({ width: 3, color: 0x6f5638, alpha: 0.55 });
-
-    // The uncharted north: always under cloud until W4b charts it.
-    const north = new Container();
-    for (let i = 0; i < 16; i++) {
-      const puff = new Graphics();
-      puff.circle(0, 0, 60 + hash(i * 2.3) * 50).fill({ color: FOG, alpha: 0.92 });
-      puff.position.set(180 + hash(i * 7.7) * 680, 110 + hash(i * 3.9) * 150);
-      north.addChild(puff);
-    }
+    lanes.stroke({ width: 3, color: 0xffffff, alpha: 0.5 });
 
     // The holdfast.
     const holdfast = new Graphics();
@@ -306,11 +326,11 @@ export class MapView {
       island,
       terrain,
       roads,
+      lanes,
       holdfast,
       this.siteLayer,
       this.routes,
       this.fogLayer,
-      north,
     );
     this.container.addChild(this.chart, this.labels);
     this.container.visible = false;

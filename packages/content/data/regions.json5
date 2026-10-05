@@ -83,7 +83,7 @@
       scout: { cost: { food: 120, scrap: 60, fuel: 30 }, minutes: 360 },
     },
     {
-      id: "open_water", x: 80, y: 150, ring: 5, terrain: "sea", access: "sea", dock: 3,
+      id: "open_water", x: 55, y: 240, ring: 5, terrain: "sea", access: "sea", dock: 3,
       neighbours: ["the_narrows"],
       scout: { cost: { food: 200, scrap: 100, fuel: 60 }, minutes: 1440 },
     },

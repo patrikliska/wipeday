@@ -16,6 +16,7 @@
 import type { BaseState } from "@wipe-day/domain/base";
 import type { Command } from "@wipe-day/domain/commands";
 import { applyCommand } from "@wipe-day/domain/commands";
+import type { Job } from "@wipe-day/domain/crew";
 import type { GameEvent as DomainEvent } from "@wipe-day/domain/events";
 import { nodeKindOf, nodeStatus } from "@wipe-day/domain/nodes";
 import { nextEventAt, settleAll } from "@wipe-day/domain/settle";
@@ -108,6 +109,9 @@ interface Actions {
   sendTrip(site: string, crew: string[]): boolean;
   equip(survivor: string, slot: "weapon" | "armor", item: string | null): boolean;
   treat(survivor: string, item: string): boolean;
+  assign(survivor: string, job: Job | null): boolean;
+  rest(survivor: string): boolean;
+  restTired(): boolean;
   /** Opens a report card (and marks it read); null closes it. */
   openReport(id: string | null): void;
   smelt(ore: string): boolean;
@@ -420,6 +424,9 @@ export const useWorld = create<Store>((set, get) => {
     sendTrip: (site, crew) => get().send({ type: "send_trip", site, crew }),
     equip: (survivor, slot, item) => get().send({ type: "equip", survivor, slot, item }),
     treat: (survivor, item) => get().send({ type: "treat", survivor, item }),
+    assign: (survivor, job) => get().send({ type: "assign", survivor, job }),
+    rest: (survivor) => get().send({ type: "rest", survivor }),
+    restTired: () => get().send({ type: "rest_tired" }),
 
     openReport(id) {
       set({ report: id });

@@ -68,10 +68,18 @@ const CRAFT_STOCK = {
   cloth: 10,
   plates: 12,
 };
+/** A rested shift from the start of `day` (W4b): tired by the evening. */
+const SHIFT = (day, tiredHour = 16) => ({
+  since: at(day, 0),
+  tiredAt: at(day, tiredHour),
+  sleepUntil: null,
+});
 /** The crew a week in: levels, gear, one hurt, two out on missions. */
 const CREW = (day) => [
   {
     id: "mara",
+    job: null,
+    shift: SHIFT(day),
     level: 3,
     xp: 300,
     gear: { weapon: "bow", armor: null },
@@ -80,6 +88,8 @@ const CREW = (day) => [
   },
   {
     id: "dax",
+    job: null,
+    shift: SHIFT(day),
     level: 2,
     xp: 180,
     gear: { weapon: null, armor: "leather_vest" },
@@ -88,6 +98,8 @@ const CREW = (day) => [
   },
   {
     id: "ivo",
+    job: null,
+    shift: SHIFT(day),
     level: 2,
     xp: 140,
     gear: { weapon: null, armor: null },
@@ -96,6 +108,8 @@ const CREW = (day) => [
   },
   {
     id: "rook",
+    job: { kind: "node", node: "tree" },
+    shift: SHIFT(day),
     level: 1,
     xp: 40,
     gear: { weapon: "spear", armor: null },
@@ -104,6 +118,8 @@ const CREW = (day) => [
   },
   {
     id: "sela",
+    job: { kind: "guard" },
+    shift: SHIFT(day),
     level: 1,
     xp: 0,
     gear: { weapon: null, armor: null },
@@ -112,6 +128,53 @@ const CREW = (day) => [
   },
 ];
 const KNOWN = ["landing", "tidal_flats", "pine_ridge", "ferry_point", "quarry_hills"];
+/** Seven at work late in the season: nodes, two stations, a guard, one asleep, one tired. */
+const WORK_CREW = (day, hour = 11) =>
+  [
+    ["mara", { kind: "node", node: "tree" }, SHIFT(day)],
+    ["dax", { kind: "node", node: "stone" }, SHIFT(day)],
+    ["ivo", { kind: "guard" }, SHIFT(day)],
+    ["rook", { kind: "node", node: "ore" }, SHIFT(day - 1, 9)],
+    ["bram", { kind: "station", station: "campfire" }, SHIFT(day)],
+    ["otto", { kind: "station", station: "workbench" }, SHIFT(day - 1, 10)],
+    [
+      "sela",
+      { kind: "node", node: "fibre" },
+      { since: at(day, hour + 5), tiredAt: at(day, hour + 21), sleepUntil: at(day, hour + 5) },
+    ],
+  ].map(([id, job, shift], index) => ({
+    id,
+    level: 2 + (index % 3),
+    xp: 200 + index * 40,
+    gear: { weapon: index < 2 ? "bow" : null, armor: null },
+    injuredUntil: null,
+    away: null,
+    job,
+    shift,
+  }));
+const ALL_LAND = [
+  "landing",
+  "tidal_flats",
+  "pine_ridge",
+  "ferry_point",
+  "rust_bay",
+  "quarry_hills",
+  "stormcap",
+  "sulfur_springs",
+  "signal_hill",
+];
+/** Late season: Sheet Metal, a radio mast and a dock, the north and the narrows charted. */
+const LATE_MAP = (day) => ({
+  time: at(day, 11),
+  tier: "metal",
+  buildings: { ...MIDGAME, radio_mast: 1, dock: 2, bunkhouse: 3 },
+  stock: { ...CRAFT_STOCK, food: 2400, fuel: 180, scrap: 900 },
+  crew: WORK_CREW(day),
+  known: [...ALL_LAND, "rail_yards", "north_dam", "the_narrows"],
+  missions: [],
+  items: { bandage: 2, copper_keycode: 1, brass_keycode: 1 },
+  bonds: { "dax+mara": 4 },
+});
 const MISSIONS = (day) => [
   {
     id: "m7",
@@ -648,6 +711,128 @@ const SHOTS = [
     viewport: [390, 844],
     scale: 3,
     state: { ...MAP_STATE(7), panel: "squad" },
+  },
+  // --- W4b: jobs, rest, the far north and the sea, trip events -----------------------
+  {
+    name: "phone_crew_jobs",
+    viewport: [390, 844],
+    scale: 3,
+    state: { ...LATE_MAP(20), time: at(20, 9), panel: "squad" },
+  },
+  {
+    name: "phone_crew_tired",
+    viewport: [390, 844],
+    scale: 3,
+    state: { ...LATE_MAP(20), time: at(20, 18), panel: "squad" },
+  },
+  {
+    name: "phone_crew_chip",
+    viewport: [390, 844],
+    scale: 3,
+    state: {
+      time: at(4, 11),
+      tier: "wood",
+      buildings: { workbench: 1, furnace: 1, campfire: 1 },
+      stock: { timber: 300, stone: 200, ore: 40, food: 60 },
+      crew: CREW(4)
+        .slice(0, 4)
+        .map((member) => ({ ...member, away: null, job: null, injuredUntil: null })),
+      barrel: null,
+    },
+  },
+  {
+    name: "phone_map_north",
+    viewport: [390, 844],
+    scale: 3,
+    state: { ...LATE_MAP(20), view: "map" },
+  },
+  {
+    name: "map_north_desktop",
+    viewport: [1600, 900],
+    state: { ...LATE_MAP(20), view: "map" },
+  },
+  {
+    name: "phone_map_sea_site",
+    viewport: [390, 844],
+    scale: 3,
+    state: {
+      ...LATE_MAP(20),
+      view: "map",
+      panel: "map",
+      mapFocus: { kind: "site", id: "submarine_pen" },
+    },
+  },
+  {
+    name: "phone_map_sea_odds",
+    viewport: [390, 844],
+    scale: 3,
+    state: {
+      ...LATE_MAP(20),
+      view: "map",
+      panel: "map",
+      mapFocus: { kind: "site", id: "submarine_pen" },
+    },
+    scrollTo: ".panel .odds",
+  },
+  {
+    name: "phone_site_keycode_locked",
+    viewport: [390, 844],
+    scale: 3,
+    state: {
+      ...LATE_MAP(20),
+      items: {},
+      view: "map",
+      panel: "map",
+      mapFocus: { kind: "site", id: "weather_station" },
+    },
+    scrollTo: ".panel .odds",
+  },
+  {
+    name: "phone_region_open_water",
+    viewport: [390, 844],
+    scale: 3,
+    state: {
+      ...LATE_MAP(20),
+      tier: "hqm",
+      view: "map",
+      panel: "map",
+      mapFocus: { kind: "region", id: "open_water" },
+    },
+  },
+  {
+    name: "phone_report_events",
+    viewport: [390, 844],
+    scale: 3,
+    state: {
+      ...LATE_MAP(20),
+      reports: [
+        {
+          ...REPORT(20, "success"),
+          target: "weather_station",
+          crew: ["mara", "dax", "ivo"],
+          gained: { scrap: 48, plates: 9, fuel: 22 },
+          levelUps: [],
+          revealed: [],
+          events: ["ambush", "stranger"],
+          found: ["copper_keycode"],
+          rescued: "wren",
+        },
+      ],
+      report: "m6",
+    },
+  },
+  {
+    name: "scene_workers",
+    viewport: [1600, 900],
+    state: { ...LATE_MAP(20), time: at(20, 11) },
+    // The patched crew walk up from the shore first: give them time to reach their posts.
+    settle: 24000,
+  },
+  {
+    name: "scene_workers_night",
+    viewport: [1600, 900],
+    state: { ...LATE_MAP(20), time: at(20, 22.5), crew: WORK_CREW(20, 22.5) },
+    settle: 24000,
   },
   {
     name: "phone_craft",

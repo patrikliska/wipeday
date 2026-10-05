@@ -1,7 +1,10 @@
+import { advise } from "@wipe-day/domain/advisor";
 import { storageCap } from "@wipe-day/domain/base";
+import { crewCap } from "@wipe-day/domain/missions";
 import { useShallow } from "zustand/shallow";
 import { seasonDay, seasonTime, useWorld } from "../state/store";
 import { abbrev, clockLabel, content, duration, resourceName, t, tierName } from "../state/world";
+import { crewSummary } from "./crew";
 import { knownResources, pendingOf } from "./derived";
 import { ResourceIcon, Tile } from "./Icon";
 import { tierVar, vars } from "./util";
@@ -19,6 +22,19 @@ export function TopBar() {
   const panel = useWorld((state) => state.panel);
   const openPanel = useWorld((state) => state.openPanel);
   const tasksDone = useWorld((state) => state.base.tasks.done.length);
+  // The crew chip (phones; desktop has the Squad dock button): count, who needs a look, and
+  // the glow when the advisor picks the crew. Read once a minute.
+  const crew = useWorld(
+    useShallow((state) => {
+      const minute = Math.floor(state.now / 60) * 60;
+      return {
+        count: state.base.crew.length,
+        cap: crewCap(content, state.base),
+        line: crewSummary(state.base, minute),
+        glow: advise(content, state.base, minute) === "crew",
+      };
+    }),
+  );
   // A served meal: its boost and the time left, in whole minutes (re-renders once a minute).
   const fed = useWorld((state) => {
     const wellFed = state.base.wellFed;
@@ -85,6 +101,21 @@ export function TopBar() {
             </span>
           );
         })}
+      </button>
+
+      <button
+        type="button"
+        className={`glass crewchip${crew.glow ? " primary" : ""}${panel === "squad" ? " active" : ""}`}
+        onClick={() => openPanel("squad")}
+        title={t("panel.squad")}
+      >
+        <Tile color="#4a7fb5" label="SQ" />
+        <span className="who">
+          <span className="name num">
+            {crew.count}/{crew.cap}
+          </span>
+          <span className="sub">{crew.line}</span>
+        </span>
       </button>
 
       <div className="glass clockchip">

@@ -4,6 +4,7 @@
  * toast. Every string comes from the locale.
  */
 import type { Refusal } from "@wipe-day/domain/commands";
+import { sitesFinding } from "@wipe-day/domain/missions";
 import type { GameEvent } from "./events";
 import {
   content,
@@ -51,9 +52,9 @@ function tierForRange(ring: number): string {
 /** The building that adds scout range (the radio mast), and how much its first level adds. */
 const rangeBuilding = content.buildings.find((b) => (b.levels[0]?.effects.scoutRange ?? 0) > 0);
 
-/** Where a keycode turns up: the first site that finds it. */
+/** Where a keycode turns up: the likeliest site. */
 function keycodeSource(item: string): string | null {
-  const site = content.sites.find((s) => s.finds?.some((find) => find.item === item));
+  const site = sitesFinding(content, item)[0];
   return site ? siteName(site.id) : null;
 }
 
@@ -274,9 +275,17 @@ export function eventMessage(event: GameEvent): Message | null {
       };
     case "survivor_arrived":
       return {
-        text: t("toast.arrived", { name: survivorName(event.survivor) }),
+        text: t(event.from === "rescue" ? "toast.rescued" : "toast.arrived", {
+          name: survivorName(event.survivor),
+        }),
         tone: "success",
         panel: "squad",
+      };
+    case "item_found":
+      return {
+        text: t("toast.found", { item: itemName(event.item), site: siteName(event.from) }),
+        tone: "success",
+        panel: "map",
       };
     case "blueprint_found":
       return {

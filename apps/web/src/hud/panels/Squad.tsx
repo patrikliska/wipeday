@@ -1,7 +1,11 @@
 /**
- * The crew: who they are (traits), how far along (level, XP), what they carry,
- * and where they are: home, away on a mission, or hurt (with a Treat button).
+ * The crew: who they are (traits), how far along (level, XP), what they do at
+ * home (a job: a node, a station or guard, W4b), how rested they are, what they
+ * carry, and where they are: home, away on a mission, or hurt (with a Treat
+ * button). "Rest the tired" is the one primary action when anyone is tired.
  */
+import { defence, isAsleep } from "@wipe-day/domain/crew";
+import { tiredWorkers } from "@wipe-day/domain/jobs";
 import { crewCap, levelFor, nextLevelAt } from "@wipe-day/domain/missions";
 import { useWorld } from "../../state/store";
 import {
@@ -14,6 +18,7 @@ import {
   t,
   traitName,
 } from "../../state/world";
+import { jobKey, jobOptions, restLine } from "../crew";
 import { vars } from "../util";
 
 export function SquadPanel() {
@@ -21,6 +26,9 @@ export function SquadPanel() {
   const now = useWorld((state) => Math.floor(state.now));
   const equip = useWorld((state) => state.equip);
   const treat = useWorld((state) => state.treat);
+  const assign = useWorld((state) => state.assign);
+  const rest = useWorld((state) => state.rest);
+  const restTired = useWorld((state) => state.restTired);
   const setView = useWorld((state) => state.setView);
   const cap = crewCap(content, base);
   const weapons = content.items.filter(
@@ -30,6 +38,9 @@ export function SquadPanel() {
     (item) => item.category === "armor" && (base.items[item.id] ?? 0) > 0,
   );
   const kit = Object.keys(content.crewRules.treat).find((id) => (base.items[id] ?? 0) > 0);
+  const tired = tiredWorkers(base, now);
+  const guard = defence(content, base, now);
+  const { sleepHours } = content.crewRules.jobs;
 
   return (
     <>
@@ -39,11 +50,19 @@ export function SquadPanel() {
           {base.crew.length < cap && base.nextArrivalAt > now
             ? ` · ${t("squad.next_boat", { time: duration(base.nextArrivalAt - now) })}`
             : ""}
+          {guard > 0 ? ` · ${t("squad.defence", { points: guard })}` : ""}
         </span>
         <button type="button" className="btn small" onClick={() => setView("map")}>
           {t("action.map")}
         </button>
       </div>
+      {tired.length > 0 ? (
+        <button type="button" className="btn primary wide" onClick={() => restTired()}>
+          {t("squad.rest_tired", { count: tired.length, hours: sleepHours })}
+        </button>
+      ) : (
+        <p className="hint">{t("squad.jobs_hint")}</p>
+      )}
       {base.crew.map((member) => {
         const look = survivorLook(member.id);
         const mission = base.missions.find((candidate) => candidate.id === member.away);
@@ -51,6 +70,7 @@ export function SquadPanel() {
         const next = nextLevelAt(content, member.level);
         const from = member.level > 1 ? (content.crewRules.levels[member.level - 2] ?? 0) : 0;
         const progress = next === null ? 1 : (member.xp - from) / Math.max(1, next - from);
+        const resting = restLine(member, now);
         const where = mission
           ? t(mission.kind === "scout" ? "squad.scouting" : "squad.on_trip", {
               place:
@@ -59,7 +79,15 @@ export function SquadPanel() {
             })
           : hurt
             ? t("squad.hurt", { time: duration((member.injuredUntil ?? now) - now) })
-            : t("squad.home");
+            : (resting?.text ?? (member.job ? t("squad.at_work") : t("squad.home")));
+        // The job itself is in the select below; this line says how they are.
+        const tone = hurt
+          ? "warn"
+          : mission
+            ? "away"
+            : (resting?.tone ?? (member.job ? "good" : "muted"));
+        const options = jobOptions(base, member.id);
+        const asleep = isAsleep(member, now);
         return (
           <div key={member.id} className="survivor" style={vars({ "--hat": look.hat })}>
             <span className="face" />
@@ -74,7 +102,35 @@ export function SquadPanel() {
               <div className="bar" style={vars({ "--bar-color": "#e3a32f" })}>
                 <i style={{ width: `${Math.round(Math.min(1, progress) * 100)}%` }} />
               </div>
-              <span className={hurt ? "warn" : mission ? "away" : undefined}>{where}</span>
+              <span className={tone}>{where}</span>
+              <div className="row job">
+                <select
+                  aria-label={t("squad.job")}
+                  value={jobKey(member.job)}
+                  onChange={(event) => {
+                    const option = options.find(
+                      (candidate) => candidate.key === event.target.value,
+                    );
+                    if (option) assign(member.id, option.job);
+                  }}
+                >
+                  {options.map((option) => (
+                    <option key={option.key} value={option.key} disabled={option.blocked !== null}>
+                      {option.blocked ? `${option.label} · ${option.blocked}` : option.label}
+                    </option>
+                  ))}
+                </select>
+                {member.job !== null && !asleep && member.away === null ? (
+                  <button
+                    type="button"
+                    className="btn small"
+                    onClick={() => rest(member.id)}
+                    title={t("squad.rest_title", { hours: sleepHours })}
+                  >
+                    {t("squad.rest")}
+                  </button>
+                ) : null}
+              </div>
               <div className="row gear">
                 <select
                   aria-label={t("squad.weapon")}

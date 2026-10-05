@@ -9,6 +9,7 @@ import {
   abbrev,
   content,
   duration,
+  itemName,
   outputName,
   regionName,
   resourceName,
@@ -46,6 +47,15 @@ export function ReportCard() {
         </span>
         <h2>{title}</h2>
         <p className="story">{story}</p>
+        {(report.events ?? []).map((event) => (
+          <p key={event} className={event === "ambush" ? "warn" : "good"}>
+            {t(`trip_event.${event}.line`, {
+              name: lead,
+              stranger: report.rescued ? survivorLook(report.rescued).name : t("report.someone"),
+              rolls: content.tripEvents.find((candidate) => candidate.id === event)?.rolls ?? 0,
+            })}
+          </p>
+        ))}
         {gains.length > 0 ? (
           <div className="gains">
             {gains.map(([res, amount]) => (
@@ -60,6 +70,11 @@ export function ReportCard() {
             {t("report.revealed", { regions: report.revealed.map(regionName).join(", ") })}
           </p>
         ) : null}
+        {(report.found ?? []).map((item) => (
+          <p key={item} className="good">
+            {t("report.found", { item: itemName(item) })}
+          </p>
+        ))}
         {report.blueprint ? (
           <p className="good">{t("report.blueprint", { item: outputName(report.blueprint) })}</p>
         ) : null}

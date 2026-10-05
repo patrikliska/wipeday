@@ -13,6 +13,7 @@ import { craftOptions, jobEndsAt } from "@wipe-day/domain/craft";
 import { type Panel as PanelId, useWorld } from "../state/store";
 import { abbrev, content, duration, outputName, t } from "../state/world";
 import { needLabel } from "./Cost";
+import { crewSummary } from "./crew";
 import { pendingOf } from "./derived";
 import { Tile } from "./Icon";
 import { tierVar } from "./util";
@@ -41,6 +42,8 @@ const DOCK_FOR: Record<Advice, string | null> = {
   building: "build",
   craft: "craft",
   map: "map",
+  // Desktop: the Squad button; phones: the crew chip in the top bar.
+  crew: "squad",
   // The barrel glows in the scene itself.
   barrel: null,
 };
@@ -183,7 +186,7 @@ export function Dock() {
       name: t("action.squad"),
       glyph: "SQ",
       color: "#4a7fb5",
-      sub: t("hud.crew_count", { count: base.crew.length }),
+      sub: crewSummary(base, now),
       extra: true,
       panel: "squad",
       onClick: () => openPanel("squad"),

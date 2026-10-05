@@ -26,6 +26,7 @@ import {
 } from "./base";
 import { buildingCount, buildStatus, nextBuild } from "./buildings";
 import { craftStatus } from "./craft";
+import { tiredWorkers } from "./jobs";
 import { crewCap, isFit, scoutStatus, sitesIn, tripStatus } from "./missions";
 import { partsToMake } from "./recipes";
 
@@ -38,6 +39,7 @@ export type Advice =
   | "building"
   | "craft"
   | "map"
+  | "crew"
   | "gather";
 
 /** A hint is shown until its action has been used this many times. */
@@ -156,6 +158,21 @@ export function mapWorthIt(content: Content, state: BaseState, now: number): boo
   );
 }
 
+/**
+ * True when the crew wants a look: a worker is tired (one tap rests them all), or someone
+ * at home is free while the base can give them work (from the first tier on, W4b).
+ */
+export function crewWorthIt(state: BaseState, now: number): boolean {
+  if (tiredWorkers(state, now).length > 0) return true;
+  if (!tierAtLeast(state, "wood")) return false;
+  return state.crew.some(
+    (member) =>
+      member.job === null &&
+      member.away === null &&
+      !(member.injuredUntil !== null && member.injuredUntil > now),
+  );
+}
+
 /** Room for another survivor, for the crew panel. */
 export { crewCap };
 
@@ -170,6 +187,7 @@ export function advise(content: Content, state: BaseState, now: number): Advice 
   if (tool && toolUnlocked(state, tool) && canAfford(tool.cost, state.stock)) return "tools";
   if (furnaceWorthIt(content, state, now)) return "furnace";
   if (buildingWorthIt(content, state) !== null) return "building";
+  if (crewWorthIt(state, now)) return "crew";
   if (mapWorthIt(content, state, now)) return "map";
   if (craftWorthIt(content, state, now)) return "craft";
   if (gatherReadyAt(content, state) <= now) return "gather";

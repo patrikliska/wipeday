@@ -3,12 +3,15 @@
  * colour each; a portrait pipeline can replace them without touching the
  * behaviour. The cast follows the crew: newcomers and returning parties walk
  * up from the shore, those leaving on a mission walk down to it, and the
- * injured rest by the fire.
+ * injured rest by the fire. With a job (W4b) they keep to their post: a node
+ * worker works that node and carries the haul home, a station worker works at
+ * the station, a guard stands watch by the gate, and a sleeper lies by the fire
+ * with a "z" over them, day or night. The free wander.
  */
 import { Container, Graphics } from "pixi.js";
 import type { SurvivorLook } from "../state/world";
 import { CLOTHES, SKIN } from "./palette";
-import { hash, pick, rand, shade } from "./util";
+import { hash, rand, shade } from "./util";
 
 type Activity = "idle" | "walk" | "work" | "rest" | "leave";
 
@@ -27,11 +30,16 @@ interface Actor {
   facing: 1 | -1;
   phase: number;
   workNode: string | null;
+  post: Post | null;
+  /** The "z" over a sleeper. */
+  zz: Graphics;
 }
 
-export interface Spot {
-  id: string;
+/** Where a survivor's job keeps them. `node`: work that node; otherwise stand at `x`. */
+export interface Post {
+  kind: "node" | "station" | "guard" | "sleep";
   x: number;
+  node?: string;
 }
 
 export interface ActorCallbacks {
@@ -216,7 +224,6 @@ export class Actors {
   constructor(
     private readonly ground: number,
     private readonly homeX: number,
-    private readonly spots: Spot[],
     private readonly restX: number,
     private readonly shoreX: number,
     private readonly callbacks: ActorCallbacks,
@@ -239,7 +246,11 @@ export class Actors {
    * round the door; later, newcomers (arrivals, parties back) walk up from the shore
    * and those gone (on a mission) walk down to it and out of sight.
    */
-  sync(home: SurvivorLook[], hurt: ReadonlySet<string>): void {
+  sync(
+    home: SurvivorLook[],
+    hurt: ReadonlySet<string>,
+    posts: ReadonlyMap<string, Post> = new Map(),
+  ): void {
     this.hurt = new Set(hurt);
     const ids = new Set(home.map((look) => look.id));
     for (const actor of this.actors) {
@@ -261,20 +272,51 @@ export class Actors {
         continue;
       }
       const figure = drawFigure(look);
-      const x = this.cast ? this.shoreX : this.homeX + (index - 1) * 60;
+      const zz = new Graphics();
+      for (const [dx, dy, size] of [
+        [10, -78, 7],
+        [18, -90, 5],
+      ] as const) {
+        zz.moveTo(dx, dy)
+          .lineTo(dx + size, dy)
+          .lineTo(dx, dy + size)
+          .lineTo(dx + size, dy + size)
+          .stroke({ width: 2, color: 0xffffff, alpha: 0.9 });
+      }
+      zz.visible = false;
+      figure.container.addChild(zz);
+      // Where they are headed: their post (or bed), else round the door.
+      const post = posts.get(look.id) ?? null;
+      const dest =
+        post?.kind === "sleep"
+          ? this.restX + rand(-40, 40)
+          : post
+            ? post.x + rand(-20, 20)
+            : this.homeX + (this.cast ? rand(-100, 100) : (index - 1) * 60);
+      // The first cast stands where they belong; later arrivals walk up from the shore.
+      const x = this.cast ? this.shoreX : dest;
       figure.container.position.set(x, this.ground + 6);
       this.container.addChildAt(figure.container, 0);
       this.actors.push({
         survivor: look,
         ...figure,
         x,
-        targetX: this.cast ? this.homeX + rand(-100, 100) : x,
+        targetX: dest,
         activity: this.cast ? "walk" : "idle",
         timer: rand(1, 4),
         facing: 1,
         phase: hash(look.style * 4.2) * 6,
-        workNode: null,
+        workNode: post?.kind === "node" ? (post.node ?? null) : null,
+        post,
+        zz,
       });
+    }
+    for (const actor of this.actors) {
+      const post = posts.get(actor.survivor.id) ?? null;
+      const changed = JSON.stringify(post) !== JSON.stringify(actor.post);
+      actor.post = post;
+      // A new post: head there now rather than finishing the old errand.
+      if (changed && actor.activity !== "leave" && actor.activity !== "walk") actor.timer = 0;
     }
     this.cast = true;
   }
@@ -282,10 +324,6 @@ export class Actors {
   /** World x of a survivor in the scene (for floaters), or null when not shown. */
   positionOf(id: string): number | null {
     return this.actors.find((actor) => actor.survivor.id === id)?.x ?? null;
-  }
-
-  private workable(): Spot[] {
-    return this.spots.filter((spot) => this.callbacks.canWork(spot.id));
   }
 
   setNight(night: boolean): void {
@@ -296,7 +334,12 @@ export class Actors {
     this.time += dt;
     for (const actor of this.actors) {
       actor.timer -= dt;
-      const resting = this.night || this.hurt.has(actor.survivor.id);
+      const post = actor.post;
+      const asleep = post?.kind === "sleep";
+      // Workers keep at it through the night (lanterns); the free, the hurt and sleepers rest.
+      const resting = asleep || this.hurt.has(actor.survivor.id) || (this.night && post === null);
+      actor.zz.visible = asleep && actor.activity === "rest";
+      if (actor.zz.visible) actor.zz.y = Math.sin(this.time * 1.5 + actor.phase) * 3;
       switch (actor.activity) {
         case "leave": {
           // Down to the shore and out of sight.
@@ -316,16 +359,20 @@ export class Actors {
           actor.body.y = Math.sin(this.time * 2 + actor.phase) * 1.2;
           if (actor.timer <= 0) {
             actor.activity = "walk";
+            actor.workNode = null;
             if (resting) {
               actor.targetX = this.restX + rand(-40, 40);
-              actor.workNode = null;
-            } else if (Math.random() < 0.7 && this.workable().length > 0) {
-              const spot = pick(this.workable());
-              actor.workNode = spot.id;
-              actor.targetX = spot.x + rand(-30, 30);
+            } else if (post?.kind === "node" && post.node && this.callbacks.canWork(post.node)) {
+              actor.workNode = post.node;
+              actor.targetX = post.x + rand(-20, 20);
+            } else if (post && post.kind !== "node") {
+              // A station or the gate: stand there (a little shuffle keeps them alive).
+              actor.targetX = post.x + rand(-12, 12);
+            } else if (post?.kind === "node") {
+              // Their node is worked out: wait beside it for it to stand again.
+              actor.targetX = post.x + rand(-40, 40);
             } else {
               actor.targetX = this.homeX + rand(-160, 160);
-              actor.workNode = null;
             }
           }
           break;
@@ -339,6 +386,14 @@ export class Actors {
             if (actor.workNode) {
               actor.activity = "work";
               actor.timer = rand(2.5, 4.5);
+            } else if (post?.kind === "station" && !resting) {
+              // At the station: hands busy, no haul to carry.
+              actor.activity = "work";
+              actor.timer = rand(5, 9);
+              actor.facing = actor.x < post.x ? 1 : -1;
+            } else if (resting && Math.abs(actor.x - this.restX) > 60) {
+              // Arrived somewhere else (back from the shore): bed is by the fire.
+              actor.targetX = this.restX + rand(-40, 40);
             } else if (resting) {
               actor.activity = "rest";
               actor.timer = rand(6, 12);
@@ -371,12 +426,25 @@ export class Actors {
           const gone = actor.workNode !== null && !this.callbacks.canWork(actor.workNode);
           if (actor.workNode && !gone && Math.random() < dt * 2.2)
             this.callbacks.onWork(actor.workNode, actor.x, this.ground - 50);
+          // A node worker mostly keeps at it, and walks a haul home about one turn in three.
+          const keepAt = actor.post?.kind === "node" && actor.post.node === actor.workNode;
+          if (actor.timer <= 0 && !gone && keepAt && Math.random() < 0.65) {
+            actor.timer = rand(2.5, 4.5);
+            break;
+          }
           if (actor.timer <= 0 || gone) {
             actor.body.rotation = 0;
-            actor.carry.visible = true;
+            const station = actor.workNode === null;
+            actor.carry.visible = !station;
             actor.workNode = null;
-            actor.targetX = this.homeX + rand(-120, 120);
-            actor.activity = "walk";
+            if (station) {
+              // Station work goes on: a short pause, then back at it.
+              actor.activity = "idle";
+              actor.timer = rand(0.5, 1.5);
+            } else {
+              actor.targetX = this.homeX + rand(-120, 120);
+              actor.activity = "walk";
+            }
           }
           break;
         }
@@ -402,6 +470,10 @@ export class Actors {
       }
       actor.container.x = actor.x;
       actor.container.scale.x = actor.facing;
+      // Guards face out to sea; nobody else cares which way they stand.
+      if (post?.kind === "guard" && actor.activity === "idle") actor.container.scale.x = -1;
+      // The "z" reads the right way round whichever way the sleeper faces.
+      actor.zz.scale.x = actor.container.scale.x;
     }
     // Those who reached the shore are gone until they come back.
     for (const actor of this.actors.filter((a) => a.activity === "leave")) {

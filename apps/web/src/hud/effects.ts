@@ -25,6 +25,8 @@ export function effectLines(effects: Effects | undefined): string[] {
     "barrelLifeMinutes",
     "barrelEveryMinutes",
     "graceHours",
+    "crew",
+    "scoutRange",
   ] as const;
   for (const key of simple) {
     const value = effects[key];

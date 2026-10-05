@@ -105,6 +105,9 @@ const HINT_OF: Partial<Record<CommandType, Advice>> = {
   craft: "craft",
   scout: "map",
   send_trip: "map",
+  assign: "crew",
+  rest: "crew",
+  rest_tired: "crew",
   break_barrel: "barrel",
 };
 

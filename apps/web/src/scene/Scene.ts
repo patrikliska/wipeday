@@ -6,6 +6,7 @@
 
 import type { Amounts } from "@wipe-day/content/schema";
 import { type BaseState, furnaceOf, furnaceSlots, jobProgress } from "@wipe-day/domain/base";
+import { isAsleep } from "@wipe-day/domain/crew";
 import { nodeKindOf } from "@wipe-day/domain/nodes";
 import { Application, Container, Graphics, type Ticker } from "pixi.js";
 import { countFrame, isFrozen } from "../debug";
@@ -25,7 +26,7 @@ import {
   tierName,
   toolName,
 } from "../state/world";
-import { Actors } from "./actors";
+import { Actors, type Post } from "./actors";
 import { Base } from "./base";
 import { type Float, Floaters, Particles, Weather } from "./effects";
 import { Barrel, type Depleted, MAX_HITS, type NodeCallbacks, type NodeDef, Nodes } from "./nodes";
@@ -198,8 +199,7 @@ export class Scene {
     this.barrel = new Barrel(BARREL_SPOT.x, BARREL_SPOT.y, () => {
       useWorld.getState().breakBarrel();
     });
-    const spots = ALL_NODES.map((node) => ({ id: node.id, x: node.x }));
-    this.actors = new Actors(GROUND, BASE_X, spots, BASE_X + 340, SHORE_X + 20, {
+    this.actors = new Actors(GROUND, BASE_X, BASE_X + 340, SHORE_X + 20, {
       canWork: (node) => this.backNodes.isUp(node) || this.frontNodes.isUp(node),
       onWork: (node, x, y) => {
         this.shakeNode(node);
@@ -299,11 +299,15 @@ export class Scene {
     this.weather.resize(vw, vh);
   }
 
-  /** Who walks about the base: the crew at home; the hurt ones rest by the fire. */
+  /**
+   * Who walks about the base: the crew at home; the hurt rest by the fire, and each
+   * worker keeps to their post (their node, their station, the gate, or their bed).
+   */
   private syncCrew(base: BaseState, now: number): void {
     const key = base.crew
       .map(
-        (member) => `${member.id}:${member.away ?? ""}:${(member.injuredUntil ?? 0) > now ? 1 : 0}`,
+        (member) =>
+          `${member.id}:${member.away ?? ""}:${(member.injuredUntil ?? 0) > now ? 1 : 0}:${JSON.stringify(member.job)}:${isAsleep(member, now) ? 1 : 0}`,
       )
       .join(",");
     if (key === this.crewKey) return;
@@ -312,9 +316,38 @@ export class Scene {
     const hurt = new Set(
       home.filter((member) => (member.injuredUntil ?? 0) > now).map((member) => member.id),
     );
+    const posts = new Map<string, Post>();
+    const perKind = new Map<string, number>();
+    for (const member of home) {
+      const job = member.job;
+      if (isAsleep(member, now)) {
+        posts.set(member.id, { kind: "sleep", x: BASE_X + 340 });
+      } else if (job?.kind === "node") {
+        // Workers of one kind spread over its nodes.
+        const nodes = ALL_NODES.filter((node) => node.kind === job.node);
+        const index = perKind.get(job.node) ?? 0;
+        perKind.set(job.node, index + 1);
+        const node = nodes[index % Math.max(1, nodes.length)];
+        if (node) posts.set(member.id, { kind: "node", x: node.x, node: node.id });
+        else {
+          // A kind with no node drawn (fibre): they work the fields by the loom.
+          const field = this.base.stationPosition("loom") ?? this.base.stationPosition("garden");
+          posts.set(member.id, { kind: "station", x: (field?.x ?? BASE_X + 200) + 30 });
+        }
+      } else if (job?.kind === "station") {
+        const spot = this.base.stationPosition(job.station);
+        if (spot) posts.set(member.id, { kind: "station", x: spot.x + 26 });
+      } else if (job?.kind === "guard") {
+        // By the walls when they stand, else on the path down to the shore.
+        const walls = this.base.buildingPosition("walls");
+        const guards = [...posts.values()].filter((post) => post.kind === "guard").length;
+        posts.set(member.id, { kind: "guard", x: (walls?.x ?? BASE_X - 230) - guards * 34 });
+      }
+    }
     this.actors.sync(
       home.map((member) => survivorLook(member.id)),
       hurt,
+      posts,
     );
   }
 

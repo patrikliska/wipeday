@@ -482,9 +482,10 @@ export function triesToSure(content: Content, state: BaseState, siteId: string):
   return Math.max(0, content.mapRules.findPity - (state.dry[siteId] ?? 0));
 }
 
-/** Sites whose finds include `item`: where to look for a keycode. */
+/** Sites whose finds include `item`, the likeliest first: where to look for a keycode. */
 export function sitesFinding(content: Content, item: string): Site[] {
-  return content.sites.filter((site) => site.finds?.some((find) => find.item === item));
+  const chance = (site: Site) => site.finds?.find((find) => find.item === item)?.chance ?? 0;
+  return content.sites.filter((site) => chance(site) > 0).sort((a, b) => chance(b) - chance(a));
 }
 
 // --- leaving ------------------------------------------------------------------------------
