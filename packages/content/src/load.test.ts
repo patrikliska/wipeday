@@ -154,7 +154,7 @@ describe("the Den's checks (W5)", () => {
   it("refuses contracts that pay more than the Den sells for", () => {
     const dir = dataWith("den.json5", (text) =>
       text
-        .replace("payPercent: 60", "payPercent: 100")
+        .replace("payPercent: 40", "payPercent: 100")
         .replace("markupPercent: 250", "markupPercent: 100"),
     );
     expect(problemsOf(dir)).toContain(

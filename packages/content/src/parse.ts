@@ -146,6 +146,7 @@ function emptyContent(): Content {
         tierFiveSiteByDay: 1,
         crew: { day: 1, count: 1 },
         tool: { id: "", byDay: 1 },
+        scrap: { day: 1, min: 0, max: 0 },
       },
       optimal: {
         hqmNotBeforeDay: 1,

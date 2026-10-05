@@ -27,13 +27,13 @@ function table(run: Run): string {
       .join(", ")}; first trips: ${Object.entries(run.firstTrip)
       .map(([tier, day]) => `t${tier} d${day}`)
       .join(", ")}; first job d${run.firstJob ?? "-"})`,
-    "day  tier   tool             fill                cap   ingots    fuel   scrap  items  parts  bldgs  crew  known  build",
+    "day  tier   tool             fill                cap   ingots    fuel   scrap  items  parts  bldgs  crew  known  build  den-  den+  bet   won",
   ];
   for (const row of run.rows) {
     lines.push(
       `${String(row.day).padStart(3)}  ${row.tier.padEnd(6)} ${row.tool.padEnd(16)} ` +
         `${row.fill.padEnd(18)} ${String(row.cap).padStart(6)} ${String(row.ingots).padStart(8)} ` +
-        `${String(row.fuel).padStart(7)} ${String(row.scrap).padStart(7)}  ${String(row.items).padStart(5)}  ${String(row.parts).padStart(5)}  ${String(row.buildings).padStart(5)}  ${String(row.crew).padStart(4)}  ${String(row.known).padStart(5)}  ${row.building ? "yes" : ""}`,
+        `${String(row.fuel).padStart(7)} ${String(row.scrap).padStart(7)}  ${String(row.items).padStart(5)}  ${String(row.parts).padStart(5)}  ${String(row.buildings).padStart(5)}  ${String(row.crew).padStart(4)}  ${String(row.known).padStart(5)}  ${(row.building ? "yes" : "").padEnd(5)} ${String(row.denSpent).padStart(4)}  ${String(row.denEarned).padStart(4)}  ${String(row.wagered).padStart(4)}  ${String(row.won).padStart(4)}`,
     );
   }
   return lines.join("\n");

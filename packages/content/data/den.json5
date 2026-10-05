@@ -64,7 +64,7 @@
   // of the time a blueprint the base does not know yet.
   contracts: {
     perDay: 3,
-    payPercent: 60,
+    payPercent: 40,
     pool: [
       { id: "jetty_timber", good: "timber", amount: { stone: 3000, metal: 10000, hqm: 25000 } },
       { id: "seawall_stone", good: "stone", amount: { stone: 3000, metal: 10000, hqm: 25000 } },

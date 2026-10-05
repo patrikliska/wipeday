@@ -433,6 +433,8 @@ export const pacingSchema = z.strictObject({
     crew: z.strictObject({ day: z.int().min(1), count: z.int().min(1) }),
     /** Scrap from the sites pays for this tool by this day. */
     tool: z.strictObject({ id: z.string(), byDay: z.int().min(1) }),
+    /** W5: the scrap held on season day `day` stays between `min` and `max`. */
+    scrap: z.strictObject({ day: z.int().min(1), min: z.int().min(0), max: z.int().min(0) }),
   }),
   optimal: z.strictObject({
     hqmNotBeforeDay: z.int().min(1),
