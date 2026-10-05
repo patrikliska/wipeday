@@ -222,7 +222,8 @@ Full design: `docs/game-design.md`. The guardrails that every phase must respect
 `pnpm sim [days]` prints a per-day table per archetype and CSV into `var/sim/`; `pnpm sim check`
 asserts `data/pacing.json5`. The same check runs in `pnpm test` (`packages/sim`), so a balance
 change that breaks pacing fails the build. Archetypes grow with the game: casual, active,
-optimal today; gambler and raider arrive with W5 and W6. Argue balance from simulator output.
+optimal and gambler today, the raider with W6. `pnpm sim rtp` measures the casino's return
+over a million rounds per bet option. Argue balance from simulator output.
 
 ## 10. Testing
 
@@ -255,7 +256,7 @@ Acceptance criteria per phase are in `docs/roadmap.md`.
 | W2 Buildings | the base fills with buildings the player chose (done) |
 | W3 Crafting web | chains, intermediates, blueprints, timed queues (done) |
 | W4 Survivors, expeditions | crew, the map, confirm and report cards, the feed (done) |
-| W5 Economy | market, contracts, casino, leaderboards |
+| W5 Economy | market, contracts, casino, leaderboards (done) |
 | W6 Raids and defense | NPC raiders, PvE raids, capped PvP |
 | W7 Seasons and legacy | archive and reset, legacy perks with the 25% cap |
 | W8 Discord companion | the bot calls the API; feed in both places from one event |
