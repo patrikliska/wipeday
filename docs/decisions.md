@@ -742,3 +742,132 @@ Results:
   is visible from the start (no hidden features).
 - On this Windows machine `tsx watch` under `pnpm dev` hung before listening. For owner
   previews the API ran as a plain `tsx src/main.ts`, restarted by hand when rules change.
+
+### D90. The crew works at home: nodes, stations, guard; a job is a standing order
+- A survivor's job is a node kind, a station or guard; free means no job. It is kept while
+  they are out on a trip and picks up again from the moment they are home, so a job can be
+  given to someone who is away.
+- A node worker adds `nodePercent` (15%) of the current tool's rate for that node's yields;
+  the mule trait adds 15% more. It is lazy like everything else: each worker's output is
+  integrated from their shift (since when they could work, when they tire), paused by trips
+  and injuries, and added to the accrual before the storage cap.
+- A station worker makes that station's crafting faster (15%, the cook +50% at the
+  campfire, the tinkerer +30% anywhere), one worker per station. The speed is fixed per job
+  like the lights' (D79), so assigning or moving a worker reprices the station's queue from
+  that moment; landed units stay landed. Without the reprice, assigning the tinkerer would
+  change nothing visible.
+- A guard adds defence (5, marksman +5, brave +3). It is shown now and used by W6's raids.
+- Every job change, rest, treatment and served meal banks what the crew made first, so time
+  that already passed is never re-priced.
+
+### D91. Rest is one tap; free time counts as rest; meals are morale
+The owner chose tap to rest.
+- A worker tires 16 hours after their last rest and then works at half pace.
+- "Rest" puts them to bed for 8 hours, after which they go back to their job on their own.
+  "Rest the tired" does it for everyone tired at home, and is the squad panel's primary
+  action when anyone is tired.
+- Someone free for a full rest's length starts a job rested, so a free survivor never needs a
+  tap.
+- Sending a sleeper on a trip wakes them; the rest they had counts in proportion.
+- A served meal lifts the crew's work by its percent while it lasts (the "food lifts morale"
+  need). Nothing starves.
+- Advisor: a new "crew" advice when someone is tired or, from Timber on, free at home. It
+  glows the Squad button on desktop and a new crew chip in the phone top bar (Squad has no
+  phone dock slot, D88).
+
+### D92. Bonds: pairs who go out together do better
+Every trip adds one to each pair in the party. From three trips together, the pair adds 4
+points of success; the confirm screen shows the bond as a tag.
+
+### D93. Trip events are fixed at departure, rolled on return, and never re-roll old missions
+- `events.json5` holds the events: ambush (loot −30%, injuries +50%), a hidden cache (+2
+  hauls) and a stranger (a rescue). Each has a chance by site tier, hazard points, trait
+  points, and points per armed member.
+- The chances are part of the odds a mission leaves with, and the confirm shows them
+  ("Might happen on the way"). At most two events happen per trip.
+- A stranger shows 0% when no bunk is free, so the confirm never promises a rescue that cannot
+  happen.
+- Missions sent before W4b carry no event odds and roll exactly as before: events roll after
+  the outcome and only when the odds have them.
+- Map scraps stay each site's own chance (D85).
+
+### D94. Keycodes gate the new sites only, are spent on the way in, and bad luck is capped
+The owner chose to gate only the new sites.
+- The chain: the Ferry Terminal and the Cannery drop tin; tin opens the Weather Station,
+  which drops copper; copper opens the Rail Depot and the Power Station; the Power Station
+  drops brass; brass opens the Submarine Pen and the Offshore Platform.
+- A keycode is an item, spent when the party leaves (like rations). The content check makes
+  sure every keycode some site needs drops somewhere.
+- Finds roll on a success. After `findPity` (3) successes at a site without its find, the
+  next success brings it (the design's "streaks capped"). The confirm says so ("Sure within 2
+  successes").
+- A locked site says which keycode it needs and where the likeliest one turns up, with a
+  button there.
+
+### D95. The far north by radio mast, the sea by boat
+- Ring 4 north (Rail Yards, North Dam): the radio mast's new `scoutRange` effect adds one ring
+  to the tier's range, and Armored now reaches ring 4 on its own.
+- The sea: regions with `access: "sea"` need the dock (the Narrows level 2, Open Water level
+  3), a navigator in the party (the scout must be one), and fuel in their fees. Their lanes
+  are drawn white on the map, the regions as open water with a buoy.
+- Open Water is ring 5: Armored plus the radio mast. Its dock level takes 24 hours to build
+  and scouting it takes 24 hours, the longest idle timers there are. That is what keeps the
+  Offshore Platform, the season's peak, at day 18 for the optimal player.
+- The hard-coded cloud over the north is gone; each region's own fog covers it.
+
+### D96. The feed and Web Push: one event log, two outlets
+- `@wipe-day/domain/feed` decides both outlets, so W8's Discord channel can reuse them.
+- The feed carries:
+  - trips back with something;
+  - rescues;
+  - new tiers;
+  - level-ups;
+  - blueprints;
+  - keycodes.
+- The server reads the feed from `event_log` (the season, everyone, newest first) and
+  broadcasts new items on the event stream as they are logged.
+- On phones the feed opens from the clock chip, with a dot for news; on desktop from a dock
+  button.
+- Notifications: the owner chose real Web Push.
+  - The VAPID key pair is generated on the first boot and kept in a `settings` table, so the
+    server needs no secret set by hand.
+  - The scheduler's tick sends a push for every settled event whose kind the player turned
+    on. Party back and raided are on by default (raided fires from W6); newcomers and builds
+    done are off.
+  - Permission is asked only when the player taps "Turn on". Devices the push service
+    reports gone are dropped.
+- The service worker handles notifications only: no offline cache, which would fight the
+  dev server and deploys. It shows nothing while the game is open and in front, and a tap
+  opens the game on the report.
+- A manifest and icons make the site installable. iPhones need this: push works there only
+  for a site added to the Home Screen, which the settings say.
+
+### D97. W4b balance: the crew's work is new production, and the simulator learnt keycodes
+- The crew's work made every tier come sooner. To compensate:
+  - node jobs went down from the 25% drafted to 15%;
+  - Sheet Metal costs 12% more (stone 54,000, ingots 43,000).
+- The simulator's archetypes now:
+  - put everyone to work (the cook at the campfire, the tinkerer at the busiest station, the
+    rest on the node the next tier lacks most);
+  - rest the tired at every check-in;
+  - value a site by the highest tier it opens (a keycode site counts half a tier above the
+    site it unlocks);
+  - prefer an unvisited site on a tie;
+  - take a navigator to sea;
+  - press the fuel a better site's rations wait on.
+- Results (seed 1, 35 days):
+
+  | | Casual | Active | Optimal |
+  | --- | --- | --- | --- |
+  | Stone | day 4 | day 2 | day 2 |
+  | Sheet Metal | day 12 | day 11 | day 8 |
+  | Armored | day 22 | day 18 | day 14 |
+  | First trip, tier 3 | day 13 | day 11 | day 8 |
+  | First trip, tier 4 | day 20 | day 14 | day 11 |
+  | First trip, tier 5 | day 23 | day 17 | day 13 (the Submarine Pen) |
+  | Offshore Platform | after day 35 | day 21 | day 18, the floor |
+
+- New pacing targets:
+  - casual has someone working by day 3;
+  - casual's first tier-4 trip by day 26, tier 5 by day 31;
+  - optimal reaches the Offshore Platform no earlier than day 18.

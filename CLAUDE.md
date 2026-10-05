@@ -254,7 +254,7 @@ Acceptance criteria per phase are in `docs/roadmap.md`.
 | W1 Domain, API, auth | two people play the prototype's features for real, state on the server (done) |
 | W2 Buildings | the base fills with buildings the player chose (done) |
 | W3 Crafting web | chains, intermediates, blueprints, timed queues (done) |
-| W4 Survivors, expeditions | crew, the map, confirm and report cards, the feed (W4a done) |
+| W4 Survivors, expeditions | crew, the map, confirm and report cards, the feed (done) |
 | W5 Economy | market, contracts, casino, leaderboards |
 | W6 Raids and defense | NPC raiders, PvE raids, capped PvP |
 | W7 Seasons and legacy | archive and reset, legacy perks with the 25% cap |

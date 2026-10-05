@@ -4,7 +4,7 @@ Companion to `docs/game-design.md` (what the game becomes) and `docs/decisions.m
 are the way they are). This file says **what to build next, in which order, and how hard the
 agent should think at each step**.
 
-## Where we are (2026-09-29)
+## Where we are (2026-10-05)
 
 - W0 done: the monorepo, the web spec in `CLAUDE.md`, an injected `Clock` everywhere.
 - W1 done and live at https://wipeday.patrikliska.dev (Discord login confirmed from the owner's
@@ -18,34 +18,29 @@ agent should think at each step**.
 - W4a done, live and pushed (commit 7675567): a real crew (arrivals, traits, levels, gear,
   injuries, no death), the fogged island with scouting for a fee, trips to eight ruins in tiers
   1-3, report cards (D84-D89).
+- W4b done (branch `w4b`, merged and deployed 2026-10-05): the crew works at home (nodes,
+  stations, guard) and rests on a tap; bonds; trip events; keycodes (tin, copper, brass) gating
+  the weather station, the far north and the sea; four tier 4-5 sites; the island feed and Web
+  Push notifications (D90-D97). The optimal player reaches the Offshore Platform on day 18.
 - Two live players on https://wipeday.patrikliska.dev (the owner and a friend).
 
-### Next: W4b (the second half of W4)
+### Next: W5 (economy: market, contracts, casino, leaderboards)
 
-Owner decisions that still hold: injuries only (no death); one island per season with each
-player's own fog; a full-screen drawn map; W4 split in two. Scope:
-- **Crew jobs:** assign survivors to a node (a trickle of its resource), a station (the cook makes
-  meals faster, the tinkerer speeds crafting), guard (a defence score for W6) or rest.
-  The `cook` and `tinkerer` traits get their jobs here.
-- **Gentle needs:** rest (a survivor who never rests works at half pace) and food (meals lift
-  morale; never a starvation penalty beyond morale). Bonds: pairs who go out together gain a
-  small bonus.
-- **Trip events** (bounded, seeded): ambush, hidden cache, a stranger who joins (a rescue adds
-  a survivor), a map fragment. Shown in the report card.
-- **Keycodes** (tin, copper, brass) as site loot that gates the upper sites.
-- **The far north and the sea:** ring 4 regions (the radio mast adds +1 scout range) and sea
-  regions reached by boat (the dock, fuel and a navigator). Tier 4-5 sites: rail depot, power
-  station, submarine pen, offshore platform. Done when the optimal player finishes the chain on
-  day 18, not before (`pacing.json5`).
-- **The feed** (web, and later Discord from the same events) and opt-in notifications
-  ("party back", "raided" on by default).
-- Plan first (plan mode), then build milestone by milestone as in W4a: content and domain, the
-  simulator and balance, the UI with screenshot reviews, deploy.
+Scope as in the phase list below. Things W4 leaves for it:
+- Scrap piles up from week 3 (D87): the market fee, the casino and contracts are its sinks.
+- Keycodes are items, so they can be listed on the market.
+- The feed (D96) is where jackpots and big trades get announced.
+- Plan first (plan mode, it is a balance phase): the casino's RTP and the wager caps are
+  simulator work before UI.
 
 ### Open items (small, carried over)
 
 - The owner's name pass on the world: buildings, parts, survivors, regions, ruins and report
-  lines in `packages/content/locale/en.json` (before W5 locks names in the market).
+  lines in `packages/content/locale/en.json` (before W5 locks names in the market). W4b
+  added the Rail Yards, North Dam, the Narrows, Open Water, their four ruins, the keycodes and
+  the trip events.
+- Web Push on the owner's iPhone: add the site to the Home Screen, open it from there, turn
+  notifications on in the feed panel (the clock chip), and confirm a "party back" arrives.
 - UI polish noted in `docs/ui-review.md`: the map has no night look; on desktop the side panel
   covers the island's east coast (it pans); crew faces are placeholders; station tabs past the
   fifth scroll sideways without a hint.
@@ -206,7 +201,7 @@ Result:
     sites and raids that use it;
   - pins are per device, not per account.
 
-### W4. Survivors and expeditions (W4a done, W4b next)
+### W4. Survivors and expeditions (done)
 
 *Goal:* the second big loop: send people out, get stories and loot back.
 

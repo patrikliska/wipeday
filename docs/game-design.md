@@ -187,6 +187,9 @@ scrap + wiring + batteries ──► electronics ──► radio, turret brain, 
 - Injuries recover in hours (infirmary halves it); death is rare (< 3% at red sites with full
   gear), telegraphed in the confirm screen, and remembered in the hall of fame.
 - Levels persist across seasons (legacy); gear does not.
+- *(Built in W4b, D90-D92.)* Jobs are standing orders kept while away; the cook and the
+  tinkerer speed their stations; tired workers drop to half pace until one tap rests them for
+  8 hours; served meals lift the crew's work; pairs bond after three trips together.
 - Unlocks: first crew member day 1, assignments day 2, expeditions day 3.
 
 ### 5.7 Expeditions and the map
@@ -203,6 +206,10 @@ scrap + wiring + batteries ──► electronics ──► radio, turret brain, 
   fragment revealing a site. Convoys and shared world events (a stranded freighter, a storm
   surge) open timed sites for everyone.
 - Boat sites need fuel and a navigator; the offshore platform is the season's peak.
+- *(Built in W4b, D93-D95.)* Trip events (ambush, hidden cache, a stranger) are fixed at
+  departure and shown before sending. Tin, copper and brass keycodes chain the weather station
+  to the far north to the sea, with bad luck capped at three dry successes. The radio mast
+  reaches the far north, and the dock (levels 2 and 3) reaches the sea.
 - Unlocks: day 3; the chain is finishable around day 18 for the optimal player.
 
 ### 5.8 Weather, day and night, world events

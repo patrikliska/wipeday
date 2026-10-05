@@ -554,3 +554,65 @@ New shots:
   - On desktop the side panel covers the island's east coast; it can be panned.
   - The map has no night look yet.
   - The crew panel's big faces are placeholders until portraits exist.
+
+### W4b: the crew at work, the far north and the sea, the feed
+
+New shots:
+- crew: `phone_crew_jobs`, `phone_crew_tired`, `phone_crew_chip`;
+- map: `phone_map_north`, `map_north_desktop`;
+- sites: `phone_map_sea_site`, `phone_map_sea_odds`, `phone_site_keycode_locked`,
+  `phone_region_open_water`;
+- reports: `phone_report_events`;
+- feed: `phone_feed`, `desktop_feed`, `phone_feed_dot`;
+- scene: `scene_workers`, `scene_workers_night`.
+
+83 shots in all. The shot fixtures now carry jobs and shifts.
+
+- Squad, iteration 1, what was wrong:
+  - The status line repeated the job ("TREE · +36 TIMBER/H") right above the job dropdown
+    that says the same.
+  - The new crew chip in the top bar squeezed to "7/7 · 2" next to "Sheet Metal base".
+- Squad, iteration 2, what changed and what was still wrong:
+  - The status line says how they are, not what they do: "At work" (green), "Tired: half
+    pace until they rest" (amber), "Asleep · up in 5h", or free.
+  - The job dropdown is teal and shows what it adds ("Tree · +36 timber/h", "Workbench · 45%
+    faster", "Guard · +10 defence"), with the Rest button beside it.
+  - "Rest the tired (n) · 8h" is the panel's one primary button when anyone is tired.
+  - Still wrong: with the identity allowed to grow, the clock dropped to a second row.
+- Squad, iteration 3: the identity takes only what the crew chip and clock leave (flex basis
+  0); its tier line ellipsizes ("Sheet Meta…") while the chip reads "7/7 · 6 tired" in full.
+- Crew chip: the blue SQ tile was unreadable on the red glow; it turns white like the dock's
+  primary glyph. The hint text was four lines, now one sentence.
+- Map:
+  - The north is tundra with rails and snow, the sea regions are open water with a red buoy,
+    and sea lanes are white dashes.
+  - Open Water sat under the desktop top bar; it moved south to (55, 240).
+- Confirm screen:
+  - "Might happen on the way" tags (ambush in amber, cache, the stranger) and the bonds in
+    green.
+  - A keycode block: what is spent and what is left, or which site drops one, with a button
+    there (rule 2, never a dead end).
+  - A locked site pointed at the Cannery (15%) instead of the Ferry Terminal (40%): the
+    likeliest source comes first now.
+- Report card:
+  - "Mara found someone hiding… Wren joins the crew" said the rescue twice. The event line
+    now names them: "Mara found Wren hiding in the ruins and brought them home to the crew."
+  - Keycodes found are in green.
+- Scene, iteration 1: workers bunched at the door, because newcomers walked to the house
+  before their post and node workers carried every haul home.
+- Scene, iteration 2:
+  - Newcomers walk straight to their post, and the first cast starts there.
+  - A node worker carries a haul home about one turn in three.
+  - Sleepers lie by the fire with a "z" (drawn the right way round whichever way they face).
+  - Workers keep at it through the night; the free rest.
+  - Fibre has no node drawn, so fibre workers work by the loom.
+- Feed:
+  - Each line names the player ("You" on a tinted row with a YOU tile).
+  - Long names wrap cleanly.
+  - The clock chip carries a red dot for news.
+  - The notification settings sit under the feed, with "Turn on" as the one primary when
+    this device is off.
+- Still open:
+  - The scene does not say who works where on a tap. Tapping a survivor could open their
+    card (W6 or later).
+  - The map has no night look yet (carried over).

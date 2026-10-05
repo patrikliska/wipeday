@@ -21,6 +21,9 @@ DISCORD_CLIENT_SECRET=...
 ```
 
   Without them the site runs and the login card says Discord login is not set up.
+- Web Push (W4b, D96) needs nothing here: the VAPID key pair is generated on the first boot
+  and kept in the database's `settings` table, so it survives deploys and is in every backup.
+  Losing the database means new keys, and every device has to turn notifications on again.
 
 ## Deploy
 
