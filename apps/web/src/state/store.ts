@@ -26,6 +26,7 @@ import type { Job } from "@wipe-day/domain/crew";
 import type { GameEvent as DomainEvent } from "@wipe-day/domain/events";
 import type { FeedItem } from "@wipe-day/domain/feed";
 import { nodeKindOf, nodeStatus } from "@wipe-day/domain/nodes";
+import { newPvp } from "@wipe-day/domain/raids";
 import { nextEventAt, settleAll } from "@wipe-day/domain/settle";
 import { newStats } from "@wipe-day/domain/stats";
 import type {
@@ -307,6 +308,11 @@ const placeholder = (): BaseState => ({
   casino: { day: -1, wagered: 0, won: 0 },
   wheelBets: [],
   stats: newStats(),
+  raid: null,
+  raidSeq: 0,
+  raidReports: [],
+  damaged: false,
+  pvp: newPvp(),
 });
 
 const isServerOnly = (command: Command): boolean => SERVER_ONLY.includes(command.type);

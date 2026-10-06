@@ -318,6 +318,45 @@ export function refusalMessage(refusal: Refusal, now: number): Message | null {
         }),
         tone: "neutral",
       };
+    // Raids (W6).
+    case "no_damage":
+      return { text: t("refusal.no_damage"), tone: "neutral" };
+    case "no_target":
+      return { text: t("refusal.no_target"), tone: "neutral" };
+    case "pvp_locked":
+      return {
+        text: t("refusal.pvp_locked", { tier: tierName(refusal.tier) }),
+        tone: "warning",
+        panel: "build",
+      };
+    case "pvp_off":
+      return { text: t("refusal.pvp_off"), tone: "neutral" };
+    case "self_target":
+      return { text: t("refusal.self_target"), tone: "neutral" };
+    case "target_off":
+      return { text: t("refusal.target_off"), tone: "neutral" };
+    case "shielded":
+      return {
+        text: t("refusal.shielded", { time: duration(refusal.until - now) }),
+        tone: "neutral",
+      };
+    case "attack_cooldown":
+      return {
+        text: t("refusal.attack_cooldown", { time: duration(refusal.readyAt - now) }),
+        tone: "neutral",
+      };
+    case "target_cooldown":
+      return {
+        text: t("refusal.target_cooldown", { time: duration(refusal.readyAt - now) }),
+        tone: "neutral",
+      };
+    case "tier_fence":
+      return { text: t("refusal.tier_fence", { tier: tierName(refusal.tier) }), tone: "neutral" };
+    case "opt_out_locked":
+      return {
+        text: t("refusal.opt_out_locked", { time: duration(refusal.until - now) }),
+        tone: "neutral",
+      };
   }
 }
 
@@ -354,6 +393,10 @@ export function feedLine(event: FeedEvent, who: string): string {
       });
     case "jackpot_won":
       return t("feed.jackpot", { who, amount: abbrev(event.amount) });
+    case "raid_landed":
+      return t(`feed.raid_${event.report.outcome}`, { who });
+    case "raid_launched":
+      return t(`feed.pvp_${event.report.outcome}`, { who, target: event.targetName });
   }
 }
 

@@ -14,6 +14,7 @@
  * of being predicted, and wheel bets stay pending until the server spins.
  */
 import type { MarketListing } from "./market";
+import type { RaidTarget } from "./raids";
 
 export interface World {
   /** A fresh unpredictable seed for this command's roll (the slots, the dice). */
@@ -26,4 +27,8 @@ export interface World {
   listing?: MarketListing;
   /** The acting player's id: nobody buys their own listing. */
   self?: number;
+  /** The acting player's name, for the defender's report (W6). */
+  selfName?: string;
+  /** The base a PvP raid targets, settled by the server (W6). */
+  target?: RaidTarget;
 }

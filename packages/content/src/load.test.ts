@@ -94,9 +94,11 @@ describe("the crafting web", () => {
     expect(recipesWith((text) => text.replace(/\{ output: "rope".*\n/, ""))).toContain(
       "recipes.json5 `rope`: part has no recipe",
     );
-    // Charcoal only goes into springs.
+    // Charcoal only goes into springs and gunpowder.
     const unused = recipesWith((text) =>
-      text.replace("cost: { ingots: 16, charcoal: 10 }", "cost: { ingots: 16 }"),
+      text
+        .replace("cost: { ingots: 16, charcoal: 10 }", "cost: { ingots: 16 }")
+        .replace("cost: { sulfur: 20, charcoal: 5 }", "cost: { sulfur: 20 }"),
     );
     expect(unused).toContain("recipes.json5 `charcoal`: part is made but nothing uses it");
   });
@@ -165,5 +167,27 @@ describe("the Den's checks (W5)", () => {
   it("needs a price for every tradeable good", () => {
     const dir = dataWith("den.json5", (text) => text.replace("gears: 400, ", ""));
     expect(problemsOf(dir)).toContain("den.json5 `gears`: tradeable good has no refPer100");
+  });
+});
+
+describe("the raids' checks (W6)", () => {
+  it("keeps NPC losses inside the cap and every tier covered", () => {
+    const dir = dataWith("raids.json5", (text) =>
+      text
+        .replace("lossPercent: 10", "lossPercent: 25")
+        .replace("hqm: { base: 45, max: 160 },", ""),
+    );
+    const problems = problemsOf(dir);
+    expect(problems).toContain("raids.json5 `npc`: lossPercent is above capPercent");
+    expect(problems).toContain("raids.json5 `hqm`: npc needs a strength");
+  });
+
+  it("needs charges in every camp's rations", () => {
+    const dir = dataWith("sites.json5", (text) =>
+      text.replace("rations: { food: 30, charge: 2 }", "rations: { food: 30 }"),
+    );
+    expect(problemsOf(dir)).toContain(
+      "sites.json5 `driftwood_camp`: a camp's rations need charges",
+    );
   });
 });

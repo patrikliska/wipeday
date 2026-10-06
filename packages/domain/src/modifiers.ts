@@ -27,6 +27,10 @@ export interface Modifiers {
   furnace: number;
   /** Rings a scout reaches beyond the base tier's range. */
   scoutRange: number;
+  /** Defence points against raids (W6). */
+  defence: number;
+  /** Hours more warning before NPC raiders land (W6). */
+  warnHours: number;
 }
 
 const NONE: Modifiers = {
@@ -44,6 +48,8 @@ const NONE: Modifiers = {
   crew: 0,
   furnace: 0,
   scoutRange: 0,
+  defence: 0,
+  warnHours: 0,
 };
 
 /** Levels are replaced, never mutated, so the levels object identifies the result. */
@@ -75,6 +81,8 @@ export function modifiers(content: Content, state: Pick<BaseState, "buildings">)
     out.crew += effects.crew ?? 0;
     out.furnace = Math.max(out.furnace, effects.furnace ?? 0);
     out.scoutRange += effects.scoutRange ?? 0;
+    out.defence += effects.defence ?? 0;
+    out.warnHours += effects.warnHours ?? 0;
   }
   cache.set(state.buildings, { content, value: out });
   return out;

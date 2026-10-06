@@ -29,6 +29,7 @@ import { deliverStatus } from "./contracts";
 import { craftStatus } from "./craft";
 import { tiredWorkers } from "./jobs";
 import { crewCap, isFit, scoutStatus, sitesIn, tripStatus } from "./missions";
+import { npcOdds, raidWarned, repairStatus } from "./raids";
 import { partsToMake } from "./recipes";
 
 export type Advice =
@@ -42,6 +43,8 @@ export type Advice =
   | "map"
   | "crew"
   | "den"
+  | "defend"
+  | "repair"
   | "gather";
 
 /** A hint is shown until its action has been used this many times. */
@@ -49,6 +52,9 @@ export const HINT_RETIRE_AFTER = 2;
 
 /** Ore worth walking to the furnace for. */
 const SMELT_WORTH = 100;
+
+/** Below this chance to hold an announced raid, posting a guard is the advice (W6). */
+const DEFEND_BELOW = 80;
 
 /** Which mechanics exist for this player yet (rule 6: reveal as they become relevant). */
 export interface Revealed {
@@ -180,6 +186,24 @@ export function denWorthIt(content: Content, state: BaseState): boolean {
   return state.contracts.ids.some((id) => deliverStatus(content, state, id).code === "ok");
 }
 
+/**
+ * True when raiders are announced, the base would likely not hold, and someone at home could
+ * still take the guard post (W6).
+ */
+export function defendWorthIt(content: Content, state: BaseState, now: number): boolean {
+  if (!raidWarned(content, state, now)) return false;
+  const odds = npcOdds(content, state, now);
+  if (!odds || odds.chance >= DEFEND_BELOW) return false;
+  return state.crew.some(
+    (member) => member.job?.kind !== "guard" && member.away === null && isFit(member, now),
+  );
+}
+
+/** True when a raid left the defences damaged and the repair is affordable (W6). */
+export function repairWorthIt(content: Content, state: BaseState): boolean {
+  return repairStatus(content, state).code === "ok";
+}
+
 /** Room for another survivor, for the crew panel. */
 export { crewCap };
 
@@ -189,9 +213,11 @@ export function advise(content: Content, state: BaseState, now: number): Advice 
   if (isStorageFull(content, state, now) && !isEmpty(accrued(content, state, now)))
     return "collect";
   if (state.barrel && now <= state.barrel.expiresAt) return "barrel";
+  if (defendWorthIt(content, state, now)) return "defend";
   if (buildStatus(content, state, "tier").code === "ok") return "build";
   const tool = nextTool(content, state);
   if (tool && toolUnlocked(state, tool) && canAfford(tool.cost, state.stock)) return "tools";
+  if (repairWorthIt(content, state)) return "repair";
   if (furnaceWorthIt(content, state, now)) return "furnace";
   if (buildingWorthIt(content, state) !== null) return "building";
   if (crewWorthIt(state, now)) return "crew";

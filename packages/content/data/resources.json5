@@ -27,5 +27,8 @@
     { id: "frames", kind: "part" },
     { id: "gears", kind: "part" },
     { id: "springs", kind: "part" },
+    // W6: what raids run on.
+    { id: "gunpowder", kind: "part" },
+    { id: "charge", kind: "part" },
   ],
 }

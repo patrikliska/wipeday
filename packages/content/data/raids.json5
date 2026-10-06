@@ -1,0 +1,79 @@
+// Raids and defence (W6). What raiders can take, when NPC raiders come, what holding them
+// off pays, and the rules of the friendly PvP raids. The defence score itself comes from the
+// buildings (`defence` effect in buildings.json5) and the crew on guard (crew.json5).
+//
+// Both kinds of raid roll the same way: the chance to hold is
+//   defence / (defence + attack), kept between minChance and maxChance (percent).
+{
+  // Never more than this percent of any raw or refined resource leaves in one raid...
+  capPercent: 10,
+  // ...and never more scrap than this, by base tier (also at most capPercent of it).
+  scrapCeiling: { stone: 50, metal: 150, hqm: 300 },
+  minChance: 10,
+  maxChance: 95,
+  // A breach leaves the walls, traps and turret damaged: they count this percent of their
+  // defence until repaired, for this cost by base tier.
+  damagedPercent: 50,
+  repair: {
+    stone: { scrap: 30, stone: 800 },
+    metal: { scrap: 80, stone: 3000 },
+    hqm: { scrap: 150, stone: 8000 },
+  },
+
+  npc: {
+    // Raiders come from this tier on, the first time this long after reaching it.
+    startTier: "stone",
+    firstAfterHours: 48,
+    // A raid is planned when the player acts and none is pending: it lands on the night
+    // `planDays` UTC days later, somewhere in [windowStartHour, windowStartHour + windowHours).
+    planDays: 2,
+    windowStartHour: 20,
+    windowHours: 3,
+    // The warning comes this many hours ahead, plus the watchtower's `warnHours`.
+    warnBaseHours: 3,
+    // A breach takes this percent of each resource (at most capPercent) and of the scrap.
+    lossPercent: 10,
+    // Raiders grow with what lies in the yard: one point per this much scrap at risk...
+    scrapPerPoint: 10,
+    // ...on top of the tier's base, up to its max.
+    strength: {
+      stone: { base: 6, max: 30 },
+      metal: { base: 20, max: 80 },
+      hqm: { base: 45, max: 160 },
+    },
+    // Holding them off: what they leave behind, by base tier (each line rolled min-max).
+    held: {
+      stone: [
+        { resource: "scrap", min: 10, max: 25 },
+        { resource: "sulfur", min: 20, max: 60 },
+      ],
+      metal: [
+        { resource: "scrap", min: 25, max: 60 },
+        { resource: "sulfur", min: 60, max: 150 },
+        { resource: "gunpowder", min: 4, max: 10 },
+      ],
+      hqm: [
+        { resource: "scrap", min: 50, max: 120 },
+        { resource: "sulfur", min: 150, max: 300 },
+        { resource: "charge", min: 1, max: 2 },
+      ],
+    },
+  },
+
+  pvp: {
+    // Opt-in from this tier; a target at most this many tiers apart.
+    minTier: "metal",
+    maxTierGap: 1,
+    // Charges paid up front, and the attack they make, by the target's tier.
+    charges: { metal: 6, hqm: 10 },
+    attack: { metal: 60, hqm: 120 },
+    // After a breach the defender is shielded this long.
+    shieldHours: 24,
+    // One attack per attacker in this many hours; the same target once in sameTargetHours.
+    attackHours: 24,
+    sameTargetHours: 72,
+    // The defender may strike back within this long, at this percent of the charges.
+    revengeHours: 48,
+    revengePercent: 50,
+  },
+}

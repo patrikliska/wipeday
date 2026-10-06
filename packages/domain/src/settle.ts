@@ -1,8 +1,8 @@
 /**
  * Brings a base up to `now`: builds land, upkeep is paid (or decay starts),
  * crafts land, the barrel washes up or drifts off, the task day rolls over, an
- * abandoned node run ends and worked-out nodes stand again. Every command runs
- * this first, and a plain look at the base (`GET /state`) runs only this.
+ * abandoned node run ends, worked-out nodes stand again and raiders land (W6). Every
+ * command runs this first, and a plain look at the base (`GET /state`) runs only this.
  * Idempotent: settling twice at the same instant changes nothing the second time.
  */
 import type { Content } from "@wipe-day/content/schema";
@@ -16,10 +16,35 @@ import type { GameEvent } from "./events";
 import { nextListingAt, settleListings } from "./market";
 import { nextMissionAt, settleArrivals, settleMissions } from "./missions";
 import { settleNodes } from "./nodes";
+import { nextRaidAt, resolveRaid, settleRaidWarning } from "./raids";
 import { recordStats } from "./stats";
 import type { World } from "./world";
 
 export function settleAll(
+  content: Content,
+  state: BaseState,
+  now: number,
+  world?: World,
+): { state: BaseState; events: GameEvent[] } {
+  // W6: a raid that landed since the last settle meets the base as it stood at that moment,
+  // so settling splits there. Only commands plan raids, so this runs at most once.
+  const events: GameEvent[] = [];
+  let current = state;
+  while (current.raid && current.raid.at <= now) {
+    const at = current.raid.at;
+    const before = settleSpan(content, current, at, world);
+    const landed = resolveRaid(content, before.state);
+    events.push(...before.events, ...landed.events);
+    current = recordStats(landed.state, landed.events, at);
+  }
+  const rest = settleSpan(content, current, now, world);
+  const warned = settleRaidWarning(content, rest.state, now);
+  events.push(...rest.events, ...warned.events);
+  return { state: warned.state, events };
+}
+
+/** Everything but the raids, brought up to `now`. */
+function settleSpan(
   content: Content,
   state: BaseState,
   now: number,
@@ -63,6 +88,7 @@ export function nextEventAt(
     nextMissionAt(state) ?? undefined,
     state.nextArrivalAt,
     state.barrel ? state.barrel.expiresAt : state.nextBarrelAt,
+    nextRaidAt(content, state) ?? undefined,
   ].filter((time): time is number => time !== undefined);
   return times.length > 0 ? Math.min(...times) : null;
 }

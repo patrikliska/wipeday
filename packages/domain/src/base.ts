@@ -20,6 +20,7 @@ import type { GameEvent } from "./events";
 import type { Listing } from "./market";
 import type { Mission, Report, Survivor } from "./missions";
 import { modifiers } from "./modifiers";
+import { newPvp, type PendingRaid, type PvpState, type RaidReport } from "./raids";
 import { newStats, type Stats } from "./stats";
 
 export interface FurnaceJob {
@@ -143,6 +144,17 @@ export interface BaseState {
   wheelBets: WheelBet[];
   /** Season counters for the leaderboards and the season card. See `stats.ts`. */
   stats: Stats;
+  // --- raids (W6) ---
+  /** The next NPC raid, planned when the player acts; null when none is. See `raids.ts`. */
+  raid: PendingRaid | null;
+  /** Counter for planned raids. */
+  raidSeq: number;
+  /** Raids on and by this base, newest first (the last 10). */
+  raidReports: RaidReport[];
+  /** A breach left the defences damaged: buildings count `damagedPercent` until repaired. */
+  damaged: boolean;
+  /** The friendly PvP raids: in or out, shield, cooldowns and revenge tokens. */
+  pvp: PvpState;
 }
 
 const HOUR = 3600;
@@ -193,6 +205,11 @@ export function newBase(content: Content, now: number, seed: number): BaseState 
     casino: { day: -1, wagered: 0, won: 0 },
     wheelBets: [],
     stats: newStats(),
+    raid: null,
+    raidSeq: 0,
+    raidReports: [],
+    damaged: false,
+    pvp: newPvp(),
   };
 }
 

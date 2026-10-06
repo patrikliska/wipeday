@@ -15,6 +15,7 @@ import furnacesFile from "@wipe-day/content/data/furnaces.json5";
 import itemsFile from "@wipe-day/content/data/items.json5";
 import nodesFile from "@wipe-day/content/data/nodes.json5";
 import pacingFile from "@wipe-day/content/data/pacing.json5";
+import raidsFile from "@wipe-day/content/data/raids.json5";
 import recipesFile from "@wipe-day/content/data/recipes.json5";
 import regionsFile from "@wipe-day/content/data/regions.json5";
 import resourcesFile from "@wipe-day/content/data/resources.json5";
@@ -57,6 +58,7 @@ export const content: Content = parseContent(
     "active.json5": activeFile,
     "pacing.json5": pacingFile,
     "den.json5": denFile,
+    "raids.json5": raidsFile,
   },
   locale,
 );

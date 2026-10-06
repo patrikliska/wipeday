@@ -49,6 +49,8 @@ const DOCK_FOR: Record<Advice, string | null> = {
   den: "den",
   // The barrel glows in the scene itself.
   barrel: null,
+  defend: "squad",
+  repair: "build",
 };
 
 /** The action bar. The advisor picks exactly one primary button; its hint sits above the bar. */

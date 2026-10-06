@@ -3,8 +3,8 @@
  * web feed, push notifications and (from W8) the Discord channel agree:
  *
  * - the feed: the happenings worth telling the other players about (a party back
- *   with something, a rescue, a new tier, a level up, a blueprint, a keycode, and
- *   from W5 a sale at the Den, a big win and a jackpot);
+ *   with something, a rescue, a new tier, a level up, a blueprint, a keycode, from
+ *   W5 a sale at the Den, a big win and a jackpot, and from W6 the raids);
  * - notifications: which happenings may ping a player's phone, by kind, each
  *   opt-in per kind (CLAUDE.md 6.3 rule 11).
  */
@@ -21,6 +21,8 @@ export const FEED_TYPES = [
   "sold",
   "big_win",
   "jackpot_won",
+  "raid_landed",
+  "raid_launched",
 ] as const satisfies readonly GameEvent["type"][];
 
 export type FeedEvent = Extract<GameEvent, { type: (typeof FEED_TYPES)[number] }>;
@@ -48,6 +50,8 @@ export function isFeedWorthy(event: GameEvent): event is FeedEvent {
     case "sold":
     case "big_win":
     case "jackpot_won":
+    case "raid_landed":
+    case "raid_launched":
       return true;
     default:
       return false;
@@ -55,7 +59,14 @@ export function isFeedWorthy(event: GameEvent): event is FeedEvent {
 }
 
 /** The kinds of notification a player can turn on, in the order the settings list them. */
-export const NOTIFY_KINDS = ["party_back", "raided", "arrivals", "builds_done", "sold"] as const;
+export const NOTIFY_KINDS = [
+  "party_back",
+  "raided",
+  "raid_warning",
+  "arrivals",
+  "builds_done",
+  "sold",
+] as const;
 export type NotifyKind = (typeof NOTIFY_KINDS)[number];
 export type NotifyPrefs = Record<NotifyKind, boolean>;
 
@@ -63,6 +74,7 @@ export type NotifyPrefs = Record<NotifyKind, boolean>;
 export const DEFAULT_NOTIFY: NotifyPrefs = {
   party_back: true,
   raided: true,
+  raid_warning: false,
   arrivals: false,
   builds_done: false,
   sold: false,
@@ -80,6 +92,11 @@ export function notifyKindOf(event: GameEvent): NotifyKind | null {
       return "builds_done";
     case "sold":
       return "sold";
+    case "raid_landed":
+    case "raided":
+      return "raided";
+    case "raid_warned":
+      return "raid_warning";
     default:
       return null;
   }
