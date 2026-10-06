@@ -24,11 +24,12 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
+import { getConnInfo } from "@hono/node-server/conninfo";
 import { serveStatic } from "@hono/node-server/serve-static";
 import type { Clock } from "@wipe-day/domain/clock";
 import { NOTIFY_KINDS } from "@wipe-day/domain/feed";
 import { eq } from "drizzle-orm";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
@@ -80,13 +81,16 @@ export function createApp(deps: AppDeps): Hono<Env> {
 
   app.get("/api/health", (c) => c.json({ ok: true, now: clock.now(), streams: hub.connections }));
 
-  // Admin (W7): announce and end seasons. A bearer token from ADMIN_TOKEN; without one, only
-  // a development server takes them (`pnpm season ...` runs against it).
+  // Admin (W7): announce and end seasons. A bearer token from ADMIN_TOKEN, or, without one,
+  // a request from the server itself (`pnpm season ...` inside the container: the public
+  // traffic comes through Caddy on the Docker network, never from loopback) or any request to
+  // a development server.
   const admin = new Hono();
   admin.use(async (c, next) => {
     const token = config.adminToken;
     const given = c.req.header("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-    if (token ? given !== token : !config.devLogin) return c.json({ error: "forbidden" }, 403);
+    const allowed = token ? given === token : config.devLogin || fromLoopback(c);
+    if (!allowed) return c.json({ error: "forbidden" }, 403);
     await next();
   });
   const announceSchema = z.strictObject({
@@ -297,4 +301,15 @@ export function createApp(deps: AppDeps): Hono<Env> {
     app.get("*", (c) => c.html(html));
   }
   return app;
+}
+
+/** Whether a request came from this machine (the container's own loopback). */
+function fromLoopback(c: Context): boolean {
+  try {
+    const address = getConnInfo(c).remote.address ?? "";
+    return address === "127.0.0.1" || address === "::1" || address === "::ffff:127.0.0.1";
+  } catch {
+    // No socket (an in-process request in tests): not from loopback.
+    return false;
+  }
 }

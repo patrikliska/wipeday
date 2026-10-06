@@ -753,3 +753,40 @@ Shots: `raid_warned_day`, `raid_warned_night`, `phone_raid_warned(_night)`,
     meaning.
   - The full shot run no longer fits in one 10-minute call (now about 125 shots). Run it
     with `--only` in parts.
+
+## W7: seasons and the legacy layer (the season-over card, Legacy, Hall of fame, the Signal)
+
+Shots: `phone_legacy`, `phone_legacy_bought`, `phone_hall`, `phone_season_over`,
+`desktop_season_over`, `phone_season_ends`, `phone_signal_closed`, `phone_signal_open`,
+`phone_signal_lit`, `desktop_signal_tower`, `desktop_signal_lit_night`, `desktop_skin_beacon`,
+`desktop_skin_rust`.
+
+- Iteration 1, what was wrong:
+  - **Top bar:** the clock chip's new season line ("Season 2 · Rich Tides") widened the chip,
+    and on phones the identity chip was cut to "Su…" / "Tim…".
+  - **Season-over card:** the archived season card still said "Your season so far".
+  - **Plurals:** "Kept: 1 blueprints · 1 veterans".
+  - **The Signal tower:** at the foundation stage it was invisible, because its footing
+    stood behind the furnaces.
+- Iteration 2, what changed:
+  - The season line is short: the modifier's name, or "Season ends in 4d 9h" once announced.
+    The season's number is in the Legacy tab. The identity chip reads in full again.
+  - `SeasonCard` takes a label: "Your season 1".
+  - "Kept: blueprints 1 · veterans 1", with no plural to get wrong.
+  - The tower stands higher on the slope; its stone footing shows above the strip.
+- What works:
+  - **One primary action (6.3 rule 1):**
+    - the season-over card leads with the season's card and ends on one primary action,
+      "Begin season 2" (with "Spend points" beside it);
+    - the Signal makes the give button for the good you can cover best the primary;
+    - perks are secondary buttons: buying is optional and never the advice.
+  - **Disabled buttons explain themselves (rule 3):** "Need 3 more", "Top rank", "No frames
+    to give". Skins not earned stay visible with how to earn them.
+  - **The base tells the story:** the tower rises by stage on the slope, and once lit, its
+    beam sweeps over the sea at night. The Beacon and Rust skins recolour the roof and trim,
+    and the tier still reads from the walls.
+- Still open:
+  - The Signal's stages draw only what is finished. A stage under way could show scaffolding
+    (later, with commissioned art).
+  - Titles are shown only in the Legacy tab. Showing the worn title beside names in the
+    feed and ranks is for W8 (the bot shows names too).

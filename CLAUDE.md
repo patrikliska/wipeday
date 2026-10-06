@@ -258,7 +258,7 @@ Acceptance criteria per phase are in `docs/roadmap.md`.
 | W4 Survivors, expeditions | crew, the map, confirm and report cards, the feed (done) |
 | W5 Economy | market, contracts, casino, leaderboards (done) |
 | W6 Raids and defense | NPC raiders, PvE raids, capped PvP (done) |
-| W7 Seasons and legacy | archive and reset, legacy perks with the 25% cap |
+| W7 Seasons and legacy | archive and reset, legacy perks with the 25% cap (done) |
 | W8 Discord companion | the bot calls the API; feed in both places from one event |
 | W9 Live ops | VPS, backups, admin panel, exports, error reporting |
 
@@ -281,3 +281,4 @@ At the end of each phase report: what was built, decisions added, screenshot pat
 | `pnpm start` / `pnpm bot:dev` | the Discord bot (reads `.env` at the repo root) |
 | `pnpm preview` / `pnpm assets check` | bot card previews / bot asset manifest check |
 | `pnpm db:generate` | new drizzle migration after a schema change |
+| `pnpm season announce <date> [--next m]` / `pnpm season end` | announce or run a season's reset against the running API (D114) |

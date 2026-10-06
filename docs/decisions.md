@@ -1181,3 +1181,114 @@ No migration: all of it lives in the bases' JSON.
   - the raiders' torches gather on the ridge once sighted;
   - breaches show in the wall while damaged;
   - traps and the turret are drawn at three levels.
+
+## W7 (seasons and the legacy layer)
+
+### D114. A season ends by command; its end is announced in the game
+The owner chose manual seasons (2026-10-07).
+- **Announce:** `pnpm season announce <YYYY-MM-DD> [--next <modifier>]` sets the end date
+  (20:00 UTC that day) and the next season's modifier. The clock chip shows "Season ends
+  in …", and the announcement opens the Signal at once.
+- **End:** `pnpm season end` runs the reset (D115).
+- **How the CLI reaches the API:** both commands call `POST /api/admin/season/*` on the
+  running API, so the API stays the database's only writer (D52).
+- **Who may call it:**
+  - with `ADMIN_TOKEN` set: the bearer token;
+  - without one: requests from the server's own loopback. On the VPS the CLI runs inside the
+    container with `docker exec`, while public traffic arrives from Caddy over the Docker
+    network, never from loopback;
+  - development servers take any request.
+
+### D115. The reset is one transaction after an online backup
+`Game.endSeason`:
+1. Copies the database (`wipeday-pre-season-N.db`).
+2. In one SQLite transaction:
+   - settles every base of the season read-only;
+   - computes the leaderboards and season cards;
+   - writes `season_archive` (card, ranks, points) and `hall_of_fame` (every category's
+     winners and the Signal's top giver);
+   - folds every base into its player's `legacy` row;
+   - closes the season and nulls the old bases' `nextEventAt`, so the tick never touches
+     them again;
+   - closes open listings, zeroes the jackpot and drops the wheel's bets;
+   - opens the next season with the announced modifier, or one drawn from the season number.
+3. Clients get a `season` message on the Den's stream and reload.
+
+A player's new base is created on their first look. It starts from `newBase(…, carryFor(legacy,
+season))`. The snapshot test (`apps/api/src/season.test.ts`) asserts that this base is exactly a
+fresh base plus what was kept. The welcome-back summary reads only the current season.
+
+### D116. What is kept: blueprints, the crew's levels, perks, titles and skins
+- **Blueprints:** the union of every season's.
+- **Crew levels:** each survivor's best level and XP. They arrive the usual way (the start
+  crew on day one, the rest by boat) already at that level (`BaseState.veterans`).
+- **Perks:** stay bought.
+- **Titles:** won by coming first in a category ("Pathfinder · season 1"), or by being the
+  Signal's biggest giver ("Keeper of the Signal").
+- **Skins:** earned, never bought:
+  - Driftwood: finish a season;
+  - Rust: hold off 10 raids in one season;
+  - Beacon: be on the island when the Signal is lit.
+- Gear, stock, buildings and tiers reset.
+
+### D117. Legacy points buy small perks, applied at once, capped at 25%
+- **Points per season:** 3 for playing, 5 / 3 / 2 / 1 for 1st–4th in each category, and up to
+  10 for a share of the Signal's gifts.
+- **Spending:** points can be spent at any time, and a perk applies to the running base at once.
+  `buy_perk` is server-only: the points live in the legacy row, passed in as `World.legacy`.
+- **The eight perks:**
+  - gathering +2% a rank;
+  - storage, crafting and smelting +3% a rank;
+  - +2 trip success a rank;
+  - +6% crew XP a rank;
+  - an old friend (the best veteran is home from day one);
+  - a packed crate.
+- **Where they apply:** perks and the season's modifier feed the one `modifiers()` aggregator.
+- **The 25% cap:**
+  - The content check sums every perk at its top rank (trip success counts against the
+    weakest site's base chance) and fails the build above 25%.
+  - `legacy.test.ts` walks every combination of ranks (12,288). In each one, every rate stays
+    within 1.25× of the same base without perks: gathering, storage, craft and smelt speed,
+    trip odds and XP.
+- **The veteran in the simulator** plays optimally in a later season, with every perk, every
+  blueprint and the crew at level 5:
+  - It reached Armored on day 13 at the drafted 3–4% perks.
+  - At today's numbers it reaches Armored on day 14 (the floor) and the Offshore Platform on
+    day 18 (the floor), against optimal's day 15.
+  - The pacing check holds it to the floors and to at most 25% faster.
+
+### D118. Four season modifiers, one per season
+All values live in `seasons.json5`:
+- **Long Nights:** raiders +20%.
+- **Rich Tides:** barrels 60 min sooner, +1 roll.
+- **Quiet Raiders:** a raid every 3 days, −25% strength.
+- **Storm Season:** barrels 90 min sooner, gardens −30% food, trips +10% loot.
+
+Each touches knobs that already existed (D69). The first season has none, the live one
+included.
+
+### D119. The Signal: the island's shared tower for the last week
+- **Opening:** on season day 21, or when the end is announced.
+- **Stages:** foundation (stone, planks), tower (frames, plates), lamp (gears, springs), fuel.
+  They are sized for a small island to light in a week of deliberate giving. In the
+  simulator, a casual player giving only surplus fills the first stage.
+- **Gifts:** `signal_give` is server-only (`World.signal`). A gift is cut to what the stage
+  still needs and to what the base holds. The server adds it in the same transaction, so
+  two players racing for the last units never overfill (tested).
+- **Ranking:** gifts are valued at reference prices. The lit Signal reaches the feed, and
+  its beam sweeps the scene at night.
+
+### D120. Where seasons show in the client
+- **The season-over card,** once per new season:
+  - last season's card;
+  - the legacy points it gave;
+  - what carried over;
+  - the new modifier;
+  - "Begin season N" and "Spend points".
+- **"The island" panel:** gains Legacy and Hall of fame tabs.
+- **The clock chip:** shows the season's modifier, or when it ends. Short, because the chip is
+  narrow on phones.
+- **The Signal tower:** stands on the slope behind the holdfast once it opens, and is the way
+  into its panel.
+- **Skins:** recolour the holdfast's roof and trim, and keep the tier's walls so the tier
+  still reads.

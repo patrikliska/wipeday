@@ -289,6 +289,16 @@ scrap + wiring + batteries ──► electronics ──► radio, turret brain, 
   (recipes, cosmetics, a returning crew member), not power.
 - Season modifiers keep months different: "long nights", "rich tides", "quiet raiders",
   "storm season". One modifier per season, announced a week ahead.
+- *(Built in W7, D114-D120.)*
+  - **Ending a season:** the owner runs `pnpm season announce|end`; nothing ends a season
+    on a timer.
+  - **Kept:** blueprints, crew levels, perks, titles and skins.
+  - **Points:** for playing, by place in each category, and for a share of the Signal.
+  - **Perks:** eight small ones (2-6% a rank), capped at 25% in any rate and tested over
+    every combination.
+  - **The Signal:** four stages (foundation, tower, lamp, fuel), open from day 21 or the
+    announcement.
+  - **Hall of fame:** the winners of every category and the Signal's biggest giver.
 
 ## 6. Progression timeline (casual player, 3 check-ins a day)
 
@@ -351,5 +361,6 @@ keys, unbounded PvP loss, hidden odds, punishment for days away beyond a full st
 1. Names: keep "Wipe Day" as the title? The world glossary in section 4 needs your pass.
 2. Alliances: do you want them in season one, or solo play first?
 3. ~~Death~~: answered in W4a: injuries only, nobody dies (D84).
-4. Season length: a calendar month, or 28 days so it always starts on the same weekday?
+4. ~~Season length~~: answered in W7: seasons end by the owner's command, announced in the
+   game (D114).
 5. Art: procedural vector (extend what exists) or commissioned layered illustrations?
