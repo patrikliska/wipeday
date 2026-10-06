@@ -1997,3 +1997,147 @@ button.card.raid-row {
   flex-direction: column;
   gap: 8px;
 }
+
+/* --- seasons and the legacy layer (W7) ---------------------------------------------------- */
+
+.clockchip .small.season {
+  color: var(--accent);
+  opacity: 0.9;
+}
+.card.legacy-head {
+  align-items: center;
+}
+.legacy-head .score {
+  display: grid;
+  justify-items: center;
+  min-width: 72px;
+  padding: 6px 4px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 210, 90, 0.08);
+}
+.legacy-head .score b {
+  font-size: 30px;
+  line-height: 1;
+  color: #ffd25a;
+}
+.legacy-head .score span {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+.card.perk {
+  align-items: center;
+}
+.perk .pips {
+  display: inline-flex;
+  gap: 4px;
+}
+.perk .pips i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid #ffd25a;
+}
+.perk .pips i.on {
+  background: #ffd25a;
+}
+button.chip-tag.pick {
+  font: inherit;
+  font-size: 13px;
+  color: inherit;
+  cursor: pointer;
+}
+button.chip-tag.pick.on {
+  border-color: #ffd25a;
+  color: #ffd25a;
+}
+button.chip-tag.pick:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.card.hall .ranks {
+  margin-top: 6px;
+}
+.signal-stages {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.signal-stages li {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 12px;
+  color: var(--muted);
+}
+.signal-stages li i {
+  font-style: normal;
+  font-weight: 700;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-soft);
+}
+.signal-stages li.done {
+  color: var(--success);
+}
+.signal-stages li.done i {
+  border-color: var(--success);
+}
+.signal-stages li.now {
+  color: #ffd25a;
+}
+.signal-stages li.now i {
+  border-color: #ffd25a;
+}
+.signal-stage .need {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.signal-stage .need .what {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.signal-stage .need .tile {
+  width: 18px;
+  height: 18px;
+  font-size: 8px;
+}
+.signal-stage .need .bar {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.signal-stage .need .bar i {
+  display: block;
+  height: 100%;
+  background: #ffd25a;
+}
+.card.signal-lit {
+  border-color: #ffd25a;
+  background: rgba(255, 210, 90, 0.08);
+}
+.modal.season-over .lvl {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ffd25a;
+}
+.modal.season-over .season-card {
+  margin: 0;
+}

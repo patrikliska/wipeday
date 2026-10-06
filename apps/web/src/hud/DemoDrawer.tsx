@@ -19,6 +19,8 @@ export function DemoDrawer() {
   const tier = useWorld((state) => state.base.tier);
   const now = useWorld((state) => Math.floor(state.now));
   const patch = useWorld((state) => state.demoPatch);
+  const newSeason = useWorld((state) => state.demoNewSeason);
+  const demoSeason = useWorld((state) => state.demoSeason);
   if (mode !== "demo") return null;
 
   const setTimeScale = (scale: number) => {
@@ -115,6 +117,19 @@ export function DemoDrawer() {
             </button>
             <button type="button" className="btn small" onClick={giveEverything}>
               {t("demo.give")}
+            </button>
+          </div>
+          <h3>{t("demo.season")}</h3>
+          <div className="buttons">
+            <button
+              type="button"
+              className="btn small"
+              onClick={() => demoSeason({ endsAt: now + 4 * 86400, next: "quiet_raiders" })}
+            >
+              {t("demo.announce")}
+            </button>
+            <button type="button" className="btn small" onClick={() => void newSeason()}>
+              {t("demo.new_season")}
             </button>
           </div>
         </div>

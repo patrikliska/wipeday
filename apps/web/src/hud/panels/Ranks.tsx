@@ -76,15 +76,15 @@ export function RanksPanel() {
   );
 }
 
-/** One player's season in a few numbers: shareable at a glance. */
-function SeasonCard({ summary }: { summary: SeasonSummary }) {
+/** One player's season in a few numbers: shareable at a glance (and at the reset, W7). */
+export function SeasonCard({ summary, label }: { summary: SeasonSummary; label?: string }) {
   const best = CATEGORIES.filter((category) => summary.ranks[category] === 1);
   const reached = TIERS.filter((tier) => summary.tierDays[tier] !== undefined && tier !== "twig");
   return (
     <div className="season-card" style={vars({ "--tier-color": tierVar(summary.tier) })}>
       <div className="row">
         <div className="grow">
-          <span className="lvl">{t("season.title")}</span>
+          <span className="lvl">{label ?? t("season.title")}</span>
           <b className="tier">{t("season.tier", { tier: tierName(summary.tier) })}</b>
         </div>
         {best.length > 0 ? (

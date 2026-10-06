@@ -10,6 +10,10 @@
  *
  * Raids (W6): Hollis keeps a Sheet Metal holdfast in the raids, so the PvP tab has a
  * target; a raid on it plays both halves here, as the server would.
+ *
+ * Seasons (W7): the demo player has finished one season already (a legacy with points to
+ * spend, an archived season card, a hall of fame), the Signal fills here, and the demo
+ * drawer can end the season to show the reset.
  */
 import { type BaseState, newBase } from "@wipe-day/domain/base";
 import { nextWheelAt, roundOf, wheelResult } from "@wipe-day/domain/casino";
@@ -17,19 +21,31 @@ import { applyCommand, type Command } from "@wipe-day/domain/commands";
 import type { GameEvent } from "@wipe-day/domain/events";
 import { type FeedItem, isFeedWorthy, type NotifyPrefs } from "@wipe-day/domain/feed";
 import { leaderboards, seasonSummary } from "@wipe-day/domain/leaderboard";
+import { carryFor, carryOver, type Legacy, newLegacy } from "@wipe-day/domain/legacy";
 import type { MarketListing } from "@wipe-day/domain/market";
 import { hitOf, pvpOdds, pvpStatus, type RaidTarget, takeRaid } from "@wipe-day/domain/raids";
 import { seedOf } from "@wipe-day/domain/rng";
 import { settleAll } from "@wipe-day/domain/settle";
+import {
+  addGift,
+  newSignal,
+  type SignalProgress,
+  signalOpen,
+  stillNeeded,
+} from "@wipe-day/domain/signal";
 import type {
+  ArchivedSeason,
   CommandResponse,
   DenBoard,
   DenPush,
+  HallEntry,
+  LegacyResponse,
   MeResponse,
   PriceHistory,
   PushMessage,
   RaidsResponse,
   RanksResponse,
+  SignalResponse,
   StateResponse,
   WheelBetView,
 } from "@wipe-day/domain/wire";
@@ -41,7 +57,13 @@ import type { Backend, NotifySettings, ServerConfig } from "./backend";
 /** A base a few days in, so the demo shows the living base rather than an empty shore. */
 function demoBase(now: number): BaseState {
   return {
-    ...newBase(content, now - 3 * 3600, 20260928),
+    ...newBase(content, now - 3 * 3600, 20260928, {
+      season: { number: 2, startedAt: DEMO_SEASON_START, modifier: "rich_tides" },
+      blueprints: ["strongbox"],
+      veterans: { mara: { level: 3, xp: 260 } },
+      perks: {},
+      skin: null,
+    }),
     tier: "wood",
     toolId: "stone_tools",
     stock: {
@@ -137,6 +159,23 @@ export class LocalBackend implements Backend {
   /** The demo season's announced end and next modifier (W7). */
   private seasonEnds: number | null = null;
   private seasonNext: string | null = null;
+  /** The demo player's legacy: one season behind them, points to spend. */
+  private legacyRow: Legacy = {
+    ...newLegacy(),
+    points: 14,
+    blueprints: ["strongbox"],
+    levels: { mara: { level: 3, xp: 260 } },
+    titles: ["explorer:1"],
+    skins: ["driftwood"],
+    seasons: 1,
+  };
+  private archived: ArchivedSeason[] = [];
+  private hall: HallEntry[] = [
+    { season: 1, category: "wealth", playerId: 9, name: "Hollis", value: 18_200 },
+    { season: 1, category: "explorer", playerId: 0, name: "", value: 9 },
+    { season: 1, category: "signal", playerId: 9, name: "Hollis", value: 1400 },
+  ];
+  private beacon: SignalProgress = newSignal();
   private readonly player: MeResponse = {
     id: 0,
     name: t("hud.demo_player"),
@@ -168,6 +207,12 @@ export class LocalBackend implements Backend {
       world.target = this.target();
       world.selfName = this.player.name;
     }
+    world.legacy = {
+      points: this.legacyRow.points,
+      titles: this.legacyRow.titles,
+      skins: this.legacyRow.skins,
+    };
+    world.signal = { ...this.beacon, open: this.signalIsOpen() };
     return world;
   }
 
@@ -206,6 +251,23 @@ export class LocalBackend implements Backend {
     if (result.ok && command.type === "market_buy") {
       this.boughtIds.add(command.listing);
       this.denListener?.({ kind: "board" });
+    }
+    for (const event of result.events) {
+      if (!result.ok) break;
+      if (event.type === "perk_bought") {
+        this.legacyRow = {
+          ...this.legacyRow,
+          points: this.legacyRow.points - event.cost,
+          spent: this.legacyRow.spent + event.cost,
+          perks: { ...this.legacyRow.perks, [event.perk]: event.rank },
+        };
+      }
+      if (event.type === "cosmetic_set")
+        this.legacyRow = { ...this.legacyRow, title: event.title, skin: event.skin };
+      if (event.type === "signal_gift") {
+        this.beacon = addGift(content, this.beacon, event.good, event.amount, now);
+        this.denListener?.({ kind: "signal" });
+      }
     }
     const launched = result.events.find((event) => event.type === "raid_launched");
     if (result.ok && launched?.type === "raid_launched") {
@@ -390,6 +452,80 @@ export class LocalBackend implements Backend {
       modifier: this.base.season.modifier,
       next: this.seasonNext,
     };
+  }
+
+  private signalIsOpen(): boolean {
+    return signalOpen(content, this.base.season, this.clock.now(), this.seasonEnds !== null);
+  }
+
+  async legacy(): Promise<LegacyResponse> {
+    const hall = this.hall.map((entry) =>
+      entry.playerId === this.player.id ? { ...entry, name: this.player.name } : entry,
+    );
+    return { legacy: this.legacyRow, seasons: this.archived, hall };
+  }
+
+  async signal(): Promise<SignalResponse> {
+    return {
+      serverNow: this.clock.now(),
+      open: this.signalIsOpen(),
+      progress: this.beacon,
+      needs: stillNeeded(content, this.beacon),
+      top: [{ playerId: SELLER.id, name: SELLER.name, worth: 640 }],
+      mine: 0,
+    };
+  }
+
+  /** Screenshots: the season's end and next modifier, the Signal, the legacy. */
+  patchSeason(change: {
+    endsAt?: number | null;
+    next?: string | null;
+    signal?: SignalProgress;
+    legacy?: Partial<Legacy>;
+    archived?: ArchivedSeason[];
+  }): void {
+    if (change.endsAt !== undefined) this.seasonEnds = change.endsAt;
+    if (change.next !== undefined) this.seasonNext = change.next;
+    if (change.signal) this.beacon = change.signal;
+    if (change.legacy) this.legacyRow = { ...this.legacyRow, ...change.legacy };
+    if (change.archived) this.archived = change.archived;
+  }
+
+  /** The demo drawer's reset: the season ends, its card is archived, the next one begins. */
+  async newSeason(): Promise<void> {
+    const now = this.clock.now();
+    const ranks = await this.ranks();
+    const number = this.base.season.number;
+    const result = {
+      season: number,
+      ranks: ranks.me.ranks,
+      signalShare: this.beacon.litAt !== null ? 0.5 : 0,
+      signalLit: this.beacon.litAt !== null,
+      signalTop: false,
+    };
+    const before = this.legacyRow.points;
+    this.legacyRow = carryOver(content, this.legacyRow, this.base, result);
+    this.archived = [
+      {
+        season: number,
+        summary: ranks.me,
+        ranks: ranks.me.ranks,
+        points: this.legacyRow.points - before,
+      },
+      ...this.archived,
+    ];
+    const modifier = this.seasonNext ?? "storm_season";
+    this.base = newBase(
+      content,
+      now,
+      randomSeed(),
+      carryFor(this.legacyRow, { number: number + 1, startedAt: now, modifier }),
+    );
+    this.seasonEnds = null;
+    this.seasonNext = null;
+    this.beacon = newSignal();
+    this.version += 1;
+    this.denListener?.({ kind: "season", number: number + 1 });
   }
 
   /** Hollis, settled to now, as the server would hand it to a raid. */

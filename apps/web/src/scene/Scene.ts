@@ -36,6 +36,7 @@ import { type Float, Floaters, Particles, Weather } from "./effects";
 import { Barrel, type Depleted, MAX_HITS, type NodeCallbacks, type NodeDef, Nodes } from "./nodes";
 import { gloom, paletteAt } from "./palette";
 import { DefenceBadge, RaiderTorches, type ShieldState } from "./raids";
+import { SignalTower } from "./signal";
 import { Sky } from "./sky";
 import { Terrain } from "./terrain";
 import { clamp, lerp } from "./util";
@@ -127,6 +128,8 @@ export class Scene {
   /** The shield over the walls and the raiders' torches on the ridge (W6). */
   private readonly badge: DefenceBadge;
   private readonly torches: RaiderTorches;
+  /** The island's Signal on the slope behind the holdfast (W7). */
+  private readonly tower: SignalTower;
   /** The base the skiff's glow was worked out for (the check is not free every frame). */
   private skiffFor: unknown = null;
   private readonly actors: Actors;
@@ -219,6 +222,9 @@ export class Scene {
     });
     this.badge = new DefenceBadge(() => useWorld.getState().openDefence());
     this.torches = new RaiderTorches(BASE_X, GROUND);
+    this.tower = new SignalTower(BASE_X - 330, GROUND - 120, () =>
+      useWorld.getState().openPanel("signal"),
+    );
     this.actors = new Actors(GROUND, BASE_X, BASE_X + 340, SHORE_X + 20, {
       canWork: (node) => this.backNodes.isUp(node) || this.frontNodes.isUp(node),
       onWork: (node, x, y) => {
@@ -230,12 +236,13 @@ export class Scene {
     });
     this.base.container.position.set(BASE_X, GROUND);
     this.base.lights.position.set(BASE_X, GROUND);
-    this.lights.addChild(this.torches.light, this.base.lights, this.skiff.light);
+    this.lights.addChild(this.tower.light, this.torches.light, this.base.lights, this.skiff.light);
     this.markers.addChild(this.backNodes.overlay, this.frontNodes.overlay, this.badge.container);
     this.ambient.blendMode = "multiply";
     this.world.addChild(
       this.sky.container,
       this.terrain.back,
+      this.tower.container,
       this.torches.container,
       this.terrain.ground,
       this.backNodes.container,
@@ -420,7 +427,13 @@ export class Scene {
     const state = useWorld.getState();
     const { base, now } = state;
     this.syncCrew(base, now);
-    this.base.setTier(base.tier, false);
+    this.base.setTier(base.tier, false, base.skin);
+    // W7: the Signal shows once it opens (or anything was given).
+    const signal = state.signal;
+    if (signal) {
+      const { stage, litAt } = signal.progress;
+      this.tower.set(stage, litAt !== null, signal.open || stage > 0 || litAt !== null);
+    }
     const tierJob = base.construction.find((job) => job.target.kind === "tier");
     const scaffold = tierJob?.target.kind === "tier" ? tierJob.target.tier : null;
     if (scaffold !== this.scaffoldTier) {
@@ -541,6 +554,7 @@ export class Scene {
     this.skiff.update(dt, darkness, this.scale);
     this.badge.update(dt, this.scale);
     this.torches.update(dt, darkness);
+    this.tower.update(dt, darkness);
     this.actors.setNight(fraction < 0.23 || fraction > 0.8);
     this.actors.update(dt, this.wind);
     this.particles.update(dt, this.wind);

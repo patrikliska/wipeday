@@ -36,6 +36,7 @@ export type Panel =
   | "feed"
   | "den"
   | "defence"
+  | "signal"
   | null;
 export type Tone = "neutral" | "success" | "warning" | "danger";
 
