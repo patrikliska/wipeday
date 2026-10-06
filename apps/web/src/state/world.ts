@@ -105,6 +105,8 @@ const RESOURCE_COLOR: Record<string, string> = {
   frames: "#a57a45",
   gears: "#7d8a96",
   springs: "#b0b8c0",
+  gunpowder: "#5a5652",
+  charge: "#cd412b",
 };
 export const resourceColor = (id: string): string => RESOURCE_COLOR[id] ?? "#a49e93";
 
@@ -131,6 +133,8 @@ const RESOURCE_INITIALS: Record<string, string> = {
   frames: "FR",
   gears: "GE",
   springs: "SP",
+  gunpowder: "GP",
+  charge: "CG",
 };
 export const resourceInitials = (id: string): string =>
   RESOURCE_INITIALS[id] ?? initials(resourceName(id));

@@ -384,6 +384,8 @@ export const siteSchema = z.strictObject({
   finds: z.array(z.strictObject({ item: z.string(), chance: z.int().min(1).max(100) })).optional(),
   /** A bandit camp (W6): a raid on it, paid in charges; drawn apart and left out of the site chain. */
   camp: z.boolean().optional(),
+  /** Where the map draws the marker, from the region's centre in map units (default: by order). */
+  pin: z.tuple([z.int().min(-200).max(200), z.int().min(-200).max(200)]).optional(),
 });
 
 export const OUTCOMES = ["success", "partial", "fail"] as const;

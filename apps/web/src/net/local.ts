@@ -7,6 +7,9 @@
  * The Den (W5) is played here too: a made-up seller's listings on the board, a
  * secret drawn per page load for the wheel, and a jackpot. The wheel turns on the
  * demo clock, so at 240× a round passes in a blink (like node regrow, D65).
+ *
+ * Raids (W6): Hollis keeps a Sheet Metal holdfast in the raids, so the PvP tab has a
+ * target; a raid on it plays both halves here, as the server would.
  */
 import { type BaseState, newBase } from "@wipe-day/domain/base";
 import { nextWheelAt, roundOf, wheelResult } from "@wipe-day/domain/casino";
@@ -15,6 +18,7 @@ import type { GameEvent } from "@wipe-day/domain/events";
 import { type FeedItem, isFeedWorthy, type NotifyPrefs } from "@wipe-day/domain/feed";
 import { leaderboards, seasonSummary } from "@wipe-day/domain/leaderboard";
 import type { MarketListing } from "@wipe-day/domain/market";
+import { hitOf, pvpOdds, pvpStatus, type RaidTarget, takeRaid } from "@wipe-day/domain/raids";
 import { seedOf } from "@wipe-day/domain/rng";
 import { settleAll } from "@wipe-day/domain/settle";
 import type {
@@ -24,6 +28,7 @@ import type {
   MeResponse,
   PriceHistory,
   PushMessage,
+  RaidsResponse,
   RanksResponse,
   StateResponse,
   WheelBetView,
@@ -62,6 +67,21 @@ function demoBase(now: number): BaseState {
     upkeepPaidUntil: now,
     barrel: { spawnedAt: now - 15 * 60, expiresAt: now + 30 * 60, seed: 42 },
     nextBarrelAt: now + 4 * 3600,
+  };
+}
+
+/** Hollis's holdfast (W6): Sheet Metal, in the raids, walls and a turret, a full yard. */
+function rivalBase(now: number): BaseState {
+  const base = newBase(content, now - 9 * 86400, 77);
+  return {
+    ...base,
+    tier: "metal",
+    toolId: "salvaged_tools",
+    buildings: { walls: 2, traps: 1, watchtower: 2, turret: 1 },
+    stock: { timber: 42_000, stone: 51_000, ingots: 18_500, sulfur: 2400, scrap: 1900 },
+    lastCollectedAt: now,
+    upkeepPaidUntil: now + 30 * 86400,
+    pvp: { ...base.pvp, on: true },
   };
 }
 
@@ -112,6 +132,8 @@ export class LocalBackend implements Backend {
   /** Hollis's listings bought in this demo. */
   private boughtIds = new Set<number>();
   private bets: WheelBetView[] = [];
+  /** Hollis's holdfast, the demo's raid target (W6). */
+  private rival: BaseState;
   private readonly player: MeResponse = {
     id: 0,
     name: t("hud.demo_player"),
@@ -121,6 +143,7 @@ export class LocalBackend implements Backend {
 
   constructor() {
     this.base = demoBase(this.clock.now());
+    this.rival = rivalBase(this.clock.now());
     // The wheel spins on the demo clock: settle the bets whose round has ended.
     setInterval(() => this.spin(), 400);
   }
@@ -137,6 +160,10 @@ export class LocalBackend implements Backend {
     if (command?.type === "market_buy") {
       const listing = this.board().find((candidate) => candidate.id === command.listing);
       if (listing) world.listing = listing;
+    }
+    if (command?.type === "raid_player" && command.target === SELLER.id) {
+      world.target = this.target();
+      world.selfName = this.player.name;
     }
     return world;
   }
@@ -175,6 +202,11 @@ export class LocalBackend implements Backend {
     if (result.ok && command.type === "market_buy") {
       this.boughtIds.add(command.listing);
       this.denListener?.({ kind: "board" });
+    }
+    const launched = result.events.find((event) => event.type === "raid_launched");
+    if (result.ok && launched?.type === "raid_launched") {
+      const hit = hitOf(launched.report, this.player.id, this.player.name);
+      this.rival = takeRaid(content, this.rival, hit, now).state;
     }
     return result.ok
       ? {
@@ -343,6 +375,36 @@ export class LocalBackend implements Backend {
       boards,
       me: seasonSummary(content, this.base, boards, this.player.id, DEMO_SEASON_START),
     };
+  }
+
+  /** Hollis, settled to now, as the server would hand it to a raid. */
+  private target(): RaidTarget {
+    const now = this.clock.now();
+    this.rival = settleAll(content, this.rival, now).state;
+    return { ...SELLER, state: this.rival };
+  }
+
+  async raids(): Promise<RaidsResponse> {
+    const now = this.clock.now();
+    const target = this.target();
+    return {
+      serverNow: now,
+      targets: [
+        {
+          id: target.id,
+          name: target.name,
+          tier: target.state.tier,
+          status: pvpStatus(content, this.base, this.player.id, target, now),
+          odds: pvpOdds(content, this.base, target, now),
+          shieldUntil: target.state.pvp.shieldUntil,
+        },
+      ],
+    };
+  }
+
+  /** Screenshots: Hollis's holdfast (a shield, a revenge token on the player's side...). */
+  patchRival(change: Partial<BaseState>): void {
+    this.rival = { ...this.rival, ...change };
   }
 
   async feed(before?: number): Promise<FeedItem[]> {

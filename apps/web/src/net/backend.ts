@@ -13,6 +13,7 @@ import type {
   MeResponse,
   PriceHistory,
   PushMessage,
+  RaidsResponse,
   RanksResponse,
   StateResponse,
 } from "@wipe-day/domain/wire";
@@ -63,6 +64,8 @@ export interface Backend {
   history(good: string): Promise<PriceHistory>;
   /** The leaderboards and the player's season card. */
   ranks(): Promise<RanksResponse>;
+  /** Other holdfasts in the raids, with whether and at what cost they can be raided (W6). */
+  raids(): Promise<RaidsResponse>;
   /** The season's feed, newest first; `before` pages back by item id. */
   feed(before?: number): Promise<FeedItem[]>;
   /** Notification settings; null where there are none (demo mode). */

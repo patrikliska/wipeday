@@ -13,6 +13,7 @@ import type {
   MeResponse,
   PriceHistory,
   PushMessage,
+  RaidsResponse,
   RanksResponse,
   StateResponse,
 } from "@wipe-day/domain/wire";
@@ -136,6 +137,10 @@ export class HttpBackend implements Backend {
 
   history(good: string): Promise<PriceHistory> {
     return this.request<PriceHistory>(`/api/den/history?good=${encodeURIComponent(good)}`);
+  }
+
+  raids(): Promise<RaidsResponse> {
+    return this.request<RaidsResponse>("/api/raids");
   }
 
   ranks(): Promise<RanksResponse> {

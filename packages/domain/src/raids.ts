@@ -192,6 +192,11 @@ function reportId(state: BaseState, prefix: string, at: number): string {
 
 // --- NPC raids -----------------------------------------------------------------------
 
+/** Whether raiders come to this base at all (from `npc.startTier`): the Defence panel opens. */
+export function raidsOpen(content: Content, state: Pick<BaseState, "tier">): boolean {
+  return tierAtLeast(state, content.raids.npc.startTier);
+}
+
 /** When the base first reached the tier raiders start at (or a higher one), if it has. */
 function reachedStart(content: Content, state: BaseState): number | null {
   const from = TIERS.indexOf(content.raids.npc.startTier);

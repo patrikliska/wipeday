@@ -34,6 +34,7 @@ import type {
   DenPush,
   PlayerView,
   PushMessage,
+  RaidsResponse,
   RanksResponse,
   StateResponse,
   WelcomeBack,
@@ -70,6 +71,7 @@ interface Queued {
 }
 
 export type DenTab = "market" | "contracts" | "games";
+export type DefenceTab = "defence" | "raids";
 export type FeedTab = "feed" | "ranks";
 export type Game = "wheel" | "slots" | "dice";
 
@@ -134,6 +136,10 @@ export interface WorldState {
   spin: { round: number; segment: number } | null;
   /** The player's last slots spin or dice roll. */
   roll: Roll | null;
+  // Raids (W6).
+  defenceTab: DefenceTab;
+  /** Other holdfasts in the raids, as last loaded; null before. */
+  raids: RaidsResponse | null;
 }
 
 interface Actions {
@@ -208,6 +214,16 @@ interface Actions {
   rollDice(option: DiceOption, amount: number): boolean;
   /** Screenshots: other players' wheel bets and the jackpot in the demo Den. */
   demoDen(change: { bets?: DenBoard["bets"]; jackpot?: number }): void;
+  // Raids (W6).
+  /** Opens the Defence panel on a tab (the shield over the walls, the raid banner, a toast). */
+  openDefence(tab?: DefenceTab): void;
+  setDefenceTab(tab: DefenceTab): void;
+  loadRaids(): Promise<void>;
+  repair(): boolean;
+  setPvp(on: boolean): boolean;
+  raidPlayer(target: number): boolean;
+  /** Screenshots: Hollis's holdfast in the demo. */
+  demoRival(change: Partial<BaseState>): void;
 }
 
 const FEED_SEEN = "wd.feedSeen";
@@ -255,6 +271,13 @@ function timedKey(event: DomainEvent): string | null {
       return `listing:${event.listing}`;
     case "wager":
       return event.game === "wheel" ? `wheel:${event.round}:${event.option}` : null;
+    // Raids (W6): raiders landing, a warning and a raid by another player arrive by push.
+    case "raid_landed":
+      return `raid:${event.report.id}`;
+    case "raided":
+      return `raided:${event.report.id}`;
+    case "raid_warned":
+      return `warned:${event.lands}`;
     default:
       return null;
   }
@@ -387,6 +410,12 @@ export const useWorld = create<Store>((set, get) => {
           if (!next.predicted && response.ok) {
             // Nothing was shown for it yet: its events play now, and a roll goes to its table.
             play(response.events);
+            // A raid's result is its report card (W6).
+            const launched = response.events.find((event) => event.type === "raid_launched");
+            if (launched?.type === "raid_launched") {
+              get().openReport(launched.report.id);
+              void get().loadRaids();
+            }
             const wager = response.events.find((event) => event.type === "wager");
             if (wager?.type === "wager" && wager.game !== "wheel") {
               set({
@@ -468,10 +497,16 @@ export const useWorld = create<Store>((set, get) => {
       get().openDen("market");
       window.history.replaceState(null, "", window.location.pathname);
     }
-    // A notification's tap opens the game on its report (`/?report=m12`).
+    // A notification's tap opens the game on its report (`/?report=m12`), a raid's included.
     const report = new URLSearchParams(window.location.search).get("report");
-    if (report && get().base.reports.some((candidate) => candidate.id === report)) {
+    const { reports, raidReports } = get().base;
+    if (report && [...reports, ...raidReports].some((candidate) => candidate.id === report)) {
       get().openReport(report);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+    // The raid warning's tap opens the Defence panel (`/?defence`).
+    if (new URLSearchParams(window.location.search).has("defence")) {
+      get().openDefence("defence");
       window.history.replaceState(null, "", window.location.pathname);
     }
   };
@@ -510,6 +545,40 @@ export const useWorld = create<Store>((set, get) => {
     pending: [],
     spin: null,
     roll: null,
+    defenceTab: "defence",
+    raids: null,
+
+    openDefence(tab) {
+      set({ panel: "defence", recipe: null, ...(tab ? { defenceTab: tab } : {}) });
+      void get().loadRaids();
+    },
+
+    setDefenceTab(defenceTab) {
+      set({ defenceTab });
+      if (defenceTab === "raids") void get().loadRaids();
+    },
+
+    async loadRaids() {
+      try {
+        set({ raids: await backend.raids() });
+      } catch {
+        // The list is a view: a failed load keeps what was there.
+      }
+    },
+
+    repair: () => get().send({ type: "repair" }),
+    setPvp(on) {
+      const sent = get().send({ type: "set_pvp", on });
+      if (sent) void get().loadRaids();
+      return sent;
+    },
+    raidPlayer: (target) => get().send({ type: "raid_player", target }),
+
+    demoRival(change) {
+      if (!(backend instanceof LocalBackend)) return;
+      backend.patchRival(change);
+      void get().loadRaids();
+    },
 
     openDen(tab) {
       set({ panel: "den", recipe: null, ...(tab ? { denTab: tab } : {}) });
@@ -717,7 +786,10 @@ export const useWorld = create<Store>((set, get) => {
 
     openReport(id) {
       set({ report: id });
-      const report = id ? get().base.reports.find((candidate) => candidate.id === id) : undefined;
+      const { reports, raidReports } = get().base;
+      const report = id
+        ? [...reports, ...raidReports].find((candidate) => candidate.id === id)
+        : undefined;
       if (report && !report.read) get().send({ type: "read_report", id: report.id });
     },
     smelt: (ore) => get().send({ type: "smelt", ore }),

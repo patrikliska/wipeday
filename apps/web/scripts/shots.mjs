@@ -37,6 +37,8 @@ const BUILDINGS = [
   "generator",
   "radio_mast",
   "dock",
+  "traps",
+  "turret",
 ];
 const allAt = (level) => Object.fromEntries(BUILDINGS.map((id) => [id, level]));
 /** A believable mid-game base: the early buildings at level 1 and 2. */
@@ -317,6 +319,108 @@ const DEN = (extra = {}) => ({
   panel: "den",
   ...extra,
 });
+
+// --- raids (W6) ------------------------------------------------------------------------
+/** A Stone holdfast with walls, a watchtower and traps, raiders landing at 21:30 on day 9. */
+const RAID = (extra = {}) => ({
+  time: at(9, 15),
+  tier: "stone",
+  buildings: { ...MIDGAME, watchtower: 1, traps: 1 },
+  stock: { ...CRAFT_STOCK, timber: 9200, stone: 8400, ingots: 1900, scrap: 420, charge: 2 },
+  crew: CREW(9).map((member) => ({ ...member, away: null })),
+  raid: { at: at(9, 21.5), seed: 5, n: 2, warned: true },
+  raidSeq: 2,
+  damaged: false,
+  raidReports: [],
+  ...extra,
+});
+const NPC_BREACHED = {
+  id: "r3",
+  kind: "npc",
+  at: at(9, 21.2),
+  outcome: "breached",
+  chance: 42,
+  defence: 18,
+  attack: 25,
+  lost: { timber: 460, stone: 420, ingots: 95, scrap: 21 },
+  gained: {},
+  foe: null,
+  damaged: true,
+  revenge: false,
+  read: false,
+};
+const NPC_HELD = {
+  id: "r1",
+  kind: "npc",
+  at: at(7, 22.1),
+  outcome: "held",
+  chance: 61,
+  defence: 23,
+  attack: 15,
+  lost: {},
+  gained: { scrap: 18, sulfur: 44 },
+  foe: null,
+  damaged: false,
+  revenge: false,
+  read: true,
+};
+const PVP_STATE = (extra = {}) => ({
+  on: true,
+  lastAttackAt: null,
+  hits: {},
+  shieldUntil: null,
+  revenge: [],
+  ...extra,
+});
+/** Sheet Metal, in the raids, with charges: the PvP tab against Hollis. */
+const PVP = (extra = {}) => ({
+  ...RAID(),
+  time: at(16, 11),
+  tier: "metal",
+  buildings: { ...MIDGAME, walls: 2, watchtower: 2, traps: 2, turret: 1 },
+  stock: { ...CRAFT_STOCK, timber: 38_000, stone: 44_000, ingots: 12_000, scrap: 1100, charge: 14 },
+  raid: null,
+  raidReports: [NPC_HELD],
+  pvp: PVP_STATE(),
+  panel: "defence",
+  defenceTab: "raids",
+  ...extra,
+});
+const PVP_IN = {
+  id: "i1",
+  kind: "pvp_in",
+  at: at(16, 6),
+  outcome: "breached",
+  chance: 38,
+  defence: 46,
+  attack: 60,
+  lost: { timber: 3800, stone: 4400, ingots: 1200, scrap: 110 },
+  gained: {},
+  foe: { id: 9, name: "Hollis" },
+  damaged: true,
+  revenge: false,
+  read: false,
+};
+const PVP_OUT = {
+  id: "o1",
+  kind: "pvp_out",
+  at: at(16, 11),
+  outcome: "breached",
+  chance: 31,
+  defence: 41,
+  attack: 60,
+  lost: { charge: 6 },
+  gained: { timber: 4200, stone: 5100, ingots: 1850, sulfur: 240, scrap: 150 },
+  foe: { id: 9, name: "Hollis" },
+  damaged: false,
+  revenge: false,
+  read: false,
+};
+const REVENGE = PVP_STATE({
+  shieldUntil: at(17, 6),
+  revenge: [{ attacker: 9, name: "Hollis", until: at(18, 6) }],
+});
+const FORT = { ...MIDGAME, walls: 3, watchtower: 3, traps: 3, turret: 3 };
 
 const SHOTS = [
   { name: "desktop_day", viewport: [1600, 900], state: { time: at(3, 11) } },
@@ -1139,6 +1243,132 @@ const SHOTS = [
     scale: 3,
     state: { time: at(3, 11), view: "map" },
   },
+  // Raids (W6).
+  { name: "raid_warned_day", viewport: [1600, 900], state: RAID() },
+  { name: "raid_warned_night", viewport: [1600, 900], state: RAID({ time: at(9, 20.8) }) },
+  { name: "phone_raid_warned", viewport: [390, 844], scale: 3, state: RAID() },
+  {
+    name: "phone_raid_warned_night",
+    viewport: [390, 844],
+    scale: 3,
+    state: RAID({ time: at(9, 20.8) }),
+    clip: [180, 300, 210, 260],
+  },
+  {
+    name: "phone_defence_warned",
+    viewport: [390, 844],
+    scale: 3,
+    state: RAID({ panel: "defence" }),
+  },
+  {
+    name: "phone_defence_damaged",
+    viewport: [390, 844],
+    scale: 3,
+    state: RAID({
+      time: at(10, 9),
+      raid: null,
+      damaged: true,
+      raidReports: [NPC_BREACHED, NPC_HELD],
+      panel: "defence",
+    }),
+  },
+  {
+    name: "phone_defence_calm",
+    viewport: [390, 844],
+    scale: 3,
+    state: RAID({ time: at(8, 11), raid: null, raidReports: [NPC_HELD], panel: "defence" }),
+    scrollTo: ".panel h3.section:nth-of-type(2)",
+  },
+  {
+    name: "desktop_damaged",
+    viewport: [1600, 900],
+    state: RAID({ time: at(10, 9), raid: null, damaged: true, raidReports: [NPC_BREACHED] }),
+  },
+  {
+    name: "phone_raid_report_breached",
+    viewport: [390, 844],
+    scale: 3,
+    state: RAID({
+      time: at(10, 9),
+      raid: null,
+      damaged: true,
+      raidReports: [NPC_BREACHED],
+      report: "r3",
+    }),
+  },
+  {
+    name: "phone_raid_report_held",
+    viewport: [390, 844],
+    scale: 3,
+    state: RAID({ time: at(8, 9), raid: null, raidReports: [NPC_HELD], report: "r1" }),
+  },
+  {
+    name: "phone_pvp_locked",
+    viewport: [390, 844],
+    scale: 3,
+    state: RAID({ raid: null, panel: "defence", defenceTab: "raids" }),
+  },
+  {
+    name: "phone_pvp_join",
+    viewport: [390, 844],
+    scale: 3,
+    state: PVP({ pvp: PVP_STATE({ on: false }) }),
+  },
+  { name: "phone_pvp_targets", viewport: [390, 844], scale: 3, state: PVP() },
+  {
+    name: "phone_pvp_shielded",
+    viewport: [390, 844],
+    scale: 3,
+    state: PVP({ rival: { pvp: PVP_STATE({ shieldUntil: at(16, 30) }) } }),
+  },
+  {
+    name: "phone_pvp_revenge",
+    viewport: [390, 844],
+    scale: 3,
+    state: PVP({ damaged: true, raidReports: [PVP_IN, NPC_HELD], pvp: REVENGE }),
+  },
+  {
+    name: "phone_pvp_report_in",
+    viewport: [390, 844],
+    scale: 3,
+    state: PVP({ panel: null, damaged: true, raidReports: [PVP_IN], report: "i1", pvp: REVENGE }),
+  },
+  {
+    name: "phone_pvp_report_won",
+    viewport: [390, 844],
+    scale: 3,
+    state: PVP({
+      panel: null,
+      raidReports: [PVP_OUT],
+      report: "o1",
+      pvp: PVP_STATE({ lastAttackAt: at(16, 11), hits: { 9: at(16, 11) } }),
+    }),
+  },
+  {
+    name: "phone_camp_confirm",
+    viewport: [390, 844],
+    scale: 3,
+    state: RAID({
+      raid: null,
+      view: "map",
+      known: KNOWN,
+      panel: "map",
+      mapFocus: { kind: "site", id: "driftwood_camp" },
+    }),
+    scrollTo: ".panel .cost",
+  },
+  { name: "map_camps", viewport: [390, 844], scale: 3, state: { ...LATE_MAP(20), view: "map" } },
+  {
+    name: "desktop_defences",
+    viewport: [1600, 900],
+    state: PVP({ panel: null, buildings: FORT }),
+  },
+  {
+    name: "desktop_defences_night",
+    viewport: [1600, 900],
+    state: PVP({ panel: null, time: at(16, 23), buildings: FORT }),
+  },
+  { name: "desktop_defence_panel", viewport: [1600, 900], state: RAID({ panel: "defence" }) },
   { name: "phone_landscape", viewport: [844, 390], scale: 3, state: { time: at(3, 11) } },
   { name: "tablet", viewport: [820, 1180], scale: 2, state: { time: at(3, 11) } },
 ];
@@ -1192,6 +1422,8 @@ async function main() {
         spin,
         denBets,
         jackpot,
+        defenceTab,
+        rival,
         ...base
       } = state;
       clocks.game.setPaused(true);
@@ -1226,7 +1458,10 @@ async function main() {
         feedTab: feedTab ?? "feed",
         roll: roll ? { ...roll, at: 0 } : null,
         spin: spin ?? null,
+        defenceTab: defenceTab ?? "defence",
       });
+      if (rival) world.demoRival(rival);
+      if (panel === "defence") void world.loadRaids();
       if (denBets || jackpot !== undefined)
         world.demoDen({
           ...(denBets ? { bets: denBets } : {}),

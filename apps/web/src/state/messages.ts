@@ -35,6 +35,7 @@ export type Panel =
   | "map"
   | "feed"
   | "den"
+  | "defence"
   | null;
 export type Tone = "neutral" | "success" | "warning" | "danger";
 
@@ -322,7 +323,7 @@ export function refusalMessage(refusal: Refusal, now: number): Message | null {
     case "no_damage":
       return { text: t("refusal.no_damage"), tone: "neutral" };
     case "no_target":
-      return { text: t("refusal.no_target"), tone: "neutral" };
+      return { text: t("refusal.no_target"), tone: "neutral", panel: "defence" };
     case "pvp_locked":
       return {
         text: t("refusal.pvp_locked", { tier: tierName(refusal.tier) }),
@@ -330,7 +331,7 @@ export function refusalMessage(refusal: Refusal, now: number): Message | null {
         panel: "build",
       };
     case "pvp_off":
-      return { text: t("refusal.pvp_off"), tone: "neutral" };
+      return { text: t("refusal.pvp_off"), tone: "neutral", panel: "defence" };
     case "self_target":
       return { text: t("refusal.self_target"), tone: "neutral" };
     case "target_off":
@@ -403,6 +404,40 @@ export function feedLine(event: FeedEvent, who: string): string {
 /** The happenings worth a toast; effects in the scene cover the rest. */
 export function eventMessage(event: GameEvent): Message | null {
   switch (event.type) {
+    // Raids (W6).
+    case "raid_warned":
+      return {
+        text: t("toast.raid_warned", { time: duration(Math.max(0, event.lands - event.at)) }),
+        tone: "warning",
+        panel: "defence",
+      };
+    case "raid_landed":
+      return {
+        text:
+          event.report.outcome === "held"
+            ? t("toast.raid_held")
+            : t("toast.raid_breached", { gains: gainLines(event.report.lost, 2).join(", ") }),
+        tone: event.report.outcome === "held" ? "success" : "danger",
+        report: event.report.id,
+      };
+    case "raided":
+      return {
+        text: t(`toast.pvp_${event.report.outcome}`, { name: event.attackerName }),
+        tone: event.report.outcome === "held" ? "success" : "danger",
+        report: event.report.id,
+      };
+    case "raid_launched":
+      return {
+        text: t(event.report.outcome === "breached" ? "toast.raid_won" : "toast.raid_lost", {
+          name: event.targetName,
+        }),
+        tone: event.report.outcome === "breached" ? "success" : "warning",
+        report: event.report.id,
+      };
+    case "repaired":
+      return { text: t("toast.repaired"), tone: "success" };
+    case "pvp_set":
+      return { text: t(event.on ? "toast.pvp_on" : "toast.pvp_off"), tone: "neutral" };
     case "task_done":
       return { text: t("toast.task_done", { task: taskName(event.task) }), tone: "success" };
     case "build_done":

@@ -7,6 +7,7 @@ import { abbrev, clockLabel, content, duration, resourceName, t, tierName } from
 import { crewSummary } from "./crew";
 import { knownResources, pendingOf } from "./derived";
 import { ResourceIcon, Tile } from "./Icon";
+import { RaidAlert } from "./RaidAlert";
 import { tierVar, vars } from "./util";
 
 /** The strip shows at most this many resources (fewer on phones, by CSS). */
@@ -142,6 +143,7 @@ export function TopBar() {
         </div>
         {feedNew ? <span className="dot" /> : null}
       </button>
+      <RaidAlert />
     </header>
   );
 }

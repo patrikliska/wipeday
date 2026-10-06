@@ -11,6 +11,7 @@ import {
 } from "@wipe-day/domain/base";
 import { craftOptions, jobEndsAt } from "@wipe-day/domain/craft";
 import { denOpen } from "@wipe-day/domain/den";
+import { defenceOf, raidsOpen, raidWarned } from "@wipe-day/domain/raids";
 import { type Panel as PanelId, useWorld } from "../state/store";
 import { abbrev, content, duration, outputName, t, tierName } from "../state/world";
 import { needLabel } from "./Cost";
@@ -49,8 +50,9 @@ const DOCK_FOR: Record<Advice, string | null> = {
   den: "den",
   // The barrel glows in the scene itself.
   barrel: null,
-  defend: "squad",
-  repair: "build",
+  // Desktop: the Defence button; phones: the shield over the walls and the raid banner.
+  defend: "defence",
+  repair: "defence",
 };
 
 /** The action bar. The advisor picks exactly one primary button; its hint sits above the bar. */
@@ -59,6 +61,7 @@ export function Dock() {
   const openPanel = useWorld((state) => state.openPanel);
   const openRecipe = useWorld((state) => state.openRecipe);
   const openDen = useWorld((state) => state.openDen);
+  const openDefence = useWorld((state) => state.openDefence);
   const view = useWorld((state) => state.view);
   const setView = useWorld((state) => state.setView);
   const gather = useWorld((state) => state.gather);
@@ -90,6 +93,7 @@ export function Dock() {
   const unread = base.reports.filter((report) => !report.read).length;
   const soonestBack = [...base.missions].sort((a, b) => a.endsAt - b.endsAt)[0];
   const tasksDone = base.tasks.done.length;
+  const warned = raidWarned(content, base, now);
 
   // The builders first: what is going up and when it lands; then what can be built next.
   const first = [...base.construction].sort((a, b) => a.endsAt - b.endsAt)[0];
@@ -221,6 +225,24 @@ export function Dock() {
       disabled: !denOpen(content, base),
       panel: "den",
       onClick: () => openDen(advice === "den" ? "contracts" : undefined),
+    },
+    {
+      // Desktop only: on phones the shield over the walls and the raid banner open it (W6).
+      id: "defence",
+      name: t("action.defence"),
+      glyph: "DF",
+      color: "#cd412b",
+      sub: raidsOpen(content, base)
+        ? warned
+          ? t("hud.raid_in", { time: duration(Math.max(0, (base.raid?.at ?? now) - now)) })
+          : base.damaged
+            ? t("hud.damaged")
+            : t("hud.defence", { points: defenceOf(content, base, now).total })
+        : t("hud.den_closed", { tier: tierName(content.raids.npc.startTier) }),
+      extra: true,
+      disabled: !raidsOpen(content, base),
+      panel: "defence",
+      onClick: () => openDefence(),
     },
     {
       id: "feed",

@@ -27,6 +27,8 @@ export function effectLines(effects: Effects | undefined): string[] {
     "graceHours",
     "crew",
     "scoutRange",
+    "defence",
+    "warnHours",
   ] as const;
   for (const key of simple) {
     const value = effects[key];

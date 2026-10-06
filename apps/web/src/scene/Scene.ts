@@ -10,6 +10,7 @@ import { type BaseState, furnaceOf, furnaceSlots, jobProgress } from "@wipe-day/
 import { isAsleep } from "@wipe-day/domain/crew";
 import { denOpen } from "@wipe-day/domain/den";
 import { nodeKindOf } from "@wipe-day/domain/nodes";
+import { raidsOpen, raidWarned } from "@wipe-day/domain/raids";
 import { Application, Container, Graphics, type Ticker } from "pixi.js";
 import { countFrame, isFrozen } from "../debug";
 import { MapView } from "../map/MapView";
@@ -34,6 +35,7 @@ import { Skiff } from "./den";
 import { type Float, Floaters, Particles, Weather } from "./effects";
 import { Barrel, type Depleted, MAX_HITS, type NodeCallbacks, type NodeDef, Nodes } from "./nodes";
 import { gloom, paletteAt } from "./palette";
+import { DefenceBadge, RaiderTorches, type ShieldState } from "./raids";
 import { Sky } from "./sky";
 import { Terrain } from "./terrain";
 import { clamp, lerp } from "./util";
@@ -122,6 +124,9 @@ export class Scene {
   private readonly frontNodes: Nodes;
   private readonly barrel: Barrel;
   private readonly skiff: Skiff;
+  /** The shield over the walls and the raiders' torches on the ridge (W6). */
+  private readonly badge: DefenceBadge;
+  private readonly torches: RaiderTorches;
   /** The base the skiff's glow was worked out for (the check is not free every frame). */
   private skiffFor: unknown = null;
   private readonly actors: Actors;
@@ -212,6 +217,8 @@ export class Scene {
       const state = useWorld.getState();
       state.openDen(denWorthIt(content, state.base) ? "contracts" : undefined);
     });
+    this.badge = new DefenceBadge(() => useWorld.getState().openDefence());
+    this.torches = new RaiderTorches(BASE_X, GROUND);
     this.actors = new Actors(GROUND, BASE_X, BASE_X + 340, SHORE_X + 20, {
       canWork: (node) => this.backNodes.isUp(node) || this.frontNodes.isUp(node),
       onWork: (node, x, y) => {
@@ -223,12 +230,13 @@ export class Scene {
     });
     this.base.container.position.set(BASE_X, GROUND);
     this.base.lights.position.set(BASE_X, GROUND);
-    this.lights.addChild(this.base.lights, this.skiff.light);
-    this.markers.addChild(this.backNodes.overlay, this.frontNodes.overlay);
+    this.lights.addChild(this.torches.light, this.base.lights, this.skiff.light);
+    this.markers.addChild(this.backNodes.overlay, this.frontNodes.overlay, this.badge.container);
     this.ambient.blendMode = "multiply";
     this.world.addChild(
       this.sky.container,
       this.terrain.back,
+      this.torches.container,
       this.terrain.ground,
       this.backNodes.container,
       this.base.container,
@@ -427,7 +435,28 @@ export class Scene {
       constructing: base.construction.flatMap((job) =>
         job.target.kind === "building" ? [job.target.building] : [],
       ),
+      damaged: base.damaged,
     });
+    // W6: the shield over the walls (from the tier raiders come at) and the torches.
+    const sighted = raidWarned(content, base, now) && base.raid !== null && now < base.raid.at;
+    const shielded = base.pvp.shieldUntil !== null && base.pvp.shieldUntil > now;
+    const shield: ShieldState = sighted
+      ? "sighted"
+      : base.damaged
+        ? "broken"
+        : shielded
+          ? "shielded"
+          : "calm";
+    const tower = this.base.stationTop("watchtower");
+    this.badge.set(
+      raidsOpen(content, base)
+        ? tower
+          ? { x: tower.x + 48, y: tower.y - 6 }
+          : { x: BASE_X - 270, y: GROUND - 100 }
+        : null,
+      shield,
+    );
+    this.torches.set(sighted);
     this.base.setFurnaceActive(
       furnace !== null && base.furnaceJobs.some((job) => jobProgress(job, now) < job.amount),
     );
@@ -510,6 +539,8 @@ export class Scene {
     this.frontNodes.update(dt, this.wind);
     this.barrel.update(dt, darkness);
     this.skiff.update(dt, darkness, this.scale);
+    this.badge.update(dt, this.scale);
+    this.torches.update(dt, darkness);
     this.actors.setNight(fraction < 0.23 || fraction > 0.8);
     this.actors.update(dt, this.wind);
     this.particles.update(dt, this.wind);

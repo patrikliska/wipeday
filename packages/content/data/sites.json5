@@ -13,6 +13,7 @@
 //   keycode     an item spent on the way in (W4b): the upper sites need one
 //   finds       items a success may bring home, each with its percent chance
 //   camp        a bandit camp (W6): charges in the rations, rich loot, any number of times
+//   pin         where the map draws the marker, from the region's centre (map units)
 // Names, blurbs and the report lines are in the locale (`site.{id}.*`, `story.{id}.*`).
 {
   sites: [
@@ -113,7 +114,7 @@
     // chain (no keycodes, no finds): they pay in parts, sulfur and blueprints instead.
     {
       id: "driftwood_camp", region: "pine_ridge", tier: 2, minutes: 120, party: 3,
-      chance: 70, hazard: "hostile", injury: 15, injuryHours: 3, camp: true,
+      chance: 70, hazard: "hostile", injury: 15, injuryHours: 3, camp: true, pin: [92, 20],
       rations: { food: 30, charge: 2 }, rolls: 4, xp: 50, blueprint: 25, fragment: 0,
       loot: [
         { resource: "planks", min: 30, max: 60, weight: 25 },
@@ -125,7 +126,7 @@
     },
     {
       id: "saltpan_camp", region: "rust_bay", tier: 3, minutes: 240, party: 3,
-      chance: 60, hazard: "hostile", injury: 20, injuryHours: 5, camp: true,
+      chance: 60, hazard: "hostile", injury: 20, injuryHours: 5, camp: true, pin: [112, -10],
       rations: { food: 50, charge: 4 }, rolls: 5, xp: 90, blueprint: 35, fragment: 0,
       loot: [
         { resource: "plates", min: 4, max: 9, weight: 25 },
@@ -137,7 +138,7 @@
     },
     {
       id: "cinder_fort", region: "signal_hill", tier: 4, minutes: 420, party: 3,
-      chance: 50, hazard: "hostile", injury: 25, injuryHours: 8, camp: true,
+      chance: 50, hazard: "hostile", injury: 25, injuryHours: 8, camp: true, pin: [128, 62],
       rations: { food: 80, fuel: 10, charge: 8 }, rolls: 6, xp: 150, blueprint: 45, fragment: 0,
       loot: [
         { resource: "frames", min: 4, max: 8, weight: 20 },

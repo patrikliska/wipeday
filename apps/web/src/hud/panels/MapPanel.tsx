@@ -41,7 +41,7 @@ import {
   tierName,
   traitName,
 } from "../../state/world";
-import { Cost } from "../Cost";
+import { Cost, MakeParts } from "../Cost";
 import { crewSummary } from "../crew";
 import { vars } from "../util";
 
@@ -389,6 +389,7 @@ function SiteView({ id }: { id: string }) {
           <div className="title">
             <b>{siteName(id)}</b>
             <span className="lvl">
+              {site.camp ? `${t("map.camp")} · ` : ""}
               {t("map.tier", { tier: site.tier })} · {t(`map.hazard_${site.hazard}`)}
             </span>
           </div>
@@ -501,6 +502,9 @@ function SiteView({ id }: { id: string }) {
         <>
           <h3 className="section">{t("map.rations")}</h3>
           <Cost cost={site.rations} stock={base.stock} />
+          {status.code === "unaffordable" ? (
+            <MakeParts cost={site.rations} stock={base.stock} />
+          ) : null}
           {status.code === "ok" ? (
             <p className="hint">
               {t("map.left_after", { list: leftAfter(site.rations, base.stock) })}
