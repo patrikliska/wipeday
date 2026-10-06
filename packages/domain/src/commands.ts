@@ -36,6 +36,7 @@ import type { Job } from "./crew";
 import { denBuy } from "./den";
 import type { GameEvent } from "./events";
 import { assign, type JobRefusal, rest, restTired } from "./jobs";
+import { buyPerk, type CosmeticStatus, cosmeticStatus, type PerkStatus } from "./legacy";
 import { buyListing, cancelListing, listGoods } from "./market";
 import {
   type CrewRefusal,
@@ -58,6 +59,7 @@ import {
   setPvp,
 } from "./raids";
 import { settleAll } from "./settle";
+import { type GiveStatus, giveToSignal } from "./signal";
 import { recordStats } from "./stats";
 import type { World } from "./world";
 
@@ -106,7 +108,12 @@ export type Command =
   /** Joins (`on`) or leaves the PvP raids. */
   | { type: "set_pvp"; on: boolean }
   /** Server only: the target's base is another player's. `target`: their player id. */
-  | { type: "raid_player"; target: number };
+  | { type: "raid_player"; target: number }
+  // The legacy layer and the Signal (W7). Server only: the points and the Signal are shared.
+  | { type: "buy_perk"; perk: string }
+  /** Wear a title or a skin earned (null takes it off; absent leaves it). */
+  | { type: "set_cosmetic"; title?: string | null; skin?: string | null }
+  | { type: "signal_give"; good: string; amount: number };
 
 export type CommandType = Command["type"];
 
@@ -116,6 +123,9 @@ export const SERVER_ONLY: readonly CommandType[] = [
   "slots_spin",
   "dice_roll",
   "raid_player",
+  "buy_perk",
+  "set_cosmetic",
+  "signal_give",
 ];
 
 /** Why a command did nothing. `missing` and friends let the UI say exactly what to do. */
@@ -157,7 +167,12 @@ export type Refusal =
   // Raids (W6).
   | { code: "no_damage" }
   | { code: "no_target" }
-  | Exclude<SetPvpStatus | PvpStatus, { code: "ok" | "unaffordable" }>;
+  | Exclude<SetPvpStatus | PvpStatus, { code: "ok" | "unaffordable" }>
+  // The legacy layer and the Signal (W7).
+  | Exclude<
+      PerkStatus | CosmeticStatus | GiveStatus,
+      { code: "ok" | "unknown" | "unaffordable" | "server_only" }
+    >;
 
 export type CommandResult =
   | { ok: true; state: BaseState; events: GameEvent[] }
@@ -410,6 +425,32 @@ function step(
     }
     case "set_pvp": {
       const result = setPvp(content, state, command.on, now);
+      if (!result.ok) return { ok: false, refusal: result.status };
+      return { ok: true, state: result.state, events: result.events };
+    }
+    case "buy_perk": {
+      if (!world?.legacy) return { ok: false, refusal: { code: "server_only" } };
+      const result = buyPerk(content, state, command.perk, world.legacy, now);
+      if (!result.ok)
+        return {
+          ok: false,
+          refusal: result.status.code === "unknown" ? { code: "unknown" } : result.status,
+        };
+      return { ok: true, state: result.state, events: result.events };
+    }
+    case "set_cosmetic": {
+      if (!world?.legacy) return { ok: false, refusal: { code: "server_only" } };
+      const status = cosmeticStatus(world.legacy, command);
+      if (status.code !== "ok") return { ok: false, refusal: status };
+      const skin = command.skin === undefined ? state.skin : command.skin;
+      return {
+        ok: true,
+        state: { ...state, skin },
+        events: [{ type: "cosmetic_set", title: command.title ?? null, skin }],
+      };
+    }
+    case "signal_give": {
+      const result = giveToSignal(content, state, world?.signal, command.good, command.amount);
       if (!result.ok) return { ok: false, refusal: result.status };
       return { ok: true, state: result.state, events: result.events };
     }

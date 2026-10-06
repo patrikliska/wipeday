@@ -358,6 +358,19 @@ export function refusalMessage(refusal: Refusal, now: number): Message | null {
         text: t("refusal.opt_out_locked", { time: duration(refusal.until - now) }),
         tone: "neutral",
       };
+    // The legacy layer and the Signal (W7).
+    case "perk_maxed":
+      return { text: t("refusal.perk_maxed"), tone: "neutral" };
+    case "no_points":
+      return { text: t("refusal.no_points", { need: refusal.need }), tone: "neutral" };
+    case "not_earned":
+      return { text: t("refusal.not_earned"), tone: "neutral" };
+    case "signal_closed":
+      return { text: t("refusal.signal_closed", { day: refusal.day }), tone: "neutral" };
+    case "signal_lit":
+      return { text: t("refusal.signal_lit"), tone: "neutral" };
+    case "not_needed":
+      return { text: t("refusal.not_needed"), tone: "neutral" };
   }
 }
 

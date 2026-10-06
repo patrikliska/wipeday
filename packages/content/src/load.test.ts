@@ -189,3 +189,14 @@ describe("the raids' checks (W6)", () => {
     );
   });
 });
+
+describe("the legacy checks (W7)", () => {
+  it("refuses a perk tree that makes a veteran more than 25% stronger", () => {
+    const dir = dataWith("legacy.json5", (text) =>
+      text.replace("bonus: { allRates: 3 }", "bonus: { allRates: 9 }"),
+    );
+    expect(problemsOf(dir)).toContain(
+      "legacy.json5 `allRates`: perks add 27.0%, above the 25% cap",
+    );
+  });
+});

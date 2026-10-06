@@ -13,8 +13,11 @@
  * that need it refuse with `server_only` and wait for the server's answer instead
  * of being predicted, and wheel bets stay pending until the server spins.
  */
+
+import type { LegacyView } from "./legacy";
 import type { MarketListing } from "./market";
 import type { RaidTarget } from "./raids";
+import type { SignalView } from "./signal";
 
 export interface World {
   /** A fresh unpredictable seed for this command's roll (the slots, the dice). */
@@ -31,4 +34,8 @@ export interface World {
   selfName?: string;
   /** The base a PvP raid targets, settled by the server (W6). */
   target?: RaidTarget;
+  /** The player's legacy points and what they have earned (W7). */
+  legacy?: LegacyView;
+  /** The Signal's progress, and whether it takes gifts now (W7). */
+  signal?: SignalView;
 }

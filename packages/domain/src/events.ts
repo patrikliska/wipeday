@@ -120,6 +120,11 @@ export type GameEvent =
   | { type: "pvp_set"; on: boolean }
   /** This base raided another: `report` from the attacker's side (the feed's PvP line). */
   | { type: "raid_launched"; report: RaidReport; target: number; targetName: string; paid: Amounts }
+  // The legacy layer and the Signal (W7).
+  | { type: "perk_bought"; perk: string; rank: number; cost: number }
+  | { type: "cosmetic_set"; title: string | null; skin: string | null }
+  /** Given to the Signal: `worth` in scrap at reference prices, toward stage `stage`. */
+  | { type: "signal_gift"; good: string; amount: number; worth: number; stage: number }
   // Time passing (settling).
   /** Raiders were sighted at `at`; they land at `lands`. */
   | { type: "raid_warned"; at: number; lands: number }

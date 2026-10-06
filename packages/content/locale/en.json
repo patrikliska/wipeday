@@ -649,7 +649,13 @@
     "target_cooldown": "You hit them lately: again in {time}.",
     "tier_fence": "Too far apart: raids stay within one tier ({tier}).",
     "opt_out_locked": "You raided lately: you can leave the raids in {time}.",
-    "no_damage": "Nothing needs repairing."
+    "no_damage": "Nothing needs repairing.",
+    "perk_maxed": "That perk is at its top rank.",
+    "no_points": "Not enough legacy points: {need} more.",
+    "not_earned": "Not earned yet.",
+    "signal_closed": "The Signal opens on day {day}.",
+    "signal_lit": "The Signal is already lit.",
+    "not_needed": "The Signal does not need that now."
   },
   "login": {
     "title": "Wipe Day",
@@ -1469,5 +1475,77 @@
     "raid": "Raid {name} · {count} charges",
     "alert": "land in {time} · {chance}% to hold",
     "strike": "Strike back at {name} · {count} charges"
+  },
+  "perk": {
+    "steady_hands": {
+      "name": "Steady Hands",
+      "effect": "+{value}% on all gathering"
+    },
+    "deep_cellars": {
+      "name": "Deep Cellars",
+      "effect": "+{value}% room for every resource"
+    },
+    "quick_fingers": {
+      "name": "Quick Fingers",
+      "effect": "crafting {value}% faster"
+    },
+    "hot_coals": {
+      "name": "Hot Coals",
+      "effect": "furnaces {value}% faster"
+    },
+    "old_maps": {
+      "name": "Old Maps",
+      "effect": "+{value} success on every trip"
+    },
+    "war_stories": {
+      "name": "War Stories",
+      "effect": "+{value}% crew XP from trips"
+    },
+    "old_friend": {
+      "name": "Old Friend",
+      "effect": "your best veteran is home from day one"
+    },
+    "packed_crate": {
+      "name": "Packed Crate",
+      "effect": "a storage crate from day one"
+    }
+  },
+  "skin": {
+    "driftwood": {
+      "name": "Driftwood",
+      "how": "Finish a season."
+    },
+    "rust": {
+      "name": "Rust",
+      "how": "Hold off {count} raids in one season."
+    },
+    "beacon": {
+      "name": "Beacon",
+      "how": "Be on the island when the Signal is lit."
+    }
+  },
+  "modifier": {
+    "long_nights": {
+      "name": "Long Nights",
+      "blurb": "The nights draw in: raiders come stronger."
+    },
+    "rich_tides": {
+      "name": "Rich Tides",
+      "blurb": "The sea gives: barrels come sooner and hold more."
+    },
+    "quiet_raiders": {
+      "name": "Quiet Raiders",
+      "blurb": "The bandits are licking their wounds: fewer, weaker raids."
+    },
+    "storm_season": {
+      "name": "Storm Season",
+      "blurb": "Storms wreck the gardens but wash up barrels, and ruins give more."
+    }
+  },
+  "signal": {
+    "stage_foundation": "Foundation",
+    "stage_tower": "Tower",
+    "stage_lamp": "Lamp",
+    "stage_fuel": "Fuel"
   }
 }

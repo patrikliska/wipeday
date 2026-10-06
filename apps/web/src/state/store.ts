@@ -336,6 +336,10 @@ const placeholder = (): BaseState => ({
   raidReports: [],
   damaged: false,
   pvp: newPvp(),
+  season: { number: 1, startedAt: 0, modifier: null },
+  perks: {},
+  veterans: {},
+  skin: null,
 });
 
 const isServerOnly = (command: Command): boolean => SERVER_ONLY.includes(command.type);

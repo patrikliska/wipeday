@@ -1,0 +1,29 @@
+// Seasons (W7): one modifier per season keeps months different, announced with the season's
+// end; and the Signal, the island's shared tower for the season's last week.
+// Names and lines are in the locale (`modifier.{id}.*`, `signal.*`).
+{
+  // Effects (all optional):
+  //   raidStrength        percent stronger (or weaker) NPC raiders
+  //   raidDays            days more between NPC raids
+  //   barrelEveryMinutes  minutes sooner the next barrel comes
+  //   barrelRolls         loot rolls more per barrel
+  //   tripLoot            percent more loot from every trip
+  //   flatPercent         percent more (or less) of a building's own production, by resource
+  modifiers: [
+    { id: "long_nights", raidStrength: 20 },
+    { id: "rich_tides", barrelEveryMinutes: 60, barrelRolls: 1 },
+    { id: "quiet_raiders", raidDays: 1, raidStrength: -25 },
+    { id: "storm_season", barrelEveryMinutes: 90, flatPercent: { food: -30 }, tripLoot: 10 },
+  ],
+  signal: {
+    // The Signal opens on this season day, or as soon as the season's end is announced.
+    opensOnDay: 21,
+    // Built stage by stage: everyone gives toward the stage that is open.
+    stages: [
+      { id: "foundation", needs: { stone: 40000, planks: 2000 } },
+      { id: "tower", needs: { frames: 300, plates: 500 } },
+      { id: "lamp", needs: { gears: 150, springs: 100 } },
+      { id: "fuel", needs: { fuel: 1500 } },
+    ],
+  },
+}

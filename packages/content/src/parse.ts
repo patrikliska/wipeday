@@ -19,11 +19,13 @@ import {
   denSchema,
   type EntityKind,
   FILES,
+  legacySchema,
   mapRulesSchema,
   nodeSchema,
   pacingSchema,
   raidsSchema,
   recipeSchema,
+  seasonsSchema,
   tripEventRulesSchema,
 } from "./schema";
 import { TIERS } from "./tiers";
@@ -212,6 +214,13 @@ function emptyContent(): Content {
         revengePercent: 100,
       },
     },
+    legacy: {
+      points: { played: 0, place: [0], signal: 0 },
+      capPercent: 25,
+      perks: [],
+      skins: [],
+    },
+    seasons: { modifiers: [], signal: { opensOnDay: 1, stages: [] } },
   };
 }
 
@@ -302,6 +311,12 @@ export function parseContent(
   });
   single("raids.json5", raidsSchema, (value) => {
     content.raids = value;
+  });
+  single("legacy.json5", legacySchema, (value) => {
+    content.legacy = value;
+  });
+  single("seasons.json5", seasonsSchema, (value) => {
+    content.seasons = value;
   });
 
   problems.push(...crossCheck(content, locale));
@@ -432,6 +447,7 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
   problems.push(...checkCrewAndMap(content, locale));
   problems.push(...checkDen(content, locale));
   problems.push(...checkRaids(content, locale));
+  problems.push(...checkLegacy(content, locale));
 
   const kindIds = new Set(content.nodeKinds.map((kind) => kind.id));
   for (const kind of content.nodeKinds) {
@@ -971,6 +987,59 @@ export function checkRaids(content: Content, locale: Locale): Problem[] {
   }
   for (const key of ["raid.npc.held", "raid.npc.breached", "raid.pvp.held", "raid.pvp.breached"]) {
     if (!locale.has(key)) add("", `missing locale key \`${key}\``);
+  }
+  return problems;
+}
+
+/**
+ * The legacy layer and seasons (W7): no perk tree makes a veteran more than `capPercent`
+ * stronger in any rate (summed over every perk at its top rank; trip success counted
+ * against the weakest site's base chance), names are in the locale, and the season data
+ * names real resources.
+ */
+export function checkLegacy(content: Content, locale: Locale): Problem[] {
+  const problems: Problem[] = [];
+  const { legacy, seasons } = content;
+  if (content.resources.length === 0) return problems;
+  const add = (file: string, id: string, message: string) => problems.push({ file, id, message });
+  const totals: Record<string, number> = {};
+  for (const perk of legacy.perks) {
+    for (const [field, value] of Object.entries(perk.bonus)) {
+      totals[field] = (totals[field] ?? 0) + (value ?? 0) * perk.cost.length;
+    }
+    for (const key of [`perk.${perk.id}.name`, `perk.${perk.id}.effect`]) {
+      if (!locale.has(key)) add("legacy.json5", perk.id, `missing locale key \`${key}\``);
+    }
+  }
+  const weakest = Math.min(...content.sites.map((site) => site.chance), 100);
+  for (const [field, total] of Object.entries(totals)) {
+    const percent = field === "tripSuccess" ? (total * 100) / weakest : total;
+    if (percent > legacy.capPercent)
+      add(
+        "legacy.json5",
+        field,
+        `perks add ${percent.toFixed(1)}%, above the ${legacy.capPercent}% cap`,
+      );
+  }
+  for (const skin of legacy.skins) {
+    if (!locale.has(`skin.${skin.id}.name`))
+      add("legacy.json5", skin.id, `missing locale key \`skin.${skin.id}.name\``);
+  }
+  const resources = new Set(content.resources.map((resource) => resource.id));
+  for (const modifier of seasons.modifiers) {
+    for (const id of Object.keys(modifier.flatPercent ?? {})) {
+      if (!resources.has(id)) add("seasons.json5", modifier.id, `names unknown resource \`${id}\``);
+    }
+    for (const key of [`modifier.${modifier.id}.name`, `modifier.${modifier.id}.blurb`]) {
+      if (!locale.has(key)) add("seasons.json5", modifier.id, `missing locale key \`${key}\``);
+    }
+  }
+  for (const stage of seasons.signal.stages) {
+    for (const id of Object.keys(stage.needs)) {
+      if (!resources.has(id)) add("seasons.json5", stage.id, `needs unknown resource \`${id}\``);
+    }
+    if (!locale.has(`signal.stage_${stage.id}`))
+      add("seasons.json5", stage.id, `missing locale key \`signal.stage_${stage.id}\``);
   }
   return problems;
 }
