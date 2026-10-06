@@ -1129,7 +1129,8 @@
     "pvp_held": "{name} raided you and failed.",
     "pvp_breached": "{name} raided you and took {gains}.",
     "warning_title": "Raiders sighted",
-    "warning": "They land around {time}: {chance}% to hold them now."
+    "warning": "They land in about {hours} h. Post a guard or shore up the walls.",
+    "nothing": "nothing"
   },
   "feed": {
     "hint": "What everyone on the island is up to.",

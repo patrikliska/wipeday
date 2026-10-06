@@ -73,6 +73,10 @@ export const commandSchema = z.discriminatedUnion("type", [
     option: z.enum(DICE_OPTIONS),
     amount: z.int().min(1).max(100_000),
   }),
+  // Raids (W6).
+  z.strictObject({ type: z.literal("repair") }),
+  z.strictObject({ type: z.literal("set_pvp"), on: z.boolean() }),
+  z.strictObject({ type: z.literal("raid_player"), target: z.int().min(1) }),
 ]) satisfies z.ZodType<Command>;
 
 export const commandRequestSchema = z.strictObject({

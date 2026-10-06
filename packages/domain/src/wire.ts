@@ -2,11 +2,14 @@
  * What the API sends and the web client reads: one definition for both ends
  * (apps never import each other). Types only.
  */
+
+import type { Tier } from "@wipe-day/content/tiers";
 import type { BaseState } from "./base";
 import type { Refusal } from "./commands";
 import type { GameEvent } from "./events";
 import type { Leaderboards, SeasonSummary } from "./leaderboard";
 import type { MarketListing } from "./market";
+import type { PvpOdds, PvpStatus } from "./raids";
 
 export interface PlayerView {
   id: number;
@@ -93,6 +96,25 @@ export interface PriceHistory {
 export interface RanksResponse {
   boards: Leaderboards;
   me: SeasonSummary;
+}
+
+// --- raids (W6) -----------------------------------------------------------------------
+
+/** Another holdfast in the raids, as the PvP tab lists it. */
+export interface RaidTargetView {
+  id: number;
+  name: string;
+  tier: Tier;
+  /** Whether it can be raided now (with the charges it costs), or the first reason not. */
+  status: PvpStatus;
+  odds: PvpOdds;
+  shieldUntil: number | null;
+}
+
+/** `GET /api/raids`: every other holdfast in the raids. */
+export interface RaidsResponse {
+  serverNow: number;
+  targets: RaidTargetView[];
 }
 
 /** One `den` message on the event stream. */

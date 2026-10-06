@@ -16,6 +16,10 @@
  *   purchase from another player is one transaction over both bases; the tables
  *   behind the board, the price history and the wheel's bets are written from the
  *   domain's events; `settleRound` spins the wheel for its bettors when a round ends.
+ * - Raids (W6): NPC raids land through settling like any timer. A PvP raid is one
+ *   transaction over both bases, like a sale: the defender is settled first and handed to
+ *   the attacker's command as `World.target`, then the defender's half (`takeRaid`) is
+ *   applied with what the attacker's report took.
  */
 import { randomInt } from "node:crypto";
 import type { Content } from "@wipe-day/content/schema";
@@ -28,6 +32,14 @@ import { FEED_TYPES, type FeedItem, isFeedWorthy } from "@wipe-day/domain/feed";
 import { type Entry, leaderboards, seasonSummary } from "@wipe-day/domain/leaderboard";
 import { type MarketListing, takeListing } from "@wipe-day/domain/market";
 import { normalizeState } from "@wipe-day/domain/normalize";
+import {
+  hitOf,
+  pvpOdds,
+  pvpOpen,
+  pvpStatus,
+  type RaidTarget,
+  takeRaid,
+} from "@wipe-day/domain/raids";
 import { nextEventAt, settleAll } from "@wipe-day/domain/settle";
 import { recordStats } from "@wipe-day/domain/stats";
 import type {
@@ -37,6 +49,7 @@ import type {
   PlayerView,
   PriceHistory,
   PushMessage,
+  RaidsResponse,
   RanksResponse,
   StateResponse,
   WelcomeBack,
@@ -80,6 +93,8 @@ const WHILE_AWAY: GameEvent["type"][] = [
   "decayed",
   "sold",
   "listing_expired",
+  "raid_landed",
+  "raided",
 ];
 
 export type { CommandResponse, PlayerView, PushMessage, StateResponse, WelcomeBack };
@@ -121,7 +136,7 @@ interface Outbox {
 
 const outbox = (): Outbox => ({ pushes: [], feed: [], den: [], notify: [] });
 
-/** The seller's base during a sale, settled to the moment of it. */
+/** The other base in a two-base transaction (a sale's seller, a raid's defender), settled. */
 interface Seller {
   playerId: number;
   state: BaseState;
@@ -495,6 +510,15 @@ export class Game {
       const sale =
         command.type === "market_buy" ? this.saleOf(command.listing, playerId, now, out) : null;
       if (sale) world.listing = sale.listing;
+      // A raid on another player (W6): settle the defender first, then hand it to the domain.
+      const raid =
+        command.type === "raid_player"
+          ? this.raidOf(command.target, playerId, loaded.state, now, out)
+          : null;
+      if (raid) {
+        world.target = raid.target;
+        world.selfName = this.player(playerId).name;
+      }
       const result = applyCommand(this.deps.content, loaded.state, command, now, world);
       const changed =
         !loaded.stored || JSON.stringify(result.state) !== JSON.stringify(loaded.state);
@@ -502,6 +526,14 @@ export class Game {
       this.log(playerId, loaded.seasonId, result.events, now, out);
       if (result.ok && sale?.seller)
         this.completeSale(sale.listing, sale.seller, playerId, now, out);
+      const launched = result.events.find((event) => event.type === "raid_launched");
+      if (result.ok && raid?.defender && launched?.type === "raid_launched")
+        this.completeRaid(
+          raid.defender,
+          hitOf(launched.report, playerId, world.selfName ?? ""),
+          now,
+          out,
+        );
       const response: CommandResponse = result.ok
         ? { ok: true, serverNow: now, version, state: result.state, events: result.events }
         : {
@@ -603,6 +635,53 @@ export class Game {
     out.notify.push({ playerId: seller.playerId, events: taken.events });
   }
 
+  /**
+   * The base a raid names, settled to now inside the attacker's transaction; null when that
+   * player has no base this season. A raid on oneself gets the attacker's own base, which
+   * the domain refuses.
+   */
+  private raidOf(
+    targetId: number,
+    attackerId: number,
+    attacker: BaseState,
+    now: number,
+    out: Outbox,
+  ): { target: RaidTarget; defender: Seller | null } | null {
+    const row = this.db.select().from(players).where(eq(players.id, targetId)).get();
+    if (!row) return null;
+    if (targetId === attackerId)
+      return { target: { id: targetId, name: row.name, state: attacker }, defender: null };
+    const loaded = this.load(targetId, now);
+    if (!loaded.stored) return null;
+    const settled = this.settleStored(targetId, now, out);
+    return {
+      target: { id: targetId, name: row.name, state: settled.state },
+      defender: {
+        playerId: targetId,
+        state: settled.state,
+        loaded: { ...settled.loaded, version: settled.version, stored: true },
+      },
+    };
+  }
+
+  /** The defender's half of a raid: the take leaves, the shield and token arrive (W6). */
+  private completeRaid(
+    defender: Seller,
+    hit: ReturnType<typeof hitOf>,
+    now: number,
+    out: Outbox,
+  ): void {
+    const taken = takeRaid(this.deps.content, defender.state, hit, now);
+    const state = recordStats(taken.state, taken.events, now);
+    const version = this.save(defender.playerId, defender.loaded, state, now);
+    this.log(defender.playerId, defender.loaded.seasonId, taken.events, now, out);
+    out.pushes.push({
+      playerId: defender.playerId,
+      message: { version, serverNow: now, state, events: taken.events, origin: null },
+    });
+    out.notify.push({ playerId: defender.playerId, events: taken.events });
+  }
+
   /** Asks for one spin when `round` ends (the minute tick catches any that are missed). */
   private scheduleSpin(round: number): void {
     if (!this.deps.schedule || this.scheduled.has(round)) return;
@@ -700,6 +779,40 @@ export class Game {
       boards,
       me: seasonSummary(this.deps.content, mine, boards, playerId, season.startedAt),
     };
+  }
+
+  /**
+   * `GET /api/raids` (W6): every other holdfast in the raids, settled to now without saving,
+   * with whether the player can raid it and the confirm screen's numbers.
+   */
+  raids(playerId: number): RaidsResponse {
+    const now = this.deps.clock.now();
+    const season = this.currentSeason(now);
+    const settle = (stateJson: string): BaseState =>
+      settleAll(this.deps.content, normalizeState(this.deps.content, JSON.parse(stateJson)), now, {
+        reveal: (round) => this.den.result(round),
+      }).state;
+    const rows = this.db
+      .select({ base: bases, name: players.name })
+      .from(bases)
+      .innerJoin(players, eq(players.id, bases.playerId))
+      .where(eq(bases.seasonId, season.id))
+      .all();
+    const mineRow = rows.find(({ base }) => base.playerId === playerId);
+    const me = mineRow ? settle(mineRow.base.stateJson) : this.load(playerId, now).state;
+    const targets = rows
+      .filter(({ base }) => base.playerId !== playerId)
+      .map(({ base, name }) => ({ id: base.playerId, name, state: settle(base.stateJson) }))
+      .filter(({ state }) => state.pvp.on && pvpOpen(this.deps.content, state))
+      .map((target) => ({
+        id: target.id,
+        name: target.name,
+        tier: target.state.tier,
+        status: pvpStatus(this.deps.content, me, playerId, target, now),
+        odds: pvpOdds(this.deps.content, me, target, now),
+        shieldUntil: target.state.pvp.shieldUntil,
+      }));
+    return { serverNow: now, targets };
   }
 
   /** What is waiting to be collected right now, for tests and tools. */

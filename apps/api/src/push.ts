@@ -112,9 +112,54 @@ export function notificationFor(locale: Locale, event: GameEvent): Notification 
         tag: `sold-${event.listing}`,
         url: "/?den",
       };
+    // Raids (W6).
+    case "raid_landed":
+      return {
+        kind,
+        title: t("push.raided_title"),
+        body: t(`push.raid_${event.report.outcome}`, {
+          gains: amountsText(
+            locale,
+            event.report.outcome === "held" ? event.report.gained : event.report.lost,
+          ),
+        }),
+        tag: `raid-${event.report.id}`,
+        url: `/?report=${encodeURIComponent(event.report.id)}`,
+      };
+    case "raided":
+      return {
+        kind,
+        title: t("push.raided_title"),
+        body: t(`push.pvp_${event.report.outcome}`, {
+          name: event.attackerName,
+          gains: amountsText(locale, event.report.lost),
+        }),
+        tag: `raid-${event.report.id}`,
+        url: `/?report=${encodeURIComponent(event.report.id)}`,
+      };
+    case "raid_warned":
+      return {
+        kind,
+        title: t("push.warning_title"),
+        body: t("push.warning", {
+          hours: Math.max(1, Math.round((event.lands - event.at) / 3600)),
+        }),
+        tag: `warning-${event.lands}`,
+        url: "/?defence",
+      };
     default:
       return null;
   }
+}
+
+/** "120 Timber, 80 Stone": the biggest few amounts, for a notification's one line. */
+function amountsText(locale: Locale, amounts: Record<string, number>): string {
+  const lines = Object.entries(amounts)
+    .filter(([, amount]) => amount > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([id, amount]) => `${amount} ${locale.t(`resource.${id}.name`)}`);
+  return lines.length > 0 ? lines.join(", ") : locale.t("push.nothing");
 }
 
 export class Notifier {
