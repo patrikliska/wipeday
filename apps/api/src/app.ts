@@ -80,6 +80,37 @@ export function createApp(deps: AppDeps): Hono<Env> {
 
   app.get("/api/health", (c) => c.json({ ok: true, now: clock.now(), streams: hub.connections }));
 
+  // Admin (W7): announce and end seasons. A bearer token from ADMIN_TOKEN; without one, only
+  // a development server takes them (`pnpm season ...` runs against it).
+  const admin = new Hono();
+  admin.use(async (c, next) => {
+    const token = config.adminToken;
+    const given = c.req.header("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+    if (token ? given !== token : !config.devLogin) return c.json({ error: "forbidden" }, 403);
+    await next();
+  });
+  const announceSchema = z.strictObject({
+    endsAt: z.int().min(0).nullable(),
+    next: z.string().min(1).max(32).nullable(),
+  });
+  admin.post("/season/announce", async (c) => {
+    const parsed = announceSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "bad_request" }, 400);
+    try {
+      return c.json(game.announce(parsed.data.endsAt, parsed.data.next));
+    } catch (error) {
+      return c.json({ error: String(error) }, 400);
+    }
+  });
+  admin.post("/season/end", async (c) => {
+    try {
+      return c.json(await game.endSeason());
+    } catch (error) {
+      return c.json({ error: String(error) }, 409);
+    }
+  });
+  app.route("/api/admin", admin);
+
   /** What the login screen offers, before anyone is logged in. */
   app.get("/api/config", (c) =>
     c.json({ devLogin: config.devLogin, discordLogin: discord !== null }),
@@ -187,6 +218,10 @@ export function createApp(deps: AppDeps): Hono<Env> {
   authed.get("/ranks", (c) => c.json(game.ranks(c.get("playerId"))));
 
   authed.get("/raids", (c) => c.json(game.raids(c.get("playerId"))));
+
+  authed.get("/legacy", (c) => c.json(game.legacy(c.get("playerId"))));
+
+  authed.get("/signal", (c) => c.json(game.signal(c.get("playerId"))));
 
   authed.get("/notify", (c) => {
     const playerId = c.get("playerId");

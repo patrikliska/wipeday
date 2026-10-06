@@ -3,6 +3,8 @@
  * minute scheduler (which also runs once at boot, so everything that ended
  * while the server was down lands at once) and serve HTTP.
  */
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
 import { serve } from "@hono/node-server";
 import { loadGame } from "@wipe-day/content/load";
 import { systemClock } from "@wipe-day/domain/clock";
@@ -37,6 +39,11 @@ const game = new Game({
   // The wheel spins on time; a quarter second late, so the round has surely ended.
   schedule: (at, run) => {
     setTimeout(run, Math.max(0, at * 1000 - clock.nowMs()) + 250);
+  },
+  // Before a season's reset (W7): an online copy beside the nightly backups.
+  backup: async (name) => {
+    mkdirSync(config.backupDir, { recursive: true });
+    await db.$client.backup(join(config.backupDir, name));
   },
 });
 const discord = config.discord

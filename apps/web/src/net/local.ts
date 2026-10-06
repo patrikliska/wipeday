@@ -134,6 +134,9 @@ export class LocalBackend implements Backend {
   private bets: WheelBetView[] = [];
   /** Hollis's holdfast, the demo's raid target (W6). */
   private rival: BaseState;
+  /** The demo season's announced end and next modifier (W7). */
+  private seasonEnds: number | null = null;
+  private seasonNext: string | null = null;
   private readonly player: MeResponse = {
     id: 0,
     name: t("hud.demo_player"),
@@ -186,6 +189,7 @@ export class LocalBackend implements Backend {
       version: this.version,
       player: this.player,
       seasonStartedAt: DEMO_SEASON_START,
+      season: this.season(),
       state: this.base,
       // The demo opens as if the player had been away, so the welcome back shows.
       welcomeBack: this.version === 1 ? { awaySeconds: 3 * 3600, events: [] } : null,
@@ -374,6 +378,17 @@ export class LocalBackend implements Backend {
     return {
       boards,
       me: seasonSummary(content, this.base, boards, this.player.id, DEMO_SEASON_START),
+    };
+  }
+
+  /** The demo's season (W7): the base's own, with the end and next modifier if set. */
+  private season() {
+    return {
+      number: this.base.season.number,
+      startedAt: DEMO_SEASON_START,
+      endsAt: this.seasonEnds,
+      modifier: this.base.season.modifier,
+      next: this.seasonNext,
     };
   }
 

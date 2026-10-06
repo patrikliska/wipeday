@@ -22,6 +22,13 @@
       "when": 1791235150301,
       "tag": "0002_w5_den",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1791326723117,
+      "tag": "0003_w7_legacy",
+      "breakpoints": true
     }
   ]
 }

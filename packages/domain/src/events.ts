@@ -125,6 +125,8 @@ export type GameEvent =
   | { type: "cosmetic_set"; title: string | null; skin: string | null }
   /** Given to the Signal: `worth` in scrap at reference prices, toward stage `stage`. */
   | { type: "signal_gift"; good: string; amount: number; worth: number; stage: number }
+  /** The server's: the Signal was lit, by the gift of the player it is logged for. */
+  | { type: "signal_lit"; at: number }
   // Time passing (settling).
   /** Raiders were sighted at `at`; they land at `lands`. */
   | { type: "raid_warned"; at: number; lands: number }

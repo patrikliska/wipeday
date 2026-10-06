@@ -112,7 +112,7 @@ export type Command =
   // The legacy layer and the Signal (W7). Server only: the points and the Signal are shared.
   | { type: "buy_perk"; perk: string }
   /** Wear a title or a skin earned (null takes it off; absent leaves it). */
-  | { type: "set_cosmetic"; title?: string | null; skin?: string | null }
+  | { type: "set_cosmetic"; title?: string | null | undefined; skin?: string | null | undefined }
   | { type: "signal_give"; good: string; amount: number };
 
 export type CommandType = Command["type"];

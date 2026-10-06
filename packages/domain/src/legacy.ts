@@ -181,7 +181,7 @@ export type CosmeticStatus = { code: "ok" } | { code: "not_earned" };
 
 export function cosmeticStatus(
   legacy: LegacyView,
-  change: { title?: string | null; skin?: string | null },
+  change: { title?: string | null | undefined; skin?: string | null | undefined },
 ): CosmeticStatus {
   if (change.title && !legacy.titles.includes(change.title)) return { code: "not_earned" };
   if (change.skin && !legacy.skins.includes(change.skin)) return { code: "not_earned" };

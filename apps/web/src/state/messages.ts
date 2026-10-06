@@ -411,6 +411,8 @@ export function feedLine(event: FeedEvent, who: string): string {
       return t(`feed.raid_${event.report.outcome}`, { who });
     case "raid_launched":
       return t(`feed.pvp_${event.report.outcome}`, { who, target: event.targetName });
+    case "signal_lit":
+      return t("feed.signal_lit", { who });
   }
 }
 

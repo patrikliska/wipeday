@@ -29,6 +29,7 @@ const config: Config = {
   backupDir: "",
   webDist: join(tmpdir(), "wipe-day-no-web-build"),
   devLogin: true,
+  adminToken: null,
 };
 
 const discord: DiscordAuth = {

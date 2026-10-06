@@ -1197,7 +1197,8 @@
     "pvp_held": "{target} held off a raid by {who}.",
     "pvp_breached": "{who} raided {target} and got in.",
     "kind_raid_warning": "Raiders sighted",
-    "kind_raid_warning_sub": "The warning hours before raiders land."
+    "kind_raid_warning_sub": "The warning hours before raiders land.",
+    "signal_lit": "The Signal is lit! {who} gave the last of it."
   },
   "contract": {
     "jetty_timber": {

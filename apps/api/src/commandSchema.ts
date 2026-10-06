@@ -77,6 +77,18 @@ export const commandSchema = z.discriminatedUnion("type", [
   z.strictObject({ type: z.literal("repair") }),
   z.strictObject({ type: z.literal("set_pvp"), on: z.boolean() }),
   z.strictObject({ type: z.literal("raid_player"), target: z.int().min(1) }),
+  // The legacy layer and the Signal (W7).
+  z.strictObject({ type: z.literal("buy_perk"), perk: id }),
+  z.strictObject({
+    type: z.literal("set_cosmetic"),
+    title: id.nullable().optional(),
+    skin: id.nullable().optional(),
+  }),
+  z.strictObject({
+    type: z.literal("signal_give"),
+    good: id,
+    amount: z.int().min(1).max(10_000_000),
+  }),
 ]) satisfies z.ZodType<Command>;
 
 export const commandRequestSchema = z.strictObject({

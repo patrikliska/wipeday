@@ -16,6 +16,9 @@
  *   purchase from another player is one transaction over both bases; the tables
  *   behind the board, the price history and the wheel's bets are written from the
  *   domain's events; `settleRound` spins the wheel for its bettors when a round ends.
+ * - Seasons (W7): a new season's base starts from the player's legacy (`load`); the reset
+ *   (`endSeason`, an admin command) archives the season and folds every base into its
+ *   player's legacy in one transaction. The Signal is the island's shared project.
  * - Raids (W6): NPC raids land through settling like any timer. A PvP raid is one
  *   transaction over both bases, like a sale: the defender is settled first and handed to
  *   the attacker's command as `World.target`, then the defender's half (`takeRaid`) is
@@ -30,6 +33,7 @@ import { applyCommand, type Command } from "@wipe-day/domain/commands";
 import type { GameEvent } from "@wipe-day/domain/events";
 import { FEED_TYPES, type FeedItem, isFeedWorthy } from "@wipe-day/domain/feed";
 import { type Entry, leaderboards, seasonSummary } from "@wipe-day/domain/leaderboard";
+import { carryFor, carryOver, type SeasonResult, seasonPoints } from "@wipe-day/domain/legacy";
 import { type MarketListing, takeListing } from "@wipe-day/domain/market";
 import { normalizeState } from "@wipe-day/domain/normalize";
 import {
@@ -41,16 +45,21 @@ import {
   takeRaid,
 } from "@wipe-day/domain/raids";
 import { nextEventAt, settleAll } from "@wipe-day/domain/settle";
+import { addGift, type SignalView, signalOpen } from "@wipe-day/domain/signal";
 import { recordStats } from "@wipe-day/domain/stats";
 import type {
+  ArchivedSeason,
   CommandResponse,
   DenBoard,
   DenPush,
+  LegacyResponse,
   PlayerView,
   PriceHistory,
   PushMessage,
   RaidsResponse,
   RanksResponse,
+  SeasonView,
+  SignalResponse,
   StateResponse,
   WelcomeBack,
 } from "@wipe-day/domain/wire";
@@ -58,13 +67,25 @@ import type { World } from "@wipe-day/domain/world";
 import { and, desc, eq, gt, inArray, isNull, lt, lte } from "drizzle-orm";
 import { Den } from "./den";
 import type { EventHub } from "./hub";
+import {
+  givenBy,
+  givers,
+  legacyOf,
+  needs,
+  recordGift,
+  saveLegacy,
+  saveSignal,
+  signalOf,
+} from "./legacyStore";
 import type { Db } from "./store/db";
 import {
   bases,
   commands,
   eventLog,
+  hallOfFame,
   listings,
   players,
+  seasonArchive,
   seasons,
   trades,
   wheelBets,
@@ -95,6 +116,7 @@ const WHILE_AWAY: GameEvent["type"][] = [
   "listing_expired",
   "raid_landed",
   "raided",
+  "signal_lit",
 ];
 
 export type { CommandResponse, PlayerView, PushMessage, StateResponse, WelcomeBack };
@@ -112,7 +134,11 @@ export interface GameDeps {
   notify?: (playerId: number, events: GameEvent[]) => Promise<unknown>;
   /** Runs `run` at unix time `at` (the wheel's spins); without it the minute tick does. */
   schedule?: (at: number, run: () => void) => void;
+  /** Takes an online copy of the database under `name` (before a season's reset, W7). */
+  backup?: (name: string) => Promise<unknown>;
 }
+
+type SeasonRow = typeof seasons.$inferSelect;
 
 /** Feed items per page. */
 export const FEED_PAGE = 40;
@@ -157,16 +183,38 @@ export class Game {
   }
 
   /** The running season, created on first use. */
-  private currentSeason(now: number): { id: number; startedAt: number } {
+  private currentSeason(now: number): SeasonRow {
     const running = this.db.select().from(seasons).where(isNull(seasons.endedAt)).get();
-    if (running) return { id: running.id, startedAt: running.startedAt };
-    const created = this.db.insert(seasons).values({ startedAt: now }).returning().get();
-    return { id: created.id, startedAt: created.startedAt };
+    if (running) return running;
+    return this.db.insert(seasons).values({ startedAt: now }).returning().get();
+  }
+
+  private seasonView(season: SeasonRow): SeasonView {
+    return {
+      number: season.id,
+      startedAt: season.startedAt,
+      endsAt: season.endsAt,
+      modifier: season.modifier,
+      next: season.nextModifier,
+    };
+  }
+
+  /** The Signal as a gift sees it: its progress and whether it takes gifts now (W7). */
+  private signalView(season: SeasonRow, now: number): SignalView {
+    return {
+      ...signalOf(this.db, season.id),
+      open: signalOpen(this.deps.content, season, now, season.endsAt !== null),
+    };
   }
 
   /** What only the server knows, for one command or one settle (W5). */
   private world(playerId: number): World {
+    const now = this.deps.clock.now();
+    const season = this.currentSeason(now);
+    const legacy = legacyOf(this.db, playerId);
     return {
+      legacy: { points: legacy.points, titles: legacy.titles, skins: legacy.skins },
+      signal: this.signalView(season, now),
       reveal: (round) => this.den.result(round),
       jackpot: this.den.jackpot(),
       seed: this.deps.rollSeed?.() ?? randomInt(0, 2 ** 31 - 1),
@@ -195,7 +243,17 @@ export class Game {
     return {
       seasonId: season.id,
       seasonStartedAt: season.startedAt,
-      state: newBase(this.deps.content, now, seed),
+      // W7: a new season's base starts from what the player kept.
+      state: newBase(
+        this.deps.content,
+        now,
+        seed,
+        carryFor(legacyOf(this.db, playerId), {
+          number: season.id,
+          startedAt: season.startedAt,
+          modifier: season.modifier,
+        }),
+      ),
       version: 0,
       stored: false,
     };
@@ -456,7 +514,14 @@ export class Game {
       const away = now - lastSeenAt;
       const welcomeBack =
         loaded.stored && away >= WELCOME_BACK_AFTER
-          ? { awaySeconds: away, events: this.eventsSince(playerId, lastSeenAt) }
+          ? {
+              awaySeconds: away,
+              events: this.eventsSince(
+                playerId,
+                Math.max(lastSeenAt, loaded.seasonStartedAt),
+                loaded.seasonId,
+              ),
+            }
           : null;
       this.seen(playerId, now);
       return {
@@ -464,6 +529,7 @@ export class Game {
         version,
         player,
         seasonStartedAt: loaded.seasonStartedAt,
+        season: this.seasonView(this.currentSeason(now)),
         state,
         welcomeBack,
       };
@@ -472,7 +538,7 @@ export class Game {
     return response;
   }
 
-  private eventsSince(playerId: number, since: number): GameEvent[] {
+  private eventsSince(playerId: number, since: number, seasonId: number): GameEvent[] {
     return this.db
       .select()
       .from(eventLog)
@@ -480,6 +546,7 @@ export class Game {
         and(
           eq(eventLog.playerId, playerId),
           gt(eventLog.at, since),
+          eq(eventLog.seasonId, seasonId),
           inArray(eventLog.type, WHILE_AWAY),
         ),
       )
@@ -524,6 +591,7 @@ export class Game {
         !loaded.stored || JSON.stringify(result.state) !== JSON.stringify(loaded.state);
       const version = changed ? this.save(playerId, loaded, result.state, now) : loaded.version;
       this.log(playerId, loaded.seasonId, result.events, now, out);
+      if (result.ok) this.followLegacy(playerId, loaded.seasonId, result.events, now, out);
       if (result.ok && sale?.seller)
         this.completeSale(sale.listing, sale.seller, playerId, now, out);
       const launched = result.events.find((event) => event.type === "raid_launched");
@@ -680,6 +748,218 @@ export class Game {
       message: { version, serverNow: now, state, events: taken.events, origin: null },
     });
     out.notify.push({ playerId: defender.playerId, events: taken.events });
+  }
+
+  /**
+   * The persistent layer follows the domain's events (W7): points spent on a perk, a title or
+   * skin worn, a gift added to the Signal (which may light it).
+   */
+  private followLegacy(
+    playerId: number,
+    seasonId: number,
+    events: GameEvent[],
+    now: number,
+    out: Outbox,
+  ): void {
+    for (const event of events) {
+      if (event.type === "perk_bought") {
+        const legacy = legacyOf(this.db, playerId);
+        saveLegacy(
+          this.db,
+          playerId,
+          {
+            ...legacy,
+            points: legacy.points - event.cost,
+            spent: legacy.spent + event.cost,
+            perks: { ...legacy.perks, [event.perk]: event.rank },
+          },
+          now,
+        );
+      } else if (event.type === "cosmetic_set") {
+        saveLegacy(
+          this.db,
+          playerId,
+          { ...legacyOf(this.db, playerId), title: event.title, skin: event.skin },
+          now,
+        );
+      } else if (event.type === "signal_gift") {
+        const before = signalOf(this.db, seasonId);
+        const after = addGift(this.deps.content, before, event.good, event.amount, now);
+        saveSignal(this.db, seasonId, after);
+        recordGift(this.db, {
+          seasonId,
+          playerId,
+          good: event.good,
+          amount: event.amount,
+          worth: event.worth,
+          at: now,
+        });
+        if (after.litAt !== null && before.litAt === null)
+          this.log(playerId, seasonId, [{ type: "signal_lit", at: now }], now, out);
+        out.den.push({ kind: "signal" });
+      }
+    }
+  }
+
+  /** `GET /api/legacy` (W7): what the player keeps, their finished seasons, the hall of fame. */
+  legacy(playerId: number): LegacyResponse {
+    const seasonsPlayed = this.db
+      .select()
+      .from(seasonArchive)
+      .where(eq(seasonArchive.playerId, playerId))
+      .orderBy(desc(seasonArchive.seasonId))
+      .all()
+      .map((row) => ({ season: row.seasonId, ...JSON.parse(row.json) }) as ArchivedSeason);
+    const hall = this.db
+      .select({ row: hallOfFame, name: players.name })
+      .from(hallOfFame)
+      .innerJoin(players, eq(players.id, hallOfFame.playerId))
+      .orderBy(desc(hallOfFame.seasonId), hallOfFame.category)
+      .all()
+      .map(({ row, name }) => ({
+        season: row.seasonId,
+        category: row.category,
+        playerId: row.playerId,
+        name,
+        value: row.value,
+      }));
+    return { legacy: legacyOf(this.db, playerId), seasons: seasonsPlayed, hall };
+  }
+
+  /** `GET /api/signal` (W7). */
+  signal(playerId: number): SignalResponse {
+    const now = this.deps.clock.now();
+    const season = this.currentSeason(now);
+    const view = this.signalView(season, now);
+    const { open, ...progress } = view;
+    return {
+      serverNow: now,
+      open,
+      progress,
+      needs: needs(this.deps.content, progress),
+      top: givers(this.db, season.id).slice(0, 5),
+      mine: givenBy(this.db, season.id, playerId),
+    };
+  }
+
+  /** Admin (W7): announce the season's end (null takes it back) and the next modifier. */
+  announce(endsAt: number | null, next: string | null): SeasonView {
+    const now = this.deps.clock.now();
+    const season = this.currentSeason(now);
+    if (next !== null && !this.deps.content.seasons.modifiers.some((m) => m.id === next))
+      throw new Error(`unknown modifier ${next}`);
+    this.db
+      .update(seasons)
+      .set({ endsAt, nextModifier: next })
+      .where(eq(seasons.id, season.id))
+      .run();
+    this.deps.hub.broadcastDen({ kind: "season", number: season.id });
+    return this.seasonView({ ...season, endsAt, nextModifier: next });
+  }
+
+  /**
+   * Admin (W7): ends the running season and starts the next, in one transaction after an
+   * online backup. Every base is settled and folded into its player's legacy (points by
+   * rank and Signal share, blueprints, crew levels, titles, skins); the season is archived
+   * with its hall of fame; the old bases stop ticking, open listings close, the jackpot and
+   * the wheel's bets go. The next season gets the announced modifier, or one drawn from the
+   * season number.
+   */
+  async endSeason(): Promise<{ ended: number; started: number; players: number }> {
+    const content = this.deps.content;
+    const before = this.db.select().from(seasons).where(isNull(seasons.endedAt)).get();
+    if (!before) throw new Error("no season is running");
+    await this.deps.backup?.(`wipeday-pre-season-${before.id}.db`);
+    const result = this.db.transaction(() => {
+      const now = this.deps.clock.now();
+      const season = this.db.select().from(seasons).where(isNull(seasons.endedAt)).get();
+      if (!season || season.id !== before.id) throw new Error("the season changed meanwhile");
+      const rows = this.db
+        .select({ base: bases, name: players.name })
+        .from(bases)
+        .innerJoin(players, eq(players.id, bases.playerId))
+        .where(eq(bases.seasonId, season.id))
+        .all();
+      const entries: Entry[] = rows.map(({ base, name }) => ({
+        playerId: base.playerId,
+        name,
+        state: settleAll(content, normalizeState(content, JSON.parse(base.stateJson)), now, {
+          reveal: (round) => this.den.result(round),
+        }).state,
+      }));
+      const boards = leaderboards(content, entries, now);
+      const gifts = givers(this.db, season.id);
+      const totalGiven = gifts.reduce((sum, giver) => sum + giver.worth, 0);
+      const lit = signalOf(this.db, season.id).litAt !== null;
+      for (const entry of entries) {
+        const summary = seasonSummary(
+          content,
+          entry.state,
+          boards,
+          entry.playerId,
+          season.startedAt,
+        );
+        const given = gifts.find((giver) => giver.playerId === entry.playerId)?.worth ?? 0;
+        const outcome: SeasonResult = {
+          season: season.id,
+          ranks: summary.ranks,
+          signalShare: totalGiven > 0 ? given / totalGiven : 0,
+          signalLit: lit,
+          signalTop: gifts[0]?.playerId === entry.playerId && given > 0,
+        };
+        const points = seasonPoints(content, outcome);
+        this.db
+          .insert(seasonArchive)
+          .values({
+            seasonId: season.id,
+            playerId: entry.playerId,
+            json: JSON.stringify({ summary, ranks: summary.ranks, points }),
+          })
+          .run();
+        const kept = carryOver(content, legacyOf(this.db, entry.playerId), entry.state, outcome);
+        saveLegacy(this.db, entry.playerId, kept, now);
+      }
+      for (const [category, table] of Object.entries(boards)) {
+        for (const row of table.filter(
+          (candidate) => candidate.rank === 1 && candidate.value > 0,
+        )) {
+          this.db
+            .insert(hallOfFame)
+            .values({ seasonId: season.id, category, playerId: row.playerId, value: row.value })
+            .run();
+        }
+      }
+      const top = gifts[0];
+      if (top && top.worth > 0) {
+        this.db
+          .insert(hallOfFame)
+          .values({
+            seasonId: season.id,
+            category: "signal",
+            playerId: top.playerId,
+            value: top.worth,
+          })
+          .run();
+      }
+      this.db.update(seasons).set({ endedAt: now }).where(eq(seasons.id, season.id)).run();
+      this.db.update(bases).set({ nextEventAt: null }).where(eq(bases.seasonId, season.id)).run();
+      this.db
+        .update(listings)
+        .set({ status: "closed", closedAt: now })
+        .where(and(eq(listings.seasonId, season.id), eq(listings.status, "open")))
+        .run();
+      this.den.setJackpot(0);
+      this.db.delete(wheelBets).run();
+      const modifiers = content.seasons.modifiers;
+      const modifier =
+        season.nextModifier ??
+        modifiers[(season.id * 7) % Math.max(1, modifiers.length)]?.id ??
+        null;
+      const next = this.db.insert(seasons).values({ startedAt: now, modifier }).returning().get();
+      return { ended: season.id, started: next.id, players: entries.length };
+    });
+    this.deps.hub.broadcastDen({ kind: "season", number: result.started });
+    return result;
   }
 
   /** Asks for one spin when `round` ends (the minute tick catches any that are missed). */
