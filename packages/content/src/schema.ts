@@ -451,6 +451,8 @@ export const pacingSchema = z.strictObject({
     }),
     /** W6: the first trip to a bandit camp (charges made and spent) by this day. */
     firstCampByDay: z.int().min(1),
+    /** W7: feeding the Signal from surplus alone, the casual player fills this many stages. */
+    signalStages: z.int().min(0),
   }),
   /** W6: the raider against a casual player in the raids. */
   pvp: z.strictObject({

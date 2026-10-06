@@ -152,6 +152,7 @@ function emptyContent(): Content {
         scrap: { day: 1, min: 0, max: 0 },
         raids: { firstByDay: 1, day: 1, heldPercent: 0 },
         firstCampByDay: 1,
+        signalStages: 0,
       },
       pvp: { minRaids: 0, targetHqmByDay: 1 },
       optimal: {

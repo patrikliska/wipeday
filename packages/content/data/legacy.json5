@@ -16,10 +16,10 @@
   //   tripSuccess points of success on every trip
   //   xpPercent   percent more crew XP from trips
   perks: [
-    { id: "steady_hands", bonus: { allRates: 3 }, cost: [3, 5, 8] },
-    { id: "deep_cellars", bonus: { capPercent: 4 }, cost: [3, 5, 8] },
-    { id: "quick_fingers", bonus: { craftPercent: 4 }, cost: [3, 5, 8] },
-    { id: "hot_coals", bonus: { smeltPercent: 4 }, cost: [3, 5, 8] },
+    { id: "steady_hands", bonus: { allRates: 2 }, cost: [3, 5, 8] },
+    { id: "deep_cellars", bonus: { capPercent: 3 }, cost: [3, 5, 8] },
+    { id: "quick_fingers", bonus: { craftPercent: 3 }, cost: [3, 5, 8] },
+    { id: "hot_coals", bonus: { smeltPercent: 3 }, cost: [3, 5, 8] },
     { id: "old_maps", bonus: { tripSuccess: 2 }, cost: [4, 6] },
     { id: "war_stories", bonus: { xpPercent: 6 }, cost: [3, 5, 8] },
     { id: "old_friend", bonus: {}, returning: true, cost: [6] },

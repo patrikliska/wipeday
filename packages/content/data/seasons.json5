@@ -20,10 +20,10 @@
     opensOnDay: 21,
     // Built stage by stage: everyone gives toward the stage that is open.
     stages: [
-      { id: "foundation", needs: { stone: 40000, planks: 2000 } },
-      { id: "tower", needs: { frames: 300, plates: 500 } },
-      { id: "lamp", needs: { gears: 150, springs: 100 } },
-      { id: "fuel", needs: { fuel: 1500 } },
+      { id: "foundation", needs: { stone: 30000, planks: 1500 } },
+      { id: "tower", needs: { frames: 200, plates: 300 } },
+      { id: "lamp", needs: { gears: 100, springs: 60 } },
+      { id: "fuel", needs: { fuel: 800 } },
     ],
   },
 }

@@ -29,7 +29,11 @@
     raids: { firstByDay: 8, day: 28, heldPercent: 30 },
     // Charges get made and spent on a bandit camp within the season's first half.
     firstCampByDay: 16,
+    // W7: the Signal takes real goods: from surplus alone, one casual player fills a stage.
+    signalStages: 1,
   },
+  // W7: the veteran (an optimal player with every perk at its top rank, every blueprint and
+  // the crew at level 5) is held to the optimal floors below, and to at most 25% faster.
   // W6: the raider (active, raids at every chance the limits allow) against a casual player
   // who opted in: PvP happens, and the raided player still reaches Armored.
   pvp: { minRaids: 3, targetHqmByDay: 28 },
