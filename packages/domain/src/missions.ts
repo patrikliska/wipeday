@@ -631,11 +631,16 @@ export function startTrip(
 
 // --- coming back --------------------------------------------------------------------------
 
-/** Regions a map fragment could reveal: unknown, bordering the known ones, within range. */
+/**
+ * Regions a map fragment could reveal: unknown, bordering the known ones, within range, and
+ * on land. A scrap of a land map cannot chart open water: the sea is charted by a navigator
+ * in a boat (D95), and that 24-hour scout is what holds the season's peak back (W5 fix).
+ */
 function fragmentTargets(content: Content, state: BaseState): string[] {
   return content.regions
     .filter(
       (region) =>
+        region.access !== "sea" &&
         !state.known.includes(region.id) &&
         region.ring <= scoutRange(content, state) &&
         bordersKnown(content, state, region.id),

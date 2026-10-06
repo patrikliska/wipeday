@@ -22,7 +22,12 @@
     tierFiveSiteByDay: 31,
     crew: { day: 10, count: 5 },
     tool: { id: "salvaged_tools", byDay: 18 },
+    // W5: scrap rises slowly. On this day the casual player holds between min and max:
+    // enough to use the Den, not a pile with nothing to buy.
+    scrap: { day: 28, min: 800, max: 4000 },
   },
+  // W5: the gambler plays the biggest bet up to the daily cap at every check-in. Its scrap
+  // never goes negative and no day's wagers pass that day's cap (asserted in the check).
   // The greedy planner with hourly check-ins must not beat these.
   optimal: {
     hqmNotBeforeDay: 14,

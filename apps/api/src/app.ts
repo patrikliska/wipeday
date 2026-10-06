@@ -12,8 +12,11 @@
  * GET  /api/state              the base, settled to now, plus a welcome-back summary
  * POST /api/commands           {key, command}: one idempotent action
  * GET  /api/events             server-sent events: the base changed (other tab, timers),
- *                              and `feed` items from everyone
+ *                              `feed` items from everyone, and `den` news (bets, spins)
  * GET  /api/feed?before=id     the season's feed, newest first (W4b)
+ * GET  /api/den                the Den's board: open listings, the wheel, the jackpot (W5)
+ * GET  /api/den/history?good=  what players paid per 100 units, by day (W5)
+ * GET  /api/ranks              the leaderboards and the player's season card (W5)
  * GET  /api/notify             notification kinds on/off, the push key, devices on
  * PUT  /api/notify             {kind: bool, ...}: turn kinds on or off
  * POST /api/push/subscribe     {endpoint, keys}: this device wants notifications
@@ -172,6 +175,17 @@ export function createApp(deps: AppDeps): Hono<Env> {
     });
   });
 
+  authed.get("/den", (c) => c.json(game.denBoard()));
+
+  const goodSchema = z.string().min(1).max(64);
+  authed.get("/den/history", (c) => {
+    const parsed = goodSchema.safeParse(c.req.query("good"));
+    if (!parsed.success) return c.json({ error: "bad_request" }, 400);
+    return c.json(game.history(parsed.data));
+  });
+
+  authed.get("/ranks", (c) => c.json(game.ranks(c.get("playerId"))));
+
   authed.get("/notify", (c) => {
     const playerId = c.get("playerId");
     return c.json({
@@ -217,9 +231,13 @@ export function createApp(deps: AppDeps): Hono<Env> {
       const unsubscribeFeed = hub.subscribeFeed((items) => {
         void stream.writeSSE({ event: "feed", data: JSON.stringify(items) });
       });
+      const unsubscribeDen = hub.subscribeDen((message) => {
+        void stream.writeSSE({ event: "den", data: JSON.stringify(message) });
+      });
       const unsubscribe = () => {
         unsubscribeState();
         unsubscribeFeed();
+        unsubscribeDen();
       };
       stream.onAbort(unsubscribe);
       await stream.writeSSE({ event: "ready", data: String(clock.now()) });

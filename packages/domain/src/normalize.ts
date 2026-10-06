@@ -16,6 +16,7 @@ import {
   newSurvivor,
 } from "./base";
 import type { Survivor } from "./missions";
+import { newStats } from "./stats";
 
 /** Items that were renamed, old id -> new id. */
 const RENAMED: Record<string, string> = { hide_vest: "leather_vest" };
@@ -107,5 +108,14 @@ export function normalizeState(content: Content, stored: unknown): BaseState {
     missionSeq: raw.missionSeq ?? 0,
     nodeRun: raw.nodeRun ? { ...raw.nodeRun, from: raw.nodeRun.from ?? 0 } : null,
     hints: raw.hints ?? {},
+    // W5: the Den. A W4 base starts with nothing listed and fresh season counters (the
+    // tiers it already holds count as reached now).
+    listings: raw.listings ?? [],
+    listingSeq: raw.listingSeq ?? 0,
+    den: raw.den ?? { day: -1, tier: "twig", offers: [], bought: {} },
+    contracts: raw.contracts ?? { day: -1, tier: "twig", ids: [], done: [] },
+    casino: raw.casino ?? { day: -1, wagered: 0, won: 0 },
+    wheelBets: raw.wheelBets ?? [],
+    stats: raw.stats ?? newStats(),
   };
 }

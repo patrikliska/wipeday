@@ -25,6 +25,7 @@ import {
   total,
 } from "./base";
 import { buildingCount, buildStatus, nextBuild } from "./buildings";
+import { deliverStatus } from "./contracts";
 import { craftStatus } from "./craft";
 import { tiredWorkers } from "./jobs";
 import { crewCap, isFit, scoutStatus, sitesIn, tripStatus } from "./missions";
@@ -40,6 +41,7 @@ export type Advice =
   | "craft"
   | "map"
   | "crew"
+  | "den"
   | "gather";
 
 /** A hint is shown until its action has been used this many times. */
@@ -173,6 +175,11 @@ export function crewWorthIt(state: BaseState, now: number): boolean {
   );
 }
 
+/** True when the Den has a contract the base can deliver right now (W5). */
+export function denWorthIt(content: Content, state: BaseState): boolean {
+  return state.contracts.ids.some((id) => deliverStatus(content, state, id).code === "ok");
+}
+
 /** Room for another survivor, for the crew panel. */
 export { crewCap };
 
@@ -190,6 +197,7 @@ export function advise(content: Content, state: BaseState, now: number): Advice 
   if (crewWorthIt(state, now)) return "crew";
   if (mapWorthIt(content, state, now)) return "map";
   if (craftWorthIt(content, state, now)) return "craft";
+  if (denWorthIt(content, state)) return "den";
   if (gatherReadyAt(content, state) <= now) return "gather";
   // Nothing to spend on and Gather cooling down: bank what is waiting, or wait for Gather.
   return total(accrued(content, state, now)) >= 1 ? "collect" : "gather";

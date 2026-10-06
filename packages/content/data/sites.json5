@@ -79,7 +79,7 @@
       chance: 55, hazard: "unstable", injury: 22, injuryHours: 6,
       rations: { food: 60, fuel: 5 }, rolls: 4, xp: 90, blueprint: 20, fragment: 10,
       loot: [
-        { resource: "scrap", min: 25, max: 50, weight: 35 },
+        { resource: "scrap", min: 15, max: 30, weight: 35 },
         { resource: "springs", min: 1, max: 3, weight: 25 },
         { resource: "gears", min: 2, max: 4, weight: 25 },
         { resource: "plates", min: 2, max: 5, weight: 15 },
@@ -91,7 +91,7 @@
       rations: { food: 60, fuel: 8 }, rolls: 4, xp: 100, blueprint: 10, fragment: 10,
       keycode: "tin_keycode", finds: [{ item: "copper_keycode", chance: 50 }],
       loot: [
-        { resource: "scrap", min: 30, max: 60, weight: 35 },
+        { resource: "scrap", min: 18, max: 36, weight: 35 },
         { resource: "plates", min: 3, max: 6, weight: 25 },
         { resource: "fuel", min: 10, max: 25, weight: 25 },
         { resource: "springs", min: 2, max: 5, weight: 15 },
@@ -104,7 +104,7 @@
       loot: [
         { resource: "sulfur", min: 60, max: 150, weight: 30 },
         { resource: "ore", min: 150, max: 400, weight: 30 },
-        { resource: "scrap", min: 20, max: 40, weight: 25 },
+        { resource: "scrap", min: 12, max: 24, weight: 25 },
         { resource: "charcoal", min: 20, max: 50, weight: 15 },
       ],
     },
@@ -115,7 +115,7 @@
       rations: { food: 90, fuel: 12 }, rolls: 5, xp: 140, blueprint: 15, fragment: 8,
       keycode: "copper_keycode", finds: [{ item: "copper_keycode", chance: 20 }],
       loot: [
-        { resource: "scrap", min: 40, max: 80, weight: 30 },
+        { resource: "scrap", min: 24, max: 48, weight: 30 },
         { resource: "plates", min: 4, max: 8, weight: 25 },
         { resource: "gears", min: 3, max: 6, weight: 25 },
         { resource: "frames", min: 3, max: 6, weight: 20 },
@@ -127,7 +127,7 @@
       rations: { food: 100, fuel: 15 }, rolls: 5, xp: 150, blueprint: 15, fragment: 8,
       keycode: "copper_keycode", finds: [{ item: "brass_keycode", chance: 40 }],
       loot: [
-        { resource: "scrap", min: 40, max: 90, weight: 30 },
+        { resource: "scrap", min: 24, max: 54, weight: 30 },
         { resource: "springs", min: 3, max: 6, weight: 25 },
         { resource: "gears", min: 3, max: 6, weight: 20 },
         { resource: "fuel", min: 20, max: 45, weight: 25 },
@@ -140,7 +140,7 @@
       rations: { food: 110, fuel: 25 }, rolls: 5, xp: 180, blueprint: 30, fragment: 0,
       keycode: "brass_keycode",
       loot: [
-        { resource: "scrap", min: 60, max: 120, weight: 30 },
+        { resource: "scrap", min: 36, max: 72, weight: 30 },
         { resource: "plates", min: 6, max: 12, weight: 25 },
         { resource: "springs", min: 4, max: 8, weight: 25 },
         { resource: "gears", min: 4, max: 8, weight: 20 },
@@ -152,7 +152,7 @@
       rations: { food: 140, fuel: 40 }, rolls: 6, xp: 220, blueprint: 35, fragment: 0,
       keycode: "brass_keycode",
       loot: [
-        { resource: "scrap", min: 80, max: 160, weight: 30 },
+        { resource: "scrap", min: 48, max: 96, weight: 30 },
         { resource: "fuel", min: 40, max: 80, weight: 25 },
         { resource: "plates", min: 8, max: 14, weight: 25 },
         { resource: "springs", min: 5, max: 10, weight: 20 },

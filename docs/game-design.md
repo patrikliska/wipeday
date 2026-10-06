@@ -248,6 +248,14 @@ scrap + wiring + batteries ──► electronics ──► radio, turret brain, 
   jackpot fed by 1% of losses), Bones (fast dice, tiny stakes). Max bet by tier, daily wager cap
   around 20% of expected daily scrap, RTP verified by the simulator.
 - Unlocks: market week 1, games day 5, contracts week 2.
+- *(Built in W5, D98-D105.)* The Den opens at Stone (casual day 4) with all three at once.
+  It sells a daily counter of parts, meals and a blueprint at 250% of the reference price,
+  and buys through three daily contracts at 40%. Players list whole lots in escrow for 48 h,
+  with a 5% fee and a floor at half the reference price. The games keep a 5-10% edge (exact,
+  checked in data): wheel rounds every 30 s for everyone, slots with a 200× jackpot plus a
+  pool funded by 1% of every spin, dice. Bets come in 5-scrap chips. The caps by tier
+  (10/50, 25/150, 50/250) are about half a casual player's daily income, the owner's choice
+  over 20%. Bids between players are not built: the contracts are the Den's buy orders.
 
 ### 5.11 Social layer
 
@@ -257,7 +265,8 @@ scrap + wiring + batteries ──► electronics ──► radio, turret brain, 
   tower, a bridge to a new site), a shared warehouse with limits, and a chat pointer. Alliances
   cannot pool combat power; PvP stays 1:1.
 - Leaderboards by category (wealth, sites cleared, defense, trade volume, casino luck), so
-  more than one play style can be first.
+  more than one play style can be first. *(Built in W5, D103: Wealth, Builder, Explorer,
+  Trader, Lucky, Guard, plus a season card.)*
 
 ### 5.12 Season arc and the legacy layer
 

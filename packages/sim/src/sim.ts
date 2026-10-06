@@ -27,11 +27,15 @@ import {
   upkeepOf,
 } from "@wipe-day/domain/base";
 import { buildingCount, buildStatus, nextBuild } from "@wipe-day/domain/buildings";
+import { casinoLimit, wagerLeft } from "@wipe-day/domain/casino";
 import { manualClock } from "@wipe-day/domain/clock";
 import { applyCommand, type Command } from "@wipe-day/domain/commands";
+import { deliverStatus } from "@wipe-day/domain/contracts";
 import { boostPercent, craftStatus, maxBatch, queueOf } from "@wipe-day/domain/craft";
 import { type Job, nodeJobRates, stationWorker, traitsOf } from "@wipe-day/domain/crew";
+import { denBuyStatus, denOpen, lotsLeft, offerOf, offerPrice } from "@wipe-day/domain/den";
 import type { GameEvent } from "@wipe-day/domain/events";
+import { held, isCapped } from "@wipe-day/domain/goods";
 import { jobStatus, tiredWorkers } from "@wipe-day/domain/jobs";
 import {
   atSea,
@@ -46,14 +50,16 @@ import {
 } from "@wipe-day/domain/missions";
 import { nodeStatus } from "@wipe-day/domain/nodes";
 import { expandNeeds, type Need, partsToMake, stations } from "@wipe-day/domain/recipes";
+import { rng, seedOf } from "@wipe-day/domain/rng";
 import { settleAll } from "@wipe-day/domain/settle";
 
-export const ARCHETYPES = ["casual", "active", "optimal"] as const;
+export const ARCHETYPES = ["casual", "active", "optimal", "gambler"] as const;
 export type Archetype = (typeof ARCHETYPES)[number];
 
-/** Check-in moments within a day, in hours. */
+/** Check-in moments within a day, in hours. The gambler is a casual player who also plays. */
 const SCHEDULE: Record<Archetype, number[]> = {
   casual: [8, 13, 21],
+  gambler: [8, 13, 21],
   active: [7, 9, 12, 15, 17, 19, 21, 23],
   optimal: Array.from({ length: 24 }, (_, hour) => hour),
 };
@@ -76,6 +82,12 @@ export interface DayRow {
   parts: number;
   /** Survivors in the crew. */
   crew: number;
+  /** Scrap the Den took and gave today (W5): stock buys, fees, contracts, the tables. */
+  denSpent: number;
+  denEarned: number;
+  /** Scrap wagered and won today. */
+  wagered: number;
+  won: number;
   /** Regions known. */
   known: number;
   /** Buildings standing (level 1 or more). */
@@ -104,9 +116,20 @@ export interface Run {
 /** Where a run's events go while it plays (the first-made days are read from them). */
 let listener: ((event: GameEvent) => void) | null = null;
 
+/** The server's side for the casino: a seeded stream of rolls and the shared jackpot pool. */
+const house = { random: rng(1), jackpot: 0 };
+
 /** Applies one command the way the server would; a refusal keeps the settled state. */
 function act(content: Content, state: BaseState, command: Command, now: number): BaseState {
-  const result = applyCommand(content, state, command, now);
+  const world =
+    command.type === "slots_spin" || command.type === "dice_roll"
+      ? { seed: house.random.int(0, 2 ** 31 - 1), jackpot: house.jackpot }
+      : undefined;
+  const result = applyCommand(content, state, command, now, world);
+  for (const event of result.events) {
+    if (event.type === "wager") house.jackpot += event.feed;
+    if (event.type === "jackpot_won") house.jackpot = 0;
+  }
   if (listener) for (const event of result.events) listener(event);
   return result.state;
 }
@@ -293,6 +316,7 @@ export function checkIn(
   }
 
   s = expeditions(content, s, now);
+  s = den(content, s, now, archetype);
 
   // Smelt whatever ore is waiting, the ore the next tier needs first.
   const wanted = nextTier(s.tier)
@@ -309,6 +333,78 @@ export function checkIn(
       const result = applyCommand(content, s, { type: "smelt", ore: ore.id }, now);
       s = result.state;
       if (!result.ok) break;
+    }
+  }
+  return s;
+}
+
+/**
+ * The Den (W5), once it deals with the base. Every archetype:
+ * - delivers a contract when the goods are surplus: a capped resource that stays above
+ *   60% of storage afterwards, or a part held twice over;
+ * - buys from the Den's counter the parts the next tier or tool is short of, keeping the
+ *   scrap the next tool needs plus a small reserve for scouting.
+ * The gambler then plays dice and slots with the biggest bet until the daily cap.
+ */
+function den(content: Content, state: BaseState, now: number, archetype: Archetype): BaseState {
+  let s = state;
+  if (!denOpen(content, s)) return s;
+  const cap = storageCap(content, s);
+  for (const id of s.contracts.ids) {
+    const status = deliverStatus(content, s, id);
+    if (status.code !== "ok") continue;
+    const { good, amount } = status.terms;
+    const left = held(content, s, good) - amount;
+    const surplus = isCapped(content, good) ? left >= cap * 0.6 : left >= amount;
+    if (surplus) s = act(content, s, { type: "deliver", contract: id }, now);
+  }
+  const tool = nextTool(content, s);
+  const scrapReserve = 150 + (tool && toolUnlocked(s, tool) ? (tool.cost.scrap ?? 0) : 0);
+  const goals: Amounts[] = [];
+  const tier = nextTier(s.tier);
+  if (tier && !s.construction.some((job) => job.target.kind === "tier"))
+    goals.push(tierOf(content, tier).cost);
+  if (tool && toolUnlocked(s, tool)) goals.push(tool.cost);
+  for (const cost of goals) {
+    const short = shortfall(cost, s.stock);
+    for (const id of s.den.offers) {
+      const offer = offerOf(content, id);
+      const missing = offer ? (short[offer.good] ?? 0) : 0;
+      if (!offer || missing <= 0) continue;
+      const price = offerPrice(content, offer);
+      const affordable = Math.floor(((s.stock.scrap ?? 0) - scrapReserve) / price);
+      const lots = Math.min(lotsLeft(s, offer), Math.ceil(missing / offer.lot), affordable);
+      if (lots > 0 && denBuyStatus(content, s, id, lots, now).code === "ok")
+        s = act(content, s, { type: "den_buy", offer: id, lots }, now);
+    }
+  }
+  // Comforts a person buys when the Den has them: a meal when the cupboard is bare, a first
+  // aid kit when someone is hurt and there is none.
+  const bare = content.items.every(
+    (item) => item.category !== "meal" || (s.items[item.id] ?? 0) === 0,
+  );
+  const hurt = s.crew.some((member) => member.injuredUntil !== null && member.injuredUntil > now);
+  for (const id of s.den.offers) {
+    const offer = offerOf(content, id);
+    const item = offer ? content.items.find((candidate) => candidate.id === offer.good) : undefined;
+    const wanted =
+      (item?.category === "meal" && bare) ||
+      (item?.category === "med" && hurt && (s.items[item.id] ?? 0) === 0);
+    if (!offer || !wanted || (s.stock.scrap ?? 0) < offerPrice(content, offer) + scrapReserve)
+      continue;
+    if (denBuyStatus(content, s, id, 1, now).code === "ok")
+      s = act(content, s, { type: "den_buy", offer: id, lots: 1 }, now);
+  }
+  if (archetype === "gambler") {
+    const limit = casinoLimit(content, s);
+    for (let spin = 0; limit && spin < 40; spin++) {
+      const bet = Math.min(limit.maxBet, wagerLeft(content, s, now));
+      if (bet < content.den.casino.betStep || (s.stock.scrap ?? 0) < bet + 100) break;
+      const command: Command =
+        spin % 2 === 0
+          ? { type: "slots_spin", amount: bet }
+          : { type: "dice_roll", option: "seven", amount: bet };
+      s = act(content, s, command, now);
     }
   }
   return s;
@@ -486,6 +582,9 @@ export function simulate(
 ): Run {
   const start = 1_700_000_000;
   const clock = manualClock(start);
+  house.random = rng(seedOf(7, ARCHETYPES.indexOf(archetype)));
+  house.jackpot = 0;
+  let denDay = { denSpent: 0, denEarned: 0, wagered: 0, won: 0 };
   let state = newBase(content, clock.now(), 1);
   const rows: DayRow[] = [];
   const reached: Partial<Record<Tier, number>> = { twig: 1 };
@@ -498,6 +597,13 @@ export function simulate(
   let today = 1;
   const record = (event: GameEvent) => {
     onEvent?.(event, today, () => state);
+    if (event.type === "den_bought") denDay.denSpent += event.price;
+    if (event.type === "listed") denDay.denSpent += event.fee;
+    if (event.type === "contract_done") denDay.denEarned += event.pay;
+    if (event.type === "wager") {
+      denDay.wagered += event.bet;
+      denDay.won += event.payout;
+    }
     if (event.type === "assigned" && event.job !== null) firstJob ??= today;
     if (event.type === "trip_started") {
       const tier = siteOf(content, event.site)?.tier ?? 0;
@@ -541,10 +647,12 @@ export function simulate(
         .filter((resource) => resource.kind === "part")
         .reduce((sum, resource) => sum + (settledState.stock[resource.id] ?? 0), 0),
       crew: settledState.crew.length,
+      ...denDay,
       known: settledState.known.length,
       buildings: buildingCount(settledState),
       building: settledState.construction.length > 0,
     });
+    denDay = { denSpent: 0, denEarned: 0, wagered: 0, won: 0 };
   }
   listener = null;
   return {
@@ -584,7 +692,31 @@ export function checkPacing(content: Content, days = 35): CheckFailure[] {
   const failures: CheckFailure[] = [];
   const casual = simulate(content, "casual", days);
   const optimal = simulate(content, "optimal", days);
+  const gambler = simulate(content, "gambler", days);
   const { pacing } = content;
+
+  // W5: the economy. Scrap rises slowly for the casual player; the gambler stays solvent
+  // and the daily wager cap holds every day.
+  const scrapTarget = pacing.casual.scrap;
+  const scrapThen = casual.rows[scrapTarget.day - 1]?.scrap ?? 0;
+  if (scrapThen < scrapTarget.min || scrapThen > scrapTarget.max) {
+    failures.push({
+      message: `casual holds ${scrapThen} scrap on day ${scrapTarget.day}, target ${scrapTarget.min}-${scrapTarget.max}`,
+    });
+  }
+  for (const row of gambler.rows) {
+    const cap = content.den.casino.limits[row.tier]?.dailyWager ?? 0;
+    if (row.scrap < 0)
+      failures.push({ message: `gambler's scrap went negative on day ${row.day}` });
+    if (row.wagered > cap) {
+      failures.push({
+        message: `gambler wagered ${row.wagered} on day ${row.day}, over the ${row.tier} cap of ${cap}`,
+      });
+    }
+  }
+  if (gambler.rows.every((row) => row.wagered === 0)) {
+    failures.push({ message: "the gambler never played: the casino did not open" });
+  }
 
   for (const tier of ["stone", "metal", "hqm"] as const) {
     const window = pacing.casual[tier];

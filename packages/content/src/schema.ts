@@ -433,6 +433,8 @@ export const pacingSchema = z.strictObject({
     crew: z.strictObject({ day: z.int().min(1), count: z.int().min(1) }),
     /** Scrap from the sites pays for this tool by this day. */
     tool: z.strictObject({ id: z.string(), byDay: z.int().min(1) }),
+    /** W5: the scrap held on season day `day` stays between `min` and `max`. */
+    scrap: z.strictObject({ day: z.int().min(1), min: z.int().min(0), max: z.int().min(0) }),
   }),
   optimal: z.strictObject({
     hqmNotBeforeDay: z.int().min(1),
@@ -442,6 +444,93 @@ export const pacingSchema = z.strictObject({
   }),
   tierCostRatio: z.strictObject({ min: z.number().min(1), max: z.number().min(1) }),
 });
+
+/** The Den (W5): market, the Den's stock, contracts and the games (den.json5). */
+const pays = z.int().min(0).max(100_000);
+export const DICE_OPTIONS = ["over", "under", "seven", "doubles"] as const;
+export type DiceOption = (typeof DICE_OPTIONS)[number];
+
+export const denSchema = z.strictObject({
+  open: z.strictObject({ tier }),
+  map: z.strictObject({
+    region: z.string(),
+    x: z.int().min(0).max(1000),
+    y: z.int().min(0).max(1000),
+  }),
+  market: z.strictObject({
+    /** Scrap per 100 units of every tradeable good (resources but scrap, and items). */
+    refPer100: z.record(z.string(), z.int().min(1)),
+    floorPercent: z.int().min(1).max(100),
+    feePercent: z.int().min(0).max(50),
+    minFee: z.int().min(0),
+    maxListings: z.int().min(1).max(20),
+    listingHours: z.int().min(1),
+  }),
+  stock: z.strictObject({
+    perDay: z.int().min(1),
+    markupPercent: z.int().min(100),
+    blueprintPrice: z.int().min(1),
+    pool: z
+      .array(
+        z.strictObject({
+          id,
+          /** A resource or item id, or "blueprint". */
+          good: z.string(),
+          lot: z.int().min(1),
+          lotsPerDay: z.int().min(1),
+          minTier: tier,
+        }),
+      )
+      .min(1),
+  }),
+  contracts: z.strictObject({
+    perDay: z.int().min(1),
+    payPercent: z.int().min(1).max(100),
+    pool: z
+      .array(
+        z.strictObject({
+          id,
+          good: z.string(),
+          /** How much it wants from a base at each tier; absent tiers never draw it. */
+          amount: z.partialRecord(tier, z.int().min(1)),
+          blueprint: z.int().min(0).max(100).optional(),
+        }),
+      )
+      .min(1),
+  }),
+  casino: z.strictObject({
+    betStep: z.int().min(1),
+    limits: z.partialRecord(
+      tier,
+      z.strictObject({ maxBet: z.int().min(1), dailyWager: z.int().min(1) }),
+    ),
+    bigWin: z.int().min(2),
+    wheel: z.strictObject({
+      roundSeconds: z.int().min(5),
+      closeSeconds: z.int().min(0),
+      segments: z.array(z.strictObject({ id, weight: z.int().min(1), pays })).min(2),
+    }),
+    slots: z.strictObject({
+      symbols: z
+        .array(
+          z.strictObject({
+            id,
+            weight: z.int().min(1),
+            three: pays.optional(),
+            two: pays.optional(),
+            jackpot: z.boolean().optional(),
+          }),
+        )
+        .min(2),
+      jackpot: z.strictObject({ feedPercent: z.int().min(0).max(10), pays }),
+    }),
+    dice: z.strictObject({
+      options: z.array(z.strictObject({ id: z.enum(DICE_OPTIONS), pays })).min(1),
+    }),
+  }),
+});
+export type Den = z.infer<typeof denSchema>;
+export type Casino = Den["casino"];
 
 export type Resource = z.infer<typeof resourceSchema>;
 export type Tool = z.infer<typeof toolSchema>;
@@ -483,6 +572,7 @@ export interface Content {
   nodes: NodeDef[];
   pacing: Pacing;
   active: Active;
+  den: Den;
 }
 
 /**
@@ -561,5 +651,6 @@ export const DATA_FILES = [
   "nodes.json5",
   "active.json5",
   "pacing.json5",
+  "den.json5",
 ] as const;
 export type DataFile = (typeof DATA_FILES)[number];

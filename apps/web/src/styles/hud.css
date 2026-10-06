@@ -1419,3 +1419,431 @@ button.card.report-row {
 .survivor .gear select:disabled {
   opacity: 0.45;
 }
+
+/* --- the Den (W5): wallet, market, contracts ----------------------------------------- */
+
+.wallet {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-soft);
+}
+.wallet .tile {
+  width: 26px;
+  height: 26px;
+  font-size: 10px;
+}
+.wallet b {
+  font-size: 20px;
+}
+.wallet span {
+  color: var(--muted);
+  font-size: 14px;
+}
+.tile.bp {
+  --tile-color: #45c2c0;
+}
+button.slot {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+button.slot:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+.card.contract .story {
+  font-style: italic;
+  color: var(--text);
+  opacity: 0.85;
+}
+.pricechart {
+  display: grid;
+  gap: 4px;
+  margin-top: 4px;
+}
+.pricechart rect {
+  fill: var(--warning);
+  opacity: 0.85;
+}
+.pricechart line {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+.pricechart .desc {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* --- the games (W5) -------------------------------------------------------------------- */
+
+.limits {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+.limits .hint {
+  font-size: 12px;
+}
+.chips-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.chips-row .hint {
+  font-size: 12px;
+  min-width: 120px;
+}
+.betchip {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 3px dashed rgba(236, 232, 223, 0.35);
+  background: #3b3832;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  font-size: 15px;
+}
+.betchip.on {
+  border-color: var(--warning);
+  border-style: solid;
+  background: rgba(227, 163, 47, 0.25);
+}
+.betchip:disabled {
+  opacity: 0.35;
+}
+.wheel {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  justify-content: center;
+}
+.wheel svg {
+  flex: none;
+  max-width: 55vw;
+  height: auto;
+}
+.wheel-disc {
+  transition: transform 3.2s cubic-bezier(0.16, 0.84, 0.24, 1);
+}
+.wheel-side {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+.num.big {
+  font-size: 30px;
+  line-height: 1;
+}
+.wheel-side .hint {
+  font-size: 12px;
+  padding: 0;
+}
+.results {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+  max-width: 120px;
+}
+.results i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+}
+.results i:first-child {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+.swatch {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+}
+.bettors {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 45%;
+}
+.bettors em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+}
+.bettors em.mine {
+  background: rgba(227, 163, 47, 0.3);
+  color: var(--warning);
+}
+.jackpot {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: radial-gradient(circle at 50% 0%, rgba(205, 65, 43, 0.28), rgba(255, 255, 255, 0.03));
+  border: 1px solid rgba(205, 65, 43, 0.45);
+  text-align: center;
+}
+.jackpot b {
+  color: #ffd25a;
+}
+.jackpot .hint {
+  font-size: 12px;
+}
+.reels {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+.reel {
+  width: 78px;
+  height: 92px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(180deg, #121110, #2a2824 50%, #121110);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.reel .tile {
+  width: 52px;
+  height: 52px;
+  font-size: 17px;
+}
+.reel.spinning .tile {
+  animation: reel 120ms linear infinite;
+  filter: blur(1.5px);
+}
+@keyframes reel {
+  from {
+    transform: translateY(-40px);
+  }
+  to {
+    transform: translateY(40px);
+  }
+}
+.outcome {
+  margin: 0;
+  text-align: center;
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--muted);
+}
+.outcome.good {
+  color: var(--success);
+}
+.outcome.good.fresh {
+  animation: pop 400ms cubic-bezier(0.2, 0.8, 0.2, 1.4);
+}
+@keyframes pop {
+  from {
+    transform: scale(0.6);
+  }
+  to {
+    transform: none;
+  }
+}
+.paytable {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.paytable span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.paytable .tile {
+  width: 20px;
+  height: 20px;
+  font-size: 8px;
+  border-width: 1px;
+}
+.dice {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+.die {
+  width: 64px;
+  height: 64px;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  place-items: center;
+  border-radius: 12px;
+  background: #ece8df;
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.18);
+}
+.die i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.die i.on {
+  background: #1b1a18;
+}
+.die.rolling {
+  animation: tumble 260ms linear infinite;
+}
+@keyframes tumble {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --- ranks and the season card (W5) ----------------------------------------------------- */
+
+.ranks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.ranks li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+}
+.ranks li.mine {
+  background: rgba(227, 163, 47, 0.14);
+  border: 1px solid rgba(227, 163, 47, 0.5);
+}
+.ranks .place {
+  width: 22px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: center;
+}
+.ranks b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ranks .num {
+  font-size: 14px;
+  white-space: nowrap;
+}
+.season-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--tier-color) 22%, transparent),
+    rgba(255, 255, 255, 0.03)
+  );
+  border: 1px solid color-mix(in srgb, var(--tier-color) 55%, transparent);
+}
+.season-card .lvl {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.season-card .tier {
+  font-size: 22px;
+  color: var(--tier-color);
+}
+.season-card .badge-first {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 210, 90, 0.18);
+  color: #ffd25a;
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.season-card .road {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+}
+.season-card .stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.season-card .stats > div {
+  display: grid;
+  justify-items: center;
+  padding: 8px 4px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.18);
+}
+.season-card .stats b {
+  font-size: 20px;
+}
+.season-card .stats span {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.season-card .hint {
+  padding: 0;
+}
+
+/* Iteration 2: the Den's tabs and wallet share a row; hints sit under their headers. */
+.den-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.den-top .tabs {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+.den-top .wallet {
+  flex: none;
+  padding: 6px 10px;
+}
+.den-top .wallet b {
+  font-size: 17px;
+}
+.panel .body h3.section + .hint {
+  margin-top: -8px;
+}
+@media (max-width: 720px) {
+  .reel {
+    width: 64px;
+    height: 72px;
+  }
+  .reel .tile {
+    width: 44px;
+    height: 44px;
+    font-size: 15px;
+  }
+  .die {
+    width: 54px;
+    height: 54px;
+  }
+}

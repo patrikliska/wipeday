@@ -34,6 +34,10 @@ const game = new Game({
   clock,
   hub,
   notify: (playerId, events) => notifier.notify(playerId, events),
+  // The wheel spins on time; a quarter second late, so the round has surely ended.
+  schedule: (at, run) => {
+    setTimeout(run, Math.max(0, at * 1000 - clock.nowMs()) + 250);
+  },
 });
 const discord = config.discord
   ? discordAuth(

@@ -289,7 +289,10 @@
     "well_fed": "Well fed +{percent}% · {time}",
     "away": "{count} out · {time}",
     "explore": "Explore",
-    "reports": "{count} back"
+    "reports": "{count} back",
+    "den_open": "Trade, play",
+    "den_contract": "Contract ready",
+    "den_closed": "Opens at {tier}"
   },
   "action": {
     "gather": "Gather",
@@ -303,7 +306,8 @@
     "tasks": "Tasks",
     "map": "Map",
     "holdfast": "Holdfast",
-    "feed": "Feed"
+    "feed": "Feed",
+    "den": "Den"
   },
   "panel": {
     "build": "Build",
@@ -313,7 +317,8 @@
     "tasks": "Daily tasks",
     "squad": "Squad",
     "map": "The map",
-    "feed": "The island"
+    "feed": "The island",
+    "den": "The Den"
   },
   "weather": {
     "clear": "Clear",
@@ -337,7 +342,8 @@
     "barrel": "A barrel washed up: tap it on the shore before it drifts off.",
     "building": "A builder is free and a building is affordable: open Upgrade to put it up.",
     "map": "Your crew can head out: open the Map, scout the fog, send a party to the ruins.",
-    "crew": "Give your free crew a job: they work whenever they are home."
+    "crew": "Give your free crew a job: they work whenever they are home.",
+    "den": "The Den has a contract you can fill: tap the skiff on the shore."
   },
   "build": {
     "hint": "Each tier raises storage, furnace slots and builders. Upkeep rises with it.",
@@ -540,7 +546,13 @@
     "trip_partial": "The party is back from the {site} with a little.",
     "trip_fail": "The party is back from the {site} empty-handed.",
     "rescued": "{name} was found hiding in the ruins and joined the crew.",
-    "found": "{item} found at the {site}."
+    "found": "{item} found at the {site}.",
+    "sold": "Sold {amount} {good} for {price} scrap.",
+    "listing_expired": "Nobody bought your {amount} {good}: it is back home.",
+    "contract_done": "Contract delivered: +{pay} scrap.",
+    "jackpot": "JACKPOT! +{amount} scrap.",
+    "wheel_won": "The wheel stopped on {segment}: +{amount} scrap!",
+    "wheel_lost": "The wheel stopped on {segment}: your {amount} scrap is the Den's."
   },
   "refusal": {
     "cooldown": "Gather is ready again in {time}.",
@@ -586,7 +598,24 @@
     "station_taken": "{name} already works the {station}.",
     "asleep": "Asleep: up in {time}.",
     "nobody_tired": "Nobody is tired right now.",
-    "no_dock_level": "That far out, the {building} has to be level {level}."
+    "no_dock_level": "That far out, the {building} has to be level {level}.",
+    "server_only": "Waiting for the Den to answer.",
+    "den_closed": "The Den deals with {tier} bases and up.",
+    "listing_cap": "You have {count} listings up: cancel one or wait for a sale.",
+    "price_floor": "The Den will not post it below {price} scrap.",
+    "no_room": "No room for that much: space for {room}.",
+    "listing_gone": "Someone got there first: that listing is gone.",
+    "own_listing": "That one is yours: cancel it instead.",
+    "not_listed": "That listing is no longer up.",
+    "sold_out": "Sold out for today: the Den restocks in {time}.",
+    "no_offer": "The Den does not sell that today.",
+    "no_contract": "That contract is closed.",
+    "max_bet": "The biggest bet at a {tier} base is {amount} scrap.",
+    "wager_cap": "That is today's limit: {left} scrap left to play, resets in {time}.",
+    "bad_bet": "Bets come in chips of {step} scrap.",
+    "not_tradeable": "The Den does not trade that.",
+    "bad_option": "That is not a bet on this table.",
+    "all_known": "You already know every blueprint the Den has."
   },
   "login": {
     "title": "Wipe Day",
@@ -974,7 +1003,9 @@
     "keycode": "Keycode",
     "keycode_have": "Spends a {item} on the way in. You have {count} ({left} left after).",
     "keycode_none": "The doors need a {item}: one turns up at the {site}.",
-    "go_to": "Go to the {site}"
+    "go_to": "Go to the {site}",
+    "den": "The Den",
+    "den_closed": "The Den · opens at {tier}"
   },
   "report": {
     "success": "Success",
@@ -1033,7 +1064,9 @@
     "arrived": "{name} joined the crew.",
     "built_title": "The builders are done",
     "tier_done": "Your {tier} base is finished.",
-    "building_done": "{building} level {level} is up."
+    "building_done": "{building} level {level} is up.",
+    "sold_title": "Sold at the Den",
+    "sold": "{amount} {good} went for {price} scrap."
   },
   "feed": {
     "hint": "What everyone on the island is up to.",
@@ -1065,6 +1098,203 @@
     "kind_arrivals": "Newcomers",
     "kind_arrivals_sub": "Someone new steps off the boat.",
     "kind_builds_done": "Builds done",
-    "kind_builds_done_sub": "The builders finished a tier or a building."
+    "kind_builds_done_sub": "The builders finished a tier or a building.",
+    "sold": "{who} sold {amount} {good} at the Den for {price} scrap.",
+    "big_win": "{who} won {payout} scrap on the {game}.",
+    "jackpot": "{who} hit the jackpot: {amount} scrap!",
+    "kind_sold": "Sold at the Den",
+    "kind_sold_sub": "Someone bought one of your listings.",
+    "tab_feed": "Feed",
+    "tab_ranks": "Ranks"
+  },
+  "contract": {
+    "jetty_timber": {
+      "line": "A crew on the north shore is rebuilding their jetty."
+    },
+    "seawall_stone": {
+      "line": "The Den's own seawall is crumbling again."
+    },
+    "smithy_ingots": {
+      "line": "A smith from the Narrows wants iron, no questions asked."
+    },
+    "net_fibre": {
+      "line": "Fishers need fibre to mend their nets."
+    },
+    "galley_food": {
+      "line": "A smugglers' galley is victualling for a long run."
+    },
+    "rigging_rope": {
+      "line": "A schooner's rigging went in the last storm."
+    },
+    "sail_cloth": {
+      "line": "Sailcloth for a boat that is not supposed to exist."
+    },
+    "hull_planks": {
+      "line": "Planks for a hull going up behind the Den."
+    },
+    "lamp_fat": {
+      "line": "The lighthouse keeper is out of lamp fat."
+    },
+    "powder_sulfur": {
+      "line": "Someone is making powder. Best not to ask who."
+    },
+    "boots_leather": {
+      "line": "Boots for a crew heading into the far north."
+    },
+    "engine_gears": {
+      "line": "A launch with a dead engine sits in the Den's slip."
+    }
+  },
+  "casino": {
+    "segment": {
+      "gull": "Gull",
+      "crab": "Crab",
+      "anchor": "Anchor",
+      "lighthouse": "Lighthouse",
+      "crown": "Crown",
+      "tide": "Tide"
+    },
+    "symbol": {
+      "bolt": "Bolt",
+      "gear": "Gear",
+      "fish": "Fish",
+      "anchor": "Anchor",
+      "lantern": "Lantern",
+      "beacon": "Beacon"
+    },
+    "dice": {
+      "over": "Over 7",
+      "under": "Under 7",
+      "seven": "Seven",
+      "doubles": "Doubles"
+    },
+    "game": {
+      "wheel": "Wheel of Salvage",
+      "slots": "One-Armed Scavenger",
+      "dice": "Bones"
+    },
+    "bet": "Bet",
+    "today": "Today: {used} of {cap} scrap",
+    "resets": "resets in {time}",
+    "max_bet": "Biggest bet at a {tier} base: {amount}",
+    "chip_over": "Above the {amount} limit at {tier}",
+    "cap_left": "Only {left} left to play today",
+    "cap_reached": "Today's limit reached · resets in {time}",
+    "fine_print": "Scrap only. Every game keeps a small share for the Den: the odds above are the real ones.",
+    "closed": "Closed",
+    "next_spin": "until the spin",
+    "next_round": "bets ride on the next spin",
+    "last_spins": "The last spins",
+    "chance": "{chance} chance",
+    "you_bet": "You {amount}",
+    "wheel_odds": "Every segment returns {low}-{high} of what is bet, on average.",
+    "bet_on": "Bet {amount} on {segment} · wins {win}",
+    "bet_next": "Next spin: {amount} on {segment} · wins {win}",
+    "jackpot": "Jackpot",
+    "jackpot_terms": "Three {symbol}s: {times}× your bet plus the jackpot · about 1 in {odds}",
+    "spinning": "Spinning...",
+    "rolling": "Rolling...",
+    "won": "+{amount} scrap!",
+    "no_luck": "No luck this time.",
+    "slots_hint": "Three alike pay; two Bolts give your bet back.",
+    "dice_hint": "Pick a bet, then roll.",
+    "returns": "Returns {rtp} of what is bet, on average.",
+    "spin": "Spin · {amount} scrap",
+    "chance_returns": "{chance} chance · returns {rtp}",
+    "roll": "Roll · {amount} on {option} · wins {win}"
+  },
+  "den": {
+    "blurb": "The Den: smugglers who trade with anyone, run a few games, and pay for what they are short of.",
+    "closed": "Deals with {tier} bases",
+    "closed_sub": "Build up your holdfast: the smugglers come ashore once it looks worth their while.",
+    "to_build": "Open Upgrade",
+    "tab_market": "Market",
+    "tab_contracts": "Contracts",
+    "tab_games": "Games",
+    "scrap": "scrap",
+    "lot": "{amount} {good}",
+    "counter": "The Den's counter",
+    "counter_hint": "Today's stock, the same for everyone. Restocks in {time}.",
+    "left_today": "{count} left today",
+    "blueprint": "A blueprint",
+    "blueprint_sub": "A recipe you have not found yet.",
+    "wanted": "Your next upgrade needs {good}.",
+    "have": "You have {count}",
+    "buy": "Buy · {price} scrap",
+    "need": "Need {need}",
+    "sold_out": "Sold out · back in {time}",
+    "all_known": "You know them all",
+    "no_room": "Room for {room} only",
+    "yours": "Yours",
+    "gone": "Gone",
+    "no_offer": "Not today",
+    "players": "From other players",
+    "players_empty": "Nobody is selling right now. Put something up: everyone on the island sees it.",
+    "rate_below": "Below the Den's rate",
+    "rate_at": "At the Den's rate",
+    "rate_above": "Above the Den's rate",
+    "left": "{time} left",
+    "yours_title": "Your listings · {count}/{max}",
+    "price": "{price} scrap",
+    "up_for": "Up for another {time}",
+    "cancel": "Take down",
+    "sell": "Sell something",
+    "list_full": "{max} listings up: take one down first",
+    "back": "Back to the market",
+    "back_pick": "Pick something else",
+    "pick": "What to sell",
+    "nothing_to_sell": "Nothing the Den trades in yet. Gather, craft or bring something home first.",
+    "how_many": "How many",
+    "all": "All {count}",
+    "asking": "Asking price (scrap)",
+    "cheaper": "Cheaper",
+    "dearer": "Dearer",
+    "den_rate": "Den rate {price}",
+    "terms": "The Den keeps {fee} scrap now. You get {price} when it sells; unsold, it comes home after {hours} h.",
+    "list": "Put up {what} for {price}",
+    "floor": "The Den will not go below {price}",
+    "chart_label": "Prices paid over the last two weeks",
+    "chart": "Traded on {days} of the last 14 days · dashed: the Den's rate, {ref} per 100",
+    "chart_empty": "No trades yet these two weeks · the Den's rate: {ref} per 100",
+    "contracts_hint": "The Den's orders for today. They close in {time}.",
+    "pays": "Pays {pay} scrap",
+    "have_of": "{have} of {need}",
+    "bp_chance": "{percent}% chance of a blueprint",
+    "deliver": "Deliver · +{pay} scrap",
+    "delivered": "Delivered",
+    "no_contract": "Closed"
+  },
+  "ranks": {
+    "loading": "Counting up the island...",
+    "title": "Who leads",
+    "wealth": "Wealth",
+    "builder": "Builder",
+    "explorer": "Explorer",
+    "trader": "Trader",
+    "lucky": "Lucky",
+    "guard": "Guard",
+    "wealth_hint": "Everything a holdfast owns, at the Den's prices.",
+    "builder_hint": "The base tier first, then every building level.",
+    "explorer_hint": "Ruins a party came back from with something.",
+    "trader_hint": "Scrap that changed hands between players, buying and selling.",
+    "lucky_hint": "The biggest single win at the Den's tables.",
+    "guard_hint": "Defence from the crew on guard right now.",
+    "scrap": "{amount} scrap",
+    "builder_value": "{tier} · {levels} levels",
+    "sites": "{count} ruins",
+    "defence": "{score} defence"
+  },
+  "season": {
+    "title": "Your season so far",
+    "tier": "{tier} holdfast",
+    "first_in": "1st in {category}",
+    "reached": "{tier} on day {day}",
+    "sites": "ruins",
+    "best_haul": "best haul",
+    "crew": "crew",
+    "wealth": "worth",
+    "traded": "traded",
+    "best_win": "best win",
+    "ranks": "#{wealth} in wealth, #{explorer} in exploring, of {players} on the island."
   }
 }

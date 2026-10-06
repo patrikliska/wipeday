@@ -8,8 +8,36 @@ import { useEffect, useState } from "react";
 import type { NotifySettings } from "../../net/backend";
 import { currentSubscription, disablePush, enablePush, pushSupport } from "../../net/push";
 import { feedLine } from "../../state/messages";
-import { currentBackend, useWorld } from "../../state/store";
+import { currentBackend, type FeedTab, useWorld } from "../../state/store";
 import { duration, initials, t } from "../../state/world";
+import { RanksPanel } from "./Ranks";
+
+const FEED_TABS: FeedTab[] = ["feed", "ranks"];
+
+/** The island: what everyone is up to, and who leads (W5). */
+export function IslandPanel() {
+  const tab = useWorld((state) => state.feedTab);
+  const setTab = useWorld((state) => state.setFeedTab);
+  return (
+    <>
+      <div className="tabs" role="tablist">
+        {FEED_TABS.map((id) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={tab === id}
+            className={`tab${tab === id ? " on" : ""}`}
+            onClick={() => setTab(id)}
+          >
+            {t(`feed.tab_${id}`)}
+          </button>
+        ))}
+      </div>
+      {tab === "feed" ? <FeedPanel /> : <RanksPanel />}
+    </>
+  );
+}
 
 export function FeedPanel() {
   const feed = useWorld((state) => state.feed);

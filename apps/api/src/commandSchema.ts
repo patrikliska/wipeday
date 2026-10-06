@@ -3,6 +3,7 @@
  * domain only ever sees well-formed commands. Mirrors `Command` in
  * `@wipe-day/domain/commands`; the `satisfies` check keeps the two in step.
  */
+import { DICE_OPTIONS } from "@wipe-day/content/schema";
 import type { Command } from "@wipe-day/domain/commands";
 import { z } from "zod";
 
@@ -50,6 +51,28 @@ export const commandSchema = z.discriminatedUnion("type", [
     hit: z.int().min(1).max(100),
   }),
   z.strictObject({ type: z.literal("end_node_run"), node: id, run: id }),
+  // The Den (W5).
+  z.strictObject({
+    type: z.literal("market_list"),
+    good: id,
+    amount: z.int().min(1).max(10_000_000),
+    price: z.int().min(1).max(10_000_000),
+  }),
+  z.strictObject({ type: z.literal("market_cancel"), listing: id }),
+  z.strictObject({ type: z.literal("market_buy"), listing: z.int().min(1) }),
+  z.strictObject({ type: z.literal("den_buy"), offer: id, lots: z.int().min(1).max(100) }),
+  z.strictObject({ type: z.literal("deliver"), contract: id }),
+  z.strictObject({
+    type: z.literal("wheel_bet"),
+    segment: id,
+    amount: z.int().min(1).max(100_000),
+  }),
+  z.strictObject({ type: z.literal("slots_spin"), amount: z.int().min(1).max(100_000) }),
+  z.strictObject({
+    type: z.literal("dice_roll"),
+    option: z.enum(DICE_OPTIONS),
+    amount: z.int().min(1).max(100_000),
+  }),
 ]) satisfies z.ZodType<Command>;
 
 export const commandRequestSchema = z.strictObject({

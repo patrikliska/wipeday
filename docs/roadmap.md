@@ -22,29 +22,51 @@ agent should think at each step**.
   stations, guard) and rests on a tap; bonds; trip events; keycodes (tin, copper, brass) gating
   the weather station, the far north and the sea; four tier 4-5 sites; the island feed and Web
   Push notifications (D90-D97). The optimal player reaches the Offshore Platform on day 18.
+- W5 done on branch `w5` (not merged or deployed yet). The Den opens at Stone (D98-D105):
+  - the market: player listings held in escrow in the seller's base, and a sale as one
+    transaction over both bases;
+  - the Den's own daily counter and contracts;
+  - three games (the Wheel of Salvage with shared 30-second rounds, the One-Armed
+    Scavenger with a player-funded jackpot, Bones) with odds in data, an exact 90-95% check
+    and million-round RTP tests;
+  - leaderboards in six categories and the season card.
+  - Late site scrap is trimmed, and a map-scrap loophole that let the sea skip its scout is
+    closed.
 - Two live players on https://wipeday.patrikliska.dev (the owner and a friend).
 
-### Next: W5 (economy: market, contracts, casino, leaderboards)
+### Next: W6 (raids and defense)
 
-Scope as in the phase list below. Things W4 leaves for it:
-- Scrap piles up from week 3 (D87): the market fee, the casino and contracts are its sinks.
-- Keycodes are items, so they can be listed on the market.
-- The feed (D96) is where jackpots and big trades get announced.
-- Plan first (plan mode, it is a balance phase): the casino's RTP and the wager caps are
-  simulator work before UI.
+Scope as in the phase list below. Things W5 leaves for it:
+- Late scrap still rises after the last tool (casual 5.2k on day 35, D104). Charges and raid
+  repairs are the late sinks; site scrap can go back up once they exist.
+- Guard defence already feeds a leaderboard (Guard, D103) and is waiting for raids.
+- "Raided" is a notification kind since W4b (on by default) with nothing to fire it yet.
+- Plan first (plan mode): the PvP limits are tests before UI.
+
+### W5 results (acceptance)
+
+- RTP: every bet option is within one point of its exact return over a million rounds
+  (`rtp.test.ts`, `pnpm sim rtp`); the content check keeps every option between 90 and 95%.
+- Wager caps: 50 parallel spins with distinct keys never pass the daily cap
+  (`apps/api/src/den.test.ts`); the gambler archetype never does either (`pnpm sim check`).
+- The market cannot create resources: a property test over random lists, buys, cancels and
+  expiries across three bases conserves every good and loses scrap only to fees
+  (`market.test.ts`). The API tests cover two buyers racing for one listing, a replay, own
+  listings and expiry.
 
 ### Open items (small, carried over)
 
 - The owner's name pass on the world: buildings, parts, survivors, regions, ruins and report
-  lines in `packages/content/locale/en.json` (before W5 locks names in the market). W4b
-  added the Rail Yards, North Dam, the Narrows, Open Water, their four ruins, the keycodes and
-  the trip events.
+  lines in `packages/content/locale/en.json`. W4b added the Rail Yards, North Dam, the
+  Narrows, Open Water, their four ruins, the keycodes and the trip events. W5 adds the Den,
+  the Wheel of Salvage (Gull, Crab, Anchor, Lighthouse, Crown, Tide), the One-Armed
+  Scavenger (Bolt, Gear, Fish, Anchor, Lantern, Beacon), Bones, the contract lines and the
+  demo seller "Hollis".
 - Web Push on the owner's iPhone: add the site to the Home Screen, open it from there, turn
   notifications on in the feed panel (the clock chip), and confirm a "party back" arrives.
 - UI polish noted in `docs/ui-review.md`: the map has no night look; on desktop the side panel
   covers the island's east coast (it pans); crew faces are placeholders; station tabs past the
   fifth scroll sideways without a hint.
-- Scrap piles up from week 3 (D87): the W5 market and casino are the sinks.
 - Off-server backup copies (rclone or rsync from a cron job) are still to do (W9).
 - The Discord bot stays frozen on its old rules until W8.
 - Discord bot (`apps/discord`): phases 0-2b, frozen on its own copy of the old rules (D57).

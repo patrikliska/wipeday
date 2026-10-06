@@ -11,11 +11,16 @@
  */
 import type { Amounts, BaseTier, Content, Furnace, Tool } from "@wipe-day/content/schema";
 import { TIERS, type Tier } from "@wipe-day/content/tiers";
+import type { CasinoDay, WheelBet } from "./casino";
+import type { DailyContracts } from "./contracts";
 import type { CraftJob } from "./craft";
 import { crewOutput, newShift } from "./crew";
+import type { DenDay } from "./den";
 import type { GameEvent } from "./events";
+import type { Listing } from "./market";
 import type { Mission, Report, Survivor } from "./missions";
 import { modifiers } from "./modifiers";
+import { newStats, type Stats } from "./stats";
 
 export interface FurnaceJob {
   /** Ore id. */
@@ -123,6 +128,21 @@ export interface BaseState {
   tasks: DailyTasks;
   /** Uses per hint key: a hint retires after two uses (see `advisor.ts`). */
   hints: Record<string, number>;
+  // --- the Den (W5) ---
+  /** Goods up on the market: escrow, out of the stock until sold, cancelled or expired. */
+  listings: Listing[];
+  /** Counter for listing ids. */
+  listingSeq: number;
+  /** The Den's counter today: its offers and the lots bought. See `den.ts`. */
+  den: DenDay;
+  /** Today's contracts. See `contracts.ts`. */
+  contracts: DailyContracts;
+  /** Scrap wagered and won today (the daily cap). See `casino.ts`. */
+  casino: CasinoDay;
+  /** Wheel bets waiting for their round to spin. */
+  wheelBets: WheelBet[];
+  /** Season counters for the leaderboards and the season card. See `stats.ts`. */
+  stats: Stats;
 }
 
 const HOUR = 3600;
@@ -166,6 +186,13 @@ export function newBase(content: Content, now: number, seed: number): BaseState 
     nextBarrelAt: now + content.active.barrels.firstAfterMinutes * 60,
     tasks: { day: -1, ids: [], progress: {}, done: [] },
     hints: {},
+    listings: [],
+    listingSeq: 0,
+    den: { day: -1, tier: "twig", offers: [], bought: {} },
+    contracts: { day: -1, tier: "twig", ids: [], done: [] },
+    casino: { day: -1, wagered: 0, won: 0 },
+    wheelBets: [],
+    stats: newStats(),
   };
 }
 

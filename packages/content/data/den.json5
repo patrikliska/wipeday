@@ -1,0 +1,138 @@
+// The Den (W5): the smugglers' trading post. It runs the market (player listings plus its own
+// daily stock), the contracts (its buy orders) and the games. It opens at `open.tier`.
+// Names, the contract lines and the game symbols are in the locale (`den.*`, `contract.*`,
+// `casino.*`); prices are in scrap.
+{
+  open: { tier: "stone" },
+  // Where the Den's marker sits on the island map (regions.json5 coordinates, 1000 x 1000).
+  map: { region: "landing", x: 610, y: 878 },
+
+  market: {
+    // What a good is worth, in scrap per 100 units. Every resource but scrap and every item
+    // is tradeable and needs a price here. The Den's stock, the contracts, the listing floor
+    // and the Wealth ranking all derive from it.
+    refPer100: {
+      timber: 2, stone: 2, ore: 5, ingots: 8, sulfur_ore: 6, sulfur: 10,
+      fibre: 6, hide: 25, fat: 30, food: 6,
+      planks: 10, rope: 25, cloth: 25, leather: 80, charcoal: 8, fuel: 60,
+      plates: 120, frames: 150, gears: 400, springs: 500,
+      crate: 2000, large_crate: 6000, strongbox: 15000,
+      bandage: 400, first_aid_kit: 1500,
+      bow: 1500, spear: 1000, crossbow: 4000, leather_vest: 2500,
+      roast: 300, stew: 800, feast: 2000,
+      tin_keycode: 6000, copper_keycode: 15000, brass_keycode: 30000,
+    },
+    // A listing's price may not go below this share of the reference: no gifting.
+    floorPercent: 50,
+    // Paid by the seller when listing, kept by the Den: the market's scrap sink.
+    feePercent: 5,
+    minFee: 1,
+    // Open listings per player, and how long one stays up before the goods go home.
+    maxListings: 4,
+    listingHours: 48,
+  },
+
+  // The Den's own counter: `perDay` offers a day from the pool, the same for everyone at the
+  // same tier (seeded by the UTC day, like the tasks). Each sells `lot` units at the reference
+  // price times `markupPercent`, at most `lotsPerDay` lots per player. "blueprint" sells a
+  // recipe the base does not know yet, at `blueprintPrice`.
+  stock: {
+    perDay: 5,
+    markupPercent: 250,
+    blueprintPrice: 150,
+    pool: [
+      { id: "planks_lot", good: "planks", lot: 50, lotsPerDay: 3, minTier: "stone" },
+      { id: "rope_lot", good: "rope", lot: 20, lotsPerDay: 3, minTier: "stone" },
+      { id: "cloth_lot", good: "cloth", lot: 20, lotsPerDay: 3, minTier: "stone" },
+      { id: "leather_lot", good: "leather", lot: 10, lotsPerDay: 2, minTier: "stone" },
+      { id: "fuel_lot", good: "fuel", lot: 10, lotsPerDay: 2, minTier: "stone" },
+      { id: "plates_lot", good: "plates", lot: 10, lotsPerDay: 2, minTier: "metal" },
+      { id: "frames_lot", good: "frames", lot: 5, lotsPerDay: 2, minTier: "metal" },
+      { id: "gears_lot", good: "gears", lot: 5, lotsPerDay: 2, minTier: "metal" },
+      { id: "springs_lot", good: "springs", lot: 5, lotsPerDay: 2, minTier: "metal" },
+      { id: "stew_lot", good: "stew", lot: 1, lotsPerDay: 2, minTier: "stone" },
+      { id: "feast_lot", good: "feast", lot: 1, lotsPerDay: 1, minTier: "metal" },
+      { id: "first_aid_lot", good: "first_aid_kit", lot: 1, lotsPerDay: 2, minTier: "stone" },
+      { id: "blueprint_lot", good: "blueprint", lot: 1, lotsPerDay: 1, minTier: "stone" },
+    ],
+  },
+
+  // The Den's buy orders: `perDay` a day per player, rolled at the day's start for the base's
+  // tier (seeded by the day, the same for everyone at that tier), open until the day ends.
+  // One pays the reference price times `payPercent` (always below the Den's markup, so
+  // nothing can be bought from the Den and delivered for a profit), and `blueprint` percent
+  // of the time a blueprint the base does not know yet.
+  contracts: {
+    perDay: 3,
+    payPercent: 40,
+    pool: [
+      { id: "jetty_timber", good: "timber", amount: { stone: 3000, metal: 10000, hqm: 25000 } },
+      { id: "seawall_stone", good: "stone", amount: { stone: 3000, metal: 10000, hqm: 25000 } },
+      { id: "smithy_ingots", good: "ingots", amount: { stone: 400, metal: 2500, hqm: 6000 } },
+      { id: "net_fibre", good: "fibre", amount: { stone: 500, metal: 1500, hqm: 3000 } },
+      { id: "galley_food", good: "food", amount: { stone: 400, metal: 1200, hqm: 2500 } },
+      { id: "rigging_rope", good: "rope", amount: { stone: 60, metal: 200, hqm: 400 }, blueprint: 10 },
+      { id: "sail_cloth", good: "cloth", amount: { stone: 60, metal: 200, hqm: 400 }, blueprint: 10 },
+      { id: "hull_planks", good: "planks", amount: { stone: 200, metal: 600, hqm: 1200 } },
+      { id: "lamp_fat", good: "fat", amount: { metal: 200, hqm: 600 } },
+      { id: "powder_sulfur", good: "sulfur", amount: { metal: 600, hqm: 2000 } },
+      { id: "boots_leather", good: "leather", amount: { metal: 40, hqm: 120 }, blueprint: 15 },
+      { id: "engine_gears", good: "gears", amount: { hqm: 40 }, blueprint: 20 },
+    ],
+  },
+
+  // The games. Scrap only. Bets come in chips of `betStep`; a pay is a percentage of the bet
+  // (betStep x pay must be whole scrap, so payouts never round). Every option returns 90-95%
+  // on average (the content check computes it exactly). Limits by base tier: the biggest bet
+  // and the scrap a player may wager per UTC day (about half a casual player's daily income).
+  casino: {
+    betStep: 5,
+    limits: {
+      stone: { maxBet: 10, dailyWager: 50 },
+      metal: { maxBet: 25, dailyWager: 150 },
+      hqm: { maxBet: 50, dailyWager: 250 },
+    },
+    // A payout of at least this many times the bet goes to the feed.
+    bigWin: 10,
+    // The Wheel of Salvage: one spin every `roundSeconds` for everyone. Bets close
+    // `closeSeconds` before the spin; a later bet rides on the next one. A segment with pays 0
+    // takes no bets (the Den's own slots on the wheel).
+    wheel: {
+      roundSeconds: 30,
+      closeSeconds: 5,
+      segments: [
+        { id: "gull", weight: 21, pays: 220 },
+        { id: "crab", weight: 12, pays: 380 },
+        { id: "anchor", weight: 8, pays: 580 },
+        { id: "lighthouse", weight: 5, pays: 920 },
+        { id: "crown", weight: 2, pays: 2320 },
+        { id: "tide", weight: 2, pays: 0 },
+      ],
+    },
+    // The One-Armed Scavenger: three reels with the same weighted symbols. `three`: pays for
+    // three alike, `two`: for exactly two alike anywhere. Three of the jackpot symbol pay
+    // `jackpot.pays` of the bet plus the whole shared pool, which every spin feeds with
+    // `feedPercent` of its bet. The pool is the players' own money: the Den never seeds it,
+    // so no bet size returns more than the table says.
+    slots: {
+      symbols: [
+        { id: "bolt", weight: 12, three: 800, two: 100 },
+        { id: "gear", weight: 9, three: 1400 },
+        { id: "fish", weight: 7, three: 1800 },
+        { id: "anchor", weight: 4, three: 4000 },
+        { id: "lantern", weight: 3, three: 6000 },
+        { id: "beacon", weight: 2, jackpot: true },
+      ],
+      jackpot: { feedPercent: 1, pays: 20000 },
+    },
+    // Bones: two dice. over (more than 7), under (less than 7), seven, doubles.
+    dice: {
+      options: [
+        { id: "over", pays: 220 },
+        { id: "under", pays: 220 },
+        { id: "seven", pays: 560 },
+        { id: "doubles", pays: 560 },
+      ],
+    },
+  },
+}

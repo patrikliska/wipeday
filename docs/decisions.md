@@ -871,3 +871,155 @@ The owner chose to gate only the new sites.
   - casual has someone working by day 3;
   - casual's first tier-4 trip by day 26, tier 5 by day 31;
   - optimal reaches the Offshore Platform no earlier than day 18.
+
+## W5 (the Den: market, contracts, casino, leaderboards)
+
+### D98. What only the server knows is a `World`; three commands are server-only
+Until W4 every command touched one base, and the client predicted it with the same
+`applyCommand`. Two W5 commands cannot work that way:
+- a purchase reads another player's base;
+- a casino roll must be unknown to the player before the bet. Every seed in `BaseState` is
+  visible to the client.
+
+`applyCommand(content, state, command, now, world?)` and `settleAll(..., world?)` take a
+`World`:
+- `seed`: per slots spin or dice roll, from `crypto.randomInt`;
+- `reveal(round)`: the wheel's result, from HMAC(secret, round);
+- `jackpot`;
+- `listing`: the row a buyer names;
+- `self`.
+
+Without a world, `market_buy`, `slots_spin` and `dice_roll` refuse `server_only`. The store
+treats that as "wait for the server": the button shows pending, and the answer's events
+play when it arrives. Everything else in the Den is deterministic and predicted as usual
+(listing, cancelling, the Den's counter, contracts, placing a wheel bet). The casino secret
+is generated on first boot and kept in `settings`, like the VAPID keys.
+*Revisit* if a player can be shown to profit from timing (no case known).
+
+### D99. Escrow lives in the seller's base; a sale is one transaction over two bases
+- A listing is part of the seller's `BaseState` (`listings`): the goods leave the stock
+  when listed, together with a 5% fee the Den keeps.
+- A `listings` table is the board's index. It is written from the domain's events
+  (`listed`, `listing_cancelled`, `listing_expired`) in the same transaction as the base.
+- A purchase runs in one SQLite transaction:
+  1. settle the seller (an expired listing goes home first);
+  2. offer the listing to the buyer's `applyCommand` only if it is still up;
+  3. on success, `takeListing` pays the seller (uncapped);
+  4. save both bases, close the row and write a `trades` row;
+  5. push to both players, and send the seller's "sold" notification (a new kind, off by
+     default).
+- Rules: whole listings only, at most four up, 48 hours, a price floor of 50% of the
+  reference price (no gifting), never your own.
+- A property test (`market.test.ts`) runs random lists, buys, cancels and expiries across
+  three bases. Goods are conserved, and scrap falls by exactly the fees.
+
+### D100. The Den trades too: a daily counter and daily contracts, priced from one table
+The owner chose a Den that trades itself, since a market with two players would mostly be
+empty. `den.json5` holds:
+- `refPer100`: the scrap value of every tradeable good;
+- the counter: five offers a day from a pool, the same for everyone at the same tier
+  (seeded by the UTC day, like the tasks). Sold in lots at 250% of reference, with a daily
+  limit per player. Parts, meals, med kits and one blueprint; no keycodes, which stay site
+  finds and player trades;
+- contracts: three a day, rolled for the base's tier at the day's start, paying 40% of
+  reference and sometimes a blueprint.
+
+Contract pay is below the counter's price for any good, and a content check enforces it,
+so buying from the Den and delivering back never makes scrap. The Den opens at Stone, which
+the casual player reaches on day 4 (the design says day 5).
+
+### D101. The casino: odds in data, an exact check, chips, a player-funded jackpot
+- Every bet option's return is computed exactly from `den.json5` (`@wipe-day/content/odds`).
+  The content check fails the build outside 90-95%. Today:
+  - wheel segments 91.2-92.8%;
+  - slots 93.4% (the jackpot feed included);
+  - dice 91.7-93.3%.
+- Bets come in 5-scrap chips, and every pay is a whole number of scrap per chip (also
+  checked), so integer payouts never skew a return.
+- Limits by tier, about half a casual player's daily scrap income (the owner chose 50% over
+  the design's 20%):
+
+  | Tier | Biggest bet | Daily wager |
+  | --- | --- | --- |
+  | Stone | 10 | 50 |
+  | Sheet Metal | 25 | 150 |
+  | Armored | 50 | 250 |
+
+- The jackpot pays 200× the bet plus the shared pool. Every spin feeds the pool 1% of its
+  bet, kept in hundredths of scrap. The Den never seeds it: a house-seeded pool would return
+  over 95% at small bets and pay less than three Lanterns at the biggest bet.
+- `pnpm sim rtp` and `rtp.test.ts` play a million rounds of each option with the domain's
+  rolls. All are within one point of the exact figure; slots, the noisiest, is +0.8.
+- 50 parallel spins with distinct keys never pass the daily cap (`apps/api/src/den.test.ts`).
+  better-sqlite3 transactions do not interleave.
+
+### D102. The Wheel of Salvage: global 30-second rounds, spun on time
+- Round `r` covers `[30r, 30r + 30)`. Bets close 5 seconds before the spin; a later bet
+  rides on the next round.
+- A bet is stake-and-wait in the base (`wheelBets`). It pays when settling passes the
+  round's end with `reveal` known, so every bettor meets the same result.
+- When the first bet of a round is logged, the server schedules one settle of all its
+  bettors at the round's end (+250 ms). The minute tick settles any it missed, such as after
+  a restart, because `nextEventAt` includes the round's end. The client's own tick leaves the
+  wheel out (`nextEventAt(..., { wheel: false })`).
+- The event stream's `den` messages carry new bets, results, the jackpot and "the board
+  changed".
+- In demo mode the wheel turns on the 240× demo clock, like node regrow (D65).
+
+### D103. Leaderboards from counters kept in the base; the season card
+- `stats` in `BaseState` counts:
+  - sites cleared (a success or a partial, once each);
+  - the best haul;
+  - player-trade volume;
+  - wagered, won and the biggest win;
+  - contracts;
+  - when each tier was reached.
+- `recordStats` updates them from the events of every command and settle, so no rule has
+  to remember to count.
+- The categories are Wealth (holdings at reference prices), Builder, Explorer, Trader,
+  Lucky (biggest win) and Guard (D90's defence). More than one way to play can come first.
+  Ties share a rank.
+- `GET /api/ranks` settles every base of the season read-only.
+- The season card (tier days, sites, best haul, crew, worth, trades, best win, ranks) heads
+  the Ranks tab; W7 shows it again at the reset.
+
+### D104. W5 balance: the Den as a scrap sink, late site scrap trimmed, sea scouts not skippable
+- The simulator's players now use the Den the way people would:
+  - deliver contracts from surplus;
+  - buy the parts their next goal lacks;
+  - buy a meal when the cupboard is bare and a first-aid kit when someone is hurt.
+- The new gambler archetype plays the cap at every check-in.
+- The Den alone could not absorb late scrap: from day 15 to day 35, tier 3-5 sites gave the
+  casual player about 10k scrap. Scrap loot at those sites is now 60% of before.
+- Results (seed 1, 35 days; scrap on days 14 / 21 / 28 / 35):
+
+  | | Casual | Active | Optimal | Gambler |
+  | --- | --- | --- | --- | --- |
+  | Armored | day 22 | day 18 | day 14 | day 21 |
+  | Scrap | 1.0k / 2.1k / 1.8k / 5.2k | 1.3k / 2.2k / 4.4k / 6.8k | 3.3k / 7.1k / 12.2k / 17.4k | 1.2k / 2.3k / 3.3k / 4.9k |
+
+  Before W5, casual held 6.1k on day 28.
+- New pacing targets:
+  - casual holds 800-4000 scrap on day 28;
+  - the gambler's scrap never goes negative;
+  - no day's wagers pass that day's cap.
+- The gambler's casino net is not asserted. Over ~260 bets the spread is about ±1.1k
+  against an expected loss of ~0.4k. This seed happened to win (wagered 5.2k, paid 6.5k),
+  so the RTP tests carry the proof instead.
+- Fixed: a map scrap could chart a sea region, which skipped the 24-hour boat scout that D95
+  relies on. The Offshore Platform's day-18 floor held only by luck; W5's contracts shifted
+  the dice and it fell to day 17. Map scraps chart land only now, and the platform is on
+  day 18 in every Den variant tried.
+- *Revisit* when W6 (charges) and W7 (the Signal) add late sinks: site scrap can go back up.
+
+### D105. Where the Den lives: a skiff on the beach, a flag on the map, Ranks beside the feed
+- The owner chose the skiff and the map marker for phones, where the five dock slots are
+  taken. From Stone on, a smugglers' skiff lies on the beach beside the barrel:
+  - its tap target never shrinks below 64 CSS px (D48);
+  - its lantern is on the lights layer (D47);
+  - it glows when a contract can be filled.
+- The map shows the Den's flag from the start, dimmed with "opens at Stone" (no hidden
+  features). Desktop gets a Den dock button, disabled with the same reason before Stone.
+- A new advice, `den` (a contract is ready), ranks after craft and before gather.
+- Ranks are a second tab of the feed panel, now titled "The island", which phones already
+  reach from the clock chip.

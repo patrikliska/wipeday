@@ -8,7 +8,14 @@
  * inside one transaction per command, and `version` counts the writes.
  * After editing: `pnpm --filter @wipe-day/api db:generate`.
  */
-import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 export const players = sqliteTable("players", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -122,4 +129,75 @@ export const pushSubscriptions = sqliteTable(
     createdAt: integer("created_at").notNull(),
   },
   (table) => [index("push_subscriptions_player").on(table.playerId)],
+);
+
+// --- the Den (W5) ---------------------------------------------------------------------
+
+/**
+ * The market's board: every player listing, open or closed. The goods themselves are
+ * escrow in the seller's base (`BaseState.listings`); this row is how everyone else sees
+ * them. Written from the domain's events, in the same transaction as the base.
+ */
+export const listings = sqliteTable(
+  "listings",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    seasonId: integer("season_id")
+      .notNull()
+      .references(() => seasons.id),
+    sellerId: integer("seller_id")
+      .notNull()
+      .references(() => players.id),
+    /** The listing's id inside the seller's base (`l3`). */
+    localId: text("local_id").notNull(),
+    good: text("good").notNull(),
+    amount: integer("amount").notNull(),
+    price: integer("price").notNull(),
+    listedAt: integer("listed_at").notNull(),
+    expiresAt: integer("expires_at").notNull(),
+    /** open, sold, cancelled or expired. */
+    status: text("status").notNull(),
+    buyerId: integer("buyer_id").references(() => players.id),
+    closedAt: integer("closed_at"),
+  },
+  (table) => [
+    uniqueIndex("listings_seller_local").on(table.sellerId, table.seasonId, table.localId),
+    index("listings_status").on(table.seasonId, table.status),
+  ],
+);
+
+/**
+ * Every trade at the Den, for the price history: player sales, the Den's counter and
+ * delivered contracts. A null seller is the Den selling; a null buyer is the Den buying.
+ */
+export const trades = sqliteTable(
+  "trades",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    seasonId: integer("season_id")
+      .notNull()
+      .references(() => seasons.id),
+    good: text("good").notNull(),
+    amount: integer("amount").notNull(),
+    price: integer("price").notNull(),
+    at: integer("at").notNull(),
+    sellerId: integer("seller_id").references(() => players.id),
+    buyerId: integer("buyer_id").references(() => players.id),
+  },
+  (table) => [index("trades_good_at").on(table.seasonId, table.good, table.at)],
+);
+
+/** Bets on the wheel, so every player sees who is on which segment this round. */
+export const wheelBets = sqliteTable(
+  "wheel_bets",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    round: integer("round").notNull(),
+    playerId: integer("player_id")
+      .notNull()
+      .references(() => players.id),
+    segment: text("segment").notNull(),
+    amount: integer("amount").notNull(),
+  },
+  (table) => [index("wheel_bets_round").on(table.round)],
 );

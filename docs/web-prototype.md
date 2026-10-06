@@ -43,7 +43,8 @@ pause, +1 h / +6 h, weather, base tier, spawn a barrel, give everything).
 | Effects | `src/scene/effects.ts` | particles (smoke, sparks, leaves, dust, splash, coins, stone), floating gains, glows, rain and fog |
 | Palette | `src/scene/palette.ts` | time-of-day keyframes, `gloom()` for weather, tier materials, ground/sea colours |
 | Scene | `src/scene/Scene.ts` | Pixi application, camera rules, layer order, store sync, event → effect mapping; switches to the map when `view` is `"map"` |
-| Map | `src/map/MapView.ts` | the island chart (D88): terrain per region, fog that parts when a scout returns, ruin markers, mission routes, screen-space labels, pan and pinch |
+| Map | `src/map/MapView.ts` | the island chart (D88): terrain per region, fog that parts when a scout returns, ruin markers, the Den's flag, mission routes, screen-space labels, pan and pinch |
+| The Den | `src/scene/den.ts` | the smugglers' skiff on the beach from Stone on (W5): tap to open the Den, a lantern at night, a glow when a contract is ready |
 
 The HUD (`src/hud/*`) reads the store with narrow selectors so the scene can tick at 60 fps
 without re-rendering React every frame; per-frame values like "waiting to collect" go through
@@ -60,7 +61,7 @@ without re-rendering React every frame; per-frame values like "waiting to collec
 
 ## Review loop
 
-`pnpm web:shots` writes 40 shots (plus `__zoom` crops) and `preview/web/index.html`. States covered: morning, noon,
+`pnpm web:shots` writes 100 shots (plus `__zoom` crops) and `preview/web/index.html`. States covered: morning, noon,
 dusk, night, rain, fog, every tier, a build in progress, every panel, the welcome-back modal,
 floating gains (1080p and phone), the furnace idle, lit and at night, a node run, two hits at night and a perfect run, the survivors and both rocks close up (each with a
 1:1 `*__zoom.png` crop for judging detail), ultrawide, laptop, phone portrait and landscape,

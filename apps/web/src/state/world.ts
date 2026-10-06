@@ -9,6 +9,7 @@ import baseTiersFile from "@wipe-day/content/data/base_tiers.json5";
 import buildingsFile from "@wipe-day/content/data/buildings.json5";
 import craftingFile from "@wipe-day/content/data/crafting.json5";
 import crewFile from "@wipe-day/content/data/crew.json5";
+import denFile from "@wipe-day/content/data/den.json5";
 import eventsFile from "@wipe-day/content/data/events.json5";
 import furnacesFile from "@wipe-day/content/data/furnaces.json5";
 import itemsFile from "@wipe-day/content/data/items.json5";
@@ -55,6 +56,7 @@ export const content: Content = parseContent(
     "nodes.json5": nodesFile,
     "active.json5": activeFile,
     "pacing.json5": pacingFile,
+    "den.json5": denFile,
   },
   locale,
 );
@@ -178,6 +180,27 @@ export function survivorLook(id: string): SurvivorLook {
   };
 }
 
+/** The wheel's segments and the slots' symbols (W5): one colour each, everywhere. */
+const SEGMENT_COLOR: Record<string, string> = {
+  gull: "#d8d2c4",
+  crab: "#d9774a",
+  anchor: "#4a7fb5",
+  lighthouse: "#e3a32f",
+  crown: "#45c2c0",
+  tide: "#3b3832",
+};
+export const segmentColor = (id: string): string => SEGMENT_COLOR[id] ?? "#a49e93";
+
+const SYMBOL_COLOR: Record<string, string> = {
+  bolt: "#9aa0a6",
+  gear: "#7d8a96",
+  fish: "#6c97bc",
+  anchor: "#4a7fb5",
+  lantern: "#e3a32f",
+  beacon: "#cd412b",
+};
+export const symbolColor = (id: string): string => SYMBOL_COLOR[id] ?? "#a49e93";
+
 export const regionName = (id: string): string => t(`region.${id}.name`);
 export const siteName = (id: string): string => t(`site.${id}.name`);
 export const traitName = (id: string): string => t(`trait.${id}.name`);
@@ -239,5 +262,5 @@ export function gainLines(gained: Amounts, limit: number): string[] {
 export function missingLabel(missing: Amounts): string | null {
   const first = Object.entries(missing).find(([, amount]) => amount > 0);
   if (!first) return null;
-  return t("hud.need", { amount: abbrev(first[1]), what: resourceName(first[0]).toLowerCase() });
+  return t("hud.need", { amount: abbrev(first[1]), what: outputName(first[0]).toLowerCase() });
 }

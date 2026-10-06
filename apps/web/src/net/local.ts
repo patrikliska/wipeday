@@ -3,18 +3,32 @@
  * server, over the demo clock (fast, pausable). Used by `?demo`, by the dev
  * server when no API is running, and by the screenshot script, which also
  * patches the state directly through `patch`.
+ *
+ * The Den (W5) is played here too: a made-up seller's listings on the board, a
+ * secret drawn per page load for the wheel, and a jackpot. The wheel turns on the
+ * demo clock, so at 240× a round passes in a blink (like node regrow, D65).
  */
 import { type BaseState, newBase } from "@wipe-day/domain/base";
+import { nextWheelAt, roundOf, wheelResult } from "@wipe-day/domain/casino";
 import { applyCommand, type Command } from "@wipe-day/domain/commands";
 import type { GameEvent } from "@wipe-day/domain/events";
 import { type FeedItem, isFeedWorthy, type NotifyPrefs } from "@wipe-day/domain/feed";
+import { leaderboards, seasonSummary } from "@wipe-day/domain/leaderboard";
+import type { MarketListing } from "@wipe-day/domain/market";
+import { seedOf } from "@wipe-day/domain/rng";
 import { settleAll } from "@wipe-day/domain/settle";
 import type {
   CommandResponse,
+  DenBoard,
+  DenPush,
   MeResponse,
+  PriceHistory,
   PushMessage,
+  RanksResponse,
   StateResponse,
+  WheelBetView,
 } from "@wipe-day/domain/wire";
+import type { World } from "@wipe-day/domain/world";
 import { DEMO_SEASON_START, demoClocks } from "../state/clocks";
 import { content, t } from "../state/world";
 import type { Backend, NotifySettings, ServerConfig } from "./backend";
@@ -51,6 +65,35 @@ function demoBase(now: number): BaseState {
   };
 }
 
+/** The demo's other player: a smuggler with a few things on the board. */
+const SELLER = { id: 9, name: "Hollis" };
+
+function demoListings(now: number): MarketListing[] {
+  const offers: [string, number, number, number][] = [
+    ["rope", 200, 40, 30],
+    ["gears", 20, 95, 9],
+    ["tin_keycode", 1, 80, 41],
+    ["leather", 40, 40, 20],
+  ];
+  return offers.map(([good, amount, price, hoursLeft], index) => ({
+    id: 900 + index,
+    seller: SELLER.id,
+    sellerName: SELLER.name,
+    local: `l${index + 1}`,
+    good,
+    amount,
+    price,
+    listedAt: now - 3600,
+    expiresAt: now + hoursLeft * 3600,
+  }));
+}
+
+const randomSeed = (): number => {
+  const values = new Uint32Array(1);
+  crypto.getRandomValues(values);
+  return (values[0] ?? 0) >>> 1;
+};
+
 export class LocalBackend implements Backend {
   readonly mode = "demo";
   readonly clock = demoClocks.game;
@@ -60,6 +103,15 @@ export class LocalBackend implements Backend {
   /** The demo's feed: only the player's own happenings (there is nobody else). */
   private feedItems: FeedItem[] = [];
   private feedListener: ((items: FeedItem[]) => void) | null = null;
+  private pushListener: ((message: PushMessage) => void) | null = null;
+  private denListener: ((message: DenPush) => void) | null = null;
+  private readonly secret = randomSeed();
+  private jackpot = 18_340;
+  /** The player's own listings on the demo board; Hollis's are made fresh on every look. */
+  private listings: MarketListing[] = [];
+  /** Hollis's listings bought in this demo. */
+  private boughtIds = new Set<number>();
+  private bets: WheelBetView[] = [];
   private readonly player: MeResponse = {
     id: 0,
     name: t("hud.demo_player"),
@@ -69,6 +121,24 @@ export class LocalBackend implements Backend {
 
   constructor() {
     this.base = demoBase(this.clock.now());
+    // The wheel spins on the demo clock: settle the bets whose round has ended.
+    setInterval(() => this.spin(), 400);
+  }
+
+  private reveal = (round: number): number => wheelResult(content, seedOf(round, this.secret));
+
+  private world(command?: Command): World {
+    const world: World = {
+      reveal: this.reveal,
+      jackpot: this.jackpot,
+      seed: randomSeed(),
+      self: this.player.id,
+    };
+    if (command?.type === "market_buy") {
+      const listing = this.board().find((candidate) => candidate.id === command.listing);
+      if (listing) world.listing = listing;
+    }
+    return world;
   }
 
   async config(): Promise<ServerConfig> {
@@ -81,7 +151,9 @@ export class LocalBackend implements Backend {
 
   async state(): Promise<StateResponse> {
     const now = this.clock.now();
-    this.base = settleAll(content, this.base, now).state;
+    const settled = settleAll(content, this.base, now, this.world());
+    this.base = settled.state;
+    this.followDen(settled.events);
     return {
       serverNow: now,
       version: this.version,
@@ -95,10 +167,15 @@ export class LocalBackend implements Backend {
 
   async command(_key: string, command: Command): Promise<CommandResponse> {
     const now = this.clock.now();
-    const result = applyCommand(content, this.base, command, now);
+    const result = applyCommand(content, this.base, command, now, this.world(command));
     this.base = result.state;
     this.version += 1;
     this.record(result.events, now);
+    this.followDen(result.events);
+    if (result.ok && command.type === "market_buy") {
+      this.boughtIds.add(command.listing);
+      this.denListener?.({ kind: "board" });
+    }
     return result.ok
       ? {
           ok: true,
@@ -117,6 +194,69 @@ export class LocalBackend implements Backend {
         };
   }
 
+  /** The board, the jackpot and the bets follow the events, as the server's tables do. */
+  private followDen(events: GameEvent[]): void {
+    for (const event of events) {
+      switch (event.type) {
+        case "listed":
+          this.listings.unshift({
+            ...event.listing,
+            id: 1000 + this.base.listingSeq,
+            seller: this.player.id,
+            sellerName: this.player.name,
+            local: event.listing.id,
+          });
+          this.denListener?.({ kind: "board" });
+          break;
+        case "listing_cancelled":
+        case "listing_expired":
+          this.listings = this.listings.filter(
+            (listing) => !(listing.seller === this.player.id && listing.local === event.listing),
+          );
+          this.denListener?.({ kind: "board" });
+          break;
+        case "wheel_bet": {
+          const bet = { ...event, playerId: this.player.id, name: this.player.name };
+          this.bets.push(bet);
+          this.denListener?.({ kind: "bet", bet });
+          break;
+        }
+        case "wager":
+          this.jackpot += event.feed;
+          this.denListener?.({ kind: "jackpot", jackpot: this.jackpot });
+          break;
+        case "jackpot_won":
+          this.jackpot = 0;
+          this.denListener?.({ kind: "jackpot", jackpot: 0 });
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  /** Lands the wheel's spins on the demo clock and pushes the result, like the server. */
+  private spin(): void {
+    const now = this.clock.now();
+    const due = nextWheelAt(content, this.base);
+    if (due === null || due > now) return;
+    const rounds = [...new Set(this.base.wheelBets.map((bet) => bet.round))];
+    const settled = settleAll(content, this.base, now, this.world());
+    this.base = settled.state;
+    this.version += 1;
+    this.record(settled.events, now);
+    this.pushListener?.({
+      version: this.version,
+      serverNow: now,
+      state: this.base,
+      events: settled.events,
+      origin: null,
+    });
+    for (const round of rounds)
+      this.denListener?.({ kind: "result", round, segment: this.reveal(round) });
+    this.bets = this.bets.filter((bet) => !rounds.includes(bet.round));
+  }
+
   private record(events: GameEvent[], at: number): void {
     const items = events.filter(isFeedWorthy).map((event, index) => ({
       id: this.version * 100 + index,
@@ -131,13 +271,77 @@ export class LocalBackend implements Backend {
   }
 
   subscribe(
-    _onPush: (message: PushMessage) => void,
+    onPush: (message: PushMessage) => void,
     _onReconnect: () => void,
     onFeed: (items: FeedItem[]) => void,
+    onDen: (message: DenPush) => void,
   ): () => void {
     this.feedListener = onFeed;
+    this.pushListener = onPush;
+    this.denListener = onDen;
     return () => {
       this.feedListener = null;
+      this.pushListener = null;
+      this.denListener = null;
+    };
+  }
+
+  /** Open listings now: the player's own and Hollis's not yet bought. */
+  private board(): MarketListing[] {
+    const now = this.clock.now();
+    return [
+      ...this.listings,
+      ...demoListings(now).filter((listing) => !this.boughtIds.has(listing.id)),
+    ].filter((listing) => listing.expiresAt > now);
+  }
+
+  async den(): Promise<DenBoard> {
+    const now = this.clock.now();
+    const round = roundOf(content, now);
+    return {
+      serverNow: now,
+      listings: this.board(),
+      round,
+      bets: this.bets.filter((bet) => bet.round >= round),
+      results: Array.from({ length: 10 }, (_, index) => round - 1 - index).map((past) => ({
+        round: past,
+        segment: this.reveal(past),
+      })),
+      jackpot: this.jackpot,
+    };
+  }
+
+  /** A made-up week of trading, so the price chart has something to show. */
+  async history(good: string): Promise<PriceHistory> {
+    const ref = content.den.market.refPer100[good] ?? 1;
+    const today = Math.floor(this.clock.now() / 86400);
+    return {
+      good,
+      days: [6, 5, 3, 2, 1, 0].map((ago) => ({
+        day: today - ago,
+        per100: ref * (0.8 + 0.1 * ((ago * 7 + good.length) % 5)),
+        amount: 100,
+      })),
+    };
+  }
+
+  async ranks(): Promise<RanksResponse> {
+    const now = this.clock.now();
+    const rival: BaseState = {
+      ...this.base,
+      tier: "stone",
+      stock: { scrap: 640, timber: 9000, stone: 7000 },
+      buildings: { workbench: 2, furnace: 2, campfire: 1 },
+      stats: { ...this.base.stats, sites: ["beach_wreck", "quarry"], traded: 180, biggestWin: 56 },
+    };
+    const entries = [
+      { playerId: this.player.id, name: this.player.name, state: this.base },
+      { playerId: SELLER.id, name: SELLER.name, state: rival },
+    ];
+    const boards = leaderboards(content, entries, now);
+    return {
+      boards,
+      me: seasonSummary(content, this.base, boards, this.player.id, DEMO_SEASON_START),
     };
   }
 
@@ -162,6 +366,12 @@ export class LocalBackend implements Backend {
     this.base = { ...this.base, ...change };
     this.version += 1;
     return { state: this.base, version: this.version };
+  }
+
+  /** Screenshots: other players' bets on the wheel and the jackpot. */
+  patchDen(change: { bets?: WheelBetView[]; jackpot?: number }): void {
+    if (change.bets) this.bets = change.bets;
+    if (change.jackpot !== undefined) this.jackpot = change.jackpot;
   }
 
   async devLogin(): Promise<void> {}

@@ -8,8 +8,12 @@ import type { Command } from "@wipe-day/domain/commands";
 import type { FeedItem, NotifyPrefs } from "@wipe-day/domain/feed";
 import type {
   CommandResponse,
+  DenBoard,
+  DenPush,
   MeResponse,
+  PriceHistory,
   PushMessage,
+  RanksResponse,
   StateResponse,
 } from "@wipe-day/domain/wire";
 
@@ -44,14 +48,21 @@ export interface Backend {
   /** Idempotent by `key`: a retry with the same key never runs the command twice. */
   command(key: string, command: Command): Promise<CommandResponse>;
   /**
-   * Pushed changes (another tab, timers) and new feed items from everyone. `onReconnect`
-   * fires after the stream was lost.
+   * Pushed changes (another tab, timers), new feed items from everyone and the Den's news
+   * (bets, spins, the board). `onReconnect` fires after the stream was lost.
    */
   subscribe(
     onPush: (message: PushMessage) => void,
     onReconnect: () => void,
     onFeed: (items: FeedItem[]) => void,
+    onDen: (message: DenPush) => void,
   ): () => void;
+  /** The Den's board: listings, the wheel, the jackpot (W5). */
+  den(): Promise<DenBoard>;
+  /** What players paid for `good`, by day. */
+  history(good: string): Promise<PriceHistory>;
+  /** The leaderboards and the player's season card. */
+  ranks(): Promise<RanksResponse>;
   /** The season's feed, newest first; `before` pages back by item id. */
   feed(before?: number): Promise<FeedItem[]>;
   /** Notification settings; null where there are none (demo mode). */

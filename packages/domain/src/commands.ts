@@ -7,8 +7,13 @@
  * `applyCommand` settles first, then applies the command, then records task
  * progress and hint use. A refusal still returns the settled state (settling is
  * always safe to keep) and says why, with what is missing when that helps.
+ *
+ * W5: a few of the Den's commands need what only the server knows (`World`: a
+ * listing in another base, a secret seed). Without it they refuse `server_only`,
+ * which the client takes as "wait for the server" rather than a refusal.
  */
-import type { Amounts, Content } from "@wipe-day/content/schema";
+import type { Amounts, Content, DiceOption } from "@wipe-day/content/schema";
+import type { Tier } from "@wipe-day/content/tiers";
 import { breakBarrel, progressTasks } from "./active";
 import type { Advice } from "./advisor";
 import {
@@ -21,10 +26,14 @@ import {
   upgradeTool,
 } from "./base";
 import { type BuildStatus, startConstruction } from "./buildings";
+import { placeWheelBet, playDice, playSlots, type WagerStatus } from "./casino";
+import { deliver } from "./contracts";
 import { type CraftStatus, cancelCraft, queueCraft, salvage, serve } from "./craft";
 import type { Job } from "./crew";
+import { denBuy } from "./den";
 import type { GameEvent } from "./events";
 import { assign, type JobRefusal, rest, restTired } from "./jobs";
+import { buyListing, cancelListing, listGoods } from "./market";
 import {
   type CrewRefusal,
   equip,
@@ -37,6 +46,8 @@ import {
 } from "./missions";
 import { endNodeRun, type HitRefusal, hitNode } from "./nodes";
 import { settleAll } from "./settle";
+import { recordStats } from "./stats";
+import type { World } from "./world";
 
 export type Command =
   | { type: "gather" }
@@ -65,9 +76,24 @@ export type Command =
   | { type: "read_report"; id: string }
   | { type: "break_barrel" }
   | { type: "hit_node"; node: string; run: string; hit: number }
-  | { type: "end_node_run"; node: string; run: string };
+  | { type: "end_node_run"; node: string; run: string }
+  // The Den (W5). `price` is scrap for the whole lot.
+  | { type: "market_list"; good: string; amount: number; price: number }
+  /** `listing`: the base's own listing id. */
+  | { type: "market_cancel"; listing: string }
+  /** `listing`: the board's row id. Server only (the goods sit in another base). */
+  | { type: "market_buy"; listing: number }
+  | { type: "den_buy"; offer: string; lots: number }
+  | { type: "deliver"; contract: string }
+  | { type: "wheel_bet"; segment: string; amount: number }
+  /** Server only, like the dice: the roll comes from a seed the player cannot see. */
+  | { type: "slots_spin"; amount: number }
+  | { type: "dice_roll"; option: DiceOption; amount: number };
 
 export type CommandType = Command["type"];
+
+/** Commands the client cannot predict: it shows them pending until the server answers. */
+export const SERVER_ONLY: readonly CommandType[] = ["market_buy", "slots_spin", "dice_roll"];
 
 /** Why a command did nothing. `missing` and friends let the UI say exactly what to do. */
 export type Refusal =
@@ -88,7 +114,23 @@ export type Refusal =
   | Exclude<TripStatus | ScoutStatus, { code: "ok" | "unaffordable" | "unknown" }>
   | CrewRefusal
   | JobRefusal
-  | HitRefusal;
+  | HitRefusal
+  // The Den (W5).
+  | { code: "server_only" }
+  | { code: "den_closed"; tier: Tier }
+  | { code: "not_tradeable" }
+  | { code: "listing_cap"; count: number }
+  | { code: "price_floor"; price: number }
+  | { code: "no_room"; room: number }
+  | { code: "listing_gone" }
+  | { code: "own_listing" }
+  | { code: "not_listed" }
+  | { code: "no_offer" }
+  | { code: "sold_out"; resetAt: number }
+  | { code: "all_known" }
+  | { code: "no_contract" }
+  | { code: "bad_option" }
+  | Exclude<WagerStatus, { code: "ok" | "unaffordable" | "den_closed" }>;
 
 export type CommandResult =
   | { ok: true; state: BaseState; events: GameEvent[] }
@@ -109,6 +151,10 @@ const HINT_OF: Partial<Record<CommandType, Advice>> = {
   rest: "crew",
   rest_tired: "crew",
   break_barrel: "barrel",
+  deliver: "den",
+  den_buy: "den",
+  market_list: "den",
+  market_buy: "den",
 };
 
 type Step =
@@ -120,7 +166,13 @@ type Step =
     }
   | { ok: false; refusal: Refusal; state?: BaseState; events?: GameEvent[] };
 
-function step(content: Content, state: BaseState, command: Command, now: number): Step {
+function step(
+  content: Content,
+  state: BaseState,
+  command: Command,
+  now: number,
+  world: World | undefined,
+): Step {
   switch (command.type) {
     case "gather": {
       const result = gather(content, state, now);
@@ -273,18 +325,68 @@ function step(content: Content, state: BaseState, command: Command, now: number)
       const result = endNodeRun(content, state, now, command.node, command.run);
       return { ok: true, state: result.state, events: result.events };
     }
+    case "market_list": {
+      const result = listGoods(content, state, command.good, command.amount, command.price, now);
+      if (!result.ok) return { ok: false, refusal: result.status };
+      return { ok: true, state: result.state, events: result.events };
+    }
+    case "market_cancel": {
+      const result = cancelListing(content, state, command.listing);
+      if (!result.ok) return { ok: false, refusal: { code: "not_listed" } };
+      return { ok: true, state: result.state, events: result.events };
+    }
+    case "market_buy": {
+      // No world: the client, which cannot see the seller. A world without the listing: the
+      // server looked and it is sold, cancelled or expired.
+      if (!world) return { ok: false, refusal: { code: "server_only" } };
+      const listing = world.listing;
+      if (!listing || listing.id !== command.listing)
+        return { ok: false, refusal: { code: "listing_gone" } };
+      const result = buyListing(content, state, listing, world.self, now);
+      if (!result.ok) return { ok: false, refusal: result.status };
+      return { ok: true, state: result.state, events: result.events };
+    }
+    case "den_buy": {
+      const result = denBuy(content, state, command.offer, command.lots, now);
+      if (!result.ok) return { ok: false, refusal: result.status };
+      return { ok: true, state: result.state, events: result.events };
+    }
+    case "deliver": {
+      const result = deliver(content, state, command.contract);
+      if (!result.ok) return { ok: false, refusal: result.status };
+      return { ok: true, state: result.state, events: result.events };
+    }
+    case "wheel_bet": {
+      const result = placeWheelBet(content, state, command.segment, command.amount, now);
+      if (!result.ok) return { ok: false, refusal: result.status };
+      return { ok: true, state: result.state, events: result.events };
+    }
+    case "slots_spin": {
+      const result = playSlots(content, state, command.amount, now, world);
+      if (!result.ok) return { ok: false, refusal: result.status };
+      return { ok: true, state: result.state, events: result.events };
+    }
+    case "dice_roll": {
+      const result = playDice(content, state, command.option, command.amount, now, world);
+      if (!result.ok) return { ok: false, refusal: result.status };
+      return { ok: true, state: result.state, events: result.events };
+    }
   }
 }
 
-/** Settles `state` to `now`, then applies `command`. Pure; the caller owns the clock. */
+/**
+ * Settles `state` to `now`, then applies `command`. Pure; the caller owns the clock.
+ * `world`: what only the server knows (W5); the client and old callers leave it out.
+ */
 export function applyCommand(
   content: Content,
   state: BaseState,
   command: Command,
   now: number,
+  world?: World,
 ): CommandResult {
-  const settled = settleAll(content, state, now);
-  const result = step(content, settled.state, command, now);
+  const settled = settleAll(content, state, now, world);
+  const result = step(content, settled.state, command, now, world);
   if (!result.ok) {
     return {
       ok: false,
@@ -293,7 +395,8 @@ export function applyCommand(
       refusal: result.refusal,
     };
   }
-  let next = result.state;
+  // Settling counted its own events already; count what the command did.
+  let next = recordStats(result.state, result.events, now);
   const events = [...settled.events, ...result.events];
   if (result.task) {
     const progressed = progressTasks(content, next, result.task[0], result.task[1]);

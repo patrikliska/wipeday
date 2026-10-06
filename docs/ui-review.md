@@ -616,3 +616,82 @@ New shots:
   - The scene does not say who works where on a tap. Tapping a survivor could open their
     card (W6 or later).
   - The map has no night look yet (carried over).
+
+## W5: the Den (market, contracts, games, ranks)
+
+New shots:
+- the Den: `phone_den_market`, `phone_den_players`, `phone_den_sell`, `phone_den_sell_pick`,
+  `phone_den_contracts`, `phone_den_closed`, `desktop_den`;
+- the games: `phone_den_wheel`, `phone_den_slots`, `phone_den_bones`, `phone_den_capped`,
+  `desktop_den_wheel`;
+- ranks: `phone_ranks`;
+- scene and map: `skiff_day`, `skiff_night` (both with a `__zoom` crop), `skiff_desktop`,
+  `map_den_locked`.
+
+Fixture: `DEN()` in `shots.mjs` is a Stone holdfast on day 9 with the Den open, one
+contract to deliver and one listing up.
+
+- Market, iteration 1, what was wrong:
+  - "From other players" was empty. The demo's seller listed at page load, so by the
+    shot's day 9 everything had expired.
+  - A big gap between each section header and its one-line hint.
+  - The scrap wallet was a full-width card. It pushed the counter below the fold.
+- Market, iteration 2, what changed:
+  - Hollis's demo listings are made fresh on every look.
+  - Each listing says how it compares with the Den's rate ("Below the Den's rate · 1d 6h
+    left").
+  - The wallet is a chip at the end of the tab row ("SC 640").
+  - The hint sits under its header.
+  - One primary per view: the counter's offer the next upgrade lacks ("Your next upgrade
+    needs planks"), else "Sell something".
+- Sell form: a 14-day bar chart of what players paid, with the Den's rate as a dashed
+  line. Below it, steppers for the amount and the price ("Den rate 25" resets it), then one
+  line on the terms ("The Den keeps 2 scrap now. You get 40 when it sells; unsold, it comes
+  home after 48 h"). The list button says what and for how much, or why not ("The Den will
+  not go below 18").
+- Contracts: the flavour line in italics, a have/need bar, the pay in the corner and
+  "Deliver · +12 scrap" as the primary. A dot on the Contracts tab when one is ready.
+- Games, iteration 1, what was wrong: on a phone the limits, the chips and the game tabs
+  came first. The wheel and every bet button sat below the fold.
+- Games, iteration 2, what changed:
+  - The game comes first: wheel, reels or dice, then the outcome, then the options.
+  - The chips sit right above the one primary bet button ("Bet 10 on Gull · wins 22").
+  - Today's limit bar and the fine print go last.
+  - The wheel is 168 px on phones; the reels and dice shrink too.
+- Wheel: slices in proportion to their odds, the pointer at 12 o'clock and a 0:30
+  countdown. The last spins show as coloured dots, newest ringed. Each segment row gives
+  its pay, its chance and who is on it ("HO 10", "You 10").
+- Slots: the jackpot banner states the rule and the odds ("Three Beacons: 200× your bet plus
+  the jackpot · about 1 in 6.3k"). The paytable is compact under the reels, and the return
+  (93%) sits right above the button.
+- Bones: real dice faces. Each option gives its chance and return ("42% chance · returns
+  92%").
+- Capped: the limit bar turns red and the button says "Today's limit reached · resets in
+  13h". Chips over the tier's biggest bet stay visible, dashed and disabled, with the reason
+  in the row and as their tooltip.
+- Ranks: the season card first (tier, "1st in Wealth", six numbers, ranks of how many),
+  then the category tabs and the table, with the player's row tinted.
+- Skiff, iteration 1, what was wrong:
+  - Too small and flat at phone scale.
+  - It faded in so slowly that a slow frame caught it half-transparent.
+  - Its mast poked into the barrel.
+- Skiff, iteration 2: drawn a quarter bigger with a lighter strake, and the mast lies along
+  the boat. Still wrong: on desktop it sat behind the dock bar.
+- Skiff, iteration 3: moved up the beach beside the barrel, bow to the sea, so the lantern
+  and pennant face the holdfast. Still wrong: the lantern post stood in front of the ore rock.
+- Skiff, iteration 4:
+  - The post moved inboard.
+  - The lantern glow is larger and lights the beach at night.
+  - On phones the bow runs off the left edge; the lantern, pennant and crate stay in view.
+- Map: the Den's flag sat under the Tidal Flats cloud. It moved south-east of the landing,
+  dimmed with "The Den · opens at Stone" until the Den opens.
+- Full run: 100 shots, no console errors. The older shots of late bases now show the skiff.
+- Still open:
+  - With the dock and watchtower built (`desktop_hqm_night`, `phone_buildings_full`), the
+    skiff crowds the boathouse at the shore. Mooring it at the dock would put it off the
+    phone view, which is the only scene way into the Den on phones; it needs its own spot.
+  - The tab row scrolls sideways on phones when there are many tabs, with no hint (rank
+    categories past Lucky; carried over from the station tabs).
+  - Slot symbols and the Den's goods are lettered placeholder tiles like every other icon.
+  - In demo mode the wheel turns on the 240× demo clock, so a round passes in a blink (as
+    node regrow does, D65). The live game is real time.
