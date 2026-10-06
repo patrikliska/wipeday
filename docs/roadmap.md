@@ -112,22 +112,47 @@ Scope as in the phase list below. Things W7 leaves for it:
   (`market.test.ts`). The API tests cover two buyers racing for one listing, a replay, own
   listings and expiry.
 
+### What the owner needs to do (as of 2026-10-07)
+
+1. **Pick and announce season 1's end.** Season 1 started fresh on 2026-10-07 (the live game
+   was wiped at the W7 deploy). Announce the end a week ahead; the game shows it and the
+   Signal opens:
+   `docker exec -w /app/apps/api wipeday node_modules/.bin/tsx src/season-cli.ts announce <YYYY-MM-DD> --next <modifier>`
+   On that day: `... season-cli.ts end` (it backs up first). Details in `docs/deploy.md`.
+2. **Name pass** on `packages/content/locale/en.json`:
+   - W4b: the Rail Yards, North Dam, the Narrows, Open Water, their four ruins, the keycodes
+     and the trip events.
+   - W5: the Den, the Wheel of Salvage (Gull, Crab, Anchor, Lighthouse, Crown, Tide), the
+     One-Armed Scavenger (Bolt, Gear, Fish, Anchor, Lantern, Beacon), Bones, the contract
+     lines and the demo seller "Hollis".
+   - W6: Traps, Turret, Gunpowder, Charges, Driftwood Camp, Saltpan Camp, Cinder Fort and the
+     raid lines.
+   - W7:
+     - perks: Steady Hands, Deep Cellars, Quick Fingers, Hot Coals, Old Maps, War Stories,
+       Old Friend, Packed Crate;
+     - skins: Driftwood, Rust, Beacon;
+     - modifiers: Long Nights, Rich Tides, Quiet Raiders, Storm Season;
+     - titles: Wealthiest, Master Builder, Pathfinder, Merchant, Lucky Hand, Wallkeeper,
+       Keeper of the Signal;
+     - the Signal's stages.
+3. **Turn notifications on again** on every device. The wipe kept logins but no device was
+   subscribed. iPhone: add the site to the Home Screen, open it from there, then the clock
+   chip, then "Turn on". Confirm a "party back" or "raided" push arrives.
+4. **Play and send screenshots** of anything that looks wrong. Phone screenshots are bugs
+   with priority over W8.
+
 ### Open items (small, carried over)
 
-- The owner's name pass on the world: buildings, parts, survivors, regions, ruins and report
-  lines in `packages/content/locale/en.json`. W4b added the Rail Yards, North Dam, the
-  Narrows, Open Water, their four ruins, the keycodes and the trip events. W5 adds the Den,
-  the Wheel of Salvage (Gull, Crab, Anchor, Lighthouse, Crown, Tide), the One-Armed
-  Scavenger (Bolt, Gear, Fish, Anchor, Lantern, Beacon), Bones, the contract lines and the
-  demo seller "Hollis".
-- Web Push on the owner's iPhone: add the site to the Home Screen, open it from there, turn
-  notifications on in the feed panel (the clock chip), and confirm a "party back" arrives.
-- UI polish noted in `docs/ui-review.md`: the map has no night look; on desktop the side panel
-  covers the island's east coast (it pans); crew faces are placeholders; station tabs past the
-  fifth scroll sideways without a hint.
+- UI polish noted in `docs/ui-review.md`:
+  - the map has no night look;
+  - on desktop the side panel covers the island's east coast (it pans);
+  - crew faces are placeholders;
+  - station tabs past the fifth scroll sideways without a hint;
+  - the Signal draws only finished stages;
+  - titles show only in the Legacy tab.
 - Off-server backup copies (rclone or rsync from a cron job) are still to do (W9).
-- The Discord bot stays frozen on its old rules until W8.
-- Discord bot (`apps/discord`): phases 0-2b, frozen on its own copy of the old rules (D57).
+- The Discord bot (`apps/discord`, phases 0-2b) stays frozen on its own copy of the old
+  rules (D57) until W8.
 - Decision: the web app is the main client, Discord becomes a companion (D40).
 
 ## How to run a phase with an agent
