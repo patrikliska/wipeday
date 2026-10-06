@@ -236,6 +236,15 @@ scrap + wiring + batteries ──► electronics ──► radio, turret brain, 
   scrap; 24 h shield after being hit, one attack per day, same target once per 72 h, only
   within one tier; revenge token at half cost within 48 h; full opt-out.
 - Unlocks: NPC week 1, PvE week 2, PvP week 3 (and only with opt-in).
+- *(Built in W6, D106-D113.)*
+  - **NPC raids** come about every two nights from Stone. They are planned only while the
+    player plays and land between 20:00 and 23:00 UTC, with 3 to 18 hours of warning. A
+    breach takes 5% of the raw and refined resources and capped scrap, and damages the
+    defences until repaired.
+  - **Defence:** walls, traps, a turret, the watchtower and guards.
+  - **Bandit camps:** three, paid in charges (gunpowder from sulfur).
+  - **PvP:** opt-in from Sheet Metal, instant, at most 10% and capped scrap, with the limits
+    above. Revenge skips the 72 h rule and the fence; leaving waits 48 h after your own raid.
 
 ### 5.10 The Den: market, contracts, games
 

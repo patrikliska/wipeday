@@ -695,3 +695,61 @@ contract to deliver and one listing up.
   - Slot symbols and the Den's goods are lettered placeholder tiles like every other icon.
   - In demo mode the wheel turns on the 240× demo clock, so a round passes in a blink (as
     node regrow does, D65). The live game is real time.
+
+## W6: raids and defence (the Defence panel, PvP, raid reports, the scene)
+
+Shots: `raid_warned_day`, `raid_warned_night`, `phone_raid_warned(_night)`,
+`phone_defence_warned`, `phone_defence_damaged`, `phone_defence_calm`, `desktop_damaged`,
+`phone_raid_report_breached`, `phone_raid_report_held`, `phone_pvp_locked`, `phone_pvp_join`,
+`phone_pvp_targets`, `phone_pvp_shielded`, `phone_pvp_revenge`, `phone_pvp_report_in`,
+`phone_pvp_report_won`, `phone_camp_confirm`, `map_camps`, `desktop_defences(_night)`,
+`desktop_defence_panel`.
+
+- Iteration 1, what was wrong:
+  - The breached wall did not show: both breaches were drawn behind the house and the
+    workbench.
+  - The turret stood behind the house, so it was invisible.
+  - The traps sat under the stone node's rock.
+  - The shield badge overlapped the level-3 watchtower's roof and flag.
+  - On the map, camp labels ran into the ruins' labels (Observatory / Cinder Fort,
+    Cannery / Saltpan Camp).
+  - A revenge raid's button said "Raid Hollis", like any raid.
+- Iteration 2, what changed:
+  - The breaches moved to where the wall shows: between the furnaces and the house, and
+    past the workbench. Each is a dark notch with rubble at its foot (stakes knocked flat
+    on the timber wall).
+  - The turret moved to the wall's east end. Its level-3 searchlight is on the lights layer.
+  - The traps stand across the yard in front of the door.
+  - The badge sits beside the watchtower's top.
+  - A first try moved the camps to a fixed offset, but at phone zoom they then hit the region
+    labels. So camps got a `pin` in `sites.json5` (map units from the region's centre).
+    Saltpan, Driftwood and Cinder Fort now stand clear on `map_camps`.
+  - Revenge reads "Strike back at Hollis · 3 charges".
+- What works:
+  - **Hierarchy:** the banner under the top bar ("Raiders sighted · land in 6h 30m · 82% to
+    hold") is the first thing seen on both phone and desktop. In the panel the defence score
+    leads, with its parts beside it, damaged parts in amber.
+  - **Story:** the torches gather on the ridge behind the house, figures by day and glows at
+    night, and the shield over the walls changes with the state: calm, sighted (pulsing
+    flame), broken (crack), shielded (blue).
+  - **Cost and outcome before commitment (6.3 rule 4):**
+    - the raid card shows the chance to hold, both sides' points and what a breach takes;
+    - a PvP target shows the chance to get in, their defence, the charges and what is left
+      after, and what a breach brings home;
+    - the camp's confirm shows the charges in its rations and the charges left after.
+  - **One primary action:** the advisor's `defend` and `repair` light the Defence button on
+    desktop and the banner on phones. PvP buttons use a separate danger style (red outline),
+    never the primary red.
+  - **Nothing hidden:** before Stone the Defence button says "Opens at Stone"; before Sheet
+    Metal the Raids tab shows the rules and the tier it opens at.
+  - **No dead ends:** every report card ends on the follow-up (repair the defences, strike
+    back, or the Defence panel).
+- Still open:
+  - On phones the demo drawer's button overlaps the right end of the banner. Demo only; the
+    live game has no such button.
+  - The shield badge sits at the left edge of the phone view (the watchtower is there).
+    It stays fully in view.
+  - The figures on the ridge are small at phone size; their glow at night carries the
+    meaning.
+  - The full shot run no longer fits in one 10-minute call (now about 125 shots). Run it
+    with `--only` in parts.
