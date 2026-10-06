@@ -18,6 +18,9 @@
     { output: "frames", amount: 2, station: "workbench", level: 2, minutes: 5, cost: { planks: 10, ingots: 8 } },
     { output: "gears", amount: 2, station: "workbench", level: 2, minutes: 6, cost: { ingots: 20 } },
     { output: "springs", amount: 2, station: "workbench", level: 3, minutes: 8, cost: { ingots: 16, charcoal: 10 } },
+    // Raids (W6): sulfur's first use. Charges pay for raids on bandit camps and other holdfasts.
+    { output: "gunpowder", amount: 5, station: "kiln", level: 1, minutes: 3, cost: { sulfur: 20, charcoal: 5 } },
+    { output: "charge", station: "workbench", level: 2, minutes: 10, cost: { gunpowder: 20, cloth: 4 } },
 
     // Storage.
     { output: "crate", station: "workbench", level: 1, minutes: 5, cost: { planks: 30 } },

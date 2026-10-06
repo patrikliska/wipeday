@@ -22,6 +22,7 @@ import {
   mapRulesSchema,
   nodeSchema,
   pacingSchema,
+  raidsSchema,
   recipeSchema,
   tripEventRulesSchema,
 } from "./schema";
@@ -147,7 +148,10 @@ function emptyContent(): Content {
         crew: { day: 1, count: 1 },
         tool: { id: "", byDay: 1 },
         scrap: { day: 1, min: 0, max: 0 },
+        raids: { firstByDay: 1, day: 1, heldPercent: 0 },
+        firstCampByDay: 1,
       },
+      pvp: { minRaids: 0, targetHqmByDay: 1 },
       optimal: {
         hqmNotBeforeDay: 1,
         tierThreeSiteNotBeforeDay: 1,
@@ -175,6 +179,37 @@ function emptyContent(): Content {
         wheel: { roundSeconds: 30, closeSeconds: 0, segments: [] },
         slots: { symbols: [], jackpot: { feedPercent: 0, pays: 0 } },
         dice: { options: [] },
+      },
+    },
+    raids: {
+      capPercent: 10,
+      scrapCeiling: {},
+      minChance: 0,
+      maxChance: 100,
+      damagedPercent: 100,
+      repair: {},
+      npc: {
+        startTier: "stone",
+        firstAfterHours: 0,
+        planDays: 1,
+        windowStartHour: 0,
+        windowHours: 1,
+        warnBaseHours: 0,
+        lossPercent: 1,
+        scrapPerPoint: 1,
+        strength: {},
+        held: {},
+      },
+      pvp: {
+        minTier: "metal",
+        maxTierGap: 0,
+        charges: {},
+        attack: {},
+        shieldHours: 1,
+        attackHours: 1,
+        sameTargetHours: 1,
+        revengeHours: 1,
+        revengePercent: 100,
       },
     },
   };
@@ -264,6 +299,9 @@ export function parseContent(
   });
   single("den.json5", denSchema, (value) => {
     content.den = value;
+  });
+  single("raids.json5", raidsSchema, (value) => {
+    content.raids = value;
   });
 
   problems.push(...crossCheck(content, locale));
@@ -393,6 +431,7 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
 
   problems.push(...checkCrewAndMap(content, locale));
   problems.push(...checkDen(content, locale));
+  problems.push(...checkRaids(content, locale));
 
   const kindIds = new Set(content.nodeKinds.map((kind) => kind.id));
   for (const kind of content.nodeKinds) {
@@ -881,6 +920,57 @@ export function checkDen(content: Content, locale: Locale): Problem[] {
   ];
   for (const key of named) {
     if (!locale.has(key)) add("casino", `missing locale key \`${key}\``);
+  }
+  return problems;
+}
+
+/**
+ * Raids (W6): every tier raiders or PvP reach has its numbers, the losses stay inside the cap,
+ * the landing window fits in a day, every resource named exists, every camp has charges in
+ * its rations (a camp is where charges go) and the report lines are in the locale.
+ */
+export function checkRaids(content: Content, locale: Locale): Problem[] {
+  const problems: Problem[] = [];
+  const file = "raids.json5";
+  const { raids } = content;
+  const add = (id: string, message: string) => problems.push({ file, id, message });
+  if (content.resources.length === 0) return problems;
+  const resources = new Set(content.resources.map((resource) => resource.id));
+  const from = (tier: (typeof TIERS)[number]) => TIERS.slice(TIERS.indexOf(tier));
+
+  if (raids.minChance >= raids.maxChance) add("", "minChance must be below maxChance");
+  if (raids.npc.lossPercent > raids.capPercent) add("npc", "lossPercent is above capPercent");
+  if (raids.npc.windowStartHour + raids.npc.windowHours > 24)
+    add("npc", "the landing window must end by midnight");
+  for (const tier of from(raids.npc.startTier)) {
+    if (raids.scrapCeiling[tier] === undefined) add(tier, "needs a scrapCeiling");
+    if (!raids.repair[tier]) add(tier, "needs a repair cost");
+    const strength = raids.npc.strength[tier];
+    if (!strength) add(tier, "npc needs a strength");
+    else if (strength.max < strength.base) add(tier, "npc strength max is below its base");
+    if (!raids.npc.held[tier]) add(tier, "npc needs held loot");
+  }
+  for (const tier of from(raids.pvp.minTier)) {
+    if (raids.pvp.charges[tier] === undefined) add(tier, "pvp needs a charge cost");
+    if (raids.pvp.attack[tier] === undefined) add(tier, "pvp needs an attack");
+    if (raids.scrapCeiling[tier] === undefined) add(tier, "needs a scrapCeiling");
+    if (!raids.repair[tier]) add(tier, "needs a repair cost");
+  }
+  const named = [
+    ...Object.values(raids.repair).flatMap((cost) => Object.keys(cost ?? {})),
+    ...Object.values(raids.npc.held).flatMap((lines) => (lines ?? []).map((line) => line.resource)),
+  ];
+  for (const id of named) {
+    if (!resources.has(id)) add(id, "names an unknown resource");
+  }
+  if (!resources.has("charge")) add("charge", "raids need a `charge` resource");
+
+  for (const site of content.sites.filter((candidate) => candidate.camp)) {
+    if ((site.rations.charge ?? 0) < 1)
+      problems.push({ file: "sites.json5", id: site.id, message: "a camp's rations need charges" });
+  }
+  for (const key of ["raid.npc.held", "raid.npc.breached", "raid.pvp.held", "raid.pvp.breached"]) {
+    if (!locale.has(key)) add("", `missing locale key \`${key}\``);
   }
   return problems;
 }

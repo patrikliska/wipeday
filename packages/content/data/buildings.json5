@@ -12,7 +12,8 @@
 // node haul), barrelLifeMinutes (barrels stay longer), barrelEveryMinutes (barrels come
 // sooner), graceHours (longer before unpaid upkeep costs a level), crew (room for more
 // survivors), furnace (furnace type, 1 = the first in furnaces.json5), scoutRange (rings a
-// scout reaches beyond the base tier's range).
+// scout reaches beyond the base tier's range), defence (points against raids, W6), warnHours
+// (hours more warning before NPC raiders land, W6).
 {
   buildings: [
     {
@@ -106,17 +107,34 @@
     {
       id: "watchtower", unlockTier: "stone",
       levels: [
-        { cost: { planks: 100, stone: 800 }, minutes: 60, upkeep: {}, effects: { barrelLifeMinutes: 15 } },
-        { cost: { stone: 3000, frames: 20 }, minutes: 180, upkeep: {}, effects: { barrelLifeMinutes: 30 } },
-        { minTier: "metal", cost: { stone: 8000, frames: 60, plates: 40 }, minutes: 480, upkeep: {}, effects: { barrelLifeMinutes: 45 } },
+        { cost: { planks: 100, stone: 800 }, minutes: 60, upkeep: {}, effects: { barrelLifeMinutes: 15, warnHours: 5, defence: 2 } },
+        { cost: { stone: 3000, frames: 20 }, minutes: 180, upkeep: {}, effects: { barrelLifeMinutes: 30, warnHours: 9, defence: 4 } },
+        { minTier: "metal", cost: { stone: 8000, frames: 60, plates: 40 }, minutes: 480, upkeep: {}, effects: { barrelLifeMinutes: 45, warnHours: 15, defence: 6 } },
       ],
     },
     {
       id: "walls", unlockTier: "stone",
       levels: [
-        { cost: { stone: 2000 }, minutes: 60, upkeep: {}, effects: { graceHours: 12 } },
-        { cost: { stone: 6000, planks: 150, plates: 20 }, minutes: 240, upkeep: {}, effects: { graceHours: 24 } },
-        { minTier: "metal", cost: { stone: 20000, plates: 150 }, minutes: 720, upkeep: {}, effects: { graceHours: 48 } },
+        { cost: { stone: 2000 }, minutes: 60, upkeep: {}, effects: { graceHours: 12, defence: 10 } },
+        { cost: { stone: 6000, planks: 150, plates: 20 }, minutes: 240, upkeep: {}, effects: { graceHours: 24, defence: 20 } },
+        { minTier: "metal", cost: { stone: 20000, plates: 150 }, minutes: 720, upkeep: {}, effects: { graceHours: 48, defence: 35 } },
+      ],
+    },
+    // W6: defence only.
+    {
+      id: "traps", unlockTier: "stone",
+      levels: [
+        { cost: { planks: 60, stone: 1000, rope: 20 }, minutes: 30, upkeep: {}, effects: { defence: 6 } },
+        { cost: { planks: 150, ingots: 400, gears: 6 }, minutes: 120, upkeep: {}, effects: { defence: 12 } },
+        { minTier: "metal", cost: { ingots: 1500, springs: 20, gunpowder: 20 }, minutes: 360, upkeep: {}, effects: { defence: 20 } },
+      ],
+    },
+    {
+      id: "turret", unlockTier: "metal",
+      levels: [
+        { cost: { ingots: 1500, plates: 40, gears: 20 }, minutes: 180, upkeep: {}, effects: { defence: 20 } },
+        { cost: { plates: 100, springs: 30, gunpowder: 40 }, minutes: 360, upkeep: {}, effects: { defence: 35 } },
+        { minTier: "hqm", cost: { plates: 200, springs: 60, charge: 4 }, minutes: 720, upkeep: {}, effects: { defence: 55 } },
       ],
     },
     {

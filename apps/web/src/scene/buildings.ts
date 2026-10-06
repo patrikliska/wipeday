@@ -311,7 +311,7 @@ function watchtower(level: number): Station {
 }
 
 /** The wall behind the base, `from` to `to` (container units): palisade, stone, sheet metal. */
-function walls(level: number, from: number, to: number): Station {
+function walls(level: number, from: number, to: number, damaged = false): Station {
   const g = new Graphics();
   if (level <= 1) {
     for (let x = from; x < to; x += 11) {
@@ -346,7 +346,132 @@ function walls(level: number, from: number, to: number): Station {
         .fill(0x9aa0a6);
     }
   }
+  // A breach (W6): two broken sections with rubble at their foot until repaired, where the
+  // wall shows between the furnaces and the house, and past the workbench.
+  if (damaged) {
+    const top = [0, 40, 54, 66][level] ?? 40;
+    for (const at of [0.16, 0.9]) {
+      const x = from + (to - from) * at;
+      g.moveTo(x - 26, -top - 4)
+        .lineTo(x - 12, -top * 0.45)
+        .lineTo(x - 4, -top * 0.62)
+        .lineTo(x + 6, -top * 0.3)
+        .lineTo(x + 16, -top * 0.55)
+        .lineTo(x + 28, -top - 4)
+        .closePath()
+        .fill(0x1b1a18);
+      for (const [dx, r] of [
+        [-22, 6],
+        [-10, 8],
+        [4, 7],
+        [16, 9],
+        [28, 5],
+      ] as const) {
+        g.circle(x + dx, -r * 0.6, r).fill(level <= 1 ? WOOD_DARK : STONE_DARK);
+      }
+      if (level <= 1) {
+        // Stakes knocked flat across the gap.
+        g.moveTo(x - 30, -4)
+          .lineTo(x + 8, -16)
+          .stroke({ width: 5, color: WOOD });
+        g.moveTo(x - 6, -2)
+          .lineTo(x + 30, -12)
+          .stroke({ width: 5, color: WOOD_LIGHT });
+      }
+    }
+  }
   return station("walls", g);
+}
+
+// --- defence (W6) ---------------------------------------------------------------------
+
+/** Stakes in the yard (level 1), a covered pit and a tripwire (2), iron jaws and a mine (3). */
+function traps(level: number): Station {
+  const g = new Graphics();
+  shadow(g, 120);
+  // A row of sharpened stakes leaning out toward the shore.
+  for (let x = -54; x <= 54; x += 12) {
+    const h = 22 + ((Math.abs(x) * 5) % 9);
+    g.moveTo(x - 3, 0)
+      .lineTo(x - 9, -h)
+      .lineTo(x - 6, -h - 6)
+      .lineTo(x + 3, 0)
+      .closePath()
+      .fill(x % 24 === 0 ? WOOD : WOOD_LIGHT);
+    if (level >= 3)
+      g.moveTo(x - 9, -h)
+        .lineTo(x - 6, -h - 6)
+        .lineTo(x - 7, -h + 2)
+        .fill(0xb0b8c0);
+  }
+  g.rect(-58, -10, 116, 3).fill(WOOD_DARK);
+  if (level >= 2) {
+    // A pit under brushwood, and a tripwire between two pegs.
+    g.ellipse(-82, 6, 22, 6).fill(0x2e2b27);
+    for (const dx of [-96, -88, -80, -72])
+      g.moveTo(dx, 2)
+        .lineTo(dx + 10, 9)
+        .stroke({ width: 2, color: 0x8a6a3a });
+    g.rect(64, -10, 3, 12).fill(WOOD_DARK).rect(96, -10, 3, 12).fill(WOOD_DARK);
+    g.moveTo(66, -7).lineTo(98, -7).stroke({ width: 1, color: 0xd8cfb8, alpha: 0.9 });
+  }
+  if (level >= 3) {
+    // Iron jaws, and a powder keg with a red flag: keep out.
+    g.ellipse(-110, 2, 10, 3).fill(0x46607a);
+    g.moveTo(-120, 0)
+      .lineTo(-115, -7)
+      .lineTo(-110, -1)
+      .lineTo(-105, -7)
+      .lineTo(-100, 0)
+      .stroke({ width: 2, color: 0x9aa0a6 });
+    g.roundRect(108, -18, 16, 18, 3).fill(0x7a5236).rect(108, -13, 16, 2).fill(0x46607a);
+    g.rect(122, -40, 2, 24).fill(WOOD_DARK).poly([124, -40, 138, -36, 124, -32]).fill(0xcd412b);
+  }
+  return station("traps", g);
+}
+
+/** A gun on a platform (1), on a stone tower behind a shield (2), a twin gun with a lamp (3). */
+function turret(level: number): Station {
+  const g = new Graphics();
+  const glows: Glow[] = [];
+  const h = [0, 78, 104, 126][level] ?? 78;
+  shadow(g, 64);
+  if (level === 1) {
+    g.moveTo(-26, 0).lineTo(-18, -h).lineTo(-12, -h).lineTo(-20, 0).closePath().fill(WOOD_DARK);
+    g.moveTo(26, 0).lineTo(18, -h).lineTo(12, -h).lineTo(20, 0).closePath().fill(WOOD_DARK);
+    g.moveTo(-20, -h * 0.35)
+      .lineTo(20, -h * 0.75)
+      .moveTo(20, -h * 0.35)
+      .lineTo(-20, -h * 0.75);
+    g.stroke({ width: 2, color: WOOD, alpha: 0.9 });
+    g.rect(-30, -h - 6, 60, 6).fill(WOOD);
+    // Sandbags round the gun.
+    for (const dx of [-24, -10, 4, 18]) g.roundRect(dx, -h - 16, 14, 10, 4).fill(CANVAS_DARK);
+  } else {
+    const wall = level === 2 ? STONE : METAL;
+    const dark = level === 2 ? STONE_DARK : METAL_DARK;
+    g.moveTo(-30, 0).lineTo(-24, -h).lineTo(24, -h).lineTo(30, 0).closePath().fill(wall);
+    for (let y = -h + 14; y < 0; y += 16) g.rect(-28, y, 56, 2).fill({ color: dark, alpha: 0.6 });
+    g.rect(-6, -h * 0.55, 12, 16).fill(GLASS);
+    g.rect(-30, -h - 8, 60, 8).fill(dark);
+    // The gun shield.
+    g.roundRect(-20, -h - 30, 34, 22, 4).fill(dark);
+  }
+  // The barrel(s), pointing out over the shore.
+  g.rect(-52, -h - (level === 1 ? 22 : 24), 40, 5).fill(0x2e2b27);
+  if (level === 3) g.rect(-52, -h - 16, 40, 5).fill(0x2e2b27);
+  g.circle(-2, -h - (level === 1 ? 20 : 18), 7).fill(0x3b3833);
+  if (level === 3) {
+    // A searchlight on the rail, lit at night.
+    g.roundRect(14, -h - 26, 12, 10, 3)
+      .fill(0x3b3833)
+      .circle(20, -h - 21, 3)
+      .fill(0xfff2c0);
+    const lamp = new Glow(0xfff2c0, 110, 0.9);
+    lamp.sprite.position.set(20, -h - 21);
+    glows.push(lamp);
+  }
+  return station("turret", g, glows);
 }
 
 // --- power and the sea -----------------------------------------------------------------
@@ -601,7 +726,12 @@ function campfire(level: number): Station {
 }
 
 /** A building drawn at `level`, or null for ids the scene places elsewhere (the furnace). */
-export function makeBuilding(id: string, level: number, span?: [number, number]): Station | null {
+export function makeBuilding(
+  id: string,
+  level: number,
+  span?: [number, number],
+  damaged = false,
+): Station | null {
   switch (id) {
     case "warehouse":
       return warehouse(level);
@@ -618,7 +748,11 @@ export function makeBuilding(id: string, level: number, span?: [number, number])
     case "watchtower":
       return watchtower(level);
     case "walls":
-      return walls(level, span?.[0] ?? -300, span?.[1] ?? 300);
+      return walls(level, span?.[0] ?? -300, span?.[1] ?? 300, damaged);
+    case "traps":
+      return traps(level);
+    case "turret":
+      return turret(level);
     case "generator":
       return generator(level);
     case "radio_mast":
@@ -656,4 +790,6 @@ export const FOOTPRINTS: Record<string, [number, number]> = {
   workbench: [90, 96],
   campfire: [60, 40],
   furnace: [70, 100],
+  traps: [130, 40],
+  turret: [64, 130],
 };

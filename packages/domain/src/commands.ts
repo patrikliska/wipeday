@@ -11,6 +11,9 @@
  * W5: a few of the Den's commands need what only the server knows (`World`: a
  * listing in another base, a secret seed). Without it they refuse `server_only`,
  * which the client takes as "wait for the server" rather than a refusal.
+ *
+ * W6: after every command (refused or not) the next NPC raid is planned if none is pending,
+ * so raids only ever follow a player who plays (`raids.ts`).
  */
 import type { Amounts, Content, DiceOption } from "@wipe-day/content/schema";
 import type { Tier } from "@wipe-day/content/tiers";
@@ -45,6 +48,15 @@ import {
   treat,
 } from "./missions";
 import { endNodeRun, type HitRefusal, hitNode } from "./nodes";
+import {
+  type PvpStatus,
+  planRaid,
+  raidPlayer,
+  readRaidReport,
+  repair,
+  type SetPvpStatus,
+  setPvp,
+} from "./raids";
 import { settleAll } from "./settle";
 import { recordStats } from "./stats";
 import type { World } from "./world";
@@ -88,12 +100,23 @@ export type Command =
   | { type: "wheel_bet"; segment: string; amount: number }
   /** Server only, like the dice: the roll comes from a seed the player cannot see. */
   | { type: "slots_spin"; amount: number }
-  | { type: "dice_roll"; option: DiceOption; amount: number };
+  | { type: "dice_roll"; option: DiceOption; amount: number }
+  // Raids (W6).
+  | { type: "repair" }
+  /** Joins (`on`) or leaves the PvP raids. */
+  | { type: "set_pvp"; on: boolean }
+  /** Server only: the target's base is another player's. `target`: their player id. */
+  | { type: "raid_player"; target: number };
 
 export type CommandType = Command["type"];
 
 /** Commands the client cannot predict: it shows them pending until the server answers. */
-export const SERVER_ONLY: readonly CommandType[] = ["market_buy", "slots_spin", "dice_roll"];
+export const SERVER_ONLY: readonly CommandType[] = [
+  "market_buy",
+  "slots_spin",
+  "dice_roll",
+  "raid_player",
+];
 
 /** Why a command did nothing. `missing` and friends let the UI say exactly what to do. */
 export type Refusal =
@@ -130,7 +153,11 @@ export type Refusal =
   | { code: "all_known" }
   | { code: "no_contract" }
   | { code: "bad_option" }
-  | Exclude<WagerStatus, { code: "ok" | "unaffordable" | "den_closed" }>;
+  | Exclude<WagerStatus, { code: "ok" | "unaffordable" | "den_closed" }>
+  // Raids (W6).
+  | { code: "no_damage" }
+  | { code: "no_target" }
+  | Exclude<SetPvpStatus | PvpStatus, { code: "ok" | "unaffordable" }>;
 
 export type CommandResult =
   | { ok: true; state: BaseState; events: GameEvent[] }
@@ -155,6 +182,7 @@ const HINT_OF: Partial<Record<CommandType, Advice>> = {
   den_buy: "den",
   market_list: "den",
   market_buy: "den",
+  repair: "repair",
 };
 
 type Step =
@@ -305,7 +333,11 @@ function step(
       return { ok: true, state: result.state, events: result.events };
     }
     case "read_report":
-      return { ok: true, state: readReport(state, command.id), events: [] };
+      return {
+        ok: true,
+        state: readRaidReport(readReport(state, command.id), command.id),
+        events: [],
+      };
     case "break_barrel": {
       const result = breakBarrel(content, state, now);
       if (!result.ok) return { ok: false, refusal: { code: "no_barrel" } };
@@ -371,6 +403,28 @@ function step(
       if (!result.ok) return { ok: false, refusal: result.status };
       return { ok: true, state: result.state, events: result.events };
     }
+    case "repair": {
+      const result = repair(content, state);
+      if (!result.ok) return { ok: false, refusal: result.status };
+      return { ok: true, state: result.state, events: result.events };
+    }
+    case "set_pvp": {
+      const result = setPvp(content, state, command.on, now);
+      if (!result.ok) return { ok: false, refusal: result.status };
+      return { ok: true, state: result.state, events: result.events };
+    }
+    case "raid_player": {
+      // No world, or no secret seed: the client. A world without the target: it is gone.
+      if (world?.seed === undefined || world.self === undefined)
+        return { ok: false, refusal: { code: "server_only" } };
+      const target = world.target;
+      if (!target || target.id !== command.target)
+        return { ok: false, refusal: { code: "no_target" } };
+      const name = world.selfName ?? "";
+      const result = raidPlayer(content, state, world.self, name, target, world.seed, now);
+      if (!result.ok) return { ok: false, refusal: result.status };
+      return { ok: true, state: result.state, events: result.events };
+    }
   }
 }
 
@@ -390,7 +444,7 @@ export function applyCommand(
   if (!result.ok) {
     return {
       ok: false,
-      state: result.state ?? settled.state,
+      state: planRaid(content, result.state ?? settled.state, now),
       events: [...settled.events, ...(result.events ?? [])],
       refusal: result.refusal,
     };
@@ -408,7 +462,9 @@ export function applyCommand(
       ? command.what === "furnace"
         ? "furnace"
         : "building"
-      : HINT_OF[command.type];
+      : command.type === "assign" && command.job?.kind === "guard"
+        ? "defend"
+        : HINT_OF[command.type];
   if (hint) next = { ...next, hints: { ...next.hints, [hint]: (next.hints[hint] ?? 0) + 1 } };
-  return { ok: true, state: next, events };
+  return { ok: true, state: planRaid(content, next, now), events };
 }

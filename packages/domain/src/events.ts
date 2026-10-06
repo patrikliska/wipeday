@@ -9,6 +9,7 @@ import type { Amounts } from "@wipe-day/content/schema";
 import type { Tier } from "@wipe-day/content/tiers";
 import type { Job } from "./crew";
 import type { Listing } from "./market";
+import type { RaidReport } from "./raids";
 
 export type GameEvent =
   // Player actions.
@@ -114,7 +115,18 @@ export type GameEvent =
   /** A payout of at least `bigWin` times the bet: for the feed. */
   | { type: "big_win"; game: CasinoGame; bet: number; payout: number; at: number }
   | { type: "jackpot_won"; amount: number; at: number }
+  // Raids (W6).
+  | { type: "repaired"; paid: Amounts }
+  | { type: "pvp_set"; on: boolean }
+  /** This base raided another: `report` from the attacker's side (the feed's PvP line). */
+  | { type: "raid_launched"; report: RaidReport; target: number; targetName: string; paid: Amounts }
   // Time passing (settling).
+  /** Raiders were sighted at `at`; they land at `lands`. */
+  | { type: "raid_warned"; at: number; lands: number }
+  /** NPC raiders hit the base. */
+  | { type: "raid_landed"; report: RaidReport }
+  /** Another player raided this base (the defender's side). */
+  | { type: "raided"; report: RaidReport; attacker: number; attackerName: string }
   | { type: "build_done"; tier: Tier }
   | { type: "building_done"; building: string; level: number }
   /** Unpaid upkeep cost this building a level (`level` is what is left; 0 = gone). */

@@ -62,6 +62,12 @@
     },
     "springs": {
       "name": "Springs"
+    },
+    "gunpowder": {
+      "name": "Gunpowder"
+    },
+    "charge": {
+      "name": "Charges"
     }
   },
   "tool": {
@@ -292,7 +298,10 @@
     "reports": "{count} back",
     "den_open": "Trade, play",
     "den_contract": "Contract ready",
-    "den_closed": "Opens at {tier}"
+    "den_closed": "Opens at {tier}",
+    "raid_in": "Raid in {time}",
+    "damaged": "Damaged",
+    "defence": "{points} defence"
   },
   "action": {
     "gather": "Gather",
@@ -307,7 +316,8 @@
     "map": "Map",
     "holdfast": "Holdfast",
     "feed": "Feed",
-    "den": "Den"
+    "den": "Den",
+    "defence": "Defence"
   },
   "panel": {
     "build": "Build",
@@ -318,7 +328,8 @@
     "squad": "Squad",
     "map": "The map",
     "feed": "The island",
-    "den": "The Den"
+    "den": "The Den",
+    "defence": "Defence"
   },
   "weather": {
     "clear": "Clear",
@@ -343,7 +354,9 @@
     "building": "A builder is free and a building is affordable: open Upgrade to put it up.",
     "map": "Your crew can head out: open the Map, scout the fog, send a party to the ruins.",
     "crew": "Give your free crew a job: they work whenever they are home.",
-    "den": "The Den has a contract you can fill: tap the skiff on the shore."
+    "den": "The Den has a contract you can fill: tap the skiff on the shore.",
+    "defend": "Raiders are coming: put someone on guard before they land.",
+    "repair": "The raid broke the defences: repair them, or they hold half as well."
   },
   "build": {
     "hint": "Each tier raises storage, furnace slots and builders. Upkeep rises with it.",
@@ -552,7 +565,17 @@
     "contract_done": "Contract delivered: +{pay} scrap.",
     "jackpot": "JACKPOT! +{amount} scrap.",
     "wheel_won": "The wheel stopped on {segment}: +{amount} scrap!",
-    "wheel_lost": "The wheel stopped on {segment}: your {amount} scrap is the Den's."
+    "wheel_lost": "The wheel stopped on {segment}: your {amount} scrap is the Den's.",
+    "raid_warned": "Raiders sighted: they land in {time}.",
+    "raid_held": "Raiders hit the walls and were driven off.",
+    "raid_breached": "Raiders broke in and took {gains}.",
+    "pvp_held": "{name} raided you and was driven off.",
+    "pvp_breached": "{name} raided you and got in.",
+    "raid_won": "You got into {name}'s holdfast.",
+    "raid_lost": "{name}'s guards held. The charges are spent.",
+    "repaired": "Defences repaired.",
+    "pvp_on": "You are in the raids.",
+    "pvp_off": "You left the raids."
   },
   "refusal": {
     "cooldown": "Gather is ready again in {time}.",
@@ -615,7 +638,18 @@
     "bad_bet": "Bets come in chips of {step} scrap.",
     "not_tradeable": "The Den does not trade that.",
     "bad_option": "That is not a bet on this table.",
-    "all_known": "You already know every blueprint the Den has."
+    "all_known": "You already know every blueprint the Den has.",
+    "pvp_locked": "Raids between holdfasts open at {tier} bases.",
+    "pvp_off": "Join the raids first: you are out of them.",
+    "target_off": "They stay out of raids.",
+    "self_target": "That is your own holdfast.",
+    "no_target": "That holdfast is not there any more.",
+    "shielded": "Shielded after a raid: open again in {time}.",
+    "attack_cooldown": "One raid a day: your crew is ready again in {time}.",
+    "target_cooldown": "You hit them lately: again in {time}.",
+    "tier_fence": "Too far apart: raids stay within one tier ({tier}).",
+    "opt_out_locked": "You raided lately: you can leave the raids in {time}.",
+    "no_damage": "Nothing needs repairing."
   },
   "login": {
     "title": "Wipe Day",
@@ -687,11 +721,11 @@
     },
     "watchtower": {
       "name": "Watchtower",
-      "blurb": "A lookout that spots barrels early, so they wait longer."
+      "blurb": "A lookout: raiders are spotted hours sooner, and barrels wait longer."
     },
     "walls": {
       "name": "Walls",
-      "blurb": "A wall around the base: it holds together longer when upkeep runs short."
+      "blurb": "A wall around the base: raiders have to get past it, and it holds together longer when upkeep runs short."
     },
     "generator": {
       "name": "Generator",
@@ -704,6 +738,14 @@
     "dock": {
       "name": "Dock",
       "blurb": "A jetty and a boat: fishing brings in fat every hour."
+    },
+    "traps": {
+      "name": "Traps",
+      "blurb": "Spikes, tripwires and pits around the yard: raiders pay for every step."
+    },
+    "turret": {
+      "name": "Turret",
+      "blurb": "A salvaged gun on a tower: the hardest thing for raiders to get past."
     }
   },
   "effect": {
@@ -721,7 +763,9 @@
     "workbench": "workbench level {value}",
     "furnace": "{value}",
     "scoutRange": "scouts reach {value} ring further",
-    "crew": "room for {value} more survivors"
+    "crew": "room for {value} more survivors",
+    "defence": "+{value} defence",
+    "warnHours": "raiders spotted {value} h sooner"
   },
   "trait": {
     "scavenger": {
@@ -871,6 +915,18 @@
     "offshore_platform": {
       "name": "Offshore Platform",
       "blurb": "The season's peak: everything is out here, and so is everyone else."
+    },
+    "driftwood_camp": {
+      "name": "Driftwood Camp",
+      "blurb": "Bandits in the pines behind a driftwood stockade. Blow the gate, take the stores."
+    },
+    "saltpan_camp": {
+      "name": "Saltpan Camp",
+      "blurb": "Raiders on the old salt pans, with a workshop full of stolen parts."
+    },
+    "cinder_fort": {
+      "name": "Cinder Fort",
+      "blurb": "The bandits' stronghold on the hill: earthworks, a gun nest and the best loot on the island."
     }
   },
   "story": {
@@ -933,6 +989,21 @@
       "success": "{name} climbed the stilts at dawn and emptied the platform's stores.",
       "partial": "{name} got onto the lower deck and grabbed what was in reach.",
       "fail": "The swell was too high to tie up. {name} circled once and came home."
+    },
+    "driftwood_camp": {
+      "success": "{name} set the charges at the gate; the stockade went up and the bandits ran for the trees.",
+      "partial": "{name} blew a gap in the stockade and grabbed what was nearest before the bandits rallied.",
+      "fail": "The fuse burnt out in the wet. {name} pulled back before the bandits noticed."
+    },
+    "saltpan_camp": {
+      "success": "{name} brought the workshop roof down on the guards and walked out with the parts.",
+      "partial": "{name} cracked the store shed and carried off an armful before the camp woke.",
+      "fail": "Lookouts on the pans saw them coming. {name} got everyone home, but nothing else."
+    },
+    "cinder_fort": {
+      "success": "{name} breached the earthworks at dawn; the gun nest went quiet and the fort was theirs to search.",
+      "partial": "{name} blew one bunker open and held it long enough to empty it.",
+      "fail": "The fort's gun pinned them in the ditch. {name} led the retreat after dark."
     }
   },
   "map": {
@@ -1005,7 +1076,8 @@
     "keycode_none": "The doors need a {item}: one turns up at the {site}.",
     "go_to": "Go to the {site}",
     "den": "The Den",
-    "den_closed": "The Den · opens at {tier}"
+    "den_closed": "The Den · opens at {tier}",
+    "camp": "Bandit camp"
   },
   "report": {
     "success": "Success",
@@ -1066,7 +1138,15 @@
     "tier_done": "Your {tier} base is finished.",
     "building_done": "{building} level {level} is up.",
     "sold_title": "Sold at the Den",
-    "sold": "{amount} {good} went for {price} scrap."
+    "sold": "{amount} {good} went for {price} scrap.",
+    "raided_title": "Raiders!",
+    "raid_held": "The holdfast held. They left behind {gains}.",
+    "raid_breached": "They got in and took {gains}.",
+    "pvp_held": "{name} raided you and failed.",
+    "pvp_breached": "{name} raided you and took {gains}.",
+    "warning_title": "Raiders sighted",
+    "warning": "They land in about {hours} h. Post a guard or shore up the walls.",
+    "nothing": "nothing"
   },
   "feed": {
     "hint": "What everyone on the island is up to.",
@@ -1094,7 +1174,7 @@
     "kind_party_back": "Party back",
     "kind_party_back_sub": "A scout or a party is home.",
     "kind_raided": "Raided",
-    "kind_raided_sub": "Raiders hit the holdfast (raids arrive later this season).",
+    "kind_raided_sub": "Raiders hit the holdfast, or another player raided it.",
     "kind_arrivals": "Newcomers",
     "kind_arrivals_sub": "Someone new steps off the boat.",
     "kind_builds_done": "Builds done",
@@ -1105,7 +1185,13 @@
     "kind_sold": "Sold at the Den",
     "kind_sold_sub": "Someone bought one of your listings.",
     "tab_feed": "Feed",
-    "tab_ranks": "Ranks"
+    "tab_ranks": "Ranks",
+    "raid_held": "{who} held off raiders at the walls.",
+    "raid_breached": "Raiders got into {who}'s holdfast.",
+    "pvp_held": "{target} held off a raid by {who}.",
+    "pvp_breached": "{who} raided {target} and got in.",
+    "kind_raid_warning": "Raiders sighted",
+    "kind_raid_warning_sub": "The warning hours before raiders land."
   },
   "contract": {
     "jetty_timber": {
@@ -1296,5 +1382,92 @@
     "traded": "traded",
     "best_win": "best win",
     "ranks": "#{wealth} in wealth, #{explorer} in exploring, of {players} on the island."
+  },
+  "raid": {
+    "npc": {
+      "held": "Raiders hit the walls in the night, found them manned and melted back into the dark.",
+      "breached": "Raiders came over the wall in the night and left with what lay in the yard."
+    },
+    "pvp": {
+      "held": "{name}'s charges blew a hole, but the guards held the gap.",
+      "breached": "{name}'s crew blew the gate and carried off a share of the yard."
+    },
+    "out": {
+      "held": "{name}'s guards held the gate. The charges are spent.",
+      "breached": "Your crew blew {name}'s gate and came home loaded."
+    },
+    "strike_back": "Strike back",
+    "to_defence": "Defence",
+    "odds": "Defence {defence} against {attack}: {chance}%",
+    "odds_in": "to hold.",
+    "odds_out": "to get in.",
+    "damaged": "The defences took damage: they count {percent}% until repaired.",
+    "shield": "Shielded from raids for {time}.",
+    "revenge": "Strike back at {name} for {percent}% of the charges within two days."
+  },
+  "defence": {
+    "blurb": "Raiders come for holdfasts worth robbing. Walls, traps and guards keep them out.",
+    "closed": "Raiders come for {tier} holdfasts and up.",
+    "closed_sub": "Until then the island leaves you alone. Walls and traps come with Stone.",
+    "tab_defence": "Defence",
+    "tab_raids": "Raids",
+    "points": "defence",
+    "guards": "On guard: {names}",
+    "no_guards": "Nobody on guard",
+    "no_buildings": "Walls, traps and a watchtower add defence: build them from Upgrade.",
+    "damaged": "The raid broke the defences: walls, traps and turret count {percent}% until repaired.",
+    "need": "Need {need}",
+    "repair": "Repair the defences",
+    "next": "Next raid",
+    "sighted": "Raiders sighted",
+    "lands_in": "land in {time}",
+    "to_hold": "to hold",
+    "yours": "defence",
+    "raiders": "raiders",
+    "at_risk": "If they break in, they take about:",
+    "nothing_at_risk": "Nothing in the yard worth taking.",
+    "quiet": "The lookout sees nobody yet. Raiders come about every two nights; you will know {hours} h ahead.",
+    "post_guard": "Post {name} on guard (+{points})",
+    "nobody_free": "Nobody at home is free to stand guard",
+    "build_more": "Build defences",
+    "history": "Raids so far",
+    "no_history": "No raids yet.",
+    "title_npc": "Raiders",
+    "title_in": "{name} raided you",
+    "title_out": "Your raid on {name}",
+    "got_in": "Got in",
+    "repelled": "Held off",
+    "held": "Held",
+    "broke_in": "Broke in",
+    "rules_title": "How raids between holdfasts work",
+    "rule_charges": "Charges are paid up front, win or lose.",
+    "rule_cap": "A raid takes at most {percent}% of each raw and refined resource and at most {scrap} scrap. Parts, items, blueprints and crew are always safe.",
+    "rule_shield": "A holdfast that was broken into is shielded for {hours} h.",
+    "rule_limits": "One raid a day, the same holdfast once in {hours} h, and at most {gap} tier apart.",
+    "rule_revenge": "Whoever is raided may strike back within {hours} h for half the charges.",
+    "rule_leave": "Leave any time, except in the {hours} h after your own raid.",
+    "pvp_closed": "Raids between holdfasts open at {tier}.",
+    "pvp_closed_sub": "Only for those who join: nobody can raid you until you do.",
+    "pvp_blurb": "Friendly raids between holdfasts, for those who want them. Nobody can raid you unless you join.",
+    "join": "Join the raids",
+    "in_raids": "In the raids",
+    "shielded": "Shielded {time}",
+    "ready_in": "Next raid in {time}",
+    "revenge": "{name} raided you: strike back for {percent}% of the charges, {time} left.",
+    "looking": "Looking for holdfasts…",
+    "nobody": "Nobody else is in the raids yet.",
+    "leave_locked": "You can leave in {time}",
+    "leave": "Leave the raids",
+    "revenge_tag": "revenge",
+    "get_in": "to get in",
+    "their_defence": "defence",
+    "charges": "charges",
+    "take": "A breach brings home:",
+    "nothing_to_take": "Nothing worth carrying off.",
+    "charges_left": "{left} charges left after.",
+    "raiding": "Raiding…",
+    "raid": "Raid {name} · {count} charges",
+    "alert": "land in {time} · {chance}% to hold",
+    "strike": "Strike back at {name} · {count} charges"
   }
 }

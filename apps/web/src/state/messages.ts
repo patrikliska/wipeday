@@ -35,6 +35,7 @@ export type Panel =
   | "map"
   | "feed"
   | "den"
+  | "defence"
   | null;
 export type Tone = "neutral" | "success" | "warning" | "danger";
 
@@ -318,6 +319,45 @@ export function refusalMessage(refusal: Refusal, now: number): Message | null {
         }),
         tone: "neutral",
       };
+    // Raids (W6).
+    case "no_damage":
+      return { text: t("refusal.no_damage"), tone: "neutral" };
+    case "no_target":
+      return { text: t("refusal.no_target"), tone: "neutral", panel: "defence" };
+    case "pvp_locked":
+      return {
+        text: t("refusal.pvp_locked", { tier: tierName(refusal.tier) }),
+        tone: "warning",
+        panel: "build",
+      };
+    case "pvp_off":
+      return { text: t("refusal.pvp_off"), tone: "neutral", panel: "defence" };
+    case "self_target":
+      return { text: t("refusal.self_target"), tone: "neutral" };
+    case "target_off":
+      return { text: t("refusal.target_off"), tone: "neutral" };
+    case "shielded":
+      return {
+        text: t("refusal.shielded", { time: duration(refusal.until - now) }),
+        tone: "neutral",
+      };
+    case "attack_cooldown":
+      return {
+        text: t("refusal.attack_cooldown", { time: duration(refusal.readyAt - now) }),
+        tone: "neutral",
+      };
+    case "target_cooldown":
+      return {
+        text: t("refusal.target_cooldown", { time: duration(refusal.readyAt - now) }),
+        tone: "neutral",
+      };
+    case "tier_fence":
+      return { text: t("refusal.tier_fence", { tier: tierName(refusal.tier) }), tone: "neutral" };
+    case "opt_out_locked":
+      return {
+        text: t("refusal.opt_out_locked", { time: duration(refusal.until - now) }),
+        tone: "neutral",
+      };
   }
 }
 
@@ -354,12 +394,50 @@ export function feedLine(event: FeedEvent, who: string): string {
       });
     case "jackpot_won":
       return t("feed.jackpot", { who, amount: abbrev(event.amount) });
+    case "raid_landed":
+      return t(`feed.raid_${event.report.outcome}`, { who });
+    case "raid_launched":
+      return t(`feed.pvp_${event.report.outcome}`, { who, target: event.targetName });
   }
 }
 
 /** The happenings worth a toast; effects in the scene cover the rest. */
 export function eventMessage(event: GameEvent): Message | null {
   switch (event.type) {
+    // Raids (W6).
+    case "raid_warned":
+      return {
+        text: t("toast.raid_warned", { time: duration(Math.max(0, event.lands - event.at)) }),
+        tone: "warning",
+        panel: "defence",
+      };
+    case "raid_landed":
+      return {
+        text:
+          event.report.outcome === "held"
+            ? t("toast.raid_held")
+            : t("toast.raid_breached", { gains: gainLines(event.report.lost, 2).join(", ") }),
+        tone: event.report.outcome === "held" ? "success" : "danger",
+        report: event.report.id,
+      };
+    case "raided":
+      return {
+        text: t(`toast.pvp_${event.report.outcome}`, { name: event.attackerName }),
+        tone: event.report.outcome === "held" ? "success" : "danger",
+        report: event.report.id,
+      };
+    case "raid_launched":
+      return {
+        text: t(event.report.outcome === "breached" ? "toast.raid_won" : "toast.raid_lost", {
+          name: event.targetName,
+        }),
+        tone: event.report.outcome === "breached" ? "success" : "warning",
+        report: event.report.id,
+      };
+    case "repaired":
+      return { text: t("toast.repaired"), tone: "success" };
+    case "pvp_set":
+      return { text: t(event.on ? "toast.pvp_on" : "toast.pvp_off"), tone: "neutral" };
     case "task_done":
       return { text: t("toast.task_done", { task: taskName(event.task) }), tone: "success" };
     case "build_done":

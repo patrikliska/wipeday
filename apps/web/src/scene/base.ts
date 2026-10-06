@@ -19,6 +19,8 @@ interface Owned {
   crates: number;
   /** Buildings going up right now, by id (their scaffold shows). */
   constructing: string[];
+  /** A raid broke the defences (W6): the walls show the breach until repaired. */
+  damaged: boolean;
 }
 
 /**
@@ -42,6 +44,9 @@ const SPOTS: Record<string, { x: number; y: number; layer: "back" | "front" }> =
   tannery: { x: -272, y: 40, layer: "front" },
   garden: { x: -150, y: 58, layer: "front" },
   lights: { x: -10, y: 44, layer: "front" },
+  // W6: the traps across the yard in front of the door, the turret at the wall's east end.
+  traps: { x: -30, y: 76, layer: "front" },
+  turret: { x: 362, y: -40, layer: "back" },
 };
 /** Stations whose chimney shows work, not just a fire: they smoke only while making something. */
 const CRAFTING = new Set(["kiln", "press"]);
@@ -583,7 +588,7 @@ export class Base {
     if (building("walls")) {
       const [from, to] = WALL_SPAN.map((x) => x / STATION_SCALE) as [number, number];
       if (wall > 0) {
-        const drawn = makeBuilding("walls", wall, [from, to]);
+        const drawn = makeBuilding("walls", wall, [from, to], owned.damaged);
         if (drawn) add(drawn, 0, -14 / STATION_SCALE, 1, "back");
       }
       scaffold("walls", from + 80, -14 / STATION_SCALE, "back");

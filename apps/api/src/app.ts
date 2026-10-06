@@ -186,6 +186,8 @@ export function createApp(deps: AppDeps): Hono<Env> {
 
   authed.get("/ranks", (c) => c.json(game.ranks(c.get("playerId"))));
 
+  authed.get("/raids", (c) => c.json(game.raids(c.get("playerId"))));
+
   authed.get("/notify", (c) => {
     const playerId = c.get("playerId");
     return c.json({

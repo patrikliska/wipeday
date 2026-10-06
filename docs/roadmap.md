@@ -4,7 +4,7 @@ Companion to `docs/game-design.md` (what the game becomes) and `docs/decisions.m
 are the way they are). This file says **what to build next, in which order, and how hard the
 agent should think at each step**.
 
-## Where we are (2026-10-05)
+## Where we are (2026-10-06)
 
 - W0 done: the monorepo, the web spec in `CLAUDE.md`, an injected `Clock` everywhere.
 - W1 done and live at https://wipeday.patrikliska.dev (Discord login confirmed from the owner's
@@ -22,7 +22,8 @@ agent should think at each step**.
   stations, guard) and rests on a tap; bonds; trip events; keycodes (tin, copper, brass) gating
   the weather station, the far north and the sea; four tier 4-5 sites; the island feed and Web
   Push notifications (D90-D97). The optimal player reaches the Offshore Platform on day 18.
-- W5 done on branch `w5` (not merged or deployed yet). The Den opens at Stone (D98-D105):
+- W5 done, merged into main and pushed 2026-10-06, not deployed yet. The Den opens at Stone
+  (D98-D105):
   - the market: player listings held in escrow in the seller's base, and a sale as one
     transaction over both bases;
   - the Den's own daily counter and contracts;
@@ -32,16 +33,55 @@ agent should think at each step**.
   - leaderboards in six categories and the season card.
   - Late site scrap is trimmed, and a map-scrap loophole that let the sea skip its scout is
     closed.
+- W6 done on branch `w6`, not merged or deployed yet (D106-D113):
+  - **Defence:** walls, the watchtower (warning hours), new traps and turret, and guards. A
+    breach halves the buildings until a scrap-and-stone repair.
+  - **NPC raids:** planned only while the player plays, landing on an evening two days
+    ahead. They are warned hours before and take at most 5% (scrap capped).
+  - **Charges:** gunpowder and charges, and three bandit camps paid in charges.
+  - **PvP:** opt-in from Sheet Metal, instant, one transaction over both bases, with every
+    limit tested and the 10% cap proved by property tests.
+  - **The client:** the Defence panel with its Raids tab, raid report cards, the raid
+    banner, the shield badge, torches on the ridge and breached walls.
 - Two live players on https://wipeday.patrikliska.dev (the owner and a friend).
 
-### Next: W6 (raids and defense)
+### Next: W7 (seasons and the legacy layer)
 
-Scope as in the phase list below. Things W5 leaves for it:
-- Late scrap still rises after the last tool (casual 5.2k on day 35, D104). Charges and raid
-  repairs are the late sinks; site scrap can go back up once they exist.
-- Guard defence already feeds a leaderboard (Guard, D103) and is waiting for raids.
-- "Raided" is a notification kind since W4b (on by default) with nothing to fire it yet.
-- Plan first (plan mode): the PvP limits are tests before UI.
+First: the owner merges `w6` and deploys W5 + W6 together, with a database copy on the VPS
+first (`docs/deploy.md`).
+
+Scope as in the phase list below. Things W6 leaves for it:
+- Late scrap still rises (casual 5.6k on day 35, D112). The Signal is the next big sink.
+- Raid reports, the raid counters in `stats` (defended, breached, raidsWon) and the Guard
+  rank belong on the season summary at the reset.
+- Plan first (plan mode): the reset is one transaction, and the 25% legacy cap is a test
+  over every perk combination.
+
+### W6 results (acceptance)
+
+- **Every PvP limit is a test** (`packages/domain/src/pvp.test.ts`):
+  - opt-in and the tier;
+  - self;
+  - the shield;
+  - one raid a day;
+  - the same target once in 72 h;
+  - the fence;
+  - charges;
+  - what revenge costs and skips, and that it gives no counter-token;
+  - the opt-out lock.
+- **The API tests** (`apps/api/src/raid.test.ts`):
+  - two attackers on one target;
+  - a replayed key;
+  - 50 parallel attacks (exactly one gets through);
+  - an NPC raid due on the defender before the take;
+  - the offline push;
+  - the tick.
+- **A raided player never loses more than the cap.** Property tests over random bases,
+  defences and seeds, for NPC raids (`raids.test.ts`) and PvP raids (`pvp.test.ts`), check:
+  - no resource loses more than 10%;
+  - scrap stays under its ceiling;
+  - parts, items, blueprints, crew and escrow are untouched;
+  - what the attacker gains is exactly what the defender loses.
 
 ### W5 results (acceptance)
 
@@ -252,7 +292,7 @@ Build:
 Done when: RTP tests pass; wager caps hold under concurrent clicks (test with 50 parallel
 commands); the market cannot create resources from nothing (invariant test).
 
-### W6. Raids and defense
+### W6. Raids and defense (done)
 
 *Goal:* wealth attracts trouble; defense is a build choice.
 

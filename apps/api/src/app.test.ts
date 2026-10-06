@@ -363,6 +363,7 @@ describe("notifications (W4b)", () => {
     expect(first.body.prefs).toEqual({
       party_back: true,
       raided: true,
+      raid_warning: false,
       arrivals: false,
       builds_done: false,
       sold: false,

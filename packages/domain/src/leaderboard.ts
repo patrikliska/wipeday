@@ -6,8 +6,8 @@
 import type { Content } from "@wipe-day/content/schema";
 import { TIERS, type Tier } from "@wipe-day/content/tiers";
 import type { BaseState } from "./base";
-import { defence } from "./crew";
 import { refValue } from "./goods";
+import { defenceOf } from "./raids";
 
 export const CATEGORIES = ["wealth", "builder", "explorer", "trader", "lucky", "guard"] as const;
 export type Category = (typeof CATEGORIES)[number];
@@ -60,7 +60,7 @@ export function scoreOf(
     case "lucky":
       return state.stats.biggestWin;
     case "guard":
-      return defence(content, state, now);
+      return defenceOf(content, state, now).total;
   }
 }
 

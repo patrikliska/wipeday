@@ -59,6 +59,8 @@ const TERRAIN: Record<Region["terrain"], number> = {
   tundra: 0xc9d2d4,
   sea: 0x3d7ea6,
 };
+/** The bandits' flag on a camp's marker (W6). */
+const CAMP_COLOR = 0xf05252;
 /** Site markers by tier: the base-tier colours, one step up per tier. */
 const SITE_COLOR = [0xc2a868, 0x9aa0a6, 0x6c97bc, 0x45c2c0, 0xcd412b];
 const FOG = 0xe9edf1;
@@ -308,15 +310,22 @@ export class MapView {
     for (const site of content.sites) {
       const region = content.regions.find((candidate) => candidate.id === site.region);
       if (!region) continue;
-      const offset = content.sites.filter((s) => s.region === site.region).indexOf(site);
-      const x = region.x + (offset === 0 ? 0 : (offset % 2 === 0 ? -1 : 1) * 46);
-      const y = region.y + 18 + offset * 12;
+      const offset = content.sites.filter((s) => s.region === site.region && !s.pin).indexOf(site);
+      // A pinned site (the bandit camps, W6) sits where the data puts it, clear of the labels.
+      const x = region.x + (site.pin?.[0] ?? (offset === 0 ? 0 : (offset % 2 === 0 ? -1 : 1) * 46));
+      const y = region.y + (site.pin?.[1] ?? 18 + offset * 12);
       const marker = new Container();
       const pin = new Graphics();
       const color = SITE_COLOR[site.tier - 1] ?? 0xffffff;
       pin.circle(0, 0, 13).fill({ color: 0x000000, alpha: 0.35 });
       pin.circle(0, -2, 12).fill(0x1b1a18).stroke({ width: 3, color });
-      pin.rect(-5, -8, 10, 9).fill(color).rect(-2, -5, 4, 6).fill(0x1b1a18);
+      if (site.camp) {
+        // A bandit camp (W6): their red flag on a pole, not a ruin.
+        pin.rect(-4, -10, 2, 14).fill(color);
+        pin.poly([-2, -10, 7, -7, -2, -3]).fill(CAMP_COLOR);
+      } else {
+        pin.rect(-5, -8, 10, 9).fill(color).rect(-2, -5, 4, 6).fill(0x1b1a18);
+      }
       marker.addChild(pin);
       marker.position.set(x, y);
       marker.eventMode = "static";

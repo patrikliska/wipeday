@@ -1023,3 +1023,161 @@ the casual player reaches on day 4 (the design says day 5).
 - A new advice, `den` (a contract is ready), ranks after craft and before gather.
 - Ranks are a second tab of the feed panel, now titled "The island", which phones already
   reach from the clock chip.
+
+## W6 (raids and defence)
+
+### D106. What a raid can take: a capped slice of the yard, never parts, items or crew
+The owner chose "resources plus a little scrap" (2026-10-06). The design's "unboxed resources"
+means this slice, because crates add room but hold nothing of their own:
+- At most `capPercent` (10%) of each raw and refined resource in stock, counting what is
+  waiting to be collected (it is banked at the landing).
+- At most 10% of the scrap, and never more than the tier's ceiling (50 / 150 / 300 scrap at
+  Stone / Sheet Metal / Armored).
+- Parts, items, gear, blueprints, crew and goods in escrow are never at risk.
+- The cap holds per raid. Property tests over random bases (`raids.test.ts`, `pvp.test.ts`)
+  check it for NPC and PvP raids.
+- NPC breaches take `lossPercent` (5%), half the cap. At 10% the casual player's Sheet Metal
+  slipped to day 16 (see D112). PvP takes the full cap.
+
+### D107. NPC raids follow a player who plays, land on a planned night, and settle at their time
+- **Planning.** `planRaid` runs after every command, refused ones included, when no raid is
+  pending. A plain look, the server's tick and the client's frame never plan, so however long
+  a player stays away, at most one raid lands meanwhile.
+- **Landing time.** The raid lands on the UTC day `planDays` (2) ahead, at a seeded time in
+  20:00–23:00 UTC. That is the scene's night and the Czech evening, so the "raided" push does
+  not wake anyone at 3 am. It is never sooner than 72 hours after the base reached Stone.
+  Bases that reached Stone before W6 count from their first command after the update.
+- **Prediction.** The time depends on the day, not the second, so the client predicts the
+  same plan as the server.
+- **Settling.** `settleAll` splits at the landing: it settles everything else to `raid.at`,
+  resolves the raid against the base as it stood then, and settles on to now. It never
+  recurses. The warning flips once at `at - warnHours` and is a timer like the landing
+  (`nextEventAt`).
+- **Rolls.** Strength = the tier's base plus one point per 40 scrap at risk, capped by tier.
+  Hold chance = defence / (defence + strength), clamped to 10–95%. Held: the raiders leave
+  scrap and sulfur (gunpowder and charges higher up). Breached: the loss, and the defences
+  are damaged (D108).
+
+### D108. The defence score: buildings and guards; a breach halves the buildings until repaired
+- Defence = the buildings' new `defence` effect plus the guards (D90):
+  - walls: 10 / 20 / 35;
+  - watchtower: 2 / 4 / 6, plus `warnHours` 5 / 9 / 15 on top of the base 3 hours;
+  - new traps at Stone: 6 / 12 / 20;
+  - new turret at Sheet Metal: 20 / 35 / 55.
+- 18 building types now.
+- After a breach (NPC or PvP) the buildings count `damagedPercent` (50%) until a `repair`,
+  which costs scrap and stone by tier. That is the report card's follow-up, and another late
+  scrap sink.
+- The Guard leaderboard now ranks the full score.
+
+### D109. Gunpowder, charges and three bandit camps
+- Sulfur gets its first use:
+  - gunpowder: 20 sulfur and 5 charcoal make 5, at the kiln;
+  - a charge: 20 gunpowder and 4 cloth, at workbench level 2.
+- Both are parts: uncapped, never at risk, tradeable.
+- Three bandit camps are sites with `camp: true` and charges in their rations:
+  - Driftwood Camp: tier 2, 2 charges;
+  - Saltpan Camp: tier 3, 4 charges;
+  - Cinder Fort: tier 4, 8 charges.
+- They reuse the trip engine whole. They pay in parts, sulfur and high blueprint chances,
+  with little scrap, and can be raided again and again.
+- They stay out of the site chain: the simulator's site targets ignore them, and so does a
+  keycode's worth.
+- A `pin` places their map marker clear of the ruins' labels.
+
+### D110. PvP: opt-in from Sheet Metal, one instant transaction over two bases
+The owner chose instant raids from Sheet Metal (2026-10-06). The flow mirrors a market sale
+(D99):
+1. The server settles the defender.
+2. It hands the defender to the attacker's `raid_player` as `World.target`.
+3. The domain rolls on the server's seed.
+4. `takeRaid` applies the defender's half with exactly what the attacker's report took.
+
+Both bases are saved in the same SQLite transaction.
+
+The limits, each with its own test:
+- **Opt-in.** Joining needs Sheet Metal (`set_pvp`).
+- **Leaving.** Locked for 48 hours after your own raid, so a victim's revenge can always land.
+- **Charges.** Paid up front, by the target's tier (6 / 10), win or lose.
+- **Shield.** 24 hours after being broken into. Attacking ends your own shield.
+- **Frequency.** One attack per rolling 24 hours, and the same target once per 72 hours.
+- **Tier fence.** At most one tier apart either way (the design doc's "within one tier"). With
+  PvP opening at Sheet Metal it cannot bite today, but it is tested with a fence of 0.
+- **Revenge.**
+  - Any raid but a revenge raid gives the defender a 48-hour token.
+  - It costs half, rounded up.
+  - It skips the 72-hour rule and the fence, never the daily limit or a shield.
+  - It is used up either way and gives no counter-token.
+- **The take.** On a breach the attacker takes the full capped slice, fitted to its own
+  storage room. The defender loses exactly what the attacker gains, so a raid creates
+  nothing.
+
+The API tests cover:
+- two attackers racing for one target;
+- a replayed key;
+- 50 parallel attacks with distinct keys (exactly one gets through);
+- an NPC raid due on the defender before the take.
+
+No migration: all of it lives in the bases' JSON.
+
+### D111. Raid notifications and the feed
+- "Raided" (on by default since W4b) now fires for NPC landings and PvP raids, with what was
+  lost.
+- A new "Raiders sighted" kind is off by default (6.3 rule 11).
+- The feed carries NPC raids (held or broken in) and every PvP raid, from the attacker's log
+  line.
+- Raids join the welcome-back summary. A push opens the game on the raid's report card
+  (`?report=`), and the warning opens the Defence panel (`?defence`).
+
+### D112. W6 balance: raids cost the casual player a day or two, and the targets say so
+- The simulator's players:
+  - build defence first once raided;
+  - post their best guard when a raid is announced and the walls would likely not hold;
+  - repair;
+  - make gunpowder and charges up to their dearest known camp;
+  - raid camps when nothing better is open (a camp is worth half a tier below its own).
+- A new raider archetype (active) raids a casual player who opted in. `simulatePair` plays
+  both halves.
+- Results (seed 1, 35 days):
+
+  | | Casual | Active | Optimal | Gambler | Raided casual |
+  | --- | --- | --- | --- | --- | --- |
+  | Sheet Metal | day 14 | day 12 | day 9 | day 16 | day 15 |
+  | Armored | day 23 | day 18 | day 15 | day 22 | day 24 |
+  | NPC raids held by day 28 | 3 of 7 | 5 of 9 | 5 of 12 | 3 of 7 | 5 of 8 |
+  | Camp trips (35 days) | 14 | 71 | 128 | 19 | 13 |
+  | Scrap on days 14 / 21 / 28 / 35 | 1.0k / 1.1k / 3.1k / 5.6k | 1.2k / 1.3k / 3.0k / 4.1k | 3.4k / 4.5k / 7.0k / 10.8k | 1.1k / 0.6k / 0.1k / 4.4k | 1.3k / 1.1k / 3.2k / 4.6k |
+
+- The raider got in three times, and the raided casual still reached Armored on day 24.
+- Before W6 the casual player reached Sheet Metal on day 12. Without NPC raids it still
+  would; with them, day 14. The metal tier is ingot-bound, and a small loss pushes the build
+  past a check-in.
+- Tried and rejected:
+  - a 10% NPC loss and a 48-hour grace: Sheet Metal on day 16;
+  - stronger raiders: the casual player held under a third.
+- New pacing targets:
+  - the first raid by day 8;
+  - casual holds at least 30% by day 28;
+  - the first camp by day 16;
+  - the raider gets in 3+ times;
+  - the raided casual reaches Armored by day 28.
+- Late scrap still rises (casual 5.6k on day 35). Camps and held raids add some. D104's
+  site-scrap trim stays.
+
+### D113. Where defence lives in the client
+- **Desktop:** a Defence dock button (disabled with "Opens at Stone" before then).
+- **Phones**, where the five dock slots are taken (D45):
+  - a shield badge over the walls, fixed size (D48), showing calm, sighted, broken or
+    shielded;
+  - a full-width "Raiders sighted · land in 6h 30m · 82% to hold" banner under the top bar
+    from the warning until the landing.
+- The advisor's new `defend` and `repair` advice lights the button or the banner.
+- **The panel:**
+  - Defence tab: the score and its parts, the announced raid's odds and what is at risk,
+    one tap to post the best free guard, the repair, and the history.
+  - Raids tab: the rules come before "Join the raids"; the targets list follows.
+- PvP buttons use a separate danger style, never the advisor's primary red (6.3 rule 1).
+- **The scene:**
+  - the raiders' torches gather on the ridge once sighted;
+  - breaches show in the wall while damaged;
+  - traps and the turret are drawn at three levels.

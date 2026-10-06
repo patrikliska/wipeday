@@ -15,7 +15,7 @@
       timber: 2, stone: 2, ore: 5, ingots: 8, sulfur_ore: 6, sulfur: 10,
       fibre: 6, hide: 25, fat: 30, food: 6,
       planks: 10, rope: 25, cloth: 25, leather: 80, charcoal: 8, fuel: 60,
-      plates: 120, frames: 150, gears: 400, springs: 500,
+      plates: 120, frames: 150, gears: 400, springs: 500, gunpowder: 50, charge: 1200,
       crate: 2000, large_crate: 6000, strongbox: 15000,
       bandage: 400, first_aid_kit: 1500,
       bow: 1500, spear: 1000, crossbow: 4000, leather_vest: 2500,

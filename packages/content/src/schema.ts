@@ -133,6 +133,10 @@ export const effectsSchema = z.strictObject({
   furnace: z.int().min(1).optional(),
   /** Rings a scout reaches beyond the base tier's range. */
   scoutRange: z.int().min(0).optional(),
+  /** Defence points against raids (W6). */
+  defence: z.int().min(0).optional(),
+  /** Hours more warning before NPC raiders land (W6). */
+  warnHours: z.int().min(0).optional(),
 });
 export type Effects = z.infer<typeof effectsSchema>;
 
@@ -378,6 +382,10 @@ export const siteSchema = z.strictObject({
   keycode: z.string().optional(),
   /** Items a success may bring home, each with its percent chance. */
   finds: z.array(z.strictObject({ item: z.string(), chance: z.int().min(1).max(100) })).optional(),
+  /** A bandit camp (W6): a raid on it, paid in charges; drawn apart and left out of the site chain. */
+  camp: z.boolean().optional(),
+  /** Where the map draws the marker, from the region's centre in map units (default: by order). */
+  pin: z.tuple([z.int().min(-200).max(200), z.int().min(-200).max(200)]).optional(),
 });
 
 export const OUTCOMES = ["success", "partial", "fail"] as const;
@@ -435,6 +443,21 @@ export const pacingSchema = z.strictObject({
     tool: z.strictObject({ id: z.string(), byDay: z.int().min(1) }),
     /** W5: the scrap held on season day `day` stays between `min` and `max`. */
     scrap: z.strictObject({ day: z.int().min(1), min: z.int().min(0), max: z.int().min(0) }),
+    /** W6: the first NPC raid lands by `firstByDay`; by `day`, at least `heldPercent` held. */
+    raids: z.strictObject({
+      firstByDay: z.int().min(1),
+      day: z.int().min(1),
+      heldPercent: z.int().min(0).max(100),
+    }),
+    /** W6: the first trip to a bandit camp (charges made and spent) by this day. */
+    firstCampByDay: z.int().min(1),
+  }),
+  /** W6: the raider against a casual player in the raids. */
+  pvp: z.strictObject({
+    /** The raider gets in at least this many times in the season... */
+    minRaids: z.int().min(0),
+    /** ...and the raided casual player still reaches Armored by this day. */
+    targetHqmByDay: z.int().min(1),
   }),
   optimal: z.strictObject({
     hqmNotBeforeDay: z.int().min(1),
@@ -532,6 +555,48 @@ export const denSchema = z.strictObject({
 export type Den = z.infer<typeof denSchema>;
 export type Casino = Den["casino"];
 
+/** Raids and defence (W6): raids.json5. */
+const percent = z.int().min(0).max(100);
+export const raidsSchema = z.strictObject({
+  capPercent: z.int().min(1).max(100),
+  scrapCeiling: z.partialRecord(tier, z.int().min(0)),
+  minChance: percent,
+  maxChance: percent,
+  damagedPercent: percent,
+  repair: z.partialRecord(tier, amounts),
+  npc: z.strictObject({
+    startTier: tier,
+    firstAfterHours: z.int().min(0),
+    planDays: z.int().min(1),
+    windowStartHour: z.int().min(0).max(23),
+    windowHours: z.int().min(1).max(24),
+    warnBaseHours: z.int().min(0),
+    lossPercent: z.int().min(1).max(100),
+    scrapPerPoint: z.int().min(1),
+    strength: z.partialRecord(tier, z.strictObject({ base: z.int().min(0), max: z.int().min(1) })),
+    held: z.partialRecord(
+      tier,
+      z.array(
+        z
+          .strictObject({ resource: z.string(), min: z.int().min(1), max: z.int().min(1) })
+          .refine((entry) => entry.max >= entry.min, { message: "max must be >= min" }),
+      ),
+    ),
+  }),
+  pvp: z.strictObject({
+    minTier: tier,
+    maxTierGap: z.int().min(0),
+    charges: z.partialRecord(tier, z.int().min(1)),
+    attack: z.partialRecord(tier, z.int().min(1)),
+    shieldHours: z.int().min(1),
+    attackHours: z.int().min(1),
+    sameTargetHours: z.int().min(1),
+    revengeHours: z.int().min(1),
+    revengePercent: z.int().min(1).max(100),
+  }),
+});
+export type Raids = z.infer<typeof raidsSchema>;
+
 export type Resource = z.infer<typeof resourceSchema>;
 export type Tool = z.infer<typeof toolSchema>;
 export type BaseTier = z.infer<typeof baseTierSchema>;
@@ -573,6 +638,7 @@ export interface Content {
   pacing: Pacing;
   active: Active;
   den: Den;
+  raids: Raids;
 }
 
 /**
@@ -652,5 +718,6 @@ export const DATA_FILES = [
   "active.json5",
   "pacing.json5",
   "den.json5",
+  "raids.json5",
 ] as const;
 export type DataFile = (typeof DATA_FILES)[number];

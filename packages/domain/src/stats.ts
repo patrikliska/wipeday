@@ -20,6 +20,10 @@ export interface Stats {
   /** The biggest single payout. */
   biggestWin: number;
   contracts: number;
+  /** Raids held off (NPC and PvP), times broken into, and PvP raids that got in (W6). */
+  defended: number;
+  breached: number;
+  raidsWon: number;
   /** When each base tier was reached. */
   reached: Partial<Record<Tier, number>>;
 }
@@ -33,6 +37,9 @@ export function newStats(): Stats {
     won: 0,
     biggestWin: 0,
     contracts: 0,
+    defended: 0,
+    breached: 0,
+    raidsWon: 0,
     reached: {},
   };
 }
@@ -73,6 +80,14 @@ export function recordStats(state: BaseState, events: GameEvent[], now: number):
       }
       case "contract_done":
         edit().contracts += 1;
+        break;
+      case "raid_landed":
+      case "raided":
+        if (event.report.outcome === "held") edit().defended += 1;
+        else edit().breached += 1;
+        break;
+      case "raid_launched":
+        if (event.report.outcome === "breached") edit().raidsWon += 1;
         break;
       default:
         break;

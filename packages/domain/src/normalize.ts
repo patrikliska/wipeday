@@ -16,6 +16,7 @@ import {
   newSurvivor,
 } from "./base";
 import type { Survivor } from "./missions";
+import { newPvp } from "./raids";
 import { newStats } from "./stats";
 
 /** Items that were renamed, old id -> new id. */
@@ -116,6 +117,13 @@ export function normalizeState(content: Content, stored: unknown): BaseState {
     contracts: raw.contracts ?? { day: -1, tier: "twig", ids: [], done: [] },
     casino: raw.casino ?? { day: -1, wagered: 0, won: 0 },
     wheelBets: raw.wheelBets ?? [],
-    stats: raw.stats ?? newStats(),
+    stats: { ...newStats(), ...raw.stats },
+    // W6: raids. The first one is planned at the first command after the update, and lands
+    // no sooner than `firstAfterHours` after it for a base that reached Stone before W6.
+    raid: raw.raid ?? null,
+    raidSeq: raw.raidSeq ?? 0,
+    raidReports: raw.raidReports ?? [],
+    damaged: raw.damaged ?? false,
+    pvp: { ...newPvp(), ...raw.pvp },
   };
 }
