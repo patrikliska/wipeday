@@ -441,6 +441,21 @@ export const pacingSchema = z.strictObject({
     tool: z.strictObject({ id: z.string(), byDay: z.int().min(1) }),
     /** W5: the scrap held on season day `day` stays between `min` and `max`. */
     scrap: z.strictObject({ day: z.int().min(1), min: z.int().min(0), max: z.int().min(0) }),
+    /** W6: the first NPC raid lands by `firstByDay`; by `day`, at least `heldPercent` held. */
+    raids: z.strictObject({
+      firstByDay: z.int().min(1),
+      day: z.int().min(1),
+      heldPercent: z.int().min(0).max(100),
+    }),
+    /** W6: the first trip to a bandit camp (charges made and spent) by this day. */
+    firstCampByDay: z.int().min(1),
+  }),
+  /** W6: the raider against a casual player in the raids. */
+  pvp: z.strictObject({
+    /** The raider gets in at least this many times in the season... */
+    minRaids: z.int().min(0),
+    /** ...and the raided casual player still reaches Armored by this day. */
+    targetHqmByDay: z.int().min(1),
   }),
   optimal: z.strictObject({
     hqmNotBeforeDay: z.int().min(1),

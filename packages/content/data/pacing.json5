@@ -25,7 +25,14 @@
     // W5: scrap rises slowly. On this day the casual player holds between min and max:
     // enough to use the Den, not a pile with nothing to buy.
     scrap: { day: 28, min: 800, max: 4000 },
+    // W6: raiders come in the second week, and a casual defence holds some of them off.
+    raids: { firstByDay: 8, day: 28, heldPercent: 30 },
+    // Charges get made and spent on a bandit camp within the season's first half.
+    firstCampByDay: 16,
   },
+  // W6: the raider (active, raids at every chance the limits allow) against a casual player
+  // who opted in: PvP happens, and the raided player still reaches Armored.
+  pvp: { minRaids: 3, targetHqmByDay: 28 },
   // W5: the gambler plays the biggest bet up to the daily cap at every check-in. Its scrap
   // never goes negative and no day's wagers pass that day's cap (asserted in the check).
   // The greedy planner with hourly check-ins must not beat these.

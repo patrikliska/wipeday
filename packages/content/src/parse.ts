@@ -148,7 +148,10 @@ function emptyContent(): Content {
         crew: { day: 1, count: 1 },
         tool: { id: "", byDay: 1 },
         scrap: { day: 1, min: 0, max: 0 },
+        raids: { firstByDay: 1, day: 1, heldPercent: 0 },
+        firstCampByDay: 1,
       },
+      pvp: { minRaids: 0, targetHqmByDay: 1 },
       optimal: {
         hqmNotBeforeDay: 1,
         tierThreeSiteNotBeforeDay: 1,

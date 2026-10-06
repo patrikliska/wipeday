@@ -23,7 +23,7 @@
   npc: {
     // Raiders come from this tier on, the first time this long after reaching it.
     startTier: "stone",
-    firstAfterHours: 48,
+    firstAfterHours: 72,
     // A raid is planned when the player acts and none is pending: it lands on the night
     // `planDays` UTC days later, somewhere in [windowStartHour, windowStartHour + windowHours).
     planDays: 2,
@@ -32,14 +32,14 @@
     // The warning comes this many hours ahead, plus the watchtower's `warnHours`.
     warnBaseHours: 3,
     // A breach takes this percent of each resource (at most capPercent) and of the scrap.
-    lossPercent: 10,
+    lossPercent: 5,
     // Raiders grow with what lies in the yard: one point per this much scrap at risk...
-    scrapPerPoint: 10,
+    scrapPerPoint: 40,
     // ...on top of the tier's base, up to its max.
     strength: {
-      stone: { base: 6, max: 30 },
-      metal: { base: 20, max: 80 },
-      hqm: { base: 45, max: 160 },
+      stone: { base: 4, max: 16 },
+      metal: { base: 15, max: 60 },
+      hqm: { base: 35, max: 120 },
     },
     // Holding them off: what they leave behind, by base tier (each line rolled min-max).
     held: {

@@ -173,9 +173,7 @@ describe("the Den's checks (W5)", () => {
 describe("the raids' checks (W6)", () => {
   it("keeps NPC losses inside the cap and every tier covered", () => {
     const dir = dataWith("raids.json5", (text) =>
-      text
-        .replace("lossPercent: 10", "lossPercent: 25")
-        .replace("hqm: { base: 45, max: 160 },", ""),
+      text.replace("lossPercent: 5", "lossPercent: 25").replace("hqm: { base: 35, max: 120 },", ""),
     );
     const problems = problemsOf(dir);
     expect(problems).toContain("raids.json5 `npc`: lossPercent is above capPercent");

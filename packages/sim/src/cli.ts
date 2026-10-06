@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { loadContent, loadLocale } from "@wipe-day/content/load";
 import { contentPaths } from "@wipe-day/content/paths";
 import { measureAll } from "./rtp";
-import { ARCHETYPES, checkPacing, type Run, simulate } from "./sim";
+import { ARCHETYPES, checkPacing, type Run, simulate, simulatePair } from "./sim";
 
 /** CSV output goes to `var/sim/` at the repo root, next to the other local runtime state. */
 const repoRoot = resolve(fileURLToPath(new URL(".", import.meta.url)), "../../..");
@@ -26,14 +26,16 @@ function table(run: Run): string {
       .map(([tier, day]) => `${tier} d${day}`)
       .join(", ")}; first trips: ${Object.entries(run.firstTrip)
       .map(([tier, day]) => `t${tier} d${day}`)
-      .join(", ")}; first job d${run.firstJob ?? "-"})`,
-    "day  tier   tool             fill                cap   ingots    fuel   scrap  items  parts  bldgs  crew  known  build  den-  den+  bet   won",
+      .join(", ")}; first job d${run.firstJob ?? "-"}; first raid d${run.firstRaid ?? "-"})`,
+    "day  tier   tool             fill                cap   ingots    fuel   scrap  items  parts  bldgs  crew  known  build  den-  den+  bet   won   def  chg  raid    loss camp  pvp+  pvp-",
   ];
   for (const row of run.rows) {
     lines.push(
       `${String(row.day).padStart(3)}  ${row.tier.padEnd(6)} ${row.tool.padEnd(16)} ` +
         `${row.fill.padEnd(18)} ${String(row.cap).padStart(6)} ${String(row.ingots).padStart(8)} ` +
-        `${String(row.fuel).padStart(7)} ${String(row.scrap).padStart(7)}  ${String(row.items).padStart(5)}  ${String(row.parts).padStart(5)}  ${String(row.buildings).padStart(5)}  ${String(row.crew).padStart(4)}  ${String(row.known).padStart(5)}  ${(row.building ? "yes" : "").padEnd(5)} ${String(row.denSpent).padStart(4)}  ${String(row.denEarned).padStart(4)}  ${String(row.wagered).padStart(4)}  ${String(row.won).padStart(4)}`,
+        `${String(row.fuel).padStart(7)} ${String(row.scrap).padStart(7)}  ${String(row.items).padStart(5)}  ${String(row.parts).padStart(5)}  ${String(row.buildings).padStart(5)}  ${String(row.crew).padStart(4)}  ${String(row.known).padStart(5)}  ${(row.building ? "yes" : "").padEnd(5)} ${String(row.denSpent).padStart(4)}  ${String(row.denEarned).padStart(4)}  ${String(row.wagered).padStart(4)}  ${String(row.won).padStart(4)}` +
+        `  ${String(row.defence).padStart(4)} ${String(row.charges).padStart(4)}  ${(row.raids ? `${row.raidsHeld}/${row.raids}` : "").padEnd(4)}` +
+        `  ${String(row.raidLoss || "").padStart(5)} ${String(row.camps || "").padStart(4)}  ${String(row.pvpTake || "").padStart(4)}  ${String(row.pvpLoss || "").padStart(4)}`,
     );
   }
   return lines.join("\n");
@@ -61,11 +63,20 @@ if (rtp) {
 } else {
   const outDir = join(repoRoot, "var", "sim");
   mkdirSync(outDir, { recursive: true });
-  for (const archetype of ARCHETYPES) {
-    const run = simulate(content, archetype, days);
+  const pair = simulatePair(content, days);
+  const runs: [string, Run][] = [
+    ...ARCHETYPES.map((archetype): [string, Run] => [
+      archetype,
+      simulate(content, archetype, days),
+    ]),
+    ["raider_pvp", pair.raider],
+    ["casual_raided", pair.target],
+  ];
+  for (const [name, run] of runs) {
+    if (name.includes("_")) console.log(`PvP pair: ${name}`);
     console.log(`${table(run)}\n`);
     const csv = [
-      "day,tier,tool,fill,cap,ingots,fuel,scrap,items,buildings,building",
+      "day,tier,tool,fill,cap,ingots,fuel,scrap,items,buildings,building,defence,charges,raids,raidsHeld,raidLoss,camps,pvpTake,pvpLoss",
       ...run.rows.map((row) =>
         [
           row.day,
@@ -79,10 +90,18 @@ if (rtp) {
           row.items,
           row.buildings,
           row.building,
+          row.defence,
+          row.charges,
+          row.raids,
+          row.raidsHeld,
+          row.raidLoss,
+          row.camps,
+          row.pvpTake,
+          row.pvpLoss,
         ].join(","),
       ),
     ].join("\n");
-    writeFileSync(join(outDir, `${archetype}.csv`), `${csv}\n`);
+    writeFileSync(join(outDir, `${name}.csv`), `${csv}\n`);
   }
   console.log(`csv: ${outDir}`);
 }

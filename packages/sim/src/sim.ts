@@ -32,7 +32,13 @@ import { manualClock } from "@wipe-day/domain/clock";
 import { applyCommand, type Command } from "@wipe-day/domain/commands";
 import { deliverStatus } from "@wipe-day/domain/contracts";
 import { boostPercent, craftStatus, maxBatch, queueOf } from "@wipe-day/domain/craft";
-import { type Job, nodeJobRates, stationWorker, traitsOf } from "@wipe-day/domain/crew";
+import {
+  guardScoreOf,
+  type Job,
+  nodeJobRates,
+  stationWorker,
+  traitsOf,
+} from "@wipe-day/domain/crew";
 import { denBuyStatus, denOpen, lotsLeft, offerOf, offerPrice } from "@wipe-day/domain/den";
 import type { GameEvent } from "@wipe-day/domain/events";
 import { held, isCapped } from "@wipe-day/domain/goods";
@@ -49,20 +55,39 @@ import {
   tripStatus,
 } from "@wipe-day/domain/missions";
 import { nodeStatus } from "@wipe-day/domain/nodes";
+import {
+  defenceOf,
+  hitOf,
+  npcOdds,
+  pvpOpen,
+  pvpStatus,
+  raidWarned,
+  repairStatus,
+  scrapWorth,
+  takeRaid,
+} from "@wipe-day/domain/raids";
 import { expandNeeds, type Need, partsToMake, stations } from "@wipe-day/domain/recipes";
 import { rng, seedOf } from "@wipe-day/domain/rng";
 import { settleAll } from "@wipe-day/domain/settle";
 
-export const ARCHETYPES = ["casual", "active", "optimal", "gambler"] as const;
+export const ARCHETYPES = ["casual", "active", "optimal", "gambler", "raider"] as const;
 export type Archetype = (typeof ARCHETYPES)[number];
 
-/** Check-in moments within a day, in hours. The gambler is a casual player who also plays. */
+/**
+ * Check-in moments within a day, in hours. The gambler is a casual player who also plays;
+ * the raider (W6) an active player who raids other holdfasts and bandit camps.
+ */
+const ACTIVE_HOURS = [7, 9, 12, 15, 17, 19, 21, 23];
 const SCHEDULE: Record<Archetype, number[]> = {
   casual: [8, 13, 21],
   gambler: [8, 13, 21],
-  active: [7, 9, 12, 15, 17, 19, 21, 23],
+  active: ACTIVE_HOURS,
   optimal: Array.from({ length: 24 }, (_, hour) => hour),
+  raider: ACTIVE_HOURS,
 };
+
+/** Below this chance to hold an announced raid, a player posts a guard (W6). */
+const GUARD_BELOW = 80;
 
 const HOUR = 3600;
 const DAY = 86400;
@@ -93,6 +118,16 @@ export interface DayRow {
   /** Buildings standing (level 1 or more). */
   buildings: number;
   building: boolean;
+  /** Raids (W6): the defence score, charges held, NPC raids today and how many held, their
+   * loss in scrap at reference prices, PvP takes and losses, and trips to bandit camps. */
+  defence: number;
+  charges: number;
+  raids: number;
+  raidsHeld: number;
+  raidLoss: number;
+  pvpTake: number;
+  pvpLoss: number;
+  camps: number;
 }
 
 export interface Run {
@@ -111,6 +146,9 @@ export interface Run {
   tools: Record<string, number>;
   /** Season day a survivor first took a job at home. */
   firstJob: number | null;
+  /** Season day the first NPC raid landed, and of the first trip to a bandit camp (W6). */
+  firstRaid: number | null;
+  firstCamp: number | null;
 }
 
 /** Where a run's events go while it plays (the first-made days are read from them). */
@@ -143,8 +181,12 @@ export function checkIn(
   state: BaseState,
   now: number,
   archetype: Archetype,
+  options: { pvp?: boolean } = {},
 ): BaseState {
   let s = act(content, state, { type: "collect" }, now);
+  // PvP (W6): the raider joins as soon as it may; a casual target only when asked to.
+  if ((archetype === "raider" || options.pvp) && pvpOpen(content, s) && !s.pvp.on)
+    s = act(content, s, { type: "set_pvp", on: true }, now);
   // Eat before gathering, so the boost counts: the best meal in the cupboard.
   if (boostPercent(s, now) === 0) {
     const meal = content.items
@@ -172,6 +214,8 @@ export function checkIn(
     const before = s;
 
     s = act(content, s, { type: "build", what: "tier" }, now);
+    // A raid broke the defences: mend them while it is cheap to (W6).
+    if (repairStatus(content, s).code === "ok") s = act(content, s, { type: "repair" }, now);
 
     // Keep the base fed: never spend below the next 24 h of upkeep (48 h for casual).
     const reserveHours = archetype === "casual" ? 48 : 24;
@@ -218,11 +262,19 @@ export function checkIn(
         next !== null && buildStatus(content, s, what).code === "ok" && canAfford(next.cost, saving)
       );
     };
+    // Once raiders have come, defence goes first (W6): what a player does after a breach.
+    const raided = s.raidReports.some((report) => report.kind === "npc");
+    const defends = (id: string): number =>
+      raided &&
+      content.buildings.some((b) => b.id === id && b.levels.some((l) => l.effects.defence))
+        ? 0
+        : 1;
     const others = content.buildings
       .map((building) => building.id)
       .filter((id) => id !== "furnace" && id !== "workbench" && spare(id))
       .sort(
         (a, b) =>
+          defends(a) - defends(b) ||
           total(nextBuild(content, s, a)?.cost ?? {}) - total(nextBuild(content, s, b)?.cost ?? {}),
       );
     const cheapest = others[0];
@@ -315,7 +367,10 @@ export function checkIn(
     if (s === before) break;
   }
 
-  s = expeditions(content, s, now);
+  s = charges(content, s, now, archetype);
+  // The raider keeps a raid's worth of charges for other holdfasts; camps get the rest.
+  const reserve = archetype === "raider" && s.pvp.on ? (content.raids.pvp.charges.hqm ?? 0) : 0;
+  s = expeditions(content, s, now, reserve);
   s = den(content, s, now, archetype);
 
   // Smelt whatever ore is waiting, the ore the next tier needs first.
@@ -441,8 +496,26 @@ function neededNode(content: Content, s: BaseState): string {
 function jobs(content: Content, state: BaseState, now: number): BaseState {
   let s = state;
   const node = neededNode(content, s);
+  // Raiders announced and the walls would likely not hold: the best guard at home stands
+  // watch until they have been (W6).
+  const odds = raidWarned(content, s, now) ? npcOdds(content, s, now) : null;
+  const watch =
+    odds && odds.chance < GUARD_BELOW
+      ? s.crew
+          .filter((member) => member.away === null && isFit(member, now))
+          .sort(
+            (a, b) =>
+              Number(b.job?.kind === "guard") - Number(a.job?.kind === "guard") ||
+              guardScoreOf(content, b.id) - guardScoreOf(content, a.id),
+          )[0]?.id
+      : undefined;
   for (const member of s.crew) {
     let job: Job = { kind: "node", node };
+    if (member.id === watch) {
+      if (member.job?.kind !== "guard")
+        s = act(content, s, { type: "assign", survivor: member.id, job: { kind: "guard" } }, now);
+      continue;
+    }
     for (const trait of traitsOf(content, member.id)) {
       for (const station of Object.keys(trait.craft ?? {})) {
         const target =
@@ -470,7 +543,12 @@ function jobs(content: Content, state: BaseState, now: number): BaseState {
  * better (the highest tier, then the shortest trip). Keeps a day of rations for scouting.
  * Whoever stays home goes to work, and the tired rest.
  */
-function expeditions(content: Content, state: BaseState, now: number): BaseState {
+function expeditions(
+  content: Content,
+  state: BaseState,
+  now: number,
+  reserveCharges = 0,
+): BaseState {
   let s = state;
   // Gear: the strongest weapon and armour owned go to whoever has none.
   for (const slot of ["weapon", "armor"] as const) {
@@ -522,12 +600,14 @@ function expeditions(content: Content, state: BaseState, now: number): BaseState
         wantedKeys.set(site.keycode, Math.max(wantedKeys.get(site.keycode) ?? 0, site.tier));
     }
     const worth = (site: Site): number =>
-      Math.max(
-        site.tier,
-        ...(site.finds ?? []).map((find) =>
-          wantedKeys.has(find.item) ? (wantedKeys.get(find.item) ?? 0) + 0.5 : 0,
-        ),
-      );
+      site.camp
+        ? site.tier - 0.5
+        : Math.max(
+            site.tier,
+            ...(site.finds ?? []).map((find) =>
+              wantedKeys.has(find.item) ? (wantedKeys.get(find.item) ?? 0) + 0.5 : 0,
+            ),
+          );
     // Curiosity: of two equal sites, the one not seen lately.
     const visited = (site: Site): number =>
       s.reports.some((report) => report.target === site.id) ? 1 : 0;
@@ -544,7 +624,9 @@ function expeditions(content: Content, state: BaseState, now: number): BaseState
       })
       .filter(
         ({ site, party, odds }) =>
-          odds.success >= 50 && tripStatus(content, s, site.id, party, now).code === "ok",
+          odds.success >= 50 &&
+          tripStatus(content, s, site.id, party, now).code === "ok" &&
+          (!site.camp || (s.stock.charge ?? 0) - (site.rations.charge ?? 0) >= reserveCharges),
       )
       .sort(
         (a, b) =>
@@ -557,7 +639,7 @@ function expeditions(content: Content, state: BaseState, now: number): BaseState
     // Rations a better site is waiting on (fuel, mostly): make them for the next check-in.
     const blocked = s.known
       .flatMap((region) => sitesIn(content, region))
-      .filter((site) => worth(site) > (best ? worth(best.site) : 0))
+      .filter((site) => !site.camp && worth(site) > (best ? worth(best.site) : 0))
       .sort((a, b) => worth(b) - worth(a))[0];
     if (blocked && guard === 0) {
       for (const [id, missing] of Object.entries(shortfall(blocked.rations, s.stock))) {
@@ -573,6 +655,147 @@ function expeditions(content: Content, state: BaseState, now: number): BaseState
   return jobs(content, s, now);
 }
 
+/**
+ * Charges (W6), kept up to what the dearest known bandit camp asks (and, for the raider, a
+ * raid on an Armored base on top): made from sulfur nothing else wants, gunpowder first.
+ */
+function charges(content: Content, state: BaseState, now: number, archetype: Archetype): BaseState {
+  let s = state;
+  const camps = s.known.flatMap((region) => sitesIn(content, region)).filter((site) => site.camp);
+  let want = Math.max(0, ...camps.map((site) => site.rations.charge ?? 0));
+  if (archetype === "raider" && pvpOpen(content, s)) want += content.raids.pvp.charges.hqm ?? 0;
+  if ((s.stock.charge ?? 0) >= want) return s;
+  for (const { recipe, units } of partsToMake(content, s.stock, { charge: want })) {
+    if (queueOf(s, recipe.station).some((job) => job.recipe === recipe.output)) continue;
+    if (craftStatus(content, s, recipe.output).code !== "ok") continue;
+    let count = Math.min(units, maxBatch(content, s, recipe.output));
+    for (const [id, amount] of Object.entries(recipe.cost)) {
+      const reserve = (upkeepOf(content, s)[id] ?? 0) * 24;
+      count = Math.min(count, Math.floor(((s.stock[id] ?? 0) - reserve) / amount));
+    }
+    if (count > 0) s = act(content, s, { type: "craft", recipe: recipe.output, count }, now);
+  }
+  return s;
+}
+
+/** Everything a run records while it plays, and the day rows it ends up with. */
+interface Runner {
+  run: Run;
+  state: BaseState;
+  /** Sees every event of this player's commands and settles. */
+  record: (event: GameEvent) => void;
+  /** Starts season day `day`. */
+  startDay: (day: number) => void;
+  /** Settles to the end of the day and writes its row. */
+  endDay: (day: number, endOfDay: number) => void;
+}
+
+function runner(
+  content: Content,
+  archetype: Archetype,
+  start: number,
+  seed: number,
+  onEvent?: (event: GameEvent, day: number, state: () => BaseState) => void,
+): Runner {
+  let denDay = { denSpent: 0, denEarned: 0, wagered: 0, won: 0 };
+  let raidDay = { raids: 0, raidsHeld: 0, raidLoss: 0, pvpTake: 0, pvpLoss: 0, camps: 0 };
+  let today = 1;
+  const run: Run = {
+    archetype,
+    rows: [],
+    reached: { twig: 1 },
+    firstMade: {},
+    stationsWorked: {},
+    firstTrip: {},
+    firstSite: {},
+    tools: {},
+    firstJob: null,
+    firstRaid: null,
+    firstCamp: null,
+  };
+  const self: Runner = {
+    run,
+    state: newBase(content, start, seed),
+    record: (event) => {
+      onEvent?.(event, today, () => self.state);
+      if (event.type === "den_bought") denDay.denSpent += event.price;
+      if (event.type === "listed") denDay.denSpent += event.fee;
+      if (event.type === "contract_done") denDay.denEarned += event.pay;
+      if (event.type === "wager") {
+        denDay.wagered += event.bet;
+        denDay.won += event.payout;
+      }
+      if (event.type === "raid_landed") {
+        run.firstRaid ??= today;
+        raidDay.raids += 1;
+        if (event.report.outcome === "held") raidDay.raidsHeld += 1;
+        raidDay.raidLoss += scrapWorth(content, event.report.lost);
+      }
+      if (event.type === "raid_launched")
+        raidDay.pvpTake += scrapWorth(content, event.report.gained);
+      if (event.type === "raided") raidDay.pvpLoss += scrapWorth(content, event.report.lost);
+      if (event.type === "assigned" && event.job !== null) run.firstJob ??= today;
+      if (event.type === "trip_started") {
+        const site = siteOf(content, event.site);
+        // Bandit camps are the charges' sink, not the site chain the targets measure.
+        if (site?.camp) {
+          raidDay.camps += 1;
+          run.firstCamp ??= today;
+          return;
+        }
+        run.firstTrip[site?.tier ?? 0] ??= today;
+        run.firstSite[event.site] ??= today;
+        return;
+      }
+      if (event.type !== "crafted") return;
+      // A unit that landed before the check-in counts for the day it landed on.
+      const day = Math.min(today, Math.floor((event.at - start) / DAY) + 1);
+      run.firstMade[event.recipe] ??= day;
+      run.stationsWorked[event.station] ??= day;
+    },
+    startDay: (day) => {
+      today = day;
+    },
+    endDay: (day, endOfDay) => {
+      const settled = settleAll(content, self.state, endOfDay);
+      for (const event of settled.events) self.record(event);
+      // Kept, so what landed this evening (a raid) is recorded on its day, once.
+      self.state = settled.state;
+      const s = settled.state;
+      run.tools[s.toolId] ??= day;
+      if (run.reached[s.tier] === undefined) run.reached[s.tier] = day;
+      const fill = storageFill(content, s, endOfDay);
+      run.rows.push({
+        day,
+        tier: s.tier,
+        tool: s.toolId,
+        fill: `${Math.round(fill.fraction * 100)}% ${fill.resource}`,
+        cap: storageCap(content, s),
+        ingots: s.stock.ingots ?? 0,
+        fuel: s.stock.fuel ?? 0,
+        scrap: s.stock.scrap ?? 0,
+        items: Object.values(s.items).reduce((sum, count) => sum + count, 0),
+        parts: content.resources
+          .filter((resource) => resource.kind === "part")
+          .reduce((sum, resource) => sum + (s.stock[resource.id] ?? 0), 0),
+        crew: s.crew.length,
+        ...denDay,
+        known: s.known.length,
+        buildings: buildingCount(s),
+        building: s.construction.length > 0,
+        defence: defenceOf(content, s, endOfDay).total,
+        charges: s.stock.charge ?? 0,
+        ...raidDay,
+      });
+      denDay = { denSpent: 0, denEarned: 0, wagered: 0, won: 0 };
+      raidDay = { raids: 0, raidsHeld: 0, raidLoss: 0, pvpTake: 0, pvpLoss: 0, camps: 0 };
+    },
+  };
+  return self;
+}
+
+const SEASON_START = 1_700_000_000;
+
 /** `onEvent` sees every event as it happens, with its season day (for debugging balance). */
 export function simulate(
   content: Content,
@@ -580,92 +803,95 @@ export function simulate(
   days: number,
   onEvent?: (event: GameEvent, day: number, state: () => BaseState) => void,
 ): Run {
-  const start = 1_700_000_000;
-  const clock = manualClock(start);
+  const clock = manualClock(SEASON_START);
   house.random = rng(seedOf(7, ARCHETYPES.indexOf(archetype)));
   house.jackpot = 0;
-  let denDay = { denSpent: 0, denEarned: 0, wagered: 0, won: 0 };
-  let state = newBase(content, clock.now(), 1);
-  const rows: DayRow[] = [];
-  const reached: Partial<Record<Tier, number>> = { twig: 1 };
-  const firstMade: Record<string, number> = {};
-  const stationsWorked: Record<string, number> = {};
-  const firstTrip: Partial<Record<number, number>> = {};
-  const firstSite: Record<string, number> = {};
-  const tools: Record<string, number> = {};
-  let firstJob: number | null = null;
-  let today = 1;
-  const record = (event: GameEvent) => {
-    onEvent?.(event, today, () => state);
-    if (event.type === "den_bought") denDay.denSpent += event.price;
-    if (event.type === "listed") denDay.denSpent += event.fee;
-    if (event.type === "contract_done") denDay.denEarned += event.pay;
-    if (event.type === "wager") {
-      denDay.wagered += event.bet;
-      denDay.won += event.payout;
-    }
-    if (event.type === "assigned" && event.job !== null) firstJob ??= today;
-    if (event.type === "trip_started") {
-      const tier = siteOf(content, event.site)?.tier ?? 0;
-      firstTrip[tier] ??= today;
-      firstSite[event.site] ??= today;
-      return;
-    }
-    if (event.type !== "crafted") return;
-    // A unit that landed before the check-in counts for the day it landed on.
-    const day = Math.min(today, Math.floor((event.at - start) / DAY) + 1);
-    firstMade[event.recipe] ??= day;
-    stationsWorked[event.station] ??= day;
-  };
-  listener = record;
-
+  const player = runner(content, archetype, SEASON_START, 1, onEvent);
+  listener = player.record;
   for (let day = 1; day <= days; day++) {
-    today = day;
+    player.startDay(day);
     for (const hour of SCHEDULE[archetype]) {
-      clock.set(start + (day - 1) * DAY + hour * HOUR);
-      state = checkIn(content, state, clock.now(), archetype);
-      if (reached[state.tier] === undefined) reached[state.tier] = day;
+      clock.set(SEASON_START + (day - 1) * DAY + hour * HOUR);
+      player.state = checkIn(content, player.state, clock.now(), archetype);
+      if (player.run.reached[player.state.tier] === undefined)
+        player.run.reached[player.state.tier] = day;
     }
-    clock.set(start + day * DAY - 1);
-    const endOfDay = clock.now();
-    const settled = settleAll(content, state, endOfDay);
-    for (const event of settled.events) record(event);
-    const settledState = settled.state;
-    tools[settledState.toolId] ??= day;
-    if (reached[settledState.tier] === undefined) reached[settledState.tier] = day;
-    rows.push({
-      day,
-      tier: settledState.tier,
-      tool: settledState.toolId,
-      fill: `${Math.round(storageFill(content, settledState, endOfDay).fraction * 100)}% ${storageFill(content, settledState, endOfDay).resource}`,
-      cap: storageCap(content, settledState),
-      ingots: settledState.stock.ingots ?? 0,
-      fuel: settledState.stock.fuel ?? 0,
-      scrap: settledState.stock.scrap ?? 0,
-      items: Object.values(settledState.items).reduce((sum, count) => sum + count, 0),
-      parts: content.resources
-        .filter((resource) => resource.kind === "part")
-        .reduce((sum, resource) => sum + (settledState.stock[resource.id] ?? 0), 0),
-      crew: settledState.crew.length,
-      ...denDay,
-      known: settledState.known.length,
-      buildings: buildingCount(settledState),
-      building: settledState.construction.length > 0,
-    });
-    denDay = { denSpent: 0, denEarned: 0, wagered: 0, won: 0 };
+    player.endDay(day, SEASON_START + day * DAY - 1);
   }
   listener = null;
-  return {
-    archetype,
-    rows,
-    reached,
-    firstMade,
-    stationsWorked,
-    firstTrip,
-    firstSite,
-    tools,
-    firstJob,
-  };
+  return player.run;
+}
+
+const RAIDER = { id: 1, name: "Raider" };
+const TARGET = { id: 2, name: "Casual" };
+
+/**
+ * PvP (W6): the raider against a casual player who opted in, on the same clock. The raider
+ * strikes at every check-in the limits allow; the server's two halves are played out the
+ * same way (`raid_player` on the raider, `takeRaid` on the target).
+ */
+export function simulatePair(content: Content, days: number): { raider: Run; target: Run } {
+  const clock = manualClock(SEASON_START);
+  house.random = rng(seedOf(7, ARCHETYPES.indexOf("raider")));
+  house.jackpot = 0;
+  const raider = runner(content, "raider", SEASON_START, 1);
+  const target = runner(content, "casual", SEASON_START, 2);
+  for (let day = 1; day <= days; day++) {
+    raider.startDay(day);
+    target.startDay(day);
+    const hours = [...new Set([...SCHEDULE.raider, ...SCHEDULE.casual])].sort((a, b) => a - b);
+    for (const hour of hours) {
+      clock.set(SEASON_START + (day - 1) * DAY + hour * HOUR);
+      const now = clock.now();
+      if (SCHEDULE.casual.includes(hour)) {
+        listener = target.record;
+        target.state = checkIn(content, target.state, now, "casual", { pvp: true });
+      }
+      if (SCHEDULE.raider.includes(hour)) {
+        listener = raider.record;
+        raider.state = checkIn(content, raider.state, now, "raider");
+        raider.state = strike(content, raider, target, now);
+      }
+      for (const player of [raider, target]) {
+        if (player.run.reached[player.state.tier] === undefined)
+          player.run.reached[player.state.tier] = day;
+      }
+    }
+    raider.endDay(day, SEASON_START + day * DAY - 1);
+    target.endDay(day, SEASON_START + day * DAY - 1);
+  }
+  listener = null;
+  return { raider: raider.run, target: target.run };
+}
+
+/** The raider's PvP turn: raid the target when every limit allows it. */
+function strike(content: Content, raider: Runner, target: Runner, now: number): BaseState {
+  const s = raider.state;
+  if (!s.pvp.on) return s;
+  const settled = settleAll(content, target.state, now);
+  for (const event of settled.events) target.record(event);
+  target.state = settled.state;
+  const view = { ...TARGET, state: target.state };
+  if (pvpStatus(content, s, RAIDER.id, view, now).code !== "ok") return s;
+  const result = applyCommand(content, s, { type: "raid_player", target: TARGET.id }, now, {
+    seed: house.random.int(0, 2 ** 31 - 1),
+    self: RAIDER.id,
+    selfName: RAIDER.name,
+    target: view,
+  });
+  for (const event of result.events) raider.record(event);
+  const launched = result.events.find((event) => event.type === "raid_launched");
+  if (launched?.type === "raid_launched") {
+    const taken = takeRaid(
+      content,
+      target.state,
+      hitOf(launched.report, RAIDER.id, RAIDER.name),
+      now,
+    );
+    for (const event of taken.events) target.record(event);
+    target.state = taken.state;
+  }
+  return result.state;
 }
 
 /** `cost` with every part broken down into what it is made of, down to gathered resources. */
@@ -693,7 +919,42 @@ export function checkPacing(content: Content, days = 35): CheckFailure[] {
   const casual = simulate(content, "casual", days);
   const optimal = simulate(content, "optimal", days);
   const gambler = simulate(content, "gambler", days);
+  const pair = simulatePair(content, days);
   const { pacing } = content;
+
+  // W6: raids. NPC raiders come and a casual defence holds some; charges reach the camps;
+  // PvP happens without stopping the raided player.
+  const raidTarget = pacing.casual.raids;
+  if (casual.firstRaid === null || casual.firstRaid > raidTarget.firstByDay) {
+    failures.push({
+      message: `casual's first raid landed on ${casual.firstRaid === null ? "no day" : `day ${casual.firstRaid}`}, target by day ${raidTarget.firstByDay}`,
+    });
+  }
+  const until = casual.rows.slice(0, raidTarget.day);
+  const landed = until.reduce((sum, row) => sum + row.raids, 0);
+  const held = until.reduce((sum, row) => sum + row.raidsHeld, 0);
+  if (landed > 0 && (held * 100) / landed < raidTarget.heldPercent) {
+    failures.push({
+      message: `casual held ${held} of ${landed} raids by day ${raidTarget.day}, target at least ${raidTarget.heldPercent}%`,
+    });
+  }
+  if (casual.firstCamp === null || casual.firstCamp > pacing.casual.firstCampByDay) {
+    failures.push({
+      message: `casual's first bandit camp on ${casual.firstCamp === null ? "no day" : `day ${casual.firstCamp}`}, target by day ${pacing.casual.firstCampByDay}`,
+    });
+  }
+  const raidsWon = pair.raider.rows.filter((row) => row.pvpTake > 0).length;
+  if (raidsWon < pacing.pvp.minRaids) {
+    failures.push({
+      message: `the raider got in ${raidsWon} times, target at least ${pacing.pvp.minRaids}`,
+    });
+  }
+  const targetHqm = pair.target.reached.hqm;
+  if (targetHqm === undefined || targetHqm > pacing.pvp.targetHqmByDay) {
+    failures.push({
+      message: `the raided casual reached hqm on ${targetHqm === undefined ? "no day" : `day ${targetHqm}`}, target by day ${pacing.pvp.targetHqmByDay}`,
+    });
+  }
 
   // W5: the economy. Scrap rises slowly for the casual player; the gambler stays solvent
   // and the daily wager cap holds every day.

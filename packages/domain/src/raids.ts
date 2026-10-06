@@ -588,6 +588,20 @@ export function raidPlayer(
   };
 }
 
+/** The defender's half of a raid, rebuilt from the attacker's report (what the server logs). */
+export function hitOf(report: RaidReport, attacker: number, attackerName: string): RaidHit {
+  return {
+    attacker,
+    attackerName,
+    outcome: report.outcome,
+    lost: report.gained,
+    chance: report.chance,
+    defence: report.defence,
+    attack: report.attack,
+    revenge: report.revenge,
+  };
+}
+
 /**
  * The defender's side, applied by the server in the same transaction: the take leaves the
  * stock, a breach shields the base and damages its defences, and any raid but a revenge
