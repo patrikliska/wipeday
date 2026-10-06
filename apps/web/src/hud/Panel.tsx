@@ -8,6 +8,7 @@ import { IslandPanel } from "./panels/Feed";
 import { FurnacePanel } from "./panels/Furnace";
 import { InventoryPanel } from "./panels/Inventory";
 import { MapPanel } from "./panels/MapPanel";
+import { SignalPanel } from "./panels/Signal";
 import { SquadPanel } from "./panels/Squad";
 import { TasksPanel } from "./panels/Tasks";
 
@@ -41,6 +42,7 @@ export function Panel() {
         {panel === "feed" ? <IslandPanel /> : null}
         {panel === "den" ? <DenPanel /> : null}
         {panel === "defence" ? <DefencePanel /> : null}
+        {panel === "signal" ? <SignalPanel /> : null}
       </div>
     </aside>
   );

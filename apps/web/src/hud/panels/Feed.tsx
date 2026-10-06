@@ -10,9 +10,10 @@ import { currentSubscription, disablePush, enablePush, pushSupport } from "../..
 import { feedLine } from "../../state/messages";
 import { currentBackend, type FeedTab, useWorld } from "../../state/store";
 import { duration, initials, t } from "../../state/world";
+import { HallPanel, LegacyPanel } from "./Legacy";
 import { RanksPanel } from "./Ranks";
 
-const FEED_TABS: FeedTab[] = ["feed", "ranks"];
+const FEED_TABS: FeedTab[] = ["feed", "ranks", "legacy", "hall"];
 
 /** The island: what everyone is up to, and who leads (W5). */
 export function IslandPanel() {
@@ -34,7 +35,10 @@ export function IslandPanel() {
           </button>
         ))}
       </div>
-      {tab === "feed" ? <FeedPanel /> : <RanksPanel />}
+      {tab === "feed" ? <FeedPanel /> : null}
+      {tab === "ranks" ? <RanksPanel /> : null}
+      {tab === "legacy" ? <LegacyPanel /> : null}
+      {tab === "hall" ? <HallPanel /> : null}
     </>
   );
 }

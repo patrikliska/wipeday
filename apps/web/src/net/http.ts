@@ -10,11 +10,13 @@ import type {
   CommandResponse,
   DenBoard,
   DenPush,
+  LegacyResponse,
   MeResponse,
   PriceHistory,
   PushMessage,
   RaidsResponse,
   RanksResponse,
+  SignalResponse,
   StateResponse,
 } from "@wipe-day/domain/wire";
 import {
@@ -141,6 +143,14 @@ export class HttpBackend implements Backend {
 
   raids(): Promise<RaidsResponse> {
     return this.request<RaidsResponse>("/api/raids");
+  }
+
+  legacy(): Promise<LegacyResponse> {
+    return this.request<LegacyResponse>("/api/legacy");
+  }
+
+  signal(): Promise<SignalResponse> {
+    return this.request<SignalResponse>("/api/signal");
   }
 
   ranks(): Promise<RanksResponse> {

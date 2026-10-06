@@ -43,6 +43,7 @@ import { denBuyStatus, denOpen, lotsLeft, offerOf, offerPrice } from "@wipe-day/
 import type { GameEvent } from "@wipe-day/domain/events";
 import { held, isCapped } from "@wipe-day/domain/goods";
 import { jobStatus, tiredWorkers } from "@wipe-day/domain/jobs";
+import type { Carry } from "@wipe-day/domain/legacy";
 import {
   atSea,
   canSteer,
@@ -69,8 +70,9 @@ import {
 import { expandNeeds, type Need, partsToMake, stations } from "@wipe-day/domain/recipes";
 import { rng, seedOf } from "@wipe-day/domain/rng";
 import { settleAll } from "@wipe-day/domain/settle";
+import { addGift, newSignal, seasonDay, stillNeeded } from "@wipe-day/domain/signal";
 
-export const ARCHETYPES = ["casual", "active", "optimal", "gambler", "raider"] as const;
+export const ARCHETYPES = ["casual", "active", "optimal", "gambler", "raider", "veteran"] as const;
 export type Archetype = (typeof ARCHETYPES)[number];
 
 /**
@@ -84,6 +86,8 @@ const SCHEDULE: Record<Archetype, number[]> = {
   active: ACTIVE_HOURS,
   optimal: Array.from({ length: 24 }, (_, hour) => hour),
   raider: ACTIVE_HOURS,
+  // W7: an optimal player in a later season, with every perk at its top rank.
+  veteran: Array.from({ length: 24 }, (_, hour) => hour),
 };
 
 /** Below this chance to hold an announced raid, a player posts a guard (W6). */
@@ -149,24 +153,36 @@ export interface Run {
   /** Season day the first NPC raid landed, and of the first trip to a bandit camp (W6). */
   firstRaid: number | null;
   firstCamp: number | null;
+  /** W7: what this player gave the Signal (scrap at reference prices) and the stage reached. */
+  signalGiven?: number;
+  signalStage?: number;
 }
 
 /** Where a run's events go while it plays (the first-made days are read from them). */
 let listener: ((event: GameEvent) => void) | null = null;
 
-/** The server's side for the casino: a seeded stream of rolls and the shared jackpot pool. */
-const house = { random: rng(1), jackpot: 0 };
+/**
+ * The server's side: the casino's seeded rolls and shared jackpot, and the island's Signal
+ * (W7), fed by whoever plays.
+ */
+const house = { random: rng(1), jackpot: 0, signal: newSignal(), given: 0 };
 
 /** Applies one command the way the server would; a refusal keeps the settled state. */
 function act(content: Content, state: BaseState, command: Command, now: number): BaseState {
   const world =
     command.type === "slots_spin" || command.type === "dice_roll"
       ? { seed: house.random.int(0, 2 ** 31 - 1), jackpot: house.jackpot }
-      : undefined;
+      : command.type === "signal_give"
+        ? { signal: { ...house.signal, open: true } }
+        : undefined;
   const result = applyCommand(content, state, command, now, world);
   for (const event of result.events) {
     if (event.type === "wager") house.jackpot += event.feed;
     if (event.type === "jackpot_won") house.jackpot = 0;
+    if (event.type === "signal_gift") {
+      house.signal = addGift(content, house.signal, event.good, event.amount, now);
+      house.given += event.worth;
+    }
   }
   if (listener) for (const event of result.events) listener(event);
   return result.state;
@@ -368,6 +384,7 @@ export function checkIn(
   }
 
   s = charges(content, s, now, archetype);
+  s = feedSignal(content, s, now);
   // The raider keeps a raid's worth of charges for other holdfasts; camps get the rest.
   const reserve = archetype === "raider" && s.pvp.on ? (content.raids.pvp.charges.hqm ?? 0) : 0;
   s = expeditions(content, s, now, reserve);
@@ -656,6 +673,42 @@ function expeditions(
 }
 
 /**
+ * The Signal (W7): once it is open, give what the next tier and tool do not need: capped
+ * goods above a fifth of the storage, parts beyond the goals.
+ */
+function feedSignal(content: Content, state: BaseState, now: number): BaseState {
+  let s = state;
+  if (seasonDay(s.season, now) < content.seasons.signal.opensOnDay) return s;
+  const cap = storageCap(content, s);
+  const goals: Amounts = {};
+  const tier = nextTier(s.tier);
+  const tool = nextTool(content, s);
+  for (const cost of [tier ? tierOf(content, tier).cost : {}, tool ? tool.cost : {}]) {
+    for (const [id, amount] of Object.entries(cost)) goals[id] = (goals[id] ?? 0) + amount;
+  }
+  for (const [good, left] of Object.entries(stillNeeded(content, house.signal))) {
+    const keep = isCapped(content, good) ? Math.max(cap / 5, goals[good] ?? 0) : (goals[good] ?? 0);
+    const spare = Math.floor((s.stock[good] ?? 0) - keep - (upkeepOf(content, s)[good] ?? 0) * 48);
+    if (spare >= 1)
+      s = act(content, s, { type: "signal_give", good, amount: Math.min(spare, left) }, now);
+  }
+  return s;
+}
+
+/** Every perk at its top rank, every blueprint known, the whole crew at level 5. */
+function veteranCarry(content: Content, start: number): Carry {
+  return {
+    season: { number: 2, startedAt: start, modifier: null },
+    blueprints: content.recipes.filter((recipe) => recipe.blueprint).map((recipe) => recipe.output),
+    veterans: Object.fromEntries(
+      content.crew.map((member) => [member.id, { level: 5, xp: content.crewRules.levels[3] ?? 0 }]),
+    ),
+    perks: Object.fromEntries(content.legacy.perks.map((perk) => [perk.id, perk.cost.length])),
+    skin: null,
+  };
+}
+
+/**
  * Charges (W6), kept up to what the dearest known bandit camp asks (and, for the raider, a
  * raid on an Armored base on top): made from sulfur nothing else wants, gunpowder first.
  */
@@ -715,7 +768,12 @@ function runner(
   };
   const self: Runner = {
     run,
-    state: newBase(content, start, seed),
+    state: newBase(
+      content,
+      start,
+      seed,
+      archetype === "veteran" ? veteranCarry(content, start) : undefined,
+    ),
     record: (event) => {
       onEvent?.(event, today, () => self.state);
       if (event.type === "den_bought") denDay.denSpent += event.price;
@@ -806,6 +864,8 @@ export function simulate(
   const clock = manualClock(SEASON_START);
   house.random = rng(seedOf(7, ARCHETYPES.indexOf(archetype)));
   house.jackpot = 0;
+  house.signal = newSignal();
+  house.given = 0;
   const player = runner(content, archetype, SEASON_START, 1, onEvent);
   listener = player.record;
   for (let day = 1; day <= days; day++) {
@@ -819,7 +879,7 @@ export function simulate(
     player.endDay(day, SEASON_START + day * DAY - 1);
   }
   listener = null;
-  return player.run;
+  return { ...player.run, signalGiven: house.given, signalStage: house.signal.stage };
 }
 
 const RAIDER = { id: 1, name: "Raider" };
@@ -834,6 +894,8 @@ export function simulatePair(content: Content, days: number): { raider: Run; tar
   const clock = manualClock(SEASON_START);
   house.random = rng(seedOf(7, ARCHETYPES.indexOf("raider")));
   house.jackpot = 0;
+  house.signal = newSignal();
+  house.given = 0;
   const raider = runner(content, "raider", SEASON_START, 1);
   const target = runner(content, "casual", SEASON_START, 2);
   for (let day = 1; day <= days; day++) {
@@ -920,7 +982,37 @@ export function checkPacing(content: Content, days = 35): CheckFailure[] {
   const optimal = simulate(content, "optimal", days);
   const gambler = simulate(content, "gambler", days);
   const pair = simulatePair(content, days);
+  const veteran = simulate(content, "veteran", days);
   const { pacing } = content;
+
+  // W7: the legacy layer may help a veteran, never past the floors or by more than the cap.
+  const vetHqm = veteran.reached.hqm;
+  if (vetHqm !== undefined && vetHqm < pacing.optimal.hqmNotBeforeDay) {
+    failures.push({
+      message: `the veteran reached hqm on day ${vetHqm}, must not be before day ${pacing.optimal.hqmNotBeforeDay}`,
+    });
+  }
+  const vetLast = veteran.firstSite[pacing.optimal.lastSite.id];
+  if (vetLast !== undefined && vetLast < pacing.optimal.lastSite.notBeforeDay) {
+    failures.push({
+      message: `the veteran first went to ${pacing.optimal.lastSite.id} on day ${vetLast}, must not be before day ${pacing.optimal.lastSite.notBeforeDay}`,
+    });
+  }
+  for (const tier of ["metal", "hqm"] as const) {
+    const fast = veteran.reached[tier];
+    const base = optimal.reached[tier];
+    const floor = base === undefined ? 0 : Math.floor(base / (1 + content.legacy.capPercent / 100));
+    if (fast !== undefined && fast < floor) {
+      failures.push({
+        message: `the veteran reached ${tier} on day ${fast}, more than ${content.legacy.capPercent}% faster than optimal (day ${base})`,
+      });
+    }
+  }
+  if ((casual.signalStage ?? 0) < pacing.casual.signalStages) {
+    failures.push({
+      message: `casual filled ${casual.signalStage ?? 0} Signal stages, target at least ${pacing.casual.signalStages}`,
+    });
+  }
 
   // W6: raids. NPC raiders come and a casual defence holds some; charges reach the camps;
   // PvP happens without stopping the raided player.

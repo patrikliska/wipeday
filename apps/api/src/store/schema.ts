@@ -50,7 +50,80 @@ export const seasons = sqliteTable("seasons", {
   startedAt: integer("started_at").notNull(),
   /** Null while the season is running. */
   endedAt: integer("ended_at"),
+  /** W7: the announced end (shown in the game; the reset itself is a command), if any. */
+  endsAt: integer("ends_at"),
+  /** W7: this season's modifier (seasons.json5), and the next one's once announced. */
+  modifier: text("modifier"),
+  nextModifier: text("next_modifier"),
 });
+
+/** W7: what a player keeps across seasons: the domain's `Legacy` as JSON. */
+export const legacy = sqliteTable("legacy", {
+  playerId: integer("player_id")
+    .primaryKey()
+    .references(() => players.id),
+  json: text("json").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+/** W7: each player's finished season: the season card and ranks, as JSON. */
+export const seasonArchive = sqliteTable(
+  "season_archive",
+  {
+    seasonId: integer("season_id")
+      .notNull()
+      .references(() => seasons.id),
+    playerId: integer("player_id")
+      .notNull()
+      .references(() => players.id),
+    json: text("json").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.seasonId, table.playerId] })],
+);
+
+/** W7: the winners of each finished season, by category (and the Signal). */
+export const hallOfFame = sqliteTable(
+  "hall_of_fame",
+  {
+    seasonId: integer("season_id")
+      .notNull()
+      .references(() => seasons.id),
+    category: text("category").notNull(),
+    playerId: integer("player_id")
+      .notNull()
+      .references(() => players.id),
+    value: integer("value").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.seasonId, table.category, table.playerId] })],
+);
+
+/** W7: the Signal's progress for a season (the domain's `SignalProgress` as JSON). */
+export const signal = sqliteTable("signal", {
+  seasonId: integer("season_id")
+    .primaryKey()
+    .references(() => seasons.id),
+  json: text("json").notNull(),
+  litAt: integer("lit_at"),
+});
+
+/** W7: every gift to the Signal, for its board and the legacy points. */
+export const signalGifts = sqliteTable(
+  "signal_gifts",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    seasonId: integer("season_id")
+      .notNull()
+      .references(() => seasons.id),
+    playerId: integer("player_id")
+      .notNull()
+      .references(() => players.id),
+    good: text("good").notNull(),
+    amount: integer("amount").notNull(),
+    worth: integer("worth").notNull(),
+    at: integer("at").notNull(),
+  },
+  (table) => [index("signal_gifts_season").on(table.seasonId, table.playerId)],
+);
 
 /** One base per player per season: the domain's `BaseState` as JSON. */
 export const bases = sqliteTable(

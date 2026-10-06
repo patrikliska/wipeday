@@ -451,6 +451,8 @@ export const pacingSchema = z.strictObject({
     }),
     /** W6: the first trip to a bandit camp (charges made and spent) by this day. */
     firstCampByDay: z.int().min(1),
+    /** W7: feeding the Signal from surplus alone, the casual player fills this many stages. */
+    signalStages: z.int().min(0),
   }),
   /** W6: the raider against a casual player in the raids. */
   pvp: z.strictObject({
@@ -597,6 +599,78 @@ export const raidsSchema = z.strictObject({
 });
 export type Raids = z.infer<typeof raidsSchema>;
 
+/** What one perk rank adds (legacy.json5, W7). Every field is a percent but tripSuccess. */
+export const perkBonusSchema = z.strictObject({
+  allRates: z.int().min(0).max(25).optional(),
+  capPercent: z.int().min(0).max(25).optional(),
+  craftPercent: z.int().min(0).max(25).optional(),
+  smeltPercent: z.int().min(0).max(25).optional(),
+  tripSuccess: z.int().min(0).max(25).optional(),
+  xpPercent: z.int().min(0).max(25).optional(),
+});
+export type PerkBonus = z.infer<typeof perkBonusSchema>;
+export const PERK_BONUSES = [
+  "allRates",
+  "capPercent",
+  "craftPercent",
+  "smeltPercent",
+  "tripSuccess",
+  "xpPercent",
+] as const satisfies readonly (keyof PerkBonus)[];
+
+export const perkSchema = z.strictObject({
+  id,
+  bonus: perkBonusSchema,
+  /** Points for each rank in turn: the list's length is the top rank. */
+  cost: z.array(z.int().min(1)).min(1).max(5),
+  /** Options: the best veteran is home from day one; a crate from day one. */
+  returning: z.boolean().optional(),
+  crate: z.boolean().optional(),
+});
+export type Perk = z.infer<typeof perkSchema>;
+
+export const legacySchema = z.strictObject({
+  points: z.strictObject({
+    played: z.int().min(0),
+    place: z.array(z.int().min(0)).min(1),
+    signal: z.int().min(0),
+  }),
+  capPercent: z.int().min(1).max(100),
+  perks: z.array(perkSchema).min(1),
+  skins: z
+    .array(
+      z.strictObject({
+        id,
+        season: z.int().min(1).optional(),
+        defended: z.int().min(1).optional(),
+        signal: z.boolean().optional(),
+      }),
+    )
+    .min(1),
+});
+export type LegacyRules = z.infer<typeof legacySchema>;
+
+/** A season's modifier (seasons.json5, W7). */
+export const seasonModifierSchema = z.strictObject({
+  id,
+  raidStrength: z.int().min(-90).max(200).optional(),
+  raidDays: z.int().min(0).max(5).optional(),
+  barrelEveryMinutes: z.int().min(0).optional(),
+  barrelRolls: z.int().min(0).max(5).optional(),
+  tripLoot: z.int().min(-90).max(200).optional(),
+  flatPercent: z.record(z.string(), z.int().min(-100).max(200)).optional(),
+});
+export type SeasonModifier = z.infer<typeof seasonModifierSchema>;
+
+export const seasonsSchema = z.strictObject({
+  modifiers: z.array(seasonModifierSchema).min(1),
+  signal: z.strictObject({
+    opensOnDay: z.int().min(1),
+    stages: z.array(z.strictObject({ id, needs: amounts })).min(1),
+  }),
+});
+export type Seasons = z.infer<typeof seasonsSchema>;
+
 export type Resource = z.infer<typeof resourceSchema>;
 export type Tool = z.infer<typeof toolSchema>;
 export type BaseTier = z.infer<typeof baseTierSchema>;
@@ -639,6 +713,8 @@ export interface Content {
   active: Active;
   den: Den;
   raids: Raids;
+  legacy: LegacyRules;
+  seasons: Seasons;
 }
 
 /**
@@ -719,5 +795,7 @@ export const DATA_FILES = [
   "pacing.json5",
   "den.json5",
   "raids.json5",
+  "legacy.json5",
+  "seasons.json5",
 ] as const;
 export type DataFile = (typeof DATA_FILES)[number];

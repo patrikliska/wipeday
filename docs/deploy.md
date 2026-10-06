@@ -127,6 +127,29 @@ Application (the bot's) -> OAuth2:
   `http://localhost:5173/api/auth/callback`.
 - Client ID and Client Secret go into `~/wipeday/.env` on the server (and the local `.env`).
 
+## Seasons (W7, D114)
+
+The season's end is announced, then run, from the server. Both talk to the running API from
+inside the container (loopback is trusted; no secret needed):
+
+```sh
+docker exec -w /app/apps/api wipeday node_modules/.bin/tsx src/season-cli.ts announce 2026-11-04 --next storm_season
+docker exec -w /app/apps/api wipeday node_modules/.bin/tsx src/season-cli.ts end
+```
+
+The end takes its own backup first (`var/backups/wipeday-pre-season-N.db`). Modifiers:
+`long_nights`, `rich_tides`, `quiet_raiders`, `storm_season` (`packages/content/data/seasons.json5`).
+
+## Starting over (wipe the game, keep logins)
+
+Done once at the W7 deploy, at the owner's request. Take a copy first, then delete the game's
+rows (players, sessions, push subscriptions and the VAPID keys stay), then restart:
+
+```sh
+docker exec -w /app/apps/api wipeday node -e "const D=require('better-sqlite3'); const db=new D('/app/var/wipeday.db'); db.backup('/app/var/backups/wipeday-pre-wipe.db').then(()=>{ db.transaction(()=>{ for (const t of ['commands','event_log','listings','trades','wheel_bets','season_archive','hall_of_fame','signal_gifts','signal','bases','legacy','seasons']) db.prepare('DELETE FROM '+t).run(); db.prepare(\"DELETE FROM settings WHERE key='jackpot'\").run(); db.prepare(\"DELETE FROM sqlite_sequence WHERE name='seasons'\").run(); })(); console.log('wiped'); })"
+cd ~/wipeday && docker compose restart wipeday
+```
+
 ## Useful commands on the server
 
 ```sh

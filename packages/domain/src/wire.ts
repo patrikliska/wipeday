@@ -7,9 +7,11 @@ import type { Tier } from "@wipe-day/content/tiers";
 import type { BaseState } from "./base";
 import type { Refusal } from "./commands";
 import type { GameEvent } from "./events";
-import type { Leaderboards, SeasonSummary } from "./leaderboard";
+import type { Category, Leaderboards, SeasonSummary } from "./leaderboard";
+import type { Legacy } from "./legacy";
 import type { MarketListing } from "./market";
 import type { PvpOdds, PvpStatus } from "./raids";
+import type { SignalProgress } from "./signal";
 
 export interface PlayerView {
   id: number;
@@ -23,12 +25,24 @@ export interface WelcomeBack {
   events: GameEvent[];
 }
 
+/** The running season (W7): its number, the announced end and the modifiers. */
+export interface SeasonView {
+  number: number;
+  startedAt: number;
+  /** Announced end, or null while none is. */
+  endsAt: number | null;
+  modifier: string | null;
+  /** The next season's modifier, once announced. */
+  next: string | null;
+}
+
 /** `GET /api/state`. */
 export interface StateResponse {
   serverNow: number;
   version: number;
   player: PlayerView;
   seasonStartedAt: number;
+  season: SeasonView;
   state: BaseState;
   welcomeBack: WelcomeBack | null;
 }
@@ -117,10 +131,54 @@ export interface RaidsResponse {
   targets: RaidTargetView[];
 }
 
-/** One `den` message on the event stream. */
+// --- the legacy layer and the Signal (W7) ------------------------------------------------
+
+/** One finished season of the player's: its card, ranks and the legacy points it gave. */
+export interface ArchivedSeason {
+  season: number;
+  summary: SeasonSummary;
+  ranks: Partial<Record<Category, number>>;
+  points: number;
+}
+
+export interface HallEntry {
+  season: number;
+  /** A leaderboard category, or "signal". */
+  category: string;
+  playerId: number;
+  name: string;
+  value: number;
+}
+
+/** `GET /api/legacy`. */
+export interface LegacyResponse {
+  legacy: Legacy;
+  /** The player's finished seasons, newest first. */
+  seasons: ArchivedSeason[];
+  hall: HallEntry[];
+}
+
+/** `GET /api/signal`. */
+export interface SignalResponse {
+  serverNow: number;
+  open: boolean;
+  progress: SignalProgress;
+  /** What the open stage still needs. */
+  needs: Record<string, number>;
+  top: { playerId: number; name: string; worth: number }[];
+  /** This player's gifts so far, in scrap at reference prices. */
+  mine: number;
+}
+
+/** One `den` message on the event stream (the island's news: the Den, and from W7 the season
+ * and the Signal). */
 export type DenPush =
   | { kind: "bet"; bet: WheelBetView }
   | { kind: "result"; round: number; segment: number }
   /** Listings changed: the board is stale. */
   | { kind: "board" }
-  | { kind: "jackpot"; jackpot: number };
+  | { kind: "jackpot"; jackpot: number }
+  /** A season ended or its end was announced: reload. */
+  | { kind: "season"; number: number }
+  /** The Signal moved. */
+  | { kind: "signal" };

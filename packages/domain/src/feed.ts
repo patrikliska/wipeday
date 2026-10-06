@@ -23,6 +23,7 @@ export const FEED_TYPES = [
   "jackpot_won",
   "raid_landed",
   "raid_launched",
+  "signal_lit",
 ] as const satisfies readonly GameEvent["type"][];
 
 export type FeedEvent = Extract<GameEvent, { type: (typeof FEED_TYPES)[number] }>;
@@ -52,6 +53,7 @@ export function isFeedWorthy(event: GameEvent): event is FeedEvent {
     case "jackpot_won":
     case "raid_landed":
     case "raid_launched":
+    case "signal_lit":
       return true;
     default:
       return false;

@@ -161,12 +161,16 @@ export function scrapWorth(content: Content, amounts: Amounts): number {
   return sum;
 }
 
-/** NPC raiders' points against a base at `tier` with `risk` in the yard. */
-export function raiderStrength(content: Content, tier: Tier, risk: Amounts): number {
+/**
+ * NPC raiders' points against a base at `tier` with `risk` in the yard; `percent` more or
+ * less with the season's modifier (W7).
+ */
+export function raiderStrength(content: Content, tier: Tier, risk: Amounts, percent = 0): number {
   const strength = content.raids.npc.strength[tier];
   if (!strength) return 0;
   const fromYard = Math.floor(scrapWorth(content, risk) / content.raids.npc.scrapPerPoint);
-  return Math.min(strength.max, strength.base + fromYard);
+  const points = Math.min(strength.max, strength.base + fromYard);
+  return Math.max(0, Math.floor((points * (100 + percent)) / 100));
 }
 
 /** Capped goods fit the room left; scrap and parts always come home whole. */
@@ -217,7 +221,7 @@ export function planRaid(content: Content, state: BaseState, now: number): BaseS
   // A base that reached the tier before W6 counts from its first command since.
   const floor = (reachedStart(content, state) ?? now) + rules.firstAfterHours * HOUR;
   const n = state.raidSeq + 1;
-  let day = Math.floor(now / DAY) + rules.planDays;
+  let day = Math.floor(now / DAY) + rules.planDays + modifiers(content, state).raidDays;
   for (;;) {
     const random = rng(seedOf(state.seed, n, day));
     const at =
@@ -284,7 +288,7 @@ export function npcOdds(content: Content, state: BaseState, now: number): NpcOdd
   const yard = collect(content, state, now).state;
   const risk = atRisk(content, yard, content.raids.npc.lossPercent);
   const defence = defenceOf(content, yard, now);
-  const strength = raiderStrength(content, yard.tier, risk);
+  const strength = raiderStrength(content, yard.tier, risk, modifiers(content, yard).raidStrength);
   return {
     lands: state.raid.at,
     defence,
@@ -314,7 +318,7 @@ export function resolveRaid(
   let next = banked.state;
   const defence = defenceOf(content, next, raid.at);
   const risk = atRisk(content, next, content.raids.npc.lossPercent);
-  const strength = raiderStrength(content, next.tier, risk);
+  const strength = raiderStrength(content, next.tier, risk, modifiers(content, next).raidStrength);
   const chance = holdChance(content, defence.total, strength);
   const random = rng(raid.seed);
   const held = random.next() * 100 < chance;

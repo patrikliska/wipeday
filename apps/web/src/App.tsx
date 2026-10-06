@@ -5,6 +5,7 @@ import { Dock } from "./hud/Dock";
 import { Login } from "./hud/Login";
 import { Panel } from "./hud/Panel";
 import { ReportCard } from "./hud/ReportCard";
+import { SeasonOver } from "./hud/SeasonOver";
 import { Toasts } from "./hud/Toasts";
 import { TopBar } from "./hud/TopBar";
 import { Scene } from "./scene/Scene";
@@ -40,6 +41,7 @@ export function App() {
             <DemoDrawer />
             <AwayModal />
             <ReportCard />
+            <SeasonOver />
           </>
         ) : null}
         <Login />

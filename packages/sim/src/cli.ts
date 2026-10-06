@@ -26,7 +26,9 @@ function table(run: Run): string {
       .map(([tier, day]) => `${tier} d${day}`)
       .join(", ")}; first trips: ${Object.entries(run.firstTrip)
       .map(([tier, day]) => `t${tier} d${day}`)
-      .join(", ")}; first job d${run.firstJob ?? "-"}; first raid d${run.firstRaid ?? "-"})`,
+      .join(
+        ", ",
+      )}; first job d${run.firstJob ?? "-"}; first raid d${run.firstRaid ?? "-"}; last site d${run.firstSite.offshore_platform ?? "-"}; signal ${run.signalGiven ?? 0} (stage ${run.signalStage ?? 0}))`,
     "day  tier   tool             fill                cap   ingots    fuel   scrap  items  parts  bldgs  crew  known  build  den-  den+  bet   won   def  chg  raid    loss camp  pvp+  pvp-",
   ];
   for (const row of run.rows) {

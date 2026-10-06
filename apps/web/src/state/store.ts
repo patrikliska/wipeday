@@ -32,10 +32,13 @@ import { newStats } from "@wipe-day/domain/stats";
 import type {
   DenBoard,
   DenPush,
+  LegacyResponse,
   PlayerView,
   PushMessage,
   RaidsResponse,
   RanksResponse,
+  SeasonView,
+  SignalResponse,
   StateResponse,
   WelcomeBack,
 } from "@wipe-day/domain/wire";
@@ -72,7 +75,7 @@ interface Queued {
 
 export type DenTab = "market" | "contracts" | "games";
 export type DefenceTab = "defence" | "raids";
-export type FeedTab = "feed" | "ranks";
+export type FeedTab = "feed" | "ranks" | "legacy" | "hall";
 export type Game = "wheel" | "slots" | "dice";
 
 /** The last roll the player made, for the tables to show (W5). */
@@ -140,6 +143,12 @@ export interface WorldState {
   defenceTab: DefenceTab;
   /** Other holdfasts in the raids, as last loaded; null before. */
   raids: RaidsResponse | null;
+  // Seasons (W7).
+  season: SeasonView;
+  legacy: LegacyResponse | null;
+  signal: SignalResponse | null;
+  /** The newest season the player has seen the season-over card for. */
+  seasonSeen: number;
 }
 
 interface Actions {
@@ -224,6 +233,26 @@ interface Actions {
   raidPlayer(target: number): boolean;
   /** Screenshots: Hollis's holdfast in the demo. */
   demoRival(change: Partial<BaseState>): void;
+  // Seasons (W7).
+  loadLegacy(): Promise<void>;
+  loadSignal(): Promise<void>;
+  buyPerk(perk: string): boolean;
+  setCosmetic(change: { title?: string | null; skin?: string | null }): boolean;
+  giveSignal(good: string, amount: number): boolean;
+  /** The season-over card was read. */
+  markSeasonSeen(): void;
+  /** Demo: end the season (the drawer), or set its end, next modifier, Signal or legacy. */
+  demoNewSeason(): Promise<void>;
+  demoSeason(change: Parameters<LocalBackend["patchSeason"]>[0]): void;
+}
+
+const SEASON_SEEN = "wd.seasonSeen";
+function storedSeasonSeen(): number {
+  try {
+    return Number(localStorage.getItem(SEASON_SEEN)) || 0;
+  } catch {
+    return 0;
+  }
 }
 
 const FEED_SEEN = "wd.feedSeen";
@@ -336,6 +365,10 @@ const placeholder = (): BaseState => ({
   raidReports: [],
   damaged: false,
   pvp: newPvp(),
+  season: { number: 1, startedAt: 0, modifier: null },
+  perks: {},
+  veterans: {},
+  skin: null,
 });
 
 const isServerOnly = (command: Command): boolean => SERVER_ONLY.includes(command.type);
@@ -365,6 +398,7 @@ export const useWorld = create<Store>((set, get) => {
       queue: [],
       base: response.state,
       seasonStartedAt: response.seasonStartedAt,
+      season: response.season,
       welcomeBack: response.welcomeBack,
       now: seconds(),
       phase: "playing",
@@ -410,6 +444,10 @@ export const useWorld = create<Store>((set, get) => {
           if (!next.predicted && response.ok) {
             // Nothing was shown for it yet: its events play now, and a roll goes to its table.
             play(response.events);
+            // W7: the legacy and the Signal live on the server: reload what they changed.
+            if (next.command.type === "buy_perk" || next.command.type === "set_cosmetic")
+              void get().loadLegacy();
+            if (next.command.type === "signal_give") void get().loadSignal();
             // A raid's result is its report card (W6).
             const launched = response.events.find((event) => event.type === "raid_launched");
             if (launched?.type === "raid_launched") {
@@ -484,6 +522,15 @@ export const useWorld = create<Store>((set, get) => {
       case "board":
         if (get().panel === "den") void get().loadDen();
         break;
+      // W7: a new season (or its end announced): the base is another; the Signal moved.
+      case "season":
+        void reload();
+        void get().loadLegacy();
+        void get().loadSignal();
+        break;
+      case "signal":
+        void get().loadSignal();
+        break;
     }
   };
 
@@ -492,6 +539,8 @@ export const useWorld = create<Store>((set, get) => {
     unsubscribe = backend.subscribe(onPush, () => void reload(), onFeed, onDen);
     await reload();
     void get().loadFeed();
+    void get().loadLegacy();
+    void get().loadSignal();
     // A "sold" notification opens the Den (`/?den`).
     if (new URLSearchParams(window.location.search).has("den")) {
       get().openDen("market");
@@ -547,6 +596,53 @@ export const useWorld = create<Store>((set, get) => {
     roll: null,
     defenceTab: "defence",
     raids: null,
+    season: { number: 1, startedAt: 0, endsAt: null, modifier: null, next: null },
+    legacy: null,
+    signal: null,
+    seasonSeen: storedSeasonSeen(),
+
+    async loadLegacy() {
+      try {
+        set({ legacy: await backend.legacy() });
+      } catch {
+        // The legacy is a view: a failed load keeps what was there.
+      }
+    },
+
+    async loadSignal() {
+      try {
+        set({ signal: await backend.signal() });
+      } catch {
+        // Same.
+      }
+    },
+
+    buyPerk: (perk) => get().send({ type: "buy_perk", perk }),
+    setCosmetic: (change) => get().send({ type: "set_cosmetic", ...change }),
+    giveSignal: (good, amount) => get().send({ type: "signal_give", good, amount }),
+
+    markSeasonSeen() {
+      const number = get().season.number;
+      set({ seasonSeen: number });
+      try {
+        localStorage.setItem(SEASON_SEEN, String(number));
+      } catch {
+        // Private mode: the card may show once more next visit.
+      }
+    },
+
+    async demoNewSeason() {
+      if (!(backend instanceof LocalBackend)) return;
+      await backend.newSeason();
+    },
+
+    demoSeason(change) {
+      if (!(backend instanceof LocalBackend)) return;
+      backend.patchSeason(change);
+      void reload();
+      void get().loadLegacy();
+      void get().loadSignal();
+    },
 
     openDefence(tab) {
       set({ panel: "defence", recipe: null, ...(tab ? { defenceTab: tab } : {}) });

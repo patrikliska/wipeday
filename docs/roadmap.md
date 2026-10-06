@@ -4,7 +4,7 @@ Companion to `docs/game-design.md` (what the game becomes) and `docs/decisions.m
 are the way they are). This file says **what to build next, in which order, and how hard the
 agent should think at each step**.
 
-## Where we are (2026-10-06)
+## Where we are (2026-10-07)
 
 - W0 done: the monorepo, the web spec in `CLAUDE.md`, an injected `Clock` everywhere.
 - W1 done and live at https://wipeday.patrikliska.dev (Discord login confirmed from the owner's
@@ -33,7 +33,7 @@ agent should think at each step**.
   - leaderboards in six categories and the season card.
   - Late site scrap is trimmed, and a map-scrap loophole that let the sea skip its scout is
     closed.
-- W6 done on branch `w6`, not merged or deployed yet (D106-D113):
+- W6 done, merged and deployed with W7 (D106-D113):
   - **Defence:** walls, the watchtower (warning hours), new traps and turret, and guards. A
     breach halves the buildings until a scrap-and-stone repair.
   - **NPC raids:** planned only while the player plays, landing on an evening two days
@@ -43,19 +43,37 @@ agent should think at each step**.
     limit tested and the 10% cap proved by property tests.
   - **The client:** the Defence panel with its Raids tab, raid report cards, the raid
     banner, the shield badge, torches on the ridge and breached walls.
+- W7 done, merged and deployed 2026-10-07 (D114-D120):
+  - **Seasons:** end by command (`pnpm season announce|end`). The reset archives the season
+    and folds every base into its player's legacy in one transaction.
+  - **Legacy:** blueprints, crew levels, perks, titles and skins carry over. Points buy eight
+    small perks, capped at 25% in any rate.
+  - **Modifiers:** four season modifiers.
+  - **The Signal:** the island's shared tower for the last week.
+  - **The client:** the season-over card, the Legacy and Hall of fame tabs.
+  - The live database was wiped on the owner's request at this deploy: everyone starts season
+    1 from zero (logins and push subscriptions kept).
 - Two live players on https://wipeday.patrikliska.dev (the owner and a friend).
 
-### Next: W7 (seasons and the legacy layer)
+### Next: W8 (Discord companion)
 
-First: the owner merges `w6` and deploys W5 + W6 together, with a database copy on the VPS
-first (`docs/deploy.md`).
+Scope as in the phase list below. Things W7 leaves for it:
+- Season news (announced end, the reset, the Signal lit) is a natural feed post for the bot.
+- Late scrap still rises (D112); the Signal took some of it. Watch the live economy at the
+  first real reset.
 
-Scope as in the phase list below. Things W6 leaves for it:
-- Late scrap still rises (casual 5.6k on day 35, D112). The Signal is the next big sink.
-- Raid reports, the raid counters in `stats` (defended, breached, raidsWon) and the Guard
-  rank belong on the season summary at the reset.
-- Plan first (plan mode): the reset is one transaction, and the 25% legacy cap is a test
-  over every perk combination.
+### W7 results (acceptance)
+
+- **A reset keeps exactly the persistent layer.** `apps/api/src/season.test.ts` seeds three
+  players (stocks, blueprints, crew levels, raids held, a listing, Signal gifts) and resets.
+  It asserts:
+  - the legacy rows, the archive and the hall of fame;
+  - the closed listing and the stopped timers;
+  - that the new base equals a fresh base plus the carry.
+- **The cap holds over every perk combination.** `packages/domain/src/legacy.test.ts` walks
+  12,288 rank combinations, and the content check refuses a tree over 25%.
+- **The veteran stays inside the floors.** The simulator's veteran (every perk, every
+  blueprint, crew level 5) reaches Armored on day 14 and the Offshore Platform on day 18.
 
 ### W6 results (acceptance)
 
@@ -306,7 +324,7 @@ Build:
 Done when: every PvP limit is covered by a test; a raided player can never lose more than the
 cap (property test over random states).
 
-### W7. Seasons and the legacy layer
+### W7. Seasons and the legacy layer (done)
 
 *Goal:* the monthly reset feels like a fresh start with a longer story underneath.
 

@@ -24,11 +24,12 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
+import { getConnInfo } from "@hono/node-server/conninfo";
 import { serveStatic } from "@hono/node-server/serve-static";
 import type { Clock } from "@wipe-day/domain/clock";
 import { NOTIFY_KINDS } from "@wipe-day/domain/feed";
 import { eq } from "drizzle-orm";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
@@ -79,6 +80,40 @@ export function createApp(deps: AppDeps): Hono<Env> {
     setCookie(c, SESSION_COOKIE, token, { ...cookieBase, path: "/", maxAge: 30 * 86400 });
 
   app.get("/api/health", (c) => c.json({ ok: true, now: clock.now(), streams: hub.connections }));
+
+  // Admin (W7): announce and end seasons. A bearer token from ADMIN_TOKEN, or, without one,
+  // a request from the server itself (`pnpm season ...` inside the container: the public
+  // traffic comes through Caddy on the Docker network, never from loopback) or any request to
+  // a development server.
+  const admin = new Hono();
+  admin.use(async (c, next) => {
+    const token = config.adminToken;
+    const given = c.req.header("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+    const allowed = token ? given === token : config.devLogin || fromLoopback(c);
+    if (!allowed) return c.json({ error: "forbidden" }, 403);
+    await next();
+  });
+  const announceSchema = z.strictObject({
+    endsAt: z.int().min(0).nullable(),
+    next: z.string().min(1).max(32).nullable(),
+  });
+  admin.post("/season/announce", async (c) => {
+    const parsed = announceSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "bad_request" }, 400);
+    try {
+      return c.json(game.announce(parsed.data.endsAt, parsed.data.next));
+    } catch (error) {
+      return c.json({ error: String(error) }, 400);
+    }
+  });
+  admin.post("/season/end", async (c) => {
+    try {
+      return c.json(await game.endSeason());
+    } catch (error) {
+      return c.json({ error: String(error) }, 409);
+    }
+  });
+  app.route("/api/admin", admin);
 
   /** What the login screen offers, before anyone is logged in. */
   app.get("/api/config", (c) =>
@@ -188,6 +223,10 @@ export function createApp(deps: AppDeps): Hono<Env> {
 
   authed.get("/raids", (c) => c.json(game.raids(c.get("playerId"))));
 
+  authed.get("/legacy", (c) => c.json(game.legacy(c.get("playerId"))));
+
+  authed.get("/signal", (c) => c.json(game.signal(c.get("playerId"))));
+
   authed.get("/notify", (c) => {
     const playerId = c.get("playerId");
     return c.json({
@@ -262,4 +301,15 @@ export function createApp(deps: AppDeps): Hono<Env> {
     app.get("*", (c) => c.html(html));
   }
   return app;
+}
+
+/** Whether a request came from this machine (the container's own loopback). */
+function fromLoopback(c: Context): boolean {
+  try {
+    const address = getConnInfo(c).remote.address ?? "";
+    return address === "127.0.0.1" || address === "::1" || address === "::ffff:127.0.0.1";
+  } catch {
+    // No socket (an in-process request in tests): not from loopback.
+    return false;
+  }
 }

@@ -17,6 +17,7 @@ import type { CraftJob } from "./craft";
 import { crewOutput, newShift } from "./crew";
 import type { DenDay } from "./den";
 import type { GameEvent } from "./events";
+import { applyOptions, type Carry, perkOf, type SeasonInfo, type Veteran } from "./legacy";
 import type { Listing } from "./market";
 import type { Mission, Report, Survivor } from "./missions";
 import { modifiers } from "./modifiers";
@@ -155,19 +156,33 @@ export interface BaseState {
   damaged: boolean;
   /** The friendly PvP raids: in or out, shield, cooldowns and revenge tokens. */
   pvp: PvpState;
+  // --- the legacy layer (W7) ---
+  /** Which season this base belongs to, when it began and its modifier. */
+  season: SeasonInfo;
+  /** Legacy perks bought: perk id -> rank. See `legacy.ts`. */
+  perks: Record<string, number>;
+  /** The levels survivors come back with, by id: newcomers arrive at theirs. */
+  veterans: Record<string, Veteran>;
+  /** The holdfast's skin (a palette for the scene), or null for the plain one. */
+  skin: string | null;
 }
 
 const HOUR = 3600;
 
 // --- lookups -----------------------------------------------------------------
 
-/** A fresh twig base. `seed` makes its rolls its own (the server picks it at random). */
-export function newBase(content: Content, now: number, seed: number): BaseState {
+/**
+ * A fresh twig base. `seed` makes its rolls its own (the server picks it at random).
+ * `carry` (W7): what the player's legacy brings into a new season: blueprints, the crew's
+ * levels, perks (with their options on day one) and the skin.
+ */
+export function newBase(content: Content, now: number, seed: number, carry?: Carry): BaseState {
   const tool = content.tools[0];
   if (!tool) throw new Error("tools.json5 lists no tools");
   const stock: Amounts = {};
   for (const id of Object.keys(tool.rates)) stock[id] = 0;
-  return {
+  const veterans = carry?.veterans ?? {};
+  const fresh: BaseState = {
     seed: seed >>> 0,
     tier: "twig",
     toolId: tool.id,
@@ -180,9 +195,9 @@ export function newBase(content: Content, now: number, seed: number): BaseState 
     furnaceJobs: [],
     items: {},
     production: {},
-    blueprints: [],
+    blueprints: [...(carry?.blueprints ?? [])],
     wellFed: null,
-    crew: content.crewRules.start.map((id) => newSurvivor(content, id, now)),
+    crew: content.crewRules.start.map((id) => newSurvivor(content, id, now, veterans)),
     bonds: {},
     dry: {},
     nextArrivalAt: now + content.crewRules.arrivalHours * 3600,
@@ -210,15 +225,33 @@ export function newBase(content: Content, now: number, seed: number): BaseState 
     raidReports: [],
     damaged: false,
     pvp: newPvp(),
+    season: carry?.season ?? { number: 1, startedAt: now, modifier: null },
+    perks: { ...(carry?.perks ?? {}) },
+    veterans,
+    skin: carry?.skin ?? null,
   };
+  // The options bought land on day one: the old friend, the crate.
+  let next = fresh;
+  for (const [id, rank] of Object.entries(next.perks)) {
+    if (rank > 0) next = applyOptions(content, next, perkOf(content, id), now);
+  }
+  return next;
 }
 
-/** A survivor as they arrive: level 1, no gear, no job, rested. */
-export function newSurvivor(content: Content, id: string, at: number): Survivor {
+/**
+ * A survivor as they arrive: no gear, no job, rested; level 1, or the level they had last
+ * season (`veterans`, W7).
+ */
+export function newSurvivor(
+  content: Content,
+  id: string,
+  at: number,
+  veterans: Record<string, Veteran> = {},
+): Survivor {
   return {
     id,
-    level: 1,
-    xp: 0,
+    level: veterans[id]?.level ?? 1,
+    xp: veterans[id]?.xp ?? 0,
     gear: { weapon: null, armor: null },
     injuredUntil: null,
     away: null,
@@ -287,7 +320,9 @@ export function storageCap(content: Content, state: BaseState): number {
     .sort((a, b) => b - a)
     .slice(0, tier.boxSlots);
   const crates = boxes.reduce((sum, capacity) => sum + capacity, 0);
-  return tier.storageCap + crates + modifiers(content, state).cap;
+  const mods = modifiers(content, state);
+  // Legacy perks add a percent of the whole (W7).
+  return Math.floor(((tier.storageCap + crates + mods.cap) * (100 + mods.capPercent)) / 100);
 }
 
 export function total(amounts: Amounts): number {
@@ -353,7 +388,11 @@ export function effectiveRates(content: Content, state: BaseState): Amounts {
   for (const [id, perHour] of Object.entries(toolOf(content, state).rates)) {
     out[id] = Math.floor((perHour * (100 + mods.allRates + (mods.rates[id] ?? 0))) / 100);
   }
-  for (const [id, perHour] of Object.entries(mods.flat)) out[id] = (out[id] ?? 0) + perHour;
+  for (const [id, perHour] of Object.entries(mods.flat)) {
+    // The season can wreck (or bless) what the buildings make on their own (W7).
+    const scaled = Math.floor((perHour * (100 + (mods.flatPercent[id] ?? 0))) / 100);
+    out[id] = (out[id] ?? 0) + Math.max(0, scaled);
+  }
   return out;
 }
 

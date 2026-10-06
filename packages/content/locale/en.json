@@ -301,7 +301,10 @@
     "den_closed": "Opens at {tier}",
     "raid_in": "Raid in {time}",
     "damaged": "Damaged",
-    "defence": "{points} defence"
+    "defence": "{points} defence",
+    "season": "Season {number}",
+    "season_modifier": "Season {number} · {name}",
+    "season_ends": "Season ends in {time}"
   },
   "action": {
     "gather": "Gather",
@@ -329,7 +332,8 @@
     "map": "The map",
     "feed": "The island",
     "den": "The Den",
-    "defence": "Defence"
+    "defence": "Defence",
+    "signal": "The Signal"
   },
   "weather": {
     "clear": "Clear",
@@ -649,7 +653,13 @@
     "target_cooldown": "You hit them lately: again in {time}.",
     "tier_fence": "Too far apart: raids stay within one tier ({tier}).",
     "opt_out_locked": "You raided lately: you can leave the raids in {time}.",
-    "no_damage": "Nothing needs repairing."
+    "no_damage": "Nothing needs repairing.",
+    "perk_maxed": "That perk is at its top rank.",
+    "no_points": "Not enough legacy points: {need} more.",
+    "not_earned": "Not earned yet.",
+    "signal_closed": "The Signal opens on day {day}.",
+    "signal_lit": "The Signal is already lit.",
+    "not_needed": "The Signal does not need that now."
   },
   "login": {
     "title": "Wipe Day",
@@ -672,7 +682,10 @@
     "tier": "Base tier",
     "world": "World",
     "barrel": "Barrel",
-    "give": "Give all"
+    "give": "Give all",
+    "season": "Season",
+    "announce": "Announce the end",
+    "new_season": "End the season"
   },
   "building": {
     "workbench": {
@@ -1191,7 +1204,10 @@
     "pvp_held": "{target} held off a raid by {who}.",
     "pvp_breached": "{who} raided {target} and got in.",
     "kind_raid_warning": "Raiders sighted",
-    "kind_raid_warning_sub": "The warning hours before raiders land."
+    "kind_raid_warning_sub": "The warning hours before raiders land.",
+    "signal_lit": "The Signal is lit! {who} gave the last of it.",
+    "tab_legacy": "Legacy",
+    "tab_hall": "Hall of fame"
   },
   "contract": {
     "jetty_timber": {
@@ -1469,5 +1485,141 @@
     "raid": "Raid {name} · {count} charges",
     "alert": "land in {time} · {chance}% to hold",
     "strike": "Strike back at {name} · {count} charges"
+  },
+  "perk": {
+    "steady_hands": {
+      "name": "Steady Hands",
+      "effect": "+{value}% on all gathering"
+    },
+    "deep_cellars": {
+      "name": "Deep Cellars",
+      "effect": "+{value}% room for every resource"
+    },
+    "quick_fingers": {
+      "name": "Quick Fingers",
+      "effect": "crafting {value}% faster"
+    },
+    "hot_coals": {
+      "name": "Hot Coals",
+      "effect": "furnaces {value}% faster"
+    },
+    "old_maps": {
+      "name": "Old Maps",
+      "effect": "+{value} success on every trip"
+    },
+    "war_stories": {
+      "name": "War Stories",
+      "effect": "+{value}% crew XP from trips"
+    },
+    "old_friend": {
+      "name": "Old Friend",
+      "effect": "your best veteran is home from day one"
+    },
+    "packed_crate": {
+      "name": "Packed Crate",
+      "effect": "a storage crate from day one"
+    }
+  },
+  "skin": {
+    "driftwood": {
+      "name": "Driftwood",
+      "how": "Finish a season."
+    },
+    "rust": {
+      "name": "Rust",
+      "how": "Hold off {count} raids in one season."
+    },
+    "beacon": {
+      "name": "Beacon",
+      "how": "Be on the island when the Signal is lit."
+    }
+  },
+  "modifier": {
+    "long_nights": {
+      "name": "Long Nights",
+      "blurb": "The nights draw in: raiders come stronger."
+    },
+    "rich_tides": {
+      "name": "Rich Tides",
+      "blurb": "The sea gives: barrels come sooner and hold more."
+    },
+    "quiet_raiders": {
+      "name": "Quiet Raiders",
+      "blurb": "The bandits are licking their wounds: fewer, weaker raids."
+    },
+    "storm_season": {
+      "name": "Storm Season",
+      "blurb": "Storms wreck the gardens but wash up barrels, and ruins give more."
+    }
+  },
+  "signal": {
+    "stage_foundation": "Foundation",
+    "stage_tower": "Tower",
+    "stage_lamp": "Lamp",
+    "stage_fuel": "Fuel",
+    "loading": "Looking up the hill…",
+    "blurb": "The island's tower for the season's last week. Everyone gives; when the lamp is fuelled, the Signal is lit.",
+    "lit": "The Signal is lit",
+    "lit_sub": "Its beam turns over the sea every night until the season ends.",
+    "closed": "The Signal opens on day {day}",
+    "closed_in": "In {time}, or as soon as the season's end is announced.",
+    "closed_sub": "As soon as the season's end is announced.",
+    "stage_of": "stage {stage} of {stages}",
+    "give": "Give {amount} {good}",
+    "none": "No {good} to give",
+    "season_ends": "The season ends in {time}.",
+    "givers": "Who gave most",
+    "no_givers": "Nobody has given yet.",
+    "mine": "You gave {amount} scrap's worth. A share of the gifts brings up to {points} legacy points at the season's end."
+  },
+  "legacy": {
+    "loading": "Opening the logbook…",
+    "points": "legacy points",
+    "season": "Season {number}",
+    "first_season": "Your first season: points come when it ends.",
+    "finished": "Seasons finished: {count}",
+    "kept": "Kept: blueprints {blueprints} · veterans {veterans}",
+    "veteran": "{name} · level {level}",
+    "perks": "Perks",
+    "cap": "Small edges that last across seasons. No mix of perks makes you more than {percent}% stronger in any rate.",
+    "rank": "rank {rank} of {top}",
+    "not_yet": "Not yet",
+    "top": "Top rank",
+    "need": "Need {count} more",
+    "buy": "Buy · {cost} points",
+    "skins": "Skins",
+    "plain": "Plain",
+    "titles": "Titles",
+    "no_titles": "Win a category or give the most to the Signal to earn a title.",
+    "title": "{name} · season {season}",
+    "title_wealth": "Wealthiest",
+    "title_builder": "Master Builder",
+    "title_explorer": "Pathfinder",
+    "title_trader": "Merchant",
+    "title_lucky": "Lucky Hand",
+    "title_guard": "Wallkeeper",
+    "title_signal": "Keeper of the Signal"
+  },
+  "hall": {
+    "empty": "No season has ended yet. The first winners will stand here.",
+    "hint": "Every season's winners, kept for good.",
+    "season": "Season {number}",
+    "signal": "The Signal",
+    "value_wealth": "{value} scrap",
+    "value_builder": "{value}",
+    "value_explorer": "{value} sites",
+    "value_trader": "{value} scrap",
+    "value_lucky": "{value} scrap",
+    "value_guard": "{value} defence"
+  },
+  "season_over": {
+    "kicker": "Season {number} is over",
+    "title": "The tide came in",
+    "points": "+{points} legacy points ({total} to spend).",
+    "kept": "Kept: blueprints {blueprints} · veterans {veterans} (your crew's levels).",
+    "modifier": "Season {number}: {name}.",
+    "spend": "Spend points",
+    "begin": "Begin season {number}",
+    "card": "Your season {number}"
   }
 }

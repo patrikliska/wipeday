@@ -10,11 +10,13 @@ import type {
   CommandResponse,
   DenBoard,
   DenPush,
+  LegacyResponse,
   MeResponse,
   PriceHistory,
   PushMessage,
   RaidsResponse,
   RanksResponse,
+  SignalResponse,
   StateResponse,
 } from "@wipe-day/domain/wire";
 
@@ -66,6 +68,10 @@ export interface Backend {
   ranks(): Promise<RanksResponse>;
   /** Other holdfasts in the raids, with whether and at what cost they can be raided (W6). */
   raids(): Promise<RaidsResponse>;
+  /** What the player keeps across seasons, their finished seasons, the hall of fame (W7). */
+  legacy(): Promise<LegacyResponse>;
+  /** The Signal: its stages, what it still needs, who gave most (W7). */
+  signal(): Promise<SignalResponse>;
   /** The season's feed, newest first; `before` pages back by item id. */
   feed(before?: number): Promise<FeedItem[]>;
   /** Notification settings; null where there are none (demo mode). */

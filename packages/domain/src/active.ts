@@ -57,7 +57,8 @@ export function breakBarrel(content: Content, state: BaseState, now: number): Ba
   const { barrels } = content.active;
   const random = rng(barrel.seed);
   const loot: Amounts = {};
-  for (let roll = 0; roll < barrels.rolls; roll++) {
+  const rolls = barrels.rolls + modifiers(content, state).barrelRolls;
+  for (let roll = 0; roll < rolls; roll++) {
     const entry =
       barrels.loot[
         pickWeighted(

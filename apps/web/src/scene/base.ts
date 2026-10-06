@@ -6,7 +6,7 @@ import { Container, Graphics } from "pixi.js";
 import type { Tier } from "../state/world";
 import { drawFlame, FOOTPRINTS, makeBuilding } from "./buildings";
 import { Glow, type Particles } from "./effects";
-import { MATERIALS, type Material } from "./palette";
+import { MATERIALS, type Material, SKINS } from "./palette";
 import type { Station } from "./station";
 import { clamp, easeOutBack, lerp, rand, shade } from "./util";
 
@@ -124,8 +124,8 @@ function windowPane(g: Graphics, x: number, y: number, w: number, h: number, m: 
 }
 
 /** Draws the structure for a tier with its bottom centre at (0, 0). Returns window rects for glows. */
-function drawStructure(tier: Tier, g: Graphics): WindowRect[] {
-  const m = MATERIALS[tier];
+function drawStructure(tier: Tier, g: Graphics, skin: string | null): WindowRect[] {
+  const m: Material = { ...MATERIALS[tier], ...(skin ? SKINS[skin] : {}) };
   const windows: WindowRect[] = [];
   switch (tier) {
     case "twig": {
@@ -414,6 +414,8 @@ export class Base {
   private stations: Station[] = [];
   private stationsKey = "";
   private tier: Tier | null = null;
+  /** The holdfast's skin (W7): a palette over the tier's material. */
+  private skin: string | null = null;
   private buildAnim = 0;
   private time = 0;
   private smokeTimer = 0;
@@ -436,9 +438,10 @@ export class Base {
     this.lights.addChild(this.lightStations);
   }
 
-  setTier(tier: Tier, animate: boolean): void {
-    if (tier === this.tier) return;
+  setTier(tier: Tier, animate: boolean, skin: string | null = this.skin): void {
+    if (tier === this.tier && skin === this.skin) return;
     this.tier = tier;
+    this.skin = skin;
     this.structure?.destroy({ children: true });
     for (const glow of this.windowGlows) glow.sprite.destroy();
     this.windowGlows = [];
@@ -446,7 +449,7 @@ export class Base {
     this.floodGlow = null;
 
     const g = new Graphics();
-    const windows = drawStructure(tier, g);
+    const windows = drawStructure(tier, g, skin);
     this.structure = new Container();
     this.structure.addChild(g);
     this.structureLayer.addChild(this.structure);

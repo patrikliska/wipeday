@@ -153,7 +153,7 @@ export function settleArrivals(
     const at = next.nextArrivalAt;
     next = {
       ...next,
-      crew: [...next.crew, newSurvivor(content, newcomer.id, at)],
+      crew: [...next.crew, newSurvivor(content, newcomer.id, at, next.veterans)],
       nextArrivalAt: at + every,
     };
     events.push({ type: "survivor_arrived", survivor: newcomer.id, at, from: "boat" });
@@ -386,6 +386,10 @@ export function tripOdds(content: Content, state: BaseState, site: Site, crewIds
     const weapon = content.items.find((item) => item.id === survivor?.gear.weapon);
     if (weapon?.power && site.hazard === "hostile") success += weapon.power;
   }
+  // Legacy perks and the season (W7): a little more luck, a little more loot.
+  const mods = modifiers(content, state);
+  success += mods.tripSuccess;
+  loot += mods.tripLoot;
   const chance = clampPercent(success);
   const cover = Math.min(80, partyInjury);
   const injury = crewIds.map((id) => {
@@ -713,12 +717,13 @@ function resolve(
       const rolls = base + happened.reduce((sum, event) => sum + (event.rolls ?? 0), 0);
       const extra = happened.reduce((sum, event) => sum + (event.loot ?? 0), 0);
       wanted = rollLoot(site, mission.odds, rolls, random, extra);
-      xp =
+      const earned =
         outcome === "success"
           ? site.xp
           : outcome === "partial"
             ? Math.floor(site.xp / 2)
             : Math.floor(site.xp / 4);
+      xp = Math.floor((earned * (100 + modifiers(content, next).xpPercent)) / 100);
       injuryHours = site.injuryHours;
       if (outcome === "success" && random.next() * 100 < mission.odds.blueprint) {
         blueprint = drawBlueprint(content, next, random);
@@ -804,7 +809,10 @@ function resolve(
     const stranger = content.crew.find((member) => !survivorIn(next, member.id));
     if (stranger && next.crew.length < crewCap(content, next)) {
       rescued = stranger.id;
-      next = { ...next, crew: [...next.crew, newSurvivor(content, stranger.id, at)] };
+      next = {
+        ...next,
+        crew: [...next.crew, newSurvivor(content, stranger.id, at, next.veterans)],
+      };
       events.push({ type: "survivor_arrived", survivor: stranger.id, at, from: "rescue" });
     } else if (stranger) {
       // No room yet: they make their own way and come with the next boat that has room.

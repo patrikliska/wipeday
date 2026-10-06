@@ -125,5 +125,14 @@ export function normalizeState(content: Content, stored: unknown): BaseState {
     raidReports: raw.raidReports ?? [],
     damaged: raw.damaged ?? false,
     pvp: { ...newPvp(), ...raw.pvp },
+    // W7: the legacy layer. A W6 base belongs to the first season, plain, without perks.
+    season: raw.season ?? {
+      number: 1,
+      startedAt: raw.stats?.reached?.twig ?? raw.lastCollectedAt ?? 0,
+      modifier: null,
+    },
+    perks: raw.perks ?? {},
+    veterans: raw.veterans ?? {},
+    skin: raw.skin ?? null,
   };
 }

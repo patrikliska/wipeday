@@ -20,6 +20,14 @@ export function TopBar() {
   const clock = useWorld((state) => clockLabel(seasonTime(state)));
   const day = useWorld((state) => seasonDay(state));
   const weather = useWorld((state) => state.weather);
+  // W7: the season's line, short (the clock chip is narrow on phones): when it ends once
+  // announced, else its modifier; the season's number is in the Legacy tab.
+  const seasonLine = useWorld((state) => {
+    const { endsAt, modifier } = state.season;
+    if (endsAt !== null)
+      return t("hud.season_ends", { time: duration(Math.max(0, endsAt - state.now)) });
+    return modifier ? t(`modifier.${modifier}.name`) : "";
+  });
   const panel = useWorld((state) => state.panel);
   const openPanel = useWorld((state) => state.openPanel);
   const tasksDone = useWorld((state) => state.base.tasks.done.length);
@@ -132,6 +140,7 @@ export function TopBar() {
           <div className="small">
             {t("hud.day_weather", { day, weather: t(`weather.${weather}`) })}
           </div>
+          {seasonLine ? <div className="small season">{seasonLine}</div> : null}
           {fed ? (
             <div className="small fed">
               {t("hud.well_fed", {

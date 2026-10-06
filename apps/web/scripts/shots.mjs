@@ -422,6 +422,47 @@ const REVENGE = PVP_STATE({
 });
 const FORT = { ...MIDGAME, walls: 3, watchtower: 3, traps: 3, turret: 3 };
 
+// --- seasons and the legacy layer (W7) ----------------------------------------------------
+/** A finished season's card, as the reset archives it. */
+const SEASON_ONE = {
+  season: 1,
+  summary: {
+    tier: "hqm",
+    tierDays: { twig: 1, wood: 1, stone: 4, metal: 14, hqm: 23 },
+    sites: 9,
+    bestHaul: 1820,
+    crew: 7,
+    traded: 640,
+    wagered: 420,
+    won: 380,
+    biggestWin: 120,
+    contracts: 12,
+    wealth: 48_200,
+    ranks: { wealth: 2, builder: 1, explorer: 1, trader: 2, lucky: 2, guard: 1 },
+    players: 2,
+  },
+  ranks: { wealth: 2, builder: 1, explorer: 1, trader: 2, lucky: 2, guard: 1 },
+  points: 21,
+};
+/** The Signal half-way: the foundation done, the tower going up. */
+const SIGNAL_TOWER = { stage: 1, given: { frames: 120, plates: 90 }, litAt: null };
+const SIGNAL_LIT = { stage: 4, given: {}, litAt: at(25, 22) };
+const LATE = (extra = {}) => ({
+  time: at(23, 11),
+  tier: "hqm",
+  buildings: { ...MIDGAME, walls: 3, watchtower: 2 },
+  stock: {
+    ...CRAFT_STOCK,
+    stone: 24_000,
+    planks: 900,
+    frames: 60,
+    plates: 140,
+    gears: 30,
+    fuel: 200,
+  },
+  ...extra,
+});
+
 const SHOTS = [
   { name: "desktop_day", viewport: [1600, 900], state: { time: at(3, 11) } },
   { name: "desktop_morning", viewport: [1600, 900], state: { time: at(3, 7) } },
@@ -1369,6 +1410,103 @@ const SHOTS = [
     state: PVP({ panel: null, time: at(16, 23), buildings: FORT }),
   },
   { name: "desktop_defence_panel", viewport: [1600, 900], state: RAID({ panel: "defence" }) },
+  // Seasons and the legacy layer (W7).
+  {
+    name: "phone_legacy",
+    viewport: [390, 844],
+    scale: 3,
+    state: { time: at(3, 11), panel: "feed", feedTab: "legacy" },
+  },
+  {
+    name: "phone_legacy_bought",
+    viewport: [390, 844],
+    scale: 3,
+    state: {
+      time: at(3, 11),
+      panel: "feed",
+      feedTab: "legacy",
+      perks: { steady_hands: 3, deep_cellars: 1, old_maps: 2, old_friend: 1 },
+      skin: "driftwood",
+      seasonDemo: {
+        legacy: {
+          points: 2,
+          perks: { steady_hands: 3, deep_cellars: 1, old_maps: 2, old_friend: 1 },
+          skin: "driftwood",
+        },
+      },
+    },
+    scrollTo: ".panel h3.section",
+  },
+  {
+    name: "phone_hall",
+    viewport: [390, 844],
+    scale: 3,
+    state: { time: at(3, 11), panel: "feed", feedTab: "hall" },
+  },
+  {
+    name: "phone_season_over",
+    viewport: [390, 844],
+    scale: 3,
+    state: { time: at(1, 9), seasonDemo: { archived: [SEASON_ONE] }, seasonSeen: 1 },
+  },
+  {
+    name: "desktop_season_over",
+    viewport: [1600, 900],
+    state: { time: at(1, 9), seasonDemo: { archived: [SEASON_ONE] }, seasonSeen: 1 },
+  },
+  {
+    name: "phone_signal_closed",
+    viewport: [390, 844],
+    scale: 3,
+    state: { time: at(9, 11), panel: "signal" },
+  },
+  {
+    name: "phone_signal_open",
+    viewport: [390, 844],
+    scale: 3,
+    state: LATE({
+      panel: "signal",
+      seasonDemo: { endsAt: at(27, 20), next: "quiet_raiders", signal: SIGNAL_TOWER },
+    }),
+  },
+  {
+    name: "phone_signal_lit",
+    viewport: [390, 844],
+    scale: 3,
+    state: LATE({
+      time: at(26, 9),
+      panel: "signal",
+      seasonDemo: { endsAt: at(27, 20), signal: SIGNAL_LIT },
+    }),
+  },
+  {
+    name: "phone_season_ends",
+    viewport: [390, 844],
+    scale: 3,
+    state: LATE({
+      seasonDemo: { endsAt: at(27, 20), next: "quiet_raiders", signal: SIGNAL_TOWER },
+    }),
+  },
+  {
+    name: "desktop_signal_tower",
+    viewport: [1600, 900],
+    state: LATE({ seasonDemo: { endsAt: at(27, 20), signal: SIGNAL_TOWER } }),
+  },
+  {
+    name: "desktop_signal_lit_night",
+    viewport: [1600, 900],
+    state: LATE({ time: at(26, 22), seasonDemo: { endsAt: at(27, 20), signal: SIGNAL_LIT } }),
+  },
+  {
+    name: "desktop_skin_beacon",
+    viewport: [1600, 900],
+    state: { ...DEN(), panel: null, skin: "beacon" },
+  },
+  {
+    name: "desktop_skin_rust",
+    viewport: [1600, 900],
+    state: { ...DEN(), panel: null, tier: "metal", skin: "rust" },
+  },
   { name: "phone_landscape", viewport: [844, 390], scale: 3, state: { time: at(3, 11) } },
   { name: "tablet", viewport: [820, 1180], scale: 2, state: { time: at(3, 11) } },
 ];
@@ -1424,6 +1562,8 @@ async function main() {
         jackpot,
         defenceTab,
         rival,
+        seasonDemo,
+        seasonSeen,
         ...base
       } = state;
       clocks.game.setPaused(true);
@@ -1459,8 +1599,13 @@ async function main() {
         roll: roll ? { ...roll, at: 0 } : null,
         spin: spin ?? null,
         defenceTab: defenceTab ?? "defence",
+        // The season-over card only where a shot asks for it.
+        seasonSeen: seasonSeen ?? 99,
       });
       if (rival) world.demoRival(rival);
+      if (seasonDemo) world.demoSeason(seasonDemo);
+      if (panel === "signal") void world.loadSignal();
+      if (panel === "feed" && (feedTab === "legacy" || feedTab === "hall")) void world.loadLegacy();
       if (panel === "defence") void world.loadRaids();
       if (denBets || jackpot !== undefined)
         world.demoDen({

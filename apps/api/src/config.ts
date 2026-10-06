@@ -24,6 +24,8 @@ const schema = z.object({
   GAME_DATABASE_PATH: z.string().min(1).default("var/wipeday.db"),
   BACKUP_DIR: z.string().min(1).default("var/backups"),
   WEB_DIST: z.string().min(1).default("apps/web/dist"),
+  /** The admin routes' bearer token (W7: announcing and ending seasons). Unset: dev only. */
+  ADMIN_TOKEN: z.string().min(16).optional(),
 });
 
 export interface Config {
@@ -36,6 +38,8 @@ export interface Config {
   webDist: string;
   /** The passwordless test login (dev only, never in production). */
   devLogin: boolean;
+  /** Bearer token for `/api/admin/*`; null leaves them to development only. */
+  adminToken: string | null;
 }
 
 const fromRoot = (path: string) => (isAbsolute(path) ? path : join(ROOT, path));
@@ -67,5 +71,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, root = ROOT): C
     backupDir: fromRoot(data.BACKUP_DIR),
     webDist: fromRoot(data.WEB_DIST),
     devLogin: !production,
+    adminToken: data.ADMIN_TOKEN ?? null,
   };
 }

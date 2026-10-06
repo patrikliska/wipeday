@@ -233,6 +233,16 @@ export const MATERIALS: Record<Tier, Material> = {
   },
 };
 
+/**
+ * Base skins (W7, legacy.json5): earned palettes over the tier's own material. They recolour
+ * the roof and the trim, so the tier still reads from the walls.
+ */
+export const SKINS: Record<string, Partial<Material>> = {
+  driftwood: { roof: 0x9c9284, roofDark: 0x6f675c, trim: 0xd8cfb8 },
+  rust: { roof: 0x8a4a2a, roofDark: 0x5e3019, trim: 0xc0703a },
+  beacon: { roof: 0x1f3a5a, roofDark: 0x142740, trim: 0xffd25a },
+};
+
 export const GROUND = 0x4a7338;
 export const GROUND_DARK = 0x35552c;
 export const GROUND_LIGHT = 0x6b9a48;
