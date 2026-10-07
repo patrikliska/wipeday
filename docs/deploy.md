@@ -7,6 +7,8 @@ https://wipeday.patrikliska.dev, next to two other projects that must keep worki
 
 - One Docker container, `wipeday`, built from this repo (`Dockerfile`): the API, which also
   serves the web build. Compose file: `deploy/compose.yml`, copied to `~/wipeday/compose.yml`.
+- W8: a second container from the same image, `wipeday-bot`, runs the Discord bot once it is
+  configured (see "The Discord bot" below). It keeps no state and talks only to the API.
 - The existing Caddy (`tk-toolkit-caddy-1`, from `~/tk-toolkit`) owns ports 80/443 and TLS. The
   `wipeday` container joins its Docker network (`tk-toolkit_default`), and one block
   (`deploy/Caddyfile.wipeday`) appended to `~/tk-toolkit/Caddyfile` proxies the domain to
@@ -118,7 +120,8 @@ git push                            # main on GitHub now matches what is live
 - `sudo` on the server needs the owner's password: never needed for Wipe Day.
 - Never commit or print `.env` or its secrets; the server's `~/wipeday/.env` is written by the
   owner.
-- The server is small (2 vCPU, 1.9 GB RAM, about 1 GB free): one container, no extra services.
+- The server is small (2 vCPU, 1.9 GB RAM, about 1 GB free): the game's container and its
+  bot (capped at 320 MB in `compose.yml`), no other services.
 
 ## Discord developer portal (once)
 
@@ -126,6 +129,33 @@ Application (the bot's) -> OAuth2:
 - Redirects: `https://wipeday.patrikliska.dev/api/auth/callback` and, for local development,
   `http://localhost:5173/api/auth/callback`.
 - Client ID and Client Secret go into `~/wipeday/.env` on the server (and the local `.env`).
+
+## The Discord bot (W8, D121-D126)
+
+The bot is the same application as the login. It needs four lines in `~/wipeday/.env` (the
+owner writes them; never in git):
+
+```
+DISCORD_TOKEN=...            # developer portal -> the application -> Bot -> Reset Token
+DISCORD_GUILD_ID=718829849137119232
+FEED_CHANNEL_ID=...          # where the island's feed and season news go (optional)
+BOT_API_TOKEN=...            # 32+ random characters (openssl rand -hex 32); the API reads it too
+```
+
+- The bot must be in the server: developer portal -> OAuth2 -> URL Generator, scopes `bot` and
+  `applications.commands`; in the feed channel it needs View Channel and Send Messages. It
+  needs no privileged intent.
+- `scripts/deploy.sh` starts the bot (`docker compose --profile bot up -d --build`) only when
+  `DISCORD_TOKEN`, `DISCORD_GUILD_ID` and `BOT_API_TOKEN` are all set; otherwise it deploys
+  the game alone and says so. After adding them, deploy again (or, on the server:
+  `cd ~/wipeday && docker compose --profile bot up -d --force-recreate`, which also makes the
+  API read the new token).
+- On start it registers `/base` in the guild (replacing the old bot's commands) and logs
+  "logged in" and "slash commands registered": `docker compose logs --tail=50 wipeday-bot`.
+- It reaches the API at `http://wipeday:8787` on the Docker network. A restart loses
+  nothing: the API remembers which feed items the channel has (`settings.discord_feed`) and
+  sends the missed ones (at most 20, from the last day) when the bot reconnects.
+- Stop it without touching the game: `docker compose stop wipeday-bot`.
 
 ## Seasons (W7, D114)
 
@@ -153,7 +183,7 @@ cd ~/wipeday && docker compose restart wipeday
 ## Useful commands on the server
 
 ```sh
-cd ~/wipeday && docker compose logs -f --tail=100   # the game's log
+cd ~/wipeday && docker compose logs -f --tail=100   # the game's log (and the bot's)
 docker compose up -d --force-recreate wipeday       # after editing .env (restart does not re-read it)
 ls ~/wipeday/var/backups                            # nightly backups
 ```

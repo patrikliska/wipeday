@@ -1292,3 +1292,61 @@ included.
   into its panel.
 - **Skins:** recolour the holdfast's roof and trim, and keep the tier's walls so the tier
   still reads.
+
+### D121. The bot is a client of the API, with a service token and the player's Discord id
+The bot holds `BOT_API_TOKEN` (the same value in the API's environment) and calls `/api/bot/*`
+for a player named by headers: `x-discord-id`, the URI-encoded `x-discord-name` and
+`x-discord-avatar`. Every player route of the web is mounted there too, with the same
+handlers, so the bot has no rules of its own: `/base` reads the base, Collect and Gather are
+`POST /commands` keyed `discord:{interaction id}` (a retried click runs once). The first call
+makes the player, like a first web login, so someone can start on Discord and find the same
+base on the web. Bot calls never mark the player seen: the welcome-back summary stays the web's.
+A development API takes the bot without a token; production refuses it. The bot keeps no
+database: its store, scheduler and frozen rules (`legacy/`, D57) are gone, and a boundary
+test keeps rules and databases out of `apps/discord`.
+
+### D122. One-time login links from Discord
+`/base`'s "Open the game" is a link with a fresh token (`GET /api/auth/link?t=`): it starts a
+normal session and goes to the game. A link works once, for ten minutes (`login_links`, only
+the token's hash stored, migration 0004). A spent or expired link just opens the game, where
+the session already there or the Discord login takes over. A DM's link opens the right place
+(a report) without a token, because a DM stays in the history.
+
+### D123. DMs: the same notifications, opted into by using the bot
+A DM carries what the web pushes (the same words, the same kinds and per-kind switches). A
+player gets DMs once they have used the bot (`players.discord_dm`: null until then, then on),
+and turns them off on `/base` or on any DM; test players never get one. Every DM has the
+follow-ups: "Show my base" (the card, right there), "Open the game" at the report, and
+"Turn DMs off". DMs are live only: a DM that falls while the bot is down is not sent later,
+because the web push and the game itself already carry it.
+
+### D124. The feed channel: one event, both places, and nothing lost while the bot is away
+The API's bot stream (`GET /api/bot/stream`) sends the same feed items the web's tabs get,
+from the same `event_log` row, and the bot posts them in the very sentence the web's feed
+shows (`@wipe-day/domain/words`, moved there from the web). The bot acks what it posted
+(`POST /api/bot/feed/ack`); the API keeps that cursor in `settings`, and a reconnect first
+sends what came after it (at most 20 items from the last 24 hours, the late ones with their
+time). The first connection starts at the newest item, so the channel never gets old history.
+Season news rides the same stream: the end announced (with the next modifier) and the reset
+(with the winners and their titles).
+
+### D125. `/base` is private and designed for a phone
+`/base` answers ephemerally: each player has their own card, updated in place by its buttons.
+There is no persistent home message any more. On a phone Discord shows a card only about 290
+px wide, so the card is laid out on 600 units (no text under 22, about 10.6 px), three
+resources a row. The message reads top to bottom: the title, the status line (what the last
+click did, or the one next step), the card, then one line each for what is waiting, the
+builders, the stations, parties out, raiders sighted and the season's end, as Discord
+timestamps that tick in each reader's language and time zone. The advisor picks the one
+primary action: Collect or Gather when it says so and they would do something, otherwise the
+link into the game, which leads its row and whose step is the status line (Discord draws every
+link grey, so the words carry it). Locked buttons say why ("Gather · 8m", "Collect · store
+full"). The customId scheme moved to `idle:v2`; an old v1 button answers with the base.
+
+### D126. The bot's container: the same image, started only when it is configured
+The image now installs the bot too; `deploy/compose.yml` runs it as `wipeday-bot` in the
+`bot` profile (no health check, 320 MB at most, `API_URL=http://wipeday:8787`).
+`scripts/deploy.sh` starts that profile only when `~/wipeday/.env` has `DISCORD_TOKEN`,
+`DISCORD_GUILD_ID` and `BOT_API_TOKEN`, so a deploy before the owner's setup still works.
+`pnpm preview` draws every message from the payload the bot sends, in Discord's dark theme at
+phone and desktop width (`preview/discord/`), because the agent cannot open Discord.

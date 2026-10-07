@@ -790,3 +790,54 @@ Shots: `phone_legacy`, `phone_legacy_bought`, `phone_hall`, `phone_season_over`,
     (later, with commissioned art).
   - Titles are shown only in the Legacy tab. Showing the worn title beside names in the
     feed and ranks is for W8 (the bot shows names too).
+
+## W8: the Discord companion (`/base`, DMs, the feed channel, season news)
+
+Reviewed with `pnpm preview` (`preview/discord/index.html`): every message drawn from the
+payload the bot sends, in Discord's dark theme at phone (390 px) and desktop (640 px) width,
+plus the card alone at phone size. States: `new`, `waiting`, `filling`, `banked`, `busy`,
+`full`, `cooldown`, `long`; DMs `party_back`, `raided`; four feed lines; both season news.
+
+- Iteration 1, what was wrong:
+  - **Legibility (checklist 2):** the card was laid out on 800 units like the old bot's, but
+    a phone shows it only about 290 px wide, so resource names came out near 8 px.
+  - **One obvious action (6.3 rule 1):** when the advisor's step is in the game, the primary
+    is the "Open the game" link, which Discord draws grey like every link. It sat third in
+    its row, and the step itself was small print under the details.
+  - **Hierarchy:** the status line said "Your crew keeps working while you are away" on
+    every card: the place the eye lands said nothing.
+  - **Wording:** "8× Planks and 1 more" (more what?); "DMs: on. Which kinds is set in the
+    game, under notifications."
+  - **Fixtures:** the "full" state was not full (the cap is 5k at Timber, not 4k), so the
+    locked "Collect · store full" was never seen.
+- Iteration 2, what changed:
+  - The card is laid out on 600 units with three resources a row: names at 24 units (about
+    11.6 px on a phone), amounts at 30, nothing under 22.
+  - The status line is the last click's result, or else the one next step ("Next, in the
+    game: post a guard, raiders are coming."); the primary button leads row 1 whatever its
+    kind. With a result in the status line, the step moves to the small print.
+  - "8× Planks, 6× Rope, the first done in 40 minutes"; "DMs on. Pick which ones in the
+    game's notification settings."
+  - The full fixture fills to the real cap; a new `filling` fixture shows Collect as the
+    primary.
+- What works:
+  - **Locked buttons say why (rule 3):** "Gather · 8m", "Collect · nothing yet",
+    "Collect · store full".
+  - **Feedback (rule 7):** a click answers in place within the second: "Banked +214 Timber,
+    +80 Stone, +12 Iron Ore.", "Gather is ready again in 4 minutes."
+  - **No dead end (rule 2):** every DM offers the base right there, the game at the report,
+    and DMs off; a stale button from the old bot answers with the base as it is now.
+  - **Consistency (checklist 5):** the same tile, colour and letters per resource as the web
+    (`@wipe-day/content/look`), the tier's colour on the card's strip and the message's
+    accent, numbers through the one formatter, and feed lines in the web feed's own words.
+  - **Overflow (checklist 4):** a 32-character name truncates on the card and wraps in the
+    title; seven-digit stocks read `1.2M`; names with markdown characters are escaped.
+  - **The web, unchanged:** `phone_feed`, `desktop_feed`, `phone_feed_dot` and
+    `phone_inventory` render as before with the feed's sentences and the tiles now coming
+    from the shared modules. They showed "finished a Armored base" (a grammar slip from W4b,
+    now in both places), which reads "finished the Armored base" now.
+- Still open:
+  - The mock is an approximation: Discord's font is gg sans, and the real app may wrap
+    buttons a little differently. The owner's first live `/base` on a phone is the real check.
+  - Titles still show only in the web's Legacy tab, not beside names in the feed (carried
+    over from W7).
