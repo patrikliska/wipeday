@@ -1,70 +1,63 @@
-/** `pnpm start` / `pnpm dev`: the bot process. */
+/**
+ * `pnpm start` / `pnpm bot:dev`: the Discord companion (W8). A thin client of the API: it
+ * registers `/base`, answers buttons through the API's commands, and follows the API's
+ * stream for the feed channel, DMs and season news. It keeps no state of its own.
+ */
+import { loadGame } from "@wipe-day/content/load";
 import { systemClock } from "@wipe-day/domain/clock";
+import type { FeedItem } from "@wipe-day/domain/feed";
+import type { DmNote, SeasonNews } from "@wipe-day/domain/wire";
+import { words } from "@wipe-day/domain/words";
 import { Client, Events, GatewayIntentBits } from "discord.js";
-import { type App, loadStatic } from "../app";
-import { type EmojiApi, Emojis, syncEmojis } from "../assets/emojiSync";
+import { httpApi } from "../api";
 import { loadConfig } from "../config";
 import { log } from "../log";
-import { discoverPaths } from "../paths";
-import { startScheduler } from "../scheduler/scheduler";
-import { openDb } from "../store/db";
-import { commands, handleInteraction, refreshHomeById } from "../ui/interactions";
+import { Renderer } from "../render/renderer";
+import { followStream } from "../stream";
+import { type Bot, commandsOf, handleInteraction, Island } from "../ui/interactions";
 
 async function main(): Promise<void> {
-  const paths = discoverPaths();
-  const config = loadConfig(paths.root);
-  const app: App = {
-    clock: systemClock,
-    paths,
-    config,
-    ...loadStatic(paths),
-    db: openDb(config.databasePath, paths.migrations),
-    emojis: new Emojis(),
+  const config = loadConfig();
+  const { content, locale } = loadGame((key) => log.warn("missing locale key", { key }));
+  const lexicon = { content, words: words(locale, content) };
+  const bot: Bot = {
+    api: httpApi(config.apiUrl, config.apiToken),
+    lexicon,
+    renderer: new Renderer({ locale }),
   };
-  app.assets.logSummary();
 
   // Interactions arrive over the gateway without any privileged intent.
   const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+  let stopStream = () => {};
 
   client.once(Events.ClientReady, async (ready) => {
-    log.info("logged in", { user: ready.user.tag });
+    log.info("logged in", { user: ready.user.tag, api: config.apiUrl });
     try {
-      await ready.application.commands.set(commands, config.guildId);
-      log.info("slash commands registered", { guild: config.guildId, count: commands.length });
+      // Replaces whatever the guild had (the old bot's commands go with it).
+      await ready.application.commands.set(commandsOf(lexicon), config.guildId);
+      log.info("slash commands registered", { guild: config.guildId });
     } catch (error) {
       log.error("could not register slash commands: is the bot in the guild?", {
         guild: config.guildId,
         error: (error as Error).message,
       });
     }
+    if (!config.feedChannelId) log.warn("FEED_CHANNEL_ID is not set: no feed or season news");
 
-    const manager = ready.application.emojis;
-    const api: EmojiApi = {
-      list: async () =>
-        (await manager.fetch()).map((emoji) => ({ id: emoji.id, name: emoji.name ?? "" })),
-      create: async (name, png) => {
-        const emoji = await manager.create({ attachment: png, name });
-        return { id: emoji.id, name: emoji.name ?? name };
-      },
-      delete: async (id) => {
-        await manager.delete(id);
-      },
-    };
-    app.emojis = await syncEmojis(api, app.assets, app.db, app.clock.now());
-
-    // Resolves builds that end while nobody is clicking (and everything that
-    // ended while the bot was down).
-    stopScheduler = startScheduler(app, {
-      refreshHome: (game, playerId, now) => refreshHomeById(game, client, playerId, now),
+    const island = new Island(bot, client, config.feedChannelId);
+    const follow = followStream(bot.api.stream, async ({ event, data }) => {
+      if (event === "feed") await island.feed(JSON.parse(data) as FeedItem[], systemClock.now());
+      else if (event === "dm") await island.dm(JSON.parse(data) as DmNote);
+      else if (event === "news") await island.news(JSON.parse(data) as SeasonNews);
     });
+    stopStream = follow.stop;
   });
 
-  client.on(Events.InteractionCreate, (interaction) => void handleInteraction(app, interaction));
+  client.on(Events.InteractionCreate, (interaction) => void handleInteraction(bot, interaction));
 
-  let stopScheduler = () => {};
   const stop = () => {
     log.info("shutting down");
-    stopScheduler();
+    stopStream();
     void client.destroy().finally(() => process.exit(0));
   };
   process.once("SIGINT", stop);

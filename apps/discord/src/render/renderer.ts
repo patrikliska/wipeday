@@ -2,15 +2,17 @@
  * Rendered image cards: view model -> JSX tree -> SVG (satori) -> PNG (resvg).
  *
  * The cache is keyed by a hash of everything that can change the pixels: the
- * card id, its view model, the output width, which assets exist (and their
- * content hashes), and the locale. Identical state is never rendered twice.
+ * card id, its view model, the output width and the locale. Identical state is
+ * never rendered twice.
  */
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { Resvg } from "@resvg/resvg-js";
+import type { Locale } from "@wipe-day/content/locale";
 import satori from "satori";
-import { type AssetRegistry, FONT_FILES } from "../assets/registry";
+import { APP_DIR } from "../config";
 import { log } from "../log";
-import type { Locale } from "../ui/locale";
 import { FONT_FAMILY, layout } from "../ui/theme";
 import type { Node } from "./jsx-runtime";
 
@@ -22,15 +24,19 @@ const CACHE_ENTRIES = 128;
 
 /** What card components may reach for while a tree is being built. */
 export interface RenderContext {
-  assets: AssetRegistry;
   locale: Locale;
 }
+
+/** Roboto Condensed, as on the web (`apps/discord/fonts`). */
+const font = (file: string): Buffer => readFileSync(join(APP_DIR, "fonts", file));
 
 /** A card: a stable id plus a pure function from view model to element tree. */
 export interface CardDef<Props> {
   /** Also the file stem in `preview/` and the attachment name. */
   id: string;
   render: (props: Props) => Node;
+  /** Layout width in design units; cards default to `layout.cardWidth`. */
+  width?: number;
 }
 
 export interface Rendered {
@@ -60,16 +66,11 @@ export class Renderer {
     this.fonts = [
       {
         name: FONT_FAMILY,
-        data: context.assets.font(FONT_FILES.regular),
+        data: font("RobotoCondensed-Regular.ttf"),
         weight: 400,
         style: "normal",
       },
-      {
-        name: FONT_FAMILY,
-        data: context.assets.font(FONT_FILES.bold),
-        weight: 700,
-        style: "normal",
-      },
+      { name: FONT_FAMILY, data: font("RobotoCondensed-Bold.ttf"), weight: 700, style: "normal" },
     ];
     this.localeFingerprint = createHash("sha256")
       .update(
@@ -96,7 +97,7 @@ export class Renderer {
   async svg<Props>(card: CardDef<Props>, props: Props): Promise<string> {
     // satori's element type is React's; our runtime produces the same shape.
     const tree = this.tree(card, props) as unknown as Parameters<typeof satori>[0];
-    return satori(tree, { width: layout.cardWidth, fonts: this.fonts });
+    return satori(tree, { width: card.width ?? layout.cardWidth, fonts: this.fonts });
   }
 
   /**
@@ -107,19 +108,11 @@ export class Renderer {
   async render<Props>(
     card: CardDef<Props>,
     props: Props,
-    width: number = layout.cardWidth * layout.renderScale,
+    width: number = (card.width ?? layout.cardWidth) * layout.renderScale,
   ): Promise<Rendered> {
     const started = performance.now();
     const key = createHash("sha256")
-      .update(
-        JSON.stringify([
-          card.id,
-          props,
-          width,
-          this.context.assets.fingerprint,
-          this.localeFingerprint,
-        ]),
-      )
+      .update(JSON.stringify([card.id, props, width, this.localeFingerprint]))
       .digest("hex");
 
     const hit = this.cache.get(key);

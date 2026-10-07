@@ -5,10 +5,8 @@
  * satori rule to remember: any element with more than one child needs an
  * explicit `display: flex`. `Row` and `Col` exist so that is never forgotten.
  */
-import type { Folder } from "../assets/spec";
-import { color, FONT_FAMILY, layout, type Tier, tierColor, withAlpha } from "../ui/theme";
+import { color, FONT_FAMILY, layout, withAlpha } from "../ui/theme";
 import type { Child, Style } from "./jsx-runtime";
-import { useRender } from "./renderer";
 
 interface BoxProps {
   style?: Style;
@@ -23,8 +21,8 @@ export function Col({ style, children }: BoxProps) {
   return <div style={{ display: "flex", flexDirection: "column", ...style }}>{children}</div>;
 }
 
-/** Card background, top accent strip, padding and font defaults. */
-export function CardFrame({ children }: { children?: Child }) {
+/** Card background, top accent strip (the tier's colour on the base card), padding, fonts. */
+export function CardFrame({ children, accent }: { children?: Child; accent?: string }) {
   return (
     <Col
       style={{
@@ -35,7 +33,7 @@ export function CardFrame({ children }: { children?: Child }) {
         fontSize: layout.minFont,
       }}
     >
-      <div style={{ display: "flex", height: 6, backgroundColor: color.accent }} />
+      <div style={{ display: "flex", height: 6, backgroundColor: accent ?? color.accent }} />
       <Col style={{ padding: `26px ${layout.pad}px ${layout.pad}px` }}>{children}</Col>
     </Col>
   );
@@ -119,32 +117,12 @@ export function Bar({
   );
 }
 
-/** Up to two uppercase initials from a snake_case id: `sulfur_ore` -> `SO`, `wood` -> `WO`. */
-export function initials(id: string): string {
-  const [first = "", second] = id.split("_").filter(Boolean);
-  return (second ? `${first[0] ?? ""}${second[0] ?? ""}` : first.slice(0, 2)).toUpperCase();
-}
-
 /**
- * A picture from the asset registry, or, while the owner has not supplied it,
- * a tier-tinted rounded tile with the entity's initials.
+ * A placeholder icon: the tinted rounded tile with two letters the web shows for the same
+ * thing (`@wipe-day/content/look`), until real art arrives.
  */
-export function Icon(props: {
-  folder: Folder;
-  name: string;
-  size: number;
-  tier?: Tier;
-  dim?: boolean;
-}) {
-  const { folder, name, size, tier, dim } = props;
-  const uri = useRender().assets.imageUri(folder, name);
-  const opacity = dim ? 0.45 : 1;
-  if (uri) {
-    return <img src={uri} width={size} height={size} style={{ opacity, flexShrink: 0 }} />;
-  }
-  const tint = tier ? tierColor[tier] : color.muted;
-  // Prefixed names (`tier_wood`, `perk_medic`) take their initials from the entity id.
-  const label = initials(name.replace(/^(tier|perk)_/, ""));
+export function Tile(props: { color: string; label: string; size: number; dim?: boolean }) {
+  const { color: tint, label, size, dim } = props;
   return (
     <div
       style={{
@@ -154,13 +132,14 @@ export function Icon(props: {
         flexShrink: 0,
         width: size,
         height: size,
-        opacity,
-        borderRadius: size * 0.16,
+        opacity: dim ? 0.45 : 1,
+        borderRadius: size * 0.22,
         backgroundColor: withAlpha(tint, 0.16),
-        border: `${Math.max(1.5, size * 0.03)}px solid ${withAlpha(tint, 0.55)}`,
+        border: `${Math.max(1.5, size * 0.04)}px solid ${withAlpha(tint, 0.55)}`,
         color: tint,
-        fontSize: size * 0.36,
+        fontSize: size * 0.4,
         fontWeight: 700,
+        letterSpacing: size * 0.008,
       }}
     >
       {label}

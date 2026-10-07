@@ -5,12 +5,13 @@
  * exactly one place (`toComponents`). That gives three things for free:
  * the fixed layout order (title, status, card, details, hint, actions) cannot
  * be broken by an individual screen; `lintScreen` can enforce the
- * zero-tutorial rules (docs/archive/discord-bot-spec.md 4.3) mechanically; and `outlineScreen` gives
+ * zero-tutorial rules (CLAUDE.md 6.3) mechanically; and `outlineScreen` gives
  * the text rendering `pnpm preview` writes for review.
  */
 import {
   type APIActionRowComponent,
   type APIButtonComponentWithCustomId,
+  type APIButtonComponentWithURL,
   type APIComponentInContainer,
   type APIContainerComponent,
   type APIMessageComponentEmoji,
@@ -21,7 +22,7 @@ import {
 } from "discord.js";
 import { type Tone, toInt, toneColor } from "./theme";
 
-/** Mobile-first limits (docs/archive/discord-bot-spec.md 4.3 rule 9). */
+/** Mobile-first limits (CLAUDE.md 6.3 rule 8). */
 export const MAX_BUTTONS_PER_ROW = 5;
 export const MAX_ROWS = 3;
 export const MAX_LABEL_CHARS = 19;
@@ -34,7 +35,13 @@ const MAX_SELECT_OPTIONS = 25;
 export type ButtonStyle = "primary" | "secondary" | "danger";
 
 export interface Button {
+  /** What a click routes to; unused on a link button. */
   customId: string;
+  /**
+   * A link button: opens this URL in the browser, no interaction. Discord draws every link
+   * grey, so a link that is the one obvious action (open the game) still counts as primary.
+   */
+  url?: string;
   /** Already localised. When `disabled`, it includes the reason: `Upgrade · need 2.1k stone`. */
   label: string;
   emoji?: APIMessageComponentEmoji;
@@ -71,12 +78,14 @@ export interface Screen {
   /** `root`: the home message or a standalone screen. `sub`: must carry Back and Home. */
   kind: "root" | "sub";
   tone: Tone;
+  /** The container's accent colour (`#rrggbb`), over the tone's: the tier on `/base`. */
+  accent?: string;
   title: string;
   /** One line. */
   status: string;
   card?: CardImage;
   details: string[];
-  /** One-line onboarding hint shown under the card. */
+  /** Small print under the details: the next step, the DM switch. One line each. */
   hint?: string;
   rows: ActionRow[];
 }
@@ -118,11 +127,11 @@ export function lintScreen(screen: Screen): string[] {
     const limit = button.disabled ? MAX_LOCKED_LABEL_CHARS : MAX_LABEL_CHARS;
     const length = [...button.label].length;
     if (length > limit) problems.push(`label \`${button.label}\` is ${length} chars, max ${limit}`);
-    if (button.customId.length > MAX_CUSTOM_ID) {
+    if (!button.url && button.customId.length > MAX_CUSTOM_ID) {
       problems.push(`customId \`${button.customId}\` is over ${MAX_CUSTOM_ID} chars`);
     }
   }
-  const ids = buttons.map((button) => button.customId);
+  const ids = buttons.filter((button) => !button.url).map((button) => button.customId);
   if (new Set(ids).size !== ids.length) problems.push("two buttons share a customId");
 
   if (screen.kind === "sub") {
@@ -147,7 +156,16 @@ const STYLE: Record<
   danger: DiscordButtonStyle.Danger,
 };
 
-function toButton(button: Button): APIButtonComponentWithCustomId {
+function toButton(button: Button): APIButtonComponentWithCustomId | APIButtonComponentWithURL {
+  if (button.url) {
+    return {
+      type: ComponentType.Button,
+      url: button.url,
+      label: button.label,
+      style: DiscordButtonStyle.Link,
+      ...(button.disabled ? { disabled: true } : {}),
+    };
+  }
   return {
     type: ComponentType.Button,
     custom_id: button.customId,
@@ -190,7 +208,8 @@ export function toComponents(screen: Screen): APIContainerComponent {
     children.push({ type: ComponentType.TextDisplay, content: screen.details.join("\n") });
   }
   if (screen.hint) {
-    children.push({ type: ComponentType.TextDisplay, content: `-# ${screen.hint}` });
+    const small = screen.hint.split("\n").map((line) => `-# ${line}`);
+    children.push({ type: ComponentType.TextDisplay, content: small.join("\n") });
   }
   if (screen.rows.length > 0) {
     children.push({
@@ -201,7 +220,7 @@ export function toComponents(screen: Screen): APIContainerComponent {
   }
   for (const row of screen.rows) {
     const actionRow: APIActionRowComponent<
-      APIButtonComponentWithCustomId | APIStringSelectComponent
+      APIButtonComponentWithCustomId | APIButtonComponentWithURL | APIStringSelectComponent
     > = {
       type: ComponentType.ActionRow,
       components: row.kind === "buttons" ? row.buttons.map(toButton) : [toSelect(row.select)],
@@ -210,7 +229,7 @@ export function toComponents(screen: Screen): APIContainerComponent {
   }
   return {
     type: ComponentType.Container,
-    accent_color: toInt(toneColor[screen.tone]),
+    accent_color: toInt(screen.accent ?? toneColor[screen.tone]),
     components: children,
   };
 }
@@ -225,7 +244,7 @@ export function outlineScreen(screen: Screen): string {
       ? `CARD    ${screen.card.fileName} (${Math.round(screen.card.png.length / 1024)} KB)`
       : "CARD    none",
     ...screen.details.map((line) => `DETAIL  ${line}`),
-    ...(screen.hint ? [`HINT    ${screen.hint}`] : []),
+    ...(screen.hint ? screen.hint.split("\n").map((line) => `HINT    ${line}`) : []),
   ];
   screen.rows.forEach((row, index) => {
     if (row.kind === "buttons") {
@@ -233,7 +252,8 @@ export function outlineScreen(screen: Screen): string {
       for (const button of row.buttons) {
         const emoji = button.emoji?.name ? `${button.emoji.name} ` : "";
         const state = button.disabled ? "   (disabled)" : "";
-        lines.push(`  [${button.style.padEnd(9)}] ${emoji}${button.label}${state}`);
+        const link = button.url ? `   -> ${button.url.replace(/\?.*$/, "?...")}` : "";
+        lines.push(`  [${button.style.padEnd(9)}] ${emoji}${button.label}${state}${link}`);
       }
     } else {
       lines.push(`ROW ${index + 1}  select: ${row.select.placeholder}`);

@@ -1,6 +1,7 @@
 /**
- * The visual language, defined exactly once. Cards and Discord component
- * colours both read from here; nothing else in the project contains a hex.
+ * The bot's visual language, defined once: a mirror of the web's `styles/tokens.css`
+ * (same background, text, accent and tier colours), so a card in Discord looks like a
+ * panel of the game. Resource tiles come from `@wipe-day/content/look`, as on the web.
  */
 
 export const color = {
@@ -14,7 +15,7 @@ export const color = {
   text: "#ECE8DF",
   /** Secondary text. Still passes 4.5:1 on `bg`. */
   muted: "#A49E93",
-  /** Rust orange. Brand accent and the primary action. */
+  /** Ember orange. Brand accent and the primary action. */
   accent: "#CD412B",
   success: "#7FA043",
   warning: "#E3A32F",
@@ -22,10 +23,10 @@ export const color = {
   danger: "#F05252",
 } as const;
 
-import type { Tier } from "../legacy/content/tiers";
+import type { Tier } from "@wipe-day/content/tiers";
 
 /** Base tiers, which double as the rarity scale for items and blueprints. Ids live in content. */
-export { TIERS, type Tier } from "../legacy/content/tiers";
+export { TIERS, type Tier } from "@wipe-day/content/tiers";
 
 /** The one fixed colour each tier has everywhere. */
 export const tierColor: Record<Tier, string> = {
@@ -72,18 +73,23 @@ export function withAlpha(hex: string, alpha: number): string {
 
 /** Card geometry shared by every template. */
 export const layout = {
-  /** Design width: every card is laid out in these units. Discord shows ~550 px on desktop, ~400 on phones. */
-  cardWidth: 800,
   /**
-   * Rasterisation factor. Phones and most desktops are HiDPI, so an 800 px PNG
-   * shown at 550 CSS px gets *upscaled* and looks soft; 2x keeps it crisp.
+   * Design width: every card is laid out in these units. Discord shows a card about 520 px
+   * wide on desktop but only about 290 px on a phone (avatar, margins and the container's
+   * padding take the rest), so the card is designed for the phone: 600 units, nothing
+   * smaller than `minFont`.
+   */
+  cardWidth: 600,
+  /**
+   * Rasterisation factor. Phones and most desktops are HiDPI, so a 600 px PNG shown at
+   * 520 CSS px gets *upscaled* and looks soft; 2x keeps it crisp.
    */
   renderScale: 2,
-  /** What a phone shows. Used by the preview's @mobile renders. */
-  mobileWidth: 400,
+  /** What a phone shows of a card: the preview's @phone renders. */
+  mobileWidth: 290,
   /** Outer padding. Nothing but the background touches the card edge. */
-  pad: 32,
-  /** Smallest font size allowed on a card (legible at 400 px). */
+  pad: 24,
+  /** Smallest font size allowed on a card: about 10.6 px on a phone, small print only. */
   minFont: 22,
 } as const;
 

@@ -14,12 +14,6 @@ node_modules/
 .env.*
 !.env.example
 
-# Owner-supplied assets are never committed. Only the folder skeleton, the
-# manifest, the checklist and agent-generated placeholders are tracked.
-/apps/discord/assets/*/*
-!/apps/discord/assets/*/.gitkeep
-!/apps/discord/assets/_placeholders/**
-
 # Owner-supplied reference screenshots may contain third-party game UI.
 /docs/reference/*
 !/docs/reference/.gitkeep

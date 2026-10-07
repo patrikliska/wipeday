@@ -1,44 +1,46 @@
 /**
- * The base overview card: the picture on the home message. Shows what the
- * player *has*: tier, scrap, storage fill, banked resources, current tool.
- * Rates and what is waiting to be collected are text in the message, so the
- * card only changes (and re-renders) when stock changes.
+ * The base card: the picture on `/base`. Shows what the player *has*: the holdfast's tier
+ * and season day, scrap, how full the store is, and every gathered resource with its fill.
+ * What is waiting, timers and the next step are text in the message (they tick; a PNG
+ * cannot), so the card only changes, and re-renders, when the stock changes.
  *
- * Kept wider than tall: desktop Discord scales tall images down to a height
- * cap, so a 4:3 card shows at ~470 px and a square one at ~370 px.
+ * Kept wider than tall: desktop Discord scales tall images down to a height cap.
  */
-import { abbrev } from "../../ui/format";
-import {
-  color,
-  layout,
-  type Tier,
-  tierColor,
-  toneColor,
-  toneForFill,
-  withAlpha,
-} from "../../ui/theme";
-import { Bar, CardFrame, Col, Divider, Fit, Icon, Label, Row } from "../components";
+import { abbrev } from "@wipe-day/domain/words";
+import { color, layout, type Tier, tierColor, toneColor, toneForFill } from "../../ui/theme";
+import { Bar, CardFrame, Col, Divider, Fit, Label, Row, Tile } from "../components";
 import type { Child } from "../jsx-runtime";
-import { type CardDef, useRender } from "../renderer";
+import type { CardDef } from "../renderer";
+
+/** A resource as the card shows it; names and letters are resolved by the view model. */
+export interface CardResource {
+  id: string;
+  name: string;
+  amount: number;
+  color: string;
+  letters: string;
+}
 
 export interface BaseCardProps {
   playerName: string;
   tier: Tier;
-  seasonDay: number;
-  scrap: number;
+  /** "Stone · day 3 of season 1". */
+  subtitle: string;
+  tierLetters: string;
+  scrap: CardResource;
   /** Room per resource. */
   cap: number;
   /** The fullest resource: what the storage bar shows. */
-  storage: { resource: string; value: number };
-  /** Discovered resources in display order, scrap excluded (it is in the header). */
-  resources: Array<{ id: string; amount: number }>;
-  tool: { id: string; tier: Tier };
+  fullest: { name: string; amount: number };
+  /** Gathered and smelted resources in display order, scrap excluded (it is in the header). */
+  resources: CardResource[];
+  labels: { storage: string; full: string; empty: string };
 }
 
-const COLUMNS = 4;
-const GAP = 10;
+const COLUMNS = 3;
+const GAP = 8;
 const CELL_WIDTH = (layout.cardWidth - layout.pad * 2 - GAP * (COLUMNS - 1)) / COLUMNS;
-const CELL_HEIGHT = 76;
+const CELL_HEIGHT = 68;
 
 function Cell({ children }: { children?: Child }) {
   return (
@@ -48,7 +50,7 @@ function Cell({ children }: { children?: Child }) {
         height: CELL_HEIGHT,
         padding: "0 10px",
         alignItems: "center",
-        borderRadius: 12,
+        borderRadius: 10,
         backgroundColor: color.panel,
       }}
     >
@@ -57,132 +59,101 @@ function Cell({ children }: { children?: Child }) {
   );
 }
 
-/** Amount on top, name below, a hairline fill bar under both: identifiable with zero art. */
-function Resource({ id, amount, cap }: { id: string; amount: number; cap: number }) {
-  const { locale } = useRender();
-  const empty = amount === 0;
-  const fill = cap > 0 ? Math.min(1, amount / cap) : 0;
+/** Amount on top, name below, a hairline fill bar under both. */
+function Resource({ resource, cap }: { resource: CardResource; cap: number }) {
+  const empty = resource.amount === 0;
+  const fill = cap > 0 ? Math.min(1, resource.amount / cap) : 0;
   return (
     <Cell>
-      <Icon folder="icons_256" name={id} size={44} dim={empty} />
-      <Col style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
+      <Tile color={resource.color} label={resource.letters} size={36} dim={empty} />
+      <Col style={{ flex: 1, minWidth: 0, marginLeft: 8 }}>
         <Fit
           style={{
-            fontSize: 28,
+            fontSize: 30,
             fontWeight: 700,
             lineHeight: "30px",
             color: empty ? color.muted : color.text,
           }}
         >
-          {abbrev(amount)}
+          {abbrev(resource.amount)}
         </Fit>
-        <Fit style={{ color: color.muted, lineHeight: "24px" }}>
-          {locale.t(`resource.${id}.name`)}
-        </Fit>
+        <Fit style={{ fontSize: 24, color: color.muted, lineHeight: "26px" }}>{resource.name}</Fit>
         <Bar fraction={fill} tone={toneColor[toneForFill(fill)]} height={4} />
       </Col>
     </Cell>
   );
 }
 
-/** What drives every rate: a full-width strip so the name never truncates. */
-function ToolStrip({ tool }: { tool: BaseCardProps["tool"] }) {
-  const { locale } = useRender();
-  const tint = tierColor[tool.tier];
-  return (
-    <Row
-      style={{
-        height: 56,
-        padding: "0 12px",
-        alignItems: "center",
-        borderRadius: 12,
-        backgroundColor: color.panel,
-        border: `2px solid ${withAlpha(tint, 0.6)}`,
-      }}
-    >
-      <Icon folder="icons_256" name={tool.id} size={40} tier={tool.tier} />
-      <Fit style={{ fontSize: 26, fontWeight: 700, marginLeft: 12 }}>
-        {locale.t(`tool.${tool.id}.name`)}
-      </Fit>
-      <div style={{ display: "flex", flex: 1 }} />
-      <Fit style={{ color: tint, marginLeft: 12 }}>{locale.t("card.base.tool")}</Fit>
-    </Row>
-  );
-}
-
 function Base(props: BaseCardProps) {
-  const { locale } = useRender();
   const tint = tierColor[props.tier];
-  const fill = props.cap > 0 ? Math.min(1, props.storage.value / props.cap) : 0;
+  const fill = props.cap > 0 ? Math.min(1, props.fullest.amount / props.cap) : 0;
   const fillTone = toneColor[toneForFill(fill)];
-  const binding = locale.t(`resource.${props.storage.resource}.name`);
 
   return (
-    <CardFrame>
+    <CardFrame accent={tint}>
       <Row style={{ alignItems: "center" }}>
-        <Icon folder="thumbs_512" name={`tier_${props.tier}`} size={84} tier={props.tier} />
-        <Col style={{ flex: 1, minWidth: 0, marginLeft: 20, marginRight: 24 }}>
-          <Fit style={{ fontSize: 38, fontWeight: 700, lineHeight: "46px" }}>
+        <Tile color={tint} label={props.tierLetters} size={68} />
+        <Col style={{ flex: 1, minWidth: 0, marginLeft: 16, marginRight: 16 }}>
+          <Fit style={{ fontSize: 36, fontWeight: 700, lineHeight: "42px" }}>
             {props.playerName}
           </Fit>
-          <Fit style={{ fontSize: 24, color: tint }}>
-            {locale.t("card.base.subtitle", {
-              tier: locale.t(`base_tier.${props.tier}.name`),
-              day: props.seasonDay,
-            })}
-          </Fit>
+          <Fit style={{ fontSize: 26, color: tint }}>{props.subtitle}</Fit>
         </Col>
         <Col style={{ alignItems: "flex-end" }}>
           <Row style={{ alignItems: "center" }}>
             <div
               style={{
                 display: "flex",
-                fontSize: 38,
+                fontSize: 36,
                 fontWeight: 700,
-                lineHeight: "46px",
-                marginRight: 12,
+                lineHeight: "42px",
+                marginRight: 10,
               }}
             >
-              {abbrev(props.scrap)}
+              {abbrev(props.scrap.amount)}
             </div>
-            <Icon folder="icons_256" name="scrap" size={44} />
+            <Tile color={props.scrap.color} label={props.scrap.letters} size={36} />
           </Row>
-          <Label>{locale.t("resource.scrap.name")}</Label>
+          <Label>{props.scrap.name}</Label>
         </Col>
       </Row>
 
-      <Col style={{ marginTop: 18, marginBottom: 18 }}>
+      <Col style={{ marginTop: 16, marginBottom: 14 }}>
         <Divider />
       </Col>
 
       {/* Storage: the fullest resource is the one that matters. */}
       <Row style={{ alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
-        <Label>{locale.t("card.base.storage")}</Label>
+        <Label>{props.labels.storage}</Label>
         {fill >= 1 ? (
-          <div style={{ display: "flex", fontSize: 28, fontWeight: 700, color: color.danger }}>
-            {locale.t("card.base.storage_full_of", { resource: binding })}
+          <div style={{ display: "flex", fontSize: 26, fontWeight: 700, color: color.danger }}>
+            {props.labels.full}
           </div>
         ) : (
-          <Row style={{ alignItems: "baseline", fontSize: 28 }}>
-            <div style={{ display: "flex", color: color.muted, marginRight: 10 }}>{binding}</div>
-            <div style={{ display: "flex", fontWeight: 700 }}>{abbrev(props.storage.value)}</div>
+          <Row style={{ alignItems: "baseline", fontSize: 26 }}>
+            <div style={{ display: "flex", color: color.muted, marginRight: 10 }}>
+              {props.fullest.name}
+            </div>
+            <div style={{ display: "flex", fontWeight: 700 }}>{abbrev(props.fullest.amount)}</div>
             <div style={{ display: "flex", color: color.muted, marginLeft: 8 }}>
               {`/ ${abbrev(props.cap)}`}
             </div>
           </Row>
         )}
       </Row>
-      <Bar fraction={fill} tone={fillTone} height={20} />
+      <Bar fraction={fill} tone={fillTone} height={16} />
 
-      <Col style={{ marginTop: 18 }}>
-        <ToolStrip tool={props.tool} />
-      </Col>
-
-      <Row style={{ flexWrap: "wrap", gap: GAP, marginTop: 18 }}>
-        {props.resources.map((cell) => (
-          <Resource id={cell.id} amount={cell.amount} cap={props.cap} />
-        ))}
-      </Row>
+      {props.resources.length > 0 ? (
+        <Row style={{ flexWrap: "wrap", gap: GAP, marginTop: 16 }}>
+          {props.resources.map((resource) => (
+            <Resource resource={resource} cap={props.cap} />
+          ))}
+        </Row>
+      ) : (
+        <div style={{ display: "flex", marginTop: 16, fontSize: 24, color: color.muted }}>
+          {props.labels.empty}
+        </div>
+      )}
     </CardFrame>
   );
 }
