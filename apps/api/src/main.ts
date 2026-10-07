@@ -29,7 +29,14 @@ const hub = new EventHub();
 const subject = config.publicUrl.startsWith("https://")
   ? config.publicUrl
   : "mailto:wipeday@localhost.invalid";
-const notifier = new Notifier(db, locale, log, subject);
+const notifier = new Notifier(db, locale, log, subject, undefined, (discordId, notes) => {
+  // The Discord bot (W8) sends these as DMs; links open the game where it matters.
+  for (const { kind, title, body, url } of notes)
+    hub.broadcastBot({
+      event: "dm",
+      data: { discordId, kind, title, body, url: `${config.publicUrl}${url}` },
+    });
+});
 const game = new Game({
   db,
   content,
@@ -54,6 +61,8 @@ const discord = config.discord
     )
   : null;
 const app = createApp({ db, game, hub, clock, config, discord, notifier });
+if (config.production && !config.botToken)
+  log.warn("the Discord bot cannot connect: set BOT_API_TOKEN (32+ characters) for both");
 if (!discord)
   log.warn("Discord login is not configured: set DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET");
 

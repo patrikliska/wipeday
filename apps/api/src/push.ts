@@ -6,6 +6,9 @@
  * The VAPID key pair is generated on first boot and kept in the `settings`
  * table, so nothing has to be configured on the server. Subscriptions that the
  * push service reports gone (404, 410) are dropped.
+ *
+ * W8: the same notifications go to the player's Discord DMs through the bot, for the kinds
+ * they turned on, once they have used the bot and unless they turned DMs off.
  */
 import type { Locale } from "@wipe-day/content/locale";
 import type { GameEvent } from "@wipe-day/domain/events";
@@ -36,6 +39,12 @@ export interface Notification {
 }
 
 /** Sends one payload to one subscription; web-push in production, a stub in tests. */
+/** Hands a player's due notifications to the Discord bot (W8). */
+export type DmSend = (discordId: string, notes: Notification[]) => void;
+
+/** Discord user ids are snowflakes; test players (`dev-1`) never get a DM. */
+const SNOWFLAKE = /^\d{17,20}$/;
+
 export type PushSend = (
   subscription: Subscription,
   payload: string,
@@ -173,6 +182,7 @@ export class Notifier {
     subject: string,
     private readonly send: PushSend = (subscription, payload) =>
       webpush.sendNotification(subscription, payload, { TTL: 6 * 3600 }),
+    private readonly dm: DmSend = () => {},
   ) {
     const keys = vapidKeys(db);
     this.publicKey = keys.publicKey;
@@ -194,6 +204,20 @@ export class Notifier {
       .where(eq(players.id, playerId))
       .run();
     return next;
+  }
+
+  /** Whether the bot DMs this player: null until they first use the bot (W8). */
+  discordDm(playerId: number): boolean | null {
+    const row = this.db.select().from(players).where(eq(players.id, playerId)).get();
+    return row?.discordDm === null || row?.discordDm === undefined ? null : row.discordDm === 1;
+  }
+
+  setDiscordDm(playerId: number, on: boolean): void {
+    this.db
+      .update(players)
+      .set({ discordDm: on ? 1 : 0 })
+      .where(eq(players.id, playerId))
+      .run();
   }
 
   /** Remembers a device for a player; the same endpoint again just moves to them. */
@@ -238,6 +262,14 @@ export class Notifier {
       .map((event) => notificationFor(this.locale, event))
       .filter((note): note is Notification => note !== null && prefs[note.kind]);
     if (due.length === 0) return 0;
+    const player = this.db.select().from(players).where(eq(players.id, playerId)).get();
+    if (player?.discordDm === 1 && SNOWFLAKE.test(player.discordId)) {
+      try {
+        this.dm(player.discordId, due);
+      } catch (error) {
+        this.logger.warn("dm failed", { error: (error as Error).message });
+      }
+    }
     const devices = this.db
       .select()
       .from(pushSubscriptions)

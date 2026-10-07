@@ -16,7 +16,8 @@ import type { MarketListing } from "@wipe-day/domain/market";
 import type { DenBoard, PriceHistory, WheelBetView } from "@wipe-day/domain/wire";
 import { and, desc, eq, gte, isNotNull } from "drizzle-orm";
 import type { Db } from "./store/db";
-import { listings, players, settings, trades, wheelBets } from "./store/schema";
+import { listings, players, trades, wheelBets } from "./store/schema";
+import { putSetting, setting } from "./store/settings";
 
 const SECRET_KEY = "casino_secret";
 const JACKPOT_KEY = "jackpot";
@@ -25,17 +26,6 @@ const DAY = 86400;
 const RESULTS = 10;
 /** Days of price history. */
 const HISTORY_DAYS = 14;
-
-function setting(db: Db, key: string): string | undefined {
-  return db.select().from(settings).where(eq(settings.key, key)).get()?.value;
-}
-
-function putSetting(db: Db, key: string, value: string): void {
-  db.insert(settings)
-    .values({ key, value })
-    .onConflictDoUpdate({ target: settings.key, set: { value } })
-    .run();
-}
 
 export class Den {
   private readonly secret: Buffer;

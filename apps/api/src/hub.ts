@@ -2,19 +2,34 @@
  * The push channel's fan-out: each player's open tabs subscribe; any change to
  * their base is published to all of them, and new feed items (W4b) to every
  * open tab of every player. In-process only, which is all one API process needs.
+ * W8: the Discord bot's stream hears the same feed items, plus DMs and season news.
  */
 import type { FeedItem } from "@wipe-day/domain/feed";
-import type { DenPush } from "@wipe-day/domain/wire";
+import type { DenPush, DmNote, SeasonNews } from "@wipe-day/domain/wire";
 import type { PushMessage } from "./game";
 
 type Listener = (message: PushMessage) => void;
 type FeedListener = (items: FeedItem[]) => void;
 type DenListener = (message: DenPush) => void;
+/** What only the Discord bot's stream carries (W8). */
+export type BotMessage = { event: "dm"; data: DmNote } | { event: "news"; data: SeasonNews };
+type BotListener = (message: BotMessage) => void;
 
 export class EventHub {
   private readonly listeners = new Map<number, Set<Listener>>();
   private readonly feedListeners = new Set<FeedListener>();
   private readonly denListeners = new Set<DenListener>();
+  private readonly botListeners = new Set<BotListener>();
+
+  /** DMs and season news, for the Discord bot (W8). */
+  subscribeBot(listener: BotListener): () => void {
+    this.botListeners.add(listener);
+    return () => this.botListeners.delete(listener);
+  }
+
+  broadcastBot(message: BotMessage): void {
+    for (const listener of this.botListeners) listener(message);
+  }
 
   /** The Den's goings-on (W5): bets, spins, the jackpot, a changed board. */
   subscribeDen(listener: DenListener): () => void {

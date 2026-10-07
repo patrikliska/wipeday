@@ -32,6 +32,7 @@ const config: Config = {
   webDist: join(tmpdir(), "wipe-day-no-web-build"),
   devLogin: true,
   adminToken: null,
+  botToken: null,
 };
 
 /** A seed whose first roll is above every hold chance: the raid gets in. */

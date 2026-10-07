@@ -7,6 +7,7 @@ import type { Tier } from "@wipe-day/content/tiers";
 import type { BaseState } from "./base";
 import type { Refusal } from "./commands";
 import type { GameEvent } from "./events";
+import type { NotifyKind } from "./feed";
 import type { Category, Leaderboards, SeasonSummary } from "./leaderboard";
 import type { Legacy } from "./legacy";
 import type { MarketListing } from "./market";
@@ -182,3 +183,35 @@ export type DenPush =
   | { kind: "season"; number: number }
   /** The Signal moved. */
   | { kind: "signal" };
+
+// --- the Discord companion (W8) ----------------------------------------------------------
+
+/** `GET /api/bot/home`: the base for the bot's card, the DM switch and a one-time login link. */
+export interface BotHome extends StateResponse {
+  /** DMs for the notification kinds the player turned on. */
+  discordDm: boolean;
+  /** Logs this player in on the web, once, within ten minutes. */
+  loginUrl: string;
+}
+
+/** A `dm` on the bot's stream: a notification for one player, to send as a Discord DM. */
+export interface DmNote {
+  discordId: string;
+  kind: NotifyKind;
+  title: string;
+  body: string;
+  /** Where in the game it matters, absolute. */
+  url: string;
+}
+
+/** A season's winner, by leaderboard category or "signal" (the bot's season news). */
+export interface Winner {
+  category: string;
+  name: string;
+  value: number;
+}
+
+/** A `news` on the bot's stream: the season's end announced, or the reset done. */
+export type SeasonNews =
+  | { kind: "announced"; season: SeasonView }
+  | { kind: "ended"; ended: number; season: SeasonView; winners: Winner[] };
