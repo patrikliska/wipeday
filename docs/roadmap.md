@@ -65,13 +65,31 @@ agent should think at each step**.
   - **Gone:** the bot's own database, scheduler, frozen rules and asset pipeline.
 - Two live players on https://wipeday.patrikliska.dev (the owner and a friend).
 
-### Next: W9 (Live ops)
+### The plan from here (agreed 2026-10-07)
 
-Scope as in the phase list below. Things W8 leaves for it:
-- The bot's first live run: the owner's setup (below), then screenshots of `/base` on a phone.
-- Titles still show only in the web's Legacy tab, not beside names in the feed (from W7).
-- Late scrap still rises (D112); the Signal took some of it. Watch the live economy at the
-  first real reset.
+1. **Owner screenshots first.** The bot is live but untested on a real phone: `/base`,
+   Collect, Gather, "Open the game", a DM. Screenshots are bugs with priority over the rest.
+2. **W9, live ops** (about three small sessions, in this order):
+   1. **Backups off the server.** All 14 nightly copies live on the VPS, the one way to lose
+      everything. Needs the owner's pick of a destination (a cloud drive via rclone, or a
+      pull to the owner's PC).
+   2. **Error reporting through the bot.** API and bot crashes and failed scheduler runs are
+      DMed to the owner; a small `/status`. No new service.
+   3. **Admin commands in Discord** (owner only): announce or end a season, grant, ban,
+      reload data. Replaces the `docker exec` season commands.
+   4. **`event_log` export to CSV** for balance analysis.
+3. **Season 1's end** (it started 2026-10-07; a month brings it to about 2026-11-04):
+   announce it about 2026-10-28 (that also opens the Signal); before the reset, run the
+   export and the simulator on late scrap (D112) and tune season 2; then watch the reset
+   card and the bot's winners post in `#wipe-day-idle`.
+4. **After W9** (new phases, the owner picks):
+   - **Polish backlog** (1-2 sessions): the open items below, plus titles beside names in
+     the feed (from W7).
+   - **Research tree** (`docs/game-design.md` 5.5, 2 sessions, balance: plan mode first):
+     notes, five branches, small passives, reset each season. Suggested as season 3's
+     headline.
+   - **Wards / alliances** (5.11, 2 sessions): worth it once more friends play.
+   - **Art:** keep the procedural look or commission layered art (owner's decision).
 
 ### W8 results (acceptance)
 
