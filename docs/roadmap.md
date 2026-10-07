@@ -53,7 +53,8 @@ agent should think at each step**.
   - **The client:** the season-over card, the Legacy and Hall of fame tabs.
   - The live database was wiped on the owner's request at this deploy: everyone starts season
     1 from zero (logins and push subscriptions kept).
-- W8 done on branch `w8` (not merged or deployed yet; D121-D126). The bot is a thin client
+- W8 done, merged and deployed 2026-10-07 (D121-D126; the bot posts to `#wipe-day-idle`).
+  The bot is a thin client
   of the API:
   - **`/base`:** a private card with Collect, Gather, a one-time link into the game and the
     DM switch, made for a phone. The advisor picks the one primary action.
@@ -138,17 +139,8 @@ Scope as in the phase list below. Things W8 leaves for it:
 
 ### What the owner needs to do (as of 2026-10-07, after W8)
 
-0. **Set up the bot (W8), then merge and deploy `w8`.** In `~/wipeday/.env` on the server:
-   - `DISCORD_TOKEN`: developer portal, the game's application, Bot, Reset Token.
-   - `DISCORD_GUILD_ID=718829849137119232` (the friends' server).
-   - `FEED_CHANNEL_ID`: the channel for the island's feed (Discord developer mode, right
-     click the channel, Copy Channel ID). The bot needs View Channel and Send Messages there.
-   - `BOT_API_TOKEN`: 32 or more random characters, e.g. `openssl rand -hex 32`.
-
-   If the bot is not in the server yet: OAuth2, URL Generator, scopes `bot` and
-   `applications.commands`, open the URL and pick the server. Then deploy; the deploy starts
-   the bot only when those are set (`docs/deploy.md`, "The Discord bot").
-
+0. **Try the bot:** `/base` in Discord on your phone (Collect, Gather, Open the game), and
+   send screenshots. The bot is set up and running since 2026-10-07.
 1. **Pick and announce season 1's end.** Season 1 started fresh on 2026-10-07 (the live game
    was wiped at the W7 deploy). Announce the end a week ahead; the game shows it and the
    Signal opens:
