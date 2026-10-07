@@ -2,7 +2,7 @@
   "name": "@wipe-day/discord",
   "version": "0.1.0",
   "private": true,
-  "description": "The Discord bot. Frozen until W8 turns it into a thin companion of the web game.",
+  "description": "The Discord companion: a thin client of the API (W8). /base, gather and collect, DMs, the feed channel.",
   "type": "module",
   "imports": {
     "#jsx/jsx-runtime": "./src/render/jsx-runtime.ts",
@@ -11,26 +11,20 @@
   "scripts": {
     "dev": "tsx watch src/bin/bot.ts",
     "start": "tsx src/bin/bot.ts",
-    "preview": "tsx src/bin/idle-preview.ts",
-    "assets": "tsx src/bin/idle-assets.ts",
-    "db:generate": "drizzle-kit generate",
+    "preview": "tsx src/bin/preview.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
+    "@wipe-day/content": "workspace:*",
     "@wipe-day/domain": "workspace:*",
-    "better-sqlite3": "^12.11.1",
     "discord.js": "^14.27.0",
-    "drizzle-orm": "^0.45.3",
-    "json5": "^2.2.3",
     "satori": "^0.33.4",
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.6.2",
-    "drizzle-kit": "^0.31.11",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.0.1"

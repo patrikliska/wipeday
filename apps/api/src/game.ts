@@ -90,6 +90,7 @@ import {
   trades,
   wheelBets,
 } from "./store/schema";
+import { putSetting, setting } from "./store/settings";
 
 /** Away this long and `GET /state` includes a welcome-back summary. */
 export const WELCOME_BACK_AFTER = 3600;
@@ -142,6 +143,10 @@ type SeasonRow = typeof seasons.$inferSelect;
 
 /** Feed items per page. */
 export const FEED_PAGE = 40;
+/** W8: the Discord channel's cursor in `settings`, and how much it catches up on. */
+const FEED_CURSOR = "discord_feed";
+const FEED_REPLAY = 20;
+const FEED_REPLAY_SECONDS = 86400;
 
 interface Loaded {
   seasonId: number;
@@ -461,6 +466,37 @@ export class Game {
     return items;
   }
 
+  /**
+   * W8: the feed items the Discord channel missed while the bot was away (after its cursor),
+   * oldest first: the newest `FEED_REPLAY`, from the last `FEED_REPLAY_SECONDS`. The first
+   * time, the cursor starts at the newest item, so the channel never gets old history.
+   */
+  feedMissed(): FeedItem[] {
+    const stored = setting(this.db, FEED_CURSOR);
+    if (stored === undefined) {
+      const newest = this.db
+        .select({ id: eventLog.id })
+        .from(eventLog)
+        .orderBy(desc(eventLog.id))
+        .limit(1)
+        .get();
+      putSetting(this.db, FEED_CURSOR, String(newest?.id ?? 0));
+      return [];
+    }
+    const cursor = Number(stored) || 0;
+    const since = this.deps.clock.now() - FEED_REPLAY_SECONDS;
+    return this.feed(undefined, FEED_PAGE)
+      .filter((item) => item.id > cursor && item.at >= since)
+      .slice(0, FEED_REPLAY)
+      .reverse();
+  }
+
+  /** W8: the bot posted the feed up to `id`. */
+  ackFeed(id: number): void {
+    const cursor = Number(setting(this.db, FEED_CURSOR)) || 0;
+    if (id > cursor) putSetting(this.db, FEED_CURSOR, String(id));
+  }
+
   private player(playerId: number): PlayerView & { lastSeenAt: number } {
     const row = this.db.select().from(players).where(eq(players.id, playerId)).get();
     if (!row) throw new Error(`unknown player ${playerId}`);
@@ -504,8 +540,11 @@ export class Game {
     return { loaded, state: settled.state, version, events: settled.events };
   }
 
-  /** `GET /state`: settle, save if anything changed, and summarise a long absence. */
-  look(playerId: number): StateResponse {
+  /**
+   * `GET /state`: settle, save if anything changed, and summarise a long absence. `seen`
+   * false (the Discord bot, W8) leaves the welcome-back summary to the web.
+   */
+  look(playerId: number, seen = true): StateResponse {
     const now = this.deps.clock.now();
     const out = outbox();
     const response = this.db.transaction(() => {
@@ -523,7 +562,7 @@ export class Game {
               ),
             }
           : null;
-      this.seen(playerId, now);
+      if (seen) this.seen(playerId, now);
       return {
         serverNow: now,
         version,
@@ -559,7 +598,7 @@ export class Game {
    * Runs `command` once per `key`. A replayed key returns the stored response,
    * whatever the base looks like now: the client sees the same answer twice.
    */
-  command(playerId: number, key: string, command: Command): CommandResponse {
+  command(playerId: number, key: string, command: Command, seen = true): CommandResponse {
     const now = this.deps.clock.now();
     const out = outbox();
     const response = this.db.transaction(() => {
@@ -616,7 +655,7 @@ export class Game {
         .insert(commands)
         .values({ playerId, key, resultJson: JSON.stringify(response), at: now })
         .run();
-      this.seen(playerId, now);
+      if (seen) this.seen(playerId, now);
       if (changed) {
         out.pushes.push({
           playerId,
@@ -854,7 +893,10 @@ export class Game {
       .where(eq(seasons.id, season.id))
       .run();
     this.deps.hub.broadcastDen({ kind: "season", number: season.id });
-    return this.seasonView({ ...season, endsAt, nextModifier: next });
+    const view = this.seasonView({ ...season, endsAt, nextModifier: next });
+    if (endsAt !== null)
+      this.deps.hub.broadcastBot({ event: "news", data: { kind: "announced", season: view } });
+    return view;
   }
 
   /**
@@ -959,6 +1001,19 @@ export class Game {
       return { ended: season.id, started: next.id, players: entries.length };
     });
     this.deps.hub.broadcastDen({ kind: "season", number: result.started });
+    const winners = this.db
+      .select({ category: hallOfFame.category, name: players.name, value: hallOfFame.value })
+      .from(hallOfFame)
+      .innerJoin(players, eq(players.id, hallOfFame.playerId))
+      .where(eq(hallOfFame.seasonId, result.ended))
+      .all();
+    const started = this.db.select().from(seasons).where(eq(seasons.id, result.started)).get();
+    if (started) {
+      this.deps.hub.broadcastBot({
+        event: "news",
+        data: { kind: "ended", ended: result.ended, season: this.seasonView(started), winners },
+      });
+    }
     return result;
   }
 

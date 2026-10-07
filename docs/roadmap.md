@@ -4,7 +4,7 @@ Companion to `docs/game-design.md` (what the game becomes) and `docs/decisions.m
 are the way they are). This file says **what to build next, in which order, and how hard the
 agent should think at each step**.
 
-## Where we are (2026-10-07)
+## Where we are (2026-10-07, after W8)
 
 - W0 done: the monorepo, the web spec in `CLAUDE.md`, an injected `Clock` everywhere.
 - W1 done and live at https://wipeday.patrikliska.dev (Discord login confirmed from the owner's
@@ -53,14 +53,38 @@ agent should think at each step**.
   - **The client:** the season-over card, the Legacy and Hall of fame tabs.
   - The live database was wiped on the owner's request at this deploy: everyone starts season
     1 from zero (logins and push subscriptions kept).
+- W8 done on branch `w8` (not merged or deployed yet; D121-D126). The bot is a thin client
+  of the API:
+  - **`/base`:** a private card with Collect, Gather, a one-time link into the game and the
+    DM switch, made for a phone. The advisor picks the one primary action.
+  - **DMs:** the notifications the web pushes (party back, raided, and the kinds turned on),
+    with the base, the game and "DMs off" on each.
+  - **The feed channel:** the web feed's own sentences, from the same events, caught up after
+    the bot was away; the season's end announced and the reset with its winners.
+  - **Gone:** the bot's own database, scheduler, frozen rules and asset pipeline.
 - Two live players on https://wipeday.patrikliska.dev (the owner and a friend).
 
-### Next: W8 (Discord companion)
+### Next: W9 (Live ops)
 
-Scope as in the phase list below. Things W7 leaves for it:
-- Season news (announced end, the reset, the Signal lit) is a natural feed post for the bot.
+Scope as in the phase list below. Things W8 leaves for it:
+- The bot's first live run: the owner's setup (below), then screenshots of `/base` on a phone.
+- Titles still show only in the web's Legacy tab, not beside names in the feed (from W7).
 - Late scrap still rises (D112); the Signal took some of it. Watch the live economy at the
   first real reset.
+
+### W8 results (acceptance)
+
+- **The bot has no game logic of its own.** `apps/discord/src/boundary.test.ts` fails if the
+  bot imports a rule that changes a base or a database driver. Collect and Gather go through
+  the API's commands, idempotent by the interaction's id (`apps/api/src/bot.test.ts`, and a
+  live run of the bot's client against a local API).
+- **The feed appears in both places from one event.** `bot.test.ts` lands a party and checks
+  that the web's `/api/feed` and the bot's stream carry the same item ids. The bot posts
+  them with the web feed's own sentence (`@wipe-day/domain/words`). A reconnect catches up
+  after the bot's last ack.
+- **The rest of the API side** (`bot.test.ts`): the token, acting for a Discord id, login
+  links (one use, ten minutes), DMs only for players who used the bot and for the kinds
+  turned on, season news.
 
 ### W7 results (acceptance)
 
@@ -112,7 +136,18 @@ Scope as in the phase list below. Things W7 leaves for it:
   (`market.test.ts`). The API tests cover two buyers racing for one listing, a replay, own
   listings and expiry.
 
-### What the owner needs to do (as of 2026-10-07)
+### What the owner needs to do (as of 2026-10-07, after W8)
+
+0. **Set up the bot (W8), then merge and deploy `w8`.** In `~/wipeday/.env` on the server:
+   - `DISCORD_TOKEN`: developer portal, the game's application, Bot, Reset Token.
+   - `DISCORD_GUILD_ID=718829849137119232` (the friends' server).
+   - `FEED_CHANNEL_ID`: the channel for the island's feed (Discord developer mode, right
+     click the channel, Copy Channel ID). The bot needs View Channel and Send Messages there.
+   - `BOT_API_TOKEN`: 32 or more random characters, e.g. `openssl rand -hex 32`.
+
+   If the bot is not in the server yet: OAuth2, URL Generator, scopes `bot` and
+   `applications.commands`, open the URL and pick the server. Then deploy; the deploy starts
+   the bot only when those are set (`docs/deploy.md`, "The Discord bot").
 
 1. **Pick and announce season 1's end.** Season 1 started fresh on 2026-10-07 (the live game
    was wiped at the W7 deploy). Announce the end a week ahead; the game shows it and the
@@ -138,8 +173,8 @@ Scope as in the phase list below. Things W7 leaves for it:
 3. **Turn notifications on again** on every device. The wipe kept logins but no device was
    subscribed. iPhone: add the site to the Home Screen, open it from there, then the clock
    chip, then "Turn on". Confirm a "party back" or "raided" push arrives.
-4. **Play and send screenshots** of anything that looks wrong. Phone screenshots are bugs
-   with priority over W8.
+4. **Play and send screenshots** of anything that looks wrong, the bot's `/base` and DMs
+   included. Phone screenshots are bugs with priority over W9.
 
 ### Open items (small, carried over)
 
@@ -151,8 +186,7 @@ Scope as in the phase list below. Things W7 leaves for it:
   - the Signal draws only finished stages;
   - titles show only in the Legacy tab.
 - Off-server backup copies (rclone or rsync from a cron job) are still to do (W9).
-- The Discord bot (`apps/discord`, phases 0-2b) stays frozen on its own copy of the old
-  rules (D57) until W8.
+- The bot's old phases 0-2b are retired: W8 rebuilt it as a client of the API (D121).
 - Decision: the web app is the main client, Discord becomes a companion (D40).
 
 ## How to run a phase with an agent

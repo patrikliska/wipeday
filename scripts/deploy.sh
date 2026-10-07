@@ -18,9 +18,18 @@ echo "==> copying $(git rev-parse --short HEAD) to $HOST:~/wipeday/src"
 git archive --format=tar HEAD | "${SSH[@]}" \
   'rm -rf ~/wipeday/src && mkdir -p ~/wipeday/src ~/wipeday/var && tar -x -C ~/wipeday/src'
 
-echo "==> building and starting the container"
-"${SSH[@]}" 'cd ~/wipeday && cp src/deploy/compose.yml compose.yml && touch .env \
-  && docker compose up -d --build && docker image prune -f >/dev/null'
+echo "==> building and starting the containers"
+# The Discord bot (W8) starts only once the owner has put its secrets into ~/wipeday/.env.
+"${SSH[@]}" 'set -e
+  cd ~/wipeday && cp src/deploy/compose.yml compose.yml && touch .env
+  if grep -q "^DISCORD_TOKEN=." .env && grep -q "^DISCORD_GUILD_ID=." .env \
+    && grep -q "^BOT_API_TOKEN=." .env; then
+    docker compose --profile bot up -d --build
+  else
+    docker compose up -d --build
+    echo "bot not started: DISCORD_TOKEN, DISCORD_GUILD_ID and BOT_API_TOKEN are not all in .env"
+  fi
+  docker image prune -f >/dev/null'
 
 echo "==> Caddy"
 "${SSH[@]}" 'set -e

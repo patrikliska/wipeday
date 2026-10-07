@@ -1,84 +1,48 @@
 /**
- * The customId scheme: `idle:v1:{screen}:{action}:{owner}:{args}`.
+ * The customId scheme: `idle:v2:{screen}:{action}:{owner}`.
  *
- * One parser turns the string on a clicked component into a typed `Route`;
- * nothing else in the project ever splits a customId. `owner` is the Discord
- * user id the message belongs to (`-` on ephemeral messages, which only their
- * owner can see), so clicks by anyone else can be turned away.
- *
- * Select menus carry their choice in the interaction's `values`, not here.
+ * One parser turns the string on a clicked component into a typed `Route`; nothing else
+ * ever splits a customId. `owner` is the Discord user id the message belongs to (`-` on
+ * ephemeral messages and DMs, which only their owner can see), so clicks by anyone else
+ * can be turned away. v1 was the old bot's (before W8): its buttons parse as `unknown`,
+ * and the caller answers with a fresh base instead of an error.
  */
 
 /** Discord's limit for a customId. */
 export const MAX_LENGTH = 100;
 
-const PREFIX = "idle:v1";
+const PREFIX = "idle:v2";
 
-/** Which sample state `/idle-debug card` shows. */
-export const DEBUG_STATES = ["empty", "normal", "full"] as const;
-export type DebugState = (typeof DEBUG_STATES)[number];
+/** The `/base` card's buttons. */
+export const BASE_ACTIONS = ["collect", "gather", "refresh", "dm_on", "dm_off"] as const;
+/** A DM's buttons: the base card as a reply, or DMs off. */
+export const NOTE_ACTIONS = ["base", "dm_off"] as const;
 
-export const BASE_ACTIONS = [
-  "collect",
-  "gather",
-  "tools",
-  "build",
-  "furnace",
-  "craft",
-  "inventory",
-  "barrel",
-  "tasks",
-  "refresh",
-] as const;
-export const TOOLS_ACTIONS = ["upgrade", "back", "home"] as const;
-export const BUILD_ACTIONS = ["start", "back", "home"] as const;
-export const FURNACE_ACTIONS = ["smelt", "collect", "buy", "back", "home"] as const;
-export const CRAFT_ACTIONS = ["pick", "again", "inventory", "back", "home"] as const;
-export const INVENTORY_ACTIONS = ["craft", "back", "home"] as const;
-export const NODE_ACTIONS = ["hit", "back", "home"] as const;
-export const TASKS_ACTIONS = ["back", "home"] as const;
-
-/** Every action a component can trigger. Grows by one variant per feature. */
 export type Route =
-  | { screen: "debug"; action: "card"; state: DebugState }
   | { screen: "base"; action: (typeof BASE_ACTIONS)[number] }
-  | { screen: "tools"; action: (typeof TOOLS_ACTIONS)[number] }
-  | { screen: "build"; action: (typeof BUILD_ACTIONS)[number] }
-  | { screen: "furnace"; action: (typeof FURNACE_ACTIONS)[number] }
-  | { screen: "craft"; action: (typeof CRAFT_ACTIONS)[number]; item?: string }
-  | { screen: "inventory"; action: (typeof INVENTORY_ACTIONS)[number] }
-  | { screen: "node"; action: (typeof NODE_ACTIONS)[number]; position?: number }
-  | { screen: "tasks"; action: (typeof TASKS_ACTIONS)[number] };
+  | { screen: "note"; action: (typeof NOTE_ACTIONS)[number] };
 
 export interface CustomId {
-  /** Discord user id of the message owner; `null` on ephemeral messages. */
+  /** Discord user id of the message owner; `null` on ephemeral messages and DMs. */
   owner: string | null;
   route: Route;
 }
 
 export type Parsed =
   | { kind: "ok"; id: CustomId }
-  /** Not one of ours: another bot feature's component. Not an error to log. */
+  /** Not one of ours: another bot's component. Not an error to log. */
   | { kind: "foreign" }
-  /**
-   * Ours, but from a version or screen this build does not know: a stale
-   * message from before a deploy. The caller re-renders the home screen.
-   */
+  /** Ours, from a version or screen this build does not know: a stale message. */
   | { kind: "unknown"; raw: string };
 
-function argsOf(route: Route): string {
-  if (route.screen === "debug") return route.state;
-  if (route.screen === "craft") return route.item ?? "";
-  if (route.screen === "node") return route.position === undefined ? "" : String(route.position);
-  return "";
-}
-
 export function encodeCustomId(id: CustomId): string {
-  const { route } = id;
-  const text = `${PREFIX}:${route.screen}:${route.action}:${id.owner ?? "-"}:${argsOf(route)}`;
+  const text = `${PREFIX}:${id.route.screen}:${id.route.action}:${id.owner ?? "-"}`;
   if (text.length > MAX_LENGTH) throw new Error(`customId over ${MAX_LENGTH} chars: ${text}`);
   return text;
 }
+
+/** The customId of a button on an ephemeral message or a DM. */
+export const idOf = (route: Route): string => encodeCustomId({ owner: null, route });
 
 function pick<T extends string>(list: readonly T[], value: string): T | undefined {
   return list.find((candidate) => candidate === value);
@@ -90,40 +54,16 @@ export function parseCustomId(raw: string): Parsed {
   if (!raw.startsWith(`${PREFIX}:`)) return unknown;
 
   const [screen, action, ownerText, ...rest] = raw.slice(PREFIX.length + 1).split(":");
-  const args = rest.join(":");
-  if (!screen || !action || !ownerText) return unknown;
-  if (ownerText !== "-" && !/^\d{1,20}$/.test(ownerText)) return unknown;
+  if (!screen || !action || !ownerText || rest.length > 0) return unknown;
+  if (ownerText !== "-" && !/^\d{17,20}$/.test(ownerText)) return unknown;
   const owner = ownerText === "-" ? null : ownerText;
 
   let route: Route | undefined;
-  if (screen === "debug" && action === "card") {
-    const state = pick(DEBUG_STATES, args);
-    if (state) route = { screen, action, state };
-  } else if (screen === "base") {
+  if (screen === "base") {
     const known = pick(BASE_ACTIONS, action);
     if (known) route = { screen, action: known };
-  } else if (screen === "tools") {
-    const known = pick(TOOLS_ACTIONS, action);
-    if (known) route = { screen, action: known };
-  } else if (screen === "build") {
-    const known = pick(BUILD_ACTIONS, action);
-    if (known) route = { screen, action: known };
-  } else if (screen === "furnace") {
-    const known = pick(FURNACE_ACTIONS, action);
-    if (known) route = { screen, action: known };
-  } else if (screen === "craft") {
-    const known = pick(CRAFT_ACTIONS, action);
-    if (known) route = args ? { screen, action: known, item: args } : { screen, action: known };
-  } else if (screen === "inventory") {
-    const known = pick(INVENTORY_ACTIONS, action);
-    if (known) route = { screen, action: known };
-  } else if (screen === "node") {
-    const known = pick(NODE_ACTIONS, action);
-    if (known === "hit") {
-      if (/^\d$/.test(args)) route = { screen, action: known, position: Number(args) };
-    } else if (known) route = { screen, action: known };
-  } else if (screen === "tasks") {
-    const known = pick(TASKS_ACTIONS, action);
+  } else if (screen === "note") {
+    const known = pick(NOTE_ACTIONS, action);
     if (known) route = { screen, action: known };
   }
   return route ? { kind: "ok", id: { owner, route } } : unknown;

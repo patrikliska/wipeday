@@ -1,6 +1,6 @@
 /**
- * The game server's database (drizzle, SQLite). Separate from the Discord
- * bot's database until W8 retires the bot's own store.
+ * The game server's database (drizzle, SQLite): the only one. The Discord bot keeps
+ * no store of its own since W8; it reads and writes through the API.
  *
  * Conventions: time columns are UTC unix seconds; amounts are integers; Discord
  * ids are text (snowflakes exceed JavaScript's safe integer range). A base's
@@ -29,6 +29,11 @@ export const players = sqliteTable("players", {
   lastSeenAt: integer("last_seen_at").notNull(),
   /** Notification preferences by kind (JSON, over the defaults in `@wipe-day/domain/feed`). */
   notifyJson: text("notify_json"),
+  /**
+   * W8: Discord DMs for the kinds turned on. Null until the player first uses the bot (then
+   * on), 0 once they turn them off.
+   */
+  discordDm: integer("discord_dm"),
 });
 
 /** Login sessions. Only the SHA-256 of the cookie token is stored. */
@@ -44,6 +49,15 @@ export const sessions = sqliteTable(
   },
   (table) => [index("sessions_player").on(table.playerId)],
 );
+
+/** W8: one-time login links the bot hands out. Only the SHA-256 of the token is stored. */
+export const loginLinks = sqliteTable("login_links", {
+  tokenHash: text("token_hash").primaryKey(),
+  playerId: integer("player_id")
+    .notNull()
+    .references(() => players.id),
+  expiresAt: integer("expires_at").notNull(),
+});
 
 export const seasons = sqliteTable("seasons", {
   id: integer("id").primaryKey({ autoIncrement: true }),

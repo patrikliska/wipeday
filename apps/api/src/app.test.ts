@@ -30,6 +30,7 @@ const config: Config = {
   webDist: join(tmpdir(), "wipe-day-no-web-build"),
   devLogin: true,
   adminToken: null,
+  botToken: null,
 };
 
 const discord: DiscordAuth = {

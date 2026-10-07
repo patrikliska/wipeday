@@ -1,68 +1,39 @@
 import { describe, expect, it } from "vitest";
-import {
-  allows,
-  BASE_ACTIONS,
-  type CustomId,
-  DEBUG_STATES,
-  encodeCustomId,
-  MAX_LENGTH,
-  parseCustomId,
-  type Route,
-  TOOLS_ACTIONS,
-} from "./customId";
-
-const everyRoute: Route[] = [
-  ...DEBUG_STATES.map((state): Route => ({ screen: "debug", action: "card", state })),
-  ...BASE_ACTIONS.map((action): Route => ({ screen: "base", action })),
-  ...TOOLS_ACTIONS.map((action): Route => ({ screen: "tools", action })),
-  { screen: "node", action: "hit", position: 3 },
-  { screen: "node", action: "home" },
-  { screen: "tasks", action: "back" },
-  { screen: "craft", action: "again", item: "wood_box" },
-];
+import { allows, encodeCustomId, idOf, parseCustomId } from "./customId";
 
 describe("customId", () => {
-  it("round-trips every route, with and without an owner", () => {
-    for (const owner of [null, "18446744073709551615"]) {
-      for (const route of everyRoute) {
-        const id: CustomId = { owner, route };
-        const text = encodeCustomId(id);
-        expect(text.length).toBeLessThanOrEqual(MAX_LENGTH);
-        expect(parseCustomId(text)).toEqual({ kind: "ok", id });
-      }
+  it("round-trips every route", () => {
+    for (const action of ["collect", "gather", "refresh", "dm_on", "dm_off"] as const) {
+      const id = idOf({ screen: "base", action });
+      expect(parseCustomId(id)).toEqual({
+        kind: "ok",
+        id: { owner: null, route: { screen: "base", action } },
+      });
     }
+    const owned = encodeCustomId({
+      owner: "123456789012345678",
+      route: { screen: "note", action: "base" },
+    });
+    expect(owned).toBe("idle:v2:note:base:123456789012345678");
+    expect(parseCustomId(owned)).toMatchObject({ kind: "ok", id: { owner: "123456789012345678" } });
   });
 
-  it("has a stable wire format", () => {
-    expect(
-      encodeCustomId({ owner: "42", route: { screen: "debug", action: "card", state: "full" } }),
-    ).toBe("idle:v1:debug:card:42:full");
-    expect(encodeCustomId({ owner: "42", route: { screen: "base", action: "collect" } })).toBe(
-      "idle:v1:base:collect:42:",
-    );
+  it("tells other bots' ids from our stale ones", () => {
+    expect(parseCustomId("ticket:open")).toEqual({ kind: "foreign" });
+    // The old bot's buttons (v1) and anything malformed are ours but unknown.
+    expect(parseCustomId("idle:v1:base:collect:-:")).toMatchObject({ kind: "unknown" });
+    expect(parseCustomId("idle:v2:base:teleport:-")).toMatchObject({ kind: "unknown" });
+    expect(parseCustomId("idle:v2:base:collect:nobody")).toMatchObject({ kind: "unknown" });
+    expect(parseCustomId("idle:v2:base:collect:-:extra")).toMatchObject({ kind: "unknown" });
   });
 
-  it("treats other features' ids as foreign, not as errors", () => {
-    expect(parseCustomId("poll:vote:1")).toEqual({ kind: "foreign" });
-  });
-
-  it("treats stale versions and garbage as unknown", () => {
-    for (const raw of [
-      "idle:v0:debug:card:-:full",
-      "idle:v1:nope:x:-:",
-      "idle:v1:debug:card:abc:full",
-      "idle:v1:debug:card:-:sideways",
-      "idle:v1:base:explode:-:",
-      "idle:v1:debug",
-    ]) {
-      expect(parseCustomId(raw)).toEqual({ kind: "unknown", raw });
-    }
-  });
-
-  it("lets only the owner click, and anyone on ephemeral messages", () => {
-    const route: Route = { screen: "base", action: "collect" };
-    expect(allows({ owner: "7", route }, "7")).toBe(true);
-    expect(allows({ owner: "7", route }, "8")).toBe(false);
-    expect(allows({ owner: null, route }, "8")).toBe(true);
+  it("lets only the owner click an owned message", () => {
+    const id = {
+      owner: "123456789012345678",
+      route: { screen: "base", action: "collect" },
+    } as const;
+    expect(allows(id, "123456789012345678")).toBe(true);
+    expect(allows(id, "876543210987654321")).toBe(false);
+    expect(allows({ ...id, owner: null }, "876543210987654321")).toBe(true);
   });
 });

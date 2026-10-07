@@ -1,6 +1,10 @@
 # Wipe Day on the VPS (D68): one container, joined to the network of the existing Caddy
 # (tk-toolkit) so it can reverse-proxy wipeday.patrikliska.dev to wipeday:8787.
 # Lives in ~/wipeday on the server; `src/` holds the code, `var/` the database and backups.
+#
+# W8: the Discord bot is a second container from the same image, in the `bot` profile:
+# `scripts/deploy.sh` starts it only once ~/wipeday/.env has its secrets (DISCORD_TOKEN,
+# DISCORD_GUILD_ID, BOT_API_TOKEN). It keeps no state and talks only to the API.
 services:
   wipeday:
     build: ./src
@@ -16,6 +20,28 @@ services:
       BACKUP_DIR: /app/var/backups
     volumes:
       - ./var:/app/var
+    networks:
+      - caddy
+
+  wipeday-bot:
+    image: wipeday:latest
+    pull_policy: never
+    container_name: wipeday-bot
+    profiles: ["bot"]
+    restart: unless-stopped
+    depends_on:
+      - wipeday
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      API_URL: http://wipeday:8787
+      NODE_OPTIONS: --max-old-space-size=192
+    command: ["apps/discord/node_modules/.bin/tsx", "apps/discord/src/bin/bot.ts"]
+    # The image's health check asks the API; the bot serves nothing.
+    healthcheck:
+      disable: true
+    # The server is small and shared: the bot never takes more than this.
+    mem_limit: 320m
     networks:
       - caddy
 

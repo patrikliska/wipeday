@@ -29,6 +29,13 @@
       "when": 1791326723117,
       "tag": "0003_w7_legacy",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1791393255892,
+      "tag": "0004_w8_discord",
+      "breakpoints": true
     }
   ]
 }

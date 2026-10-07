@@ -5,5 +5,5 @@
     "jsx": "react-jsx",
     "jsxImportSource": "#jsx"
   },
-  "include": ["src", "drizzle.config.ts", "vitest.config.ts"]
+  "include": ["src", "vitest.config.ts"]
 }

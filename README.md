@@ -6,9 +6,10 @@ browser, with a Discord bot as a companion. Private, single-server.
 - Spec: [CLAUDE.md](CLAUDE.md). Design: [docs/game-design.md](docs/game-design.md). Next phases:
   [docs/roadmap.md](docs/roadmap.md). Why things are the way they are:
   [docs/decisions.md](docs/decisions.md).
-- Current state: **W4a** (crew, the fogged island, expeditions). Play at https://wipeday.patrikliska.dev
-  (Discord login). Locally, `pnpm dev` runs the API and the web client with dev test players.
-  The Discord bot (`apps/discord`) is frozen on its old rules until W8.
+- Current state: **W8** (the Discord companion); see the roadmap for what is deployed. Play at
+  https://wipeday.patrikliska.dev (Discord login). Locally, `pnpm dev` runs the API and the
+  web client with dev test players. The Discord bot (`apps/discord`) is a thin client of the
+  API: `/base`, DMs and the feed channel.
 
 ## Start here (a new computer)
 
@@ -68,7 +69,7 @@ packages/content   data/*.json5 balance and content, zod schemas, loader, locale
 packages/sim       headless balance simulator (archetypes, pacing check)
 apps/web           the client: PixiJS scene + React panels (docs/web-prototype.md)
 apps/api           the game server: login, idempotent commands, lazy settling, push
-apps/discord       the Discord bot (frozen until W8 makes it a companion)
+apps/discord       the Discord companion: a thin client of the API (no rules, no database)
 docs/              game-design, roadmap, decisions, ui-review, web-prototype, archive/
 ```
 
@@ -82,50 +83,40 @@ docs/              game-design, roadmap, decisions, ui-review, web-prototype, ar
 | `pnpm web:shots [--only x]` | headless screenshots of the web client into `preview/web/` (needs `pnpm web` running) |
 | `pnpm sim` / `pnpm sim check` | simulate casual/active/optimal players for 35 days; `check` asserts `data/pacing.json5` |
 | `pnpm api` / `pnpm api:dev` | the API process / with restart on change (`tsx watch`) |
-| `pnpm start` / `pnpm bot:dev` | run the Discord bot |
-| `pnpm preview` | render every bot card in every state to `preview/`, plus `preview/index.html` |
-| `pnpm assets check` | regenerate the bot's asset list and report missing or unusable files |
-| `pnpm assets import <dir>` | resize every known `name.png` in `<dir>` into each bot asset folder that needs it |
+| `pnpm start` / `pnpm bot:dev` | run the Discord bot (needs the API running) |
+| `pnpm preview` | draw every bot message in every state into `preview/discord/`, plus `index.html` |
 | `pnpm format` | apply formatting and safe lint fixes |
-| `pnpm db:generate` | create a migration after editing `apps/discord/src/store/schema.ts` |
+| `pnpm db:generate` | create a migration after editing `apps/api/src/store/schema.ts` |
 
 ## The Discord bot
 
+A companion to the web game (W8): it has no rules and no database of its own, and does
+everything through the API, like the web client.
+
 ```sh
-cp .env.example .env      # then fill in DISCORD_TOKEN and DISCORD_GUILD_ID
-pnpm start                # or: pnpm bot:dev (restarts on change)
+pnpm dev                  # the API (and the web client)
+pnpm bot:dev              # the bot, against http://localhost:8787 (restarts on change)
 ```
 
-`.env` and the database (`var/`) live at the repo root. Creating the bot (once):
+`.env` lives at the repo root (`.env.example` lists every key). The bot needs `DISCORD_TOKEN`,
+`DISCORD_GUILD_ID`, optionally `FEED_CHANNEL_ID`, and `API_URL` if the API is elsewhere. A
+development API lets the bot in without `BOT_API_TOKEN`; production needs it on both sides.
+Creating the bot (once):
 
-1. <https://discord.com/developers/applications> -> New Application -> **Bot** -> Reset Token.
-   That token is `DISCORD_TOKEN`.
-2. **OAuth2 -> URL Generator**: scopes `bot` and `applications.commands`; bot permissions
-   `Send Messages`, `Attach Files`, `Create Public Threads`, `Send Messages in Threads`.
-   Open the URL and add the bot to your server.
+1. <https://discord.com/developers/applications> -> the game's application (the one the web
+   login uses) -> **Bot** -> Reset Token. That token is `DISCORD_TOKEN`.
+2. **OAuth2 -> URL Generator**: scopes `bot` and `applications.commands`. Open the URL and add
+   the bot to your server. In the feed channel it needs View Channel and Send Messages.
 3. In Discord: Settings -> Advanced -> Developer Mode, then right-click the server ->
-   Copy Server ID. That is `DISCORD_GUILD_ID`.
+   Copy Server ID (`DISCORD_GUILD_ID`) and the feed channel -> Copy Channel ID
+   (`FEED_CHANNEL_ID`).
 
-No privileged intents are needed. Optional: `ADMIN_ROLE_ID` in `.env` lets a role use the
-admin commands besides server Administrators.
+No privileged intents are needed.
 
-| Command | What it does |
+| Where | What |
 | --- | --- |
-| `/start` | Builds your base and posts your home message |
-| `/base` | Re-posts your home message where you are (the old one is removed) |
-| `/help` | Three lines, never required |
-| `/idle-debug card` | Admins: renders the base card's sample states to check the pipeline |
+| `/base` | Your holdfast, privately: the card, what is waiting, timers, **Collect**, **Gather**, a one-time link into the game, DMs on or off |
+| DMs | "Your party is back", "Raiders!" and the other kinds you turned on in the game, with your base and the game one tap away |
+| The feed channel | What happens on the island, in the web feed's words, and the season's end and reset |
 
-Everything else happens on the home message: **Collect**, **Gather** (opens the node
-mini-game), **Tools**, **Build**, **Furnace**, **Craft**, **Inventory**, plus barrels and three
-daily tasks. Buttons appear as the mechanic becomes relevant.
-
-### Supplying bot art
-
-Everything the bot wants is listed in
-[apps/discord/assets/ASSETS.md](apps/discord/assets/ASSETS.md), by folder, with the item
-shortname to source each picture from and the phase that first needs it. Put full-size PNGs
-named like the manifest (`wood.png`, `tier_stone.png`) into `apps/discord/assets/_inbox/` and
-run `pnpm assets import apps/discord/assets/_inbox`; it writes every size the bot uses. The bot
-runs with nothing supplied (placeholder tiles, Unicode emoji). Supplied files are gitignored.
-The web client needs no art: it draws everything procedurally.
+The bot needs no art: the card draws the same placeholder tiles as the web.

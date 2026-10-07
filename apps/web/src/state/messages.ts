@@ -4,7 +4,6 @@
  * toast. Every string comes from the locale.
  */
 import type { Refusal } from "@wipe-day/domain/commands";
-import type { FeedEvent } from "@wipe-day/domain/feed";
 import { sitesFinding } from "@wipe-day/domain/missions";
 import type { GameEvent } from "./events";
 import {
@@ -23,6 +22,7 @@ import {
   taskName,
   tierName,
   toolName,
+  words,
 } from "./world";
 
 export type Panel =
@@ -375,47 +375,8 @@ export function refusalMessage(refusal: Refusal, now: number): Message | null {
   }
 }
 
-/** One line of the feed, about `who` (a player's name, or "You"). */
-export function feedLine(event: FeedEvent, who: string): string {
-  switch (event.type) {
-    case "mission_back":
-      return t(`feed.trip_${event.outcome === "success" ? "success" : "partial"}`, {
-        who,
-        site: siteName(event.target),
-      });
-    case "survivor_arrived":
-      return t("feed.rescued", { who, name: survivorName(event.survivor) });
-    case "build_done":
-      return t("feed.tier", { who, tier: tierName(event.tier) });
-    case "level_up":
-      return t("feed.level_up", { who, name: survivorName(event.survivor), level: event.level });
-    case "blueprint_found":
-      return t("feed.blueprint", { who, item: outputName(event.recipe) });
-    case "item_found":
-      return t("feed.found", { who, item: itemName(event.item), site: siteName(event.from) });
-    case "sold":
-      return t("feed.sold", {
-        who,
-        amount: abbrev(event.amount),
-        good: outputName(event.good),
-        price: abbrev(event.price),
-      });
-    case "big_win":
-      return t("feed.big_win", {
-        who,
-        payout: abbrev(event.payout),
-        game: t(`casino.game.${event.game}`),
-      });
-    case "jackpot_won":
-      return t("feed.jackpot", { who, amount: abbrev(event.amount) });
-    case "raid_landed":
-      return t(`feed.raid_${event.report.outcome}`, { who });
-    case "raid_launched":
-      return t(`feed.pvp_${event.report.outcome}`, { who, target: event.targetName });
-    case "signal_lit":
-      return t("feed.signal_lit", { who });
-  }
-}
+/** One line of the feed, about `who` (a player's name, or "You"): shared with Discord (W8). */
+export const feedLine = words.feedLine;
 
 /** The happenings worth a toast; effects in the scene cover the rest. */
 export function eventMessage(event: GameEvent): Message | null {

@@ -1,1 +1,0 @@
-ALTER TABLE `bases` ADD `active_json` text;

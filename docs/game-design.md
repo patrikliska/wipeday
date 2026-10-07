@@ -269,7 +269,8 @@ scrap + wiring + batteries ──► electronics ──► radio, turret brain, 
 ### 5.11 Social layer
 
 - Feed: expedition reports, raids, jackpots, milestones, events. Web feed and Discord channel
-  from the same event.
+  from the same event. *(Built in W8, D124: the bot posts the web
+  feed's own sentences from the same events, and the season's news.)*
 - **Crews' alliances** *(proposal: "wards")*: 2–5 players share a project board (the Signal
   tower, a bridge to a new site), a shared warehouse with limits, and a chat pointer. Alliances
   cannot pool combat power; PvP stays 1:1.

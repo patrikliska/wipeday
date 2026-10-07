@@ -21,6 +21,18 @@
  * PUT  /api/notify             {kind: bool, ...}: turn kinds on or off
  * POST /api/push/subscribe     {endpoint, keys}: this device wants notifications
  * POST /api/push/unsubscribe   {endpoint}
+ * GET  /api/auth/link?t=       a one-time login link from the bot (W8): session, then the game
+ *
+ * The Discord bot (W8) holds a service token and acts for players by their Discord id
+ * (`x-discord-id`, `x-discord-name`, `x-discord-avatar`, the name URI-encoded). It gets every
+ * player route above under `/api/bot/` (the same handlers, so the bot has no rules of its
+ * own), never marks the player seen (the welcome-back stays the web's), plus:
+ *
+ * GET  /api/bot/home           the base, the DM switch and a fresh login link, in one call
+ * PUT  /api/bot/dm             {on}: DMs on or off
+ * GET  /api/bot/stream         server-sent events: `feed` items (the ones missed first),
+ *                              `dm` notifications and season `news`
+ * POST /api/bot/feed/ack       {id}: the channel has the feed up to here
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -34,6 +46,7 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
 import {
+  createLoginLink,
   createSession,
   type DiscordAuth,
   deleteSession,
@@ -42,6 +55,7 @@ import {
   STATE_COOKIE,
   sessionPlayer,
   upsertPlayer,
+  useLoginLink,
 } from "./auth";
 import { commandRequestSchema } from "./commandSchema";
 import type { Config } from "./config";
@@ -65,7 +79,14 @@ export interface AppDeps {
 /** Keeps idle proxies from closing the event stream. */
 const HEARTBEAT_MS = 25_000;
 
-type Env = { Variables: { playerId: number } };
+type Env = { Variables: { playerId: number; via: "web" | "bot" } };
+
+/** The bot names the player it acts for (W8); the name and avatar keep the profile fresh. */
+const discordUserSchema = z.object({
+  discordId: z.string().regex(/^\d{17,20}$/),
+  name: z.string().min(1).max(100),
+  avatarUrl: z.url().max(500).nullable(),
+});
 
 export function createApp(deps: AppDeps): Hono<Env> {
   const { db, game, hub, clock, config, discord, notifier } = deps;
@@ -88,7 +109,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
   const admin = new Hono();
   admin.use(async (c, next) => {
     const token = config.adminToken;
-    const given = c.req.header("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+    const given = bearer(c);
     const allowed = token ? given === token : config.devLogin || fromLoopback(c);
     if (!allowed) return c.json({ error: "forbidden" }, 403);
     await next();
@@ -144,6 +165,13 @@ export function createApp(deps: AppDeps): Hono<Env> {
     }
   });
 
+  app.get("/api/auth/link", (c) => {
+    // Spent, expired or unknown: the game's own login (or the session already there) takes over.
+    const playerId = useLoginLink(db, c.req.query("t"), clock.now());
+    if (playerId !== null) setSession(c, startSession(playerId));
+    return c.redirect("/");
+  });
+
   app.post("/api/auth/logout", (c) => {
     deleteSession(db, getCookie(c, SESSION_COOKIE));
     deleteCookie(c, SESSION_COOKIE, { path: "/" });
@@ -166,131 +194,218 @@ export function createApp(deps: AppDeps): Hono<Env> {
     });
   }
 
-  // Everything below needs a logged-in player.
-  const authed = new Hono<Env>();
-  authed.use(async (c, next) => {
-    const playerId = sessionPlayer(db, getCookie(c, SESSION_COOKIE), clock.now());
-    if (playerId === null) return c.json({ error: "login_required" }, 401);
-    c.set("playerId", playerId);
+  // Everything below needs a player: a logged-in one on the web, or one the bot acts for.
+  const playerRoutes = (): Hono<Env> => {
+    const authed = new Hono<Env>();
+    authed.get("/me", (c) => {
+      const row = db
+        .select()
+        .from(players)
+        .where(eq(players.id, c.get("playerId")))
+        .get();
+      if (!row) return c.json({ error: "login_required" }, 401);
+      return c.json({
+        id: row.id,
+        name: row.name,
+        avatarUrl: row.avatarUrl,
+        devLogin: config.devLogin,
+      });
+    });
+
+    authed.get("/state", (c) => c.json(game.look(c.get("playerId"), c.get("via") === "web")));
+
+    authed.post("/commands", async (c) => {
+      const parsed = commandRequestSchema.safeParse(await c.req.json().catch(() => null));
+      if (!parsed.success) {
+        return c.json(
+          { error: "bad_request", issues: parsed.error.issues.map((i) => i.message) },
+          400,
+        );
+      }
+      const { key, command } = parsed.data;
+      return c.json(game.command(c.get("playerId"), key, command, c.get("via") === "web"));
+    });
+
+    authed.get("/feed", (c) => {
+      const before = Number(c.req.query("before"));
+      return c.json({
+        items: game.feed(Number.isInteger(before) && before > 0 ? before : undefined),
+      });
+    });
+
+    authed.get("/den", (c) => c.json(game.denBoard()));
+
+    const goodSchema = z.string().min(1).max(64);
+    authed.get("/den/history", (c) => {
+      const parsed = goodSchema.safeParse(c.req.query("good"));
+      if (!parsed.success) return c.json({ error: "bad_request" }, 400);
+      return c.json(game.history(parsed.data));
+    });
+
+    authed.get("/ranks", (c) => c.json(game.ranks(c.get("playerId"))));
+
+    authed.get("/raids", (c) => c.json(game.raids(c.get("playerId"))));
+
+    authed.get("/legacy", (c) => c.json(game.legacy(c.get("playerId"))));
+
+    authed.get("/signal", (c) => c.json(game.signal(c.get("playerId"))));
+
+    authed.get("/notify", (c) => {
+      const playerId = c.get("playerId");
+      return c.json({
+        prefs: notifier.prefs(playerId),
+        publicKey: notifier.publicKey,
+        devices: notifier.devices(playerId),
+      });
+    });
+
+    const prefsSchema = z.partialRecord(z.enum(NOTIFY_KINDS), z.boolean());
+    authed.put("/notify", async (c) => {
+      const parsed = prefsSchema.safeParse(await c.req.json().catch(() => null));
+      if (!parsed.success) return c.json({ error: "bad_request" }, 400);
+      return c.json({ prefs: notifier.setPrefs(c.get("playerId"), parsed.data) });
+    });
+
+    const subscriptionSchema = z.object({
+      endpoint: z.url().max(2000),
+      keys: z.object({ p256dh: z.string().min(1).max(500), auth: z.string().min(1).max(500) }),
+    });
+    authed.post("/push/subscribe", async (c) => {
+      const parsed = subscriptionSchema.safeParse(await c.req.json().catch(() => null));
+      if (!parsed.success) return c.json({ error: "bad_request" }, 400);
+      notifier.subscribe(c.get("playerId"), parsed.data, clock.now());
+      return c.json({ ok: true });
+    });
+
+    authed.post("/push/unsubscribe", async (c) => {
+      const parsed = z
+        .object({ endpoint: z.string().min(1).max(2000) })
+        .safeParse(await c.req.json().catch(() => null));
+      if (!parsed.success) return c.json({ error: "bad_request" }, 400);
+      notifier.unsubscribe(c.get("playerId"), parsed.data.endpoint);
+      return c.json({ ok: true });
+    });
+
+    authed.get("/events", (c) => {
+      const playerId = c.get("playerId");
+      return streamSSE(c, async (stream) => {
+        const unsubscribeState = hub.subscribe(playerId, (message) => {
+          void stream.writeSSE({ event: "state", data: JSON.stringify(message) });
+        });
+        const unsubscribeFeed = hub.subscribeFeed((items) => {
+          void stream.writeSSE({ event: "feed", data: JSON.stringify(items) });
+        });
+        const unsubscribeDen = hub.subscribeDen((message) => {
+          void stream.writeSSE({ event: "den", data: JSON.stringify(message) });
+        });
+        const unsubscribe = () => {
+          unsubscribeState();
+          unsubscribeFeed();
+          unsubscribeDen();
+        };
+        stream.onAbort(unsubscribe);
+        await stream.writeSSE({ event: "ready", data: String(clock.now()) });
+        while (!stream.aborted) {
+          await stream.sleep(HEARTBEAT_MS);
+          if (!stream.aborted) await stream.writeSSE({ event: "ping", data: String(clock.now()) });
+        }
+        unsubscribe();
+      });
+    });
+    return authed;
+  };
+
+  // The Discord bot (W8): a service token, then the player it acts for.
+  const bot = new Hono<Env>();
+  bot.use(async (c, next) => {
+    const token = config.botToken;
+    const allowed = token ? bearer(c) === token : config.devLogin;
+    if (!allowed) return c.json({ error: "forbidden" }, 403);
     await next();
   });
 
-  authed.get("/me", (c) => {
-    const row = db
-      .select()
-      .from(players)
-      .where(eq(players.id, c.get("playerId")))
-      .get();
-    if (!row) return c.json({ error: "login_required" }, 401);
-    return c.json({
-      id: row.id,
-      name: row.name,
-      avatarUrl: row.avatarUrl,
-      devLogin: config.devLogin,
-    });
-  });
-
-  authed.get("/state", (c) => c.json(game.look(c.get("playerId"))));
-
-  authed.post("/commands", async (c) => {
-    const parsed = commandRequestSchema.safeParse(await c.req.json().catch(() => null));
-    if (!parsed.success) {
-      return c.json(
-        { error: "bad_request", issues: parsed.error.issues.map((i) => i.message) },
-        400,
-      );
-    }
-    return c.json(game.command(c.get("playerId"), parsed.data.key, parsed.data.command));
-  });
-
-  authed.get("/feed", (c) => {
-    const before = Number(c.req.query("before"));
-    return c.json({
-      items: game.feed(Number.isInteger(before) && before > 0 ? before : undefined),
-    });
-  });
-
-  authed.get("/den", (c) => c.json(game.denBoard()));
-
-  const goodSchema = z.string().min(1).max(64);
-  authed.get("/den/history", (c) => {
-    const parsed = goodSchema.safeParse(c.req.query("good"));
-    if (!parsed.success) return c.json({ error: "bad_request" }, 400);
-    return c.json(game.history(parsed.data));
-  });
-
-  authed.get("/ranks", (c) => c.json(game.ranks(c.get("playerId"))));
-
-  authed.get("/raids", (c) => c.json(game.raids(c.get("playerId"))));
-
-  authed.get("/legacy", (c) => c.json(game.legacy(c.get("playerId"))));
-
-  authed.get("/signal", (c) => c.json(game.signal(c.get("playerId"))));
-
-  authed.get("/notify", (c) => {
-    const playerId = c.get("playerId");
-    return c.json({
-      prefs: notifier.prefs(playerId),
-      publicKey: notifier.publicKey,
-      devices: notifier.devices(playerId),
-    });
-  });
-
-  const prefsSchema = z.partialRecord(z.enum(NOTIFY_KINDS), z.boolean());
-  authed.put("/notify", async (c) => {
-    const parsed = prefsSchema.safeParse(await c.req.json().catch(() => null));
-    if (!parsed.success) return c.json({ error: "bad_request" }, 400);
-    return c.json({ prefs: notifier.setPrefs(c.get("playerId"), parsed.data) });
-  });
-
-  const subscriptionSchema = z.object({
-    endpoint: z.url().max(2000),
-    keys: z.object({ p256dh: z.string().min(1).max(500), auth: z.string().min(1).max(500) }),
-  });
-  authed.post("/push/subscribe", async (c) => {
-    const parsed = subscriptionSchema.safeParse(await c.req.json().catch(() => null));
-    if (!parsed.success) return c.json({ error: "bad_request" }, 400);
-    notifier.subscribe(c.get("playerId"), parsed.data, clock.now());
-    return c.json({ ok: true });
-  });
-
-  authed.post("/push/unsubscribe", async (c) => {
-    const parsed = z
-      .object({ endpoint: z.string().min(1).max(2000) })
-      .safeParse(await c.req.json().catch(() => null));
-    if (!parsed.success) return c.json({ error: "bad_request" }, 400);
-    notifier.unsubscribe(c.get("playerId"), parsed.data.endpoint);
-    return c.json({ ok: true });
-  });
-
-  authed.get("/events", (c) => {
-    const playerId = c.get("playerId");
-    return streamSSE(c, async (stream) => {
-      const unsubscribeState = hub.subscribe(playerId, (message) => {
-        void stream.writeSSE({ event: "state", data: JSON.stringify(message) });
-      });
-      const unsubscribeFeed = hub.subscribeFeed((items) => {
-        void stream.writeSSE({ event: "feed", data: JSON.stringify(items) });
-      });
-      const unsubscribeDen = hub.subscribeDen((message) => {
-        void stream.writeSSE({ event: "den", data: JSON.stringify(message) });
-      });
+  bot.get("/stream", (c) =>
+    streamSSE(c, async (stream) => {
+      const write = (event: string, data: unknown) =>
+        void stream.writeSSE({ event, data: JSON.stringify(data) });
+      const unsubscribeFeed = hub.subscribeFeed((items) => write("feed", items));
+      const unsubscribeBot = hub.subscribeBot((message) => write(message.event, message.data));
+      // Read synchronously after subscribing: nothing can be logged in between.
+      const missed = game.feedMissed();
       const unsubscribe = () => {
-        unsubscribeState();
         unsubscribeFeed();
-        unsubscribeDen();
+        unsubscribeBot();
       };
       stream.onAbort(unsubscribe);
       await stream.writeSSE({ event: "ready", data: String(clock.now()) });
+      if (missed.length > 0) write("feed", missed);
       while (!stream.aborted) {
         await stream.sleep(HEARTBEAT_MS);
         if (!stream.aborted) await stream.writeSSE({ event: "ping", data: String(clock.now()) });
       }
       unsubscribe();
+    }),
+  );
+
+  bot.post("/feed/ack", async (c) => {
+    const parsed = z
+      .strictObject({ id: z.int().min(1) })
+      .safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "bad_request" }, 400);
+    game.ackFeed(parsed.data.id);
+    return c.json({ ok: true });
+  });
+
+  const asPlayer = new Hono<Env>();
+  asPlayer.use(async (c, next) => {
+    const avatar = c.req.header("x-discord-avatar");
+    const parsed = discordUserSchema.safeParse({
+      discordId: c.req.header("x-discord-id"),
+      name: decodeHeader(c.req.header("x-discord-name")),
+      avatarUrl: avatar ? avatar : null,
+    });
+    if (!parsed.success) return c.json({ error: "bad_request" }, 400);
+    const playerId = upsertPlayer(db, parsed.data, clock.now());
+    // Using the bot is the opt-in to its DMs (for the kinds turned on); they can turn them off.
+    if (notifier.discordDm(playerId) === null) notifier.setDiscordDm(playerId, true);
+    c.set("playerId", playerId);
+    c.set("via", "bot");
+    await next();
+  });
+
+  asPlayer.get("/home", (c) => {
+    const playerId = c.get("playerId");
+    const token = createLoginLink(db, playerId, clock.now());
+    return c.json({
+      ...game.look(playerId, false),
+      discordDm: notifier.discordDm(playerId) === true,
+      loginUrl: `${config.publicUrl}/api/auth/link?t=${token}`,
     });
   });
 
-  app.route("/api", authed);
+  asPlayer.put("/dm", async (c) => {
+    const parsed = z
+      .strictObject({ on: z.boolean() })
+      .safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "bad_request" }, 400);
+    notifier.setDiscordDm(c.get("playerId"), parsed.data.on);
+    return c.json({ discordDm: parsed.data.on });
+  });
+
+  asPlayer.route("/", playerRoutes());
+  bot.route("/", asPlayer);
+  app.route("/api/bot", bot);
+
+  const web = new Hono<Env>();
+  web.use(async (c, next) => {
+    const playerId = sessionPlayer(db, getCookie(c, SESSION_COOKIE), clock.now());
+    if (playerId === null) return c.json({ error: "login_required" }, 401);
+    c.set("playerId", playerId);
+    c.set("via", "web");
+    await next();
+  });
+  web.route("/", playerRoutes());
+  app.route("/api", web);
   app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));
 
   // Production: the web build, with the SPA's index.html for every other path.
@@ -301,6 +416,21 @@ export function createApp(deps: AppDeps): Hono<Env> {
     app.get("*", (c) => c.html(html));
   }
   return app;
+}
+
+/** The bearer token a request carries, or "". */
+function bearer(c: Context): string {
+  return c.req.header("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+}
+
+/** A URI-encoded header (names may hold any character); undefined when missing or malformed. */
+function decodeHeader(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return undefined;
+  }
 }
 
 /** Whether a request came from this machine (the container's own loopback). */

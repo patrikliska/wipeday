@@ -32,6 +32,7 @@ const config: Config = {
   webDist: join(tmpdir(), "wipe-day-no-web-build"),
   devLogin: true,
   adminToken: null,
+  botToken: null,
 };
 
 function setup(overrides: Partial<Config> = {}) {
