@@ -12,7 +12,9 @@ export type GameEvent =
    */
   | { type: "tap_at"; x: number; y: number; gain: number }
   /** A command was refused (the toast says why): the refuse sound. */
-  | { type: "refused" };
+  | { type: "refused" }
+  /** "Tap the ore seam": the panels close and the target pulses (a refusal's button). */
+  | { type: "go_tap" };
 
 type Listener = (event: GameEvent) => void;
 

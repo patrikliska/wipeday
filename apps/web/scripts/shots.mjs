@@ -52,6 +52,8 @@ const STONE_RUN = {
     furnace: 2,
   },
   hands: ["beachcomber", "campfire", "garden", "loom", "workbench", "kiln"],
+  upgrades: ["stone_tools", "sorting_tables", "iron_tools"],
+  roster: 0,
   target: { taps: 22, felled: 64 },
 };
 
@@ -77,13 +79,18 @@ const every = (n) => Object.fromEntries(ALL_LINES.map((id) => [id, n]));
  * Each shot: `viewport`, `scale` (device pixels), `state`, and optionally `clip`, `taps`, `ff`.
  * In `state`, `time` pins the game clock and `wall` the animation clock (both paused);
  * `weather` moves `time` by whole days until the island has that weather at that hour;
- * `demoOpen` opens the demo drawer; every other key overwrites that field of the run
+ * `demoOpen` opens the demo drawer; `ui` sets the HUD (`expanded`, `tab`, `bulk`, `panel`,
+ * `sheet`, `boughtOpen`, `scientific`); `pace` is the player's taps a second over the last
+ * minute (default 6), which the crown weighs; every other key overwrites that field of the run
  * (`RunState`). `taps: [rounds, perRound]` taps the target through the store, a sixth of a
  * second apart; `ff` plays that many seconds of scene time after the patch and the taps (60 fps
  * steps, deterministic), then the frame is frozen. `clip` also saves a 1:1 crop
  * `{name}__zoom.png` ([x, y, width, height] in CSS pixels). `press` holds a finger on the
- * target through the fast-forward (hold to work).
+ * target through the fast-forward (hold to work). `send` sends a command through the store after
+ * the patch (a refusal shows its toast); `scrollRows: "end"` scrolls the open shop list down.
  */
+const PHONE_SHORT = [390, 664];
+
 const SHOTS = [
   {
     name: "phone_first_tap",
@@ -200,6 +207,156 @@ const SHOTS = [
       hands: ["beachcomber"],
     },
     ff: 1.0,
+  },
+  {
+    name: "phone_bulk",
+    viewport: PHONE,
+    scale: 2,
+    before: {
+      era: "wood",
+      lines: { beachcomber: 18, campfire: 11, garden: 5, loom: 2 },
+      hands: ["beachcomber", "campfire"],
+    },
+    state: {
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+      era: "wood",
+      supplies: 2.4e3,
+      made: 9e3,
+      taps: 420,
+      lines: { beachcomber: 18, campfire: 11, garden: 5, loom: 2 },
+      hands: ["beachcomber", "campfire"],
+      upgrades: ["stone_tools"],
+      ui: { bulk: 10 },
+    },
+    ff: 1,
+  },
+  {
+    name: "phone_drawer_lines",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { expanded: true },
+    },
+    ff: 1,
+  },
+  {
+    name: "phone_drawer_upgrades",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      lines: { ...STONE_RUN.lines, furnace: 12 },
+      ui: { expanded: true, tab: "upgrades", boughtOpen: true },
+    },
+    ff: 1,
+  },
+  {
+    name: "phone_locked_rows",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      lines: { ...STONE_RUN.lines, furnace: 12 },
+      ui: { expanded: true, bulk: "max" },
+    },
+    scrollRows: "end",
+    ff: 1,
+  },
+  {
+    name: "phone_refusal",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, supplies: 31.2e3 },
+    send: { type: "buy_era", era: "metal" },
+    ff: 0.4,
+  },
+  {
+    name: "phone_multipliers",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      roster: 1,
+      buffs: [{ kind: "rally", until: at(1, 10.5) + 41 }],
+      hustle: { value: 60, at: at(1, 10.5) },
+      ui: { sheet: "multipliers" },
+    },
+    ff: 0.5,
+  },
+  {
+    name: "phone_crew",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, ui: { panel: "crew" } },
+    ff: 0.5,
+  },
+  {
+    name: "phone_settings",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { panel: "settings" },
+    },
+    ff: 0.5,
+  },
+  {
+    name: "phone_numbers_dc",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 11),
+      wall: WALL,
+      weather: "clear",
+      era: "metal",
+      lines: { ...every(400), shipbreaker: 0, reactor: 0 },
+      hands: ALL_LINES.slice(0, 12),
+      supplies: 9.99e35,
+      made: 9.99e35,
+    },
+    ff: 1,
+  },
+  {
+    name: "phone_numbers_sci",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 11),
+      wall: WALL,
+      weather: "clear",
+      era: "metal",
+      lines: { ...every(400), shipbreaker: 0, reactor: 0 },
+      hands: ALL_LINES.slice(0, 12),
+      supplies: 1.234e36,
+      made: 1.234e36,
+      ui: { scientific: true, expanded: true },
+    },
+    ff: 1,
+  },
+  {
+    name: "phone_short",
+    viewport: PHONE_SHORT,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 1,
   },
   {
     name: "phone_stone_day",
@@ -325,6 +482,36 @@ const SHOTS = [
     ff: 3,
   },
   {
+    name: "desktop_first_tap",
+    viewport: DESKTOP,
+    state: { time: at(1, 6.6), wall: WALL, weather: "clear" },
+  },
+  {
+    name: "desktop_upgrades",
+    viewport: DESKTOP,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      lines: { ...STONE_RUN.lines, furnace: 12 },
+      ui: { tab: "upgrades" },
+    },
+    ff: 1,
+  },
+  {
+    name: "desktop_multipliers",
+    viewport: DESKTOP,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { sheet: "multipliers" },
+    },
+    ff: 1,
+  },
+  {
     name: "desktop_lines_100",
     viewport: DESKTOP,
     state: {
@@ -421,8 +608,9 @@ async function audit(page, width) {
     const target = window.__wipeDay.target?.();
     if (target && target.height < 120)
       problems.push(`the target's box is ${target.height} px tall (N27: 120)`);
+    // A view is what is not inert: a sheet makes the rest of the HUD inert (6.3 rule 1).
     const crowns = [...document.querySelectorAll(".primary, [data-crown]")].filter(
-      (element) => element.getBoundingClientRect().width > 0,
+      (element) => element.getBoundingClientRect().width > 0 && !element.closest("[inert]"),
     ).length;
     if (crowns > 1) problems.push(`${crowns} crowned elements (one per view)`);
     return problems;
@@ -450,6 +638,11 @@ async function main() {
       if (message.type() === "error") errors.push(message.text());
     });
     await page.goto(url, { waitUntil: "networkidle" });
+    // Entrance slides and fades would be caught half-way: shots show the settled layout.
+    await page.addStyleTag({
+      content:
+        ".drawer, .column, .nav, .panel, .sheet, .sheet-backdrop, .toast { animation: none !important; transition: none !important; }",
+    });
     await page.waitForFunction(() => (window.__wipeDay?.frames ?? 0) > 5, null, {
       timeout: 20_000,
     });
@@ -457,18 +650,28 @@ async function main() {
       timeout: 20_000,
     });
     const { weather, ...state } = shot.state;
+    const asked = state.time;
     state.time = await pickTime(page, state.time, weather);
     if (state.hustle) state.hustle = { ...state.hustle, at: state.time };
+    // A weather pick moves whole days: running buffs move with it.
+    if (state.buffs)
+      state.buffs = state.buffs.map((buff) => ({
+        ...buff,
+        until: buff.until + state.time - asked,
+      }));
     await page.evaluate(
       ([state, before]) => {
-        const { store, clocks } = window.__wipeDay;
-        const { time, wall, demoOpen, ...run } = state;
+        const { store, clocks, ui: uiStore } = window.__wipeDay;
+        const { time, wall, demoOpen, ui, pace, ...run } = state;
         // Present now: the Night Shift runs and manned lines cycle.
         if (time !== undefined) run.activeAt ??= time;
         clocks.game.setPaused(true);
         if (time !== undefined) clocks.game.set(time);
         clocks.wall.setPaused(true);
         if (wall !== undefined) clocks.wall.set(wall);
+        // The player taps 6 a second unless the shot says (the crown weighs taps by it); set
+        // before the patch, which is what makes the crown look again.
+        window.__wipeDay.pace(pace ?? 6);
         // `before`: the run as it stood a moment earlier, so the scene animates the change.
         if (before) {
           store.getState().demoPatch(before);
@@ -476,9 +679,25 @@ async function main() {
         }
         store.getState().demoPatch(run);
         store.setState({ demoOpen: demoOpen === true, toasts: [] });
+        // The HUD: collapsed drawer on the Lines tab at ×1, nothing open, unless the shot says.
+        uiStore.setState({
+          expanded: false,
+          tab: "lines",
+          bulk: 1,
+          panel: null,
+          sheet: null,
+          boughtOpen: false,
+          scientific: false,
+          motion: "device",
+          ...ui,
+        });
       },
       [state, shot.before ?? null],
     );
+    if (shot.send) {
+      // A command through the store, as a button would send it (a refusal shows its toast).
+      await page.evaluate((command) => window.__wipeDay.store.getState().send(command), shot.send);
+    }
     if (shot.taps) {
       const [rounds, perRound] = shot.taps;
       await page.evaluate(
@@ -503,6 +722,13 @@ async function main() {
       window.__wipeDay.frozen = true;
     }, shot.ff ?? 0.2);
     await page.waitForTimeout(400);
+    if (shot.scrollRows === "end") {
+      await page.evaluate(() => {
+        const list = document.querySelector(".rows.scroll");
+        if (list) list.scrollTop = list.scrollHeight;
+      });
+      await page.waitForTimeout(100);
+    }
     if (shot.clip) {
       const [x, y, clipWidth, clipHeight] = shot.clip;
       await page.screenshot({

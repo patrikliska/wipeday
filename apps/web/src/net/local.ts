@@ -5,6 +5,7 @@
  * group) arrive with R2's Wipe Days and R6.
  */
 import { applyCommand, type Command, isSlim } from "@wipe-day/domain/commands";
+import { DEFAULT_NOTIFY, type NotifyPrefs } from "@wipe-day/domain/feed";
 import { settle } from "@wipe-day/domain/settle";
 import { type BaseState, newBase } from "@wipe-day/domain/state";
 import { welcomeBack } from "@wipe-day/domain/welcome";
@@ -91,6 +92,19 @@ export class LocalBackend implements Backend {
   async devLogin(): Promise<void> {}
 
   async logout(): Promise<void> {}
+
+  /** Demo mode has no server to push from: Settings says so. */
+  async notify(): Promise<null> {
+    return null;
+  }
+
+  async setNotify(): Promise<NotifyPrefs> {
+    return { ...DEFAULT_NOTIFY };
+  }
+
+  async pushSubscribe(): Promise<void> {}
+
+  async pushUnsubscribe(): Promise<void> {}
 
   /** The state's version now: a demo patch hands it to the store, so older answers lose. */
   get currentVersion(): number {

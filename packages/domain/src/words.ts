@@ -85,15 +85,17 @@ export function numberFormat(suffixes: readonly string[], scientific = false): N
   return { fmt, fmtRate, fmtCount };
 }
 
-/** `2d 4h`, `3h 20m`, `45s`. */
+/** `2d 4h`, `3h 20m`, `12m`, `2m 10s`, `45s`: seconds under 10 minutes (active timers). */
 export function duration(totalSeconds: number): string {
   const seconds = Math.max(0, Math.trunc(totalSeconds));
   const days = Math.floor(seconds / 86_400);
   const hours = Math.floor(seconds / 3_600) % 24;
   const minutes = Math.floor(seconds / 60) % 60;
+  const rest = seconds % 60;
   if (days > 0) return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
   if (hours > 0) return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-  return minutes > 0 ? `${minutes}m` : `${seconds}s`;
+  if (minutes >= 10 || (minutes > 0 && rest === 0)) return `${minutes}m`;
+  return minutes > 0 ? `${minutes}m ${rest}s` : `${seconds}s`;
 }
 
 export interface Words extends NumberFormat {

@@ -11,7 +11,7 @@
  * Narrow selectors: the scene reads the store once per frame and the counter is written outside
  * React, so `second` is published once a second and nothing re-renders per frame.
  */
-import { applyCommand, type Command } from "@wipe-day/domain/commands";
+import { applyCommand, type Command, type Refusal } from "@wipe-day/domain/commands";
 import { settle, suppliesAt } from "@wipe-day/domain/settle";
 import type { BaseState } from "@wipe-day/domain/state";
 import { hustleFactor, tapParts } from "@wipe-day/domain/taps";
@@ -28,6 +28,7 @@ import { LocalBackend } from "../net/local";
 import { jumps, wall } from "./clocks";
 import { emit } from "./events";
 import { refusalMessage } from "./messages";
+import { noteTaps } from "./pace";
 import {
   addTaps,
   closeDue,
@@ -48,6 +49,8 @@ export interface Toast {
   tone: "neutral" | "success" | "warning" | "danger";
   /** Stays until dismissed or replaced (the reconnecting note). */
   sticky?: boolean;
+  /** One button to where you get what is missing (rule 6.3.5). */
+  action?: { label: string; run: () => void };
 }
 
 interface WorldState {
@@ -106,6 +109,9 @@ let sentKeys = new Map<string, number>();
 let lastCommandAt = 0;
 let lastRefetchMs = 0;
 
+/** The backend in use (Settings asks it for notification preferences). */
+export const currentBackend = (): Backend => backend;
+
 /** The game clock in seconds (fractional, for prediction and the counter). */
 export const gameSeconds = (): number => backend.clock.nowMs() / 1000;
 const nowSecond = (): number => Math.floor(gameSeconds());
@@ -123,11 +129,34 @@ export function localSeconds(seconds: number): number {
 }
 
 export const useWorld = create<Store>((set, get) => {
-  const toast = (text: string, tone: Toast["tone"] = "neutral", sticky = false): number => {
+  const toast = (
+    text: string,
+    tone: Toast["tone"] = "neutral",
+    sticky = false,
+    action?: Toast["action"],
+  ): number => {
     const id = ++toastId;
-    set({ toasts: [...get().toasts.filter((item) => !item.sticky), { id, text, tone, sticky }] });
+    const item: Toast = action ? { id, text, tone, sticky, action } : { id, text, tone, sticky };
+    // Two at most (08-screens.md 1.8): the newest stay; the same words once (a predicted
+    // refusal and the server's answer say the same thing).
+    const kept = get().toasts.filter((other) => !other.sticky && other.text !== text);
+    set({ toasts: [...kept.slice(-1), item] });
     if (!sticky) setTimeout(() => get().dismissToast(id), 4000);
     return id;
+  };
+
+  /** A refusal's one sentence; short of supplies, its button goes to the target (rule 6.3.5). */
+  const refuse = (refusal: Refusal): void => {
+    const base = get().base;
+    const target = base ? targetOf(base) : null;
+    const action =
+      refusal.reason === "supplies" && target
+        ? {
+            label: t(`target.${target}.tap`),
+            run: () => emit({ type: "go_tap" }),
+          }
+        : undefined;
+    toast(refusalMessage(refusal), "warning", false, action);
   };
 
   const adopt = (response: StateResponse): void => {
@@ -181,7 +210,7 @@ export const useWorld = create<Store>((set, get) => {
       queue: rest,
       base: rebase(confirmed, rest),
     });
-    if (!response.ok) toast(refusalMessage(response.refusal), "warning");
+    if (!response.ok) refuse(response.refusal);
     if (entry.key) sentKeys.set(entry.key, wall.nowMs());
   };
 
@@ -311,6 +340,7 @@ export const useWorld = create<Store>((set, get) => {
       const after = suppliesAt(content, base, Math.max(now, base.run.settledAt));
       const gain = Math.max(0, after - before);
       set({ queue, base });
+      noteTaps(count, wall.nowMs());
       lastCommandAt = now;
       // A fell is shown on its own ("Timber! +380"): its bonus leaves the tap's running number.
       const fells = base.run.target.felled - state.base.run.target.felled;
@@ -341,7 +371,7 @@ export const useWorld = create<Store>((set, get) => {
       lastCommandAt = now;
       if (result.ok) for (const event of result.events) emit(event);
       else {
-        toast(refusalMessage(result.refusal), "warning");
+        refuse(result.refusal);
         emit({ type: "refused" });
       }
       void flush();

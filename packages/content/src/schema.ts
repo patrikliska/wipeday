@@ -109,6 +109,11 @@ export const runRulesSchema = z.strictObject({
   }),
   /** The ×1/×10/×100/Max toggle shows from this many hands on (02 9.1). */
   bulkAfterHands: count,
+  /**
+   * The crown (02 11.1): the next era or a hand is crowned when it is affordable within this
+   * many seconds at the current income.
+   */
+  advisor: z.strictObject({ saveSeconds: factor }),
 });
 export type RunRules = z.infer<typeof runRulesSchema>;
 

@@ -15,17 +15,35 @@
 :root {
   --bg: #1b1a18;
   --panel: #272521;
-  --panel-glass: rgba(27, 26, 24, 0.78);
+  /* 0.86 over the brightest sky keeps --muted at 5.5:1 (08-screens.md 6.3). */
+  --panel-glass: rgba(27, 26, 24, 0.86);
   --panel-glass-2: rgba(39, 37, 33, 0.72);
   --border: #3b3832;
   --border-soft: rgba(236, 232, 223, 0.08);
   --text: #ece8df;
-  --muted: #a49e93;
-  --accent: #cd412b;
-  --accent-glow: rgba(205, 65, 43, 0.55);
+  --muted: #b5afa4;
   --success: #7fa043;
   --warning: #e3a32f;
   --danger: #f05252;
+
+  /* The crown: one signal-orange button per view (D138), ink text on it (6.3). */
+  --primary: #f27a1a;
+  --primary-hi: #ff9a3c;
+  --primary-lo: #e46c12;
+  --primary-glow: rgba(242, 122, 26, 0.5);
+  --on-primary: #1b1a18;
+  /* The Big Red's dome and glyph only (R2); never a button colour. */
+  --big-red: #d8261c;
+  --big-red-hi: #ff4a3d;
+  /* The red band of the old HUD, kept as an icon accent (D141). */
+  --red-band: #cd412b;
+  --hazard: #ffd21f;
+  --hazard-ink: #1b1a18;
+  --hustle-lo: #ffe7a8;
+  --hustle-hi: #ff8c2a;
+  --buff: #ffc95c;
+  /* Selected tabs and segments are neutral, so orange stays the crown's. */
+  --selected: rgba(236, 232, 223, 0.14);
 
   --tier-twig: #c2a868;
   --tier-wood: #b07840;
@@ -39,4 +57,40 @@
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  --t-fast: 120ms;
+  --t-med: 220ms;
+  --t-slow: 400ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* The phone frame (08-screens.md 1.1). */
+  --top-h: 56px;
+  --nav-h: 56px;
+  --row-h: 76px;
+  --row-gap: 4px;
+  --handle-h: 44px;
+  /* The collapsed drawer: the handle and three rows (two on short screens). */
+  --drawer-h: calc(var(--handle-h) + 3 * (var(--row-h) + var(--row-gap)) + 6px);
+  /* The desktop column; 0 while the drawer layout is in force. */
+  --column-w: 0px;
+}
+
+/* Keep in step with COLUMN_QUERY in src/state/layout.ts; only while the column is shown. */
+@media (min-width: 1024px) and (min-aspect-ratio: 6 / 5) {
+  .app.has-column {
+    --column-w: 420px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .app.has-column {
+    --column-w: 320px;
+  }
+}
+
+@media (max-height: 739px) {
+  :root {
+    --top-h: 52px;
+    --drawer-h: calc(var(--handle-h) + 2 * (var(--row-h) + var(--row-gap)) + 6px);
+  }
 }

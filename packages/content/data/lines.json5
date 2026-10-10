@@ -26,6 +26,8 @@
     nightShift: { windowHours: 12, maxHours: 48, pingMinutes: 5, welcomeAfterMinutes: 60 },
     // The ×1/×10/×100/Max toggle appears with the second hand of a run and stays.
     bulkAfterHands: 2,
+    // The crown (02 11.1): the next era or a hand is crowned once affordable within 30 s.
+    advisor: { saveSeconds: 30 },
   },
   lines: [
     { id: "beachcomber", rung: 1, era: "twig", hand: "mara", product: "timber" },

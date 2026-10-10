@@ -8,6 +8,7 @@
  */
 import type { Clock } from "@wipe-day/domain/clock";
 import type { Command } from "@wipe-day/domain/commands";
+import type { NotifyPrefs } from "@wipe-day/domain/feed";
 import type {
   CommandResponse,
   MeResponse,
@@ -20,6 +21,20 @@ export interface ServerConfig {
   devLogin: boolean;
   /** Discord login is configured. */
   discordLogin: boolean;
+}
+
+/** A push subscription as the browser serialises it. */
+export interface DeviceSubscription {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}
+
+/** The player's notification settings and the server's push key. */
+export interface NotifyView {
+  prefs: NotifyPrefs;
+  publicKey: string;
+  /** Devices with notifications on. */
+  devices: number;
 }
 
 export interface Backend {
@@ -36,6 +51,12 @@ export interface Backend {
   subscribe(onPush: (message: PushMessage) => void, onReconnect: () => void): () => void;
   devLogin(slot: number): Promise<void>;
   logout(): Promise<void>;
+  /** Notification settings; null where there is no server (demo mode). */
+  notify(): Promise<NotifyView | null>;
+  setNotify(change: Partial<NotifyPrefs>): Promise<NotifyPrefs>;
+  /** `tzOffsetMinutes`: minutes east of UTC, so quiet hours follow this browser's clock. */
+  pushSubscribe(subscription: DeviceSubscription, tzOffsetMinutes: number): Promise<void>;
+  pushUnsubscribe(endpoint: string): Promise<void>;
   readonly loginUrl: string;
 }
 

@@ -26,20 +26,20 @@
     "cell": { "name": "Power Cells" }
   },
   "line": {
-    "beachcomber": { "name": "Beachcomber" },
-    "campfire": { "name": "Campfire" },
-    "garden": { "name": "Garden" },
-    "loom": { "name": "Loom" },
-    "workbench": { "name": "Workbench" },
-    "kiln": { "name": "Charcoal Kiln" },
-    "furnace": { "name": "Furnace" },
-    "tannery": { "name": "Tannery" },
-    "press": { "name": "Oil Press" },
-    "dock": { "name": "Dock" },
-    "generator": { "name": "Generator" },
-    "radio_mast": { "name": "Radio Mast" },
-    "shipbreaker": { "name": "Ship Breaker" },
-    "reactor": { "name": "Reactor" }
+    "beachcomber": { "name": "Beachcomber", "plural": "Beachcombers" },
+    "campfire": { "name": "Campfire", "plural": "Campfires" },
+    "garden": { "name": "Garden", "plural": "Gardens" },
+    "loom": { "name": "Loom", "plural": "Looms" },
+    "workbench": { "name": "Workbench", "plural": "Workbenches" },
+    "kiln": { "name": "Charcoal Kiln", "plural": "Charcoal Kilns" },
+    "furnace": { "name": "Furnace", "plural": "Furnaces" },
+    "tannery": { "name": "Tannery", "plural": "Tanneries" },
+    "press": { "name": "Oil Press", "plural": "Oil Presses" },
+    "dock": { "name": "Dock", "plural": "Docks" },
+    "generator": { "name": "Generator", "plural": "Generators" },
+    "radio_mast": { "name": "Radio Mast", "plural": "Radio Masts" },
+    "shipbreaker": { "name": "Ship Breaker", "plural": "Ship Breakers" },
+    "reactor": { "name": "Reactor", "plural": "Reactors" }
   },
   "crew": {
     "mara": { "name": "Mara" },
@@ -72,11 +72,36 @@
     "power_tools": { "name": "Power Tools" }
   },
   "target": {
-    "tree": { "name": "Lone Pine", "cry": "Timber!" },
-    "stone": { "name": "Outcrop", "cry": "Crumble!" },
-    "ore": { "name": "Ore Seam", "cry": "Rich vein!" },
-    "sulfur": { "name": "Sulfur Vent", "cry": "Pop!" },
-    "wreck": { "name": "The Wreck", "cry": "Cracked open!" }
+    "tree": {
+      "name": "Lone Pine",
+      "cry": "Timber!",
+      "hint": "Tap the tree.",
+      "tap": "Tap the tree"
+    },
+    "stone": {
+      "name": "Outcrop",
+      "cry": "Crumble!",
+      "hint": "Tap the outcrop.",
+      "tap": "Tap the outcrop"
+    },
+    "ore": {
+      "name": "Ore Seam",
+      "cry": "Rich vein!",
+      "hint": "Tap the ore seam.",
+      "tap": "Tap the ore seam"
+    },
+    "sulfur": {
+      "name": "Sulfur Vent",
+      "cry": "Pop!",
+      "hint": "Tap the vent.",
+      "tap": "Tap the vent"
+    },
+    "wreck": {
+      "name": "The Wreck",
+      "cry": "Cracked open!",
+      "hint": "Tap the wreck.",
+      "tap": "Tap the wreck"
+    }
   },
   "upgrade": {
     "beachcomber_mk2": { "name": "Driftwood Hooks" },
@@ -144,9 +169,12 @@
   },
   "hud": {
     "supplies": "Supplies",
-    "per_second": "{rate}",
     "tap_hint": "Tap the tree.",
-    "demo_player": "Castaway"
+    "demo_player": "Castaway",
+    "counter_label": "Supplies {amount}, {rate}. Show every multiplier.",
+    "menu": "Settings",
+    "buff": "{name} ×{factor} · {time}",
+    "buffs_more": "+{count}"
   },
   "scene": {
     "tap_target": "Tap the {target}",
@@ -223,5 +251,122 @@
     "dm_sent_off": "DMs are off. Turn them back on from /base.",
     "feed_title": "On the island",
     "error": "Something went wrong on my side. Try /base again."
+  },
+  "drawer": {
+    "see_all": "See all",
+    "close": "Close",
+    "lines": "Lines",
+    "upgrades": "Upgrades",
+    "upgrades_count": "Upgrades {count}",
+    "shop": "Shop",
+    "bulk": "Buy how many",
+    "bulk_one": "×1",
+    "bulk_ten": "×10",
+    "bulk_hundred": "×100",
+    "bulk_max": "Max",
+    "bought": "Bought this run ({count})",
+    "empty": "Nothing on the shelf right now."
+  },
+  "row": {
+    "buy": "Buy",
+    "buy_n": "Buy ×{count}",
+    "buy_count": "Buy {count}",
+    "hire": "Hire",
+    "in": "in {time}",
+    "tap_to_earn": "tap to earn",
+    "locked": "Locked",
+    "full": "Full",
+    "owned_pill": "{count} owned",
+    "hire_name": "Hire {name}",
+    "hand_first": "Keeps the {line} running, even while you're away.",
+    "hand_later": "{line} runs without taps",
+    "era_name": "{era} era",
+    "era_effect": "Everything ×{factor} · {lines}",
+    "era_progress": "{percent}% · in {time}",
+    "era_ready": "Ready to build",
+    "unmanned": "Runs while you tap",
+    "idle": "Idle · tap to run",
+    "milestone_payout": "{owned}/{at} → ×{factor}",
+    "milestone_speed": "{owned}/{at} → speed ×{factor}",
+    "milestone_every": "×{factor} every {step} · next at {at}",
+    "maxed": "{owned} owned: the most it takes",
+    "opens_in": "Opens in the {era} era",
+    "needs_owned": "Needs {need} {lines} ({have} now)",
+    "grip_effect": "Taps ×{factor} · +{share} of your /s per tap",
+    "mk_effect": "{line} ×{factor}",
+    "island_effect": "Every line ×{factor}",
+    "aria_buy": "Buy {count} {name} for {cost} supplies",
+    "aria_hire": "Hire {name} for {cost} supplies",
+    "aria_upgrade": "Buy {name} for {cost} supplies",
+    "aria_wait": "{name}: {reason}",
+    "crowned": "Best buy now"
+  },
+  "nav": {
+    "label": "Go to",
+    "island": "Island",
+    "crew": "Crew"
+  },
+  "crew_panel": {
+    "title": "Crew",
+    "summary": "{on} of {total} on shift",
+    "on_shift": "On shift",
+    "not_hired": "Not hired this run · hire on the Lines tab",
+    "waiting": "Waiting for the first {line}",
+    "opens_in": "Opens in the {era} era",
+    "line": "{name} · {line}"
+  },
+  "settings": {
+    "title": "Settings",
+    "sound": "Sound",
+    "volume": "Volume",
+    "vibration": "Vibration (this phone)",
+    "numbers": "Numbers",
+    "numbers_short": "1.23Qa",
+    "numbers_sci": "1.23e15",
+    "motion": "Motion",
+    "motion_device": "Match device",
+    "motion_reduced": "Reduced",
+    "motion_full": "Full",
+    "on": "On",
+    "off": "Off",
+    "notifications": "Notifications on this device",
+    "notify_night_shift_over": "When your hands stop because the window is full.",
+    "quiet": "Quiet hours 22:00-08:00",
+    "quiet_sub": "Pushes wait until 08:00 (this browser's time).",
+    "push_ios": "On an iPhone, add the game to your Home Screen and open it from there to get notifications.",
+    "push_unsupported": "This browser can't show notifications.",
+    "push_denied": "Notifications are blocked for this site in the browser's settings.",
+    "push_demo": "Notifications need the game server; this is demo mode.",
+    "push_failed": "Notifications could not be turned on here.",
+    "logout": "Log out",
+    "how": "How it works",
+    "how_1": "Tap the target for supplies. Hold to keep working.",
+    "how_2": "Buy lines. A line without a hand only runs while you tap.",
+    "how_3": "Hire a hand and the line runs on its own, even while you're away.",
+    "how_4": "Eras double everything and bring new lines.",
+    "how_6": "Tap the supplies counter to see every multiplier.",
+    "done": "Done",
+    "close": "Close"
+  },
+  "mult": {
+    "title": "Supplies per second",
+    "lines": "Lines, {units} units",
+    "milestones": "Milestones",
+    "upgrades": "Upgrades",
+    "eras": "Eras",
+    "roster": "Every line at {at}",
+    "roster_title": "Roster",
+    "glow": "Glow",
+    "buffs": "Buffs",
+    "other": "Other",
+    "all_running": "Every line running",
+    "per_tap": "Per tap",
+    "grip": "Grip: {flat} + {share} of your /s",
+    "hustle": "Hustle ×{factor}",
+    "night_shift": "Night Shift: {hours} h. If you leave now, your hands work until {time}.",
+    "no_hands": "Nobody is on shift yet: hire a hand and its line runs while you're away.",
+    "unmanned": "Unmanned lines run only while you tap.",
+    "source_factor": "{name} ×{factor}",
+    "source_buff": "{name} ×{factor} · {time}"
   }
 }

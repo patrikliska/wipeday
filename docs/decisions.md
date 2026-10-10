@@ -1807,3 +1807,83 @@ Crate, the Fuel Drum, Rally and the Adrenaline Kit; the hands; Grip; the product
 Tinned Fish). The eras keep the five Rust grades: Twig, Timber, Stone, Sheet Metal, Armored. The
 locale already holds these strings, so nothing in the game changes; their *(proposal)* marks go.
 Passes 2 (R2) and 3 (R4) remain.
+
+### D165. The crown on screen: the advisor's rules and the player's own pace
+`crown()` (`packages/domain/src/advisor.ts`) is 02-the-run.md 11.1 in R1: the next era when it is
+affordable within `advisor.saveSeconds` (30, `lines.json5`) at the current income, then the hand
+of the top-earning unmanned line on the same terms, then the best payback affordable now (price ÷
+added income; ties to the cheaper), otherwise the tap hint. The Big Red, Blowback crates and the
+Toolbelt join with their phases. The client weighs taps by the player's own pace over the last
+minute on the wall clock (`state/pace.ts`): taps a second, and the share of seconds with a tap
+in them, so an idle player is never crowned an unmanned line or a Grip rung; its income for "in
+42s" is the top bar's `/s` plus that pace times a tap's value. One store (`state/advisor.ts`)
+recomputes the pick on every change of the base and once a second, and the drawer, the hint pill,
+the target's glow and the keyboard's B all read it. The simulator keeps its own buyer (best score
+with waiting) over the same `choices()`; whether it should follow the crown's rules is S5's
+balance question.
+
+### D166. The shop: three rows, two tabs, one crown per view
+- The drawer appears when the run first holds the price of its first line; the collapsed drawer
+  shows the crowned row and the next two by score (two under 740 px tall), reordered at most
+  every 2 s and never within 600 ms of a touch.
+- The expanded drawer is a view of its own (resolution 3.25): each tab crowns exactly one row,
+  the island's pick when it is on that tab, otherwise the tab's best score. The desktop column
+  has no collapsed mode but shares the island's view: it pins the island's crowned purchase
+  over its tabs (and leaves it out of the list below), so the one crown is in sight whichever
+  tab is open; while the crown is on the tap hint, nothing is pinned.
+- Lines lists the era row first, then the open lines in order, each followed by its hand row
+  until the hand is hired, then the next era's three lines locked with their real price and
+  "Opens in the Stone era". The Armored era, gated by Wipe Day #2, is not listed in R1 (D140).
+- Upgrades lists the next step of each ladder by price; a Line Mk shows once its line is owned
+  (locked with "Needs 25 Furnaces (12 now)" until then), so a fresh era does not fill the tab
+  with rows nobody can act on. "Bought this run" folds what was bought.
+- The bulk toggle (×1, ×10, ×100, Max; kept per device) exists from the run's second hand and
+  applies to line rows; the crown is scored per unit, and Max buys as many as the supplies
+  allow (the button reads "Buy 37").
+- A buy button is 104 × 56: its action over the price; short of it, the time to afford ("in
+  42s", "in 3h 10m", "tap to earn" at zero income), disabled. A crowned purchase still saving
+  up (the era within 30 s) keeps its orange.
+
+### D167. Signal orange, the contrast fixes and the 44 px rule ship together
+`--primary` (`#f27a1a`, a gradient from `#ff9a3c` to `#e46c12`, ink text) replaces the red
+`--accent`; `--muted` is `#b5afa4` and the glass panel 0.86, so muted text stays above 4.5:1 over
+the brightest sky (08-screens.md 6.3). Selected tabs and segments are neutral, so orange means
+only the crown. `#cd412b` stays as `--red-band`, an icon accent (D141). Every HUD button is at
+least 44 × 44 (toggles 76 × 44, the toast's button 44 tall, the panel close 44 × 44).
+
+### D168. The layout: the drawer, the column, the nav row, the hint pill
+- Phones: the top bar (the counter block, which opens the Multipliers sheet, and the menu,
+  which opens Settings), buff pills under it, the drawer over the lower part of the island and
+  the nav row at the foot. The camera is unchanged: the target already stands at about 40%.
+- The column layout (`COLUMN_QUERY`, `state/layout.ts`; the same media query sets
+  `--column-w` in `tokens.css`): 1024 px and wider at 6:5 or wider gets a 420 px right column;
+  landscape phones 520 px tall or less get a 320 px one. The column measures itself into
+  `insets.right` and the scene recentres the island in what is left.
+- The nav row of an R1 build is Island and Crew; it appears with the first hand ever hired.
+  Crew lists the hands of the eras reached and of the next one, with who is on shift.
+- The hint pill sits under the target's tap box, never lower than 52 px above the drawer.
+- Layers and back: the expanded drawer, a panel and a sheet each push a history entry, so
+  Android's back closes the top one; Escape does too. Under a sheet the rest of the HUD is
+  `inert`, and the shots' crown audit counts only what is not inert.
+
+### D169. Settings, kept per device, and notifications back on the web
+Sound, volume, vibration (Android), Numbers (`1.23Qa` or `1.23e15`) and Motion (Match device,
+Reduced, Full) live in localStorage (D162's keys plus `wipeday.scientific`, `wipeday.motion`,
+`wipeday.bulk`). The Numbers setting switches the one formatter everywhere at once
+(`state/world.ts`). R0 cut the web's push code with the old systems; R1 restores it
+(`net/push.ts`): the device switch, "Night Shift over" and quiet hours, each a real server
+preference (`/api/notify`), the subscription carrying the browser's time-zone offset. Where push
+cannot work the switch stays visible, disabled, with the reason (iPhone without the Home Screen
+install, blocked, unsupported, demo mode). How it works shows lines 1-4 and 6; line 5 waits for
+the Big Red (R2).
+
+### D170. The Multipliers sheet and the top bar's rate
+`glance.ts` (domain, read-only) takes the full rate apart in the evaluator's order: the lines'
+base output, then milestones, the shelf (Line Mks and island upgrades), eras, roster tiers,
+Glow and buffs. Each step's factor is the ratio of the total with and without it, so the steps
+multiply out to `fullRate` exactly (a test over 1,000 seeded states, 1e-9), and a later phase's
+source no step names lands in "Other" rather than vanishing. The sheet's header is the top bar's
+`/s`, which now counts unmanned lines while a cycle runs (02-the-run.md 3.2), and the table ends
+with "Every line running". Durations show seconds under 10 minutes (`2m 10s`), as 08-screens.md
+3.5 asked of R0. A refusal's toast carries one button to the target ("Tap the ore seam"), which
+closes every layer and makes the target blink (rule 6.3.5); toasts are two at most.

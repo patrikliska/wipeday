@@ -1,20 +1,40 @@
 import { useEffect, useRef } from "react";
 import { DemoDrawer } from "./hud/DemoDrawer";
 import { Login } from "./hud/Login";
+import { Multipliers } from "./hud/Multipliers";
+import { Nav, useNavShown } from "./hud/Nav";
+import { Panels } from "./hud/Panels";
+import { Shop, shopOpen } from "./hud/Shop";
 import { Toasts } from "./hud/Toasts";
 import { TapHint, TopBar } from "./hud/TopBar";
 import { Scene } from "./scene/Scene";
+import { startAdvisor, useAdvisor } from "./state/advisor";
+import { useColumn } from "./state/layout";
 import { useWorld } from "./state/store";
+import { closeTop, installBack, useUi } from "./state/ui";
 
 export function App() {
   const host = useRef<HTMLDivElement>(null);
   const playing = useWorld((state) => state.phase === "playing");
+  const sheet = useUi((state) => state.sheet);
+  const motion = useUi((state) => state.motion);
+  const column = useColumn();
+  const nav = useNavShown();
+  const shop = useAdvisor((state) => shopOpen(state.view));
 
   useEffect(() => {
     void useWorld.getState().boot();
     const onVisibility = () => useWorld.getState().setHidden(document.hidden);
     document.addEventListener("visibilitychange", onVisibility);
-    return () => document.removeEventListener("visibilitychange", onVisibility);
+    const stopAdvisor = startAdvisor();
+    const removeBack = installBack();
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      stopAdvisor();
+      removeBack();
+      document.removeEventListener("keydown", onKey);
+    };
   }, []);
 
   useEffect(() => {
@@ -26,14 +46,23 @@ export function App() {
   }, []);
 
   return (
-    <div className="app">
+    <div
+      className={`app${motion === "reduced" ? " reduced" : ""}${column && shop ? " has-column" : ""}`}
+    >
       <div className="scene" ref={host} />
       <div className="vignette" />
       <div className="hud">
         {playing ? (
           <>
-            <TopBar />
-            <TapHint />
+            {/* Under a sheet the rest of the HUD is inert: one view, one crown (6.3 rule 1). */}
+            <div className={`hud-main${nav ? " with-nav" : ""}`} inert={sheet !== null}>
+              <TopBar />
+              <TapHint />
+              <Shop />
+              <Panels />
+              {column ? null : <Nav />}
+            </div>
+            <Multipliers />
             <Toasts />
             <DemoDrawer />
           </>
@@ -42,4 +71,28 @@ export function App() {
       </div>
     </div>
   );
+}
+
+/** Escape closes the top layer; B buys the crowned row (08-screens.md 1.7). */
+function onKey(event: KeyboardEvent): void {
+  const target = event.target as HTMLElement | null;
+  if (target?.closest("input, textarea, select")) return;
+  if (event.key === "Escape") {
+    if (closeTop()) event.preventDefault();
+    return;
+  }
+  if (
+    (event.key === "b" || event.key === "B") &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.altKey
+  ) {
+    const pick = useAdvisor.getState().view?.pick;
+    const ui = useUi.getState();
+    if (pick?.kind !== "purchase" || !pick.choice.affordable || ui.sheet || ui.panel) return;
+    const command = pick.choice.command;
+    useWorld
+      .getState()
+      .send(command.type === "buy_line" ? { ...command, count: ui.bulk } : command);
+  }
 }

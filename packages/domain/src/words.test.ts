@@ -68,6 +68,9 @@ describe("duration", () => {
   it("uses two units at most", () => {
     expect(duration(45)).toBe("45s");
     expect(duration(12 * 60)).toBe("12m");
+    expect(duration(12 * 60 + 5)).toBe("12m");
+    expect(duration(130)).toBe("2m 10s");
+    expect(duration(180)).toBe("3m");
     expect(duration(3 * 3600 + 20 * 60)).toBe("3h 20m");
     expect(duration(2 * 86400 + 4 * 3600 + 59)).toBe("2d 4h");
     expect(duration(-5)).toBe("0s");

@@ -3,12 +3,18 @@
  * `__wipeDay.store.getState().demoPatch({ supplies: 1e6 })` (demo mode).
  */
 import { weatherAt } from "@wipe-day/domain/weather";
-import { demoClocks } from "./state/clocks";
+import { demoClocks, wall } from "./state/clocks";
+import { seedPace } from "./state/pace";
 import { useWorld } from "./state/store";
+import { useUi } from "./state/ui";
 import { content } from "./state/world";
 
 interface DebugHook {
   store: typeof useWorld;
+  /** The HUD's own state: drawer, tab, bulk, panel, sheet and display settings. */
+  ui: typeof useUi;
+  /** As if the player had tapped this many times a second for the last minute (the crown). */
+  pace: (tapsPerSecond: number) => void;
   /** The demo's clocks: `game` (what the rules see) and `wall` (animation). Shots pin both. */
   clocks: typeof demoClocks;
   /** Frames rendered since load; the screenshot script waits for this to move. */
@@ -54,6 +60,8 @@ export function installDebug(): void {
   if (!import.meta.env.DEV) return;
   window.__wipeDay = {
     store: useWorld,
+    ui: useUi,
+    pace: (tapsPerSecond) => seedPace(tapsPerSecond, wall.nowMs()),
     clocks: demoClocks,
     frames: 0,
     frozen: false,

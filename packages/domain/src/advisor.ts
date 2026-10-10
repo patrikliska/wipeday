@@ -17,7 +17,7 @@ import type { Amount } from "./amount";
 import type { Command } from "./commands";
 import type { Conditions } from "./effects";
 import { unitRate } from "./effects";
-import { costFactor, costOf, eraOpen, handPriceOf } from "./lines";
+import { costFactor, costOf, eraOpen, handPriceOf, lineOf } from "./lines";
 import { bought, eraCost, eraGate, nextEra, upgradeCost, upgradeGate } from "./shelf";
 import type { BaseState } from "./state";
 import { tapParts } from "./taps";
@@ -142,4 +142,104 @@ export function bestPurchase(
 /** Whether anything at all is affordable now (N5, N6). */
 export function anythingAffordable(content: Content, state: BaseState, now: number): boolean {
   return choices(content, state, now, 1, 0).some((choice) => choice.affordable);
+}
+
+/** How the player is playing right now: what the crown weighs purchases by. */
+export interface Player {
+  /** Supplies a second, taps included. */
+  income: number;
+  /** The share of the time the player taps (0..1). */
+  tapShare: number;
+  /** Taps a second over the last minute. */
+  tapRate: number;
+}
+
+/** Which rule of 02-the-run.md 11.1 crowned a purchase. */
+export type CrownRule = "era" | "hand" | "payback";
+
+/** The advisor's pick inside a run: a purchase, or the tap hint (rule 7). */
+export type Pick = { kind: "purchase"; rule: CrownRule; choice: Choice } | { kind: "tap" };
+
+/** Lower score first; a tie goes to the cheaper purchase (02 11.1). */
+export function byScore(a: Choice, b: Choice): number {
+  if (a.score !== b.score) return a.score < b.score ? -1 : 1;
+  return a.cost - b.cost;
+}
+
+const payback = (choice: Choice): number =>
+  choice.gain > 0 ? choice.cost / choice.gain : Number.POSITIVE_INFINITY;
+
+/**
+ * The crown inside a run (02-the-run.md 11.1; canon 12.5; first match wins). R1 has rules 2-4
+ * and 7; the Big Red (R2), Blowback crates (R6) and the Toolbelt (R5) join with their phases.
+ *
+ * 2. The next era, when it is affordable within `saveSeconds` at the current income: it comes
+ *    before the hand (Timber at 1.5k is crowned before Mara at 1.8k).
+ * 3. The hand for the top-earning unmanned line, affordable within `saveSeconds`.
+ * 4. The best-payback purchase affordable now: least price ÷ added income, where the income of
+ *    an unmanned line or a Grip rung counts the player's own tapping, so an idle player is never
+ *    crowned one. Ties go to the cheaper.
+ * 7. Otherwise the tap hint.
+ */
+export function crown(
+  content: Content,
+  state: BaseState,
+  now: number,
+  player: Player,
+  offered = choices(content, state, now, player.income, player.tapShare, player.tapRate),
+): Pick {
+  const within = state.run.supplies + player.income * content.run.advisor.saveSeconds;
+  const era = offered.find((choice) => choice.command.type === "buy_era");
+  if (era && era.cost <= within) return { kind: "purchase", rule: "era", choice: era };
+  let hand: Choice | null = null;
+  let top = 0;
+  for (const choice of offered) {
+    if (choice.command.type !== "hire_hand") continue;
+    const line = lineOf(content, choice.command.line);
+    if (!line) continue;
+    const n = state.run.lines[line.id] ?? 0;
+    const earns = n * unitRate(content, state, line, now, ONLINE);
+    if (earns > top || (earns === top && hand && choice.cost < hand.cost)) {
+      top = earns;
+      hand = choice;
+    }
+  }
+  if (hand && hand.cost <= within) return { kind: "purchase", rule: "hand", choice: hand };
+  let best: Choice | null = null;
+  for (const choice of offered) {
+    if (!choice.affordable || payback(choice) === Number.POSITIVE_INFINITY) continue;
+    if (!best || payback(choice) < payback(best)) best = choice;
+    else if (payback(choice) === payback(best) && choice.cost < best.cost) best = choice;
+  }
+  return best ? { kind: "purchase", rule: "payback", choice: best } : { kind: "tap" };
+}
+
+/**
+ * The expanded drawer's crown, a view of its own that always crowns one row (resolution 3.25):
+ * the pick when it is a purchase, otherwise the best score (payback with the wait to afford it).
+ */
+export function sheetPick(pick: Pick, offered: readonly Choice[]): Choice | null {
+  if (pick.kind === "purchase") return pick.choice;
+  let best: Choice | null = null;
+  for (const choice of offered) {
+    if (choice.score === Number.POSITIVE_INFINITY) continue;
+    if (!best || byScore(choice, best) < 0) best = choice;
+  }
+  return best;
+}
+
+/** Whether two commands buy the same row (a line's count aside). */
+export function sameRow(a: Command, b: Command): boolean {
+  if (a.type !== b.type) return false;
+  switch (a.type) {
+    case "buy_line":
+    case "hire_hand":
+      return "line" in b && a.line === b.line;
+    case "buy_upgrade":
+      return b.type === "buy_upgrade" && a.upgrade === b.upgrade;
+    case "buy_era":
+      return b.type === "buy_era" && a.era === b.era;
+    default:
+      return false;
+  }
 }

@@ -16,10 +16,13 @@ import { islandHour, weatherAt } from "@wipe-day/domain/weather";
 import { Application, Container, Graphics } from "pixi.js";
 import { countFrame, isFrozen, registerScene } from "../debug";
 import { BUZZ, haptics, sound } from "../sound/audio";
+import { useAdvisor } from "../state/advisor";
 import { wall } from "../state/clocks";
 import { type GameEvent, on } from "../state/events";
+import { insets } from "../state/layout";
 import { gameSeconds, useWorld } from "../state/store";
 import { heldTaps } from "../state/taps";
+import { closeAll } from "../state/ui";
 import { content, crewName, fmt, lineName, resourceColor, type Tier, t } from "../state/world";
 import { Hands, type Post } from "./actors";
 import { House } from "./base";
@@ -101,6 +104,8 @@ export class Scene {
   private ready = false;
   private viewW = 0;
   private viewH = 0;
+  /** CSS px the HUD covers on the right (the desktop column). */
+  private insetRight = 0;
   private scale = 1;
   private centerX = W / 2;
   private top = 0;
@@ -307,14 +312,18 @@ export class Scene {
   private layout(): void {
     const vw = this.app.screen.width;
     const vh = this.app.screen.height;
-    if (vw === this.viewW && vh === this.viewH) return;
+    // The desktop column covers the right: the island centres in what is left (1.7).
+    const right = Math.min(insets.right, vw * 0.5);
+    if (vw === this.viewW && vh === this.viewH && right === this.insetRight) return;
     this.viewW = vw;
     this.viewH = vh;
-    this.scale = Math.min(vh / (H - 100), vw / MIN_VISIBLE_W);
-    const visibleW = vw / this.scale;
+    this.insetRight = right;
+    const freeW = vw - right;
+    this.scale = Math.min(vh / (H - 100), freeW / MIN_VISIBLE_W);
+    const visibleW = freeW / this.scale;
     const visibleH = vh / this.scale;
     this.centerX = visibleW >= W ? W / 2 : clamp(FOCUS_X, visibleW / 2, W - visibleW / 2);
-    const aspect = vw / vh;
+    const aspect = freeW / vh;
     const groundFraction = aspect < 1 ? PHONE_GROUND : lerp(0.68, 0.74, clamp(aspect - 1, 0, 1));
     this.top = clamp(GROUND - groundFraction * visibleH, -EXTEND + 40, H + EXTEND - visibleH - 40);
     this.world.scale.set(this.scale);
@@ -409,7 +418,7 @@ export class Scene {
     this.wind = 1 + Math.sin(this.time * 0.23) * 0.8 + rain * 1.5;
     this.parallax += (this.parallaxTarget - this.parallax) * Math.min(1, dt * 3);
 
-    const visibleW = this.viewW / this.scale;
+    const visibleW = (this.viewW - this.insetRight) / this.scale;
     const left = this.centerX - visibleW / 2;
     this.world.position.set(-left * this.scale - this.parallax * 6, -this.top * this.scale);
     this.floaters.setCamera(this.world.position.x, this.world.position.y, this.scale);
@@ -419,6 +428,7 @@ export class Scene {
     this.sky.update(dt, fraction, palette, this.wind, 0);
     this.terrain.update(dt, palette, this.wind, this.parallax);
     this.house.update(dt, darkness);
+    this.target.crowned = useAdvisor.getState().view?.pick.kind === "tap";
     this.target.update(dt, this.wind, darkness, fog);
     this.hands.setNight(darkness > 0.6);
     this.hands.update(dt, this.wind);
@@ -468,7 +478,8 @@ export class Scene {
     }
     const door = { x: HOUSE.x, y: HOUSE.y + 2, scale: HOUSE.scale, faceX: HOUSE.x };
     const walking = this.hands.sync(posts, door, !fresh);
-    for (const id of walking) {
+    // A hire is one hand at a time; several at once are a load or a demo patch (D161).
+    for (const id of walking.length === 1 ? walking : []) {
       const line = lineOf(content, id);
       if (!line) continue;
       this.floaters.add(
@@ -586,7 +597,7 @@ export class Scene {
 
   /** A line's floater: its product's icon and the amount, flying into the counter. */
   private lineFloater(product: string, x: number, y: number, amount: number): void {
-    const counter = document.querySelector(".topbar .counter .tile");
+    const counter = document.querySelector(".topbar .counter .counter-icon");
     const host = this.host.getBoundingClientRect();
     const rect = counter?.getBoundingClientRect();
     const fly = rect
@@ -677,6 +688,13 @@ export class Scene {
       }
       case "refused": {
         sound.play("refuse");
+        break;
+      }
+      case "go_tap": {
+        // A refusal's button: back to the island, the target blinks and takes the focus.
+        closeAll();
+        this.target.pulse();
+        this.button.focus({ preventScroll: true });
         break;
       }
       // Hires show as the hand walking out (`follow`); flotsam arrives with S4.

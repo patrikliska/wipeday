@@ -1136,3 +1136,74 @@ only the counter and the tap hint sit over the scene.
 10. Still open: on a phone, stage-1 lines are 15-25 px (shapes, not detail), and the sky above
     the island is large until S3's drawer takes the lower half; the counter keeps R0's lettered
     tile until S3 wires the icons; sound and vibration wait for the owner's phone.
+
+## R1 S3: the HUD
+
+The top bar (the counter opens the Multipliers sheet, the menu opens Settings), buff pills, the
+shop drawer (three rows collapsed; Lines and Upgrades expanded; the bulk toggle from the second
+hand), the nav row (Island and Crew, from the first hire), the Crew and Settings panels, the
+Multipliers sheet, the refusal toast's button, and the desktop column. 36 shots
+(`preview/web/index.html`), three rounds.
+
+### Iteration 1: the first full run
+- `phone_drawer_lines`: the expanded drawer's top edge slid under the counter block (the block
+  was 62 px for a 56 px bar). The counter is now exactly the bar's height, and the drawer and
+  panels start 16 px under it.
+- The demo drawer's ✦ button sat under the menu, right where the expanded drawer's tabs and the
+  panels' (x) are: it moved into the top row, left of the menu.
+- The era row's effect ("Everything ×2 · Dock, Generator, Radio Mast") wrapped to two lines and
+  pushed its progress line out of the row: one line with an ellipsis now.
+- `phone_refusal` showed the same toast twice: the predicted refusal and the server's answer.
+  A toast with the same words replaces the older one. Its button read "Tap the Ore Seam" (the
+  proper name); it now reads like the hint, "Tap the ore seam".
+- The hint pill was half under the drawer: it read the drawer's top edge once, while the drawer
+  and the nav row were still sliding in. It is placed from the drawer's height in CSS now
+  (`--drawer-h`), never lower than 52 px above it.
+- `desktop_day` had no crown in sight: the pick was an upgrade while the column showed Lines.
+  The column now pins the island's crowned purchase over its tabs (D166).
+- `phone_numbers_sci` had no crowned row in the expanded drawer: the shot seeded the player's
+  pace after the patch, so the advisor had looked at an idle player (every unmanned line worth
+  nothing). The harness seeds the pace first.
+- Panels, the nav row and the drawer were caught mid-slide (half transparent, half down): the
+  harness switches entrance animations off. `phone_multipliers` had lost its Rally, because a
+  weather pick moved the clock by days and not the buff: buffs move with it now.
+- *Fine:* one orange button per view everywhere; rows read at 390 px ("Charcoal Kiln", "1.14e25",
+  "in 10h 22m" fit their slots); locked rows give real reasons ("Opens in the Sheet Metal era",
+  "Needs 25 Workbenches (14 now)"); Max reads "Buy 37"; the tablet's drawer centres at 600 px.
+
+### Iteration 2: the fixes in place
+- Every phone shot: the counter block is the bar's height, the ✦ sits beside the menu, the
+  expanded drawer and the panels start 16 px under the bar; one toast per refusal, its button
+  "Tap the ore seam"; the hint pill sits above the drawer; `phone_multipliers` shows the Rally
+  pill and a "Buffs ×4 · Rally ×4 · 41s" row; `desktop_day` pins Driftwood Hooks over the tabs.
+- Still wrong: `phone_landscape`'s 320 px column spent its height on the tabs, the bulk
+  segments and the pin, leaving one row and a half. Landscape phones now put the bulk toggle in
+  the column's head as the cycling button. `desktop_first_tap` (new) showed the menu and the hint
+  offset for a column that did not exist yet: `--column-w` now applies only while the column is
+  on screen (`.app.has-column`). A demo patch that adds six hands fired six stacked "X's on it":
+  several hands appearing in one frame (a load or a patch) float nothing.
+
+### Iteration 3
+- `desktop_first_tap`: the pine in the middle of the full width, "Tap the tree." under it, the
+  menu at the right edge. `phone_landscape`: the pin, the era row and a line row fit. `phone_bulk`:
+  one clean "×10" button, "Buy ×10 · 1.51k" crowned, no floater stack.
+
+### Checklist
+1. Hierarchy: the counter top left, the target in the middle, the one orange button in the
+   drawer (or the column's pin); nothing else is orange.
+2. Legibility at 390 px: row names 16 bold, meta 12, the nav labels 11 bold; "1.23e36" and
+   "+9.73e13/s" fit the counter block, "1.14e25" the buy button.
+3. Spacing: 8 px between rows, 16 px gutters in panels, the drawer 16 px under the bar.
+4. Overflow: "Charcoal Kiln", "Keeps the Furnace running, even while you're away." (two lines,
+   clamped), the era's effect (one line, ellipsis), "Needs 25 Workbenches (14 now)".
+5. Consistency: the supplies bundle on the counter and every price; the product badge of each
+   line row is its floater's icon; era colours on bars and frames only.
+6. Contrast: muted text on the 0.86 panel over day, dusk, night, rain and fog (`phone_stone_*`).
+7. Rules: one crown per view (the audit counts what is not inert); no dead end (every panel has
+   (x), Done, Island, Escape and back); locked rows name real reasons; nothing unshipped (no
+   glass chip, no Blast Map in the nav, no Armored era row).
+8. Juice: unchanged from S2 (`pnpm web:perf`: 60 fps, 5th percentile 59, also with the CPU
+   slowed 4×).
+9. Touch: the audit list is empty on every phone shot.
+10. Still open: the era row repeats its time to afford in its note and on its button (as
+    08-screens.md 2.1 draws it); sound and the drawer's drag want the owner's phone.

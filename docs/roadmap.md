@@ -6,7 +6,7 @@ should think, and what "done" means**. It was rewritten in R0 from the approved 
 (`docs/redesign/11-roadmap.md`, which keeps the reasons); the W-phase roadmap and its results are
 in `docs/archive/roadmap-w.md`.
 
-## Where we are (2026-10-10, after R0)
+## Where we are (2026-10-10, R1 under way)
 
 - **The live game** is W8 on frozen `main` at https://wipeday.patrikliska.dev: season 1 (started
   2026-10-07) sits untouched and nobody plays it now (owner decision 7). It ends quietly at the
@@ -27,7 +27,23 @@ in `docs/archive/roadmap-w.md`.
   are on `redesign` (D150, D151). S2 (the scene) is done (2026-10-10, D157-D163): the camera
   reframe, the five targets with their fells, the 14 lines at 1, 25 and 100 owned with plots,
   badges, product piles and line floaters, hands walking to their lines, pooled floaters, sound
-  and vibration; names pass 1 approved Go Bag and Tinned Fish. Next: S3, the HUD.
+  and vibration; names pass 1 approved Go Bag and Tinned Fish. S3 (the HUD) is done
+  (2026-10-10, D165-D170): the top bar and the Multipliers sheet, the shop drawer and the desktop
+  column, the crown on screen (advisor v2), the nav row with Crew, Settings with notifications,
+  signal orange. Next: S4, flotsam and away.
+
+### R1 S3 results (the HUD)
+
+- **The crown:** `crown()` in the domain (02 11.1 rules 2-4 and 7), weighed by the player's own
+  pace; over 2,000 seeded states it crowns a purchase in reach or the hint, and the expanded
+  drawer crowns the same row (`glance.test.ts`); each expanded tab crowns exactly one row, the
+  collapsed drawer none while the hint has the crown (`rows.test.ts`).
+- **The Multipliers sheet:** its steps multiply out to the full rate within 1e-9 over 1,000
+  seeded states.
+- **Shots:** 37 (`preview/web/index.html`), the audit clean (no button under 44 px, the target's
+  box at least 120 px, one crown per view); three review rounds (`docs/ui-review.md`).
+- **Frames:** `pnpm web:perf` 60 fps (5th percentile 59) at 15 taps a second with the drawer up,
+  also with the CPU slowed 4×.
 
 ### R1 S2 results (the scene)
 

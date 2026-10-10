@@ -23,7 +23,15 @@ import { initials, resourceInitials as lookInitials, resourceColor } from "@wipe
 import { parseContent } from "@wipe-day/content/parse";
 import type { Content } from "@wipe-day/content/schema";
 import { TIERS, type Tier } from "@wipe-day/content/tiers";
-import { duration, words as makeWords } from "@wipe-day/domain/words";
+import {
+  duration,
+  type FmtMode,
+  words as makeWords,
+  type NumberFormat,
+  numberFormat,
+  suffixesOf,
+} from "@wipe-day/domain/words";
+import { useUi } from "./ui";
 
 export { TIERS, type Tier };
 
@@ -54,10 +62,28 @@ export const content: Content = parseContent(
 /** A player-visible string. */
 export const t = (key: string, args?: LocaleArgs): string => locale.t(key, args);
 
-/** Names and numbers, shared with the Discord bot (W8). Scientific notation arrives in R1. */
+/** Names and numbers, shared with the Discord bot (W8). */
 export const words = makeWords(locale, content);
-export const { fmt, fmtRate, fmtCount, resourceName, crewName, lineName, tierName, upgradeName } =
+export const { resourceName, crewName, lineName, tierName, upgradeName, targetName, buffName } =
   words;
+
+/** The number format in force: the Numbers setting switches it to scientific from 1e6. */
+let numbers: NumberFormat = numberFormat(suffixesOf(locale), useUi.getState().scientific);
+useUi.subscribe((state, previous) => {
+  if (state.scientific !== previous.scientific)
+    numbers = numberFormat(suffixesOf(locale), state.scientific);
+});
+
+/** Held amounts floor, costs and rates round (one formatter, `@wipe-day/domain/words`). */
+export const fmt = (value: number, mode?: FmtMode): string => numbers.fmt(value, mode);
+export const fmtRate = (value: number): string => numbers.fmtRate(value);
+export const fmtCount = (value: number): string => numbers.fmtCount(value);
+
+/** A multiplier: `×2`, `×2.35`, `×117`, `×1.23k` (08-screens.md 3.5). */
+export function fmtFactor(value: number): string {
+  if (value >= 1000) return numbers.fmt(value, "cost");
+  return String(Number(value.toPrecision(3)));
+}
 
 export { duration, initials, resourceColor };
 export const resourceInitials = (id: string): string =>

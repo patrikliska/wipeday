@@ -5,13 +5,20 @@
  */
 import { type Clock, systemClock } from "@wipe-day/domain/clock";
 import type { Command } from "@wipe-day/domain/commands";
+import type { NotifyPrefs } from "@wipe-day/domain/feed";
 import type {
   CommandResponse,
   MeResponse,
   PushMessage,
   StateResponse,
 } from "@wipe-day/domain/wire";
-import { type Backend, HttpError, type ServerConfig } from "./backend";
+import {
+  type Backend,
+  type DeviceSubscription,
+  HttpError,
+  type NotifyView,
+  type ServerConfig,
+} from "./backend";
 
 /** Real time shifted to the server's: one reading source, corrected on every answer. */
 class ServerClock implements Clock {
@@ -100,5 +107,31 @@ export class HttpBackend implements Backend {
 
   async logout(): Promise<void> {
     await this.request("/api/auth/logout", { method: "POST" });
+  }
+
+  notify(): Promise<NotifyView> {
+    return this.request<NotifyView>("/api/notify");
+  }
+
+  async setNotify(change: Partial<NotifyPrefs>): Promise<NotifyPrefs> {
+    const answer = await this.request<{ prefs: NotifyPrefs }>("/api/notify", {
+      method: "PUT",
+      body: JSON.stringify(change),
+    });
+    return answer.prefs;
+  }
+
+  async pushSubscribe(subscription: DeviceSubscription, tzOffsetMinutes: number): Promise<void> {
+    await this.request("/api/push/subscribe", {
+      method: "POST",
+      body: JSON.stringify({ ...subscription, tzOffsetMinutes }),
+    });
+  }
+
+  async pushUnsubscribe(endpoint: string): Promise<void> {
+    await this.request("/api/push/unsubscribe", {
+      method: "POST",
+      body: JSON.stringify({ endpoint }),
+    });
   }
 }

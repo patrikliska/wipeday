@@ -516,6 +516,8 @@ export class Target {
   private time = 0;
   /** Drawn bounds in the target's own units: the scene sizes the tap box from them. */
   bounds = { x: -80, y: -290, width: 160, height: 290 };
+  /** The crown sits on the tap hint (02-the-run.md 11.1 rule 7): a soft, slow glow. */
+  crowned = false;
 
   constructor(private readonly particles: Particles) {
     this.halo = new Sprite(glowTexture());
@@ -569,6 +571,11 @@ export class Target {
     else this.squash = 0;
     const chips = CHIPS[this.kind];
     this.particles.spawn(chips.kind, x, y, 3, chips.color);
+  }
+
+  /** A refusal's "Tap the ore seam": one bright blink of the halo. */
+  pulse(): void {
+    this.flash = 1;
   }
 
   /** The target fell: the old body goes as a ghost, a fresh one pops up in its place. */
@@ -652,7 +659,8 @@ export class Target {
       }
     }
 
-    this.halo.alpha = clamp(0.06 + darkness * 0.2 + fog * 0.25 + this.flash * 0.4, 0, 0.6);
+    const glow = this.crowned ? 0.1 + 0.06 * Math.sin(this.time * 2.9) : 0;
+    this.halo.alpha = clamp(0.06 + darkness * 0.2 + fog * 0.25 + glow + this.flash * 0.4, 0, 0.6);
     this.light.position.copyFrom(this.container.position);
   }
 

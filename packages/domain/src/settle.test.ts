@@ -202,7 +202,8 @@ describe("settle's path independence (N24)", () => {
     }
     // The sequences really catch flotsam (and so restart buffs and move the cursor).
     expect(caught).toBeGreaterThan(1000);
-  });
+    // 10,000 sequences take about 5 s on the dev PC: past vitest's default, inside pnpm test.
+  }, 20_000);
 });
 
 /**
