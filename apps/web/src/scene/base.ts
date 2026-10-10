@@ -4,10 +4,9 @@
  */
 import { Container, Graphics } from "pixi.js";
 import type { Tier } from "../state/world";
-import { drawFlame, FOOTPRINTS, makeBuilding } from "./buildings";
+import { drawFlame, FOOTPRINTS, makeBuilding, type Station } from "./buildings";
 import { Glow, type Particles } from "./effects";
 import { MATERIALS, type Material, SKINS } from "./palette";
-import type { Station } from "./station";
 import { clamp, easeOutBack, lerp, rand, shade } from "./util";
 
 /** What stands around the base, as the scene reads it from the store. */

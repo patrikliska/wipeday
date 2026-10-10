@@ -1,7 +1,8 @@
 /**
  * W8's contract, checked mechanically: the bot has no game logic and no store of its own.
- * It may read bases with the shared domain's helpers (what is waiting, the advisor) and
- * describe them; every change goes through the API's commands.
+ * It may read bases with the shared domain's helpers and describe them; every change goes
+ * through the API's commands. R2 turns this blocklist into an allowlist (glance, advisor,
+ * words, clock; docs/redesign/09-architecture.md 11).
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -18,7 +19,7 @@ function sources(dir: string): string[] {
 }
 
 /** Domain modules whose values change a base: the bot may only import their types. */
-const RULEBOOK = ["commands", "settle", "nodes", "missions", "market", "casino", "raids"];
+const RULEBOOK = ["commands", "settle", "taps", "lines", "effects", "normalize", "prestige"];
 
 describe("the bot is a thin client", () => {
   const files = sources(SRC).map((path) => ({ path, text: readFileSync(path, "utf8") }));
@@ -40,18 +41,14 @@ describe("the bot is a thin client", () => {
         );
         for (const [, typeOnly, names = ""] of imports) {
           if (typeOnly) continue;
-          // Read-only lookups are fine: a raid's warning, nothing that returns a new state.
           const values = names
             .split(",")
             .map((name) => name.trim())
             .filter((name) => name && !name.startsWith("type "));
-          expect(
-            values.filter((name) => name !== "raidWarned"),
-            `${path}: ${module}`,
-          ).toEqual([]);
+          expect(values, `${path}: ${module}`).toEqual([]);
         }
       }
-      expect(text, path).not.toMatch(/applyCommand|settleAll/);
+      expect(text, path).not.toMatch(/applyCommand|applyTaps|\bsettle\(/);
     }
   });
 });

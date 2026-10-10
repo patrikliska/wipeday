@@ -16,7 +16,7 @@ describe("the API client", () => {
   it("acts for the Discord user with the service token", async () => {
     const { calls, fetcher } = recorder();
     const api = httpApi("http://api:8787", "t".repeat(40), fetcher);
-    await api.command(NIA, "discord:1", { type: "collect" });
+    await api.command(NIA, "discord:1", { type: "ping" });
     const call = calls[0];
     expect(call?.url).toBe("http://api:8787/api/bot/commands");
     const headers = call?.init.headers as Record<string, string>;
@@ -25,7 +25,7 @@ describe("the API client", () => {
     expect(decodeURIComponent(headers["x-discord-name"] ?? "")).toBe(NIA.name);
     expect(JSON.parse(String(call?.init.body))).toEqual({
       key: "discord:1",
-      command: { type: "collect" },
+      command: { type: "ping" },
     });
   });
 

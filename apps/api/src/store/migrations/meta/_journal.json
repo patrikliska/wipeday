@@ -36,6 +36,13 @@
       "when": 1791393255892,
       "tag": "0004_w8_discord",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1791635679940,
+      "tag": "0005_redesign",
+      "breakpoints": true
     }
   ]
 }

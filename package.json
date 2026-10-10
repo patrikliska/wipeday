@@ -21,7 +21,6 @@
     "db:generate": "pnpm --filter @wipe-day/api db:generate",
     "sim": "pnpm --filter @wipe-day/sim sim",
     "api": "pnpm --filter @wipe-day/api start",
-    "season": "pnpm --filter @wipe-day/api season",
     "web": "pnpm --filter @wipe-day/web dev",
     "web:build": "pnpm --filter @wipe-day/web build",
     "web:typecheck": "pnpm --filter @wipe-day/web typecheck",

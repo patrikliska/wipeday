@@ -1,53 +1,35 @@
 import { useState } from "react";
 import { demoClocks } from "../state/clocks";
-import { useWorld } from "../state/store";
-import { content, TIERS, t, tierName } from "../state/world";
+import { localSeconds, useWorld } from "../state/store";
+import { clockLabel, GAME_DAY, t } from "../state/world";
 
-const WEATHERS = ["clear", "rain", "fog"] as const;
-
-/** Showcase controls for demo mode: time, weather, tier. Not part of the game UI. */
+/**
+ * Showcase controls for demo mode, not part of the game (D138): the game clock runs at 1×;
+ * pause it, or jump it +1 h, +6 h or to the next 08:00. Jumps move the game clock only: the
+ * domain sees the time pass, real-second animation does not.
+ */
 export function DemoDrawer() {
   const mode = useWorld((state) => state.mode);
   const open = useWorld((state) => state.demoOpen);
-  const setOpen = useWorld((state) => state.setDemoOpen);
-  // Time controls drive the demo game clock itself; the store only reads it.
-  const clock = demoClocks.game;
-  const [timeScale, setScaleShown] = useState(clock.scale);
-  const [paused, setPausedShown] = useState(clock.paused);
-  const weather = useWorld((state) => state.weather);
-  const setWeather = useWorld((state) => state.setWeather);
-  const tier = useWorld((state) => state.base.tier);
-  const now = useWorld((state) => Math.floor(state.now));
+  const toggle = useWorld((state) => state.toggleDemo);
+  const second = useWorld((state) => state.second);
+  const jump = useWorld((state) => state.demoJump);
+  const pause = useWorld((state) => state.demoPause);
+  const reset = useWorld((state) => state.demoReset);
   const patch = useWorld((state) => state.demoPatch);
-  const newSeason = useWorld((state) => state.demoNewSeason);
-  const demoSeason = useWorld((state) => state.demoSeason);
+  const supplies = useWorld((state) => state.base?.run.supplies ?? 0);
+  const [paused, setPaused] = useState(demoClocks.game.paused);
   if (mode !== "demo") return null;
 
-  const setTimeScale = (scale: number) => {
-    clock.setScale(scale);
-    setScaleShown(scale);
-  };
-  const setPaused = (next: boolean) => {
-    clock.setPaused(next);
-    setPausedShown(next);
-  };
-  const giveEverything = () => {
-    const stock: Record<string, number> = {};
-    for (const resource of content.resources) stock[resource.id] = 50_000;
-    patch({
-      stock,
-      items: { crate: 6, bow: 1 },
-      toolId: content.tools[2]?.id ?? "rock",
-      buildings: Object.fromEntries(content.buildings.map((building) => [building.id, 1])),
-    });
-  };
+  const local = localSeconds(second);
+  const day = Math.floor(local / GAME_DAY) + 1;
 
   return (
     <>
       <button
         type="button"
         className={`glass demo-toggle${open ? " active" : ""}`}
-        onClick={() => setOpen(!open)}
+        onClick={toggle}
         title={t("demo.title")}
         aria-label={t("demo.title")}
       >
@@ -56,82 +38,44 @@ export function DemoDrawer() {
       {open ? (
         <div className="glass demo">
           <h3>{t("demo.title")}</h3>
-          <label>
-            {t("demo.speed")} <span className="num">{timeScale}×</span>
-            <input
-              type="range"
-              min={1}
-              max={2400}
-              step={1}
-              value={timeScale}
-              onChange={(event) => setTimeScale(Number(event.target.value))}
-            />
-          </label>
+          <div className="clock">
+            <span>{t("demo.clock")}</span>
+            <span className="big num">
+              {clockLabel(local)} · {day}
+            </span>
+          </div>
           <div className="buttons">
-            <button type="button" className="btn small" onClick={() => setPaused(!paused)}>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                pause(!paused);
+                setPaused(!paused);
+              }}
+            >
               {paused ? t("demo.play") : t("demo.pause")}
             </button>
-            <button type="button" className="btn small" onClick={() => clock.advance(3600)}>
-              +1 h
+            <button type="button" className="btn" onClick={() => jump("hour")}>
+              {t("demo.hour")}
             </button>
-            <button type="button" className="btn small" onClick={() => clock.advance(6 * 3600)}>
-              +6 h
+            <button type="button" className="btn" onClick={() => jump("sixHours")}>
+              {t("demo.six_hours")}
             </button>
-          </div>
-          <h3>{t("demo.weather")}</h3>
-          <div className="buttons">
-            {WEATHERS.map((option) => (
-              <button
-                key={option}
-                type="button"
-                className={`btn small${weather === option ? " selected" : ""}`}
-                onClick={() => setWeather(option)}
-              >
-                {t(`weather.${option}`)}
-              </button>
-            ))}
-          </div>
-          <h3>{t("demo.tier")}</h3>
-          <div className="buttons">
-            {TIERS.map((id) => (
-              <button
-                key={id}
-                type="button"
-                className={`btn small${tier === id ? " selected" : ""}`}
-                onClick={() => patch({ tier: id, construction: [] })}
-              >
-                {tierName(id)}
-              </button>
-            ))}
-          </div>
-          <h3>{t("demo.world")}</h3>
-          <div className="buttons">
+            <button type="button" className="btn" onClick={() => jump("nextMorning")}>
+              {t("demo.next_day")}
+            </button>
             <button
               type="button"
-              className="btn small"
-              onClick={() =>
-                patch({ barrel: { spawnedAt: now, expiresAt: now + 45 * 60, seed: now } })
-              }
+              className="btn"
+              onClick={() => patch({ supplies: supplies + 1e6 })}
             >
-              {t("demo.barrel")}
-            </button>
-            <button type="button" className="btn small" onClick={giveEverything}>
               {t("demo.give")}
             </button>
-          </div>
-          <h3>{t("demo.season")}</h3>
-          <div className="buttons">
-            <button
-              type="button"
-              className="btn small"
-              onClick={() => demoSeason({ endsAt: now + 4 * 86400, next: "quiet_raiders" })}
-            >
-              {t("demo.announce")}
-            </button>
-            <button type="button" className="btn small" onClick={() => void newSeason()}>
-              {t("demo.new_season")}
+            <button type="button" className="btn" onClick={reset}>
+              {t("demo.reset")}
             </button>
           </div>
+          <p className="note">{t("demo.jumps")}</p>
         </div>
       ) : null}
     </>

@@ -10,13 +10,11 @@
  * POST /api/dev/login          dev only: log in as test player 1, 2 or 3
  * GET  /api/me                 who is logged in (401 when nobody)
  * GET  /api/state              the base, settled to now, plus a welcome-back summary
- * POST /api/commands           {key, command}: one idempotent action
- * GET  /api/events             server-sent events: the base changed (other tab, timers),
- *                              `feed` items from everyone, and `den` news (bets, spins)
- * GET  /api/feed?before=id     the season's feed, newest first (W4b)
- * GET  /api/den                the Den's board: open listings, the wheel, the jackpot (W5)
- * GET  /api/den/history?good=  what players paid per 100 units, by day (W5)
- * GET  /api/ranks              the leaderboards and the player's season card (W5)
+ * POST /api/commands           {key, command}: one idempotent action; 429 `slow_down` past
+ *                              10 a second (burst 30) per player
+ * GET  /api/events             server-sent events: the base changed (other tab, timers; a
+ *                              taps batch sends only its version) and `feed` items
+ * GET  /api/feed?before=id     the feed, newest first (empty until R2's Wipe Days)
  * GET  /api/notify             notification kinds on/off, the push key, devices on
  * PUT  /api/notify             {kind: bool, ...}: turn kinds on or off
  * POST /api/push/subscribe     {endpoint, keys}: this device wants notifications
@@ -30,16 +28,18 @@
  *
  * GET  /api/bot/home           the base, the DM switch and a fresh login link, in one call
  * PUT  /api/bot/dm             {on}: DMs on or off
- * GET  /api/bot/stream         server-sent events: `feed` items (the ones missed first),
- *                              `dm` notifications and season `news`
+ * GET  /api/bot/stream         server-sent events: `feed` items (the ones missed first) and
+ *                              `dm` notifications
+ * POST /api/bot/commands       refused (`not_on_discord`): the bot only links into the game
+ *                              until R2 lets it Collect
  * POST /api/bot/feed/ack       {id}: the channel has the feed up to here
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { getConnInfo } from "@hono/node-server/conninfo";
 import { serveStatic } from "@hono/node-server/serve-static";
 import type { Clock } from "@wipe-day/domain/clock";
 import { NOTIFY_KINDS } from "@wipe-day/domain/feed";
+import type { SlowDown } from "@wipe-day/domain/wire";
 import { eq } from "drizzle-orm";
 import { type Context, Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
@@ -62,6 +62,7 @@ import type { Config } from "./config";
 import type { Game } from "./game";
 import type { EventHub } from "./hub";
 import type { Notifier } from "./push";
+import { RateLimiter } from "./rateLimit";
 import type { Db } from "./store/db";
 import { players } from "./store/schema";
 
@@ -91,6 +92,7 @@ const discordUserSchema = z.object({
 export function createApp(deps: AppDeps): Hono<Env> {
   const { db, game, hub, clock, config, discord, notifier } = deps;
   const app = new Hono<Env>();
+  const limiter = new RateLimiter();
   const cookieBase = { httpOnly: true, secure: config.production, sameSite: "Lax" as const };
 
   const startSession = (playerId: number): string => {
@@ -101,40 +103,6 @@ export function createApp(deps: AppDeps): Hono<Env> {
     setCookie(c, SESSION_COOKIE, token, { ...cookieBase, path: "/", maxAge: 30 * 86400 });
 
   app.get("/api/health", (c) => c.json({ ok: true, now: clock.now(), streams: hub.connections }));
-
-  // Admin (W7): announce and end seasons. A bearer token from ADMIN_TOKEN, or, without one,
-  // a request from the server itself (`pnpm season ...` inside the container: the public
-  // traffic comes through Caddy on the Docker network, never from loopback) or any request to
-  // a development server.
-  const admin = new Hono();
-  admin.use(async (c, next) => {
-    const token = config.adminToken;
-    const given = bearer(c);
-    const allowed = token ? given === token : config.devLogin || fromLoopback(c);
-    if (!allowed) return c.json({ error: "forbidden" }, 403);
-    await next();
-  });
-  const announceSchema = z.strictObject({
-    endsAt: z.int().min(0).nullable(),
-    next: z.string().min(1).max(32).nullable(),
-  });
-  admin.post("/season/announce", async (c) => {
-    const parsed = announceSchema.safeParse(await c.req.json().catch(() => null));
-    if (!parsed.success) return c.json({ error: "bad_request" }, 400);
-    try {
-      return c.json(game.announce(parsed.data.endsAt, parsed.data.next));
-    } catch (error) {
-      return c.json({ error: String(error) }, 400);
-    }
-  });
-  admin.post("/season/end", async (c) => {
-    try {
-      return c.json(await game.endSeason());
-    } catch (error) {
-      return c.json({ error: String(error) }, 409);
-    }
-  });
-  app.route("/api/admin", admin);
 
   /** What the login screen offers, before anyone is logged in. */
   app.get("/api/config", (c) =>
@@ -215,6 +183,11 @@ export function createApp(deps: AppDeps): Hono<Env> {
     authed.get("/state", (c) => c.json(game.look(c.get("playerId"), c.get("via") === "web")));
 
     authed.post("/commands", async (c) => {
+      const playerId = c.get("playerId");
+      if (c.get("via") === "bot") return c.json({ error: "not_on_discord" }, 403);
+      const wait = limiter.take(playerId, clock.nowMs());
+      if (wait > 0)
+        return c.json({ error: "slow_down", retryAfterMs: wait } satisfies SlowDown, 429);
       const parsed = commandRequestSchema.safeParse(await c.req.json().catch(() => null));
       if (!parsed.success) {
         return c.json(
@@ -223,7 +196,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
         );
       }
       const { key, command } = parsed.data;
-      return c.json(game.command(c.get("playerId"), key, command, c.get("via") === "web"));
+      return c.json(game.command(playerId, key, command, true));
     });
 
     authed.get("/feed", (c) => {
@@ -232,23 +205,6 @@ export function createApp(deps: AppDeps): Hono<Env> {
         items: game.feed(Number.isInteger(before) && before > 0 ? before : undefined),
       });
     });
-
-    authed.get("/den", (c) => c.json(game.denBoard()));
-
-    const goodSchema = z.string().min(1).max(64);
-    authed.get("/den/history", (c) => {
-      const parsed = goodSchema.safeParse(c.req.query("good"));
-      if (!parsed.success) return c.json({ error: "bad_request" }, 400);
-      return c.json(game.history(parsed.data));
-    });
-
-    authed.get("/ranks", (c) => c.json(game.ranks(c.get("playerId"))));
-
-    authed.get("/raids", (c) => c.json(game.raids(c.get("playerId"))));
-
-    authed.get("/legacy", (c) => c.json(game.legacy(c.get("playerId"))));
-
-    authed.get("/signal", (c) => c.json(game.signal(c.get("playerId"))));
 
     authed.get("/notify", (c) => {
       const playerId = c.get("playerId");
@@ -295,13 +251,9 @@ export function createApp(deps: AppDeps): Hono<Env> {
         const unsubscribeFeed = hub.subscribeFeed((items) => {
           void stream.writeSSE({ event: "feed", data: JSON.stringify(items) });
         });
-        const unsubscribeDen = hub.subscribeDen((message) => {
-          void stream.writeSSE({ event: "den", data: JSON.stringify(message) });
-        });
         const unsubscribe = () => {
           unsubscribeState();
           unsubscribeFeed();
-          unsubscribeDen();
         };
         stream.onAbort(unsubscribe);
         await stream.writeSSE({ event: "ready", data: String(clock.now()) });
@@ -430,16 +382,5 @@ function decodeHeader(value: string | undefined): string | undefined {
     return decodeURIComponent(value);
   } catch {
     return undefined;
-  }
-}
-
-/** Whether a request came from this machine (the container's own loopback). */
-function fromLoopback(c: Context): boolean {
-  try {
-    const address = getConnInfo(c).remote.address ?? "";
-    return address === "127.0.0.1" || address === "::1" || address === "::ffff:127.0.0.1";
-  } catch {
-    // No socket (an in-process request in tests): not from loopback.
-    return false;
   }
 }

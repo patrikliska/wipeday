@@ -1,16 +1,13 @@
 /**
- * One-shot happenings the scene reacts to with effects (a burst of leaves, a
- * build rising, a barrel splash). They are the domain's events, played when the
- * client predicts them (a command, or a timer ending on screen), plus a few
- * that only exist in the client.
+ * One-shot happenings the scene reacts to with effects. They are the domain's events, played
+ * when the client predicts them, plus what only the client knows: a tap's point on screen.
  */
 import type { GameEvent as DomainEvent } from "@wipe-day/domain/events";
 
 export type GameEvent =
   | DomainEvent
-  /** A worked-out node stands again (derived from time, no domain event). */
-  | { type: "node_respawned"; node: string; kind: string }
-  | { type: "weather"; weather: "clear" | "rain" | "fog" };
+  /** A tap landed at `x, y` (screen CSS px) and is predicted to bring in `gain`. */
+  | { type: "tap_at"; x: number; y: number; gain: number };
 
 type Listener = (event: GameEvent) => void;
 

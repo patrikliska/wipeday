@@ -1,14 +1,5 @@
-import {
-  type ItemId,
-  initials,
-  itemById,
-  itemName,
-  type ResourceId,
-  resourceColor,
-  resourceInitials,
-  resourceName,
-} from "../state/world";
-import { tierVar, vars } from "./util";
+import { resourceColor, resourceInitials, resourceName } from "../state/world";
+import { vars } from "./util";
 
 interface TileProps {
   color: string;
@@ -17,7 +8,7 @@ interface TileProps {
   className?: string | undefined;
 }
 
-/** Placeholder icon: a tinted rounded square with initials. Real art drops in here later. */
+/** Placeholder icon: a tinted rounded square with initials. The owner's icons drop in here (D141). */
 export function Tile({ color, label, title, className }: TileProps) {
   return (
     <span
@@ -30,32 +21,13 @@ export function Tile({ color, label, title, className }: TileProps) {
   );
 }
 
-export function ResourceIcon({
-  id,
-  className,
-}: {
-  id: ResourceId;
-  className?: string | undefined;
-}) {
-  const name = resourceName(id);
+/** A currency or a product, by id. */
+export function ResourceIcon({ id, className }: { id: string; className?: string | undefined }) {
   return (
     <Tile
       color={resourceColor(id)}
       label={resourceInitials(id)}
-      title={name}
-      className={className}
-    />
-  );
-}
-
-export function ItemIcon({ id, className }: { id: ItemId; className?: string | undefined }) {
-  const item = itemById.get(id);
-  const name = itemName(id);
-  return (
-    <Tile
-      color={item ? tierVar(item.tier) : "#a49e93"}
-      label={initials(name)}
-      title={name}
+      title={resourceName(id)}
       className={className}
     />
   );

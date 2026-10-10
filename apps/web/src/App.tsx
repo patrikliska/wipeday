@@ -1,13 +1,8 @@
 import { useEffect, useRef } from "react";
-import { AwayModal } from "./hud/AwayModal";
 import { DemoDrawer } from "./hud/DemoDrawer";
-import { Dock } from "./hud/Dock";
 import { Login } from "./hud/Login";
-import { Panel } from "./hud/Panel";
-import { ReportCard } from "./hud/ReportCard";
-import { SeasonOver } from "./hud/SeasonOver";
 import { Toasts } from "./hud/Toasts";
-import { TopBar } from "./hud/TopBar";
+import { TapHint, TopBar } from "./hud/TopBar";
 import { Scene } from "./scene/Scene";
 import { useWorld } from "./state/store";
 
@@ -17,6 +12,9 @@ export function App() {
 
   useEffect(() => {
     void useWorld.getState().boot();
+    const onVisibility = () => useWorld.getState().setHidden(document.hidden);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
   useEffect(() => {
@@ -35,13 +33,9 @@ export function App() {
         {playing ? (
           <>
             <TopBar />
+            <TapHint />
             <Toasts />
-            <Panel />
-            <Dock />
             <DemoDrawer />
-            <AwayModal />
-            <ReportCard />
-            <SeasonOver />
           </>
         ) : null}
         <Login />

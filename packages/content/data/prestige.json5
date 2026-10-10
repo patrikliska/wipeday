@@ -1,0 +1,15 @@
+// The nuke's numbers (D132, N21; docs/redesign/03-the-big-red.md 1, 10-balance.md 4.1).
+// Glass level over lifetime supplies L: G(L) = floor((L / l0)^exponent). A nuke pays the rise in
+// G since the last one, times the glass multipliers. Glow, the boost from glass ever earned:
+// 1 + glowK × √(glass ever). The first nuke needs firstNukeGlass; later ones a gain of 1.
+// A nuke that adds at least countShare to glass ever is a counted Wipe Day, else a small blast.
+{
+  l0: 5e5,
+  exponent: 0.2,
+  glowK: 0.25,
+  firstNukeGlass: 10,
+  countShare: 0.1,
+  // Afterglow (N20): taps × (1 + (start − 1) × 2^(−max(0, t − holdSeconds) / halfSeconds)) for
+  // t seconds after the run's first tap, from run 2 on, until endsAfterSeconds.
+  afterglow: { start: 3, halfSeconds: 300, holdSeconds: 0, endsAfterSeconds: 1800 },
+}

@@ -6,13 +6,12 @@
 import { loadGame } from "@wipe-day/content/load";
 import { systemClock } from "@wipe-day/domain/clock";
 import type { FeedItem } from "@wipe-day/domain/feed";
-import type { DmNote, SeasonNews } from "@wipe-day/domain/wire";
+import type { DmNote } from "@wipe-day/domain/wire";
 import { words } from "@wipe-day/domain/words";
 import { Client, Events, GatewayIntentBits } from "discord.js";
 import { httpApi } from "../api";
 import { loadConfig } from "../config";
 import { log } from "../log";
-import { Renderer } from "../render/renderer";
 import { followStream } from "../stream";
 import { type Bot, commandsOf, handleInteraction, Island } from "../ui/interactions";
 
@@ -23,7 +22,6 @@ async function main(): Promise<void> {
   const bot: Bot = {
     api: httpApi(config.apiUrl, config.apiToken),
     lexicon,
-    renderer: new Renderer({ locale }),
   };
 
   // Interactions arrive over the gateway without any privileged intent.
@@ -42,13 +40,12 @@ async function main(): Promise<void> {
         error: (error as Error).message,
       });
     }
-    if (!config.feedChannelId) log.warn("FEED_CHANNEL_ID is not set: no feed or season news");
+    if (!config.feedChannelId) log.warn("FEED_CHANNEL_ID is not set: no feed");
 
     const island = new Island(bot, client, config.feedChannelId);
     const follow = followStream(bot.api.stream, async ({ event, data }) => {
       if (event === "feed") await island.feed(JSON.parse(data) as FeedItem[], systemClock.now());
       else if (event === "dm") await island.dm(JSON.parse(data) as DmNote);
-      else if (event === "news") await island.news(JSON.parse(data) as SeasonNews);
     });
     stopStream = follow.stop;
   });

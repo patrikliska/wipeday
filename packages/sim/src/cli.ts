@@ -1,109 +1,85 @@
 /**
- * `pnpm sim [days]`         per-day table for every archetype, plus CSV in var/sim/
- * `pnpm sim check [days]`   assert the pacing targets; exit 1 on failure
- * `pnpm sim rtp [spins]`    the casino's measured return per bet option against its exact odds
+ * `pnpm sim [days]`            every archetype and scenario: per-day tables, CSV in var/sim/
+ * `pnpm sim check [--full]`    judge `pacing.json5` (the test profile, or 365 days × 3 seeds);
+ *                              exit 1 when a switched-on assertion fails or has no check
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadContent, loadLocale } from "@wipe-day/content/load";
 import { contentPaths } from "@wipe-day/content/paths";
-import { measureAll } from "./rtp";
-import { ARCHETYPES, checkPacing, type Run, simulate, simulatePair } from "./sim";
+import { checkPacing, type Life, simulateAll } from "./sim";
 
 /** CSV output goes to `var/sim/` at the repo root, next to the other local runtime state. */
 const repoRoot = resolve(fileURLToPath(new URL(".", import.meta.url)), "../../..");
 const content = loadContent(contentPaths.data, loadLocale());
 
 const args = process.argv.slice(2);
-const check = args[0] === "check";
-const rtp = args[0] === "rtp";
-const days = Number(args[check || rtp ? 1 : 0] ?? 35);
+const sci = (value: number): string =>
+  value === 0 ? "0" : value < 1e4 ? value.toFixed(0) : value.toExponential(2);
 
-function table(run: Run): string {
+/** The days worth a row: the first week, then the checkpoints the targets read. */
+const SHOWN = new Set([1, 2, 3, 4, 5, 6, 7, 14, 21, 30, 45, 60, 90, 120, 180, 270, 365]);
+
+function table(life: Life): string {
   const lines = [
-    `${run.archetype}  (reached: ${Object.entries(run.reached)
-      .map(([tier, day]) => `${tier} d${day}`)
-      .join(", ")}; first trips: ${Object.entries(run.firstTrip)
-      .map(([tier, day]) => `t${tier} d${day}`)
-      .join(
-        ", ",
-      )}; first job d${run.firstJob ?? "-"}; first raid d${run.firstRaid ?? "-"}; last site d${run.firstSite.offshore_platform ?? "-"}; signal ${run.signalGiven ?? 0} (stage ${run.signalStage ?? 0}))`,
-    "day  tier   tool             fill                cap   ingots    fuel   scrap  items  parts  bldgs  crew  known  build  den-  den+  bet   won   def  chg  raid    loss camp  pvp+  pvp-",
+    `${life.name}: first hand ${life.firstHandSeconds === null ? "-" : `${life.firstHandSeconds}s`}, ` +
+      `largest ${sci(life.largest)}, ${life.runs.length} run(s), ${life.steps} commands`,
+    "  day  run   supplies       made   lifetime  owned hands  glass nukes      taps",
   ];
-  for (const row of run.rows) {
+  for (const row of life.days.filter((row) => SHOWN.has(row.day) || row === life.days.at(-1))) {
     lines.push(
-      `${String(row.day).padStart(3)}  ${row.tier.padEnd(6)} ${row.tool.padEnd(16)} ` +
-        `${row.fill.padEnd(18)} ${String(row.cap).padStart(6)} ${String(row.ingots).padStart(8)} ` +
-        `${String(row.fuel).padStart(7)} ${String(row.scrap).padStart(7)}  ${String(row.items).padStart(5)}  ${String(row.parts).padStart(5)}  ${String(row.buildings).padStart(5)}  ${String(row.crew).padStart(4)}  ${String(row.known).padStart(5)}  ${(row.building ? "yes" : "").padEnd(5)} ${String(row.denSpent).padStart(4)}  ${String(row.denEarned).padStart(4)}  ${String(row.wagered).padStart(4)}  ${String(row.won).padStart(4)}` +
-        `  ${String(row.defence).padStart(4)} ${String(row.charges).padStart(4)}  ${(row.raids ? `${row.raidsHeld}/${row.raids}` : "").padEnd(4)}` +
-        `  ${String(row.raidLoss || "").padStart(5)} ${String(row.camps || "").padStart(4)}  ${String(row.pvpTake || "").padStart(4)}  ${String(row.pvpLoss || "").padStart(4)}`,
+      `  ${String(row.day).padStart(3)} ${String(row.run).padStart(4)} ${sci(row.supplies).padStart(10)} ` +
+        `${sci(row.made).padStart(10)} ${sci(row.lifetime).padStart(10)} ${String(row.owned).padStart(6)} ` +
+        `${String(row.hands).padStart(5)} ${String(row.glassEver).padStart(6)} ${String(row.nukes).padStart(5)} ` +
+        `${String(row.taps).padStart(9)}`,
     );
   }
   return lines.join("\n");
 }
 
-if (rtp) {
-  const spins = Number(args[1] ?? 1_000_000);
-  console.log(`game   option      exact   measured   diff  (${spins} rounds each)`);
-  for (const row of measureAll(content, spins)) {
-    const pct = (value: number) => `${(value * 100).toFixed(2)}%`.padStart(8);
+if (args[0] === "check") {
+  const profile = args.includes("--full") ? "full" : "test";
+  const started = performance.now();
+  const verdicts = checkPacing(content, profile);
+  for (const verdict of verdicts) {
+    const label = verdict.status.toUpperCase().padEnd(7);
     console.log(
-      `${row.game.padEnd(6)} ${(row.option ?? "-").padEnd(10)} ${pct(row.exact)} ${pct(row.measured)} ${((row.measured - row.exact) * 100).toFixed(2).padStart(6)}` +
-        (row.jackpots !== undefined ? `  jackpots ${row.jackpots}` : ""),
+      `${label} ${verdict.n.padEnd(5)} ${verdict.on}  ${verdict.check}${verdict.detail ? `: ${verdict.detail}` : ""}`,
     );
   }
-} else if (check) {
-  const results = checkPacing(content, days);
-  for (const result of results)
-    console.log(`${result.warning ? "WARN" : "FAIL"}  ${result.message}`);
-  const failures = results.filter((result) => !result.warning);
-  console.log(
-    failures.length === 0 ? "OK: pacing targets met" : `${failures.length} pacing check(s) failed`,
+  const bad = verdicts.filter(
+    (verdict) => verdict.status === "fail" || verdict.status === "missing",
   );
-  process.exitCode = failures.length === 0 ? 0 : 1;
+  console.log(
+    `${bad.length === 0 ? "OK" : `${bad.length} failed`}: shipped ${content.pacing.shipped}, ` +
+      `profile ${profile}, ${((performance.now() - started) / 1000).toFixed(1)} s`,
+  );
+  process.exitCode = bad.length === 0 ? 0 : 1;
 } else {
+  const days = Number(args[0] ?? 30);
   const outDir = join(repoRoot, "var", "sim");
   mkdirSync(outDir, { recursive: true });
-  const pair = simulatePair(content, days);
-  const runs: [string, Run][] = [
-    ...ARCHETYPES.map((archetype): [string, Run] => [
-      archetype,
-      simulate(content, archetype, days),
-    ]),
-    ["raider_pvp", pair.raider],
-    ["casual_raided", pair.target],
-  ];
-  for (const [name, run] of runs) {
-    if (name.includes("_")) console.log(`PvP pair: ${name}`);
-    console.log(`${table(run)}\n`);
+  for (const life of simulateAll(content, days)) {
+    console.log(`${table(life)}\n`);
     const csv = [
-      "day,tier,tool,fill,cap,ingots,fuel,scrap,items,buildings,building,defence,charges,raids,raidsHeld,raidLoss,camps,pvpTake,pvpLoss",
-      ...run.rows.map((row) =>
+      "day,run,supplies,made,lifetime,owned,hands,glassEver,nukes,taps",
+      ...life.days.map((row) =>
         [
           row.day,
-          row.tier,
-          row.tool,
-          row.fill,
-          row.cap,
-          row.ingots,
-          row.fuel,
-          row.scrap,
-          row.items,
-          row.buildings,
-          row.building,
-          row.defence,
-          row.charges,
-          row.raids,
-          row.raidsHeld,
-          row.raidLoss,
-          row.camps,
-          row.pvpTake,
-          row.pvpLoss,
+          row.run,
+          row.supplies,
+          row.made,
+          row.lifetime,
+          row.owned,
+          row.hands,
+          row.glassEver,
+          row.nukes,
+          row.taps,
         ].join(","),
       ),
     ].join("\n");
-    writeFileSync(join(outDir, `${name}.csv`), `${csv}\n`);
+    writeFileSync(join(outDir, `${life.name}.csv`), `${csv}\n`);
   }
   console.log(`csv: ${outDir}`);
 }

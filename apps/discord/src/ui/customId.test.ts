@@ -3,7 +3,7 @@ import { allows, encodeCustomId, idOf, parseCustomId } from "./customId";
 
 describe("customId", () => {
   it("round-trips every route", () => {
-    for (const action of ["collect", "gather", "refresh", "dm_on", "dm_off"] as const) {
+    for (const action of ["refresh", "dm_on", "dm_off"] as const) {
       const id = idOf({ screen: "base", action });
       expect(parseCustomId(id)).toEqual({
         kind: "ok",
@@ -25,12 +25,15 @@ describe("customId", () => {
     expect(parseCustomId("idle:v2:base:teleport:-")).toMatchObject({ kind: "unknown" });
     expect(parseCustomId("idle:v2:base:collect:nobody")).toMatchObject({ kind: "unknown" });
     expect(parseCustomId("idle:v2:base:collect:-:extra")).toMatchObject({ kind: "unknown" });
+    // The W8 card's Collect and Gather: stale now, answered with a fresh /base.
+    expect(parseCustomId("idle:v2:base:collect:-")).toMatchObject({ kind: "unknown" });
+    expect(parseCustomId("idle:v2:base:gather:-")).toMatchObject({ kind: "unknown" });
   });
 
   it("lets only the owner click an owned message", () => {
     const id = {
       owner: "123456789012345678",
-      route: { screen: "base", action: "collect" },
+      route: { screen: "base", action: "refresh" },
     } as const;
     expect(allows(id, "123456789012345678")).toBe(true);
     expect(allows(id, "876543210987654321")).toBe(false);

@@ -1,47 +1,20 @@
-// Survivors. The first ones start at the holdfast; the rest arrive by boat, one every
-// `arrivalHours`, while the crew is under its cap (baseCap plus the bunkhouse's `crew`
-// effect). Names are in the locale (`crew.{id}.name`); traits in traits.json5.
+// The hands: one per line, in rung order (lines.json5 names each line's hand). Names live in
+// locale/en.json (`crew.{id}.name`); portraits in icons/crew/. Ranks and traits come in R5.
 {
-  rules: {
-    start: ["mara", "dax", "ivo"],
-    baseCap: 4,
-    arrivalHours: 24,
-    // XP to reach level 2, 3, ... (cumulative). Each level adds successPerLevel points.
-    levels: [100, 250, 450, 700, 1000, 1400, 1900, 2500, 3200],
-    successPerLevel: 3,
-    // Each extra member of a party adds this much success (they cover each other).
-    successPerCompanion: 5,
-    // Items that treat an injury, and how many hours each takes off.
-    treat: { bandage: 2, first_aid_kit: 6 },
-    // Work at home (W4b). A node worker adds nodePercent of the current tool's rate for the
-    // node's yields (traits' `job` adds more); a station worker makes that station's crafting
-    // stationPercent faster (traits' `craft` adds more; one worker per station); a guard adds
-    // guardScore defence (traits' `guard` adds more; raids use it from W6). A worker tires
-    // awakeHours after their last rest and then works at tiredPercent; a rest takes
-    // sleepHours, after which they go back to their job on their own.
-    jobs: {
-      nodePercent: 15,
-      stationPercent: 15,
-      guardScore: 5,
-      awakeHours: 16,
-      sleepHours: 8,
-      tiredPercent: 50,
-    },
-    // Pairs who have been out together `trips` times add `success` points when they go again.
-    bonds: { trips: 3, success: 4 },
-  },
   crew: [
-    { id: "mara", traits: ["scavenger", "cautious"] },
-    { id: "dax", traits: ["demolition", "brave"] },
-    { id: "ivo", traits: ["medic", "navigator"] },
-    { id: "rook", traits: ["marksman", "mule"] },
-    { id: "sela", traits: ["lucky", "scavenger"] },
-    { id: "bram", traits: ["mule", "cook"] },
-    { id: "wren", traits: ["navigator", "marksman"] },
-    { id: "otto", traits: ["tinkerer", "demolition"] },
-    { id: "juno", traits: ["medic", "brave"] },
-    { id: "pike", traits: ["cautious", "lucky"] },
-    { id: "hale", traits: ["brave", "marksman"] },
-    { id: "tamsin", traits: ["cook", "navigator"] },
+    { id: "mara" },
+    { id: "dax" },
+    { id: "ivo" },
+    { id: "rook" },
+    { id: "sela" },
+    { id: "bram" },
+    { id: "wren" },
+    { id: "otto" },
+    { id: "juno" },
+    { id: "pike" },
+    { id: "hale" },
+    { id: "tamsin" },
+    { id: "gus" },
+    { id: "vera" },
   ],
 }

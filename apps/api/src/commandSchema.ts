@@ -1,98 +1,37 @@
 /**
- * The wire format of `POST /api/commands`: validated here, at the edge, so the
- * domain only ever sees well-formed commands. Mirrors `Command` in
- * `@wipe-day/domain/commands`; the `satisfies` check keeps the two in step.
+ * The wire shape of a command: zod checks the shape (ids, counts, ranges), the domain checks
+ * the rules. `satisfies` keeps this list and the domain's `Command` union in step: a new
+ * command that is missing here fails the typecheck.
  */
-import { DICE_OPTIONS } from "@wipe-day/content/schema";
 import type { Command } from "@wipe-day/domain/commands";
 import { z } from "zod";
 
-const id = z.string().min(1).max(64);
-
-const job = z.discriminatedUnion("kind", [
-  z.strictObject({ kind: z.literal("node"), node: id }),
-  z.strictObject({ kind: z.literal("station"), station: id }),
-  z.strictObject({ kind: z.literal("guard") }),
-]);
+const id = z.string().min(2).max(32);
+/** Whole unix seconds. */
+const second = z
+  .int()
+  .min(0)
+  .max(2 ** 40);
 
 export const commandSchema = z.discriminatedUnion("type", [
-  z.strictObject({ type: z.literal("gather") }),
-  z.strictObject({ type: z.literal("collect") }),
-  z.strictObject({ type: z.literal("upgrade_tool") }),
-  z.strictObject({ type: z.literal("build"), what: id }),
-  z.strictObject({ type: z.literal("smelt"), ore: id }),
-  z.strictObject({ type: z.literal("take_out") }),
-  z.strictObject({ type: z.literal("craft"), recipe: id, count: z.int().min(1).max(1000) }),
+  // The slim path (D134): at most 30 taps a second's batch on an honest client; 120 is the
+  // ceiling a batch may claim, the bucket credits what it can.
   z.strictObject({
-    type: z.literal("cancel_craft"),
-    station: id,
-    index: z.int().min(0).max(100),
+    type: z.literal("taps"),
+    count: z.int().min(1).max(120),
+    from: second,
+    to: second,
   }),
-  z.strictObject({ type: z.literal("salvage"), item: id, count: z.int().min(1).max(1000) }),
-  z.strictObject({ type: z.literal("serve"), meal: id }),
-  z.strictObject({ type: z.literal("scout"), region: id, survivor: id }),
-  z.strictObject({ type: z.literal("send_trip"), site: id, crew: z.array(id).min(1).max(5) }),
+  z.strictObject({ type: z.literal("ping") }),
   z.strictObject({
-    type: z.literal("equip"),
-    survivor: id,
-    slot: z.enum(["weapon", "armor"]),
-    item: id.nullable(),
+    type: z.literal("buy_line"),
+    line: id,
+    count: z.union([z.literal(1), z.literal(10), z.literal(100), z.literal("max")]),
   }),
-  z.strictObject({ type: z.literal("treat"), survivor: id, item: id }),
-  z.strictObject({ type: z.literal("assign"), survivor: id, job: job.nullable() }),
-  z.strictObject({ type: z.literal("rest"), survivor: id }),
-  z.strictObject({ type: z.literal("rest_tired") }),
-  z.strictObject({ type: z.literal("read_report"), id }),
-  z.strictObject({ type: z.literal("break_barrel") }),
-  z.strictObject({
-    type: z.literal("hit_node"),
-    node: id,
-    run: id,
-    hit: z.int().min(1).max(100),
-  }),
-  z.strictObject({ type: z.literal("end_node_run"), node: id, run: id }),
-  // The Den (W5).
-  z.strictObject({
-    type: z.literal("market_list"),
-    good: id,
-    amount: z.int().min(1).max(10_000_000),
-    price: z.int().min(1).max(10_000_000),
-  }),
-  z.strictObject({ type: z.literal("market_cancel"), listing: id }),
-  z.strictObject({ type: z.literal("market_buy"), listing: z.int().min(1) }),
-  z.strictObject({ type: z.literal("den_buy"), offer: id, lots: z.int().min(1).max(100) }),
-  z.strictObject({ type: z.literal("deliver"), contract: id }),
-  z.strictObject({
-    type: z.literal("wheel_bet"),
-    segment: id,
-    amount: z.int().min(1).max(100_000),
-  }),
-  z.strictObject({ type: z.literal("slots_spin"), amount: z.int().min(1).max(100_000) }),
-  z.strictObject({
-    type: z.literal("dice_roll"),
-    option: z.enum(DICE_OPTIONS),
-    amount: z.int().min(1).max(100_000),
-  }),
-  // Raids (W6).
-  z.strictObject({ type: z.literal("repair") }),
-  z.strictObject({ type: z.literal("set_pvp"), on: z.boolean() }),
-  z.strictObject({ type: z.literal("raid_player"), target: z.int().min(1) }),
-  // The legacy layer and the Signal (W7).
-  z.strictObject({ type: z.literal("buy_perk"), perk: id }),
-  z.strictObject({
-    type: z.literal("set_cosmetic"),
-    title: id.nullable().optional(),
-    skin: id.nullable().optional(),
-  }),
-  z.strictObject({
-    type: z.literal("signal_give"),
-    good: id,
-    amount: z.int().min(1).max(10_000_000),
-  }),
+  z.strictObject({ type: z.literal("hire_hand"), line: id }),
 ]) satisfies z.ZodType<Command>;
 
 export const commandRequestSchema = z.strictObject({
-  /** Chosen by the client per intent and reused on every retry of it. */
   key: z.string().min(8).max(64),
   command: commandSchema,
 });

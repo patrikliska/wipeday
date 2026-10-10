@@ -2,32 +2,28 @@
  * `pnpm preview`: everything the bot shows, as PNGs in `preview/discord/` with a contact
  * sheet (`index.html`):
  *
- * - `card__{state}.png` (and `@phone`): the `/base` card for each fixture;
- * - `msg__{state}@phone.png` / `@desktop.png`: the whole message as Discord lays it out,
- *   drawn from the exact payload the bot sends (`preview/mock.tsx`);
- * - DMs, feed posts and season news the same way;
+ * - `msg__{state}@phone.png` / `@desktop.png`: the `/base` message as Discord lays it out,
+ *   drawn from the exact payload the bot sends (`preview/mock.tsx`); no card until R2;
+ * - DMs and feed posts the same way;
  * - `{name}.txt`: each screen's outline with its lint (CLAUDE.md 6.3).
  *
- * Exits non-zero when a screen fails its lint or a card blows its render budget.
+ * Exits non-zero when a screen fails its lint.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Resvg } from "@resvg/resvg-js";
 import { loadGame } from "@wipe-day/content/load";
 import type { FeedItem } from "@wipe-day/domain/feed";
-import type { SeasonNews } from "@wipe-day/domain/wire";
 import { words } from "@wipe-day/domain/words";
 import type { APIMessageTopLevelComponent } from "discord.js";
 import { ROOT } from "../config";
 import { log } from "../log";
 import { MessageMock, type MockInput } from "../preview/mock";
-import { baseCard } from "../render/cards/base";
 import { homeFixtures, NOTES, NOW } from "../render/fixtures";
-import { RENDER_BUDGET_MS, Renderer } from "../render/renderer";
-import { cardProps, homeScreen } from "../ui/home";
-import { feedMessages, newsMessage, noteScreen } from "../ui/island";
+import { Renderer } from "../render/renderer";
+import { homeScreen } from "../ui/home";
+import { feedMessages, noteScreen } from "../ui/island";
 import { lintScreen, outlineScreen, type Screen, toComponents } from "../ui/screen";
-import { layout } from "../ui/theme";
 
 const OUT = join(ROOT, "preview", "discord");
 mkdirSync(OUT, { recursive: true });
@@ -79,38 +75,14 @@ function outline(name: string, screen: Screen): string {
   return text;
 }
 
-// Warm-up: keeps one-off start-up cost out of the timings.
-const fixtures = homeFixtures(content);
-const first = fixtures[0];
-if (first) await renderer.render(baseCard, cardProps(lexicon, first.home, NOW));
-
-for (const fixture of fixtures) {
-  const props = cardProps(lexicon, fixture.home, NOW);
-  const card = await renderer.render(baseCard, props);
-  if (card.ms > RENDER_BUDGET_MS) clean = false;
-  const phone = await renderer.render(baseCard, props, layout.mobileWidth);
-  writeFileSync(join(OUT, `card__${fixture.state}.png`), card.png);
-  writeFileSync(join(OUT, `card__${fixture.state}@phone.png`), phone.png);
-
-  const screen = homeScreen(lexicon, fixture.home, NOW, fixture.last);
-  screen.card = { fileName: "base.png", png: card.png };
+for (const fixture of homeFixtures(content)) {
+  const screen = homeScreen(lexicon, fixture.home, fixture.last);
   const text = outline(`base__${fixture.state}`, screen);
-  const files = await mock(`msg__${fixture.state}`, {
-    components: [toComponents(screen)] as APIMessageTopLevelComponent[],
-    images: {
-      "base.png": {
-        uri: `data:image/png;base64,${card.png.toString("base64")}`,
-        width: card.width,
-        height: card.height,
-      },
-    },
-  });
   shots.push({
-    title: `/base · ${fixture.state} (card ${card.width}x${card.height}, ${Math.round(card.png.length / 1024)} KB, ${Math.round(card.ms)} ms)`,
-    files: [
-      ...files,
-      { file: `card__${fixture.state}@phone.png`, caption: "card at phone width", width: 400 },
-    ],
+    title: `/base · ${fixture.state}`,
+    files: await mock(`msg__${fixture.state}`, {
+      components: [toComponents(screen)] as APIMessageTopLevelComponent[],
+    }),
     outline: text,
   });
 }
@@ -127,89 +99,12 @@ for (const note of NOTES) {
   });
 }
 
-const report = {
-  id: "r3",
-  kind: "npc",
-  at: NOW - 600,
-  outcome: "breached",
-  chance: 40,
-  defence: 10,
-  attack: 20,
-  lost: { timber: 420 },
-  gained: {},
-  foe: null,
-  damaged: true,
-  revenge: false,
-  read: false,
-} as const;
-const feed: FeedItem[] = [
-  {
-    id: 101,
-    at: NOW - 3 * 3600,
-    playerId: 2,
-    playerName: "Ana_the*Bold",
-    event: {
-      type: "mission_back",
-      mission: "m3",
-      kind: "trip",
-      target: "cannery",
-      outcome: "success",
-      crew: ["wren"],
-      gained: {},
-      at: NOW - 3 * 3600,
-    },
-  },
-  {
-    id: 102,
-    at: NOW - 60,
-    playerId: 1,
-    playerName: "Nia",
-    event: { type: "build_done", tier: "stone" },
-  },
-  {
-    id: 103,
-    at: NOW - 30,
-    playerId: 2,
-    playerName: "Ana_the*Bold",
-    event: { type: "sold", listing: "l2", good: "planks", amount: 1200, price: 340, at: NOW - 30 },
-  },
-  { id: 104, at: NOW, playerId: 3, playerName: "Otto", event: { type: "raid_landed", report } },
-];
+// The feed has no event types until R2's Wipe Days: nothing to draw yet.
+const feed: FeedItem[] = [];
 for (const [index, content] of feedMessages(lexicon.words, feed, NOW).entries()) {
   shots.push({
     title: `feed post ${index + 1}`,
     files: await mock(`feed__${index + 1}`, { content }),
-    outline: content,
-  });
-}
-
-const news: SeasonNews[] = [
-  {
-    kind: "announced",
-    season: {
-      number: 1,
-      startedAt: NOW - 20 * 86400,
-      endsAt: NOW + 6 * 86400,
-      modifier: null,
-      next: "storm_season",
-    },
-  },
-  {
-    kind: "ended",
-    ended: 1,
-    season: { number: 2, startedAt: NOW, endsAt: null, modifier: "storm_season", next: null },
-    winners: [
-      { category: "wealth", name: "Nia", value: 182_000 },
-      { category: "explorer", name: "Ana_the*Bold", value: 9 },
-      { category: "signal", name: "Otto", value: 4200 },
-    ],
-  },
-];
-for (const item of news) {
-  const content = newsMessage(lexicon.words, lexicon.content, item);
-  shots.push({
-    title: `season news · ${item.kind}`,
-    files: await mock(`news__${item.kind}`, { content }),
     outline: content,
   });
 }

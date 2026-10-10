@@ -1,20 +1,20 @@
 /**
- * Dev-only hook for the screenshot script and for poking the game from the
- * console: `__wipeDay.store.getState().demoPatch({ tier: "hqm" })` (demo mode).
+ * Dev-only hook for the screenshot script and for poking the game from the console:
+ * `__wipeDay.store.getState().demoPatch({ supplies: 1e6 })` (demo mode).
  */
 import { demoClocks } from "./state/clocks";
 import { useWorld } from "./state/store";
 
 interface DebugHook {
   store: typeof useWorld;
-  /** The demo clock: shots pause it and set the time (`clocks.game.set(seconds)`). */
+  /** The demo's clocks: `game` (what the rules see) and `wall` (animation). Shots pin both. */
   clocks: typeof demoClocks;
   /** Frames rendered since load; the screenshot script waits for this to move. */
   frames: number;
   /** Stops scene motion (rendering goes on), so a screenshot and its crop show the same moment. */
   frozen: boolean;
-  /** Screen position (CSS px) of the active node marker, for shots that hit it. */
-  nodeMarker?: () => { x: number; y: number } | null;
+  /** Taps through the store at the screen point `x, y` (CSS px), as a player would. */
+  tap?: (count: number, x: number, y: number) => void;
 }
 
 declare global {
@@ -25,7 +25,13 @@ declare global {
 
 export function installDebug(): void {
   if (!import.meta.env.DEV) return;
-  window.__wipeDay = { store: useWorld, clocks: demoClocks, frames: 0, frozen: false };
+  window.__wipeDay = {
+    store: useWorld,
+    clocks: demoClocks,
+    frames: 0,
+    frozen: false,
+    tap: (count, x, y) => useWorld.getState().tap(count, x, y),
+  };
 }
 
 export function isFrozen(): boolean {

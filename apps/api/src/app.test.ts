@@ -2,9 +2,10 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadGame } from "@wipe-day/content/load";
-import { accrued, type BaseState, newBase } from "@wipe-day/domain/base";
 import { type ManualClock, manualClock } from "@wipe-day/domain/clock";
-import { nextEventAt } from "@wipe-day/domain/settle";
+import { applyCommand } from "@wipe-day/domain/commands";
+import { nextEventAt, suppliesAt } from "@wipe-day/domain/settle";
+import type { BaseState } from "@wipe-day/domain/state";
 import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createApp } from "./app";
@@ -13,9 +14,9 @@ import type { Config } from "./config";
 import { type CommandResponse, Game, type PushMessage, type StateResponse } from "./game";
 import { EventHub } from "./hub";
 import { log } from "./log";
-import { Notifier, type Subscription } from "./push";
+import { Notifier } from "./push";
 import { openDb } from "./store/db";
-import { bases, eventLog } from "./store/schema";
+import { bases, commands, eventLog, players } from "./store/schema";
 
 const { content, locale } = loadGame();
 const T0 = 1_700_000_000;
@@ -163,81 +164,229 @@ describe("login", () => {
   });
 });
 
+/** A base that can afford things: three Beachcombers, one manned, and supplies. */
+const playing =
+  (supplies: number) =>
+  (base: BaseState): BaseState => ({
+    ...base,
+    run: { ...base.run, supplies, lines: { beachcomber: 3, campfire: 1 }, hands: ["beachcomber"] },
+  });
+
+/** The rows of a player's command records, parsed. */
+const records = (db: ReturnType<typeof setup>["db"], playerId: number) =>
+  db
+    .select()
+    .from(commands)
+    .where(eq(commands.playerId, playerId))
+    .all()
+    .map((row) => ({ ...row, result: JSON.parse(row.resultJson) as Record<string, unknown> }));
+
 describe("state and commands", () => {
-  it("creates a twig base on first look", async () => {
+  it("creates a fresh v2 island on first look", async () => {
     const { login, state } = setup();
     const first = await state(await login(1));
-    expect(first.state.tier).toBe("twig");
+    expect(first.state.v).toBe(2);
+    expect(first.state.run.supplies).toBe(0);
+    expect(first.state.run.n).toBe(1);
     expect(first.version).toBe(1);
     expect(first.serverNow).toBe(T0);
     expect(first.welcomeBack).toBeNull();
   });
 
-  it("runs a command once per key: a replay returns the same answer and banks nothing", async () => {
-    const { login, state, send, logged } = setup();
-    const cookie = await login(1);
-    await state(cookie);
-    const first = await send(cookie, "key-gather-1", { type: "gather" });
-    const replay = await send(cookie, "key-gather-1", { type: "gather" });
-    expect(first.ok).toBe(true);
-    expect(replay).toEqual(first);
-    expect((await state(cookie)).state.stock).toEqual(first.state.stock);
-    expect(logged(1, "gathered")).toBe(1);
-  });
+  const COMMANDS = [
+    { type: "taps", count: 5, from: T0, to: T0 },
+    { type: "ping" },
+    { type: "buy_line", line: "beachcomber", count: 1 },
+    { type: "hire_hand", line: "campfire" },
+  ] as const;
 
-  it("new keys obey the state: a double click cannot craft or smelt twice what the base cannot afford", async () => {
+  for (const command of COMMANDS) {
+    it(`runs ${command.type} once per key: a replay returns the outcome with the current state`, async () => {
+      const { login, state, send, patch, clock } = setup();
+      const cookie = await login(1);
+      await state(cookie);
+      patch(1, playing(1e6));
+      const first = await send(cookie, `key-${command.type}-1`, command);
+      expect(first.ok).toBe(true);
+      clock.advance(10);
+      const replay = await send(cookie, `key-${command.type}-1`, command);
+      expect(replay.replay).toBe(true);
+      expect(replay.ok).toBe(true);
+      expect(replay.version).toBe(first.version);
+      // The state is the current one (ten seconds later, as settle says), and the command did
+      // not run twice.
+      expect(replay.state.run.lines).toEqual(first.state.run.lines);
+      expect(replay.state.run.hands).toEqual(first.state.run.hands);
+      expect(replay.state.run.taps).toBe(first.state.run.taps);
+      expect(replay.state.run.supplies).toBeCloseTo(suppliesAt(content, first.state, T0 + 10), 6);
+    });
+  }
+
+  it("judges a stale prediction by the current state: a double click cannot buy twice", async () => {
     const { login, state, send, patch } = setup();
     const cookie = await login(1);
     await state(cookie);
-    const second = await send(cookie, "key-gather-2", { type: "gather" });
-    expect(second.ok).toBe(true);
-    const again = await send(cookie, "key-gather-3", { type: "gather" });
-    expect(again).toMatchObject({ ok: false, refusal: { code: "cooldown" } });
+    patch(1, (base) => ({ ...base, run: { ...base.run, supplies: 10 } }));
+    expect(
+      (await send(cookie, "key-buy-a", { type: "buy_line", line: "beachcomber", count: 1 })).ok,
+    ).toBe(true);
+    const second = await send(cookie, "key-buy-b", {
+      type: "buy_line",
+      line: "beachcomber",
+      count: 1,
+    });
+    expect(second).toMatchObject({ ok: false, refusal: { reason: "supplies" } });
+    expect(second.state.run.lines.beachcomber).toBe(1);
+  });
 
-    patch(1, (base) => ({
-      ...base,
-      tier: "stone",
-      buildings: { furnace: 1, workbench: 1 },
-      stock: { timber: 700, stone: 50, ore: 1000 },
-    }));
-    // The campfire lands at once; the second click aims at level 2, which the base cannot
-    // afford: refused, nothing charged.
-    const fire = await send(cookie, "key-fire-1", { type: "build", what: "campfire" });
-    const fireAgain = await send(cookie, "key-fire-2", { type: "build", what: "campfire" });
-    expect(fire.ok).toBe(true);
-    expect(fireAgain).toMatchObject({ ok: false, refusal: { code: "unaffordable" } });
-    expect(fireAgain.state.stock.timber).toBe(600);
-    // 600 timber fuels 1000 ore (50 per 100): the second smelt finds nothing left to smelt.
-    const smelt = await send(cookie, "key-smelt-1", { type: "smelt", ore: "ore" });
-    const smeltAgain = await send(cookie, "key-smelt-2", { type: "smelt", ore: "ore" });
-    expect(smelt.ok).toBe(true);
-    expect(smeltAgain).toMatchObject({ ok: false, refusal: { code: "nothing_to_smelt" } });
-    expect(smeltAgain.state.furnaceJobs).toHaveLength(1);
+  it("keeps outcomes only: no record holds a state (D134)", async () => {
+    const { db, login, state, send, patch } = setup();
+    const cookie = await login(1);
+    await state(cookie);
+    patch(1, playing(1e6));
+    await send(cookie, "key-slim-1", { type: "taps", count: 3, from: T0, to: T0 });
+    await send(cookie, "key-std-1", { type: "buy_line", line: "beachcomber", count: 10 });
+    await send(cookie, "key-std-2", { type: "buy_line", line: "loom", count: 1 });
+    const rows = records(db, 1);
+    expect(rows).toHaveLength(3);
+    for (const row of rows) {
+      expect(row.result).not.toHaveProperty("state");
+      expect(row.resultJson).not.toContain('"run"');
+    }
+    expect(rows.find((row) => row.key === "key-slim-1")?.result).toEqual({
+      ok: true,
+      version: 2,
+      credited: 3,
+    });
+    expect(rows.find((row) => row.key === "key-std-2")?.result).toMatchObject({
+      ok: false,
+      refusal: { reason: "locked" },
+    });
+  });
+
+  it("expires slim records after an hour and standard ones after 7 days, with no log rows for taps", async () => {
+    const { db, login, state, send, game, clock, logged } = setup();
+    const cookie = await login(1);
+    await state(cookie);
+    await send(cookie, "key-tap-1", { type: "taps", count: 3, from: T0, to: T0 });
+    await send(cookie, "key-ping-1", { type: "ping" });
+    await send(cookie, "key-buy-1", { type: "buy_line", line: "beachcomber", count: 1 });
+    expect(logged(1, "tapped")).toBe(0);
+    expect(db.select().from(eventLog).all()).toHaveLength(0);
+    clock.advance(3599);
+    game.tick();
+    expect(records(db, 1)).toHaveLength(3);
+    clock.advance(2);
+    game.tick();
+    expect(records(db, 1).map((row) => row.key)).toEqual(["key-buy-1"]);
+    clock.advance(7 * 86400);
+    game.tick();
+    expect(records(db, 1)).toHaveLength(0);
+  });
+
+  it("credits a taps batch replayed after its record expired only from the bucket", async () => {
+    const { login, state, send, clock, game } = setup();
+    const cookie = await login(1);
+    await state(cookie);
+    const batch = { type: "taps", count: 30, from: T0, to: T0 } as const;
+    const first = await send(cookie, "key-old-batch", batch);
+    expect(first.state.run.taps).toBe(30);
+    clock.advance(3601);
+    game.tick();
+    const late = await send(cookie, "key-old-batch", batch);
+    expect(late.replay).toBeUndefined();
+    // Its times clamp to the bucket's last refill: no refill, only the 15 tokens left.
+    expect(late.state.run.taps).toBe(45);
   });
 
   it("keeps two players apart, even when they act at the same moment", async () => {
     const { login, state, send } = setup();
     const one = await login(1);
     const two = await login(2);
-    await Promise.all([state(one), state(two)]);
-    const [a, b] = await Promise.all([
-      send(one, "same-key-123", { type: "gather" }),
-      send(two, "same-key-123", { type: "gather" }),
-    ]);
-    expect(a.ok && b.ok).toBe(true);
-    expect((await state(one)).state.stock).toEqual((await state(two)).state.stock);
-    expect((await state(one)).state.seed).toBe(7);
+    await state(one);
+    await state(two);
+    await send(one, "same-key-1234", { type: "taps", count: 10, from: T0, to: T0 });
+    const other = await send(two, "same-key-1234", { type: "taps", count: 4, from: T0, to: T0 });
+    expect(other.state.run.taps).toBe(4);
+    expect((await state(one)).state.run.taps).toBe(10);
   });
 
   it("rejects malformed commands", async () => {
     const { app, login } = setup();
     const cookie = await login(1);
+    for (const body of [
+      { key: "short", command: { type: "ping" } },
+      { key: "key-bad-1", command: { type: "gather" } },
+      { key: "key-bad-2", command: { type: "taps", count: 500, from: T0, to: T0 } },
+      { key: "key-bad-3", command: { type: "buy_line", line: "beachcomber", count: 7 } },
+    ]) {
+      const response = await app.request("/api/commands", {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: { cookie, "content-type": "application/json" },
+      });
+      expect(response.status).toBe(400);
+    }
+  });
+
+  it("slows a runaway tab down with 429 and a wait (10 a second, burst 30)", async () => {
+    const { app, login, state } = setup();
+    const cookie = await login(1);
+    await state(cookie);
+    const statuses: number[] = [];
+    let wait: unknown;
+    for (let i = 0; i < 31; i++) {
+      const response = await app.request("/api/commands", {
+        method: "POST",
+        body: JSON.stringify({ key: `key-burst-${i}`, command: { type: "ping" } }),
+        headers: { cookie, "content-type": "application/json" },
+      });
+      statuses.push(response.status);
+      if (response.status === 429) wait = await response.json();
+    }
+    expect(statuses.filter((status) => status === 200)).toHaveLength(30);
+    expect(statuses.at(-1)).toBe(429);
+    expect(wait).toMatchObject({ error: "slow_down" });
+  });
+});
+
+describe("the base's shape", () => {
+  it("replaces a W-phase base in place: a fresh island, the version raised, base_reset logged", async () => {
+    const { db, login, state, logged } = setup();
+    const cookie = await login(1);
+    await state(cookie);
+    db.update(bases)
+      .set({ stateJson: JSON.stringify({ tier: "stone", stock: { timber: 900 } }), version: 41 })
+      .where(eq(bases.playerId, 1))
+      .run();
+    const after = await state(cookie);
+    expect(after.state.v).toBe(2);
+    expect(after.state.run.supplies).toBe(0);
+    expect(after.version).toBe(42);
+    expect(logged(1, "base_reset")).toBe(1);
+    expect((await state(cookie)).version).toBe(42);
+  });
+
+  it("refuses to save a non-finite number, and the transaction leaves the base as it was", async () => {
+    const { db, app, login, state } = setup();
+    const cookie = await login(1);
+    const before = await state(cookie);
+    const row = db.select().from(bases).where(eq(bases.playerId, 1)).get();
+    // JSON has no Infinity: 1e999 parses to it, as a corrupt or hand-edited row would.
+    const corrupt = (row?.stateJson ?? "").replace(
+      '"hustle":{"value":0',
+      '"hustle":{"value":1e999',
+    );
+    db.update(bases).set({ stateJson: corrupt }).where(eq(bases.playerId, 1)).run();
     const response = await app.request("/api/commands", {
       method: "POST",
-      body: JSON.stringify({ key: "key-bad-1", command: { type: "teleport" } }),
+      body: JSON.stringify({ key: "key-corrupt-1", command: { type: "ping" } }),
       headers: { cookie, "content-type": "application/json" },
     });
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(500);
+    const after = db.select().from(bases).where(eq(bases.playerId, 1)).get();
+    expect(after?.version).toBe(before.version);
+    expect(after?.stateJson).toBe(corrupt);
   });
 });
 
@@ -248,158 +397,147 @@ describe("time", () => {
     const first = setup(file, clock);
     const cookie = await first.login(1);
     await first.state(cookie);
+    first.patch(1, playing(0));
+    const start = (await first.state(cookie)).state;
     first.db.$client.close();
 
-    clock.advance(10 * 3600 + 17);
+    clock.advance(4 * 3600);
     const second = setup(file, clock);
-    const expected = accrued(content, newBase(content, T0, 7), clock.now());
-    expect(second.game.pending(1)).toEqual(expected);
-    const collected = await second.send(cookie, "key-collect-1", { type: "collect" });
-    expect(collected.events[0]).toEqual({ type: "collected", gained: expected });
+    const after = (await second.state(cookie)).state;
+    expect(after.run.supplies).toBeCloseTo(suppliesAt(content, start, T0 + 4 * 3600), 6);
+    expect(after.run.supplies).toBeCloseTo(3 * 1.5 * 4 * 3600, 6);
   });
 
-  it("lands timers on the scheduler, pushes them, and welcomes the player back", async () => {
-    const { login, state, send, patch, game, hub, clock } = setup();
-    const cookie = await login(1);
-    await state(cookie);
-    patch(1, (base) => ({
-      ...base,
-      // A W1-shaped base (the workbench as an item): loading converts it to a building.
-      items: { workbench_1: 1 },
-      stock: { timber: 500, fibre: 100, planks: 10, rope: 5 },
-    }));
-    const queued = await send(cookie, "key-bow-1", { type: "craft", recipe: "bow", count: 1 });
-    expect(queued.ok).toBe(true);
-
-    const pushed: PushMessage[] = [];
-    hub.subscribe(1, (message) => pushed.push(message));
-    clock.advance(2 * 3600);
-    expect(game.tick()).toEqual([1]);
-    expect(pushed.at(-1)?.events.map((event) => event.type)).toContain("crafted");
-    expect(pushed.at(-1)?.state.items.bow).toBe(1);
-
-    const back = await state(cookie);
-    expect(back.welcomeBack?.awaySeconds).toBe(2 * 3600);
-    expect(back.welcomeBack?.events.map((event) => event.type)).toContain("crafted");
-    expect((await state(cookie)).welcomeBack).toBeNull();
-  });
-
-  it("pushes a command to the player's other tabs with its key", async () => {
-    const { login, state, send, hub } = setup();
-    const cookie = await login(1);
-    await state(cookie);
-    const pushed: PushMessage[] = [];
-    hub.subscribe(1, (message) => pushed.push(message));
-    await send(cookie, "key-gather-9", { type: "gather" });
-    expect(pushed).toHaveLength(1);
-    expect(pushed[0]?.origin).toBe("key-gather-9");
-  });
-});
-
-/** A party out at the beach wreck that is sure to come back with something at `endsAt`. */
-function sureTrip(base: BaseState, endsAt: number): BaseState {
-  return {
-    ...base,
-    crew: base.crew.map((m) => (m.id === "mara" ? { ...m, away: "m1" } : m)),
-    missionSeq: 1,
-    missions: [
-      {
-        id: "m1",
-        kind: "trip",
-        target: "beach_wreck",
-        crew: ["mara"],
-        startedAt: endsAt - 1800,
-        endsAt,
-        seed: 3,
-        odds: {
-          success: 100,
-          partial: 100,
-          injury: [0],
-          minutes: 30,
-          rolls: 2,
-          loot: 0,
-          blueprint: 0,
-          fragment: 0,
-          events: {},
-        },
-      },
-    ],
-  };
-}
-
-const DEVICE: Subscription = {
-  endpoint: "https://push.test/device-1",
-  keys: { p256dh: "BPk", auth: "au" },
-};
-
-describe("the feed (W4b)", () => {
-  it("shows one player's party back to everyone, and broadcasts it as it lands", async () => {
-    const { login, state, patch, game, hub, clock, json } = setup();
-    const one = await login(1);
-    const two = await login(2);
-    await state(one);
-    await state(two);
-    patch(1, (base) => sureTrip(base, T0 + 600));
-    const heard: string[] = [];
-    hub.subscribeFeed((items) => heard.push(...items.map((item) => item.event.type)));
-    clock.advance(900);
-    game.tick();
-    expect(heard).toEqual(["mission_back"]);
-    const feed = await json(two, "/api/feed");
-    expect(feed.status).toBe(200);
-    expect(feed.body.items).toMatchObject([
-      { playerName: "Test Player 1", event: { type: "mission_back", target: "beach_wreck" } },
-    ]);
-    // Paging back past the oldest item is empty.
-    const items = feed.body.items as { id: number }[];
-    const older = await json(two, `/api/feed?before=${items.at(-1)?.id}`);
-    expect(older.body.items).toEqual([]);
-  });
-});
-
-describe("notifications (W4b)", () => {
-  it("defaults to party back and raided, and takes changes per kind", async () => {
-    const { login, json } = setup();
-    const cookie = await login(1);
-    const first = await json(cookie, "/api/notify");
-    expect(first.body.prefs).toEqual({
-      party_back: true,
-      raided: true,
-      raid_warning: false,
-      arrivals: false,
-      builds_done: false,
-      sold: false,
-    });
-    expect(typeof first.body.publicKey).toBe("string");
-    const changed = await json(cookie, "/api/notify", "PUT", { arrivals: true, party_back: false });
-    expect(changed.body.prefs).toMatchObject({ arrivals: true, party_back: false });
-    expect((await json(cookie, "/api/notify", "PUT", { teleport: true })).status).toBe(400);
-  });
-
-  it("pings the devices for kinds that are on, never for those off, and drops gone ones", async () => {
-    const { login, state, patch, game, clock, json, sent, gone, notifier } = setup();
+  it("ends the Night Shift on the scheduler, logs it once, and pings the device", async () => {
+    const { login, state, patch, game, clock, json, sent, logged } = setup();
     const cookie = await login(1);
     await state(cookie);
     expect((await json(cookie, "/api/push/subscribe", "POST", DEVICE)).status).toBe(200);
+    patch(1, playing(0));
+    clock.advance(12 * 3600 - 1);
+    expect(game.tick()).toEqual([]);
+    clock.advance(2);
+    expect(game.tick()).toEqual([1]);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(logged(1, "night_shift_over")).toBe(1);
+    expect(sent[0]?.payload).toMatchObject({ kind: "night_shift_over" });
+    clock.advance(3600);
+    expect(game.tick()).toEqual([]);
+    // A full window destroys nothing and makes nothing more (N18).
+    const full = (await state(cookie)).state;
+    expect(full.run.supplies).toBeCloseTo(3 * 1.5 * 12 * 3600, 3);
+  });
 
-    patch(1, (base) => sureTrip(base, T0 + 600));
-    clock.advance(900);
+  it("pushes a standard command's state to other tabs, and only the version for taps", async () => {
+    const { hub, login, state, send, patch } = setup();
+    const cookie = await login(1);
+    await state(cookie);
+    patch(1, playing(100));
+    const heard: PushMessage[] = [];
+    hub.subscribe(1, (message) => heard.push(message));
+    await send(cookie, "key-tab-taps", { type: "taps", count: 2, from: T0, to: T0 });
+    await send(cookie, "key-tab-buy", { type: "buy_line", line: "beachcomber", count: 1 });
+    expect(heard).toHaveLength(2);
+    expect(heard[0]).toMatchObject({ origin: "key-tab-taps", events: [] });
+    expect(heard[0]?.state).toBeUndefined();
+    expect(heard[1]?.origin).toBe("key-tab-buy");
+    expect(heard[1]?.state?.run.lines.beachcomber).toBe(4);
+  });
+});
+
+describe("the taps transport (N10, N25)", () => {
+  /** One tab's honest batches: `rate` taps a second for `seconds`, one batch a second. */
+  const tab = (rate: number, seconds: number, start: number) =>
+    Array.from({ length: seconds }, (_, i) => ({
+      type: "taps" as const,
+      count: rate,
+      from: start + i,
+      to: start + i,
+    }));
+
+  it("an hour at 15 taps a second from one tab: at most 3,700 slim records, every tap credited as predicted", () => {
+    const { game, clock, db } = setup();
+    const playerId = db
+      .insert(players)
+      .values({ discordId: "tab-1", name: "Tab", avatarUrl: null, createdAt: T0, lastSeenAt: T0 })
+      .returning()
+      .get().id;
+    game.look(playerId);
+    let predicted = game.look(playerId).state;
+    let server = predicted;
+    for (const [i, batch] of tab(15, 3600, T0 + 1).entries()) {
+      clock.set(batch.to);
+      predicted = applyCommand(content, predicted, batch, batch.to).state;
+      server = game.command(playerId, `key-hour-${i}`, batch).state;
+      if (i % 600 === 0) game.tick();
+    }
+    expect(game.records(playerId)).toBeLessThanOrEqual(3700);
+    expect(server.run.taps).toBe(15 * 3600);
+    expect(server.run.supplies).toBe(predicted.run.supplies);
+    expect(db.select().from(eventLog).all()).toHaveLength(0);
+  });
+
+  it("two tabs together never pass the bucket", () => {
+    const { game, clock, db } = setup();
+    const playerId = db
+      .insert(players)
+      .values({ discordId: "tab-2", name: "Tabs", avatarUrl: null, createdAt: T0, lastSeenAt: T0 })
+      .returning()
+      .get().id;
+    game.look(playerId);
+    const seconds = 60;
+    const a = tab(15, seconds, T0 + 1);
+    const b = tab(15, seconds, T0 + 1);
+    let last = game.look(playerId).state;
+    for (let i = 0; i < seconds; i++) {
+      clock.set(T0 + 1 + i);
+      const first = a[i];
+      const second = b[i];
+      if (first) last = game.command(playerId, `key-a-${i}`, first).state;
+      if (second) last = game.command(playerId, `key-b-${i}`, second).state;
+    }
+    // The bucket starts full (45) and refills 15 a second.
+    expect(last.run.taps).toBeLessThanOrEqual(45 + 15 * seconds);
+    expect(last.run.taps).toBeGreaterThan(15 * seconds);
+  });
+});
+
+const DEVICE = {
+  endpoint: "https://push.example/device-1",
+  keys: { p256dh: "BPkey", auth: "authkey" },
+};
+
+describe("notifications", () => {
+  it("defaults to Night Shift over only, and takes changes per kind", async () => {
+    const { login, state, json } = setup();
+    const cookie = await login(1);
+    await state(cookie);
+    const prefs = await json(cookie, "/api/notify");
+    expect(prefs.body.prefs).toEqual({ night_shift_over: true });
+    const changed = await json(cookie, "/api/notify", "PUT", { night_shift_over: false });
+    expect(changed.body.prefs).toEqual({ night_shift_over: false });
+    expect((await json(cookie, "/api/notify", "PUT", { party_back: true })).status).toBe(400);
+  });
+
+  it("never pings for a kind turned off, and drops a gone device", async () => {
+    const { login, state, patch, game, clock, json, sent, gone, notifier } = setup();
+    const cookie = await login(1);
+    await state(cookie);
+    await json(cookie, "/api/push/subscribe", "POST", DEVICE);
+    await json(cookie, "/api/notify", "PUT", { night_shift_over: false });
+    patch(1, playing(0));
+    clock.advance(13 * 3600);
     game.tick();
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(sent).toHaveLength(1);
-    expect(sent[0]?.payload).toMatchObject({ kind: "party_back", title: "Your party is back" });
+    expect(sent).toHaveLength(0);
 
-    await json(cookie, "/api/notify", "PUT", { party_back: false });
-    patch(1, (base) => sureTrip(base, clock.now() + 600));
-    clock.advance(900);
-    game.tick();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(sent).toHaveLength(1);
-
-    await json(cookie, "/api/notify", "PUT", { party_back: true });
+    await json(cookie, "/api/notify", "PUT", { night_shift_over: true });
     gone.add(DEVICE.endpoint);
-    patch(1, (base) => sureTrip(base, clock.now() + 600));
-    clock.advance(900);
+    patch(1, (base) => ({
+      ...playing(0)(base),
+      run: { ...playing(0)(base).run, activeAt: clock.now() },
+    }));
+    clock.advance(13 * 3600);
     game.tick();
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(notifier.devices(1)).toBe(0);

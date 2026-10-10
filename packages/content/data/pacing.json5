@@ -1,51 +1,66 @@
-// Targets the simulator asserts (`pnpm sim check`). Days are season days
-// (day 1 = the first 24 hours). docs/game-design.md section 6; tiers are Stone, Sheet Metal (metal), Armored (hqm).
+// Simulator v2's archetypes and the targets it asserts (`pnpm sim check`; the `test` profile
+// runs inside `pnpm test`). D129, D144; docs/redesign/10-balance.md 7.4. Times are wall clock
+// from the player's first tap; "day N" is the N-th calendar day of play (UTC).
+//
+// Every assertion names its canon number and the phase that switches it on (`on`). Assertions
+// on or before `shipped` must pass (a test fails if one has no implementation); later ones are
+// listed so the plan is visible in one place. `warn: true` prints WARN instead of failing.
 {
-  // Casual player, 3 check-ins a day.
-  casual: {
-    stone: { earliestDay: 3, latestDay: 4 },
-    metal: { earliestDay: 12, latestDay: 14 },
-    hqm: { earliestDay: 15, latestDay: 28 },
-    // The base fills up: buildings standing by the end of the first week (roadmap W2).
-    buildings: { day: 7, count: 6 },
-    // Crafting throughput (roadmap W3): the first of each made by this season day...
-    firstMade: { planks: 2, bow: 4, leather: 9, plates: 10, springs: 18 },
-    // ...and every station has made something by this day.
-    stationsWorkedByDay: 14,
-    // Expeditions (roadmap W4a): the first party out, the first tier-3 site, the crew growing,
-    // and site scrap paying for the salvaged tools.
-    firstTripByDay: 2,
-    tierThreeSiteByDay: 14,
-    // W4b: someone on a job early, and the far north and the sea within the season.
-    jobsByDay: 3,
-    tierFourSiteByDay: 26,
-    tierFiveSiteByDay: 31,
-    crew: { day: 10, count: 5 },
-    tool: { id: "salvaged_tools", byDay: 18 },
-    // W5: scrap rises slowly. On this day the casual player holds between min and max:
-    // enough to use the Den, not a pile with nothing to buy.
-    scrap: { day: 28, min: 800, max: 4000 },
-    // W6: raiders come in the second week, and a casual defence holds some of them off.
-    raids: { firstByDay: 8, day: 28, heldPercent: 30 },
-    // Charges get made and spent on a bandit camp within the season's first half.
-    firstCampByDay: 16,
-    // W7: the Signal takes real goods: from surplus alone, one casual player fills a stage.
-    signalStages: 1,
+  shipped: "R0",
+  profiles: {
+    test: { days: 90, seeds: [11] },
+    full: { days: 365, seeds: [7, 11, 23] },
   },
-  // W7: the veteran (an optimal player with every perk at its top rank, every blueprint and
-  // the crew at level 5) is held to the optimal floors below, and to at most 25% faster.
-  // W6: the raider (active, raids at every chance the limits allow) against a casual player
-  // who opted in: PvP happens, and the raided player still reaches Armored.
-  pvp: { minRaids: 3, targetHqmByDay: 28 },
-  // W5: the gambler plays the biggest bet up to the daily cap at every check-in. Its scrap
-  // never goes negative and no day's wagers pass that day's cap (asserted in the check).
-  // The greedy planner with hourly check-ins must not beat these.
-  optimal: {
-    hqmNotBeforeDay: 14,
-    tierThreeSiteNotBeforeDay: 7,
-    // The end of the site chain (the season's peak) never before this day.
-    lastSite: { id: "offshore_platform", notBeforeDay: 18 },
+  // Sessions: "HH:MM+Nm" every day (UTC), or "hourly+Nm". Taps a second while a session runs;
+  // `tapsWhileNothingRuns` taps only while no line runs by itself (the idler).
+  archetypes: {
+    idler: { sessions: ["08:00+3m", "21:00+3m"], tapsPerSecond: 0, tapsWhileNothingRuns: 4, nuke: "double" },
+    casual: { sessions: ["08:00+5m", "13:00+5m", "21:00+5m"], tapsPerSecond: 4, nuke: "crown" },
+    active: {
+      sessions: ["07:00+10m", "09:00+10m", "12:00+10m", "15:00+10m", "17:00+10m", "19:00+10m", "21:00+10m", "23:00+10m"],
+      tapsPerSecond: 6,
+      nuke: "crown",
+    },
+    optimal: { sessions: ["hourly+5m"], tapsPerSecond: 6, nuke: "best" },
+    lateJoiner: { sessions: ["08:00+5m", "13:00+5m", "21:00+5m"], tapsPerSecond: 4, nuke: "crown", startDay: 30 },
   },
-  // Each tier costs roughly this much more than the previous one (by resource-hours).
-  tierCostRatio: { min: 3, max: 6 },
+  // One long session from the first tap.
+  scenarios: {
+    firstHour: { sessions: ["00:00+180m"], tapsPerSecond: 6, nuke: "crown" },
+    autoclicker: { sessions: ["00:00+180m"], tapsPerSecond: 15, nuke: "crown" },
+  },
+  assertions: [
+    // R0: the shape of the numbers.
+    { n: "N21", on: "R0", check: "prestigeShape", exponent: 0.2, l0: 5e5, glowK: 0.25, firstNukeGlass: 10 },
+    { n: "N23", on: "R0", check: "magnitude", max: 1e150 },
+    // R1: the run.
+    { n: "N4", on: "R1", check: "firstHandSeconds", max: 120 },
+    { n: "N5", on: "R1", check: "nothingAffordableEarly", maxSeconds: 30, runs: 5, onlineMinutes: 10 },
+    { n: "N6", on: "R1", check: "nothingAffordableOnline", maxSeconds: 120, runs: 5 },
+    { n: "N7", on: "R1", check: "casualCheckInsWithPurchase", min: 1, days: 1 },
+    { n: "N8", on: "R1", check: "tapShare", firstMinuteMin: 0.5, fromMinute10: [0.05, 0.25] },
+    { n: "N9", on: "R1", check: "activeHour", days: [14, 30, 60], min: 1.5, max: 3, rainMax: 3 },
+    { n: "N23", on: "R1", check: "run1Made", min: 1e10, max: 1e12 },
+    // R2: the nuke.
+    { n: "N1", on: "R2", check: "firstNukeMinutes", scenario: "firstHour", min: 40, max: 60 },
+    { n: "N2", on: "R2", check: "firstNukeMinutesAny", min: 25 },
+    { n: "N3", on: "R2", check: "casualFirstNuke", day: 1, by: "21:00" },
+    { n: "N7", on: "R2", check: "casualCheckInsWithPurchase", min: 0.9, days: 30 },
+    { n: "N11", on: "R2", check: "passPreviousRun", early: 0.65, mid: 0.95, late: 1, warn: true },
+    { n: "N12", on: "R2", check: "powerPerNuke", early: [1.5, 2.5], mid: [1.15, 1.6], late: [1.1, 1.5] },
+    { n: "N13", on: "R2", check: "flattening", window: 5, minProduct: 1.3, unlockLookahead: 3 },
+    { n: "N14", on: "R2", check: "nodesBought", first: [6, 10], laterMedianMin: 2 },
+    { n: "4.10", on: "R2", check: "casualWipeDaysByDay30", min: 20, max: 40 },
+    { n: "4.10", on: "R2", check: "casualFirstWeekGlass", min: 300, max: 2000 },
+    // R3 on: the tree, the gaps, the slow layer, friends.
+    { n: "N15", on: "R3", check: "treeHorizon", optimalLitDay30Max: 0.45, fullNotBeforeDay: 90 },
+    { n: "N15", on: "R3", check: "casualLitDay180", min: 0.45, warn: true },
+    { n: "N16", on: "R3", check: "gaps", profile: "g5", days: [30, 90], activeMax: 2, optimalMax: 2.5, idlerMin: 0.5 },
+    { n: "N16", on: "R3", check: "gapsAlone", days: [30, 90], activeMax: 2, optimalMax: 2.5, idlerMin: 0.5, warn: true },
+    { n: "5.7", on: "R3", check: "casualRunDaysAfterDay30", max: 3, warn: true },
+    { n: "N19", on: "R5", check: "scrap", casualMean: [0.8, 2], casualByDay30: 25, anyMeanMax: 2.5 },
+    { n: "N17", on: "R6", check: "lateJoiner", withinDays: 12 },
+    // R7: N11 becomes a failing assertion.
+    { n: "N11", on: "R7", check: "passPreviousRun", early: 0.65, mid: 0.95, late: 1 },
+  ],
 }

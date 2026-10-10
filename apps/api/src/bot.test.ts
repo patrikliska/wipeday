@@ -6,11 +6,10 @@
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadGame } from "@wipe-day/content/load";
-import type { BaseState } from "@wipe-day/domain/base";
 import { manualClock } from "@wipe-day/domain/clock";
-import type { FeedItem } from "@wipe-day/domain/feed";
 import { nextEventAt } from "@wipe-day/domain/settle";
-import type { BotHome, CommandResponse, DmNote, SeasonNews } from "@wipe-day/domain/wire";
+import type { BaseState } from "@wipe-day/domain/state";
+import type { BotHome, DmNote } from "@wipe-day/domain/wire";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createApp } from "./app";
@@ -111,36 +110,15 @@ interface BotRequest {
   token?: string | null;
 }
 
-/** A trip that surely succeeds, coming home at `endsAt`. */
-function sureTrip(base: BaseState, endsAt: number): BaseState {
+/** A manned Beachcomber whose Night Shift started at `at`. */
+function manned(base: BaseState, at: number): BaseState {
   return {
     ...base,
-    crew: base.crew.map((m) => (m.id === "mara" ? { ...m, away: "m1" } : m)),
-    missionSeq: 1,
-    missions: [
-      {
-        id: "m1",
-        kind: "trip",
-        target: "beach_wreck",
-        crew: ["mara"],
-        startedAt: endsAt - 1800,
-        endsAt,
-        seed: 3,
-        odds: {
-          success: 100,
-          partial: 100,
-          injury: [0],
-          minutes: 30,
-          rolls: 2,
-          loot: 0,
-          blueprint: 0,
-          fragment: 0,
-          events: {},
-        },
-      },
-    ],
+    run: { ...base.run, lines: { beachcomber: 1 }, hands: ["beachcomber"], activeAt: at },
   };
 }
+
+const NIGHT_SHIFT = 12 * 3600;
 
 /** Reads a server-sent event stream: the next event of a kind, then close. */
 function sse(response: Response) {
@@ -203,7 +181,7 @@ describe("acting for a player (W8)", () => {
     const { db, home, app, cookieOf } = setup();
     const first = await home();
     expect(first.player.name).toBe(NIA.name);
-    expect(first.state.tier).toBe("twig");
+    expect(first.state.run.era).toBe("twig");
     expect(first.discordDm).toBe(true);
     expect(first.loginUrl).toMatch(/^https:\/\/game\.test\/api\/auth\/link\?t=/);
     const row = db.select().from(players).where(eq(players.discordId, NIA.id)).get();
@@ -232,25 +210,19 @@ describe("acting for a player (W8)", () => {
     expect(cookieOf(late)).toBe("");
   });
 
-  it("runs commands through the same rulebook, idempotent by key, without marking seen", async () => {
+  it("refuses commands until R2 lets the bot Collect (not_on_discord), without marking seen", async () => {
     const { bot, home, db, clock } = setup();
     const before = await home();
     const seenAt = () =>
       db.select().from(players).where(eq(players.id, before.player.id)).get()?.lastSeenAt;
     const joined = seenAt();
     clock.advance(3600);
-    const send = async () =>
-      (await (
-        await bot("/commands", {
-          method: "POST",
-          body: { key: "discord:111", command: { type: "gather" } },
-        })
-      ).json()) as CommandResponse;
-    const once = await send();
-    const twice = await send();
-    expect(once.ok).toBe(true);
-    expect(twice).toEqual(once);
-    expect(once.events.map((event) => event.type)).toContain("gathered");
+    const response = await bot("/commands", {
+      method: "POST",
+      body: { key: "discord:111", command: { type: "ping" } },
+    });
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: "not_on_discord" });
     expect(seenAt()).toBe(joined);
   });
 
@@ -273,21 +245,21 @@ describe("DMs (W8)", () => {
     hub.subscribeBot((message) => {
       if (message.event === "dm") dms.push(message.data);
     });
-    patch(player.id, (base) => sureTrip(base, T0 + 600));
-    clock.advance(900);
+    patch(player.id, (base) => manned(base, T0));
+    clock.advance(NIGHT_SHIFT + 60);
     game.tick();
     expect(dms).toEqual([
       expect.objectContaining({
         discordId: NIA.id,
-        kind: "party_back",
-        title: "Your party is back",
-        url: "https://game.test/?report=m1",
+        kind: "night_shift_over",
+        title: "The Night Shift is over",
+        url: "https://game.test/",
       }),
     ]);
 
     await bot("/dm", { method: "PUT", body: { on: false } });
-    patch(player.id, (base) => sureTrip(base, clock.now() + 600));
-    clock.advance(900);
+    patch(player.id, (base) => manned(base, clock.now()));
+    clock.advance(NIGHT_SHIFT + 60);
     game.tick();
     expect(dms).toHaveLength(1);
   });
@@ -305,87 +277,21 @@ describe("DMs (W8)", () => {
     hub.subscribeBot((message) => dms.push(message));
     clock.advance(60);
     game.tick();
-    await notifier.notify(1, [
-      {
-        type: "mission_back",
-        mission: "m1",
-        kind: "trip",
-        target: "beach_wreck",
-        outcome: "success",
-        crew: [],
-        gained: {},
-        at: clock.now(),
-      },
-    ]);
+    await notifier.notify(1, [{ type: "night_shift_over", at: clock.now() }]);
     expect(dms).toEqual([]);
   });
 });
 
-describe("the feed in both places (W8)", () => {
-  it("sends one event to the web's feed and the bot's stream with the same id", async () => {
-    const { bot, home, patch, clock, game, app } = setup();
-    const { player } = await home();
+describe("the bot's stream (W8)", () => {
+  it("opens with ready, and starts the channel's cursor at the newest row: no old history", async () => {
+    const { bot, game } = setup();
     const stream = sse(await bot("/stream", { user: null }));
-    await stream.next("ready");
-
-    patch(player.id, (base) => sureTrip(base, T0 + 600));
-    clock.advance(900);
-    game.tick();
-    const posted = (await stream.next("feed")) as FeedItem[];
-    expect(posted).toMatchObject([
-      { playerName: NIA.name, event: { type: "mission_back", target: "beach_wreck" } },
-    ]);
-
-    const web = await app.request("/api/dev/login", {
-      method: "POST",
-      body: JSON.stringify({ slot: 2 }),
-      headers: { "content-type": "application/json" },
-    });
-    const cookie = web.headers.getSetCookie()[0]?.split(";")[0] ?? "";
-    const feed = (await (await app.request("/api/feed", { headers: { cookie } })).json()) as {
-      items: FeedItem[];
-    };
-    expect(feed.items.map((item) => item.id)).toEqual(posted.map((item) => item.id));
+    expect(typeof (await stream.next("ready"))).toBe("number");
     await stream.close();
-  });
-
-  it("catches the channel up on what it missed, after its last ack", async () => {
-    const { bot, home, patch, clock, game } = setup();
-    const { player } = await home();
-    // The first connection starts the cursor at the newest item: no old history.
-    const first = sse(await bot("/stream", { user: null }));
-    await first.next("ready");
-    await first.close();
-
-    patch(player.id, (base) => sureTrip(base, clock.now() + 600));
-    clock.advance(900);
-    game.tick();
-
-    const again = sse(await bot("/stream", { user: null }));
-    await again.next("ready");
-    const missed = (await again.next("feed")) as FeedItem[];
-    expect(missed.map((item) => item.event.type)).toEqual(["mission_back"]);
-    await again.close();
-
-    const id = missed[0]?.id ?? 0;
-    expect((await bot("/feed/ack", { method: "POST", body: { id }, user: null })).status).toBe(200);
+    // The feed is empty until R2's Wipe Days, so there is nothing to catch up on.
     expect(game.feedMissed()).toEqual([]);
-  });
-
-  it("tells the bot when a season's end is announced and when it is over", async () => {
-    const { home, game, hub, clock } = setup();
-    await home();
-    const news: SeasonNews[] = [];
-    hub.subscribeBot((message) => {
-      if (message.event === "news") news.push(message.data);
-    });
-    game.announce(clock.now() + 7 * 86400, "storm_season");
-    await game.endSeason();
-    expect(news.map((item) => item.kind)).toEqual(["announced", "ended"]);
-    const ended = news[1];
-    expect(ended?.kind === "ended" && ended.season).toMatchObject({
-      number: 2,
-      modifier: "storm_season",
-    });
+    expect((await bot("/feed/ack", { method: "POST", body: { id: 5 }, user: null })).status).toBe(
+      200,
+    );
   });
 });

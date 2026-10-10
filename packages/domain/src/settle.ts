@@ -1,94 +1,130 @@
 /**
- * Brings a base up to `now`: builds land, upkeep is paid (or decay starts),
- * crafts land, the barrel washes up or drifts off, the task day rolls over, an
- * abandoned node run ends, worked-out nodes stand again and raiders land (W6). Every
- * command runs this first, and a plain look at the base (`GET /state`) runs only this.
- * Idempotent: settling twice at the same instant changes nothing the second time.
+ * Settle: what production a base made between `settledAt` and `now`, in closed form
+ * (docs/redesign/09-architecture.md 4). Rates are piecewise constant, so the interval is cut
+ * where a rate can change (a buff ends, the player goes offline, the Night Shift window ends)
+ * and each segment pays rate × length, evaluated at its start. Unmanned lines pay each cycle in
+ * flight at its end (`readyAt`, busy-until). Nothing buys inside settle (D136), so many small
+ * settles equal one big one (N24); remainders stay (D130).
+ *
+ * The Night Shift: manned lines run at 100% until `activeAt + nightShift`, then stop; a full
+ * window destroys nothing. Rain, night and Afterglow add cut points when their effects ship.
  */
 import type { Content } from "@wipe-day/content/schema";
-import { settleBarrel, settleTasks } from "./active";
-import { type BaseState, settle } from "./base";
-import { nextWheelAt, settleWheel } from "./casino";
-import { settleContracts } from "./contracts";
-import { nextCraftAt, settleCrafts } from "./craft";
-import { settleDen } from "./den";
+import { finite } from "./amount";
+import { type Conditions, cycleOf, hasOnlineEffects, rates, unitRate } from "./effects";
 import type { GameEvent } from "./events";
-import { nextListingAt, settleListings } from "./market";
-import { nextMissionAt, settleArrivals, settleMissions } from "./missions";
-import { settleNodes } from "./nodes";
-import { nextRaidAt, resolveRaid, settleRaidWarning } from "./raids";
-import { recordStats } from "./stats";
-import type { World } from "./world";
+import { lineOf } from "./lines";
+import type { BaseState } from "./state";
 
-export function settleAll(
-  content: Content,
-  state: BaseState,
-  now: number,
-  world?: World,
-): { state: BaseState; events: GameEvent[] } {
-  // W6: a raid that landed since the last settle meets the base as it stood at that moment,
-  // so settling splits there. Only commands plan raids, so this runs at most once.
-  const events: GameEvent[] = [];
-  let current = state;
-  while (current.raid && current.raid.at <= now) {
-    const at = current.raid.at;
-    const before = settleSpan(content, current, at, world);
-    const landed = resolveRaid(content, before.state);
-    events.push(...before.events, ...landed.events);
-    current = recordStats(landed.state, landed.events, at);
+/** Seconds a command keeps a player "online" for effects: the 5-minute ping plus 30 s grace. */
+export function onlineSeconds(content: Content): number {
+  return content.run.nightShift.pingMinutes * 60 + 30;
+}
+
+/** When the Night Shift window ends: manned lines stop here until the next command. */
+export function windowEnd(content: Content, state: BaseState): number {
+  return state.run.activeAt + rates(content, state).nightShift;
+}
+
+/** The conditions effects see at second `t`. */
+export function conditionsAt(content: Content, state: BaseState, t: number): Conditions {
+  return { online: t < state.run.activeAt + onlineSeconds(content) };
+}
+
+/** Supplies a second from manned lines at `t` (0 once the window has closed). */
+export function mannedRate(content: Content, state: BaseState, t: number): number {
+  if (t >= windowEnd(content, state)) return 0;
+  const when = conditionsAt(content, state, t);
+  let total = 0;
+  for (const id of state.run.hands) {
+    const line = lineOf(content, id);
+    const n = state.run.lines[id] ?? 0;
+    if (line && n > 0) total += n * unitRate(content, state, line, t, when);
   }
-  const rest = settleSpan(content, current, now, world);
-  const warned = settleRaidWarning(content, rest.state, now);
-  events.push(...rest.events, ...warned.events);
-  return { state: warned.state, events };
+  return total;
 }
 
-/** Everything but the raids, brought up to `now`. */
-function settleSpan(
-  content: Content,
-  state: BaseState,
-  now: number,
-  world?: World,
-): { state: BaseState; events: GameEvent[] } {
+/** What one cycle of unmanned `id` pays when it ends at `t`: its rate then × its cycle. */
+export function cyclePayout(content: Content, state: BaseState, id: string, t: number): number {
+  const line = lineOf(content, id);
+  const n = state.run.lines[id] ?? 0;
+  if (!line || n <= 0) return 0;
+  const when = conditionsAt(content, state, t);
+  return n * unitRate(content, state, line, t, when) * cycleOf(content, state, line, t);
+}
+
+/** The seconds in (from, to) where a manned rate can change. */
+function cutPoints(content: Content, state: BaseState, from: number, to: number): number[] {
+  const points = new Set<number>();
+  const inside = (t: number) => t > from && t < to;
+  for (const buff of state.run.buffs) if (inside(buff.until)) points.add(buff.until);
+  const r = rates(content, state);
+  const buffed = state.run.buffs.flatMap((buff) => content.buffs[buff.kind] ?? []);
+  if (hasOnlineEffects(r.effects) || hasOnlineEffects(buffed)) {
+    const offline = state.run.activeAt + onlineSeconds(content);
+    if (inside(offline)) points.add(offline);
+  }
+  const end = windowEnd(content, state);
+  if (inside(end)) points.add(end);
+  return [...points].sort((a, b) => a - b);
+}
+
+/** Supplies made in (from, to]: manned segments plus unmanned cycles ending in the span. */
+export function madeBetween(content: Content, state: BaseState, from: number, to: number): number {
+  if (to <= from) return 0;
+  let gain = 0;
+  let t = from;
+  for (const cut of [...cutPoints(content, state, from, to), to]) {
+    gain += mannedRate(content, state, t) * (cut - t);
+    t = cut;
+  }
+  for (const [id, ready] of Object.entries(state.run.readyAt)) {
+    if (ready > from && ready <= to && !state.run.hands.includes(id)) {
+      gain += cyclePayout(content, state, id, ready);
+    }
+  }
+  return finite(gain, "settle gain");
+}
+
+/** Supplies the base holds at `t` (≥ settledAt), without building a new state: for the HUD. */
+export function suppliesAt(content: Content, state: BaseState, t: number): number {
+  return state.run.supplies + madeBetween(content, state, state.run.settledAt, t);
+}
+
+export interface Settled {
+  state: BaseState;
+  events: GameEvent[];
+  /** Something beyond time moved: an event, or a buff ran out. Pure accrual is not a change. */
+  changed: boolean;
+}
+
+/** Credits production up to `now`. Returns the same object when there is nothing to do. */
+export function settle(content: Content, state: BaseState, now: number): Settled {
+  const run = state.run;
+  if (now <= run.settledAt) return { state, events: [], changed: false };
+  const gain = madeBetween(content, state, run.settledAt, now);
   const events: GameEvent[] = [];
-  const base = settle(content, state, now);
-  events.push(...base.events);
-  const crafts = settleCrafts(content, base.state, now);
-  events.push(...crafts.events);
-  const missions = settleMissions(content, crafts.state, now);
-  events.push(...missions.events);
-  const arrivals = settleArrivals(content, missions.state, now);
-  events.push(...arrivals.events);
-  const barrel = settleBarrel(content, arrivals.state, now);
-  events.push(...barrel.events);
-  const tasks = settleTasks(content, barrel.state, now);
-  const nodes = settleNodes(content, tasks, now);
-  events.push(...nodes.events);
-  // The Den (W5): listings run out, the counter restocks, contracts roll, the wheel spins.
-  const listings = settleListings(content, nodes.state, now);
-  events.push(...listings.events);
-  const den = settleContracts(content, settleDen(content, listings.state, now), now);
-  const wheel = settleWheel(content, den, now, world?.reveal);
-  events.push(...wheel.events);
-  return { state: recordStats(wheel.state, events, now), events };
+  const end = windowEnd(content, state);
+  if (end > run.settledAt && end <= now && run.hands.length > 0) {
+    events.push({ type: "night_shift_over", at: end });
+  }
+  const buffs = run.buffs.filter((buff) => buff.until > now);
+  const next: BaseState = {
+    ...state,
+    run: {
+      ...run,
+      supplies: run.supplies + gain,
+      made: run.made + gain,
+      settledAt: now,
+      buffs: buffs.length === run.buffs.length ? run.buffs : buffs,
+    },
+  };
+  return { state: next, events, changed: events.length > 0 || buffs.length !== run.buffs.length };
 }
 
-/** The next moment settling would change something on its own, for the server's timer. */
-export function nextEventAt(
-  content: Content,
-  state: BaseState,
-  options: { wheel?: boolean } = {},
-): number | null {
-  const times = [
-    nextListingAt(state) ?? undefined,
-    // The client leaves the wheel out: it cannot spin, it waits for the server's push.
-    options.wheel === false ? undefined : (nextWheelAt(content, state) ?? undefined),
-    ...state.construction.map((job) => job.endsAt),
-    nextCraftAt(state) ?? undefined,
-    nextMissionAt(state) ?? undefined,
-    state.nextArrivalAt,
-    state.barrel ? state.barrel.expiresAt : state.nextBarrelAt,
-    nextRaidAt(content, state) ?? undefined,
-  ].filter((time): time is number => time !== undefined);
-  return times.length > 0 ? Math.min(...times) : null;
+/** When the scheduler should look at this base again: the window's end, if still ahead. */
+export function nextEventAt(content: Content, state: BaseState): number | null {
+  if (state.run.hands.length === 0) return null;
+  const end = windowEnd(content, state);
+  return end > state.run.settledAt ? end : null;
 }

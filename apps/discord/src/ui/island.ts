@@ -4,26 +4,20 @@
  * - a DM: one notification (the words the API made for the web's push), with the natural
  *   follow-ups: the base right here, the game at the right place, and DMs off;
  * - the feed channel: the island feed's items, in the very sentences the web's feed shows
- *   (`@wipe-day/domain/words`), from the same events;
- * - season news: the end announced, the reset done, and its winners.
+ *   (`@wipe-day/domain/words`), from the same events. Seasons no longer end (D128), so there
+ *   is no season news; R2's Wipe Days are the next news.
  */
-import type { Content } from "@wipe-day/content/schema";
 import type { FeedItem } from "@wipe-day/domain/feed";
-import type { DmNote, SeasonNews } from "@wipe-day/domain/wire";
+import type { DmNote } from "@wipe-day/domain/wire";
 import type { Words } from "@wipe-day/domain/words";
 import { escapeMarkdown } from "discord.js";
 import { idOf } from "./customId";
-import { dateTime, relative } from "./home";
+import { relative } from "./home";
 import type { Screen } from "./screen";
 import type { Tone } from "./theme";
 
 const NOTE_TONE: Record<DmNote["kind"], Tone> = {
-  party_back: "success",
-  raided: "danger",
-  raid_warning: "warning",
-  arrivals: "success",
-  builds_done: "success",
-  sold: "success",
+  night_shift_over: "warning",
 };
 
 export function noteScreen(words: Words, note: DmNote): Screen {
@@ -78,46 +72,4 @@ export function feedMessages(words: Words, items: FeedItem[], now: number): stri
   }
   if (current) messages.push(current);
   return messages;
-}
-
-/** A season's news as one channel message. */
-export function newsMessage(words: Words, content: Content, news: SeasonNews): string {
-  const t = words.t;
-  const modifier = (id: string | null) =>
-    id && content.seasons.modifiers.some((m) => m.id === id)
-      ? { name: t(`modifier.${id}.name`), blurb: t(`modifier.${id}.blurb`) }
-      : null;
-  if (news.kind === "announced") {
-    const { season } = news;
-    const lines = [
-      t("discord.news.announced", {
-        number: season.number,
-        when: relative(season.endsAt ?? 0),
-        date: dateTime(season.endsAt ?? 0),
-      }),
-    ];
-    const next = modifier(season.next);
-    if (next) lines.push(t("discord.news.next", next));
-    return lines.join("\n");
-  }
-  const lines = [t("discord.news.ended", { number: news.ended })];
-  if (news.winners.length > 0) {
-    lines.push("", t("discord.news.winners"));
-    for (const winner of news.winners) {
-      lines.push(
-        t("discord.news.winner", {
-          title: t(`legacy.title_${winner.category}`),
-          name: escapeMarkdown(winner.name),
-        }),
-      );
-    }
-  }
-  const next = modifier(news.season.modifier);
-  lines.push(
-    "",
-    next
-      ? t("discord.news.started", { number: news.season.number, ...next })
-      : t("discord.news.started_plain", { number: news.season.number }),
-  );
-  return lines.join("\n");
 }

@@ -1,7 +1,7 @@
 /**
  * Web Push (W4b): a player turns notifications on per device, picks the kinds
- * (party back and raided on by default), and the scheduler pings their phone
- * when something they asked about lands while they are away.
+ * ("Night Shift over" on by default, D138), and the scheduler pings their phone
+ * when something they asked about lands while they are away. Quiet hours come in R1.
  *
  * The VAPID key pair is generated on first boot and kept in the `settings`
  * table, so nothing has to be configured on the server. Subscriptions that the
@@ -38,13 +38,13 @@ export interface Notification {
   kind: NotifyKind;
 }
 
-/** Sends one payload to one subscription; web-push in production, a stub in tests. */
 /** Hands a player's due notifications to the Discord bot (W8). */
 export type DmSend = (discordId: string, notes: Notification[]) => void;
 
 /** Discord user ids are snowflakes; test players (`dev-1`) never get a DM. */
 const SNOWFLAKE = /^\d{17,20}$/;
 
+/** Sends one payload to one subscription; web-push in production, a stub in tests. */
 export type PushSend = (
   subscription: Subscription,
   payload: string,
@@ -67,108 +67,18 @@ function vapidKeys(db: Db): { publicKey: string; privateKey: string } {
 export function notificationFor(locale: Locale, event: GameEvent): Notification | null {
   const kind = notifyKindOf(event);
   if (!kind) return null;
-  const t = (key: string, args?: Record<string, string | number>) => locale.t(key, args);
   switch (event.type) {
-    case "mission_back": {
-      const place =
-        event.kind === "scout" ? t(`region.${event.target}.name`) : t(`site.${event.target}.name`);
+    case "night_shift_over":
       return {
         kind,
-        title: t(event.kind === "scout" ? "push.scout_back" : "push.party_back"),
-        body: t(`push.outcome_${event.kind === "scout" ? "scouted" : event.outcome}`, { place }),
-        tag: event.mission,
-        url: `/?report=${encodeURIComponent(event.mission)}`,
-      };
-    }
-    case "survivor_arrived":
-      return {
-        kind,
-        title: t("push.arrived_title"),
-        body: t("push.arrived", { name: t(`crew.${event.survivor}.name`) }),
-        tag: `arrived-${event.survivor}`,
+        title: locale.t("push.night_shift_over_title"),
+        body: locale.t("push.night_shift_over"),
+        tag: "night_shift_over",
         url: "/",
-      };
-    case "build_done":
-      return {
-        kind,
-        title: t("push.built_title"),
-        body: t("push.tier_done", { tier: t(`base_tier.${event.tier}.name`) }),
-        tag: `tier-${event.tier}`,
-        url: "/",
-      };
-    case "building_done":
-      return {
-        kind,
-        title: t("push.built_title"),
-        body: t("push.building_done", {
-          building: t(`building.${event.building}.name`),
-          level: event.level,
-        }),
-        tag: `building-${event.building}`,
-        url: "/",
-      };
-    case "sold":
-      return {
-        kind,
-        title: t("push.sold_title"),
-        body: t("push.sold", {
-          amount: event.amount,
-          good: t(
-            `${locale.has(`item.${event.good}.name`) ? "item" : "resource"}.${event.good}.name`,
-          ),
-          price: event.price,
-        }),
-        tag: `sold-${event.listing}`,
-        url: "/?den",
-      };
-    // Raids (W6).
-    case "raid_landed":
-      return {
-        kind,
-        title: t("push.raided_title"),
-        body: t(`push.raid_${event.report.outcome}`, {
-          gains: amountsText(
-            locale,
-            event.report.outcome === "held" ? event.report.gained : event.report.lost,
-          ),
-        }),
-        tag: `raid-${event.report.id}`,
-        url: `/?report=${encodeURIComponent(event.report.id)}`,
-      };
-    case "raided":
-      return {
-        kind,
-        title: t("push.raided_title"),
-        body: t(`push.pvp_${event.report.outcome}`, {
-          name: event.attackerName,
-          gains: amountsText(locale, event.report.lost),
-        }),
-        tag: `raid-${event.report.id}`,
-        url: `/?report=${encodeURIComponent(event.report.id)}`,
-      };
-    case "raid_warned":
-      return {
-        kind,
-        title: t("push.warning_title"),
-        body: t("push.warning", {
-          hours: Math.max(1, Math.round((event.lands - event.at) / 3600)),
-        }),
-        tag: `warning-${event.lands}`,
-        url: "/?defence",
       };
     default:
       return null;
   }
-}
-
-/** "120 Timber, 80 Stone": the biggest few amounts, for a notification's one line. */
-function amountsText(locale: Locale, amounts: Record<string, number>): string {
-  const lines = Object.entries(amounts)
-    .filter(([, amount]) => amount > 0)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([id, amount]) => `${amount} ${locale.t(`resource.${id}.name`)}`);
-  return lines.length > 0 ? lines.join(", ") : locale.t("push.nothing");
 }
 
 export class Notifier {

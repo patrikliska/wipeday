@@ -4,8 +4,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ContentError, formatProblem, loadContent, loadLocale } from "./load";
 import { Locale } from "./locale";
-import { parseContent } from "./parse";
 import { contentPaths as paths } from "./paths";
+import { effectSchema } from "./schema";
 
 const locale = loadLocale();
 
@@ -30,12 +30,28 @@ function problemsOf(dir: string, withLocale = locale): string[] {
 describe("the shipped data files", () => {
   it("load with no problems", () => {
     const content = loadContent(paths.data, locale);
-    expect(content.resources.map((resource) => resource.id)).toContain("sulfur_ore");
-    expect(content.nodes.map((node) => node.id)).toContain("tree_1");
-    expect(content.crafting.batchSize.length).toBeGreaterThanOrEqual(3);
-    expect(content.recipes.find((recipe) => recipe.output === "planks")?.amount).toBe(10);
-    // `amount` defaults to one.
-    expect(content.recipes.find((recipe) => recipe.output === "bow")?.amount).toBe(1);
+    expect(content.lines.map((line) => line.id)).toHaveLength(14);
+    expect(content.island).toBe("saltmarsh");
+  });
+
+  it("derive the lines from the formula (docs/redesign/02-the-run.md 2.2)", () => {
+    const { lines } = loadContent(paths.data, locale);
+    const [first, , , loom] = lines;
+    expect(first).toMatchObject({
+      id: "beachcomber",
+      cost: 6,
+      rate: 1.5,
+      cycle: 0.6,
+      growth: 1.15,
+    });
+    expect(first?.handPrice).toBe(1800);
+    expect(loom?.cost).toBe(6 * 16 ** 3);
+    expect(loom?.rate).toBeCloseTo(1.5 * 4.75 ** 3, 9);
+    expect(loom?.growth).toBeCloseTo(1.132, 12);
+    const reactor = lines[13];
+    // The plan's table rounds: 27Qa and 940M.
+    expect((reactor?.cost ?? 0) / 27e15).toBeCloseTo(1, 2);
+    expect((reactor?.rate ?? 0) / 940e6).toBeCloseTo(1, 2);
   });
 });
 
@@ -43,160 +59,87 @@ describe("validation", () => {
   it("reports every problem at once, with file and id", () => {
     const dir = dataWith("resources.json5", (text) =>
       text
-        .replace('id: "stone"', 'id: "timber"')
-        .replace('id: "fibre"', 'id: "Bad-Id"')
-        .replace('kind: "currency"', 'kind: "gold", cost: -5'),
+        .replace('{ id: "glass", kind: "currency" }', '{ id: "supplies", kind: "currency" }')
+        .replace('{ id: "scrap", kind: "currency" }', '{ id: "Bad-Id", kind: "gold" }'),
     );
     const problems = problemsOf(dir);
-    expect(problems).toContain("resources.json5 `timber`: id is used more than once");
     expect(problems.some((p) => p.includes("`Bad-Id`") && p.includes("snake_case"))).toBe(true);
-    expect(problems.some((p) => p.includes("`scrap`") && p.includes("kind"))).toBe(true);
-    expect(problems.some((p) => p.includes("`scrap`") && p.includes("cost"))).toBe(true);
+    expect(problems.some((p) => p.includes("`Bad-Id`") && p.includes("kind"))).toBe(true);
   });
 
-  it("requires a locale name for every entity and an effect for every item", () => {
+  it("reports a duplicated id", () => {
+    const dir = dataWith("crew.json5", (text) => text.replace('{ id: "dax" }', '{ id: "mara" }'));
+    const problems = problemsOf(dir);
+    expect(problems).toContain("crew.json5 `mara`: id is used more than once");
+  });
+
+  it("requires a locale name for every entity", () => {
     const problems = problemsOf(paths.data, Locale.fromObject({}));
     expect(problems).toContain(
-      "resources.json5 `timber`: missing locale key `resource.timber.name`",
+      "resources.json5 `supplies`: missing locale key `resource.supplies.name`",
     );
-    expect(problems).toContain("base_tiers.json5 `hqm`: missing locale key `base_tier.hqm.name`");
-    expect(problems).toContain("items.json5 `crate`: missing locale key `item.crate.effect`");
-    expect(problems).toContain("nodes.json5 `tree`: missing locale key `node.tree.name`");
+    expect(problems).toContain("lines.json5 `reactor`: missing locale key `line.reactor.name`");
+    expect(problems).toContain("lines.json5: missing locale key `island.saltmarsh.name`");
   });
 
-  it("requires tool rates and costs to name real resources", () => {
-    const dir = dataWith("tools.json5", (text) =>
-      text.replace("stone: 80 }", "stone: 80, gold: 1 }"),
-    );
-    expect(problemsOf(dir)).toContain("tools.json5 `rock`: rates names unknown resource `gold`");
+  it("rejects a non-finite or negative amount (D130)", () => {
+    const dir = dataWith("prestige.json5", (text) => text.replace("l0: 5e5", "l0: Infinity"));
+    expect(problemsOf(dir).join("\n")).toMatch(/prestige\.json5: l0/);
+    const negative = dataWith("lines.json5", (text) => text.replace("costBase: 6", "costBase: -6"));
+    expect(problemsOf(negative).join("\n")).toMatch(/formula\.costBase/);
   });
 
-  it("requires base tiers to match the fixed tier list", () => {
-    const dir = dataWith("base_tiers.json5", (text) => text.replace('id: "twig"', 'id: "mud"'));
-    expect(problemsOf(dir).some((p) => p.includes("must list exactly [twig, wood"))).toBe(true);
-  });
-
-  it("requires every placed node to have a known kind, and every item a recipe", () => {
-    const nodes = dataWith("nodes.json5", (text) =>
-      text.replace('{ id: "ore_1", kind: "ore" }', '{ id: "ore_1", kind: "gold" }'),
-    );
-    expect(problemsOf(nodes)).toContain("nodes.json5 `ore_1`: unknown node kind `gold`");
-    const recipes = dataWith("recipes.json5", (text) => text.replace(/\{ output: "spear".*\n/, ""));
-    expect(problemsOf(recipes)).toContain("recipes.json5 `spear`: item has no recipe");
-  });
-});
-
-describe("the crafting web", () => {
-  const recipesWith = (edit: (text: string) => string) =>
-    problemsOf(dataWith("recipes.json5", edit));
-
-  it("requires a recipe for every part, and a use for it", () => {
-    expect(recipesWith((text) => text.replace(/\{ output: "rope".*\n/, ""))).toContain(
-      "recipes.json5 `rope`: part has no recipe",
-    );
-    // Charcoal only goes into springs and gunpowder.
-    const unused = recipesWith((text) =>
-      text
-        .replace("cost: { ingots: 16, charcoal: 10 }", "cost: { ingots: 16 }")
-        .replace("cost: { sulfur: 20, charcoal: 5 }", "cost: { sulfur: 20 }"),
-    );
-    expect(unused).toContain("recipes.json5 `charcoal`: part is made but nothing uses it");
-  });
-
-  it("requires a real station and level, and no blueprint on a part", () => {
-    const problems = recipesWith((text) =>
-      text
-        .replace(
-          'output: "rope", amount: 5, station: "loom"',
-          'output: "rope", amount: 5, station: "mill"',
-        )
-        .replace(
-          'output: "cloth", amount: 5, station: "loom", level: 1',
-          'output: "cloth", amount: 5, station: "loom", level: 7',
-        )
-        .replace("cost: { timber: 50 } },", "cost: { timber: 50 }, blueprint: true },"),
-    );
-    expect(problems).toContain("recipes.json5 `rope`: station `mill` is not a building");
-    expect(problems).toContain("recipes.json5 `cloth`: loom has no level 7");
-    expect(problems).toContain("recipes.json5 `charcoal`: a part cannot need a blueprint");
-  });
-
-  it("finds recipes nothing on the island can feed", () => {
-    // With no tool gathering sulfur ore, nothing gives sulfur: a roast that needs it cannot be made.
-    const dir = dataWith("recipes.json5", (text) =>
-      text.replace("cost: { food: 30 } }", "cost: { food: 30, sulfur: 1 } }"),
-    );
-    const tools = join(dir, "tools.json5");
-    writeFileSync(tools, readFileSync(tools, "utf8").replaceAll(/sulfur_ore: \d+, /g, ""));
-    expect(problemsOf(dir)).toContain(
-      "recipes.json5 `roast`: cannot be made: nothing on the island gives sulfur",
-    );
-  });
-});
-
-describe("parseContent", () => {
-  it("reports a data file that did not arrive (a bundler that forgot one)", () => {
-    expect(() => parseContent({}, locale)).toThrow(/crafting\.json5: file is missing/);
-  });
-});
-
-describe("the Den's checks (W5)", () => {
-  it("keeps every bet option at a 5-10% edge and whole-scrap payouts", () => {
-    const dir = dataWith("den.json5", (text) =>
+  it("checks the formula: costs, output and payback rise with the rung", () => {
+    const dir = dataWith("lines.json5", (text) =>
       text.replace(
-        '{ id: "crab", weight: 12, pays: 380 }',
-        '{ id: "crab", weight: 12, pays: 470 }',
+        'rung: 5, era: "wood", hand: "sela", product: "planks" }',
+        'rung: 5, era: "wood", hand: "sela", product: "planks", cost: 10 }',
       ),
     );
     const problems = problemsOf(dir);
-    expect(problems.some((p) => p.includes("`crab`") && p.includes("outside 90-95%"))).toBe(true);
-    expect(problems.some((p) => p.includes("`crab`") && p.includes("not whole scrap"))).toBe(true);
+    expect(problems).toContain("lines.json5 `workbench`: cost must rise with the rung");
   });
 
-  it("refuses contracts that pay more than the Den sells for", () => {
-    const dir = dataWith("den.json5", (text) =>
-      text
-        .replace("payPercent: 40", "payPercent: 100")
-        .replace("markupPercent: 250", "markupPercent: 100"),
-    );
-    expect(problemsOf(dir)).toContain(
-      "den.json5 `contracts`: payPercent must be below the stock's markupPercent (no arbitrage)",
-    );
-  });
-
-  it("needs a price for every tradeable good", () => {
-    const dir = dataWith("den.json5", (text) => text.replace("gears: 400, ", ""));
-    expect(problemsOf(dir)).toContain("den.json5 `gears`: tradeable good has no refPer100");
-  });
-});
-
-describe("the raids' checks (W6)", () => {
-  it("keeps NPC losses inside the cap and every tier covered", () => {
-    const dir = dataWith("raids.json5", (text) =>
-      text.replace("lossPercent: 5", "lossPercent: 25").replace("hqm: { base: 35, max: 120 },", ""),
+  it("checks growth, unreachable prices and hands", () => {
+    const dir = dataWith("lines.json5", (text) =>
+      text.replace("growthBase: 1.15", "growthBase: 1.3").replace('hand: "dax"', 'hand: "mara"'),
     );
     const problems = problemsOf(dir);
-    expect(problems).toContain("raids.json5 `npc`: lossPercent is above capPercent");
-    expect(problems).toContain("raids.json5 `hqm`: npc needs a strength");
+    expect(problems).toContain("lines.json5 `beachcomber`: growth must be in (1, 1.2]");
+    expect(problems).toContain("lines.json5 `campfire`: hand `mara` already runs another line");
+    expect(problems.some((p) => p.includes("keep it under 1e200"))).toBe(true);
   });
 
-  it("needs charges in every camp's rations", () => {
-    const dir = dataWith("sites.json5", (text) =>
-      text.replace("rations: { food: 30, charge: 2 }", "rations: { food: 30 }"),
+  it("holds the Night Shift to 12-48 h (N18)", () => {
+    const dir = dataWith("lines.json5", (text) =>
+      text.replace("windowHours: 12, maxHours: 48", "windowHours: 8, maxHours: 72"),
     );
-    expect(problemsOf(dir)).toContain(
-      "sites.json5 `driftwood_camp`: a camp's rations need charges",
-    );
+    const problems = problemsOf(dir);
+    expect(problems).toContain("lines.json5: the Night Shift must start at 12 h or more (N18)");
+    expect(problems).toContain("lines.json5: the Night Shift must never pass 48 h (N18)");
+  });
+
+  it("keeps Hustle's peak under its ceiling", () => {
+    const dir = dataWith("targets.json5", (text) => text.replace("peak: 2,", "peak: 3,"));
+    expect(problemsOf(dir)).toContain("targets.json5: Hustle's peak must not pass its ceiling");
+  });
+
+  it("reports a missing file", () => {
+    const dir = dataWith("pacing.json5", () => "{ nope");
+    expect(problemsOf(dir).some((p) => p.startsWith("pacing.json5: cannot be read"))).toBe(true);
   });
 });
 
-describe("the legacy checks (W7)", () => {
-  it("refuses a perk tree that makes a veteran more than 25% stronger", () => {
-    const dir = dataWith("legacy.json5", (text) =>
-      text.replace("bonus: { allRates: 2 }", "bonus: { allRates: 9 }"),
-    );
-    expect(problemsOf(dir)).toContain(
-      "legacy.json5 `allRates`: perks add 27.0%, above the 25% cap",
+describe("effects", () => {
+  it("need a max with `per`, a registered stat, and an op the stat allows", () => {
+    expect(effectSchema.safeParse({ stat: "output", op: "more", value: 2 }).success).toBe(true);
+    expect(
+      effectSchema.safeParse({ stat: "output", op: "inc", value: 0.1, per: "owned" }).success,
+    ).toBe(false);
+    expect(effectSchema.safeParse({ stat: "lucky", op: "add", value: 1 }).success).toBe(false);
+    expect(effectSchema.safeParse({ stat: "speed", op: "add", value: 1 }).success).toBe(false);
+    expect(effectSchema.safeParse({ stat: "output", op: "more", value: Number.NaN }).success).toBe(
+      false,
     );
   });
 });

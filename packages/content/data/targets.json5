@@ -1,0 +1,27 @@
+// The tap (docs/redesign/02-the-run.md 7 and 13.2). R1 adds the five era targets that fell.
+{
+  tap: {
+    // N10: the server credits at most perSecond taps a second, burst at most (D134).
+    bucket: { perSecond: 15, burst: 45 },
+    // Holding a press counts holdTapsPerSecond, once it has been held holdAfterSeconds.
+    holdTapsPerSecond: 4,
+    holdAfterSeconds: 0.35,
+    // A tap's share of the full rate (p) and its flat part, before Grip.
+    flat: 1,
+    share: 0,
+    // Hustle, the tap meter: +perTap a tap up to cap; it holds graceSeconds after the last tap,
+    // then drains drainPerSecond. At the cap taps are worth `peak` times as much; nothing may
+    // lift the peak above peakCeiling (N9).
+    hustle: {
+      perTap: 1,
+      cap: 100,
+      peak: 2,
+      peakCeiling: 2.25,
+      graceSeconds: 2,
+      drainPerSecond: 10,
+    },
+    // Taps a fell pays, and the seconds the target stays down while still counting taps.
+    fellBonusTaps: 10,
+    popSeconds: 0.3,
+  },
+}

@@ -1,93 +1,175 @@
 import { loadContent, loadLocale } from "@wipe-day/content/load";
 import { contentPaths } from "@wipe-day/content/paths";
 import { describe, expect, it } from "vitest";
-import { utcDay } from "./active";
-import { advise, hintFor } from "./advisor";
-import { type BaseState, newBase } from "./base";
-import { applyCommand } from "./commands";
+import { assertFiniteState, finite } from "./amount";
+import { applyCommand, type Command, type CommandResult } from "./commands";
+import { costOf, lineOf, maxAffordable } from "./lines";
+import { normalizeState } from "./normalize";
+import { glassLevel, glow, lifetimeFor } from "./prestige";
+import { type BaseState, newBase } from "./state";
 
 const content = loadContent(contentPaths.data, loadLocale());
 const T0 = 1_700_000_000;
 
-const fresh = (): BaseState => ({
-  ...newBase(content, T0, 1),
-  tasks: { day: utcDay(T0), ids: ["gather_4", "craft_1", "node_hits_10"], progress: {}, done: [] },
+const fresh = (patch: Partial<BaseState["run"]> = {}): BaseState => {
+  const base = newBase(content, T0, 1);
+  return { ...base, run: { ...base.run, ...patch } };
+};
+
+const ok = (result: CommandResult): BaseState => {
+  if (!result.ok) throw new Error(`refused: ${JSON.stringify(result.refusal)}`);
+  return result.state;
+};
+
+const run = (state: BaseState, command: Command, now = T0): CommandResult =>
+  applyCommand(content, state, command, now);
+
+describe("buy_line", () => {
+  it("buys one, ten or the most supplies allow, at the closed-form price", () => {
+    const beach = lineOf(content, "beachcomber");
+    if (!beach) throw new Error("no beachcomber");
+    let state = ok(
+      run(fresh({ supplies: 10_000 }), { type: "buy_line", line: "beachcomber", count: 1 }),
+    );
+    expect(state.run.lines.beachcomber).toBe(1);
+    expect(state.run.supplies).toBeCloseTo(10_000 - 6, 9);
+    state = ok(run(state, { type: "buy_line", line: "beachcomber", count: 10 }));
+    expect(state.run.lines.beachcomber).toBe(11);
+    expect(state.run.supplies).toBeCloseTo(10_000 - costOf(beach, 0, 11), 6);
+    const max = maxAffordable(beach, 11, state.run.supplies);
+    state = ok(run(state, { type: "buy_line", line: "beachcomber", count: "max" }));
+    expect(state.run.lines.beachcomber).toBe(11 + max);
+    expect(state.run.supplies).toBeGreaterThanOrEqual(0);
+    expect(costOf(beach, 11 + max, 1)).toBeGreaterThan(state.run.supplies);
+  });
+
+  it("matches the plan's worked example: owning 10 Looms, ×10 costs 1.58M", () => {
+    const loom = lineOf(content, "loom");
+    if (!loom) throw new Error("no loom");
+    expect(costOf(loom, 10, 10) / 1.58e6).toBeCloseTo(1, 2);
+    expect(maxAffordable(loom, 10, 1e6)).toBe(7);
+  });
+
+  it("refuses with what is missing", () => {
+    const short = run(fresh({ supplies: 3 }), { type: "buy_line", line: "beachcomber", count: 1 });
+    expect(short.ok).toBe(false);
+    if (!short.ok) expect(short.refusal).toEqual({ reason: "supplies", need: 6, have: 3 });
+    const locked = run(fresh({ supplies: 1e9 }), { type: "buy_line", line: "loom", count: 1 });
+    if (!locked.ok)
+      expect(locked.refusal).toEqual({ reason: "locked", gate: { kind: "era", value: "wood" } });
+    else throw new Error("loom should be locked in the Twig era");
+    const none = run(fresh(), { type: "buy_line", line: "beachcomber", count: "max" });
+    if (!none.ok) expect(none.refusal.reason).toBe("supplies");
+  });
+
+  it("starts the run's clock and the first purchase, and restarts the Night Shift", () => {
+    const state = ok(
+      run(fresh({ supplies: 10 }), { type: "buy_line", line: "beachcomber", count: 1 }, T0 + 50),
+    );
+    expect(state.run.startedAt).toBe(T0 + 50);
+    expect(state.run.firstBuyAt).toBe(T0 + 50);
+    expect(state.run.activeAt).toBe(T0 + 50);
+  });
 });
 
-describe("applyCommand", () => {
-  it("settles, applies, records task progress and hint use", () => {
-    const result = applyCommand(content, fresh(), { type: "gather" }, T0);
-    if (!result.ok) throw new Error("expected ok");
-    expect(result.events.map((event) => event.type)).toEqual(["gathered"]);
-    expect(result.state.tasks.progress.gather_4).toBe(1);
-    expect(result.state.hints.gather).toBe(1);
+describe("hire_hand", () => {
+  it("needs a unit, the price, and one hand per line", () => {
+    const empty = run(fresh({ supplies: 1e6 }), { type: "hire_hand", line: "beachcomber" });
+    if (!empty.ok) expect(empty.refusal.reason).toBe("no_units");
+    const state = ok(
+      run(fresh({ supplies: 1e6, lines: { beachcomber: 1 } }), {
+        type: "hire_hand",
+        line: "beachcomber",
+      }),
+    );
+    expect(state.run.hands).toEqual(["beachcomber"]);
+    expect(state.run.supplies).toBe(1e6 - 1800);
+    const again = run(state, { type: "hire_hand", line: "beachcomber" });
+    if (!again.ok) expect(again.refusal.reason).toBe("hired");
   });
 
-  it("refuses with a reason and keeps the settled state", () => {
-    const first = applyCommand(content, fresh(), { type: "gather" }, T0);
-    if (!first.ok) throw new Error("expected ok");
-    const second = applyCommand(content, first.state, { type: "gather" }, T0 + 60);
-    expect(second).toMatchObject({ ok: false, refusal: { code: "cooldown", readyAt: T0 + 600 } });
-    expect(second.state.hints.gather).toBe(1);
-
-    const build = applyCommand(content, fresh(), { type: "build", what: "tier" }, T0);
-    expect(build).toMatchObject({ ok: false, refusal: { code: "unaffordable" } });
-    const craft = applyCommand(content, fresh(), { type: "craft", recipe: "crate", count: 1 }, T0);
-    expect(craft).toMatchObject({ ok: false, refusal: { code: "station", station: "workbench" } });
-  });
-
-  it("lands time-based changes as events on the next command", () => {
-    const base: BaseState = {
-      ...fresh(),
-      stock: { timber: 1000, stone: 1000, fibre: 100, planks: 10, rope: 5 },
-      buildings: { workbench: 1 },
-    };
-    const queued = applyCommand(content, base, { type: "craft", recipe: "bow", count: 1 }, T0);
-    if (!queued.ok) throw new Error("expected ok");
-    expect(queued.state.tasks.progress.craft_1).toBe(1);
-    const later = applyCommand(content, queued.state, { type: "collect" }, T0 + 3600);
-    expect(later.events.map((event) => event.type)).toContain("crafted");
-    expect(later.state.items.bow).toBe(1);
-  });
-
-  it("counts node hits toward tasks, a repeat hit not at all", () => {
-    let state = fresh();
-    for (const hit of [1, 2, 2, 3]) {
-      const result = applyCommand(
-        content,
-        state,
-        { type: "hit_node", node: "tree_1", run: "r1", hit },
-        T0 + hit,
-      );
-      if (!result.ok) throw new Error("expected ok");
-      state = result.state;
-    }
-    expect(state.tasks.progress.node_hits_10).toBe(3);
+  it("makes the line run by itself, also while away, until the Night Shift ends", () => {
+    const state = ok(
+      run(fresh({ supplies: 2000, lines: { beachcomber: 2 } }), {
+        type: "hire_hand",
+        line: "beachcomber",
+      }),
+    );
+    const later = ok(run(state, { type: "ping" }, T0 + 100));
+    // 2 units × 1.5 a second × 100 s; Glow is 1 with no glass.
+    expect(later.run.supplies - state.run.supplies).toBeCloseTo(300, 9);
+    const window = content.run.nightShift.windowHours * 3600;
+    const end = applyCommand(content, later, { type: "ping" }, T0 + 100 + window + 5000);
+    expect(end.state.run.supplies - later.run.supplies).toBeCloseTo(3 * window, 6);
+    expect(end.events.some((event) => event.type === "night_shift_over")).toBe(true);
   });
 });
 
-describe("advisor", () => {
-  it("points a new base at Gather, then retires the hint after two uses", () => {
-    const base = fresh();
-    expect(advise(content, base, T0)).toBe("gather");
-    expect(hintFor(base, "gather")).toBe("gather");
-    const used = { ...base, hints: { gather: 2 } };
-    expect(hintFor(used, "gather")).toBeNull();
+describe("taps", () => {
+  it("credits each tap, at most the bucket's burst and refill (N10)", () => {
+    const one = ok(run(fresh(), { type: "taps", count: 10, from: T0, to: T0 }));
+    expect(one.run.taps).toBe(10);
+    expect(one.run.supplies).toBeGreaterThan(10);
+    const flood = ok(run(fresh(), { type: "taps", count: 120, from: T0, to: T0 }));
+    expect(flood.run.taps).toBe(45);
+    const ahead = ok(run(fresh(), { type: "taps", count: 30, from: T0, to: T0 + 3600 }, T0));
+    expect(ahead.run.bucket.at).toBe(T0);
   });
 
-  it("with nothing to do and Gather cooling down, waits for Gather unless something can be banked", () => {
-    const gathered = applyCommand(content, fresh(), { type: "gather" }, T0);
-    if (!gathered.ok) throw new Error("expected ok");
-    expect(advise(content, gathered.state, T0 + 1)).toBe("gather");
-    expect(advise(content, gathered.state, T0 + 300)).toBe("collect");
+  it("starts the run's clock and Afterglow's", () => {
+    const state = ok(run(fresh(), { type: "taps", count: 3, from: T0 + 2, to: T0 + 3 }, T0 + 3));
+    expect(state.run.startedAt).toBe(T0 + 3);
+    expect(state.run.afterglowFrom).toBe(T0 + 2);
+  });
+});
+
+describe("normalizeState (D133)", () => {
+  it("returns null for any other version, so the API starts afresh", () => {
+    expect(normalizeState(content, { tier: "twig", stock: {} })).toBeNull();
+    expect(normalizeState(content, { v: 1 })).toBeNull();
+    expect(normalizeState(content, null)).toBeNull();
   });
 
-  it("points at the build when the next tier is affordable, even at a full cap", () => {
-    // Twig holds 1500 timber and the Timber tier costs exactly that: full, and nothing to bank.
-    const base = { ...fresh(), stock: { timber: 1500, stone: 500 } };
-    expect(advise(content, base, T0)).toBe("build");
-    // With production waiting behind the cap, banking it comes first.
-    const waiting = { ...fresh(), stock: { timber: 1500, stone: 100 } };
-    expect(advise(content, waiting, T0 + 3600)).toBe("collect");
+  it("fills missing fields, drops unknown lines, and is idempotent", () => {
+    const base = newBase(content, T0, 7);
+    expect(normalizeState(content, base)).toEqual(base);
+    const stored = JSON.parse(JSON.stringify(base));
+    delete stored.run.hustle;
+    stored.run.lines = { beachcomber: 3, gone: 2 };
+    stored.run.hands = ["beachcomber", "gone"];
+    const once = normalizeState(content, stored);
+    expect(once?.run.hustle).toEqual(base.run.hustle);
+    expect(once?.run.lines).toEqual({ beachcomber: 3 });
+    expect(once?.run.hands).toEqual(["beachcomber"]);
+    expect(normalizeState(content, once)).toEqual(once);
+  });
+});
+
+describe("numbers (D130)", () => {
+  it("throws on NaN and Infinity", () => {
+    expect(() => finite(Number.NaN, "x")).toThrow(/non-finite x/);
+    expect(finite(1e300, "x")).toBe(1e300);
+    const bad = fresh({ supplies: Number.POSITIVE_INFINITY });
+    expect(() => assertFiniteState(bad)).toThrow(/state\.run\.supplies/);
+    expect(() => assertFiniteState(fresh())).not.toThrow();
+  });
+
+  it("refuses to settle into a non-finite amount", () => {
+    const state = fresh({ supplies: 1e308, lines: { beachcomber: 1 }, hands: ["beachcomber"] });
+    const huge = { ...state, run: { ...state.run, lines: { beachcomber: 1e308 } } };
+    expect(() => applyCommand(content, huge, { type: "ping" }, T0 + 3600)).toThrow(/non-finite/);
+  });
+});
+
+describe("prestige (N21)", () => {
+  it("is the fifth root over 5e5, exact at its boundaries", () => {
+    expect(glassLevel(content, 0)).toBe(0);
+    expect(glassLevel(content, 5e5)).toBe(1);
+    expect(glassLevel(content, 5e5 * 32)).toBe(2);
+    expect(glassLevel(content, 5e5 * 32 - 1)).toBe(1);
+    // 10 glass needs about 50 billion supplies made.
+    expect(lifetimeFor(content, 10)).toBe(5e10);
+    expect(glassLevel(content, 5e10)).toBe(10);
+    expect(glow(content, 100)).toBeCloseTo(3.5, 12);
   });
 });

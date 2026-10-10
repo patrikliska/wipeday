@@ -1,8 +1,29 @@
 /**
- * Seeded randomness for the domain. Every roll takes a seed, so a click can
- * be replayed in a test and the simulator is deterministic. mulberry32:
- * small, fast, good enough for loot tables.
+ * Seeded randomness for the domain. Every roll takes a seed, so a tap can be replayed in a
+ * test, the client predicts what the server rolls, and the simulator is deterministic.
+ * mulberry32: small, fast, good enough for games.
+ *
+ * Every roll is `rng(seedOf(run.seed, SEED.<tag>, index))`: numbers only, never a clock value
+ * (docs/redesign/09-architecture.md 3.1).
  */
+
+/** The tags that keep each kind of roll on its own stream. */
+export const SEED = {
+  /** A run's seed from the base's seed and the nuke count. */
+  run: 0x52554e,
+  /** Whether tap number k crits. */
+  crit: 0xc417,
+  /** The gap before flotsam arrival k. */
+  flotsam: 0xf107,
+  /** Which kind arrival k is. */
+  kind: 0x4b1d,
+  /** Which line a Drowned Drone boosts. */
+  drone: 0xd403,
+  /** The nuke's flight variant. */
+  flight: 0xf119,
+  /** The Magnet's hauls (on the base's seed: they span runs). */
+  magnet: 0x3a6e,
+} as const;
 
 export interface Rng {
   /** Uniform in [0, 1). */

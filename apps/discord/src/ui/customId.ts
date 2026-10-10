@@ -13,8 +13,8 @@ export const MAX_LENGTH = 100;
 
 const PREFIX = "idle:v2";
 
-/** The `/base` card's buttons. */
-export const BASE_ACTIONS = ["collect", "gather", "refresh", "dm_on", "dm_off"] as const;
+/** The `/base` message's buttons (Collect and Gather left with the W-phase game). */
+export const BASE_ACTIONS = ["refresh", "dm_on", "dm_off"] as const;
 /** A DM's buttons: the base card as a reply, or DMs off. */
 export const NOTE_ACTIONS = ["base", "dm_off"] as const;
 
