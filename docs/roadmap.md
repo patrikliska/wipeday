@@ -652,11 +652,11 @@ cinematic. Waves 2 and 3 may slip but not be cut (guardrail 6).
 
 **R1**
 
-- [ ] Names pass 1 *(proposal)*: Supplies; Beachcomber, Ship Breaker, Reactor; Gus, Vera; the five
+- [x] Names pass 1: Supplies; Beachcomber, Ship Breaker, Reactor; Gus, Vera; the five
       targets and fell cries; Hustle; Hold to work; Night Shift; Drift Crate, Fuel Drum, Rally,
       Adrenaline Kit; hands; Grip; the products. Decided so far (D157): "Starter Kit"
-      (`packed_crate`) becomes **Go Bag**; "Fish Crates" (`food`) becomes **Tinned Fish**. Eras: keep the
-      five Rust grades [leaning] or rename all five. Decisions 2 [Saltmarsh] and 15 [procedural
+      (`packed_crate`) becomes **Go Bag**; "Fish Crates" (`food`) becomes **Tinned Fish**. Everything
+      else kept as proposed, and the eras keep the five Rust grades (D164). Decisions 2 [Saltmarsh] and 15 [procedural
       sound] were made on 2026-10-10.
 - [x] Icons go to `packages/content/icons/<kind>/<id>.svg`. Safe now: `scrap` first; tier badges;
       tools; the 11 kept line buildings; `tree`, `stone`, `ore`, `sulfur`; `crate`; the 12

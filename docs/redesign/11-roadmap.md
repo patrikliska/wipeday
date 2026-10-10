@@ -665,7 +665,7 @@ cinematic. Waves 2 and 3 may slip but not be cut (guardrail 6).
 
 **R1**
 
-- [ ] Names pass 1 *(proposal)*: Supplies; Beachcomber, Ship Breaker, Reactor; Gus, Vera; the five
+- [x] Names pass 1 (D157, D164): Supplies; Beachcomber, Ship Breaker, Reactor; Gus, Vera; the five
       targets and fell cries; Hustle; Hold to work; Night Shift; Drift Crate, Fuel Drum, Rally,
       Adrenaline Kit; hands; Grip; the products; "Starter Kit" (`packed_crate`, the id stays; errata E27) renamed (Go Bag, D157). Eras: keep the
       five Rust grades [leaning] or rename all five. Decisions 2 [Saltmarsh] and 15 [procedural

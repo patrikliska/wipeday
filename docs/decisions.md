@@ -1798,3 +1798,12 @@ milestone 15-40-15, era 30-50-30, never on taps.
   and reads the frame counter: 60 fps (5th percentile 60) with 12 floaters and 126 particles at
   most on the dev PC, and 60 fps with the CPU slowed 4× (`--throttle 4`). The owner's phone stays
   the acceptance (`08-screens.md` 4.6).
+
+### D164. Names pass 1 closes: the proposals stand
+The owner kept every other pass-1 name as proposed (2026-10-10): Supplies; the Beachcomber, the
+Ship Breaker and the Reactor; Gus and Vera; the five targets (Lone Pine, Outcrop, Ore Seam,
+Sulfur Vent, the Wreck) and their fell cries; Hustle; Hold to work; the Night Shift; the Drift
+Crate, the Fuel Drum, Rally and the Adrenaline Kit; the hands; Grip; the products (with D157's
+Tinned Fish). The eras keep the five Rust grades: Twig, Timber, Stone, Sheet Metal, Armored. The
+locale already holds these strings, so nothing in the game changes; their *(proposal)* marks go.
+Passes 2 (R2) and 3 (R4) remain.

@@ -121,26 +121,27 @@ glass) covers the idler's 13 hours. Every purchase is instant; no timer gates on
 Own IP (D43): nothing references another game's items, sites or icons. The island is
 **Saltmarsh**; its clock runs at UTC+1 with no daylight saving (decision 2). Ids never change when
 a display name does, so a rename is a locale edit (`07` 7.3 has the checklist). Name passes: R1,
-R2 and R4; the eras lean to keeping the five Rust grades.
+R2 and R4; pass 1 is done (D157, D164) and the eras keep the five Rust grades.
 
-New names are *(proposal)*; "kept" names exist in the W-phase game.
+New names are *(proposal)* until their pass; "kept" names exist in the W-phase game; pass 1's
+names are approved.
 
 | Name | id | What |
 | --- | --- | --- |
-| Supplies *(proposal)* | `supplies` | the one run currency |
+| Supplies | `supplies` | the one run currency |
 | Crater Glass, Glow *(proposal)* | `glass`, `glow` | prestige currency; its multiplier |
-| Morale, Hustle *(proposal)* | `morale`, `hustle` | Logbook multiplier; tap meter |
+| Morale *(proposal)*, Hustle | `morale`, `hustle` | Logbook multiplier; tap meter |
 | Scrap (kept) | `scrap` | the rare currency |
-| Beachcomber, Ship Breaker, Reactor *(proposal)* | `beachcomber` ... | lines 1, 13, 14 |
+| Beachcomber, Ship Breaker, Reactor | `beachcomber` ... | lines 1, 13, 14 |
 | Campfire ... Radio Mast (kept) | `campfire` ... `radio_mast` | lines 2-12 |
-| Driftwood ... Power Cells *(proposal)* | `timber` ... `cell` | the 14 product badges |
-| Mara ... Tamsin (kept); Gus, Vera *(proposal)* | crew ids | the 14 hands |
+| Driftwood ... Power Cells | `timber` ... `cell` | the 14 product badges |
+| Mara ... Tamsin (kept); Gus, Vera | crew ids | the 14 hands |
 | Twig, Timber, Stone, Sheet Metal, Armored (kept) | `twig` ... `hqm` | eras |
 | Rock ... Power Tools (kept) | tool ids | Grip rungs |
 | Lone Pine, Outcrop, Ore Seam, Sulfur Vent, The Wreck | `tree` ... `wreck` | tap targets |
-| Drift Crate, Fuel Drum, Adrenaline Kit *(proposal)* | `crate` ... | flotsam, R1 |
+| Drift Crate, Fuel Drum, Adrenaline Kit, Rally | `crate` ... | flotsam, R1 |
 | Drowned Drone, Sealed Locker, Message in a Bottle | `drowned_drone` ... | flotsam, R4-R5 |
-| Night Shift, the Kettle, the Big Red *(proposal)* | `night_shift` ... | offline; missile; button |
+| Night Shift; the Kettle, the Big Red *(proposal)* | `night_shift` ... | offline; missile; button |
 | Wipe Day #N, small blast, Afterglow, Fizzle | `fizzle` | the nuke's beats |
 | Blast Map, Ground Zero; the eight sectors | `ground_zero`, sector ids | the tree *(proposal)* |
 | Calloused Hands, Old Friends, Go Bag | `steady_hands` ... | ring-1 nodes (perk ids) |
@@ -150,8 +151,9 @@ New names are *(proposal)*; "kept" names exist in the W-phase game.
 | Blowback, Island Count, the Freighter, Late Tide | | social *(proposal)* |
 | The Barge, the Crossing, Sea Charts *(proposal)* | `barge`, `sea_charts` | second layer, later |
 
-Names pass 1 (D157): the Go Bag (`packed_crate`, once "Starter Kit", a Cookie Clicker
-upgrade name) and Tinned Fish (`food`, once "Fish Crates"). The Radio Mast's product is `broadcast`, never `signal`.
+Names pass 1 (D157, D164): the Go Bag (`packed_crate`, once "Starter Kit", a Cookie Clicker
+upgrade name) and Tinned Fish (`food`, once "Fish Crates"); every other pass-1 name kept as
+proposed, Hold to work and Grip included. The Radio Mast's product is `broadcast`, never `signal`.
 
 **Rejected names** (`07` 7.2): Blueprint Fragments (a Rust item that promises crafting), Rads,
 Fallout, Vault, Glowheads and Caps (Fallout), Stash and Recycler (Rust), Half-life (a Valve
