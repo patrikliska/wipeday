@@ -631,7 +631,7 @@ cinematic. Waves 2 and 3 may slip but not be cut (guardrail 6).
 
 **R0**
 
-- [ ] Check the restore drill's row counts in `docs/deploy.md`.
+- [x] Check the restore drill's row counts in `docs/deploy.md` (confirmed 2026-10-10).
 
 **R1**
 
