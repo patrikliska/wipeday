@@ -1046,3 +1046,25 @@ product badge at 18 px on a panel-coloured disc at the lower right (02-the-run.m
   ink spread from the 48 px sheet does not show; nothing needs evening out before R1.
 - Still open: the badge disc covers the building's lower right corner, which hides the furnace's
   and reactor's doors partly; R1 may move the badge 2 px outward if the doors matter.
+
+### Icons, fourth batch: R4-R5's list, drawn ahead (115 in all)
+
+New, not shown before their phases (D140): `ui/morale` (a steaming tin mug), `ui/magnet` (a
+horseshoe on its cable), `ui/pocket`, `ui/rank` (a star over two chevrons), `ui/foreman` (a
+megaphone), `ui/dead_hand` (a flat palm over the Big Red's dome), the Toolbelt's
+`toolbelt/rush` (a speed arrow), `grit` (a work boot), `flare` (a trail ending in a burst), and
+the flotsam `drowned_drone`, `sealed_locker` (barnacles on a locker) and `bottle` (a corked
+bottle with its note), all three on the flotsam wave.
+
+- Iteration 1, what was wrong:
+  - `flotsam/drowned_drone`, side-on with two rotor discs, was a seagull sitting on the water.
+  - `toolbelt/flare` was the lightest icon in the set (10% ink): a hairline and a spark.
+  - `ui/pocket` (pointed bottom, a screwdriver peeking out) was a shield at 16 px, next to
+    `tier/hqm`.
+- What changed: the drone is a top-down quadcopter (four rotor rings on an X), tilted and
+  half under the wave; the flare's trail is full-tone and heavier and its burst bigger (13%); the
+  pocket is a cargo pocket, rounded at the bottom, under a buttoned flap.
+- Still open: `ui/rank` and `ui/buy_max` both stack two chevrons (a star on top against a bar);
+  they differ at 16 px and never share a view (the Crew panel against the shop), but a rank pip
+  drawing may suit R5's portrait frames better. `toolbelt/flare` stays airy by design: it sits on
+  a 48 px Toolbelt button, not in a chip.

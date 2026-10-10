@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="currentColor">
+  <g transform="rotate(-8 24 22)">
+    <path fill-rule="evenodd" d="M14 3H34A2 2 0 0 1 36 5V36H12V5A2 2 0 0 1 14 3ZM17 7H31V9.5H17ZM17 12H31V14.5H17ZM28 20H31V27H28Z"/>
+    <circle cx="11.5" cy="30" r="2.5"/><circle cx="36.5" cy="24" r="2.5"/><circle cx="36" cy="31" r="2"/>
+  </g>
+  <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M4 41.5Q9 37.5 14 41.5T24 41.5 34 41.5 44 41.5"/>
+</svg>
