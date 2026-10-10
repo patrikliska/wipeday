@@ -7,6 +7,7 @@
  * - `sheet-dark.png` / `sheet-light.png`: the same as one image per theme;
  * - `strip16-dark.png` / `strip16-light.png`: every icon at a real 16 px, zoomed 3x
  *   without smoothing, side by side, to compare silhouettes;
+ * - `shop-dark.png` / `shop-light.png`: the 14 shop rows at a 390 px phone width, 2x;
  * - `png/<kind>__<id>@<size>-<theme>.png`.
  *
  * `--only <kind>[,<kind/id>...]` draws a subset into the sheets. Exits non-zero when a file
@@ -16,6 +17,7 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Resvg } from "@resvg/resvg-js";
 import { ICON_KINDS, iconAccent, lintIcon } from "@wipe-day/content/icons";
+import { loadGame } from "@wipe-day/content/load";
 import { contentPaths } from "@wipe-day/content/paths";
 import { ROOT } from "../config";
 
@@ -170,9 +172,52 @@ function strip(theme: Theme): Buffer {
   return new Resvg(svg).render().asPng();
 }
 
+/** An icon inlined as vector at its size, tinted. */
+function inline(kind: string, id: string, x: number, y: number, size: number, fg: string): string {
+  const icon = icons.find((each) => each.kind === kind && each.id === id);
+  if (!icon) return "";
+  const body = icon.svg.replace(/^[\s\S]*?<svg\b[^>]*>/, "").replace(/<\/svg>\s*$/, "");
+  return `<svg x="${x}" y="${y}" width="${size}" height="${size}" viewBox="0 0 48 48" color="${fg}" fill="currentColor">${body}</svg>`;
+}
+
+/**
+ * The shop rows as R1 draws them (02-the-run.md 1.2, 3.2), at a 390 px phone width and 2x: the
+ * line's building (40 px) with its product badge (18 px) on the lower right, the name and the
+ * product, and the hand's round portrait (24 px). Checks visual weight at the real sizes.
+ */
+function shop(theme: Theme): Buffer {
+  const { content, locale } = loadGame();
+  const { bg, fg, label } = THEMES[theme];
+  const panel = theme === "dark" ? "#272521" : "#f7f4ec";
+  const disc = theme === "dark" ? "#3b3832" : "#ddd8cc";
+  const rowH = 60;
+  const parts = content.lines.map((line, index) => {
+    const y = 8 + index * rowH;
+    return [
+      `<rect x="8" y="${y}" width="374" height="${rowH - 6}" rx="10" fill="${panel}"/>`,
+      inline("line", line.id, 18, y + 7, 40, fg),
+      `<circle cx="54" cy="${y + 43}" r="11" fill="${panel}"/>`,
+      inline("product", line.product, 45, y + 34, 18, fg),
+      `<text x="76" y="${y + 24}" font-family="Arial" font-weight="bold" font-size="15" fill="${fg}">${locale.t(`line.${line.id}.name`)}</text>`,
+      `<text x="76" y="${y + 42}" font-family="Arial" font-size="12" fill="${label}">makes ${locale.t(`resource.${line.product}.name`)}</text>`,
+      `<circle cx="354" cy="${y + 27}" r="15" fill="${disc}"/>`,
+      inline("crew", line.hand, 342, y + 15, 24, fg),
+    ].join("");
+  });
+  const height = 8 + content.lines.length * rowH;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="390" height="${height}"><rect width="100%" height="100%" fill="${bg}"/>${parts.join("")}</svg>`;
+  return new Resvg(svg, {
+    fitTo: { mode: "zoom", value: 2 },
+    font: { loadSystemFonts: true, defaultFontFamily: "Arial" },
+  })
+    .render()
+    .asPng();
+}
+
 for (const theme of Object.keys(THEMES) as Theme[]) {
   writeFileSync(join(OUT, `sheet-${theme}.png`), sheet(theme));
   writeFileSync(join(OUT, `strip16-${theme}.png`), strip(theme));
+  writeFileSync(join(OUT, `shop-${theme}.png`), shop(theme));
 }
 
 const rows = icons.map((icon) => {
@@ -199,6 +244,7 @@ img{vertical-align:middle;margin-right:10px}.zoom{width:64px;height:64px;image-r
 </style>
 <h1>${icons.length} icons</h1>
 <p><img src="strip16-dark.png" alt=""><br><img src="strip16-light.png" alt=""></p>
+<p>Shop rows at 390 px (02-the-run.md 1.2):<br><img src="shop-dark.png" width="390" alt=""> <img src="shop-light.png" width="390" alt=""></p>
 <table>${rows.join("\n")}</table>`,
 );
 

@@ -4,5 +4,5 @@
   <rect x="6" y="7" width="36" height="5"/>
   <path opacity=".5" fill="none" stroke="currentColor" stroke-width="3" d="M15.5 12V31M21 12V31M26.5 12V31M32 12V31"/>
   <rect x="11" y="31" width="26" height="8"/>
-  <path fill-rule="evenodd" transform="rotate(-18 24 23)" d="M3 23C9 17.5 39 17.5 45 23 39 28.5 9 28.5 3 23ZM19 21.5H29V24.5H19Z"/>
+  <path fill-rule="evenodd" d="M12 22.5C17 18 31 18 36 22.5 31 27 17 27 12 22.5ZM20 21H28V24H20Z"/>
 </svg>

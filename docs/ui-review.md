@@ -1025,3 +1025,24 @@ New, none of them shown before R2 (D140; the icons are not wired in): `currency/
 - Still open: the seat behind the Big Red's dome reads as a hook at 16 px (the dome carries the
   icon, the seat only shows at 48); `ui/kettle_frame` could be a water tower; `sector/scrapyard`
   (a tyre) is close in outline to the automation frame's cog, but one is filled and one is a ring.
+
+### Icons at their real sizes: the shop rows
+
+`pnpm icons` now also draws `shop-dark.png` and `shop-light.png`: the 14 lines as R1's shop rows
+at a 390 px phone width (2x), from the real data and locale, with each building at 40 px, its
+product badge at 18 px on a panel-coloured disc at the lower right (02-the-run.md 1.2), the name,
+"makes <product>", and the hand's portrait at 24 px on a round chip.
+
+- Iteration 1, what was wrong: the loom's shuttle, tilted 18 degrees right across the frame,
+  read at 40 px as a "crossed out" stripe over the building: next to rows that are disabled
+  with a reason (CLAUDE.md 6.3.3), a line must never look struck through.
+- What changed: the shuttle is level again, shorter and inside the frame, an eye-shaped boat
+  with its bobbin slot, so it reads as an object, not a bar or a strike.
+- Fine at the real sizes: every badge names its product at 18 px on its disc (the fish, the
+  sheaf, the coil, the pelt, the drum's red band, the battery's bolt and the broadcast rings
+  the most); the 14 portraits differ at 24 px; the warm accents (campfire, kiln, furnace) and
+  the mast's red light give the list a rhythm without competing with the orange primary, which
+  is a button, never an icon. Visual weight across rows is even enough at 40 px that the 15-58%
+  ink spread from the 48 px sheet does not show; nothing needs evening out before R1.
+- Still open: the badge disc covers the building's lower right corner, which hides the furnace's
+  and reactor's doors partly; R1 may move the badge 2 px outward if the doors matter.
