@@ -22,6 +22,7 @@ echo "==> building and starting the containers"
 # The Discord bot (W8) starts only once the owner has put its secrets into ~/wipeday/.env.
 "${SSH[@]}" 'set -e
   cd ~/wipeday && cp src/deploy/compose.yml compose.yml && touch .env
+  install -m 755 src/deploy/offsite.sh offsite.sh   # the off-server copy, run by cron
   if grep -q "^DISCORD_TOKEN=." .env && grep -q "^DISCORD_GUILD_ID=." .env \
     && grep -q "^BOT_API_TOKEN=." .env; then
     docker compose --profile bot up -d --build

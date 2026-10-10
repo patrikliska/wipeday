@@ -1,7 +1,8 @@
 /**
  * Nightly backups (D54): an online SQLite backup (consistent while the game
- * runs) into `backupDir/wipeday-YYYY-MM-DD.db`, keeping the newest 14. Copying
- * them off the server is a cron job on the host (docs/deploy.md; set up in W9).
+ * runs) into `backupDir/wipeday-YYYY-MM-DD.db`, keeping the newest 14. A cron job
+ * on the host copies them off the server (`deploy/offsite.sh`; docs/deploy.md,
+ * "Off-server backups").
  */
 import { mkdirSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";

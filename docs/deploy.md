@@ -14,7 +14,7 @@ https://wipeday.patrikliska.dev, next to two other projects that must keep worki
   (`deploy/Caddyfile.wipeday`) appended to `~/tk-toolkit/Caddyfile` proxies the domain to
   `wipeday:8787`. Nothing in tk-toolkit is ever restarted or recreated: Caddy only reloads.
 - State: `~/wipeday/var/wipeday.db` (SQLite) and `~/wipeday/var/backups/` (one online backup per
-  day, the newest 14 kept, D54).
+  day, the newest 14 kept, D54), copied off the server every night (see "Off-server backups").
 - Secrets: `~/wipeday/.env` on the server, written by the owner (never in git):
 
 ```
@@ -186,6 +186,70 @@ cd ~/wipeday && docker compose restart wipeday
 cd ~/wipeday && docker compose logs -f --tail=100   # the game's log (and the bot's)
 docker compose up -d --force-recreate wipeday       # after editing .env (restart does not re-read it)
 ls ~/wipeday/var/backups                            # nightly backups
+cat ~/wipeday/var/offsite.json; tail ~/wipeday/var/offsite.log   # the last off-server copy
 ```
 
-Copying the backups off the server (rclone or rsync from a cron job) is still to be set up (W9).
+## Off-server backups
+
+The nightly copies and every `wipeday-pre-*.db` also leave the server, so losing the VPS (or a
+mistake on it) never loses the game.
+
+- **What runs:** `deploy/offsite.sh`, installed as `~/wipeday/offsite.sh` (`scripts/deploy.sh`
+  refreshes it), from `vpsuser`'s crontab (no sudo):
+
+  ```
+  30 4 * * * $HOME/wipeday/offsite.sh >> $HOME/wipeday/var/offsite.log 2>&1
+  ```
+
+  04:30 server time (Europe/Prague) is after the API's nightly copy at 00:00 UTC.
+- **Where to:** rclone (`~/bin/rclone`, v1.75.1) into the remote `wipeday-offsite:`, a `crypt`
+  remote (file names and contents encrypted) over `gdrive:wipeday-backups` in the owner's Google
+  Drive. The Drive remote uses the owner's own Google OAuth client (project `wipeday-backup`,
+  published, scope `drive.file`: rclone sees only the files it wrote). The config with both
+  crypt passwords (obscured, not encrypted) is `~/.config/rclone/rclone.conf` (mode 600); the
+  owner keeps the two passwords elsewhere too. Nothing of it is in git.
+- **Layout:** `pre/` holds every `wipeday-pre-*.db`, forever; `nightly/` the dated copies, the
+  last 30 days. The script only copies, never syncs, so an emptied folder on the box cannot
+  empty the remote.
+- **Did it run:** `~/wipeday/var/offsite.json` is `{"ok":true,"at":<unix>,"files":<n on the
+  remote>}` after every run (the API's status page reads it from R2); the log says why a run
+  failed.
+- **By hand:** `~/wipeday/offsite.sh` any time (it skips if a run is still going), e.g. right
+  after a `wipeday-pre-<phase>.db` copy.
+
+### Restoring
+
+On the VPS (the remote is already configured):
+
+```sh
+~/bin/rclone lsl wipeday-offsite:            # what is there, decrypted names
+mkdir -p ~/wipeday/var/drill && ~/bin/rclone copy wipeday-offsite:pre/wipeday-pre-r0.db ~/wipeday/var/drill/
+```
+
+On a new machine: install rclone, `rclone config` a Drive remote with the same Google client
+(`client_id`, `client_secret`, scope `drive.file`, signed in as the owner) and a `crypt` remote
+over `<drive>:wipeday-backups` with the two passwords (standard file name encryption, directory
+names encrypted). Then copy as above. To put a copy back into the game, stop the container,
+move `var/wipeday.db` and its `-wal`/`-shm` files aside, put the copy in as `var/wipeday.db`
+(with no `-wal` or `-shm` beside it) and start it again.
+
+### The restore drill (R0, 2026-10-10)
+
+`wipeday-pre-r0.db` was taken by hand, the first run copied 23 files (13 nightly, 10 `pre`), and
+two of them came back from the remote into `~/wipeday/var/drill/`, were opened read-only inside
+the container and counted, then the drill folder was deleted:
+
+```
+$ cmp ~/wipeday/var/drill/wipeday-pre-r0.db ~/wipeday/var/backups/wipeday-pre-r0.db
+pre-r0 identical to the box copy
+wipeday-pre-r0.db integrity: ok players: 3 bases: 2 event_log: 195
+wipeday-2026-10-10.db integrity: ok players: 3 bases: 2 event_log: 182
+```
+
+The command, to repeat it:
+
+```sh
+mkdir -p ~/wipeday/var/drill && ~/bin/rclone copy wipeday-offsite:pre/wipeday-pre-r0.db ~/wipeday/var/drill/
+docker exec -w /app/apps/api wipeday node -e "const D=require(\"better-sqlite3\"); const db=new D(\"/app/var/drill/wipeday-pre-r0.db\",{readonly:true}); const n=t=>db.prepare(\"select count(*) n from \"+t).get().n; console.log(db.pragma(\"integrity_check\",{simple:true}), n(\"players\"), n(\"bases\"), n(\"event_log\"))"
+rm -rf ~/wipeday/var/drill
+```
