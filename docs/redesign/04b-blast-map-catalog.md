@@ -205,7 +205,7 @@ The check passes. These are warnings it prints and items for other plan files:
 5. **Line Mk IV and `mk_mult`.** Mk IV counts ×3. If it pays `mk_mult` like Mk II and III (Works open question 4), Spare Parts, Double Rivets and Yard Boss lift it too (×3.7 to ×4 late) and Yard Boss's Mk part counts (x/3)³; about ×1.4 more at ring 9, inside the remaining room only if the simulator agrees. Simplest: Mk IV pays a flat ×3.
 6. **The Magnet's winches** (Quick Winch, Greased Cable, Heavy Coil, Night Crane) add 4-5% each and are exempt from the 10% rule as a timer (Scrapyard open question 1); `04` 9.3 check 12 should say so.
 7. **Gates.** Node gates now equal the larger of the system's agenda count and the ring's gate (Hair Trigger 20, Wake-up Call 10, Flare Gun 20, Auto Flare 40, Double Dare 30, Dare Ledger 40, Foreman's Mate 20, Dead Hand 25). Nothing opens earlier or later; `04` 1.4's table ("gate 4", "gate 15" ...) names the system count, which the agenda line still shows.
-8. **Names for the naming pass.** Rain Barrels (Tide 6.4) and Cutting Torch (Tide 7.3, 8.2) repeat the Garden's and Ship Breaker's Mk II subtitles (`02` 5.3); one of each should change. Scavenger's Eye's blurb names Bottles and Sealed Lockers, which ship after it (R4, R5): its R3 locale line should leave them out (resolution 3.7). Starter Kit (Works 1.1) is on the list too: a common phrase, but also a Cookie Clicker upgrade name; the id `packed_crate` stays (errata E27).
+8. **Names for the naming pass.** Rain Barrels (Tide 6.4) and Cutting Torch (Tide 7.3, 8.2) repeat the Garden's and Ship Breaker's Mk II subtitles (`02` 5.3); one of each should change. Scavenger's Eye's blurb names Bottles and Sealed Lockers, which ship after it (R4, R5): its R3 locale line should leave them out (resolution 3.7). Starter Kit (Works 1.1), a Cookie Clicker upgrade name, became Go Bag in names pass 1 (D157); the id `packed_crate` stays.
 9. **Lines share left unused** (room for the simulator): Works ends at ×5.13e4, Logbook ×107, Scrapyard ×16.8; the tree as a whole at 94% of its budget.
 
 Checker warnings, verbatim:
@@ -340,7 +340,7 @@ Checker warnings, verbatim:
 
 | Ring.slot | Id | Type | Name | Text | Cost | Requires | Wave |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1.1 | `packed_crate` | unlock (anchor, scene) | Starter Kit | Start every run with 10 Beachcombers and 5 Campfires, already working. | 2 | `ground_zero` | R2 |
+| 1.1 | `packed_crate` | unlock (anchor, scene) | Go Bag | Start every run with 10 Beachcombers and 5 Campfires, already working. | 2 | `ground_zero` | R2 |
 | 1.2 | `hot_coals` | small | Hot Coals | Campfires +100%. | 1 | `ground_zero` | R2 |
 | 2.1 | `first_light` | notable | First Light | Beachcombers, Campfires and Gardens cycle twice as fast. Up at dawn. | 9 | `packed_crate` | R2 |
 | 2.2 | `bulk_discount_1` | small | Bulk Discount I | Line units cost ×0.9. | 5 | `packed_crate`, `hot_coals` | R2 |

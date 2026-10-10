@@ -569,7 +569,7 @@ that share of its ring is lit):
 
 | Ring | Node (04 slot) | Effect | Ring share |
 | --- | --- | --- | --- |
-| 1 | Starter Kit (Works 1.1), Old Friends (Crew 1.1), Deep Cellars (Bunker 1.2) | 10 Beachcombers and 5 Campfires; Mara kept; +4 h | first 3 nodes |
+| 1 | Go Bag (Works 1.1), Old Friends (Crew 1.1), Deep Cellars (Bunker 1.2) | 10 Beachcombers and 5 Campfires; Mara kept; +4 h | first 3 nodes |
 | 2 | Tool Bag (Scrapyard 2.1) | start with Stone Tools | 25% |
 | agenda #3 | | hands 1-3 kept | |
 | 3 | Old Crew I (Crew 3.2), Iron Bag (Scrapyard 3.3), Prefab Walls (Works 3.3) | hands 1-6 kept; Iron Tools; Timber start | 25% / 50% / 75% |

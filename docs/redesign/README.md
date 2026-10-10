@@ -74,7 +74,7 @@ week later (session 14 instead of 12; `07` 1).
 | # | Decision | Default | If you choose otherwise | When | Owner's choice (2026-10-10) |
 | --- | --- | --- | --- | --- | --- |
 | 0 | Run currency | One currency with product badges | Era materials: about +1.5 sessions, a second counter, a material model in the simulator | Before R0 | **One currency, Supplies, with product badges** (default) |
-| 1 | Names | `07` 7 *(proposal)*, including "Starter Kit" (`packed_crate`; the id stays) on the list (errata E27) | A locale edit; ids and icons untouched | Pass 1 in R1, pass 2 in R2, pass 3 in R4 | **Default passes** (R1, R2, R4). Eras: lean to keeping the five Rust grades; rename Starter Kit in R1 |
+| 1 | Names | `07` 7 *(proposal)*, including "Starter Kit" (`packed_crate`; the id stays; errata E27), renamed Go Bag in R1 (D157) | A locale edit; ids and icons untouched | Pass 1 in R1, pass 2 in R2, pass 3 in R4 | **Default passes** (R1, R2, R4). Eras: lean to keeping the five Rust grades; Starter Kit renamed Go Bag in R1 |
 | 2 | Island | Saltmarsh; its clock UTC+1, no daylight saving (errata E9) | Locale only (nuke news, postcard, Island Count); the clock is one value in `island.json5` | R1 | **Saltmarsh, UTC+1, no daylight saving** (default) |
 | 3 | The lid | Toilet-seat lid | The jam jar: art only | R2 | **Toilet-seat lid** (default) |
 | 4 | Seasons as a reset | Remove; month as a board window | A monthly wipe takes the Blast Map (meant to last months) or only the run (pointless); reset code to maintain | Before R0 | **Remove**; month as a board window (default) |

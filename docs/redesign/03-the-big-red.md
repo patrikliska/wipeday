@@ -635,7 +635,7 @@ rules shown in full (canon 7.7), sends `start_dare`.
 | 1,200-1,500 | The crew hop out; one hauls the dented drum from the crater onto a fresh pad |
 | 1,300-1,900 | A sapling pokes out of the glassy crater and grows into the Lone Pine (today's regrow pop) |
 | 1,700-2,100 | A twig lean-to pops up (`Base.setTier("twig", true)`, squash and dust) |
-| 2,100-2,600 | Kept hands walk to their lines (Mara to the tideline); Starter Kit lines (name on the naming-pass list; errata E27) pop in with badges |
+| 2,100-2,600 | Kept hands walk to their lines (Mara to the tideline); Go Bag lines (named in names pass 1, D157) pop in with badges |
 | 2,400 | The HUD slides back; the drawer shows its crowned row; the Afterglow pill appears at ×3, waiting for the first tap |
 
 Reduced motion: a 600 ms cross-fade. Dead Hand: a 1.2 s version. First time only, the hint

@@ -667,7 +667,7 @@ cinematic. Waves 2 and 3 may slip but not be cut (guardrail 6).
 
 - [ ] Names pass 1 *(proposal)*: Supplies; Beachcomber, Ship Breaker, Reactor; Gus, Vera; the five
       targets and fell cries; Hustle; Hold to work; Night Shift; Drift Crate, Fuel Drum, Rally,
-      Adrenaline Kit; hands; Grip; the products; "Starter Kit" (`packed_crate`, the id stays; errata E27) renamed. Eras: keep the
+      Adrenaline Kit; hands; Grip; the products; "Starter Kit" (`packed_crate`, the id stays; errata E27) renamed (Go Bag, D157). Eras: keep the
       five Rust grades [leaning] or rename all five. Decisions 2 [Saltmarsh] and 15 [procedural
       sound] were made on 2026-10-10.
 - [ ] Icons go to `packages/content/icons/<kind>/<id>.svg`. Safe now: `scrap` first; tier badges;

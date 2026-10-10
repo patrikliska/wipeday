@@ -19,7 +19,7 @@
     "ingots": { "name": "Ingots" },
     "leather": { "name": "Leather" },
     "fuel": { "name": "Lamp Oil" },
-    "food": { "name": "Fish Crates" },
+    "food": { "name": "Tinned Fish" },
     "battery": { "name": "Batteries" },
     "broadcast": { "name": "Broadcasts" },
     "plates": { "name": "Steel Plates" },
@@ -145,8 +145,16 @@
   "hud": {
     "supplies": "Supplies",
     "per_second": "{rate}",
-    "tap_hint": "Tap the island",
+    "tap_hint": "Tap the tree.",
     "demo_player": "Castaway"
+  },
+  "scene": {
+    "tap_target": "Tap the {target}",
+    "hired": "{name}'s on it",
+    "milestone": "{line} ×{factor}",
+    "milestone_speed": "{line} ×{factor} speed",
+    "roster": "All lines ×{factor}",
+    "era": "{era} era · ×{factor}"
   },
   "demo": {
     "title": "Demo controls",

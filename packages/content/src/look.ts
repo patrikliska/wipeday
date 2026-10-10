@@ -39,7 +39,7 @@ const RESOURCE_INITIALS: Record<string, string> = {
   ingots: "IN",
   leather: "LE",
   fuel: "LO",
-  food: "FC",
+  food: "TF",
   battery: "BA",
   broadcast: "BR",
   plates: "SP",

@@ -276,7 +276,7 @@ These totals use the typical price per type from the slot maps:
 
 The first nuke pays 10 glass. Ring 1 holds 16 nodes at 1-3 glass (about 30 in all).
 
-- **The guided basket:** Starter Kit 2 (the advisor's first pick), Calloused Hands 1, Deep Cellars
+- **The guided basket:** Go Bag 2 (the advisor's first pick), Calloused Hands 1, Deep Cellars
   1, Hot Coals 1, Old Friends 2, Bigger Payload 2. That is **6 nodes for 9 glass**, with 1 left
   over for a seventh. The founders' gift (glass held only, resolution 1.2) makes it 9-10.
 - **Later nukes:** each band costs ×10 the last, while glass ever grows about ×1.1-1.3 a nuke
@@ -356,7 +356,7 @@ from data.
 ## 5. Permanence, loadout and respec
 
 - **Permanent.** A node is never refunded and applies the moment it is bought, start-of-run nodes
-  included. The Starter Kit's units appear at once (`03` 8.4). Spending glass never lowers Glow.
+  included. The Go Bag's units appear at once (`03` 8.4). Spending glass never lowers Glow.
 - **Keystones** are owned forever but work only in the **loadout**: exactly three slots, at
   Wipe Days #10, #20 and #40 (agenda; resolution 3.9). No node adds a slot.
   - A keystone bought while a slot is empty slots itself at once, downside included. Otherwise
@@ -541,7 +541,7 @@ Lines, milestones, line prices, starting kits and eras: the tree's main lines sh
 
 | Slot | Node (id) | Type | Effect | Glass |
 | --- | --- | --- | --- | --- |
-| 1.1 | Starter Kit (`packed_crate`) | unlock | start runs with 10 Beachcombers and 5 Campfires (scene, anchor; the name is on the naming-pass list, errata E27) | 2 |
+| 1.1 | Go Bag (`packed_crate`) | unlock | start runs with 10 Beachcombers and 5 Campfires (scene, anchor; named in names pass 1, D157) | 2 |
 | 1.2 | Hot Coals (`hot_coals`) | stat | Campfires ×2 | 1 |
 | 2.1 | First Light (`first_light`) | notable | Beachcombers, Campfires and Gardens cycle twice as fast | 9 |
 | 2.3 | Bulk Buttons (`bulk_buttons`) | unlock | ×10 / ×100 / Max from the first second of every run (`feature:bulk_buy`) | 4 |
@@ -874,7 +874,7 @@ are the model's starting point; R7 revisits them after the owner's late-wall cho
   time and catching, new kinds at a crate's value, shelf and era prices (capped at ×0.25 per
   shelf kind and ×0.5 for eras, measured by the simulator before R3; errata E25), the Magnet's
   hours, automation and information. Kits, kept hands and start eras keep `10-balance.md` 6.2's rings:
-  Starter Kit, Old Friends and Deep Cellars in ring 1; Old Crew I and the Timber start in ring 3;
+  Go Bag, Old Friends and Deep Cellars in ring 1; Old Crew I and the Timber start in ring 3;
   Bigger Kit in ring 4; Old Crew II and the Stone start in ring 5; Old Crew III in ring 6; the
   Sheet Metal start in ring 7.
 - **N9 and `c`:** nothing conditional on tapping (`when: hustle_full` or `online`) adds line or
@@ -937,7 +937,7 @@ Wireframes are in `08-screens.md` 2.9-2.11. This section adds the rules behind t
   - Automation: the automation type plus `start_*`, `keep_hand` and auto-buy features.
   - Chips dim the dots that don't match and narrow the pick.
 - **One pulsing pick per map**, first match wins:
-  1. after Wipe Day #1, Starter Kit;
+  1. after Wipe Day #1, Go Bag;
   2. the cheapest affordable unlock or automation node not yet picked;
   3. the affordable node with the best income gain per glass (7.3's weights, taps at the
      player's own recent share), with ties to the lower ring, then the lower slot;
@@ -970,7 +970,7 @@ Wireframes are in `08-screens.md` 2.9-2.11. This section adds the rules behind t
 
 | Shot | Pins |
 | --- | --- |
-| `phone_map_first` | Wipe Day #1, 10 glass, the pick card on Starter Kit |
+| `phone_map_first` | Wipe Day #1, 10 glass, the pick card on Go Bag |
 | `phone_node_path_partial` | "Buy the first 2" |
 | `phone_map_respec` | the respec card over the map |
 | `phone_ladder_long` | the longest names, 55.5M prices, ring 9 in view (R7) |

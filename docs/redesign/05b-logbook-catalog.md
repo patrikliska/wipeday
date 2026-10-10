@@ -549,7 +549,7 @@ Later pages by category: dares 16, eras 1, flotsam 9, friends 35, hands 7, islan
 ## 8. Open questions and deviations from the brief
 
 1. **`supplies_floor` → `supplies_digits`.** The brief's `elite_heap` checks `floor(supplies) =
-   1337` and says it is easiest at a run's start. From Wipe Day #1 most players own Starter Kit
+   1337` and says it is easiest at a run's start. From Wipe Day #1 most players own Go Bag
    and Old Friends, so Mara works 10 Beachcombers from the first second and supplies jump by
    thousands per whole second: an exact small number becomes practically impossible after two
    cheap ring-1 nodes, against rule 4. The leading-digit form is scale-free: 404 reads as 404,

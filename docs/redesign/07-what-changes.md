@@ -392,7 +392,7 @@ is a locale edit and never breaks an icon.
 | Night Shift; the Kettle; the Big Red | `night_shift`, `kettle`, `big_red` | Offline window; missile; button | "Big Red" is also a gum brand; low risk |
 | Wipe Day #N, small blast, postcard, rebuild screen, Afterglow, agenda; Fizzle | `fizzle` | The nuke's beats; a small blast's flight variant | A small blast is a nuke under +10% |
 | Blast Map, Ground Zero; sectors Grip, Crew, Works, Tide, Bunker, Blast, Logbook, Scrapyard | `ground_zero`, sector ids | The tree | "Ground Zeroes" is a game subtitle; the singular is a common phrase |
-| Calloused Hands, Old Friends, Starter Kit | `steady_hands`, `old_friend`, `packed_crate` | Perks renamed as nodes | Were Steady Hands, Old Friend, Packed Crate. "Starter Kit" is a common phrase but also a Cookie Clicker upgrade name: on the naming-pass list, id kept (errata E27) |
+| Calloused Hands, Old Friends, Go Bag | `steady_hands`, `old_friend`, `packed_crate` | Perks renamed as nodes | Were Steady Hands, Old Friend, Packed Crate. "Starter Kit" (a Cookie Clicker upgrade name) became Go Bag in names pass 1 (D157); id kept |
 | Lucky Swing, Old Crew, Glow Lamp, Union Rules, Bigger Payload; Wipe Day Rush, Bunker Mentality, Lone Wolf | node ids | Anchor nodes; keystones | |
 | Deep Pockets, Sewn Lining, Flare Gun | `deep_pockets`, `sewn_lining`, `flare_gun` | Unlock nodes: Pocket slots 2 and 3; choosing a Flare's flotsam | |
 | Logbook, Secret, Shared first find | | Achievements | |
@@ -618,7 +618,7 @@ wall (before R7) are confirmed in their phases.
 | # | Decision | Default | If you choose otherwise | Owner's choice (2026-10-10) |
 | --- | --- | --- | --- | --- |
 | 0 | Run currency | One currency with product badges | Era materials: about +1.5 sessions, a second counter, a material model in the simulator | **One currency, Supplies, with product badges** (default) |
-| 1 | Names | Section 7 | A locale edit; ids and icons untouched | **Default passes** (R1, R2, R4). Eras: lean to keeping the five Rust grades; rename Starter Kit in R1 |
+| 1 | Names | Section 7 | A locale edit; ids and icons untouched | **Default passes** (R1, R2, R4). Eras: lean to keeping the five Rust grades; rename Go Bag in R1 |
 | 2 | Island | Saltmarsh; its clock UTC+1, no daylight saving (errata E9) | Locale only (nuke news, postcard, Island Count); the clock is one value in `island.json5` | **Saltmarsh, UTC+1, no daylight saving** (default) |
 | 3 | The lid | Toilet-seat lid | The jam jar: art only, R2 | **Toilet-seat lid** (default) |
 | 4 | Seasons as a reset | Remove; month as a board window | A monthly wipe takes the Blast Map (breaks N15) or only the run (pointless); reset code to maintain | **Remove**; month as a board window (default) |

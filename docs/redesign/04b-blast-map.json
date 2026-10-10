@@ -943,7 +943,7 @@
   },
   {
     "id": "packed_crate", "sector": "works", "ring": 1, "slot": 1, "type": "unlock",
-    "name": "Starter Kit",
+    "name": "Go Bag",
     "text": "Start every run with 10 Beachcombers and 5 Campfires, already working.",
     "effects": [
       {"stat": "start_owned", "op": "set", "value": 10, "scope": "beachcomber"},

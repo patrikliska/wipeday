@@ -43,7 +43,7 @@ or a flotsam window.
 | 7 | `furnace` | `ingots` | resource | Ingots | stacked ingots, glowing for a second |
 | 8 | `tannery` | `leather` | resource (part) | Leather | rolled hides on a rack |
 | 9 | `press` | `fuel` | resource (part) | Lamp Oil | drums with a red band |
-| 10 | `dock` | `food` | resource | Fish Crates | crates of fish on the jetty |
+| 10 | `dock` | `food` | resource | Tinned Fish | tins of fish stacked on the jetty |
 | 11 | `generator` | `battery` | new | Batteries | batteries with a spark |
 | 12 | `radio_mast` | `broadcast` | new | Broadcasts | radio rings rising from the mast top |
 | 13 | `shipbreaker` | `plates` | resource (part) | Steel Plates | cut plates on a sledge |
@@ -648,7 +648,7 @@ A kept hand stands at its empty plot from the rebuild; the first unit bought is 
 | --- | --- | --- | --- |
 | Run 1, about 0:41 on | one line at a time | hiring hands | R1 |
 | Run 1, after the 2nd hand (about 1:30) | buying in bulk | the ×1 / ×10 / ×100 / Max toggle | R1 |
-| Wipe Day #1 | the start of a run | Starter Kit, Old Friends, Afterglow | R2 |
+| Wipe Day #1 | the start of a run | Go Bag, Old Friends, Afterglow | R2 |
 | Wipe Day #3 | the early hands | hands for lines 1-3 survive; Old Crew extends it | R2 |
 | Wipe Day #7 / #20 | buying lines | the Foreman, lines 1-6 / all (`05-meta-layers.md`) | R5 |
 | Wipe Day #15 | calling flotsam | the Flare on the Toolbelt | R5 |
@@ -764,7 +764,7 @@ are `hint.<id>`; the old `hint.*` keys go with their systems.
 | Thing | At the start of run N+1 |
 | --- | --- |
 | Supplies, lines, shelf, era, Hustle, buffs, flotsam | 0, none, none, Twig, 0, none, a fresh schedule (no guaranteed crate) |
-| Starter Kit (`packed_crate`; the name is on the naming-pass list, the id stays, errata E27) | 10 Beachcombers and 5 Campfires pop in with their count badges (so the Beachcomber's ×2 is already on) |
+| Go Bag (`packed_crate`; named in names pass 1 (D157), the id stays) | 10 Beachcombers and 5 Campfires pop in with their count badges (so the Beachcomber's ×2 is already on) |
 | Kept hands | at their plots: Mara (Old Friends), lines 1-3 from Wipe Day #3, lines 1-6 with Old Crew I |
 | Pocketed upgrades (R5) | active from the first second, marked with the Pocket chip on the shelf |
 | Afterglow | taps ×3, halving every 5 minutes from the first tap, ended at 30 (`03-the-big-red.md`) |
@@ -781,9 +781,9 @@ The rebuild beat (rowboat, sapling to Lone Pine, lean-to, kept hands walking out
 From the P1 model at 6 taps per second (seed 7; the model buys ring 1 from its budget, so its
 tap nodes sit a little under Calloused Hands' ×1.5).
 
-| Moment | Run 1 | Run 2 (10 glass, Glow ×1.79, Starter Kit, Calloused Hands, Old Friends) |
+| Moment | Run 1 | Run 2 (10 glass, Glow ×1.79, Go Bag, Calloused Hands, Old Friends) |
 | --- | --- | --- |
-| First seconds | "+1" per tap, one Beachcomber at a time | "+8" per tap, rising to "+16" as Hustle fills, under a green sky; 15 Starter Kit units working, Mara at the tideline |
+| First seconds | "+1" per tap, one Beachcomber at a time | "+8" per tap, rising to "+16" as Hustle fills, under a green sky; 15 Go Bag units working, Mara at the tideline |
 | Timber era | about 0:36 | about 0:09 |
 | Stone era | about 4:30 (errata E1) | about 2:30 |
 | 1B made | about 12:40 | about 7:00 |

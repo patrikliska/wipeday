@@ -143,15 +143,15 @@ New names are *(proposal)*; "kept" names exist in the W-phase game.
 | Night Shift, the Kettle, the Big Red *(proposal)* | `night_shift` ... | offline; missile; button |
 | Wipe Day #N, small blast, Afterglow, Fizzle | `fizzle` | the nuke's beats |
 | Blast Map, Ground Zero; the eight sectors | `ground_zero`, sector ids | the tree *(proposal)* |
-| Calloused Hands, Old Friends, Starter Kit | `steady_hands` ... | ring-1 nodes (perk ids) |
+| Calloused Hands, Old Friends, Go Bag | `steady_hands` ... | ring-1 nodes (perk ids) |
 | Logbook, the Magnet, Crew rank, Pocket | `magnet`, `rank`, `pocket` | meta *(proposal)* |
 | Foreman, Dead Hand; Rush, Grit, Flare | `foreman` ... | automation; Toolbelt |
 | Long Night, Rich Tides, Storm Season, Quiet Hands | `long_nights` ... | Dares *(proposal)* |
 | Blowback, Island Count, the Freighter, Late Tide | | social *(proposal)* |
 | The Barge, the Crossing, Sea Charts *(proposal)* | `barge`, `sea_charts` | second layer, later |
 
-"Starter Kit" (`packed_crate`) is on the R1 naming-pass list: a common phrase, but also a Cookie
-Clicker upgrade. The Radio Mast's product is `broadcast`, never `signal`.
+Names pass 1 (D157): the Go Bag (`packed_crate`, once "Starter Kit", a Cookie Clicker
+upgrade name) and Tinned Fish (`food`, once "Fish Crates"). The Radio Mast's product is `broadcast`, never `signal`.
 
 **Rejected names** (`07` 7.2): Blueprint Fragments (a Rust item that promises crafting), Rads,
 Fallout, Vault, Glowheads and Caps (Fallout), Stash and Recycler (Rust), Half-life (a Valve
@@ -165,7 +165,7 @@ category).
 A **run** is one island's life between two nukes. **Supplies** is the only run currency: each
 line sells what it makes the moment it makes it; nothing is stocked, capped or carried over. Each
 line shows one **product** badge (driftwood, smoked fish, hemp, rope, planks, charcoal, ingots,
-leather, lamp oil, fish crates, batteries, broadcasts, steel plates, power cells) in the shop row,
+leather, lamp oil, tinned fish, batteries, broadcasts, steel plates, power cells) in the shop row,
 the floater and the scene, using the owner's resource icons. Products are never spent.
 
 **The 14 lines.** For rung `i` from 1 to 14:
@@ -279,7 +279,7 @@ on the line runs forever. No tiredness, injuries, gear or levels. Hiring has its
 each line, one button and one price.
 
 **The automation ladder:** hands, one line at a time, from about 0:41 of run 1, and bulk buying
-from the second hand (R1); the start of a run with Starter Kit, Old Friends (Mara kept) and
+from the second hand (R1); the start of a run with Go Bag, Old Friends (Mara kept) and
 Afterglow from Wipe Day #1, and hands for lines 1-3 kept from #3, extended by the Old Crew nodes
 (R2); buying lines with the Foreman from #7 (lines 1-6) and #20 (all), calling flotsam with the
 Flare from #15, and the nuke itself with Dead Hand from #25, opt-in and online only (R5).
@@ -400,7 +400,7 @@ ships gets it at once, with one "New on Saltmarsh" card.
 - **Costs:** one ladder of playful numbers, ×10 per ring: ring 1 costs 1-4 glass, ring 4 about
   222-1,111, ring 9 tens of millions; keystones cost 7,777 (ring 5) and 7.77M (ring 8). The whole
   tree costs about 2.9B glass, about 1e53 lifetime supplies.
-- **The first basket:** Starter Kit, Calloused Hands, Deep Cellars, Hot Coals, Old Friends and
+- **The first basket:** Go Bag, Calloused Hands, Deep Cellars, Hot Coals, Old Friends and
   Bigger Payload, 6 nodes for 9 glass, with 1 left over. Later a casual buys a median of 2-3 a nuke.
 - **Keystones:** owned forever, work only when slotted; exactly three slots (Wipe Days #10, #20,
   #40), changed free on the rebuild screen. Examples: Wipe Day Rush (Afterglow holds ×5 for 60
@@ -529,7 +529,7 @@ five hours of Night Shift, the Stone era, four hands and Sorting Tables. 21:00: 
 pad and the Kettle's frame up; a minute of tapping takes the yield to 10, and **the first nuke
 lands at the day-1 21:00 check-in**. The 11 hours to 08:00 fit the 12-hour Night Shift.
 
-**Run 2.** Starter Kit units and Mara are already working, taps carry Glow ×1.79, Calloused Hands
+**Run 2.** Go Bag units and Mara are already working, taps carry Glow ×1.79, Calloused Hands
 and Afterglow ×3, and run 1's whole gain is passed in under half its time. Each postcard names the
 next unlock.
 
@@ -617,7 +617,7 @@ next crown is the Big Red. Nothing was lost, only paused.
 - **The late wall** (decision 21): option 1 is the working plan; option 2 is designed and
   simulated alongside, and the final option is chosen before R7 from R6's simulations and
   playtest. It also settles the Crossing's player gate (`03` open question 2).
-- **Names:** the passes in R1, R2 and R4 (Starter Kit renamed in R1; the eras lean to the five
+- **Names:** the passes in R1, R2 and R4 (Starter Kit renamed Go Bag in R1; the eras lean to the five
   Rust grades; "Long Night" and "Quiet Hands" replace the locale's "Long Nights" and "Quiet
   Raiders").
 - **Hand traits** (decision 19): decided in R5, leaning to one-line perks or none.
