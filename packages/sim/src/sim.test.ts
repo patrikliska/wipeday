@@ -15,7 +15,8 @@ describe("simulator v2", () => {
     );
     expect(bad).toEqual([]);
     expect(seconds).toBeLessThan(10);
-  });
+    // vitest's own limit sits above the budget, so a slow run fails on the budget, by name.
+  }, 30_000);
 
   it("has a check for every assertion a shipped phase switched on", () => {
     const shipped = phaseIndex(content.pacing.shipped);

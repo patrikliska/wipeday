@@ -324,6 +324,8 @@ export const archetypeSchema = z.strictObject({
   sessions: z.array(sessionSchema).min(1),
   tapsPerSecond: z.number().finite().nonnegative(),
   tapsWhileNothingRuns: z.number().finite().nonnegative().optional(),
+  /** The share of the flotsam it catches while online (0: none). */
+  catches: z.number().finite().min(0).max(1).default(0),
   nuke: z.enum(["crown", "double", "best"]),
   startDay: z.int().min(1).optional(),
 });

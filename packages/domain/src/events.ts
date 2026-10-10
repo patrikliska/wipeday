@@ -6,8 +6,18 @@
 import type { Amount } from "./amount";
 
 export type GameEvent =
-  /** A taps batch was credited (client feedback only). */
-  | { type: "tapped"; credited: number; value: Amount; crits: number; cycles: number }
+  /**
+   * A taps batch was credited (client feedback only): `value` in all, `direct` from the taps
+   * and fells themselves (the rest is unmanned cycles the taps ran).
+   */
+  | {
+      type: "tapped";
+      credited: number;
+      value: Amount;
+      direct: Amount;
+      crits: number;
+      cycles: number;
+    }
   /** Units bought (client feedback only; the run summary counts them from R2). */
   | { type: "bought"; line: string; count: number; cost: Amount }
   | { type: "hand_hired"; line: string; hand: string }

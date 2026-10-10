@@ -12,22 +12,24 @@
     full: { days: 365, seeds: [7, 11, 23] },
   },
   // Sessions: "HH:MM+Nm" every day (UTC), or "hourly+Nm". Taps a second while a session runs;
-  // `tapsWhileNothingRuns` taps only while no line runs by itself (the idler).
+  // `tapsWhileNothingRuns` taps only while no line runs by itself (the idler); `catches` is the
+  // share of the flotsam floating while online that it catches.
   archetypes: {
     idler: { sessions: ["08:00+3m", "21:00+3m"], tapsPerSecond: 0, tapsWhileNothingRuns: 4, nuke: "double" },
-    casual: { sessions: ["08:00+5m", "13:00+5m", "21:00+5m"], tapsPerSecond: 4, nuke: "crown" },
+    casual: { sessions: ["08:00+5m", "13:00+5m", "21:00+5m"], tapsPerSecond: 4, catches: 0.5, nuke: "crown" },
     active: {
       sessions: ["07:00+10m", "09:00+10m", "12:00+10m", "15:00+10m", "17:00+10m", "19:00+10m", "21:00+10m", "23:00+10m"],
       tapsPerSecond: 6,
+      catches: 1,
       nuke: "crown",
     },
-    optimal: { sessions: ["hourly+5m"], tapsPerSecond: 6, nuke: "best" },
-    lateJoiner: { sessions: ["08:00+5m", "13:00+5m", "21:00+5m"], tapsPerSecond: 4, nuke: "crown", startDay: 30 },
+    optimal: { sessions: ["hourly+5m"], tapsPerSecond: 6, catches: 1, nuke: "best" },
+    lateJoiner: { sessions: ["08:00+5m", "13:00+5m", "21:00+5m"], tapsPerSecond: 4, catches: 0.5, nuke: "crown", startDay: 30 },
   },
   // One long session from the first tap.
   scenarios: {
-    firstHour: { sessions: ["00:00+180m"], tapsPerSecond: 6, nuke: "crown" },
-    autoclicker: { sessions: ["00:00+180m"], tapsPerSecond: 15, nuke: "crown" },
+    firstHour: { sessions: ["00:00+180m"], tapsPerSecond: 6, catches: 1, nuke: "crown" },
+    autoclicker: { sessions: ["00:00+180m"], tapsPerSecond: 15, catches: 1, nuke: "crown" },
   },
   assertions: [
     // R0: the shape of the numbers.
@@ -39,8 +41,28 @@
     { n: "N6", on: "R1", check: "nothingAffordableOnline", maxSeconds: 120, runs: 5 },
     { n: "N7", on: "R1", check: "casualCheckInsWithPurchase", min: 1, days: 1 },
     { n: "N8", on: "R1", check: "tapShare", firstMinuteMin: 0.5, fromMinute10: [0.05, 0.25] },
-    { n: "N9", on: "R1", check: "activeHour", days: [14, 30, 60], min: 1.5, max: 3, rainMax: 3 },
+    // N9 on the weather-weighted hour; a rain hour alone only warns (errata E13).
+    { n: "N9", on: "R1", check: "activeHour", days: [14, 30, 60], min: 1.5, max: 3 },
+    { n: "N9", on: "R1", check: "activeHour", days: [14, 30, 60], rain: true, min: 1.5, max: 3, warn: true },
     { n: "N23", on: "R1", check: "run1Made", min: 1e10, max: 1e12 },
+    // Run 1's script (10-balance.md 4.2, errata E1's column), seconds after the first tap: Timber
+    // 0:36, Mara 0:41, the crate 3:00, Sorting Tables 3:01, Stone 4:30, Sheet Metal 42:38, the
+    // first nuke about 46-48 minutes (N1's 40-60 is R2's).
+    {
+      n: "4.2",
+      on: "R1",
+      check: "firstHourBeats",
+      scenario: "firstHour",
+      beats: {
+        era_wood: [25, 60],
+        hand: [30, 120],
+        flotsam: [180, 185],
+        sorting_tables: [150, 300],
+        era_stone: [210, 420],
+        era_metal: [1800, 3000],
+        nuke: [2400, 3600],
+      },
+    },
     // R2: the nuke.
     { n: "N1", on: "R2", check: "firstNukeMinutes", scenario: "firstHour", min: 40, max: 60 },
     { n: "N2", on: "R2", check: "firstNukeMinutesAny", min: 25 },

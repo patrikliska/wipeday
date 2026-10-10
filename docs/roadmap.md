@@ -20,8 +20,11 @@ in `docs/archive/roadmap-w.md`.
   effects evaluator, closed-form settle with its property tests, the slim taps transport, the
   demo clocks at 1× with jumps and a wall clock, simulator v2, and a bare island with a supplies
   counter that taps work on, end to end against the API.
-- **Next: R1 The run** (below): data and domain first (eras, the shelf, milestones, targets,
-  flotsam, the island's clock and weather), then the scene, then the drawer.
+- **R1 The run** is under way. S1 (data and domain) is done (2026-10-10, D152-D156): eras and
+  targets, Grip, the shelf, milestones and the roster, felling, flotsam on a seeded cursor, the
+  island's clock and weather, welcome back and Collect, quiet hours, the advisor and the
+  simulator's R1 checks (`pnpm sim check --phase R1`; `shipped` stays R0 until S5). The 115 icons
+  are on `redesign` (D150, D151). Next: S2, the scene.
 
 ### R0 results (acceptance)
 

@@ -1707,3 +1707,19 @@ row and sent by the scheduler at 08:00, Discord DMs included (a DM buzzes the sa
 player's offset comes from the browser with the push subscription (`tzOffsetMinutes`, migration
 0006); until one arrives the island's clock (UTC+1) stands in. `quiet` is a notify preference,
 on by default; its Settings row comes with R1's UI.
+
+### D156. The R1 buyer, the simulator's R1 checks and their cost
+The advisor (`advisor.ts`, the simulator's buyer and R1's crown) offers the shelf and the next era
+alongside lines and hands, each scored in closed form by what it adds: a Line Mk ×3 twice its
+line's income, an island upgrade every line and the flat tap once more, a Grip rung the flat tap
+again plus its share of the full rate, and an era its doubling and as much again for the three
+lines it opens (02 6.2 crowns the era before the hand). Rows shut by a gate other than the price
+are not offered. Archetypes catch a share of the flotsam floating while they are online
+(`catches` in `pacing.json5`: active, optimal and the scenarios all, casual and late joiner half,
+idler none). The R1 checks are implemented (N4-N9, N23, and `firstHourBeats` for `10-balance.md`
+4.2's E1 column); N9's rain hour is its own warn-only row (errata E13). `pnpm sim check --phase
+R1` judges them before R1 ships; `shipped` stays R0 until S5 tunes them. To keep the simulator
+inside `pnpm test`'s 10 s (errata E4) the domain memoises per state what does not change between
+commands (each line's buff-free unit rate and cycle, the full and manned rates, price folds, a
+tap's folds), and the buyer scores again only when prices or buffs change or the supplies reach
+the next price (among purchases not yet affordable the ranking does not depend on the supplies).

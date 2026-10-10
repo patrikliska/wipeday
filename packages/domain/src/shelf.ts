@@ -6,7 +6,7 @@
 import type { Content, EraDef, UpgradeDef } from "@wipe-day/content/schema";
 import { TIERS } from "@wipe-day/content/tiers";
 import type { Amount } from "./amount";
-import { foldStat, rates } from "./effects";
+import { statOf } from "./effects";
 import { eraOpen, lineOf } from "./lines";
 import type { BaseState } from "./state";
 
@@ -29,7 +29,7 @@ export const bought = (state: BaseState, id: string): boolean => state.run.upgra
 
 /** A shelf row's price after `upgrade_cost` discounts. */
 export function upgradeCost(content: Content, state: BaseState, upgrade: UpgradeDef): Amount {
-  return upgrade.cost * foldStat("upgrade_cost", rates(content, state).effects, 1);
+  return upgrade.cost * statOf(content, state, "upgrade_cost", 1);
 }
 
 /** Why `upgrade` cannot be bought yet, the price aside; null when only the price is left. */
@@ -53,7 +53,7 @@ export function nextEra(content: Content, state: BaseState): EraDef | undefined 
 
 /** An era's price after `era_cost` discounts. */
 export function eraCost(content: Content, state: BaseState, era: EraDef): Amount {
-  return era.cost * foldStat("era_cost", rates(content, state).effects, 1);
+  return era.cost * statOf(content, state, "era_cost", 1);
 }
 
 /** Why the next era cannot be bought yet, the price aside. */

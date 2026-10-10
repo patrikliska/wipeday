@@ -211,6 +211,51 @@ export interface Rates {
   morale: number;
   /** Seconds the Night Shift lasts (N18: never past its ceiling). */
   nightShift: number;
+  /**
+   * Memo of each line's buff-free unit rate and speed, by line and conditions: settle, the tap
+   * and the advisor ask for the same lines many times between commands.
+   */
+  memo: Map<string, number>;
+  /** Memo of each line's buff-free unit rate, by line and conditions (`conditionCode`). */
+  units: Map<string, number[]>;
+  /** The effects in force by stat, so a fold scans only its own. */
+  byStat: Map<StatId, Effect[]>;
+  /** Memo of the production effects (output, speed, offline) that reach each line. */
+  scoped: Map<string, Effect[]>;
+}
+
+const PRODUCTION: ReadonlySet<StatId> = new Set(["output", "speed", "offline"]);
+
+/** The production effects of `rates` that reach `line`, memoised per state. */
+function lineEffects(r: Rates, line: LineDef): Effect[] {
+  const known = r.scoped.get(line.id);
+  if (known) return known;
+  const query = { line };
+  const list = r.effects.filter(
+    (effect) => PRODUCTION.has(effect.stat) && scopeMatches(effect, query),
+  );
+  r.scoped.set(line.id, list);
+  return list;
+}
+
+/**
+ * A stat's fold over the state's own effects (no buffs, no conditions), memoised per state:
+ * prices and the flotsam schedule read these many times between commands.
+ */
+export function statOf(
+  content: Content,
+  state: BaseState,
+  stat: StatId,
+  base: number,
+  line?: LineDef,
+): number {
+  const r = rates(content, state);
+  const key = line ? `${stat}|${base}|${line.id}` : base === 1 ? stat : `${stat}|${base}`;
+  const known = r.memo.get(key);
+  if (known !== undefined) return known;
+  const value = foldStat(stat, r.byStat.get(stat) ?? [], base, line ? { line } : {});
+  r.memo.set(key, value);
+  return value;
 }
 
 const cache = new WeakMap<object, { content: Content; state: BaseState; rates: Rates }>();
@@ -248,7 +293,16 @@ export function rates(content: Content, state: BaseState): Rates {
     glow: glowNow,
     morale,
     nightShift: Math.round(hours * 3600),
+    memo: new Map(),
+    units: new Map(),
+    byStat: new Map(),
+    scoped: new Map(),
   };
+  for (const effect of effects) {
+    const list = result.byStat.get(effect.stat);
+    if (list) list.push(effect);
+    else result.byStat.set(effect.stat, [effect]);
+  }
   cache.set(state.run.lines, { content, state, rates: result });
   return result;
 }
@@ -270,21 +324,72 @@ export function unitRate(
   when: Conditions,
 ): number {
   const r = rates(content, state);
-  const effects = state.run.buffs.length
-    ? [...r.effects, ...buffEffects(content, state.run.buffs, at, line.id)]
-    : r.effects;
+  const buffs = state.run.buffs.length ? buffEffects(content, state.run.buffs, at, line.id) : [];
+  // Without a buff on this line the fold depends only on the state and the conditions.
+  let memo: number[] | undefined;
+  const code = conditionCode(when);
+  if (buffs.length === 0) {
+    memo = r.units.get(line.id);
+    if (!memo) {
+      memo = [];
+      r.units.set(line.id, memo);
+    }
+    const known = memo[code];
+    if (known !== undefined) return known;
+  }
+  const own = lineEffects(r, line);
+  const effects = buffs.length ? [...own, ...buffs] : own;
   const query = { line };
   const counts = { owned: state.run.lines[line.id] ?? 0, hands: state.run.hands.length };
   const output = foldStat("output", effects, line.rate, query, when, counts);
   const speed = foldStat("speed", effects, 1, query, when, counts);
   const away = when.online ? 1 : foldStat("offline", effects, 1, query, when, counts);
-  return output * speed * r.glow * r.morale * away;
+  const value = output * speed * r.glow * r.morale * away;
+  if (memo) memo[code] = value;
+  return value;
 }
+
+/**
+ * Every owned line as if manned, a second at `at`, with every multiplier in force (buffs
+ * included): what a tap takes its share of and a crate counts its minutes of.
+ */
+export function fullRate(
+  content: Content,
+  state: BaseState,
+  at: number,
+  when: Conditions = ALWAYS,
+): number {
+  const r = rates(content, state);
+  const key = state.run.buffs.some((buff) => buff.until > at) ? null : `f|${conditionCode(when)}`;
+  const known = key === null ? undefined : r.memo.get(key);
+  if (known !== undefined) return known;
+  let total = 0;
+  for (const line of content.lines) {
+    const n = state.run.lines[line.id] ?? 0;
+    if (n > 0) total += n * unitRate(content, state, line, at, when);
+  }
+  if (key !== null) r.memo.set(key, total);
+  return total;
+}
+
+/** The conditions as a small number, for memo keys. */
+export const conditionCode = (when: Conditions): number =>
+  (when.online ? 1 : 0) |
+  (when.afterglow ? 2 : 0) |
+  (when.rain ? 4 : 0) |
+  (when.night ? 8 : 0) |
+  (when.hustleFull ? 16 : 0);
 
 /** Seconds per cycle of `line`, after speed, never under the floor (speed beyond pays out). */
 export function cycleOf(content: Content, state: BaseState, line: LineDef, at: number): number {
   const r = rates(content, state);
-  const effects = [...r.effects, ...buffEffects(content, state.run.buffs, at, line.id)];
-  const speed = foldStat("speed", effects, 1, { line });
-  return Math.max(content.formula.cycleFloor, line.cycle / speed);
+  const buffs = state.run.buffs.length ? buffEffects(content, state.run.buffs, at, line.id) : [];
+  const key = buffs.length === 0 ? `c|${line.id}` : null;
+  const known = key === null ? undefined : r.memo.get(key);
+  if (known !== undefined) return known;
+  const own = lineEffects(r, line);
+  const speed = foldStat("speed", buffs.length ? [...own, ...buffs] : own, 1, { line });
+  const cycle = Math.max(content.formula.cycleFloor, line.cycle / speed);
+  if (key !== null) r.memo.set(key, cycle);
+  return cycle;
 }

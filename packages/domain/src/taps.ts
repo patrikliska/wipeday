@@ -18,7 +18,16 @@
  */
 import type { Content } from "@wipe-day/content/schema";
 import { finite } from "./amount";
-import { buffEffects, type Conditions, cycleOf, foldStat, rates, unitRate } from "./effects";
+import {
+  buffEffects,
+  type Conditions,
+  cycleOf,
+  foldStat,
+  fullRate,
+  type Rates,
+  rates,
+  type StatId,
+} from "./effects";
 import type { GameEvent } from "./events";
 import { rng, SEED, seedOf } from "./rng";
 import { cyclePayout } from "./settle";
@@ -45,42 +54,79 @@ export function afterglowAt(content: Content, state: BaseState, t: number): numb
   return 1 + (start - 1) * 2 ** (-Math.max(0, elapsed - holdSeconds) / halfSeconds);
 }
 
+/** The folds of a tap that change only with the state's effects and the buffs running. */
+interface TapFolds {
+  flat: number;
+  share: number;
+  tapMult: number;
+  target: string | null;
+  fellEvery: number;
+  fellBonus: number;
+  hustlePeak: number;
+  hold: number;
+  drain: number;
+  gain: number;
+  critChance: number;
+  critMult: number;
+}
+
+/** Buff-free folds per state (keyed on its `rates`), which taps and the advisor ask for often. */
+const foldsMemo = new WeakMap<Rates, TapFolds>();
+
+function tapFolds(content: Content, state: BaseState, t: number): TapFolds {
+  const r = rates(content, state);
+  // Tap buffs (Adrenaline, Rush) count while they run at `t`.
+  const buffs = state.run.buffs.length ? buffEffects(content, state.run.buffs, t) : [];
+  const known = buffs.length === 0 ? foldsMemo.get(r) : undefined;
+  if (known) return known;
+  const when: Conditions = { online: true };
+  const fold = (stat: StatId, base: number): number =>
+    foldStat(stat, [...(r.byStat.get(stat) ?? []), ...buffs], base, {}, when);
+  const { hustle } = content.tap;
+  const target = content.targets.find((row) => row.era === state.run.era);
+  const folds: TapFolds = {
+    flat: fold("tap_flat", content.tap.flat),
+    share: fold("tap_share", content.tap.share),
+    tapMult: fold("tap", 1),
+    target: target?.id ?? null,
+    fellEvery: target
+      ? Math.max(1, Math.round(fold("fell_taps", target.fellTaps)))
+      : Number.POSITIVE_INFINITY,
+    fellBonus: fold("fell_bonus", content.tap.fellBonusTaps),
+    hustlePeak: Math.min(hustle.peakCeiling, fold("hustle_max", hustle.peak)),
+    hold: fold("hustle_hold", hustle.graceSeconds),
+    drain: fold("hustle_drain", hustle.drainPerSecond),
+    gain: fold("hustle_gain", hustle.perTap),
+    critChance: fold("crit_chance", 0),
+    critMult: fold("crit_mult", 1),
+  };
+  if (buffs.length === 0) foldsMemo.set(r, folds);
+  return folds;
+}
+
 /** The parts of a tap's value that hold for a whole batch evaluated at `t`. */
 export function tapParts(content: Content, state: BaseState, t: number) {
   const r = rates(content, state);
-  const when: Conditions = { online: true };
-  // Tap buffs (Adrenaline, Rush) count while they run at `t`.
-  const effects = state.run.buffs.length
-    ? [...r.effects, ...buffEffects(content, state.run.buffs, t)]
-    : r.effects;
-  const flat = foldStat("tap_flat", effects, content.tap.flat, {}, when);
-  const share = foldStat("tap_share", effects, content.tap.share, {}, when);
-  const tapMult = foldStat("tap", effects, 1, {}, when);
-  let fullRate = 0;
-  if (share > 0) {
-    for (const line of content.lines) {
-      const n = state.run.lines[line.id] ?? 0;
-      if (n > 0) fullRate += n * unitRate(content, state, line, t, when);
-    }
-  }
-  const { hustle } = content.tap;
-  const target = content.targets.find((row) => row.era === state.run.era);
+  const folds = tapFolds(content, state, t);
+  const full = fullRate(content, state, t, { online: true });
+  const scale = folds.tapMult * afterglowAt(content, state, t);
   return {
     /** The era's target, felled every `fellEvery` credited taps. */
-    target: target?.id ?? null,
-    fellEvery: target
-      ? Math.max(1, Math.round(foldStat("fell_taps", effects, target.fellTaps)))
-      : Number.POSITIVE_INFINITY,
-    fellBonus: foldStat("fell_bonus", effects, content.tap.fellBonusTaps),
+    target: folds.target,
+    fellEvery: folds.fellEvery,
+    fellBonus: folds.fellBonus,
     /** A tap's value before Hustle and crits. */
-    base: (flat * r.tapGlobal + share * fullRate) * tapMult * afterglowAt(content, state, t),
-    hustleCap: hustle.cap,
-    hustlePeak: Math.min(hustle.peakCeiling, foldStat("hustle_max", effects, hustle.peak)),
-    hold: foldStat("hustle_hold", effects, hustle.graceSeconds),
-    drain: foldStat("hustle_drain", effects, hustle.drainPerSecond),
-    gain: foldStat("hustle_gain", effects, hustle.perTap),
-    critChance: foldStat("crit_chance", effects, 0),
-    critMult: foldStat("crit_mult", effects, 1),
+    base: (folds.flat * r.tapGlobal + folds.share * full) * scale,
+    /** Its flat part (Grip × the global fold), and the full rate it takes its share of. */
+    flatValue: folds.flat * r.tapGlobal * scale,
+    fullValue: full * scale,
+    hustleCap: content.tap.hustle.cap,
+    hustlePeak: folds.hustlePeak,
+    hold: folds.hold,
+    drain: folds.drain,
+    gain: folds.gain,
+    critChance: folds.critChance,
+    critMult: folds.critMult,
   };
 }
 
@@ -188,7 +234,9 @@ export function applyTaps(
       },
     },
   };
-  const events: GameEvent[] = [{ type: "tapped", credited, value: gain, crits, cycles }];
+  const events: GameEvent[] = [
+    { type: "tapped", credited, value: gain, direct: value + fellValue, crits, cycles },
+  ];
   if (fells > 0 && parts.target)
     events.push({ type: "felled", target: parts.target, count: fells, value: fellValue });
   return { state: next, events };

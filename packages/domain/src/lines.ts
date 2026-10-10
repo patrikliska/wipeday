@@ -7,11 +7,18 @@
 import type { Content, LineDef } from "@wipe-day/content/schema";
 import { TIERS } from "@wipe-day/content/tiers";
 import type { Amount } from "./amount";
-import { foldStat, rates } from "./effects";
+import { statOf } from "./effects";
 import type { BaseState } from "./state";
 
+const byId = new WeakMap<Content, Map<string, LineDef>>();
+
 export function lineOf(content: Content, id: string): LineDef | undefined {
-  return content.lines.find((line) => line.id === id);
+  let lines = byId.get(content);
+  if (!lines) {
+    lines = new Map(content.lines.map((line) => [line.id, line]));
+    byId.set(content, lines);
+  }
+  return lines.get(id);
 }
 
 /** Whether the run's era has opened `line`. */
@@ -21,7 +28,7 @@ export function eraOpen(state: BaseState, line: LineDef): boolean {
 
 /** The line_cost discount `d` (1 without nodes). */
 export function costFactor(content: Content, state: BaseState, line: LineDef): number {
-  return foldStat("line_cost", rates(content, state).effects, 1, { line });
+  return statOf(content, state, "line_cost", 1, line);
 }
 
 /** The price of `k` more units of `line` when `n` are owned. */
@@ -46,5 +53,5 @@ export function maxAffordable(line: LineDef, n: number, supplies: Amount, factor
 
 /** The hand's price for `line`, after hand_cost discounts. */
 export function handPriceOf(content: Content, state: BaseState, line: LineDef): Amount {
-  return line.handPrice * foldStat("hand_cost", rates(content, state).effects, 1, { line });
+  return line.handPrice * statOf(content, state, "hand_cost", 1, line);
 }

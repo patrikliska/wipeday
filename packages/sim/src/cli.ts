@@ -1,14 +1,18 @@
 /**
  * `pnpm sim [days]`            every archetype and scenario: per-day tables, CSV in var/sim/
- * `pnpm sim check [--full]`    judge `pacing.json5` (the test profile, or 365 days × 3 seeds);
- *                              exit 1 when a switched-on assertion fails or has no check
+ * `pnpm sim check [--full] [--phase R1]`
+ *                              judge `pacing.json5` (the test profile, or 365 days × 3 seeds);
+ *                              exit 1 when a switched-on assertion fails or has no check.
+ *                              `--phase` also judges a later phase's assertions, to see them
+ *                              before it ships (only the shipped ones set the exit code)
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadContent, loadLocale } from "@wipe-day/content/load";
 import { contentPaths } from "@wipe-day/content/paths";
-import { checkPacing, type Life, simulateAll } from "./sim";
+import { PHASES, type Phase } from "@wipe-day/content/schema";
+import { checkPacing, type Life, phaseIndex, simulateAll } from "./sim";
 
 /** CSV output goes to `var/sim/` at the repo root, next to the other local runtime state. */
 const repoRoot = resolve(fileURLToPath(new URL(".", import.meta.url)), "../../..");
@@ -40,16 +44,24 @@ function table(life: Life): string {
 
 if (args[0] === "check") {
   const profile = args.includes("--full") ? "full" : "test";
+  const asked = args[args.indexOf("--phase") + 1];
+  const upTo: Phase =
+    args.includes("--phase") && PHASES.includes(asked as Phase)
+      ? (asked as Phase)
+      : content.pacing.shipped;
   const started = performance.now();
-  const verdicts = checkPacing(content, profile);
+  const verdicts = checkPacing(content, profile, upTo);
   for (const verdict of verdicts) {
     const label = verdict.status.toUpperCase().padEnd(7);
     console.log(
       `${label} ${verdict.n.padEnd(5)} ${verdict.on}  ${verdict.check}${verdict.detail ? `: ${verdict.detail}` : ""}`,
     );
   }
+  const shipped = phaseIndex(content.pacing.shipped);
   const bad = verdicts.filter(
-    (verdict) => verdict.status === "fail" || verdict.status === "missing",
+    (verdict) =>
+      (verdict.status === "fail" || verdict.status === "missing") &&
+      phaseIndex(verdict.on) <= shipped,
   );
   console.log(
     `${bad.length === 0 ? "OK" : `${bad.length} failed`}: shipped ${content.pacing.shipped}, ` +

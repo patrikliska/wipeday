@@ -12,7 +12,7 @@
  */
 import type { Content, FlotsamKind } from "@wipe-day/content/schema";
 import type { Amount } from "./amount";
-import { foldStat, rates, unitRate } from "./effects";
+import { fullRate, statOf } from "./effects";
 import { pickWeighted, rng, SEED, seedOf } from "./rng";
 import type { BaseState, RunState } from "./state";
 import { weatherAt } from "./weather";
@@ -25,11 +25,7 @@ const guaranteed = (state: BaseState): boolean =>
 
 /** Seconds an arrival floats, after `flotsam_float`. */
 export function floatSeconds(content: Content, state: BaseState): number {
-  return foldStat(
-    "flotsam_float",
-    rates(content, state).effects,
-    content.flotsam.schedule.floatSeconds,
-  );
+  return statOf(content, state, "flotsam_float", content.flotsam.schedule.floatSeconds);
 }
 
 /** The last second arrival `at` may be claimed. */
@@ -45,7 +41,7 @@ export function gapBefore(content: Content, state: BaseState, k: number, from: n
   let minutes =
     shortest + (longest - shortest) * rng(seedOf(state.run.seed, SEED.flotsam, k)).next();
   if (weatherAt(content, from) === "rain") minutes /= rainFactor;
-  minutes /= foldStat("flotsam_rate", rates(content, state).effects, 1);
+  minutes /= statOf(content, state, "flotsam_rate", 1);
   return minutes * 60;
 }
 
@@ -91,12 +87,7 @@ export function outputRate(content: Content, state: BaseState, t: number): numbe
   const calm: BaseState = state.run.buffs.length
     ? { ...state, run: { ...state.run, buffs: [] } }
     : state;
-  let total = 0;
-  for (const line of content.lines) {
-    const n = state.run.lines[line.id] ?? 0;
-    if (n > 0) total += n * unitRate(content, calm, line, t, { online: true });
-  }
-  return total;
+  return fullRate(content, calm, t);
 }
 
 /** What a crate pays at `t` (02 8.1): run 1's flat minutes, else max(floor, min(share, cap)). */
@@ -108,7 +99,7 @@ export function crateValue(
 ): Amount {
   if (!("lump" in kind.effect)) return 0;
   const rate = outputRate(content, state, t);
-  const boost = foldStat("flotsam_effect", rates(content, state).effects, 1);
+  const boost = statOf(content, state, "flotsam_effect", 1);
   if (guaranteed(state)) return content.flotsam.firstRun.flatMinutes * 60 * rate * boost;
   const { floorMinutes, heldShare, rateMinutes } = kind.effect.lump;
   const lump = Math.max(

@@ -16,16 +16,26 @@ export function finite(value: Amount, what: string): Amount {
   return value;
 }
 
+/** The path of the first non-finite number in `value`, or null when every number is finite. */
+function firstNonFinite(value: unknown): string | null {
+  if (typeof value === "number") return Number.isFinite(value) ? null : "";
+  if (value === null || typeof value !== "object") return null;
+  if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index++) {
+      const found = firstNonFinite(value[index]);
+      if (found !== null) return `[${index}]${found}`;
+    }
+    return null;
+  }
+  for (const key in value) {
+    const found = firstNonFinite((value as Record<string, unknown>)[key]);
+    if (found !== null) return `.${key}${found}`;
+  }
+  return null;
+}
+
 /** Walks `state` and throws on the first non-finite number, naming its path. */
 export function assertFiniteState(state: unknown, path = "state"): void {
-  if (typeof state === "number") {
-    if (!Number.isFinite(state)) throw new Error(`non-finite number at ${path}: ${state}`);
-    return;
-  }
-  if (state === null || typeof state !== "object") return;
-  if (Array.isArray(state)) {
-    for (const [index, item] of state.entries()) assertFiniteState(item, `${path}[${index}]`);
-    return;
-  }
-  for (const [key, value] of Object.entries(state)) assertFiniteState(value, `${path}.${key}`);
+  const found = firstNonFinite(state);
+  if (found !== null) throw new Error(`non-finite number at ${path}${found}`);
 }

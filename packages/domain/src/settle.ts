@@ -11,7 +11,14 @@
  */
 import type { Content } from "@wipe-day/content/schema";
 import { finite } from "./amount";
-import { type Conditions, cycleOf, hasOnlineEffects, rates, unitRate } from "./effects";
+import {
+  type Conditions,
+  conditionCode,
+  cycleOf,
+  hasOnlineEffects,
+  rates,
+  unitRate,
+} from "./effects";
 import type { GameEvent } from "./events";
 import { flotsamAt } from "./flotsam";
 import { lineOf } from "./lines";
@@ -34,14 +41,20 @@ export function conditionsAt(content: Content, state: BaseState, t: number): Con
 
 /** Supplies a second from manned lines at `t` (0 once the window has closed). */
 export function mannedRate(content: Content, state: BaseState, t: number): number {
-  if (t >= windowEnd(content, state)) return 0;
+  const r = rates(content, state);
+  if (t >= state.run.activeAt + r.nightShift) return 0;
   const when = conditionsAt(content, state, t);
+  // Without a buff running the rate depends only on the state and the conditions.
+  const key = state.run.buffs.some((buff) => buff.until > t) ? null : `m|${conditionCode(when)}`;
+  const known = key === null ? undefined : r.memo.get(key);
+  if (known !== undefined) return known;
   let total = 0;
   for (const id of state.run.hands) {
     const line = lineOf(content, id);
     const n = state.run.lines[id] ?? 0;
     if (line && n > 0) total += n * unitRate(content, state, line, t, when);
   }
+  if (key !== null) r.memo.set(key, total);
   return total;
 }
 
