@@ -2,6 +2,7 @@
  * Dev-only hook for the screenshot script and for poking the game from the console:
  * `__wipeDay.store.getState().demoPatch({ supplies: 1e6 })` (demo mode).
  */
+import { arrivalKind } from "@wipe-day/domain/flotsam";
 import { weatherAt } from "@wipe-day/domain/weather";
 import { demoClocks, wall } from "./state/clocks";
 import { seedPace } from "./state/pace";
@@ -33,6 +34,8 @@ interface DebugHook {
   fastForward?: (seconds: number) => void;
   /** The island's weather at a game second, so shots can pick a rainy or foggy moment. */
   weatherAt: (t: number) => string;
+  /** The first flotsam arrival (from 1) of `kind` in this run, past run 1's crates. */
+  flotsamK: (kind: string) => number;
 }
 
 interface Box {
@@ -66,6 +69,16 @@ export function installDebug(): void {
     frames: 0,
     frozen: false,
     weatherAt: (t) => weatherAt(content, t),
+    flotsamK: (kind) => {
+      const base = useWorld.getState().base;
+      if (!base) return 1;
+      const past = {
+        ...base,
+        run: { ...base.run, flotsam: { ...base.run.flotsam, caught: 1 } },
+      };
+      for (let k = 1; k < 500; k++) if (arrivalKind(content, past, k).id === kind) return k;
+      return 1;
+    },
     tap: (count, x, y) => {
       const box = window.__wipeDay?.target?.();
       const cx = x ?? (box ? box.x + box.width / 2 : 0);

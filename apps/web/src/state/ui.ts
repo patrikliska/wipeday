@@ -12,7 +12,7 @@ import { create } from "zustand";
 export type Bulk = 1 | 10 | 100 | "max";
 export type Tab = "lines" | "upgrades";
 export type Panel = "crew" | "settings";
-export type Sheet = "multipliers";
+export type Sheet = "multipliers" | "odds";
 export type Motion = "device" | "reduced" | "full";
 
 export const BULKS: readonly Bulk[] = [1, 10, 100, "max"];
@@ -24,7 +24,7 @@ interface UiState {
   bulk: Bulk;
   /** A destination of the nav row over the island (Island is none). */
   panel: Panel | null;
-  /** A small sheet over everything (the Multipliers sheet). */
+  /** A small sheet over everything (the Multipliers sheet, the Odds sheet). */
   sheet: Sheet | null;
   /** "Bought this run" unfolded on the Upgrades tab. */
   boughtOpen: boolean;
@@ -126,12 +126,14 @@ export const useUi = create<UiState & UiActions>((set, get) => {
       set({ panel, expanded: false });
     },
     openSheet(sheet) {
-      if (sheet === get().sheet) return;
+      const current = get().sheet;
+      if (sheet === current) return;
       if (sheet === null) {
         close(() => set({ sheet: null }));
         return;
       }
-      pushLayer();
+      // One sheet at a time: a sheet opened from another replaces it (one history entry).
+      if (current === null) pushLayer();
       set({ sheet });
     },
     toggleBought() {

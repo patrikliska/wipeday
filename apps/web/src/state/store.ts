@@ -10,16 +10,22 @@
  *
  * Narrow selectors: the scene reads the store once per frame and the counter is written outside
  * React, so `second` is published once a second and nothing re-renders per frame.
+ *
+ * Welcome back (02-the-run.md 10.2): after an hour away the card holds the gain off the counter
+ * until Collect, which flies it in. The card comes from the server on load, or is worked out
+ * here when a tab that was hidden for an hour shows again (the same domain function).
  */
 import { applyCommand, type Command, type Refusal } from "@wipe-day/domain/commands";
 import { settle, suppliesAt } from "@wipe-day/domain/settle";
 import type { BaseState } from "@wipe-day/domain/state";
 import { hustleFactor, tapParts } from "@wipe-day/domain/taps";
+import { welcomeBack } from "@wipe-day/domain/welcome";
 import type {
   CommandResponse,
   PlayerView,
   PushMessage,
   StateResponse,
+  WelcomeBack,
 } from "@wipe-day/domain/wire";
 import { create } from "zustand";
 import { type Backend, HttpError, newKey, type ServerConfig } from "../net/backend";
@@ -73,6 +79,8 @@ interface WorldState {
   second: number;
   /** Demo patches so far: the scene does not celebrate what a patch put there. */
   patches: number;
+  /** The welcome-back card, until Collect. */
+  welcome: WelcomeBack | null;
 }
 
 interface Actions {
@@ -92,6 +100,10 @@ interface Actions {
   demoReset(): void;
   /** Rewrites the demo's run (the drawer, the shots). */
   demoPatch(change: Partial<BaseState["run"]>): void;
+  /** Shows the welcome-back card if the last command is an hour or more back. */
+  checkAway(): void;
+  /** The card's one button: back to work, and the gain flies into the counter. */
+  collect(): void;
 }
 
 export type Store = WorldState & Actions;
@@ -108,6 +120,24 @@ let sentKeys = new Map<string, number>();
 /** When the last command was queued (game seconds): a visible tab pings 5 minutes after. */
 let lastCommandAt = 0;
 let lastRefetchMs = 0;
+/** The `activeAt` the welcome card was made for: another tab's command there ends it. */
+let welcomeAt: number | null = null;
+
+/** The card's gain, kept off the counter until Collect, then released over RELEASE_MS. */
+let hold = { amount: 0, since: 0 };
+const RELEASE_MS = 900;
+
+/** Supplies the counter holds back (the welcome card's gain, flying in after Collect). */
+export function counterHold(nowMs: number): number {
+  if (hold.amount <= 0) return 0;
+  if (hold.since === 0) return hold.amount;
+  const t = (nowMs - hold.since) / RELEASE_MS;
+  if (t >= 1) {
+    hold = { amount: 0, since: 0 };
+    return 0;
+  }
+  return hold.amount * (1 - t) ** 3;
+}
 
 /** The backend in use (Settings asks it for notification preferences). */
 export const currentBackend = (): Backend => backend;
@@ -159,8 +189,24 @@ export const useWorld = create<Store>((set, get) => {
     toast(refusalMessage(refusal), "warning", false, action);
   };
 
+  const showWelcome = (card: WelcomeBack, activeAt: number): void => {
+    welcomeAt = activeAt;
+    hold = { amount: card.gain, since: 0 };
+    set({ welcome: card });
+  };
+
+  /** The card ends without Collect when another tab acted (its command moved `activeAt`). */
+  const dropStaleWelcome = (state: BaseState): void => {
+    if (!get().welcome || state.run.activeAt === welcomeAt) return;
+    welcomeAt = null;
+    hold = { amount: 0, since: 0 };
+    set({ welcome: null });
+  };
+
   const adopt = (response: StateResponse): void => {
     const queue = get().queue;
+    if (response.welcomeBack) showWelcome(response.welcomeBack, response.state.run.activeAt);
+    else dropStaleWelcome(response.state);
     set({
       player: response.player,
       confirmed: response.state,
@@ -185,6 +231,7 @@ export const useWorld = create<Store>((set, get) => {
     const state = get();
     if (message.version <= state.version) return;
     if (message.state) {
+      dropStaleWelcome(message.state);
       set({
         confirmed: message.state,
         version: message.version,
@@ -210,7 +257,10 @@ export const useWorld = create<Store>((set, get) => {
       queue: rest,
       base: rebase(confirmed, rest),
     });
-    if (!response.ok) refuse(response.refusal);
+    if (!response.ok) {
+      if (entry.command.type === "claim_flotsam") lostClaim(entry.command.k, response.refusal);
+      else refuse(response.refusal);
+    }
     if (entry.key) sentKeys.set(entry.key, wall.nowMs());
   };
 
@@ -275,12 +325,19 @@ export const useWorld = create<Store>((set, get) => {
     }
   };
 
+  /** A claim too late is quiet (02-the-run.md 8.4): the scene says it drifted off. */
+  const lostClaim = (k: number, refusal: Refusal): void => {
+    if (refusal.reason === "gone") emit({ type: "flotsam_lost", k });
+  };
+
   const connect = async (): Promise<void> => {
     unsubscribe?.();
     unsubscribe = backend.subscribe(onPush, () => void reload());
     await reload();
-    // A page load counts as being here: restart the Night Shift.
-    if (get().phase === "playing") get().send({ type: "ping" });
+    lastCommandAt = nowSecond();
+    // A page load counts as being here: restart the Night Shift (the welcome card's Collect
+    // does that instead, so the card is not lost to a ping).
+    if (get().phase === "playing" && !get().welcome) get().send({ type: "ping" });
   };
 
   return {
@@ -297,6 +354,7 @@ export const useWorld = create<Store>((set, get) => {
     demoOpen: false,
     second: 0,
     patches: 0,
+    welcome: null,
 
     async boot() {
       const demo = new URLSearchParams(window.location.search).has("demo");
@@ -370,6 +428,7 @@ export const useWorld = create<Store>((set, get) => {
       set({ queue, base: rebase(state.confirmed, queue) });
       lastCommandAt = now;
       if (result.ok) for (const event of result.events) emit(event);
+      else if (command.type === "claim_flotsam") lostClaim(command.k, result.refusal);
       else {
         refuse(result.refusal);
         emit({ type: "refused" });
@@ -385,7 +444,12 @@ export const useWorld = create<Store>((set, get) => {
         sentKeys = pruneKeys(sentKeys, wall.nowMs());
         // A visible tab is still there: ping 5 minutes after the last command (N25).
         const ping = content.run.nightShift.pingMinutes * 60;
-        if (state.phase === "playing" && !hidden && second - lastCommandAt >= ping) {
+        if (
+          state.phase === "playing" &&
+          !hidden &&
+          !state.welcome &&
+          second - lastCommandAt >= ping
+        ) {
           get().send({ type: "ping" });
         }
       }
@@ -400,7 +464,10 @@ export const useWorld = create<Store>((set, get) => {
       if (next) {
         set({ queue: closeDue(get().queue, wall.nowMs(), true) });
         void flush();
+        return;
       }
+      // Back after an hour or more: the welcome card, before the next ping restarts the shift.
+      get().checkAway();
     },
 
     dismissToast(id) {
@@ -428,6 +495,26 @@ export const useWorld = create<Store>((set, get) => {
       backend.reset();
       set({ queue: [] });
       void reload();
+    },
+
+    checkAway() {
+      const state = get();
+      if (state.phase !== "playing" || state.welcome || !state.base) return;
+      const now = Math.max(nowSecond(), state.base.run.settledAt);
+      if (now - state.base.run.activeAt < content.run.nightShift.welcomeAfterMinutes * 60) return;
+      const settled = settle(content, state.base, now);
+      const card = welcomeBack(content, settled.state, now, settled.events);
+      if (card) showWelcome(card, state.base.run.activeAt);
+    },
+
+    collect() {
+      const card = get().welcome;
+      if (!card) return;
+      welcomeAt = null;
+      hold = { amount: hold.amount, since: wall.nowMs() };
+      set({ welcome: null });
+      get().send({ type: "collect" });
+      emit({ type: "collected", gain: card.gain });
     },
 
     demoPatch(change) {

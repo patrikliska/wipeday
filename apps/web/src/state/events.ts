@@ -14,7 +14,11 @@ export type GameEvent =
   /** A command was refused (the toast says why): the refuse sound. */
   | { type: "refused" }
   /** "Tap the ore seam": the panels close and the target pulses (a refusal's button). */
-  | { type: "go_tap" };
+  | { type: "go_tap" }
+  /** A claim on flotsam arrival `k` came too late: it drifted off (no toast). */
+  | { type: "flotsam_lost"; k: number }
+  /** The welcome card's Collect: `gain` flies into the counter. */
+  | { type: "collected"; gain: number };
 
 type Listener = (event: GameEvent) => void;
 

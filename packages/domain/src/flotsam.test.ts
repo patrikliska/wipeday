@@ -7,7 +7,7 @@ import { loadContent, loadLocale } from "@wipe-day/content/load";
 import { contentPaths } from "@wipe-day/content/paths";
 import { describe, expect, it } from "vitest";
 import { applyCommand, type Command, type CommandResult } from "./commands";
-import { arrivalKind, gapBefore, outputRate } from "./flotsam";
+import { afloat, arrivalKind, crateMinutes, gapBefore, odds, outputRate } from "./flotsam";
 import { mannedRate } from "./settle";
 import { type BaseState, newBase } from "./state";
 import { islandHour, weatherAt } from "./weather";
@@ -169,6 +169,40 @@ describe("the schedule and the odds (N20; 02 8.5)", () => {
     expect((counts.crate ?? 0) / n).toBeCloseTo(45 / 91, 1);
     expect((counts.fuel_drum ?? 0) / n).toBeCloseTo(40 / 91, 1);
     expect((counts.adrenaline ?? 0) / n).toBeCloseTo(6 / 91, 1);
+  });
+});
+
+describe("what the scene and the Odds sheet read", () => {
+  it("shows an arrival from its time until its claim window closes, never once caught", () => {
+    let state = fresh({ lines: { beachcomber: 10 }, hands: ["beachcomber"] });
+    state = ok(applyCommand(content, state, tap(T0), T0));
+    expect(afloat(content, state, T0 + 179)).toBeNull();
+    const floating = afloat(content, state, T0 + 185);
+    expect(floating).toMatchObject({ k: 0, at: T0 + 180, float: 13, until: T0 + 196 });
+    expect(floating?.kind.id).toBe("crate");
+    // The grace keeps it claimable after it sank; then the next one is due.
+    expect(afloat(content, state, T0 + 196)?.k).toBe(0);
+    expect(afloat(content, state, T0 + 197)).toBeNull();
+    expect(afloat(content, state, T0 + 361)?.k).toBe(1);
+    const caught = ok(applyCommand(content, state, claim(state), T0 + 185));
+    expect(afloat(content, caught, T0 + 186)).toBeNull();
+  });
+
+  it("prints shares that sum to 1 in the data's order", () => {
+    const shown = odds(content);
+    expect(shown.map((row) => row.kind.id)).toEqual(["crate", "fuel_drum", "adrenaline"]);
+    expect(shown.map((row) => Math.round(row.share * 1000) / 10)).toEqual([49.5, 44, 6.6]);
+    expect(shown.reduce((sum, row) => sum + row.share, 0)).toBeCloseTo(1, 12);
+  });
+
+  it("names a crate's pay in minutes of output: run 1's is 2", () => {
+    let state = fresh({ lines: { beachcomber: 10 }, hands: ["beachcomber"] });
+    state = ok(applyCommand(content, state, tap(T0), T0));
+    const result = applyCommand(content, state, claim(state), T0 + 182);
+    const event = result.events.find((item) => item.type === "flotsam_claimed");
+    const value = event?.type === "flotsam_claimed" ? event.value : 0;
+    expect(crateMinutes(content, ok(result), value, T0 + 182)).toBeCloseTo(2, 9);
+    expect(crateMinutes(content, fresh(), 100, T0)).toBe(0);
   });
 });
 

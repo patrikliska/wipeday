@@ -257,8 +257,10 @@ nodes (Calloused Hands +50%); `B` tap buffs (Adrenaline ×100, Rush ×5); `crit`
 ### 5.3 Flotsam (R1, more kinds in R4 and R5)
 
 One flotsam every 4-10 minutes on a seeded schedule while the page is open, 1.5× as often in
-rain, floating 13 s with a pie ring (Tide nodes extend it to 25 s). It glows but never takes the
-crown. Missed flotsam costs nothing.
+rain, drifting in from the sea and floating 13 s off the beach with a pie ring (Tide nodes extend
+it to 25 s). It glows but never takes the crown; a hint beside it says what to do until the
+player has caught two. Missed flotsam costs nothing: one that sinks says so in one quiet line,
+never a toast (D171). Settings and the Multipliers sheet open the **Odds** sheet (D174).
 
 | Flotsam | Weight | Effect | Ships |
 | --- | --- | --- | --- |
@@ -299,7 +301,9 @@ Flare from #15, and the nuke itself with Dead Hand from #25, opt-in and online o
   and a cycle already in flight keep running.
 - **Welcome back**, after at least an hour away: one card, one primary, **Collect**. It never
   crowns the nuke. Collect banks the gain, empties the Magnet's tray and (from R5) runs the
-  Foreman's pass. No hands, no card: a hint points at the best hand row instead.
+  Foreman's pass. The gain is the card's big figure; the counter waits at the old value until
+  Collect flies it in. With nobody on shift the card says so and its button is "Back to work"
+  (D173).
 
 ### 5.6 The advisor's crown (R1; the Big Red from R2)
 

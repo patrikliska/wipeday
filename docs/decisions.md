@@ -1887,3 +1887,57 @@ source no step names lands in "Other" rather than vanishing. The sheet's header 
 with "Every line running". Durations show seconds under 10 minutes (`2m 10s`), as 08-screens.md
 3.5 asked of R0. A refusal's toast carries one button to the target ("Tap the ore seam"), which
 closes every layer and makes the target blink (rule 6.3.5); toasts are two at most.
+
+### D171. Flotsam on screen: the state's schedule, a button over it, quiet when missed
+The scene draws the domain's `afloat()` of the base (`packages/domain/src/flotsam.ts`), so a
+reload or a second tab shows the same arrival at the same age. It drifts in from the screen's
+left edge over 2.5 s and rests at world (540, 576), just off the beach, bobbing; it is drawn in
+screen space at a fixed 50 px with a glow above the night tint (D47), so it reads at night and in
+fog, and caught through a 64 px round button kept over it (D48, 08-screens.md 1.3). A pie ring
+drains its float, warm in the last 4 s. It sinks over 1.2 s after its float and can still be
+caught meanwhile, inside the server's 3 s grace. The hint "Something's drifting in. Tap it before
+it floats off." sits above it, over the sea and the sky where it hides no line, until two catches
+(`meta.stats.flotsam`, 02-the-run.md 11.2). A catch is predicted: the icon pops with 16 coins and
+a splash; a crate floats "+2 min of supplies" (the minutes are the domain's `crateMinutes`) and
+its amount flies into the counter; a buff floats "Rally! All lines ×4 · 1m" (the pill's format).
+A late claim is quiet, as 02 8.4 asks: no toast, "It drifted off." where it was, and it never
+shows again. One that sinks while the page is visible says "It sank. More drifts in every few
+minutes." (run 1: "...within 3 minutes."); one missed while hidden, or across a jump of the clock,
+says nothing.
+
+### D172. Flotsam's sounds ship with flotsam
+`flotsam_in` (a bell panned toward the sea), `flotsam_claim` (a splash and the buy chime) and
+`rally` (a saw revving 80 to 160 Hz with a tremolo) ship in R1, not R2 as 08-screens.md 5.2's
+table has them: flotsam itself ships in R1, and every catch must answer (rule 6.3.7). The catch
+vibrates 15 ms on Android (08 5.4). Owner files may replace all three, like R1's other cues.
+
+### D173. The welcome-back card
+- **What it says.** The gain is the card's big figure (the supplies icon and "+26.8B"), where the
+  eye lands first; the Night Shift line under it no longer repeats the number ("Your hands
+  worked the whole time." / "...the Night Shift (12 h of it)." with "They stopped yesterday at
+  08:30." on this browser's clock). With nobody on shift the card still shows, with "Back to
+  work" (08-screens.md 2.14's third case and its `phone_welcome_nohands` shot), not 02-the-run.md
+  10.2's "no card": a player back after hours deserves to hear why nothing happened.
+- **Where it comes from.** On load, from `GET /api/state` (D155); when a tab hidden for an hour
+  shows again, from the client's own `welcomeBack()` over the settled base, before its next
+  ping. While the card is up no ping is sent and the load's ping waits, so a ping never eats the
+  card; Collect is the command that restarts the window. A push whose state has another
+  `activeAt` (another tab acted) ends the card.
+- **How it behaves.** One button; the backdrop and Escape collect too; the nav is hidden and the
+  HUD behind is inert. The counter keeps its old value until Collect, then releases the gain
+  over 0.9 s while it flies from the house into the counter.
+
+### D174. The Odds sheet
+`odds()` gives each shipped kind's share of the weights; the sheet prints it to one decimal
+(49.5%, 44.0%, 6.6%) with what the kind gives, written from its data ("Rally: all lines ×4 for
+1m"), then the schedule (every 4-10 minutes while the page is open, 1.5× as often in rain, 13 s
+to catch, after `flotsam_float`), run 1's guaranteed crates while they last (guardrail 9: no
+hidden catch-up), and that a missed one costs nothing. It opens from Settings ("Odds", under How
+it works) and from the Multipliers sheet. One sheet at a time: a sheet opened from another
+replaces it under the same history entry.
+
+### D175. One crown per view, to the eye as well
+Under a sheet or the welcome card the HUD is inert (D168) and now also loses its orange: the
+drawer's crowned button turns secondary and the tap hint stops pulsing, so the dimmed view never
+shows a second orange button beside the sheet's primary. Floaters keep 8 px inside the screen's
+edges, so a sentence floated at the shore ("It sank...") is never cut off.

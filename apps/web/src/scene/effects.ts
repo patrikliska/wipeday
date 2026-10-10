@@ -281,6 +281,8 @@ export interface FloatOptions {
   iconColor?: number;
   /** Fly to this screen point (the counter) instead of rising, then call `arrive`. */
   fly?: { x: number; y: number; arrive: () => void };
+  /** How long an event stays before it fades (ms); a sentence needs longer than a number. */
+  holdMs?: number;
 }
 
 let fontInstalled = false;
@@ -314,6 +316,8 @@ export class Floaters {
   private cameraX = 0;
   private cameraY = 0;
   private cameraScale = 1;
+  /** The screen's width (CSS px): a floater never runs off either side. */
+  private viewWidth = 0;
   /** The running tap number, while taps keep merging into it. */
   private running: Float | null = null;
 
@@ -357,10 +361,20 @@ export class Floaters {
   }
 
   /** The world's screen transform; the scene sets it every frame. */
-  setCamera(x: number, y: number, scale: number): void {
+  setCamera(x: number, y: number, scale: number, viewWidth = 0): void {
     this.cameraX = x;
     this.cameraY = y;
     this.cameraScale = scale;
+    this.viewWidth = viewWidth;
+  }
+
+  /** `x` moved so the row (centred on it) keeps 8 px from both edges of the screen. */
+  private inside(float: Float, x: number): number {
+    if (this.viewWidth <= 0) return x;
+    const half = float.container.pivot.x * float.container.scale.x;
+    const edge = 8 + half;
+    if (this.viewWidth < edge * 2) return this.viewWidth / 2;
+    return clamp(x, edge, this.viewWidth - edge);
   }
 
   /** A tap's gain at world (x, y): merges into the running number while taps keep coming. */
@@ -399,7 +413,7 @@ export class Floaters {
     float.dx = kind === "tap" ? 0 : Math.round(rand(-6, 6));
     float.born = nowMs;
     float.touched = nowMs;
-    float.fadeAt = nowMs + (kind === "event" ? 1100 : 700);
+    float.fadeAt = nowMs + (options.holdMs ?? (kind === "event" ? 1100 : 700));
     float.fly = options.fly ?? null;
     float.amount = 0;
     float.size = size;
@@ -540,8 +554,11 @@ export class Floaters {
       reduced || sinceTouch > 120
         ? 1
         : lerp(1.12, 1, sinceTouch / 120) * (age < 120 ? easeOutBack(age / 120) : 1);
-    container.position.set(Math.round(at.x), Math.round(at.y - (reduced ? 0 : rise)));
     container.scale.set(pop);
+    container.position.set(
+      Math.round(this.inside(float, at.x)),
+      Math.round(at.y - (reduced ? 0 : rise)),
+    );
     container.alpha = 1 - fading;
   }
 }

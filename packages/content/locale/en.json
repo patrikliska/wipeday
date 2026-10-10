@@ -176,6 +176,39 @@
     "buff": "{name} ×{factor} · {time}",
     "buffs_more": "+{count}"
   },
+  "sea": {
+    "catch": "Catch the {name}",
+    "hint": "Something's drifting in. Tap it before it floats off.",
+    "crate_paid": "+{minutes} min of supplies",
+    "buff_output": "{name}! All lines ×{factor} · {time}",
+    "buff_tap": "{name}! Taps ×{factor} · {time}",
+    "sank": "It sank. More drifts in every few minutes.",
+    "sank_first": "It sank. Another one drifts in within 3 minutes.",
+    "drifted": "It drifted off."
+  },
+  "odds": {
+    "open": "Odds",
+    "title": "Flotsam odds",
+    "sub": "What drifts in, and how often",
+    "crate": "Supplies at once: {share} of what you hold, between {floor} and {cap} min of output",
+    "buff_output": "{name}: all lines ×{factor} for {time}",
+    "buff_tap": "{name}: taps ×{factor} for {time}",
+    "schedule": "Something drifts in every {min}-{max} minutes while the page is open; {rain}× as often in rain. You have {float} s to catch it.",
+    "first": "On a new island every catch until the first is a Drift Crate: one every {every} minutes, worth {flat} minutes of output.",
+    "hidden": "While the page is hidden, flotsam floats by unseen. Missing one costs nothing."
+  },
+  "welcome": {
+    "title": "Welcome back",
+    "away": "Away {time}",
+    "worked_all": "Your hands worked the whole time.",
+    "worked_full": "Your hands worked the Night Shift ({hours} h of it).",
+    "stopped_today": "They stopped at {time}.",
+    "stopped_yesterday": "They stopped yesterday at {time}.",
+    "stopped_day": "They stopped on {day} at {time}.",
+    "nobody": "Nobody was on shift: lines without a hand only run while you tap.",
+    "collect": "Collect",
+    "back_to_work": "Back to work"
+  },
   "scene": {
     "tap_target": "Tap the {target}",
     "hired": "{name}'s on it",
@@ -345,6 +378,7 @@
     "how_3": "Hire a hand and the line runs on its own, even while you're away.",
     "how_4": "Eras double everything and bring new lines.",
     "how_6": "Tap the supplies counter to see every multiplier.",
+    "odds": "Odds",
     "done": "Done",
     "close": "Close"
   },
@@ -366,6 +400,7 @@
     "night_shift": "Night Shift: {hours} h. If you leave now, your hands work until {time}.",
     "no_hands": "Nobody is on shift yet: hire a hand and its line runs while you're away.",
     "unmanned": "Unmanned lines run only while you tap.",
+    "odds": "Flotsam odds",
     "source_factor": "{name} ×{factor}",
     "source_buff": "{name} ×{factor} · {time}"
   }

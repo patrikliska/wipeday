@@ -3,10 +3,12 @@ import { DemoDrawer } from "./hud/DemoDrawer";
 import { Login } from "./hud/Login";
 import { Multipliers } from "./hud/Multipliers";
 import { Nav, useNavShown } from "./hud/Nav";
+import { Odds } from "./hud/Odds";
 import { Panels } from "./hud/Panels";
 import { Shop, shopOpen } from "./hud/Shop";
 import { Toasts } from "./hud/Toasts";
 import { TapHint, TopBar } from "./hud/TopBar";
+import { Welcome } from "./hud/Welcome";
 import { Scene } from "./scene/Scene";
 import { startAdvisor, useAdvisor } from "./state/advisor";
 import { useColumn } from "./state/layout";
@@ -17,6 +19,7 @@ export function App() {
   const host = useRef<HTMLDivElement>(null);
   const playing = useWorld((state) => state.phase === "playing");
   const sheet = useUi((state) => state.sheet);
+  const welcome = useWorld((state) => state.welcome !== null);
   const motion = useUi((state) => state.motion);
   const column = useColumn();
   const nav = useNavShown();
@@ -47,15 +50,16 @@ export function App() {
 
   return (
     <div
-      className={`app${motion === "reduced" ? " reduced" : ""}${column && shop ? " has-column" : ""}`}
+      className={`app${motion === "reduced" ? " reduced" : ""}${column && shop ? " has-column" : ""}${welcome ? " welcome-open" : ""}`}
     >
       <div className="scene" ref={host} />
       <div className="vignette" />
       <div className="hud">
         {playing ? (
           <>
-            {/* Under a sheet the rest of the HUD is inert: one view, one crown (6.3 rule 1). */}
-            <div className={`hud-main${nav ? " with-nav" : ""}`} inert={sheet !== null}>
+            {/* Under a sheet or the welcome card the rest of the HUD is inert: one view, one
+                crown (6.3 rule 1). */}
+            <div className={`hud-main${nav ? " with-nav" : ""}`} inert={sheet !== null || welcome}>
               <TopBar />
               <TapHint />
               <Shop />
@@ -63,7 +67,9 @@ export function App() {
               {column ? null : <Nav />}
             </div>
             <Multipliers />
+            <Odds />
             <Toasts />
+            <Welcome />
             <DemoDrawer />
           </>
         ) : null}
@@ -78,6 +84,12 @@ function onKey(event: KeyboardEvent): void {
   const target = event.target as HTMLElement | null;
   if (target?.closest("input, textarea, select")) return;
   if (event.key === "Escape") {
+    // The welcome card has one way out, Collect, and Escape takes it (08-screens.md 2.14).
+    if (useWorld.getState().welcome) {
+      useWorld.getState().collect();
+      event.preventDefault();
+      return;
+    }
     if (closeTop()) event.preventDefault();
     return;
   }
@@ -90,6 +102,7 @@ function onKey(event: KeyboardEvent): void {
     const pick = useAdvisor.getState().view?.pick;
     const ui = useUi.getState();
     if (pick?.kind !== "purchase" || !pick.choice.affordable || ui.sheet || ui.panel) return;
+    if (useWorld.getState().welcome) return;
     const command = pick.choice.command;
     useWorld
       .getState()

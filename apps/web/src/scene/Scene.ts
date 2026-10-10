@@ -6,9 +6,11 @@
  * The island: the sea on the left, the era's target on a rise in the middle, the lines around
  * it and the house behind, every hand at their line. Taps go through a DOM button held over the
  * target at a fixed screen size (D48, N27), so keyboards and screen readers reach it too; a
- * press held still for a moment counts 4 taps a second (hold to work). Animation runs on the
+ * press held still for a moment counts 4 taps a second (hold to work). Flotsam drifts in on
+ * the waterline and is caught through a button of its own (`flotsam.ts`). Animation runs on the
  * `wall` clock, never the game clock, so a demo jump moves no animation (rule 6.3.9).
  */
+import { crateMinutes } from "@wipe-day/domain/flotsam";
 import { lineOf } from "@wipe-day/domain/lines";
 import type { BaseState } from "@wipe-day/domain/state";
 import { hustleFactor, tapParts } from "@wipe-day/domain/taps";
@@ -23,10 +25,22 @@ import { insets } from "../state/layout";
 import { gameSeconds, useWorld } from "../state/store";
 import { heldTaps } from "../state/taps";
 import { closeAll } from "../state/ui";
-import { content, crewName, fmt, lineName, resourceColor, type Tier, t } from "../state/world";
+import {
+  buffName,
+  content,
+  crewName,
+  duration,
+  fmt,
+  fmtFactor,
+  lineName,
+  resourceColor,
+  type Tier,
+  t,
+} from "../state/world";
 import { Hands, type Post } from "./actors";
 import { House } from "./base";
 import { Floaters, Particles, Weather } from "./effects";
+import { Flotsam } from "./flotsam";
 import { loadProductIcons } from "./icons";
 import { LAYOUT, Lines } from "./lines";
 import { gloom, paletteAt } from "./palette";
@@ -92,6 +106,11 @@ export class Scene {
     extend: EXTEND,
   });
   private readonly target = new Target(this.particles);
+  private readonly flotsam = new Flotsam({
+    claim: (run, k) => useWorld.getState().send({ type: "claim_flotsam", run, k }),
+    arrived: () => sound.play("flotsam_in"),
+    sank: (x, y, firstRun, nowMs) => this.sank(x, y, firstRun, nowMs),
+  });
   private readonly house = new House(this.particles);
   private readonly lines: Lines;
   private readonly hands: Hands;
@@ -193,12 +212,15 @@ export class Scene {
     this.ready = true;
     this.host.appendChild(this.app.canvas);
     this.host.appendChild(this.button);
+    this.host.appendChild(this.flotsam.button);
+    this.host.appendChild(this.flotsam.hint);
     this.app.stage.addChild(
       this.world,
       this.ambient,
       this.lights,
       this.weather.container,
       this.lines.overlay,
+      this.flotsam.overlay,
       this.target.overlay,
       this.holdRing,
       this.floaters.container,
@@ -210,7 +232,11 @@ export class Scene {
     window.addEventListener("pointerdown", this.onAnyPress, { capture: true });
     registerScene({
       target: () => ({ ...this.box }),
-      hitBoxes: () => [{ name: "target", ...this.box }],
+      hitBoxes: () => {
+        const flotsam = this.flotsam.hitBox;
+        const boxes = [{ name: "target", ...this.box }];
+        return flotsam ? [...boxes, { name: "flotsam", ...flotsam }] : boxes;
+      },
       counts: () => ({ floaters: this.floaters.count, particles: this.particles.count }),
       fastForward: (seconds, tick) => this.fastForward(seconds, tick),
     });
@@ -222,6 +248,8 @@ export class Scene {
     this.unsubscribe?.();
     this.unsubscribe = null;
     this.button.remove();
+    this.flotsam.button.remove();
+    this.flotsam.hint.remove();
     if (!this.ready) return;
     this.ready = false;
     window.removeEventListener("pointermove", this.onPointerMove);
@@ -410,7 +438,8 @@ export class Scene {
     const fraction = islandHour(content, second) / 24;
     const sky = weatherAt(content, second);
     // A jump of the clock (a demo jump, a shot, a tab back after hours) shows its weather at once.
-    this.weather.set(sky, Math.abs(now - this.lastNow) > 60);
+    const jump = Math.abs(now - this.lastNow);
+    this.weather.set(sky, jump > 60);
     this.lastNow = now;
     const { rain, fog } = this.weather.amount;
     const palette = gloom(paletteAt(fraction), rain * 0.85 + fog * 0.6);
@@ -421,7 +450,12 @@ export class Scene {
     const visibleW = (this.viewW - this.insetRight) / this.scale;
     const left = this.centerX - visibleW / 2;
     this.world.position.set(-left * this.scale - this.parallax * 6, -this.top * this.scale);
-    this.floaters.setCamera(this.world.position.x, this.world.position.y, this.scale);
+    this.floaters.setCamera(
+      this.world.position.x,
+      this.world.position.y,
+      this.scale,
+      this.viewW - this.insetRight,
+    );
     this.lights.position.copyFrom(this.world.position);
     this.lights.scale.copyFrom(this.world.scale);
 
@@ -440,6 +474,7 @@ export class Scene {
       this.lines.syncLights();
       this.lines.place(base, this.world.position.x, this.world.position.y, this.scale);
       this.drawHustle(base, now);
+      this.flotsam.update(base, now, nowMs, dt, this.camera(), Math.max(darkness, fog), jump > 5);
     }
     this.placeButton();
     this.drawHoldRing(nowMs);
@@ -580,6 +615,7 @@ export class Scene {
     if (elapsed < after) {
       const fill = elapsed / after;
       ring
+        .moveTo(held.x, held.y - r)
         .arc(held.x, held.y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * fill)
         .stroke({ width: 3, color: 0xffffff, alpha: 0.9, cap: "round" });
       return;
@@ -613,6 +649,82 @@ export class Scene {
       iconColor: color(resourceColor(product)),
       ...(fly ? { fly } : {}),
     });
+  }
+
+  /** The world's transform on screen. */
+  private camera(): { x: number; y: number; scale: number } {
+    return { x: this.world.position.x, y: this.world.position.y, scale: this.scale };
+  }
+
+  /** The counter's icon on screen (CSS px, relative to the scene), where gains fly to. */
+  private counterPoint(): { x: number; y: number } | null {
+    const counter = document.querySelector(".topbar .counter .counter-icon");
+    const rect = counter?.getBoundingClientRect();
+    if (!rect) return null;
+    const host = this.host.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2 - host.left, y: rect.top + rect.height / 2 - host.top };
+  }
+
+  /** Flotsam caught (predicted): it pops, coins and a splash, and says what it gave. */
+  private flotsamCaught(kind: string, k: number, value: number, nowMs: number): void {
+    this.flotsam.restPoint(this.camera());
+    const screen = this.flotsam.screenPoint;
+    this.flotsam.caught(k);
+    const at = this.toWorld(screen.x, screen.y);
+    this.particles.spawn("splash", at.x, at.y + 6, 10);
+    this.particles.spawn("coins", at.x, at.y - 10, 16);
+    sound.play("flotsam_claim");
+    haptics.buzz(BUZZ.flotsam);
+    const row = content.flotsam.kinds.find((item) => item.id === kind);
+    if (!row) return;
+    const effect = row.effect;
+    if ("lump" in effect) {
+      const base = useWorld.getState().base;
+      const minutes = base ? crateMinutes(content, base, value, Math.floor(gameSeconds())) : 0;
+      this.floaters.add(
+        "event",
+        at.x,
+        at.y - 70,
+        t("sea.crate_paid", { minutes: Number(minutes.toPrecision(2)) }),
+        nowMs,
+        { size: this.floatSize(1.05), color: 0xffd25a, holdMs: 1500 },
+      );
+      const counter = this.counterPoint();
+      this.floaters.add("flotsam", at.x, at.y - 30, `+${fmt(value, "cost")}`, nowMs, {
+        size: this.floatSize(1.1),
+        ...(counter ? { fly: { ...counter, arrive: () => this.bumpCounter() } } : {}),
+      });
+      return;
+    }
+    let factor = 1;
+    for (const item of effect.effects) if (item.op === "more") factor *= item.value;
+    const output = effect.effects.some((item) => item.stat === "output");
+    if (output) sound.play("rally");
+    this.floaters.add(
+      "event",
+      at.x,
+      at.y - 60,
+      t(output ? "sea.buff_output" : "sea.buff_tap", {
+        name: buffName(effect.buff),
+        factor: fmtFactor(factor),
+        time: duration(effect.seconds),
+      }),
+      nowMs,
+      { size: this.floatSize(1.05), color: 0xffd25a, holdMs: 1600 },
+    );
+  }
+
+  /** It sank uncaught while the page was showing: one quiet line where it went down. */
+  private sank(x: number, y: number, firstRun: boolean, nowMs: number): void {
+    const at = this.toWorld(x, y);
+    this.floaters.add(
+      "event",
+      at.x,
+      at.y - 50,
+      t(firstRun ? "sea.sank_first" : "sea.sank"),
+      nowMs,
+      { size: this.floatSize(0.78), color: 0xffffff, holdMs: 2600 },
+    );
   }
 
   /** The counter bumps (scale 1.04) when a line floater lands, at most four times a second. */
@@ -690,6 +802,34 @@ export class Scene {
         sound.play("refuse");
         break;
       }
+      case "flotsam_claimed": {
+        this.flotsamCaught(event.kind, event.k, event.value, nowMs);
+        break;
+      }
+      case "flotsam_lost": {
+        this.flotsam.restPoint(this.camera());
+        const screen = this.flotsam.screenPoint;
+        this.flotsam.lost(event.k);
+        const at = this.toWorld(screen.x, screen.y);
+        this.floaters.add("event", at.x, at.y - 50, t("sea.drifted"), nowMs, {
+          size: this.floatSize(0.85),
+          color: 0xffffff,
+          holdMs: 1400,
+        });
+        break;
+      }
+      case "collected": {
+        // Welcome back: the gain flies from the house into the counter.
+        if (event.gain <= 0) break;
+        const counter = this.counterPoint();
+        this.floaters.add("event", HOUSE.x, HOUSE.y - 90, `+${fmt(event.gain, "cost")}`, nowMs, {
+          size: this.floatSize(1.25),
+          color: 0xffd25a,
+          ...(counter ? { fly: { ...counter, arrive: () => this.bumpCounter() } } : {}),
+        });
+        sound.play("milestone");
+        break;
+      }
       case "go_tap": {
         // A refusal's button: back to the island, the target blinks and takes the focus.
         closeAll();
@@ -697,7 +837,7 @@ export class Scene {
         this.button.focus({ preventScroll: true });
         break;
       }
-      // Hires show as the hand walking out (`follow`); flotsam arrives with S4.
+      // Hires show as the hand walking out (`follow`).
     }
   }
 }

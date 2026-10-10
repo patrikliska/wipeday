@@ -1207,3 +1207,70 @@ Multipliers sheet, the refusal toast's button, and the desktop column. 36 shots
 9. Touch: the audit list is empty on every phone shot.
 10. Still open: the era row repeats its time to afford in its note and on its button (as
     08-screens.md 2.1 draws it); sound and the drawer's drag want the owner's phone.
+
+## R1 S4: flotsam and away
+
+New shots: `phone_flotsam__zoom` (run 1's crate at 3:03 with its ring and hint),
+`phone_flotsam_caught__zoom`, `phone_flotsam_rally__zoom`, `phone_flotsam_sank__zoom`,
+`phone_flotsam_night__zoom` (a Fuel Drum), `phone_flotsam_fog__zoom` (an Adrenaline Kit),
+`phone_flotsam_rain__zoom`, `phone_rally_cap__zoom` (Rally and Adrenaline at once),
+`phone_odds`, `phone_settings_odds`, `phone_welcome_full` / `_short` / `_nohands`,
+`phone_welcome_collected`, `desktop_flotsam`, `desktop_welcome`.
+
+### Iteration 1
+- `phone_flotsam`: a white line ran from the screen's top-left corner to the ring. The ring's arc
+  began its path at the origin (an arc joins the current point). Every arc now starts with a
+  `moveTo`, the hold ring's too.
+- The hint, placed right of the crate, covered the Beachcomber's and the Campfire's badges on the
+  beach. It sits above the crate now, over the sea and the sky, left-aligned with it.
+- `phone_flotsam_caught` showed no pop and no floaters: the claim went out before the scene had
+  drawn the crate once, so nothing knew where it was. The scene falls back to the resting point,
+  and the harness plays one frame before a `send` (a tap can only land on a drawn crate).
+- `phone_flotsam_night`: the glow had become a flat grey disc behind the drum. It is weaker at
+  night now (0.25 + 0.3 × darkness).
+- `phone_welcome_full` / `_nohands`: the counter read 0 and the no-hands card claimed "+2.40k".
+  The fixture never set `madeAtActive`, so everything made before the patch counted as made
+  while away; the harness sets it with `activeAt`.
+- `phone_welcome_*`, `desktop_welcome`: the dimmed drawer (and the desktop column) still showed
+  its crowned Buy in orange beside the card's Collect. Under a sheet or the card the HUD's crown
+  now goes secondary (D175).
+
+### Iteration 2
+- `phone_flotsam_rally`: the floater said "Rally! All lines ×4 · 60s" while its pill said
+  "Rally ×4 · 1m". Both use the one duration format now, and so does the Odds sheet ("for 1m").
+- `phone_flotsam_sank`: "It sank. Another one drifts in within 3 minutes." looked washed out. The
+  floater was stamped with a clock read outside the frame, so in a fast-forward it was already
+  fading; it takes the frame's time now and reads crisp, kept 8 px inside the screen's edge.
+- `phone_welcome_full`: "31.2M" held on the counter, "+26.8B" as the card's figure, "Your hands
+  worked the Night Shift (12 h of it). They stopped yesterday at 08:30.", one orange Collect.
+  `_short` reads "Away 7h 12m · Your hands worked the whole time."; `_nohands` has no figure,
+  "Nobody was on shift: lines without a hand only run while you tap." and "Back to work".
+  `phone_welcome_collected`: the gain flies from the house, the counter counting up under it.
+
+### Iteration 3: the full run
+- All 53 shots: the audit list is empty (no button under 44 px, the flotsam's button 64 × 64, the
+  target's box over 120 px, at most one crown in what is not inert), no console errors.
+  `phone_multipliers` (now on the shared sheet frame) gains "Flotsam odds >" above Done;
+  `phone_hold`'s ring is unchanged by the `moveTo` fix.
+
+### Checklist
+1. Hierarchy: on the welcome card the gain is the big figure; on the water the crate is the
+   brightest thing at the shore, with its ring; on the Odds sheet the percentages sit right in 18
+   bold.
+2. Legibility at 390 px: the hint 14 bold on its pill; "It sank. Another one drifts in within 3
+   minutes." 17 px with its stroke, inside the screen; Odds effects 13 px muted, two lines at most.
+3. Spacing: the hint 8 px above the crate's button and 16 px from the screen's edge at least;
+   sheets keep the panel's 16 px gutters.
+4. Overflow: "+26.8B" and "Supplies at once: 15% of what you hold, between 1 and 10 min of
+   output" fit; floaters are kept 8 px inside both edges.
+5. Consistency: the crate, drum and kit icons are the same on the water, in the buff pills and on
+   the Odds sheet; buff times use the one duration format ("1m", "12s") in the pill, the floater
+   and the sheet.
+6. Contrast: flotsam in day, rain, fog and night (its glow and ring sit above the night tint and
+   the weather); the `phone_stone_*` set unchanged.
+7. Rules: one crown per view, also to the eye (D175); no dead end (the welcome card's one button,
+   backdrop and Escape all collect; the Odds sheet has (x), Done, back and Escape); nothing
+   unshipped (only R1's three kinds on the Odds sheet, no Bunker link on the welcome card).
+8. Still open: the sounds and the 15 ms buzz want the owner's phone; `pnpm web:perf` was not
+   re-run this session (the PC was busy with a game, so frame numbers would mean nothing); the
+   flotsam adds one sprite, one ring and a glow.

@@ -82,6 +82,48 @@ export function flotsamAt(content: Content, state: BaseState, now: number): Curs
   return k === cursor.k && at === cursor.at ? cursor : { ...cursor, k, at };
 }
 
+/** An arrival on the water: shown from `at` for `float` seconds, claimable until `until`. */
+export interface Afloat {
+  k: number;
+  at: number;
+  float: number;
+  until: number;
+  kind: FlotsamKind;
+}
+
+/**
+ * The arrival a player can catch at `now`, or null: washed up, not caught, its claim window
+ * (float plus the network grace) still open. The scene draws it; the claim names its `k`.
+ */
+export function afloat(content: Content, state: BaseState, now: number): Afloat | null {
+  const cursor = flotsamAt(content, state, now);
+  const at = cursor.at;
+  if (at === null || now < at || cursor.k === cursor.last) return null;
+  const until = claimUntil(content, state, at);
+  if (now > until) return null;
+  const kind = arrivalKind(content, state, cursor.k);
+  return { k: cursor.k, at, float: floatSeconds(content, state), until, kind };
+}
+
+/** The printed odds (guardrail 9): each shipped kind's share of the draw, summing to 1. */
+export function odds(content: Content): Array<{ kind: FlotsamKind; share: number }> {
+  const total = content.flotsam.kinds.reduce((sum, kind) => sum + kind.weight, 0);
+  return content.flotsam.kinds.map((kind) => ({
+    kind,
+    share: total > 0 ? kind.weight / total : 0,
+  }));
+}
+
+/** Run 1 before its first catch: every arrival is the guaranteed crate (errata E1). */
+export const guaranteedCrate = guaranteed;
+
+/** How many minutes of output a crate's `value` is at `t` (the floater's "+2 min"). */
+export function crateMinutes(content: Content, state: BaseState, value: Amount, t: number): number {
+  const perMinute =
+    outputRate(content, state, t) * 60 * statOf(content, state, "flotsam_effect", 1);
+  return perMinute > 0 ? value / perMinute : 0;
+}
+
 /** Every owned line as if manned, all multipliers but buffs: what a crate's minutes are of. */
 export function outputRate(content: Content, state: BaseState, t: number): number {
   const calm: BaseState = state.run.buffs.length

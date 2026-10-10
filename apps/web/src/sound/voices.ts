@@ -1,7 +1,7 @@
 /**
  * The procedural voices (docs/redesign/08-screens.md 5.2): small functions of oscillators,
- * noise and envelopes, each returning how long it sounds. R1 ships tap, buy, milestone, fell
- * and the UI ticks; R2's cues join this table with their features.
+ * noise and envelopes, each returning how long it sounds. R1 ships tap, buy, milestone, fell,
+ * flotsam (in, claimed, Rally) and the UI ticks; R2's cues join this table with their features.
  */
 
 export type Cue =
@@ -9,6 +9,9 @@ export type Cue =
   | "buy"
   | "milestone"
   | "fell"
+  | "flotsam_in"
+  | "flotsam_claim"
+  | "rally"
   | "ui_open"
   | "ui_close"
   | "ui_toggle"
@@ -185,6 +188,50 @@ const fell: Play = (voice, { target = "tree" }) => {
   }
 };
 
+/** Something washes up: a soft bell, panned toward the sea on the left (08-screens.md 5.2). */
+const flotsamIn: Play = (voice) => {
+  const { ctx, out, at } = voice;
+  const pan = ctx.createStereoPanner();
+  pan.pan.value = -0.6;
+  pan.connect(out);
+  const bell: Voice = { ...voice, out: pan };
+  tone(bell, "sine", 1568, 1568, at, 1.2, 0.16);
+  tone(bell, "sine", 3136, 3136, at, 0.4, 0.04);
+  return 1.2;
+};
+
+/** Caught: a splash, then the buy chime. */
+const flotsamClaim: Play = (voice) => {
+  noiseBurst(voice, voice.at, 0.2, 0.35, (filter) => {
+    filter.type = "bandpass";
+    filter.frequency.value = 1500;
+    filter.Q.value = 0.9;
+  });
+  buy({ ...voice, at: voice.at + 0.06 }, {});
+  return 0.25;
+};
+
+/** Rally starts: a saw revving up from 80 to 160 Hz with a tremolo. */
+const rally: Play = (voice) => {
+  const { ctx, out, at } = voice;
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 1200;
+  const tremolo = ctx.createGain();
+  const lfo = ctx.createOscillator();
+  const depth = ctx.createGain();
+  lfo.frequency.value = 8;
+  depth.gain.value = 0.5;
+  lfo.connect(depth);
+  depth.connect(tremolo.gain);
+  filter.connect(tremolo);
+  tremolo.connect(out);
+  tone({ ...voice, out: filter }, "sawtooth", 80, 160, at, 0.6, 0.22);
+  lfo.start(at);
+  lfo.stop(at + 0.65);
+  return 0.65;
+};
+
 const sweep =
   (up: boolean): Play =>
   (voice) => {
@@ -215,6 +262,9 @@ export const VOICES: Record<Cue, Play> = {
   buy,
   milestone,
   fell,
+  flotsam_in: flotsamIn,
+  flotsam_claim: flotsamClaim,
+  rally,
   ui_open: sweep(true),
   ui_close: sweep(false),
   ui_toggle: toggle,

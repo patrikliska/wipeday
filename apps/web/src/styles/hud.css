@@ -122,6 +122,26 @@
   opacity: 0.78;
 }
 
+/* Under a sheet or the welcome card the HUD is inert, and its crown goes quiet: the view on
+   top has the one orange button (6.3 rule 1). */
+.hud-main[inert] .btn.primary {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--border-soft);
+  color: var(--text);
+  box-shadow: none;
+  animation: none;
+}
+
+.hud-main[inert] .shop-row.crowned {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.hud-main[inert] .tap-hint {
+  animation: none;
+  box-shadow: var(--shadow);
+  border-color: var(--border-soft);
+}
+
 .btn.ghost {
   background: transparent;
   border-color: transparent;
@@ -1236,6 +1256,103 @@
   line-height: 1.4;
 }
 
+/* --- the Odds sheet (02-the-run.md 8.5) --- */
+
+.odds-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+}
+
+.odds-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.odds-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--panel-glass-2);
+  color: var(--text);
+}
+
+.odds-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.odds-name {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.odds-effect {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.odds-share {
+  flex: none;
+  font-size: 18px;
+  font-weight: 700;
+  min-width: 56px;
+  text-align: right;
+}
+
+/* --- welcome back (08-screens.md 2.14): one card, one Collect, the nav out of the way --- */
+
+.welcome-open .nav {
+  visibility: hidden;
+}
+
+.welcome-gain {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 12px;
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.welcome-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 6px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.welcome-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--panel-glass-2);
+  color: var(--buff);
+}
+
+.welcome-stopped {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
 /* --- toasts --- */
 
 .toasts {
@@ -1435,6 +1552,48 @@
 .target-hit:focus-visible {
   outline: 2px dashed rgba(236, 232, 223, 0.7);
   outline-offset: 2px;
+}
+
+/* --- flotsam: a round button over it, and its hint beside it (02-the-run.md 8.4) --- */
+
+.flotsam-hit {
+  position: absolute;
+  z-index: 1;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.flotsam-hit:focus {
+  outline: none;
+}
+
+.flotsam-hit:focus-visible {
+  outline: 2px dashed rgba(236, 232, 223, 0.7);
+  outline-offset: 2px;
+}
+
+.flotsam-hint {
+  position: absolute;
+  z-index: 1;
+  transform: translateY(-100%);
+  max-width: min(250px, calc(100vw - var(--column-w) - 32px));
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text);
+  pointer-events: none;
 }
 
 /* --- reduced motion (08-screens.md 6.2): pulses become steady glows, nothing slides --- */

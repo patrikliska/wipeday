@@ -3,7 +3,8 @@ import { shownRate } from "@wipe-day/domain/glance";
 import { suppliesAt } from "@wipe-day/domain/settle";
 import { useEffect, useRef } from "react";
 import { useAdvisor } from "../state/advisor";
-import { gameSeconds, useWorld } from "../state/store";
+import { wall } from "../state/clocks";
+import { counterHold, gameSeconds, useWorld } from "../state/store";
 import { useUi } from "../state/ui";
 import { buffName, content, duration, fmt, fmtFactor, fmtRate, t } from "../state/world";
 import { Icon, ResourceIcon } from "./Icon";
@@ -12,6 +13,7 @@ import { Icon, ResourceIcon } from "./Icon";
  * The top bar (08-screens.md 1.2): the supplies counter with its `/s`, a button that opens the
  * Multipliers sheet, and the menu. React renders it once; a rAF loop writes the figures from the
  * closed-form settle, so a ticking counter never re-renders the HUD (4.4). Held amounts floor.
+ * While the welcome-back card is up the counter keeps its old value; Collect flies the gain in.
  */
 export function TopBar() {
   const amount = useRef<HTMLSpanElement>(null);
@@ -30,7 +32,8 @@ export function TopBar() {
       const base = useWorld.getState().base;
       if (base) {
         const now = Math.max(gameSeconds(), base.run.settledAt);
-        const nextAmount = fmt(suppliesAt(content, base, now), "held");
+        const held = suppliesAt(content, base, now) - counterHold(wall.nowMs());
+        const nextAmount = fmt(Math.max(0, held), "held");
         // Nothing runs by itself yet: no rate line (an empty one keeps the block's height).
         const perSecond = shownRate(content, base, Math.floor(now));
         const nextRate = perSecond > 0 ? `+${fmtRate(perSecond)}` : "";

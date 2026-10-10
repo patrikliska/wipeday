@@ -177,12 +177,13 @@ function Choice<T extends string>({
   );
 }
 
-/** Settings (08-screens.md 2.15): sound, numbers, motion, notifications, account, help. */
+/** Settings (08-screens.md 2.15): sound, numbers, motion, notifications, account, help, odds. */
 function SettingsPanel() {
   const scientific = useUi((state) => state.scientific);
   const setScientific = useUi((state) => state.setScientific);
   const motion = useUi((state) => state.motion);
   const setMotion = useUi((state) => state.setMotion);
+  const openSheet = useUi((state) => state.openSheet);
   const player = useWorld((state) => state.player);
   const mode = useWorld((state) => state.mode);
   const [soundOn, setSoundOn] = useState(sound.enabled);
@@ -290,6 +291,17 @@ function SettingsPanel() {
             ))}
           </ol>
         ) : null}
+        <button
+          type="button"
+          className="btn ghost fold"
+          onClick={() => {
+            sound.play("ui_open");
+            openSheet("odds");
+          }}
+        >
+          {t("settings.odds")}
+          <Icon kind="ui" id="chevron" size={16} />
+        </button>
       </div>
     </Shell>
   );

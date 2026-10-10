@@ -17,6 +17,8 @@ export interface WelcomeBack {
   gain: Amount;
   /** Seconds the hands worked (at most the window), the window, and whether it ran out. */
   nightShift: { worked: number; window: number; full: boolean };
+  /** When the hands stopped (the last command plus the window), or null if they never did. */
+  stoppedAt: number | null;
   /** Lines manned: none means nobody was on shift. */
   hands: number;
   /** What happened while away, oldest first. */
@@ -37,6 +39,7 @@ export function welcomeBack(
     awaySeconds: away,
     gain: Math.max(0, state.run.made - state.run.madeAtActive),
     nightShift: { worked: Math.min(away, window), window, full: away >= window },
+    stoppedAt: away >= window ? state.run.activeAt + window : null,
     hands: state.run.hands.length,
     events,
   };

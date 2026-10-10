@@ -30,7 +30,26 @@ in `docs/archive/roadmap-w.md`.
   and vibration; names pass 1 approved Go Bag and Tinned Fish. S3 (the HUD) is done
   (2026-10-10, D165-D170): the top bar and the Multipliers sheet, the shop drawer and the desktop
   column, the crown on screen (advisor v2), the nav row with Crew, Settings with notifications,
-  signal orange. Next: S4, flotsam and away.
+  signal orange. S4 (flotsam and away) is done (2026-10-11, D171-D175): flotsam on the water with
+  its ring, hint, catch and sounds, the welcome-back card, the Odds sheet, one crown to the eye.
+  Next: S5, balance and polish (playtest 1).
+
+### R1 S4 results (flotsam and away)
+
+- **Flotsam:** the scene draws the domain's `afloat()` (the state's schedule, so a reload shows
+  the same arrival at the same age): a 2.5 s drift from the left edge, a 64 px button, the 13 s
+  ring, a sink of 1.2 s still catchable inside the server's 3 s grace; run 1's crate at 3:00
+  pays "+2 min of supplies" (`crateMinutes`, a test). A late claim is quiet; a sunk one says so
+  once. Its three sounds ship with it (D172).
+- **Welcome back:** three cases (window used up, not used up, nobody on shift), from the server
+  on load or from the client's own `welcomeBack()` when a hidden tab shows again; no ping while
+  it is up; the counter holds the gain until Collect. Domain tests: no card under an hour, the
+  gain stops at the window's end and stays, `stoppedAt`, Collect clears it.
+- **Odds:** `odds()` prints 49.5 / 44.0 / 6.6% (a test), from Settings and the Multipliers sheet.
+- **Weather:** flotsam reviewed in day, night, rain and fog (its glow sits above the night
+  tint); the `phone_stone_*` set re-shot unchanged.
+- **Shots:** 53 (16 new), the audit clean, no console errors; three review rounds
+  (`docs/ui-review.md`, `preview/web/index.html`).
 
 ### R1 S3 results (the HUD)
 

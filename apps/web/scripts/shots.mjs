@@ -87,7 +87,13 @@ const every = (n) => Object.fromEntries(ALL_LINES.map((id) => [id, n]));
  * steps, deterministic), then the frame is frozen. `clip` also saves a 1:1 crop
  * `{name}__zoom.png` ([x, y, width, height] in CSS pixels). `press` holds a finger on the
  * target through the fast-forward (hold to work). `send` sends a command through the store after
- * the patch (a refusal shows its toast); `scrollRows: "end"` scrolls the open shop list down.
+ * the patch (a refusal shows its toast); `scrollRows: "end"` scrolls the open shop list down and
+ * `scroll` scrolls any element (a selector) to its end.
+ *
+ * Flotsam and away (R1 S4), in `state`: `runAge` starts the run that many seconds before `time`;
+ * `flotsamAge` puts an arrival on the water that many seconds old (run 1's crate, or the first
+ * of `flotsamKind` once one was caught); `away` moves the game clock on that many seconds after
+ * the patch and shows the welcome-back card; `collect` presses its Collect.
  */
 const PHONE_SHORT = [390, 664];
 
@@ -394,6 +400,249 @@ const SHOTS = [
     ff: 3,
   },
   {
+    name: "phone_flotsam",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+      era: "wood",
+      supplies: 4.1e5,
+      made: 5.6e5,
+      taps: 1100,
+      lines: { beachcomber: 25, campfire: 14, garden: 8, loom: 3, workbench: 1 },
+      hands: ["beachcomber", "campfire", "garden"],
+      upgrades: ["stone_tools"],
+      target: { taps: 12, felled: 27 },
+      runAge: 184,
+      flotsamAge: 3,
+    },
+    clip: [0, 360, 390, 200],
+    ff: 1,
+  },
+  {
+    name: "phone_flotsam_caught",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+      era: "wood",
+      supplies: 4.1e5,
+      made: 5.6e5,
+      taps: 1100,
+      lines: { beachcomber: 25, campfire: 14, garden: 8, loom: 3, workbench: 1 },
+      hands: ["beachcomber", "campfire", "garden"],
+      upgrades: ["stone_tools"],
+      target: { taps: 12, felled: 27 },
+      runAge: 186,
+      flotsamAge: 6,
+    },
+    send: { type: "claim_flotsam", run: 1, k: 0 },
+    clip: [0, 300, 390, 260],
+    ff: 0.3,
+  },
+  {
+    name: "phone_flotsam_rally",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      runAge: 1800,
+      flotsamAge: 6,
+      flotsamKind: "fuel_drum",
+    },
+    sendFlotsam: true,
+    clip: [0, 0, 390, 520],
+    ff: 0.4,
+  },
+  {
+    name: "phone_flotsam_sank",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+      era: "wood",
+      supplies: 4.1e5,
+      made: 5.6e5,
+      taps: 1100,
+      lines: { beachcomber: 25, campfire: 14, garden: 8, loom: 3, workbench: 1 },
+      hands: ["beachcomber", "campfire", "garden"],
+      upgrades: ["stone_tools"],
+      target: { taps: 12, felled: 27 },
+      runAge: 194,
+      flotsamAge: 13.5,
+    },
+    clip: [0, 300, 390, 260],
+    ff: 3,
+  },
+  {
+    name: "phone_flotsam_night",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 23),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      runAge: 1800,
+      flotsamAge: 9,
+      flotsamKind: "fuel_drum",
+    },
+    clip: [0, 360, 390, 200],
+    ff: 0.5,
+  },
+  {
+    name: "phone_flotsam_fog",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 9),
+      wall: WALL,
+      weather: "fog",
+      ...STONE_RUN,
+      runAge: 1800,
+      flotsamAge: 5,
+      flotsamKind: "adrenaline",
+    },
+    clip: [0, 360, 390, 200],
+    ff: 0.5,
+  },
+  {
+    name: "phone_flotsam_rain",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 12),
+      wall: WALL,
+      weather: "rain",
+      ...STONE_RUN,
+      runAge: 1800,
+      flotsamAge: 5,
+      flotsamKind: "crate",
+    },
+    clip: [0, 360, 390, 200],
+    ff: 0.5,
+  },
+  {
+    name: "phone_rally_cap",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      buffs: [
+        { kind: "rally", until: at(1, 10.5) + 41 },
+        { kind: "adrenaline", until: at(1, 10.5) + 9 },
+      ],
+      hustle: { value: 80, at: at(1, 10.5) },
+    },
+    taps: [10, 4],
+    clip: [0, 0, 390, 470],
+    ff: 0.2,
+  },
+  {
+    name: "phone_odds",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+      era: "wood",
+      supplies: 4.1e5,
+      made: 5.6e5,
+      taps: 1100,
+      lines: { beachcomber: 25, campfire: 14, garden: 8, loom: 3, workbench: 1 },
+      hands: ["beachcomber", "campfire", "garden"],
+      upgrades: ["stone_tools"],
+      target: { taps: 12, felled: 27 },
+      runAge: 120,
+      ui: { sheet: "odds" },
+    },
+    ff: 0.5,
+  },
+  {
+    name: "phone_settings_odds",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { panel: "settings" },
+    },
+    scroll: ".panel .panel-scroll",
+    ff: 0.5,
+  },
+  {
+    name: "phone_welcome_full",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 21.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      away: 2 * DAY + 3 * 3600,
+    },
+    ff: 0.5,
+  },
+  {
+    name: "phone_welcome_short",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 23.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      away: 7 * 3600 + 12 * 60,
+    },
+    ff: 0.5,
+  },
+  {
+    name: "phone_welcome_nohands",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 6.5),
+      wall: WALL,
+      weather: "clear",
+      supplies: 820,
+      made: 2400,
+      taps: 400,
+      lines: { beachcomber: 9, campfire: 2 },
+      target: { taps: 10, felled: 9 },
+      away: 3 * 3600,
+    },
+    ff: 0.5,
+  },
+  {
+    name: "phone_welcome_collected",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 21.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      away: 9 * 3600 + 40 * 60,
+      collect: true,
+    },
+    ff: 0.35,
+  },
+  {
     name: "phone_lines_1",
     viewport: PHONE,
     scale: 2,
@@ -480,6 +729,38 @@ const SHOTS = [
     viewport: DESKTOP,
     state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
     ff: 3,
+  },
+  {
+    name: "desktop_flotsam",
+    viewport: DESKTOP,
+    state: {
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+      era: "wood",
+      supplies: 4.1e5,
+      made: 5.6e5,
+      taps: 1100,
+      lines: { beachcomber: 25, campfire: 14, garden: 8, loom: 3, workbench: 1 },
+      hands: ["beachcomber", "campfire", "garden"],
+      upgrades: ["stone_tools"],
+      target: { taps: 12, felled: 27 },
+      runAge: 184,
+      flotsamAge: 4,
+    },
+    ff: 1,
+  },
+  {
+    name: "desktop_welcome",
+    viewport: DESKTOP,
+    state: {
+      time: at(1, 21.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      away: 2 * DAY + 3 * 3600,
+    },
+    ff: 0.5,
   },
   {
     name: "desktop_first_tap",
@@ -662,9 +943,24 @@ async function main() {
     await page.evaluate(
       ([state, before]) => {
         const { store, clocks, ui: uiStore } = window.__wipeDay;
-        const { time, wall, demoOpen, ui, pace, ...run } = state;
+        const {
+          time,
+          wall,
+          demoOpen,
+          ui,
+          pace,
+          runAge,
+          flotsamAge,
+          flotsamKind,
+          away,
+          collect,
+          ...run
+        } = state;
+        if (runAge !== undefined) run.startedAt = time - runAge;
         // Present now: the Night Shift runs and manned lines cycle.
         if (time !== undefined) run.activeAt ??= time;
+        // ...and nothing made before the patch counts as made while away.
+        if (run.made !== undefined) run.madeAtActive ??= run.made;
         clocks.game.setPaused(true);
         if (time !== undefined) clocks.game.set(time);
         clocks.wall.setPaused(true);
@@ -678,6 +974,13 @@ async function main() {
           window.__wipeDay.fastForward?.(0.1);
         }
         store.getState().demoPatch(run);
+        if (flotsamAge !== undefined) {
+          // An arrival on the water: run 1's guaranteed crate, or the first of a kind after it.
+          const k = flotsamKind ? window.__wipeDay.flotsamK(flotsamKind) : 0;
+          store.getState().demoPatch({
+            flotsam: { k, at: time - flotsamAge, caught: flotsamKind ? 1 : 0, last: k - 1 },
+          });
+        }
         store.setState({ demoOpen: demoOpen === true, toasts: [] });
         // The HUD: collapsed drawer on the Lines tab at ×1, nothing open, unless the shot says.
         uiStore.setState({
@@ -691,12 +994,30 @@ async function main() {
           motion: "device",
           ...ui,
         });
+        if (away) {
+          clocks.game.set(time + away);
+          store.getState().checkAway();
+          if (collect) store.getState().collect();
+        }
       },
       [state, shot.before ?? null],
     );
+    if (shot.sendFlotsam) {
+      // Catches what floats now (its run and index), as a tap on it would.
+      await page.evaluate(() => {
+        const hook = window.__wipeDay;
+        hook.fastForward?.(1 / 60);
+        const run = hook.store.getState().base.run;
+        hook.store.getState().send({ type: "claim_flotsam", run: run.n, k: run.flotsam.k });
+      });
+    }
     if (shot.send) {
-      // A command through the store, as a button would send it (a refusal shows its toast).
-      await page.evaluate((command) => window.__wipeDay.store.getState().send(command), shot.send);
+      // A command through the store, as a button would send it (a refusal shows its toast),
+      // after one frame, so the scene has drawn what the command touches (flotsam).
+      await page.evaluate((command) => {
+        window.__wipeDay.fastForward?.(1 / 60);
+        window.__wipeDay.store.getState().send(command);
+      }, shot.send);
     }
     if (shot.taps) {
       const [rounds, perRound] = shot.taps;
@@ -722,6 +1043,13 @@ async function main() {
       window.__wipeDay.frozen = true;
     }, shot.ff ?? 0.2);
     await page.waitForTimeout(400);
+    if (shot.scroll) {
+      await page.evaluate((selector) => {
+        const element = document.querySelector(selector);
+        if (element) element.scrollTop = element.scrollHeight;
+      }, shot.scroll);
+      await page.waitForTimeout(100);
+    }
     if (shot.scrollRows === "end") {
       await page.evaluate(() => {
         const list = document.querySelector(".rows.scroll");
