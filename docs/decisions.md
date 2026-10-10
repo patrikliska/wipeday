@@ -1350,3 +1350,249 @@ The image now installs the bot too; `deploy/compose.yml` runs it as `wipeday-bot
 `DISCORD_GUILD_ID` and `BOT_API_TOKEN`, so a deploy before the owner's setup still works.
 `pnpm preview` draws every message from the payload the bot sends, in Discord's dark theme at
 phone and desktop width (`preview/discord/`), because the agent cannot open Discord.
+
+## R0 (foundations: the redesign)
+
+Approved by the owner on 2026-10-10. The plan is `docs/redesign/` (README, `01`-`11`, and
+`working/` with the canon and, overriding it in this order, its amendments, resolutions and
+errata v3). D127-D145 follow canon section 16's order. Old entries are never edited: D137 lists
+every decision the redesign overturns or modifies, so a reader of an old entry finds what
+replaced it.
+
+### D127. The redesign: an incremental idle game with a personal nuke
+Wipe Day becomes an incremental game on Saltmarsh *(proposal)*: tap for Supplies, buy 14
+production lines, hire a hand per line, climb five eras, then press the Big Red and nuke your own
+island for Crater Glass, which boosts everything (Glow) and buys nodes on the Blast Map, a
+permanent 361-node tree. The owner's brief ("whole game should be idle", "MASSIVE tree", "funny
+red button", "scrap more rare") and the evidence against the W-phase loop (a check-in game of
+about 62 purchases a season against 84 check-ins, caps as the real wall) are in
+`docs/redesign/01-vision.md`. The plan supersedes the old `docs/game-design.md` (archived as
+`docs/archive/game-design-v1.md`) and CLAUDE.md sections 1, 4, 6.3 and 8, which R0 rewrote.
+`docs/redesign/09-architecture.md` is the engineering spec. *Revisit* only through a new decision.
+
+### D128. Seasons are not a reset
+No monthly wipe: the nuke is the only reset and each player chooses when. One season row lives
+forever; "month" survives as a board window that resets nobody. Season 1 runs untouched on the
+old build (nobody plays it now, owner decision 7) and ends once, quietly, at the cut-over with one
+`pnpm season end`; the Hall keeps it as "the old world". The four season modifiers return as
+Dares with the same ids (R7). Two resets would fight for one emotion, a calendar punishes whoever
+joins late, and a monthly wipe would take either the Blast Map (meant to last months) or only the
+run (which players wipe themselves). *Revisit* only if the tree saturates; the answer then is the
+Crossing (a personal second layer), not a calendar.
+
+### D129. The guardrails
+Eleven guardrails replace CLAUDE.md section 8, each asserted by canon numbers N1-N27 as amended
+(`10-balance.md` 4.9, resolutions section 2, errata v3):
+
+1. The first nuke comes on day 1: N1 first-hour archetype (6 taps/s) 40-60 min; N2 any
+   archetype at least 25 min on the wall clock; N3 casual by the day-1 21:00 check-in.
+2. Active play is a bonus: N8 tap-driven income (taps plus unmanned lines) at least 50% in run
+   1's first minute, direct taps 5-25% from minute 10 outside bursts; N9 an active hour 1.5-3×
+   an idle online hour on the weather-weighted hour (rain hours warn, E13); N10 taps credited at
+   most 15 a second with a burst of 45, hold counts 4 a second.
+3. Friends stay in one race: N16 glass ever at days 30 and 90, active at most 2×, optimal at
+   most 2.5×, idler at least 0.5× the casual, asserted in the group of five with Late Tide (solo
+   gaps and the doubling idler's trough warn, E11); N17 a late joiner reaches the day-30
+   casual's glass ever within 12 days, asserted for two players (five warn, E16).
+4. Always something to buy: N4 first hand by 2 min; N5 nothing affordable for at most 30 s in
+   the first 10 online minutes of runs 1-5; N6 at most 120 s online with nothing affordable; N7
+   at least 90% of casual check-ins in days 1-30 hold a purchase.
+5. Every nuke feels faster: N11 run N+1 passes run N's gain in at most 65 / 95 / 100% of its
+   time (medians; warn-only until R7); N12 combined power per nuke ×1.5-2.5 / ×1.15-1.6 /
+   ×1.1-1.5; N13 five consecutive nukes together under ×1.3 with nothing opening in the next
+   three fails.
+6. The tree lasts months: N14 6-10 nodes at the first nuke, later median at least 2; N15 optimal
+   at most 45% lit by day 30, 100% not before day 90; casual at least 45% at day 180 (warning).
+7. Absence never hurts: N18 the Night Shift is 12 h at the start, 48 h at most, 100% inside; a
+   full window stops accrual and destroys nothing.
+8. Precious things are never at risk: glass and scrap are never traded, gifted, wagered, stolen
+   or sold; no casino. N19 scrap: casual 0.8-2 a day (7-day averages from day 2, one-offs
+   excluded), at least 25 by day 30, nobody above 2.5 (single windows warn, E15).
+9. Randomness is visible: odds printed in the game (an Odds sheet in Settings from R1, the
+   Logbook from R4); no hidden catch-up (Late Tide is labelled to its player); N20 timers and
+   meters (flotsam every 4-10 min for 13 s, Afterglow, Hustle ×1-×2 on real seconds, the
+   Magnet).
+10. Numbers stay meaningful: N21 the prestige shape (D132) in data; N22 the 10% rule; N23 run 1
+    ends at 1e10-1e12 supplies made, under 1e150 over 180 days, always finite.
+11. Respect the clock: active timers are real seconds, idle timers run on the game clock (D138);
+    N24 settle path independence 1e-9 and the tick oracle 1e-6; N25 tap batches of at most 1 s
+    or 30 taps, slim records for 1 h, a ping every 5 min; N26 the Blast Map's bands and mix;
+    N27 touch targets at least 44 CSS px, the tap target at least 120 px tall on a phone.
+
+Retired: the 25% legacy cap and its four enforcements, "8 check-ins ≈ 1.6×", the day-14 and
+day-18 floors, storage caps as the check-in driver, the casino and PvP rules. `pacing.json5` v2
+marks each assertion with the phase that switches it on. *Revisit* a band only with simulator
+output for every archetype and a decision.
+
+### D130. Finite doubles behind `Amount`
+Supplies reach about 1e39 in a year, far past 2^53, so amounts are finite doubles behind an
+`Amount` alias (`packages/domain/src/amount.ts`): `finite()` wraps every sum that can grow
+without bound, and `assertFiniteState` runs after every simulated step and in the API's `save()`
+(where `JSON.stringify` would write `Infinity` as `null`). Counts (owned units, hands, nukes,
+scrap, taps) stay integers; glass is a whole-valued double. Fractional remainders stay in state
+(display floors), so many small settles equal one big one. Content amounts are
+`z.number().finite().nonnegative()`. Amends CLAUDE.md 4's "Integers in state" and D19.
+*Revisit* with a mantissa/exponent type behind `Amount` if numbers ever approach 1e300.
+
+### D131. The currencies
+Supplies, the one run currency (owner decision 0): each line sells what it makes; products are
+drawn and badged (amendment A1) but never stocked or spent. Crater Glass (`glass`): glass ever
+drives Glow and is never spent; glass held buys Blast Map nodes. Scrap: rare and persistent,
+small integers, about 1-2 a day, never lost on a nuke (`05-meta-layers.md`). Sea Charts:
+reserved for the Crossing. *Revisit* materials only if R1's screenshots read as "a number going
+up in a Rust skin" (`07-what-changes.md` section 1's fallback).
+
+### D132. The prestige shape
+`G(L) = floor((L / L0)^(1/5))` with `L0` 5e5 over lifetime supplies; a nuke pays
+`(G(L) − level) × multipliers` into glass ever and held (Late Tide applied after it, from R6).
+Glow is `1 + k × √(glass ever)` with `k` 0.25. The first nuke needs 10 glass, later ones a gain
+of 1. A nuke adding at least 10% to glass ever (the first always) is a counted Wipe Day; one
+below is a small blast that pays quietly. Granted glass goes to held only and never moves Glow.
+The constants live in `packages/content/data/prestige.json5`. The cube root of canon v1 ran away
+in the model (first nuke at 22 min, the optimal player 287,000× the casual at day 30); the fifth
+root (owner decision 9) holds N1-N3 and N16. *Revisit* the exponent last, and never above 1/5
+without a group-simulation proof.
+
+### D133. Meta in the base document; `nuke` is pure
+`state.meta` (glass, nodes, Wipe Days, records, stats, scrap, Logbook) lives in the same
+`bases.state_json` as the run, so one transaction, one version and one prediction cover a nuke.
+`nuke(state, now)` is an ordinary command: settle, pay cycles in flight, fold the run into
+`meta`, start `newRun`; the same `bases` row is overwritten and `version` keeps rising. `World`
+inputs are copied into `meta.world`; tree buys and the nuke are predicted on the client. The
+state carries canon 9's reserved `island` and `KEEP_ON_CROSSING`. A stored base with `v !== 2`
+loads as fresh, saved in place with the version raised (the cut-over's safety net). Modifies
+D61, D98, D115, D116. *Revisit* if a base outgrows 24 KB on day 180 (a simulator test).
+
+### D134. The slim taps transport
+Taps travel in batches of at most 1 s or 30 taps (`{count, from, to}`, whole seconds). The
+server credits them through a token bucket of 15 a second with a burst of 45 (N10) and clamps
+the times to its own clock, so over any interval it credits at most `45 + 15 × elapsed` whatever
+a client claims; an honest tapper is never clamped. Every command stores an outcome-only record
+(no state): taps and pings for 1 hour, with no `event_log` row and a version-only push to other
+tabs; every other command for 7 days. A replay returns the stored outcome with the current
+state. The client never drops a predicted tap: it retries with the same key. Amends D59.
+*Revisit* if one tab's hour ever stores more than 3,700 slim records.
+
+### D135. Effects as data
+Every bonus is `{stat, op: add | inc | more | set | unlock, value, scope?, per?, max?, when?}`
+with one registered vocabulary (`09-architecture.md` 5.1) and one evaluator folding in a fixed
+order: base, add, milestones, (1 + Σinc), Πmore, Glow, Morale, transient buffs, offline. Each
+stat has a direction, so tests prove monotonicity (adding a non-keystone source never makes a
+stat worse) and per-stat bounds. Replaces `modifiers()` and the 25% cap's enforcements.
+*Revisit* if a mechanic cannot be expressed; it then gets a `feature:<id>` unlock, budgeted per
+phase.
+
+### D136. No autobuyer inside settle
+Settle never buys: it is closed-form and path-independent only because purchases happen in
+commands. The Foreman buys through ordinary `buy_line` commands while a page is open, and its
+one pass on Collect runs inside the `collect` command; Dead Hand sends `nuke` from the client.
+The server never nukes. *Revisit* never: offline automation would need buying inside settle.
+
+### D137. The cut list
+Removed on `redesign` (history at the `pre-redesign` tag): Gather and its cooldown, the daily
+node haul, construction timers and builders, upkeep and decay, storage caps, 22 of 23 stocked
+resources, the crafting web, blueprints, items, crew jobs, tiredness, bonds and gear, daily
+tasks, the Den counter, contracts, the player market, the casino, NPC raids, defence, bandit
+camps, PvP, monthly seasons, the Signal, the 25% legacy cap. Parked (deleted from the build, may
+return as a sea layer): expeditions, the map and fog, sites, regions, keycodes, trip events,
+report cards. Reworked: buildings as lines, base tiers as eras, tools as Grip, crew as hands,
+barrels as flotsam, the node game as the era target, legacy as `meta` and the Blast Map, the
+season card as the postcard, leaderboards as scale-free boards. Kept: the advisor, welcome back,
+weather (now domain data), the feed, Web Push, the Discord companion, commands, SSE, prediction,
+the clock. Owner decision 5 accepted the whole list.
+
+- **Overturned:** D17 and D19 (D130, D137), D25 (D144), D26 and D33 (the Night Shift), D27,
+  D72, D28, D71, D29, D34, D76, D37, D38, D62, D87, D63 (D134), D74, D82, D97, D104, D112
+  (D144), D77-D80, D83, D84, D90-D92, D99-D102, D106-D111, D113, D114 (D128, D145), D117 (D139,
+  D129), D119 (D142).
+- **Parked:** D85, D86, D88, D89 (its map half; the dev-API half stays true), D93, D94, D95.
+- **Modified:** D36 (flotsam), D42 and D75 (the phone reframe, D138), D45 (the drawer and five
+  nav items, D138), D51 (the 1× demo clock and `wall`, D138), D54 (the off-server copy, D143),
+  D56 (D144), D59 (D134), D61 (D133), D67 (advisor v2), D69 and D70 (lines with formulas,
+  D135), D81 (D139), D96 (D138, D142), D98 (D133), D103 and D105 (D142), D115 and D116 (D133),
+  D118 (Dares), D120 (the postcard), D121 and D125 (D142).
+- **Kept:** D1-D3, D7, D11, D13-D15, D21, D23, D40, D41, D43, D44, D46-D50, D52, D53, D58, D60,
+  D64-D66, D68, D73, D122-D124, D126. The rest is history.
+
+*Revisit* a removed system only with a scale-free design that keeps guardrails 7 and 8.
+
+### D138. The 6.3 amendments and the orange primary
+CLAUDE.md 6.3 changes: rule 1, exactly one crowned thing per view, signal orange, and the Big Red
+is never primary-styled (today's red would blur it; owner decision 11, with the contrast fixes
+in R1: `--muted` #b5afa4, panel alpha 0.86); rule 8, the shop drawer plus five nav items
+(Island, Blast Map, Crew, Logbook, Friends), the nav row hidden until its first destination
+unlocks; rule 9, production cycles may be seconds, idle timers (Night Shift, Magnet, cooldowns,
+Freighter) run on the game clock and active timers (Hustle, flotsam, buffs, felling, the
+cinematic) on real seconds; rule 10, welcome back's one primary is Collect, never the nuke; rule
+11, only "Night Shift over" on by default, with quiet hours 22:00-08:00 in the browser's time
+zone; new, never tease unshipped content (D140). The demo game clock runs at 1× with jumps
+(+1 h, +6 h, the next 08:00), not 240×, and a `wall` clock returns beside it, so shots pin game
+time and animation time separately (amends D51). A jump is time passing for everything the
+domain times, and never moves a real-second animation. *Revisit* the 1× clock only if reviewing
+idle timers by jumping proves too slow.
+
+### D139. The Blast Map
+361 permanent nodes in 8 sectors × 9 rings around Ground Zero, shipped in waves: 73 in R2 (rings
+1-3), 178 / 191 / 201 across R3-R5 as their systems ship, 361 in R7 (rings 7-9 in data from R3,
+hidden). Six node types (187 small, 70 notable, 16 keystone, 36 unlock, 36 automation, 16
+completion), exactly three keystone slots (Wipe Days 10, 20, 40), drawn in React DOM and SVG, no
+respec except a free one after a tree patch (`respec_all`, with a decision). The authoritative
+power budget is `10-balance.md` section 6, checked per ring, column and sector. Replaces the
+legacy perks and their cap (D117); modifies D81 and D120. *Revisit* the outer rings with the
+late-wall choice before R7.
+
+### D140. Never tease unshipped content
+A locked thing shows only a real, reachable reason; nothing in the game names a system that has
+not shipped. The client derives what to show from content (no data, no nav item); the agenda
+lists shipped content only; the Blast Map's later waves are in data but hidden until their
+phase. The common contract checks it every phase. *Revisit* never.
+
+### D141. Icon namespaces
+Icons live in `packages/content/icons/<kind>/<id>.svg`, shared by the web and the bot, with the
+kinds `currency`, `product`, `line`, `tier`, `tool`, `target`, `flotsam`, `crew`, `toolbelt`,
+`sector`, `node_type`, `node`, `dare`, `skin`, `ui`, `nav` (ids collide across kinds). A square
+48 viewBox, `currentColor` with at most one fixed accent, no raster, text, filters, gradients
+or `id`s, legible at 16 px. A content test fails on a malformed file, prints the missing ids and
+falls back to today's lettered tile, so a missing icon never blocks a phase; the loader comes
+with R1's icons. *Revisit* if the bot's renderer cannot inline a valid file.
+
+### D142. The social rules
+Players meet through counts, times, ratios and each player's own scale: nuke news, Blowback
+(crates washed onto friends' shores, never taken from anyone), the Island Count, the Freighter
+(each load costs the loader one hour of their own output), Late Tide (catch-up labelled to its
+player only), scale-free boards and Visit. No trading, gifting, PvP or shared absolute goals;
+no command writes another player's base. The bot only collects (owner decision 18: no nuke from
+Discord). Notifications: only "Night Shift over" on by default, quiet hours on. Replaces D119
+(the Island Count takes the Signal's job); modifies D96, D103, D105, D121, D125. *Revisit* with
+the R6 playtest.
+
+### D143. Backups and `event_log` safety
+An off-server copy comes before any wipe. R0 set up `deploy/offsite.sh`: rclone into a `crypt`
+remote over the owner's Google Drive (the owner's own OAuth client, scope `drive.file`), `pre/`
+kept forever and the nightly copies for 30 days, copy only, from `vpsuser`'s crontab at 04:30,
+with a restore drill in `docs/deploy.md`. Its status file is `var/offsite.json`, not
+`var/backups/offsite.json` as planned, because the container owns the backups folder and the
+host user cannot write there. The `event_log` id sequence is never reset, not even at the
+cut-over (the bot's feed cursor and the Blowback cursors depend on it); rows are never updated,
+and taps, pings and purchases write none (they roll up into the run summaries). Modifies D54.
+*Revisit* the retention when the database passes 200 MB (R7).
+
+### D144. Simulator v2
+The simulator plays lifetimes of runs through the real domain (no second economy) over 30, 90
+and 180 days (365 with `--full`), with five archetypes (idler, casual, active, optimal, late
+joiner), the first-hour and autoclicker scenarios, and from R6 a lockstep group of five. The
+idler taps only while nothing runs by itself. `pacing.json5` v2 holds the targets with the phase
+that switches each on; the `test` profile runs inside `pnpm test` in under 10 s, and
+`pnpm sim check --full` runs before R2, R3 and R7 ship. The casino's RTP check goes with the
+casino. Overturns D25, D74, D82, D97, D104, D112; modifies D56. *Revisit* by dropping the test
+horizon to 60 days, before any assertion is weakened, if the profile grows past 10 s.
+
+### D145. The `redesign` branch and the frozen old game
+The redesign is built on `redesign`, branched from the `pre-redesign` tag on `main` after R0's
+backup landed (2026-10-10). `main` is frozen: nothing lands there beyond R0's backup except an
+emergency fix if the live server or the backup breaks, which is committed, deployed and pushed
+on `main` and merged into `redesign` at once (keeping deletions). The cut-over at the end of R2
+tags the old game `season-1-final`, ends season 1 once, wipes run state only
+(`09-architecture.md` 13) and merges `redesign` with `--no-ff`. After it `main` is live again
+and each phase gets its own branch. *Revisit* never: shipping pieces early would mix two games
+in one image.

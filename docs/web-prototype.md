@@ -1,8 +1,12 @@
 # Web client (`apps/web`)
 
-Wipe Day in the browser: a living side-on base on a shore, a day cycle, weather, crew that walk
-to nodes, and the HUD. Since W1 it plays for real: the state lives on the server (`apps/api`) and
-every rule comes from `@wipe-day/domain`, the same code the server runs.
+Wipe Day in the browser: a side-on island on a shore, a day cycle and weather, and the HUD. The
+state lives on the server (`apps/api`) and every rule comes from `@wipe-day/domain`, the same
+code the server runs, so the client predicts every command and the server's answer wins (D64).
+
+After R0 the client is a **bare island**: sky, sea and land, a supplies counter, and taps on the
+land that travel on the slim taps path. R1 brings the run (the tap target, lines, the drawer),
+R2 the Big Red and the Blast Map (`docs/redesign/08-screens.md`).
 
 ## Run
 
@@ -17,56 +21,73 @@ pnpm web:build      # production bundle into apps/web/dist (the API serves it in
 
 Locally the login card offers "Test 1/2/3" (dev-only test players); Discord login appears once
 `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` are set. Open `http://localhost:5173/?demo` for
-demo mode: the whole game in the browser on a fast clock, with the `✦` demo drawer (time speed,
-pause, +1 h / +6 h, weather, base tier, spawn a barrel, give everything).
+demo mode: the whole game in the browser, with the `✦` demo drawer.
+
+## Clocks (D138)
+
+- `game`: the clock the domain is given. In demo mode it runs at **1×**; the drawer pauses it
+  and jumps it +1 h, +6 h or to the next 08:00. A jump is time passing for everything the domain
+  times (the Night Shift, Hustle, buffs), exactly as on the server. Against the API it is the
+  server-synced clock (`net/http.ts`).
+- `wall`: a 1× clock for animation only (sky drift, floaters, particles, later the cinematic).
+  The domain never reads it, so a jump never moves a real-second animation (rule 6.3.9).
+- Both are on `window.__wipeDay.clocks` in development, and shots pin them separately (`time`
+  and `wall`).
 
 ## How state flows
 
 | Piece | File | Does |
 | --- | --- | --- |
-| Content | `src/state/world.ts` | loads the shared data and locale (Vite JSON5 plugin), validates them, names, colours, formatting |
+| Content | `src/state/world.ts` | loads the shared data and locale (Vite JSON5 plugin), validates them, `words` (the formatter) |
 | Backend | `src/net/http.ts`, `src/net/local.ts` | the API (fetch, retries with the same key, event stream, server clock) or demo mode (the domain in the browser) |
 | Store | `src/state/store.ts` | `confirmed` server state plus the queue of sent commands; `base` = what the player sees (D64) |
+| Taps | `src/state/taps.ts` | coalesces taps into the queue's open tail (D134) |
 | Messages | `src/state/messages.ts` | refusals and happenings as one-line toasts, with a button to where the missing thing comes from |
-| Events | `src/state/events.ts` | the domain's events (plus node regrow, weather) that the scene turns into effects |
+| Events | `src/state/events.ts` | the domain's events that the scene turns into effects |
+
+**The taps path.** A tap (or every 250 ms of a held press) adds to the queue's open tail entry
+`{type: "taps", count, from, to}`. The tail closes when it is 1 s old, holds 30 taps, another
+command is queued behind it, or the tab hides; only then does it get its idempotency key. The
+store predicts by applying the merged tail to a snapshot taken when the tail opened, so the
+visible base always equals what the server computes for that batch. Commands are sent one at a
+time, in order. A network error, a 5xx or a 429 keeps the entry and retries it with the same key
+("Reconnecting… your taps are saved"); nothing predicted is dropped. The server credits taps
+through a token bucket (15 a second, burst 45) and answers with the outcome and the state; other
+tabs get a version-only push and refetch.
 
 ## What is in the scene
 
 | Layer | File | Notes |
 | --- | --- | --- |
 | Sky | `src/scene/sky.ts` | gradient from the palette, sun and moon arcs, stars, clouds |
-| Terrain | `src/scene/terrain.ts` | parallax ridges with treelines, island with lighthouse, ground with path, grass, pebbles, organic shoreline, waves, foam, sparkle |
-| Base | `src/scene/base.ts` | one structure per tier (Twig, Timber, Stone, Sheet Metal, Armored); every building at its fixed spot and level (`SPOTS`, D75), the cupboard and crates, window glows, scaffolds over whatever is being built, chimney smoke |
-| Buildings | `src/scene/buildings.ts` | one drawing per building type and level (1 to 3), with its lights and moving parts |
-| Nodes | `src/scene/nodes.ts` | clickable trees and stone, ore and sulfur rocks; the "hit the marker" mini-game (marker placement here, hits checked by the domain); worked-out nodes fall or crumble and regrow; the barrel on the shore |
-| Actors | `src/scene/actors.ts` | the crew at home (from the base state), walking between the base and nodes, resting at night or while hurt, leaving for and coming back from the shore; gulls |
-| Effects | `src/scene/effects.ts` | particles (smoke, sparks, leaves, dust, splash, coins, stone), floating gains, glows, rain and fog |
-| Palette | `src/scene/palette.ts` | time-of-day keyframes, `gloom()` for weather, tier materials, ground/sea colours |
-| Scene | `src/scene/Scene.ts` | Pixi application, camera rules, layer order, store sync, event → effect mapping; switches to the map when `view` is `"map"` |
-| Map | `src/map/MapView.ts` | the island chart (D88): terrain per region, fog that parts when a scout returns, ruin markers, the Den's flag, mission routes, screen-space labels, pan and pinch |
-| The Den | `src/scene/den.ts` | the smugglers' skiff on the beach from Stone on (W5): tap to open the Den, a lantern at night, a glow when a contract is ready |
+| Terrain | `src/scene/terrain.ts` | parallax ridges with treelines, the islet with its lighthouse, ground with path, grass, pebbles, organic shoreline, waves, foam, sparkle |
+| Effects | `src/scene/effects.ts` | particles, floating gains, glows, rain and fog |
+| Palette | `src/scene/palette.ts` | time-of-day keyframes, `gloom()` for weather, era materials, ground/sea colours |
+| Scene | `src/scene/Scene.ts` | Pixi application, camera rules, layer order, store sync, the land's tap area, event → effect mapping |
+
+The drawings of the old base, buildings, nodes and crew (`scene/base.ts`, `buildings.ts`,
+`nodes.ts`, `actors.ts`) stay in the repo for R1, which redraws them as lines at 1, 25 and 100
+owned, the era target and the hands walking to their lines.
 
 The HUD (`src/hud/*`) reads the store with narrow selectors so the scene can tick at 60 fps
-without re-rendering React every frame; per-frame values like "waiting to collect" go through
-`src/hud/derived.ts`, cached per second.
+without re-rendering React every frame. The supplies counter is a `<span>` written by a rAF loop
+from `suppliesAt` (closed-form settle), never by React.
 
 ## Camera rules
 
-- Design stage 1600×900, ground line at y=560, base at x=1000, sea left of x≈480.
+- Design stage 1600×900, ground line at y=560, sea left of x≈480.
 - Wide screens: scale so that 800 stage units fill the height (a 12% zoom); the ground line sits
   at 72% of the viewport.
-- Tall screens: never fewer than 880 stage units across, centred on x=915 (D75); the ground line sits
-  at 66% of the viewport.
+- Tall screens: never fewer than 880 stage units across, centred on x=915 (D75); the ground line
+  sits at 66% of the viewport. R1 reframes the phone view around the tap target (on the rise at
+  about 40% of the height, at least 120 CSS px tall).
 - Sky and ground extend 800 units past the stage so no aspect ratio shows an edge.
 
 ## Review loop
 
-`pnpm web:shots` writes 100 shots (plus `__zoom` crops) and `preview/web/index.html`. States covered: morning, noon,
-dusk, night, rain, fog, every tier, a build in progress, every panel, the welcome-back modal,
-floating gains (1080p and phone), the furnace idle, lit and at night, a node run, two hits at night and a perfect run, the survivors and both rocks close up (each with a
-1:1 `*__zoom.png` crop for judging detail), ultrawide, laptop, phone portrait and landscape,
-tablet. Shots run in demo mode (`?demo`) and pin the demo clock through `window.__wipeDay.clocks`:
-`time` is seconds into the demo season (which starts at the epoch); `panel`, `weather` and
-`welcome` set the HUD; every other key overwrites that field of the base. `--only <text>` renders just the shots
-whose name contains it. Notes per iteration live in `docs/ui-review.md`. Extend `SHOTS` in
-`apps/web/scripts/shots.mjs` when a new state appears.
+`pnpm web:shots` writes the shots in `SHOTS` (plus `__zoom` crops) and `preview/web/index.html`.
+Shots run in demo mode (`?demo`) and pin the demo clocks through `window.__wipeDay.clocks`:
+`time` is seconds on the game clock (the demo starts at the epoch), `wall` the animation clock;
+HUD keys set the HUD and every other key overwrites that field of the run. `--only <text>`
+renders just the shots whose name contains it. Notes per iteration live in `docs/ui-review.md`.
+The list per phase is `docs/redesign/08-screens.md` section 8; R0 has the bare island only.

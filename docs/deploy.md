@@ -157,28 +157,15 @@ BOT_API_TOKEN=...            # 32+ random characters (openssl rand -hex 32); the
   sends the missed ones (at most 20, from the last day) when the bot reconnects.
 - Stop it without touching the game: `docker compose stop wipeday-bot`.
 
-## Seasons (W7, D114)
+## Seasons and starting over (until the cut-over)
 
-The season's end is announced, then run, from the server. Both talk to the running API from
-inside the container (loopback is trusted; no secret needed):
-
-```sh
-docker exec -w /app/apps/api wipeday node_modules/.bin/tsx src/season-cli.ts announce 2026-11-04 --next storm_season
-docker exec -w /app/apps/api wipeday node_modules/.bin/tsx src/season-cli.ts end
-```
-
-The end takes its own backup first (`var/backups/wipeday-pre-season-N.db`). Modifiers:
-`long_nights`, `rich_tides`, `quiet_raiders`, `storm_season` (`packages/content/data/seasons.json5`).
-
-## Starting over (wipe the game, keep logins)
-
-Done once at the W7 deploy, at the owner's request. Take a copy first, then delete the game's
-rows (players, sessions, push subscriptions and the VAPID keys stay), then restart:
-
-```sh
-docker exec -w /app/apps/api wipeday node -e "const D=require('better-sqlite3'); const db=new D('/app/var/wipeday.db'); db.backup('/app/var/backups/wipeday-pre-wipe.db').then(()=>{ db.transaction(()=>{ for (const t of ['commands','event_log','listings','trades','wheel_bets','season_archive','hall_of_fame','signal_gifts','signal','bases','legacy','seasons']) db.prepare('DELETE FROM '+t).run(); db.prepare(\"DELETE FROM settings WHERE key='jackpot'\").run(); db.prepare(\"DELETE FROM sqlite_sequence WHERE name='seasons'\").run(); })(); console.log('wiped'); })"
-cd ~/wipeday && docker compose restart wipeday
-```
+The redesign removes seasons as a reset (D128). The live old game on `main` still has the W7
+season commands (`season-cli.ts`, see this file at the `pre-redesign` tag); they are used once,
+at the cut-over, to end season 1 quietly. The W7 "Starting over" recipe must **not** be used
+again: it deletes `event_log` and resets a sequence. The cut-over has its own runbook and wipe
+recipe, which keep players, sessions, push subscriptions, settings, the season archive, the Hall
+of fame, legacy rows and `event_log` with its sequence: `docs/redesign/09-architecture.md`
+section 13, rehearsed on a copy of the live database first (R2).
 
 ## Useful commands on the server
 

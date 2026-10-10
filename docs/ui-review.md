@@ -841,3 +841,26 @@ plus the card alone at phone size. States: `new`, `waiting`, `filling`, `banked`
     buttons a little differently. The owner's first live `/base` on a phone is the real check.
   - Titles still show only in the web's Legacy tab, not beside names in the feed (carried
     over from W7).
+
+## R0: the redesign closes the W-phase open items
+
+The redesign (D127) deletes or replaces the screens the "Still open" lists above belong to. Each
+is closed here; nothing above is edited.
+
+- **Moot, D137** (the system is gone): the barrel and Gather as the advisor's pick; the tannery
+  racks, station floaters and station tabs; the map's night look; the skiff crowding the
+  boathouse, the Den's tabs, slot symbols and the 240× wheel; the shield badge, the ridge's
+  raiders and the raid banner; the Signal's stages; titles in the Legacy tab.
+- **Carried into the redesign's phases:**
+  - The phone scene sits low under a lot of sky: R1's camera reframe (the tap target on the rise
+    at about 40% height, `docs/redesign/08-screens.md`).
+  - The desktop side panel covers the east coast: R1's 420 px drawer column with the scene
+    recentred left of it.
+  - Crew portraits and every lettered tile: the owner's icons by phase (D141).
+  - Tab rows that scroll with no hint: the drawer has two tabs and the Blast Map a ladder, so
+    the pattern is not reused; any new scroller gets an edge fade.
+  - Titles beside names: R6's boards and the Friends tab.
+  - The full shot run's length: `SHOTS` is rebuilt per phase from `08-screens.md` 8 (R0 has the
+    bare island only).
+  - The bot's mock versus the real Discord app: still the owner's live check, now of card v2 in
+    R2.
