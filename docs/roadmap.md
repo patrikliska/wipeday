@@ -640,13 +640,14 @@ cinematic. Waves 2 and 3 may slip but not be cut (guardrail 6).
       Adrenaline Kit; hands; Grip; the products; "Starter Kit" (`packed_crate`, the id stays; errata E27) renamed. Eras: keep the
       five Rust grades [leaning] or rename all five. Decisions 2 [Saltmarsh] and 15 [procedural
       sound] were made on 2026-10-10.
-- [ ] Icons go to `packages/content/icons/<kind>/<id>.svg`. Safe now: `scrap` first; tier badges;
+- [x] Icons go to `packages/content/icons/<kind>/<id>.svg`. Safe now: `scrap` first; tier badges;
       tools; the 11 kept line buildings; `tree`, `stone`, `ore`, `sulfur`; `crate`; the 12
       portraits; products reusing ids (`timber`, `roast`, `fibre`, `rope`, `planks`, `charcoal`,
       `ingots`, `leather`, `fuel`, `food`, `plates`).
-- [ ] Icons, new: `supplies`, `hustle`, `hand`, `night_shift`, `wreck`, `beachcomber`,
+- [x] Icons, new: `supplies`, `hustle`, `hand`, `night_shift`, `wreck`, `beachcomber`,
       `shipbreaker`, `reactor`, `gus`, `vera`, `fuel_drum`, `adrenaline`, five nav icons, `upgrade`,
-      `roster`, `buy_max`, and products `battery`, `broadcast`, `cell`.
+      `roster`, `buy_max`, and products `battery`, `broadcast`, `cell`. (Drawn by the agent and
+      approved 2026-10-10, with R2's and R4-R5's lists ahead: 115 icons, D150-D151; `pnpm icons`.)
 - [ ] Playtest 1 (phone on the LAN, about 45 minutes to Sheet Metal): where were you lost? Do
       unmanned lines feel right? Is the first minute too rushed? Base or spreadsheet? Is the phone
       warm? Send screenshots.
