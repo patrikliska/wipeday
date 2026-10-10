@@ -1,0 +1,9 @@
+// The island's clock and weather, the same for every friend (docs/redesign/02-the-run.md 8.2;
+// 09-architecture.md 6.5). Saltmarsh keeps UTC+1 all year, no daylight saving (errata E9).
+// Weather is drawn per blockMinutes block from the seed, by these shares (summing to 100).
+{
+  id: "saltmarsh",
+  utcOffsetMinutes: 60,
+  seed: 4107,
+  weather: { blockMinutes: 30, clear: 70, rain: 20, fog: 10 },
+}

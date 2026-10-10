@@ -1,0 +1,19 @@
+// The five eras (docs/redesign/02-the-run.md 5.5 and 6). Bought in order; each doubles every
+// line (×2, ×4, ×8, ×16 by Armored), opens the lines whose `era` it is, and swaps the tap
+// target. Prices are the same every run. Armored opens after Wipe Day #2, a real gate the
+// client hides until R2 ships (D140). Names: `base_tier.{id}.name`.
+{
+  eras: [
+    { id: "twig", cost: 0, target: "tree" },
+    { id: "wood", cost: 1.5e3, target: "stone", effects: [{ stat: "output", op: "more", value: 2 }] },
+    { id: "stone", cost: 3e6, target: "ore", effects: [{ stat: "output", op: "more", value: 2 }] },
+    { id: "metal", cost: 2e10, target: "sulfur", effects: [{ stat: "output", op: "more", value: 2 }] },
+    {
+      id: "hqm",
+      cost: 4e14,
+      target: "wreck",
+      requires: { wipeDays: 2 },
+      effects: [{ stat: "output", op: "more", value: 2 }],
+    },
+  ],
+}

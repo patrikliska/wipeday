@@ -1,0 +1,33 @@
+// The shelf beside Grip (docs/redesign/02-the-run.md 5.3 and 5.4).
+// Line Mk: one rule each, generated for every line as `{line}_mk2` and `{line}_mk3`, price the
+// line's first unit × costFactor, needing needOwned of the line; Mk III comes after Mk II
+// (D152). Island upgrades: each after the one before, so the shelf shows at most one.
+// Names: `upgrade.{id}.name`. Pocket-eligible from R5.
+{
+  lineMk: [
+    {
+      id: "mk2",
+      costFactor: 1e4,
+      needOwned: 25,
+      pocket: true,
+      effects: [{ stat: "output", op: "more", value: 3 }],
+    },
+    {
+      id: "mk3",
+      costFactor: 1e8,
+      needOwned: 50,
+      pocket: true,
+      effects: [{ stat: "output", op: "more", value: 3 }],
+    },
+  ],
+  island: [
+    { id: "sorting_tables", cost: 1e6, prop: "sorting_tables", pocket: true, effects: [{ stat: "output", op: "more", value: 2 }] },
+    { id: "handcarts", cost: 1e10, prop: "handcarts", pocket: true, effects: [{ stat: "output", op: "more", value: 2 }] },
+    { id: "rope_lift", cost: 1e14, prop: "rope_lift", pocket: true, effects: [{ stat: "output", op: "more", value: 2 }] },
+    { id: "rail_spur", cost: 1e18, prop: "rail_spur", pocket: true, effects: [{ stat: "output", op: "more", value: 2 }] },
+    { id: "diesel_crane", cost: 1e22, prop: "diesel_crane", pocket: true, effects: [{ stat: "output", op: "more", value: 2 }] },
+    { id: "tide_mill", cost: 1e26, prop: "tide_mill", pocket: true, effects: [{ stat: "output", op: "more", value: 2 }] },
+    { id: "cable_car", cost: 1e30, prop: "cable_car", pocket: true, effects: [{ stat: "output", op: "more", value: 2 }] },
+    { id: "steam_hammer", cost: 1e34, prop: "steam_hammer", pocket: true, effects: [{ stat: "output", op: "more", value: 2 }] },
+  ],
+}

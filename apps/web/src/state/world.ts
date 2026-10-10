@@ -6,12 +6,17 @@
  * Every data file must be imported here: a missing one is a `ContentError` at load.
  */
 import crewFile from "@wipe-day/content/data/crew.json5";
+import erasFile from "@wipe-day/content/data/eras.json5";
+import flotsamFile from "@wipe-day/content/data/flotsam.json5";
+import islandFile from "@wipe-day/content/data/island.json5";
 import linesFile from "@wipe-day/content/data/lines.json5";
+import milestonesFile from "@wipe-day/content/data/milestones.json5";
 import pacingFile from "@wipe-day/content/data/pacing.json5";
 import prestigeFile from "@wipe-day/content/data/prestige.json5";
 import resourcesFile from "@wipe-day/content/data/resources.json5";
 import targetsFile from "@wipe-day/content/data/targets.json5";
 import toolsFile from "@wipe-day/content/data/tools.json5";
+import upgradesFile from "@wipe-day/content/data/upgrades.json5";
 import { Locale, type LocaleArgs } from "@wipe-day/content/locale";
 import en from "@wipe-day/content/locale/en.json";
 import { initials, resourceInitials as lookInitials, resourceColor } from "@wipe-day/content/look";
@@ -36,6 +41,11 @@ export const content: Content = parseContent(
     "lines.json5": linesFile,
     "prestige.json5": prestigeFile,
     "targets.json5": targetsFile,
+    "eras.json5": erasFile,
+    "upgrades.json5": upgradesFile,
+    "milestones.json5": milestonesFile,
+    "flotsam.json5": flotsamFile,
+    "island.json5": islandFile,
     "pacing.json5": pacingFile,
   },
   locale,

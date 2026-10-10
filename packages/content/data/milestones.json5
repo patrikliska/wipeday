@@ -1,0 +1,22 @@
+// Milestones (docs/redesign/02-the-run.md 4). Per line: at `at` owned, the line's payout or speed
+// multiplies (a speed past the 0.1 s cycle floor pays out instead). Past the list, every `step`
+// from `from` pays `payout`, or a `special` one's. Roster: when every unlocked line owns `at`,
+// all lines multiply; a roster tier once reached is kept for the run (resolution 3.4), so
+// buying an era never lowers income.
+{
+  line: [
+    { at: 10, payout: 2 },
+    { at: 25, speed: 2 },
+    { at: 50, speed: 2 },
+    { at: 100, payout: 2 },
+    { at: 200, payout: 3 },
+    { at: 300, payout: 3 },
+    { at: 400, payout: 4 },
+  ],
+  lineEvery: { from: 500, step: 100, payout: 2, special: [{ at: 1000, payout: 5 }] },
+  roster: [
+    { at: 25, payout: 2 },
+    { at: 100, payout: 2 },
+    { at: 250, payout: 3 },
+  ],
+}

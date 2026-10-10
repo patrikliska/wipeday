@@ -1,4 +1,4 @@
-// The tap (docs/redesign/02-the-run.md 7 and 13.2). R1 adds the five era targets that fell.
+// The tap and the five era targets it fells (docs/redesign/02-the-run.md 6.1, 7 and 13.2).
 {
   tap: {
     // N10: the server credits at most perSecond taps a second, burst at most (D134).
@@ -24,4 +24,13 @@
     fellBonusTaps: 10,
     popSeconds: 0.3,
   },
+  // One target per era: felled every fellTaps credited taps, paying fellBonusTaps taps' worth.
+  // `art` names the scene's drawing; the cry is `target.{id}.cry`.
+  targets: [
+    { id: "tree", era: "twig", fellTaps: 40, art: "tree" },
+    { id: "stone", era: "wood", fellTaps: 60, art: "rock_stone" },
+    { id: "ore", era: "stone", fellTaps: 80, art: "rock_ore" },
+    { id: "sulfur", era: "metal", fellTaps: 100, art: "rock_sulfur" },
+    { id: "wreck", era: "hqm", fellTaps: 120, art: "wreck" },
+  ],
 }

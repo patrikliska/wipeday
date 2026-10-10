@@ -1,11 +1,49 @@
-// The Grip ladder's tool ids, in order, with the era colour each wears. R1 adds their prices and
-// effects (docs/redesign/02-the-run.md 5.2). Names: `tool.{id}.name`.
+// Grip, the tool ladder (docs/redesign/02-the-run.md 5.2): Rock is owned from the start; each
+// rung after it doubles the flat tap and adds 0.4% of the full rate to every tap. The effects
+// are per rung, so a pocketed rung (R5) works out of order. `tier` is the era colour a tool
+// wears, not a gate. Names: `tool.{id}.name`.
 {
   tools: [
-    { id: "rock", tier: "twig" },
-    { id: "stone_tools", tier: "wood" },
-    { id: "iron_tools", tier: "stone" },
-    { id: "salvaged_tools", tier: "metal" },
-    { id: "power_tools", tier: "hqm" },
+    { id: "rock", tier: "twig", cost: 0 },
+    {
+      id: "stone_tools",
+      tier: "wood",
+      cost: 60,
+      pocket: true,
+      effects: [
+        { stat: "tap_flat", op: "more", value: 2 },
+        { stat: "tap_share", op: "add", value: 0.004 },
+      ],
+    },
+    {
+      id: "iron_tools",
+      tier: "stone",
+      cost: 6e3,
+      pocket: true,
+      effects: [
+        { stat: "tap_flat", op: "more", value: 2 },
+        { stat: "tap_share", op: "add", value: 0.004 },
+      ],
+    },
+    {
+      id: "salvaged_tools",
+      tier: "metal",
+      cost: 6e6,
+      pocket: true,
+      effects: [
+        { stat: "tap_flat", op: "more", value: 2 },
+        { stat: "tap_share", op: "add", value: 0.004 },
+      ],
+    },
+    {
+      id: "power_tools",
+      tier: "hqm",
+      cost: 6e9,
+      pocket: true,
+      effects: [
+        { stat: "tap_flat", op: "more", value: 2 },
+        { stat: "tap_share", op: "add", value: 0.004 },
+      ],
+    },
   ],
 }

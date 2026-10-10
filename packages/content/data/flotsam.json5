@@ -1,0 +1,24 @@
+// Flotsam (docs/redesign/02-the-run.md 8; 09-architecture.md 6.4). One arrival at a time:
+// a gap drawn uniformly in gapMinutes (÷ rainFactor when it rains), a float of floatSeconds and
+// a graceSeconds claim window after it. Kinds by weight; only shipped kinds are listed, so the
+// printed odds renormalise over these. A lump pays max(floorMinutes, min(heldShare × held,
+// rateMinutes)) of output; a buff runs its effects for `seconds` (caught again: restarts).
+// Run 1 (errata E1): a crate every repeatSeconds from atSeconds after the first tap until one
+// is caught, paying a flat flatMinutes of output. Names: `flotsam.{id}.name`, `buff.{id}.name`.
+{
+  schedule: { gapMinutes: [4, 10], floatSeconds: 13, graceSeconds: 3, rainFactor: 1.5 },
+  firstRun: { atSeconds: 180, repeatSeconds: 180, kind: "crate", flatMinutes: 2 },
+  kinds: [
+    { id: "crate", weight: 45, effect: { lump: { floorMinutes: 1, heldShare: 0.15, rateMinutes: 10 } } },
+    {
+      id: "fuel_drum",
+      weight: 40,
+      effect: { buff: "rally", seconds: 60, effects: [{ stat: "output", op: "more", value: 4 }] },
+    },
+    {
+      id: "adrenaline",
+      weight: 6,
+      effect: { buff: "adrenaline", seconds: 12, effects: [{ stat: "tap", op: "more", value: 100 }] },
+    },
+  ],
+}

@@ -53,6 +53,38 @@ describe("the shipped data files", () => {
     expect((reactor?.cost ?? 0) / 27e15).toBeCloseTo(1, 2);
     expect((reactor?.rate ?? 0) / 940e6).toBeCloseTo(1, 2);
   });
+
+  it("build the shelf: 4 Grip rungs, 28 Line Mks and 8 island upgrades (02-the-run.md 5)", () => {
+    const { upgrades } = loadContent(paths.data, locale);
+    const count = (kind: string) => upgrades.filter((upgrade) => upgrade.kind === kind).length;
+    expect([count("grip"), count("mk"), count("island")]).toEqual([4, 28, 8]);
+    const byId = new Map(upgrades.map((upgrade) => [upgrade.id, upgrade]));
+    // 02 5.3's prices: Driftwood Hooks 60k, Beach Sledges 600M, Rope Walk 2.46T.
+    expect(byId.get("beachcomber_mk2")).toMatchObject({ cost: 6e4, needOwned: 25, line: "beachcomber" });
+    expect(byId.get("beachcomber_mk3")).toMatchObject({ cost: 6e8, after: "beachcomber_mk2" });
+    expect((byId.get("loom_mk3")?.cost ?? 0) / 2.46e12).toBeCloseTo(1, 2);
+    expect(byId.get("loom_mk2")?.effects).toEqual([
+      { stat: "output", op: "more", value: 3, scope: "loom" },
+    ]);
+    expect(byId.get("stone_tools")?.after).toBeUndefined();
+    expect(byId.get("iron_tools")).toMatchObject({ cost: 6e3, after: "stone_tools" });
+    expect(byId.get("handcarts")).toMatchObject({ cost: 1e10, after: "sorting_tables" });
+  });
+
+  it("hold eras, targets, flotsam buffs and the island's clock", () => {
+    const content = loadContent(paths.data, locale);
+    expect(content.eras.map((era) => [era.id, era.cost, era.target])).toEqual([
+      ["twig", 0, "tree"],
+      ["wood", 1.5e3, "stone"],
+      ["stone", 3e6, "ore"],
+      ["metal", 2e10, "sulfur"],
+      ["hqm", 4e14, "wreck"],
+    ]);
+    expect(content.eras.at(-1)?.requires).toEqual({ wipeDays: 2 });
+    expect(content.targets.map((target) => target.fellTaps)).toEqual([40, 60, 80, 100, 120]);
+    expect(Object.keys(content.buffs).sort()).toEqual(["adrenaline", "rally"]);
+    expect(content.islandClock).toMatchObject({ id: "saltmarsh", utcOffsetMinutes: 60 });
+  });
 });
 
 describe("validation", () => {
@@ -122,6 +154,43 @@ describe("validation", () => {
   it("keeps Hustle's peak under its ceiling", () => {
     const dir = dataWith("targets.json5", (text) => text.replace("peak: 2,", "peak: 3,"));
     expect(problemsOf(dir)).toContain("targets.json5: Hustle's peak must not pass its ceiling");
+  });
+
+  it("checks eras, the shelf, milestones, flotsam and the weather", () => {
+    const eras = dataWith("eras.json5", (text) =>
+      text.replace('cost: 3e6, target: "ore"', 'cost: 1e3, target: "tree"'),
+    );
+    expect(problemsOf(eras)).toEqual(
+      expect.arrayContaining([
+        "eras.json5 `stone`: each era must cost more than the one before",
+        "eras.json5 `stone`: target `tree` belongs to the twig era",
+        "targets.json5 `tree`: each target belongs to exactly one era",
+      ]),
+    );
+    const shelf = dataWith("upgrades.json5", (text) =>
+      text.replace('id: "handcarts", cost: 1e10', 'id: "loom", cost: 1e5'),
+    );
+    expect(problemsOf(shelf)).toEqual(
+      expect.arrayContaining([
+        "upgrades.json5 `loom`: each island upgrade must cost more than the one before",
+        "upgrades.json5 `loom`: an upgrade id must not be used by any other entity",
+      ]),
+    );
+    const milestones = dataWith("milestones.json5", (text) =>
+      text.replace("{ at: 50, speed: 2 }", "{ at: 20, speed: 2, payout: 2 }"),
+    );
+    expect(problemsOf(milestones).join("\n")).toMatch(/exactly one/);
+    const flotsam = dataWith("flotsam.json5", (text) =>
+      text.replace("seconds: 60,", "seconds: 200,").replace('kind: "crate"', 'kind: "barrel"'),
+    );
+    expect(problemsOf(flotsam)).toEqual(
+      expect.arrayContaining([
+        "flotsam.json5: the shortest rainy gap must outlast the longest buff",
+        "flotsam.json5: unknown first-run kind `barrel`",
+      ]),
+    );
+    const island = dataWith("island.json5", (text) => text.replace("fog: 10", "fog: 15"));
+    expect(problemsOf(island)).toContain("island.json5 `saltmarsh`: weather shares must sum to 100");
   });
 
   it("reports a missing file", () => {

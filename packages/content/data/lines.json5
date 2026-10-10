@@ -22,7 +22,10 @@
   run: {
     // The Night Shift (N18): manned lines run at 100% this long after the last command,
     // never longer than maxHours whatever adds to it. A visible tab pings every pingMinutes.
-    nightShift: { windowHours: 12, maxHours: 48, pingMinutes: 5 },
+    // Away welcomeAfterMinutes or more: one welcome-back card with one Collect.
+    nightShift: { windowHours: 12, maxHours: 48, pingMinutes: 5, welcomeAfterMinutes: 60 },
+    // The ×1/×10/×100/Max toggle appears with the second hand of a run and stays.
+    bulkAfterHands: 2,
   },
   lines: [
     { id: "beachcomber", rung: 1, era: "twig", hand: "mara", product: "timber" },

@@ -100,5 +100,7 @@ export function iconsWanted(content: Content): { kind: IconKind; id: string }[] 
     ...content.crew.map((member) => ({ kind: "crew" as const, id: member.id })),
     ...TIERS.map((tier) => ({ kind: "tier" as const, id: tier })),
     ...content.tools.map((tool) => ({ kind: "tool" as const, id: tool.id })),
+    ...content.targets.map((target) => ({ kind: "target" as const, id: target.id })),
+    ...content.flotsam.kinds.map((kind) => ({ kind: "flotsam" as const, id: kind.id })),
   ];
 }

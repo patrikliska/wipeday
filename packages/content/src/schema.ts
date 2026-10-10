@@ -3,9 +3,10 @@
  * key (`{kind}.{id}.name`) and its icon name (D141). Amounts are finite doubles (D130), counts
  * integers. Browser-safe: no file access here (that is `load.ts`).
  *
- * R0 ships the run's skeleton: resources (currencies and products), the hands, the tool ids,
- * the lines' formula, the prestige constants, the tap block and the simulator's pacing. Each
- * later phase adds its files (docs/redesign/09-architecture.md 8.1).
+ * R0 shipped the run's skeleton: resources (currencies and products), the hands, the lines'
+ * formula, the prestige constants, the tap block and the simulator's pacing. R1 adds the run
+ * itself: eras and their targets, Grip's prices, the shelf, milestones, flotsam and the
+ * island's clock and weather. Each later phase adds its files (09-architecture.md 8.1).
  */
 import { z } from "zod";
 import { type Effect, OPS, PERS, STAT_IDS, STATS, type StatId, WHENS } from "./effects";
@@ -45,7 +46,9 @@ export const effectSchema = z
   })
   .refine((effect) => (STATS[effect.stat].ops as readonly string[]).includes(effect.op), {
     message: "this op is not allowed for this stat",
-  });
+  })
+  // Zod types an absent key as `undefined`; it never writes one, so the parsed value is an Effect.
+  .transform((effect) => effect as Effect);
 
 export const RESOURCE_KINDS = ["currency", "product"] as const;
 
@@ -55,7 +58,17 @@ export type Resource = z.infer<typeof resourceSchema>;
 export const crewSchema = z.strictObject({ id });
 export type CrewMember = z.infer<typeof crewSchema>;
 
-export const toolSchema = z.strictObject({ id, tier });
+const effects = z.array(effectSchema).default([]);
+
+/** A Grip rung (docs/redesign/02-the-run.md 5.2): `tier` is its colour, not a gate. */
+export const toolSchema = z.strictObject({
+  id,
+  tier,
+  cost: amount,
+  /** May be kept in a Pocket (R5). */
+  pocket: z.boolean().default(false),
+  effects,
+});
 export type Tool = z.infer<typeof toolSchema>;
 
 export const lineFormulaSchema = z.strictObject({
@@ -87,7 +100,15 @@ export const lineRowSchema = z.strictObject({
 });
 
 export const runRulesSchema = z.strictObject({
-  nightShift: z.strictObject({ windowHours: factor, maxHours: factor, pingMinutes: factor }),
+  nightShift: z.strictObject({
+    windowHours: factor,
+    maxHours: factor,
+    pingMinutes: factor,
+    /** Away at least this long: one welcome-back card with one Collect (02 10.2). */
+    welcomeAfterMinutes: factor,
+  }),
+  /** The ×1/×10/×100/Max toggle shows from this many hands on (02 9.1). */
+  bulkAfterHands: count,
 });
 export type RunRules = z.infer<typeof runRulesSchema>;
 
@@ -153,7 +174,143 @@ export const tapSchema = z.strictObject({
 });
 export type TapRules = z.infer<typeof tapSchema>;
 
-export const targetsFileSchema = z.strictObject({ tap: tapSchema });
+/** An era's tap target (02 6.1): felled every `fellTaps` credited taps. */
+export const targetSchema = z.strictObject({ id, era: tier, fellTaps: z.int().min(10), art: id });
+export type TargetDef = z.infer<typeof targetSchema>;
+
+export const targetsFileSchema = z.strictObject({ tap: tapSchema, targets: z.array(targetSchema) });
+
+/** An era (02 5.5, 6): bought in order, each opens its lines and swaps the target. */
+export const eraSchema = z.strictObject({
+  id: tier,
+  cost: amount,
+  target: id,
+  /** A real, reachable gate: Armored opens after Wipe Day #2. */
+  requires: z.strictObject({ wipeDays: count }).optional(),
+  effects,
+});
+export type EraDef = z.infer<typeof eraSchema>;
+
+export const erasFileSchema = z.strictObject({ eras: z.array(eraSchema) });
+
+/** Line Mk II/III (02 5.3): one rule, generated for every line as `{line}_{id}`. */
+const lineMkSchema = z.strictObject({
+  id,
+  costFactor: factor,
+  needOwned: z.int().min(1),
+  pocket: z.boolean().default(false),
+  effects,
+});
+
+const islandUpgradeSchema = z.strictObject({
+  id,
+  cost: amount,
+  prop: id,
+  pocket: z.boolean().default(false),
+  effects,
+});
+
+export const upgradesFileSchema = z.strictObject({
+  lineMk: z.array(lineMkSchema),
+  island: z.array(islandUpgradeSchema),
+});
+
+/** A row of the shelf (02 5): a Grip rung, a Line Mk or an island upgrade. */
+export interface UpgradeDef {
+  id: string;
+  kind: "grip" | "mk" | "island";
+  cost: number;
+  /** Line-scoped for Mk rows. */
+  effects: Effect[];
+  pocket: boolean;
+  /** Mk rows: the line, and how many of it must be owned. */
+  line?: string;
+  needOwned?: number;
+  /** Shown and buyable only once this one is bought (02 5.1; D152). */
+  after?: string;
+}
+
+const multiplier = z.number().finite().min(1);
+
+export const milestonesFileSchema = z.strictObject({
+  /** Per line (02 4.1): exactly one of payout or speed. */
+  line: z.array(
+    z
+      .strictObject({
+        at: z.int().min(1),
+        payout: multiplier.optional(),
+        speed: multiplier.optional(),
+      })
+      .refine((step) => (step.payout === undefined) !== (step.speed === undefined), {
+        message: "a milestone pays `payout` or `speed`, exactly one",
+      }),
+  ),
+  /** Past the list: every `step` from `from` pays `payout`, unless `special` names the count. */
+  lineEvery: z.strictObject({
+    from: z.int().min(1),
+    step: z.int().min(1),
+    payout: multiplier,
+    special: z.array(z.strictObject({ at: z.int().min(1), payout: multiplier })),
+  }),
+  /** Every unlocked line at `at` (02 4.2): kept for the run once reached. */
+  roster: z.array(z.strictObject({ at: z.int().min(1), payout: multiplier })),
+});
+export type Milestones = z.infer<typeof milestonesFileSchema>;
+
+const flotsamEffectSchema = z.union([
+  z.strictObject({
+    /** max(floorMinutes, min(heldShare × held, rateMinutes)) of output (02 8.1). */
+    lump: z.strictObject({
+      floorMinutes: factor,
+      heldShare: z.number().finite().positive().max(1),
+      rateMinutes: factor,
+    }),
+  }),
+  z.strictObject({ buff: id, seconds, effects: z.array(effectSchema).min(1) }),
+]);
+
+export const flotsamKindSchema = z.strictObject({
+  id,
+  weight: factor,
+  effect: flotsamEffectSchema,
+});
+export type FlotsamKind = z.infer<typeof flotsamKindSchema>;
+
+export const flotsamFileSchema = z.strictObject({
+  schedule: z.strictObject({
+    gapMinutes: z.tuple([factor, factor]),
+    floatSeconds: seconds,
+    graceSeconds: z.number().finite().nonnegative(),
+    rainFactor: factor,
+  }),
+  /** Run 1's guaranteed crate (errata E1): every repeatSeconds until one is caught. */
+  firstRun: z.strictObject({
+    atSeconds: seconds,
+    repeatSeconds: seconds,
+    kind: id,
+    flatMinutes: factor,
+  }),
+  kinds: z.array(flotsamKindSchema),
+});
+export type Flotsam = z.infer<typeof flotsamFileSchema>;
+
+export const WEATHERS = ["clear", "rain", "fog"] as const;
+export type Weather = (typeof WEATHERS)[number];
+
+/** The island's clock and weather, the same for every friend (02 8.2; 09 6.5). */
+export const islandFileSchema = z.strictObject({
+  id,
+  /** East of UTC, no daylight saving (errata E9). */
+  utcOffsetMinutes: z.int().min(-720).max(840),
+  seed: z.int(),
+  weather: z.strictObject({
+    blockMinutes: z.int().min(1),
+    clear: count,
+    rain: count,
+    fog: count,
+  }),
+});
+export type IslandClock = z.infer<typeof islandFileSchema>;
 
 export const PHASES = ["R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7"] as const;
 export type Phase = (typeof PHASES)[number];
@@ -197,6 +354,7 @@ export type Pacing = z.infer<typeof pacingSchema>;
 export interface Content {
   resources: Resource[];
   crew: CrewMember[];
+  /** Grip's rungs, Rock first (owned from the start). */
   tools: Tool[];
   /** The island the lines stand on (canon 9's reserved field). */
   island: string;
@@ -208,11 +366,17 @@ export interface Content {
   run: RunRules;
   prestige: Prestige;
   tap: TapRules;
+  /** One per era, in era order. */
+  targets: TargetDef[];
+  /** In tier order; Twig costs nothing. */
+  eras: EraDef[];
+  /** The shelf: Grip rungs after Rock, then Mk II/III per line, then the island upgrades. */
+  upgrades: UpgradeDef[];
+  milestones: Milestones;
+  flotsam: Flotsam;
+  islandClock: IslandClock;
   pacing: Pacing;
-  /**
-   * What each timed buff does while it runs, by buff kind. Flotsam fills it from R1
-   * (`flotsam.json5`); empty in R0.
-   */
+  /** What each timed buff does while it runs, by buff kind (from `flotsam.json5`). */
   buffs: Record<string, Effect[]>;
 }
 
@@ -224,21 +388,36 @@ export const DATA_FILES = [
   "lines.json5",
   "prestige.json5",
   "targets.json5",
+  "eras.json5",
+  "upgrades.json5",
+  "milestones.json5",
+  "flotsam.json5",
+  "island.json5",
   "pacing.json5",
 ] as const;
 export type DataFile = (typeof DATA_FILES)[number];
 
-export type EntityKind = "resource" | "crew" | "tool" | "line";
+/** The locale namespace of an entity's name: `{kind}.{id}.name`. */
+export type EntityKind =
+  | "resource"
+  | "crew"
+  | "tool"
+  | "line"
+  | "base_tier"
+  | "target"
+  | "upgrade"
+  | "flotsam";
 
-/** The files that are lists of named entities, and the locale namespace of their names. */
+/** The named entities: their file, where `Content` keeps them and their locale namespace. */
 export const FILES = [
-  { file: "resources.json5", key: "resources", field: "resources", kind: "resource" },
-  { file: "crew.json5", key: "crew", field: "crew", kind: "crew" },
-  { file: "tools.json5", key: "tools", field: "tools", kind: "tool" },
-  { file: "lines.json5", key: "lines", field: "lines", kind: "line" },
+  { file: "resources.json5", field: "resources", kind: "resource" },
+  { file: "crew.json5", field: "crew", kind: "crew" },
+  { file: "tools.json5", field: "tools", kind: "tool" },
+  { file: "lines.json5", field: "lines", kind: "line" },
+  { file: "eras.json5", field: "eras", kind: "base_tier" },
+  { file: "targets.json5", field: "targets", kind: "target" },
 ] as const satisfies readonly {
   file: DataFile;
-  key: string;
-  field: "resources" | "crew" | "tools" | "lines";
+  field: keyof Content;
   kind: EntityKind;
 }[];

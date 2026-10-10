@@ -37,7 +37,7 @@ const AWAY = 1.5;
 function fixture(hours: number): Content {
   return {
     ...shipped,
-    run: { nightShift: { ...shipped.run.nightShift, windowHours: hours } },
+    run: { ...shipped.run, nightShift: { ...shipped.run.nightShift, windowHours: hours } },
     buffs: {
       rally: [{ stat: "output", op: "more", value: RALLY }],
       drone: [{ stat: "output", op: "more", value: DRONE }],

@@ -1655,3 +1655,14 @@ tokens (D141). There are six node-type frames, not five: `04-blast-map.md` 2.1 l
 `notable`, `keystone`, `unlock`, `automation` and `completion`, and the frame file is named by the
 type's data id. `sector/works` is a factory roof, so a works node in the automation frame is not
 a cog inside a cog. *Revisit* if R2's Kettle art changes a stage's look.
+
+### D152. R1's data: one next step per shelf ladder, and 09's names
+R1's data files follow `02-the-run.md` 13 in content and `09-architecture.md` in names: effects
+use the one vocabulary (`output`, `tap_share`, `tap`, not 02's drafts `line_output`,
+`tap_rate_share`, `tap_value`), and a target fells after `fellTaps`. The shelf shows one next
+step per ladder: a Grip rung needs the rung before, an island upgrade the one before, and Mk III
+needs Mk II (02 only says "50 owned"; Mk II costs a ten-thousandth of Mk III, so nothing real is
+lost and each line shows one Mk row). Out of order, the server refuses with a `previous` gate.
+`content.upgrades` is the derived shelf (Grip after Rock, then the 28 generated Mk rows, then
+the island upgrades); era names keep their `base_tier.*` keys. *Revisit* if Pockets (R5) want a
+Mk III without its Mk II.

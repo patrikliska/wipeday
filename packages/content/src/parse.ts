@@ -13,15 +13,22 @@ import {
   DATA_FILES,
   type DataFile,
   type EntityKind,
+  eraSchema,
   FILES,
+  flotsamFileSchema,
+  islandFileSchema,
   linesFileSchema,
+  milestonesFileSchema,
   pacingSchema,
   prestigeSchema,
   resourceSchema,
   targetsFileSchema,
   toolSchema,
+  upgradesFileSchema,
+  WEATHERS,
 } from "./schema";
 import { TIERS } from "./tiers";
+import { deriveUpgrades } from "./upgrades";
 
 export interface Problem {
   file: string;
@@ -53,9 +60,19 @@ export interface Identity {
 
 /** Every named entity in file order. */
 export function identities(content: Content): Identity[] {
-  return FILES.flatMap(({ file, field, kind }) =>
-    content[field].map((entity) => ({ file, kind, id: entity.id })),
-  );
+  return [
+    ...FILES.flatMap(({ file, field, kind }) =>
+      content[field].map((entity) => ({ file, kind, id: entity.id })),
+    ),
+    ...content.upgrades
+      .filter((upgrade) => upgrade.kind !== "grip")
+      .map((upgrade) => ({ file: "upgrades.json5", kind: "upgrade" as const, id: upgrade.id })),
+    ...content.flotsam.kinds.map((kind) => ({
+      file: "flotsam.json5",
+      kind: "flotsam" as const,
+      id: kind.id,
+    })),
+  ];
 }
 
 function issuesOf(error: z.ZodError): string[] {
@@ -123,28 +140,54 @@ export function parseContent(
   const resources = rows("resources.json5", "resources", resourceSchema);
   const crew = rows("crew.json5", "crew", crewSchema);
   const tools = rows("tools.json5", "tools", toolSchema);
+  const eras = rows("eras.json5", "eras", eraSchema);
   const linesFile = whole("lines.json5", linesFileSchema);
   const prestige = whole("prestige.json5", prestigeSchema);
   const targets = whole("targets.json5", targetsFileSchema);
+  const upgrades = whole("upgrades.json5", upgradesFileSchema);
+  const milestones = whole("milestones.json5", milestonesFileSchema);
+  const flotsam = whole("flotsam.json5", flotsamFileSchema);
+  const islandClock = whole("island.json5", islandFileSchema);
   const pacing = whole("pacing.json5", pacingSchema);
 
-  if (problems.length > 0 || !linesFile || !prestige || !targets || !pacing) {
+  if (
+    problems.length > 0 ||
+    !linesFile ||
+    !prestige ||
+    !targets ||
+    !upgrades ||
+    !milestones ||
+    !flotsam ||
+    !islandClock ||
+    !pacing
+  ) {
     throw new ContentError(problems);
   }
 
+  const lines = deriveLines(linesFile.formula, linesFile.lines);
+  const buffs: Content["buffs"] = {};
+  for (const kind of flotsam.kinds) {
+    if ("buff" in kind.effect) buffs[kind.effect.buff] = kind.effect.effects;
+  }
   const content: Content = {
     resources,
     crew,
     tools,
     island: linesFile.island,
     formula: linesFile.formula,
-    lines: deriveLines(linesFile.formula, linesFile.lines),
+    lines,
     stages: linesFile.stages,
     run: linesFile.run,
     prestige,
     tap: targets.tap,
+    targets: targets.targets,
+    eras,
+    upgrades: deriveUpgrades(tools, lines, upgrades),
+    milestones,
+    flotsam,
+    islandClock,
     pacing,
-    buffs: {},
+    buffs,
   };
   problems.push(...crossCheck(content, locale));
   if (problems.length > 0) throw new ContentError(problems);
@@ -157,26 +200,43 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
   const add = (file: string, id: string, message: string) => problems.push({ file, id, message });
 
   // Ids are unique within their kind, and each has its name.
-  for (const { file, field, kind } of FILES) {
-    const seen = new Set<string>();
-    for (const entity of content[field]) {
-      if (seen.has(entity.id)) add(file, entity.id, "id is used more than once");
-      seen.add(entity.id);
-      const key = `${kind}.${entity.id}.name`;
-      if (!locale.has(key)) add(file, entity.id, `missing locale key \`${key}\``);
-    }
+  const all = identities(content);
+  const seen = new Set<string>();
+  for (const { file, kind, id } of all) {
+    if (seen.has(`${kind}.${id}`)) add(file, id, "id is used more than once");
+    seen.add(`${kind}.${id}`);
+    const key = `${kind}.${id}.name`;
+    if (!locale.has(key)) add(file, id, `missing locale key \`${key}\``);
+  }
+  // A shelf row's id names nothing else (its icon and locale key stay unambiguous).
+  for (const { file, kind, id } of all) {
+    if (kind !== "upgrade") continue;
+    if (all.some((other) => other.kind !== "upgrade" && other.id === id))
+      add(file, id, "an upgrade id must not be used by any other entity");
   }
   if (!locale.has(`island.${content.island}.name`))
     add("lines.json5", "", `missing locale key \`island.${content.island}.name\``);
+  const need = (file: string, id: string, key: string) => {
+    if (!locale.has(key)) add(file, id, `missing locale key \`${key}\``);
+  };
+  for (const target of content.targets) need("targets.json5", target.id, `target.${target.id}.cry`);
+  for (const buff of Object.keys(content.buffs)) need("flotsam.json5", buff, `buff.${buff}.name`);
+  for (const weather of WEATHERS) need("island.json5", weather, `weather.${weather}.name`);
 
-  // Tools climb the eras in order.
+  // Grip: Rock is free and owned; each rung after it costs more, in era order.
   for (const [index, tool] of content.tools.entries()) {
     const previous = content.tools[index - 1];
+    if (index === 0 && tool.cost !== 0) add("tools.json5", tool.id, "the first rung must be free");
     if (previous && TIERS.indexOf(tool.tier) < TIERS.indexOf(previous.tier))
       add("tools.json5", tool.id, "tools must be listed in era order");
+    if (previous && !(tool.cost > previous.cost))
+      add("tools.json5", tool.id, "each rung must cost more than the one before");
   }
 
   problems.push(...checkLines(content));
+  problems.push(...checkEras(content));
+  problems.push(...checkShelf(content));
+  problems.push(...checkFlotsam(content));
 
   // The tap (N10, N9).
   const { tap } = content;
@@ -193,6 +253,106 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
     if (archetype.tapsPerSecond > tap.bucket.perSecond)
       add("pacing.json5", name, "taps a second above the bucket's rate would only be clamped");
   }
+  return problems;
+}
+
+/** Eras and their targets (02-the-run.md 13.2). */
+function checkEras(content: Content): Problem[] {
+  const problems: Problem[] = [];
+  const add = (file: string, id: string, message: string) => problems.push({ file, id, message });
+  const { eras, targets, lines } = content;
+  if (eras.map((era) => era.id).join() !== TIERS.join())
+    add("eras.json5", "", `the eras must be ${TIERS.join(", ")}, in that order`);
+  for (const [index, era] of eras.entries()) {
+    const previous = eras[index - 1];
+    if (index === 0 && era.cost !== 0) add("eras.json5", era.id, "the first era must be free");
+    if (previous && !(era.cost > previous.cost))
+      add("eras.json5", era.id, "each era must cost more than the one before");
+    const target = targets.find((row) => row.id === era.target);
+    if (!target) add("eras.json5", era.id, `unknown target \`${era.target}\` (targets.json5)`);
+    else if (target.era !== era.id)
+      add("eras.json5", era.id, `target \`${target.id}\` belongs to the ${target.era} era`);
+    if (!lines.some((line) => line.era === era.id))
+      add("eras.json5", era.id, "an era must open at least one line");
+  }
+  for (const [index, target] of targets.entries()) {
+    if (targets.findIndex((row) => row.id === target.id) !== index) continue;
+    if (eras.filter((era) => era.target === target.id).length !== 1)
+      add("targets.json5", target.id, "each target belongs to exactly one era");
+    const previous = targets[index - 1];
+    if (previous && !(target.fellTaps > previous.fellTaps))
+      add("targets.json5", target.id, "fellTaps must rise from era to era");
+  }
+  return problems;
+}
+
+/** The shelf and milestones (02-the-run.md 13.3). */
+function checkShelf(content: Content): Problem[] {
+  const problems: Problem[] = [];
+  const add = (file: string, id: string, message: string) => problems.push({ file, id, message });
+  const island = content.upgrades.filter((upgrade) => upgrade.kind === "island");
+  for (const [index, upgrade] of island.entries()) {
+    const previous = island[index - 1];
+    if (previous && !(upgrade.cost > previous.cost))
+      add("upgrades.json5", upgrade.id, "each island upgrade must cost more than the one before");
+  }
+  for (const upgrade of content.upgrades) {
+    if (!(upgrade.cost < MAX_REACHABLE_COST))
+      add("upgrades.json5", upgrade.id, "its price must stay under 1e200");
+  }
+  const rising = (file: string, what: string, ats: number[]) => {
+    for (const [index, at] of ats.entries()) {
+      const before = ats[index - 1];
+      if (before !== undefined && !(at > before)) add(file, "", `${what} must rise: ${at}`);
+    }
+  };
+  const { line, lineEvery, roster } = content.milestones;
+  rising(
+    "milestones.json5",
+    "line milestones",
+    line.map((step) => step.at),
+  );
+  rising(
+    "milestones.json5",
+    "roster milestones",
+    roster.map((step) => step.at),
+  );
+  const last = line.at(-1)?.at ?? 0;
+  if (lineEvery.from <= last)
+    add("milestones.json5", "", "lineEvery must start after the last listed line milestone");
+  for (const special of lineEvery.special) {
+    if (special.at < lineEvery.from || (special.at - lineEvery.from) % lineEvery.step !== 0)
+      add("milestones.json5", "", `special milestone ${special.at} is not on lineEvery's steps`);
+  }
+  return problems;
+}
+
+/** Flotsam and the island's clock (02-the-run.md 13.4). */
+function checkFlotsam(content: Content): Problem[] {
+  const problems: Problem[] = [];
+  const add = (file: string, id: string, message: string) => problems.push({ file, id, message });
+  const { schedule, firstRun, kinds } = content.flotsam;
+  const [shortest, longest] = schedule.gapMinutes;
+  if (!(shortest < longest)) add("flotsam.json5", "", "gapMinutes must be [shortest, longest]");
+  if (schedule.floatSeconds < 8) add("flotsam.json5", "", "flotsam must float 8 s or more");
+  if (!kinds.some((kind) => kind.id === firstRun.kind))
+    add("flotsam.json5", "", `unknown first-run kind \`${firstRun.kind}\``);
+  let longestBuff = 0;
+  for (const kind of kinds) {
+    if ("lump" in kind.effect && kind.effect.lump.floorMinutes > kind.effect.lump.rateMinutes)
+      add("flotsam.json5", kind.id, "floorMinutes must not pass rateMinutes");
+    if ("buff" in kind.effect) longestBuff = Math.max(longestBuff, kind.effect.seconds);
+  }
+  // Natural spawns never stack two buffs: the shortest rainy gap outlasts the longest buff.
+  if (!((shortest * 60) / schedule.rainFactor > longestBuff))
+    add("flotsam.json5", "", "the shortest rainy gap must outlast the longest buff");
+  const clock = content.islandClock;
+  if (clock.id !== content.island)
+    add("island.json5", clock.id, `the island must be \`${content.island}\` (lines.json5)`);
+  if (clock.utcOffsetMinutes % 60 !== 0)
+    add("island.json5", clock.id, "the island's clock is a whole number of hours from UTC");
+  const { clear, rain, fog } = clock.weather;
+  if (clear + rain + fog !== 100) add("island.json5", clock.id, "weather shares must sum to 100");
   return problems;
 }
 
