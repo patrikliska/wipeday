@@ -1646,3 +1646,12 @@ bot's renderer, so a file the sheet draws is one the bot can draw). The string r
 of allowed accents live in `@wipe-day/content/icons` (`lintIcon`, `ICON_ACCENTS`): the content
 test fails on a malformed file and lists every id the content names without an icon as a todo;
 a web test keeps each accent in `palette.ts` or `tokens.css`. Extends D141.
+
+### D151. R2's icons are drawn ahead, with R2's two colours
+The 24 R2 icons (`07-what-changes.md` 8.5) are drawn on `icons-r1`, where nothing shows them
+(D140). `palette.ts` gains `BIG_RED` (`0xd8262b`) and `GLASS` (`0x6fd0a0`) now, the values
+`03-the-big-red.md` 3.3 and 3.4 name, because an icon's accent must come from the palette or the
+tokens (D141). There are six node-type frames, not five: `04-blast-map.md` 2.1 lists `stat`,
+`notable`, `keystone`, `unlock`, `automation` and `completion`, and the frame file is named by the
+type's data id. `sector/works` is a factory roof, so a works node in the automation frame is not
+a cog inside a cog. *Revisit* if R2's Kettle art changes a stage's look.

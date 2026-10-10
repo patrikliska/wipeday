@@ -9,7 +9,8 @@
  *   without smoothing, side by side, to compare silhouettes;
  * - `png/<kind>__<id>@<size>-<theme>.png`.
  *
- * Exits non-zero when a file breaks a rule.
+ * `--only <kind>[,<kind/id>...]` draws a subset into the sheets. Exits non-zero when a file
+ * breaks a rule.
  */
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -106,6 +107,13 @@ const png = (icon: Icon, size: number, theme: Theme) =>
   `png/${icon.kind}__${icon.id}@${size}-${theme}.png`;
 const dataUri = (buffer: Buffer) => `data:image/png;base64,${buffer.toString("base64")}`;
 
+/** `--only product,ui` (kinds or kind/id prefixes) limits the sheets and strips; the lint runs on all. */
+const onlyArg = process.argv.indexOf("--only");
+const only = onlyArg >= 0 ? (process.argv[onlyArg + 1] ?? "").split(",").filter(Boolean) : [];
+const shown = only.length
+  ? icons.filter((icon) => only.some((prefix) => `${icon.kind}/${icon.id}`.startsWith(prefix)))
+  : icons;
+
 const pngs = new Map<string, Buffer>();
 for (const icon of icons) {
   for (const theme of Object.keys(THEMES) as Theme[]) {
@@ -122,8 +130,8 @@ function sheet(theme: Theme): Buffer {
   const { bg, label } = THEMES[theme];
   const columns = 6;
   const cell = { w: 236, h: 96 };
-  const rows = Math.ceil(icons.length / columns);
-  const parts = icons.map((icon, index) => {
+  const rows = Math.ceil(shown.length / columns);
+  const parts = shown.map((icon, index) => {
     const x = (index % columns) * cell.w + 12;
     const y = Math.floor(index / columns) * cell.h + 8;
     const img = (size: number, dx: number, dy: number, zoom = 1) =>
@@ -151,13 +159,13 @@ function strip(theme: Theme): Buffer {
   const { bg } = THEMES[theme];
   const perRow = 14;
   const step = 16 * 3 + 12;
-  const parts = icons.map((icon, index) => {
+  const parts = shown.map((icon, index) => {
     const x = (index % perRow) * step + 12;
     const y = Math.floor(index / perRow) * step + 12;
     return `<image x="${x}" y="${y}" width="48" height="48" image-rendering="optimizeSpeed" href="${dataUri(pngs.get(png(icon, 16, theme)) ?? Buffer.alloc(0))}"/>`;
   });
   const width = perRow * step + 12;
-  const height = Math.ceil(icons.length / perRow) * step + 12;
+  const height = Math.ceil(shown.length / perRow) * step + 12;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="${bg}"/>${parts.join("")}</svg>`;
   return new Resvg(svg).render().asPng();
 }

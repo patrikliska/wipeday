@@ -995,3 +995,33 @@ headgear carries the silhouette. `ui/pocket` waits for R5.
   16 px (thin slanted sheets against thick boxes): still the one I would redo, ideally after the
   owner's naming pass (an I-beam would say "steel" but not "plates"). The `loom` is better but
   still busy. Mara (round brim) and Otto (one-sided brim) are the closest pair of portraits.
+
+### Icons, third batch: R2's list, drawn ahead (103 in all)
+
+New, none of them shown before R2 (D140; the icons are not wired in): `currency/glass`,
+`ui/glow`, `ui/big_red`, the Kettle stages `ui/kettle_pad`, `kettle_frame`, `kettle_warhead`,
+`kettle_fuel`, `ui/afterglow`, `ui/ground_zero`, the sector glyphs `sector/grip`, `crew`, `works`,
+`tide`, `bunker`, `blast`, `logbook`, `scrapyard`, the six node-type frames `node_type/stat`,
+`notable`, `keystone`, `unlock`, `automation`, `completion` (04-blast-map.md 2.1), and
+`skin/founder`. `pnpm icons --only sector,node_type` now draws a subset into the sheets.
+
+- Iteration 1, what was wrong:
+  - `ui/ground_zero` (a sign planted in a crater) was a golf flag in its hole.
+  - `ui/kettle_pad` (ladder, taped slab, two pallets) was a busy fence at 16 px: the ladder
+    competed with the hazard stripes, which are the pad's identity.
+  - `ui/big_red`'s dome (r 8) was too small to carry the icon at 16 px against the drum.
+  - `ui/glow` was the lightest icon in the set (15% ink): a speck with dotted rays.
+  - Fine on the first pass: the sector glyphs (fist, hard hat, factory roof, curling wave,
+    pillbox, mushroom cloud, pencil, tyre) all name themselves at 16 px; the frames differ by
+    outline (circle, double ring, hexagon, rounded square, cog ring, double ring with badge);
+    the glass shard and the scrap nut differ in shape and colour.
+- What changed: Ground Zero is a crater with blast rays and no flag; the pad is one wide
+  hazard-striped slab on a pallet; the dome grew to r 11 with the hinged seat behind it; the glow
+  is a bigger shard with heavier rays (19%). All four read at 16 px in iteration 2.
+- Choices: `sector/works` is a sawtooth factory roof, not a cog, because a works node inside the
+  automation frame (a cog ring) would be a cog in a cog. `sector/crew` is a hard hat alone, so it
+  differs from `nav/crew` (a person). The Big Red's dome and the glass use R2's `BIG_RED` and
+  `GLASS` (03-the-big-red.md 3.3, 3.4), now in `palette.ts`.
+- Still open: the seat behind the Big Red's dome reads as a hook at 16 px (the dome carries the
+  icon, the seat only shows at 48); `ui/kettle_frame` could be a water tower; `sector/scrapyard`
+  (a tyre) is close in outline to the automation frame's cog, but one is filled and one is a ring.

@@ -41,6 +41,8 @@ export const ICON_ACCENTS = {
   "#a8603a": "ore veins (ORE_VEIN)",
   "#e3c04f": "sulfur (SULFUR_VEIN)",
   "#5faccf": "shallow sea (seaShallow)",
+  "#d8262b": "the Big Red (BIG_RED)",
+  "#6fd0a0": "crater glass (GLASS)",
 } as const satisfies Record<string, string>;
 
 const FORBIDDEN: [RegExp, string][] = [

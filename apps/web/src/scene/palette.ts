@@ -261,3 +261,6 @@ export const SULFUR_VEIN = 0xe3c04f;
 export const FIBRE = 0x7fa043;
 export const SKIN = 0xe5c39c;
 export const CLOTHES = [0x4a5d6e, 0x6e5a4a, 0x55684a, 0x6b4a5d];
+/** The Big Red's dome and crater glass (docs/redesign/03-the-big-red.md 3.3, 3.4); icons use them first. */
+export const BIG_RED = 0xd8262b;
+export const GLASS = 0x6fd0a0;
