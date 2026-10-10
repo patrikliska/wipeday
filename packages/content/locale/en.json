@@ -92,6 +92,7 @@
   "demo": {
     "title": "Demo controls",
     "clock": "Game clock",
+    "day": "Day {day}",
     "play": "Play",
     "pause": "Pause",
     "hour": "+1 h",
@@ -128,7 +129,7 @@
   "discord": {
     "command": "Your island: a link into the game",
     "title": "{name} on {island}",
-    "rebuilding": "The island is being rebuilt. Everything new happens in the game for now.",
+    "rebuilding": "The island is being rebuilt. Open the game to see it and tap it.",
     "status": {
       "offline": "The game server did not answer. Try again in a moment.",
       "stale": "That button was from an older bot. Here is your island now.",

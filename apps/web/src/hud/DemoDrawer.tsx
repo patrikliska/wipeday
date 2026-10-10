@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useReducer } from "react";
 import { demoClocks } from "../state/clocks";
 import { localSeconds, useWorld } from "../state/store";
 import { clockLabel, GAME_DAY, t } from "../state/world";
@@ -18,7 +18,9 @@ export function DemoDrawer() {
   const reset = useWorld((state) => state.demoReset);
   const patch = useWorld((state) => state.demoPatch);
   const supplies = useWorld((state) => state.base?.run.supplies ?? 0);
-  const [paused, setPaused] = useState(demoClocks.game.paused);
+  // The clock is the truth (shots pause it directly); clicking re-renders.
+  const [, rerender] = useReducer((n: number) => n + 1, 0);
+  const paused = demoClocks.game.paused;
   if (mode !== "demo") return null;
 
   const local = localSeconds(second);
@@ -41,7 +43,7 @@ export function DemoDrawer() {
           <div className="clock">
             <span>{t("demo.clock")}</span>
             <span className="big num">
-              {clockLabel(local)} · {day}
+              {t("demo.day", { day })} · {clockLabel(local)}
             </span>
           </div>
           <div className="buttons">
@@ -50,7 +52,7 @@ export function DemoDrawer() {
               className="btn"
               onClick={() => {
                 pause(!paused);
-                setPaused(!paused);
+                rerender();
               }}
             >
               {paused ? t("demo.play") : t("demo.pause")}

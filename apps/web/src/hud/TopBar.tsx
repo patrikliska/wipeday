@@ -22,13 +22,15 @@ export function TopBar() {
       if (base) {
         const now = Math.max(gameSeconds(), base.run.settledAt);
         const nextAmount = fmt(suppliesAt(content, base, now), "held");
-        const nextRate = fmtRate(mannedRate(content, base, Math.floor(now)));
+        // Nothing runs by itself yet: no rate line (an empty one keeps the pill's height).
+        const perSecond = mannedRate(content, base, Math.floor(now));
+        const nextRate = perSecond > 0 ? fmtRate(perSecond) : "";
         if (nextAmount !== shownAmount && amount.current) {
           amount.current.textContent = nextAmount;
           shownAmount = nextAmount;
         }
         if (nextRate !== shownRate && rate.current) {
-          rate.current.textContent = nextRate;
+          rate.current.textContent = nextRate || " ";
           shownRate = nextRate;
         }
       }

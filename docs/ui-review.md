@@ -864,3 +864,42 @@ is closed here; nothing above is edited.
     bare island only).
   - The bot's mock versus the real Discord app: still the owner's live check, now of card v2 in
     R2.
+
+## R0: the bare island, the demo drawer and `/base` until R2
+
+Shots (`pnpm web:shots`, `preview/web/`): `bare_island`, `phone_bare_island`,
+`phone_bare_island_tapping`, `phone_bare_island_big` (1.23e36 supplies), `bare_island_night`
+(999,999 supplies), `bare_island_drawer`, `phone_bare_island_drawer`, each with a `__zoom` crop
+of the counter, the floater or the drawer. Shots now render in UTC and pin two clocks: `time`
+(the game) and `wall` (animation, D138). Bot: `pnpm preview` (`preview/discord/`).
+
+- Iteration 1, what was wrong:
+  - The counter's rate line read `0/s` on a fresh island: a number that says nothing, under
+    the one that matters.
+  - The counter pill kept 112 px for its figures, so `0` sat in a wide pill with a hole on its
+    right.
+  - The drawer offered "Pause" while the clock was paused: it read the clock once, when it
+    mounted, not when it opened.
+  - The drawer's clock read "10:00 · 1": nothing said the 1 was a day.
+  - `/base` (Discord) said "Everything new happens in the game for now" without naming the
+    action; Discord draws the "Open the game" link grey like every link, so the words must
+    carry it (as W8 found, D125).
+- What changed:
+  - The rate line shows only once something runs by itself; an empty line keeps the pill's
+    height, so the counter never jumps when the first hand is hired.
+  - The figures' minimum width is 56 px; the pill grows with the number (tabular figures, so
+    a ticking value keeps its width within a magnitude).
+  - The drawer reads the clock on every render, and its clock reads "Day 1 · 10:00".
+  - `/base` now says "The island is being rebuilt. Open the game to see it and tap it."
+- Iteration 2: the counter fits `0`, `1.24k`, `999k` and `1.23e36` at 390 px with its tile; the
+  night sky keeps it readable (light text on the glass pill); the floater `+6` rises from the
+  finger in the land's middle; the tap hint is gone after the first tap; the drawer's six
+  buttons are 44 px tall and fit three a row at 390 px; the DM keeps "Show my island" as its one
+  primary. All seven web shots and four bot screens pass, no console errors, no lint findings.
+- Still open (by design or for R1):
+  - The phone view is mostly sky with an empty land: R1's camera reframe puts the tap target on
+    the rise at about 40% of the height, and R1's scene fills the land with lines and hands.
+  - The counter's icon is the lettered `SU` tile until the owner's `currency/supplies` icon
+    (D141, R1's list).
+  - The tap hint is the R0 stand-in for "Tap the tree." (R1's era target); it is drawn as a
+    pulsing pill, not the signal-orange primary, which arrives with R1's contrast pass (D138).
