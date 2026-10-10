@@ -27,6 +27,8 @@ export const DAY0 = 1_699_920_000;
 const DAY = 86_400;
 /** Batches are 1 s for this long into a run's online time, then 5 s (`10-balance.md` 7.3). */
 const FINE_SECONDS = 600;
+/** A batch holds at most this many taps (the client's tail, D134). */
+const MAX_BATCH = 30;
 
 export interface Session {
   /** Seconds after midnight (UTC). */
@@ -169,9 +171,12 @@ export function simulate(
       const end = t + session.seconds;
       step({ type: "ping" }, t);
       while (t < end) {
-        const length = Math.min(runOnline < FINE_SECONDS ? 1 : 5, end - t);
         const idle = state.run.hands.length === 0;
         const rate = archetype.tapsPerSecond + (idle ? (archetype.tapsWhileNothingRuns ?? 0) : 0);
+        // As the client batches (D134): 1 s at first, then 5 s, never more than 30 taps.
+        const wide = runOnline < FINE_SECONDS ? 1 : 5;
+        const fits = Math.max(1, Math.floor(MAX_BATCH / Math.max(rate, 1)));
+        const length = Math.min(wide, fits, end - t);
         const count = Math.round(rate * length);
         const to = t + length - 1;
         if (count > 0) step({ type: "taps", count, from: t, to }, to);
