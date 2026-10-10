@@ -14,45 +14,20 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Resvg } from "@resvg/resvg-js";
+import { ICON_KINDS, iconAccent, lintIcon } from "@wipe-day/content/icons";
+import { contentPaths } from "@wipe-day/content/paths";
 import { ROOT } from "../config";
 
-const ICONS = join(ROOT, "packages", "content", "icons");
+const ICONS = contentPaths.icons;
 const OUT = join(ROOT, "preview", "icons");
 mkdirSync(join(OUT, "png"), { recursive: true });
 
-/** Kinds in the order they are drawn (docs/redesign/07-what-changes.md 8). */
-const KINDS = [
-  "currency",
-  "product",
-  "line",
-  "crew",
-  "tier",
-  "tool",
-  "target",
-  "flotsam",
-  "ui",
-  "nav",
-];
 const SIZES = [16, 24, 48] as const;
 const THEMES = {
   dark: { bg: "#1b1a18", fg: "#ece8df", label: "#a49e93" },
   light: { bg: "#ece8df", fg: "#1b1a18", label: "#5d594f" },
 } as const;
 type Theme = keyof typeof THEMES;
-
-/** The fixed accents an icon may use: the scene palette and the HUD tokens. */
-const ACCENTS = new Set([
-  ...hexes(read("apps/web/src/scene/palette.ts"), /0x([0-9a-f]{6})\b/gi),
-  ...hexes(read("apps/web/src/styles/tokens.css"), /#([0-9a-f]{6})\b/gi),
-]);
-
-function read(path: string): string {
-  return readFileSync(join(ROOT, path), "utf8");
-}
-
-function hexes(text: string, pattern: RegExp): string[] {
-  return [...text.matchAll(pattern)].map((match) => `#${(match[1] ?? "").toLowerCase()}`);
-}
 
 interface Icon {
   kind: string;
@@ -63,37 +38,6 @@ interface Icon {
   box: { x0: number; y0: number; x1: number; y1: number };
   ink: number;
   accent: string | undefined;
-}
-
-const FORBIDDEN: [RegExp, string][] = [
-  [/<text\b/, "<text>"],
-  [/<image\b/, "raster <image>"],
-  [/<(filter|fe[A-Z]\w*)\b/, "filter"],
-  [/Gradient\b/, "gradient"],
-  [/<(pattern|mask|clipPath|use|style|script|foreignObject)\b/, "a forbidden element"],
-  [/\bhref=/, "an external reference"],
-  [/url\(/, "a url() reference"],
-  [/\sid=/, "an id attribute"],
-];
-
-function lint(svg: string): { problems: string[]; accent: string | undefined } {
-  const problems: string[] = [];
-  const root = /<svg\b[^>]*>/.exec(svg)?.[0] ?? "";
-  if (!root.includes('viewBox="0 0 48 48"')) problems.push('root needs viewBox="0 0 48 48"');
-  if (/\s(width|height)=/.test(root)) problems.push("root has a width or height");
-  for (const [pattern, what] of FORBIDDEN) if (pattern.test(svg)) problems.push(`uses ${what}`);
-  const colours = new Set<string>();
-  for (const [, , value = ""] of svg.matchAll(/\b(fill|stroke|color)="([^"]+)"/g)) {
-    if (value === "currentColor" || value === "none" || value === "evenodd") continue;
-    const colour = value.toLowerCase();
-    if (!ACCENTS.has(colour)) problems.push(`${value} is not in palette.ts or tokens.css`);
-    colours.add(colour);
-  }
-  if (colours.size > 1) problems.push(`${colours.size} fixed colours (at most one accent)`);
-  for (const [, width = ""] of svg.matchAll(/stroke-width="([^"]+)"/g)) {
-    if (Number(width) < 3) problems.push(`stroke-width ${width} is under 3`);
-  }
-  return { problems, accent: [...colours][0] };
 }
 
 function render(svg: string, size: number, theme: Theme, background = true): Resvg {
@@ -137,8 +81,8 @@ for (const kind of readdirSync(ICONS).sort((a, b) => rank(a) - rank(b))) {
   for (const file of readdirSync(join(ICONS, kind)).filter((name) => name.endsWith(".svg"))) {
     const svg = readFileSync(join(ICONS, kind, file), "utf8");
     const id = file.slice(0, -4);
-    const { problems, accent } = lint(svg);
-    if (!/^[a-z][a-z0-9_]{1,31}$/.test(id)) problems.push("id is not snake_case, 2-32 chars");
+    const problems = lintIcon(svg, id);
+    const accent = iconAccent(svg);
     const { box, ink } = measure(svg);
     const margin = 2 - 0.25;
     if (box.x0 < margin || box.y0 < margin || box.x1 > 48 - margin || box.y1 > 48 - margin) {
@@ -149,8 +93,8 @@ for (const kind of readdirSync(ICONS).sort((a, b) => rank(a) - rank(b))) {
 }
 
 function rank(kind: string): number {
-  const index = KINDS.indexOf(kind);
-  return index < 0 ? KINDS.length : index;
+  const index = (ICON_KINDS as readonly string[]).indexOf(kind);
+  return index < 0 ? ICON_KINDS.length : index;
 }
 
 function fmt(box: Icon["box"]): string {

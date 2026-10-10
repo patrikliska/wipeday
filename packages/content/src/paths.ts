@@ -12,4 +12,5 @@ export const contentPaths = {
   data: join(root, "data"),
   locale: join(root, "locale"),
   localeFile: join(root, "locale", "en.json"),
+  icons: join(root, "icons"),
 } as const;

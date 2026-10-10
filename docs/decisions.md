@@ -1642,4 +1642,7 @@ any tint without spending the one fixed accent; overlapping half-tone shapes sit
 where a title would only add a tooltip that repeats it, so the R1 loader sets `aria-hidden` or a
 label; `biome.json` turns `noSvgWithoutTitle` off for `packages/content/icons` only. `pnpm icons`
 lints each file against D141 and renders the review sheet into `preview/icons/` with resvg (the
-bot's renderer, so a file the sheet draws is one the bot can draw). Extends D141.
+bot's renderer, so a file the sheet draws is one the bot can draw). The string rules and the list
+of allowed accents live in `@wipe-day/content/icons` (`lintIcon`, `ICON_ACCENTS`): the content
+test fails on a malformed file and lists every id the content names without an icon as a todo;
+a web test keeps each accent in `palette.ts` or `tokens.css`. Extends D141.
