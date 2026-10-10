@@ -264,3 +264,6 @@ export const CLOTHES = [0x4a5d6e, 0x6e5a4a, 0x55684a, 0x6b4a5d];
 /** The Big Red's dome and crater glass (docs/redesign/03-the-big-red.md 3.3, 3.4); icons use them first. */
 export const BIG_RED = 0xd8262b;
 export const GLASS = 0x6fd0a0;
+/** The Hustle arc (08-screens.md 1.3): pale at 0, ember at the cap. */
+export const HUSTLE_LO = 0xe8d9a8;
+export const HUSTLE_HI = 0xff6f3c;

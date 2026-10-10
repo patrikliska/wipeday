@@ -13,6 +13,8 @@ export interface TerrainLayout {
   shoreX: number;
   /** Where the path starts. */
   baseX: number;
+  /** The rise the era target stands on: its centre, top (world y) and half-width. */
+  rise: { x: number; top: number; half: number };
   extend: number;
 }
 
@@ -217,7 +219,58 @@ export class Terrain {
         .ellipse(x, y, 3 + hash(i) * 5, 2 + hash(i * 2) * 3)
         .fill({ color: 0x5c6166, alpha: 0.8 });
     }
-    this.ground.addChild(groundGraphics, tufts, flowers);
+    // The rise the era target stands on: a grassy hump in front of the base.
+    const { rise } = layout;
+    const hump = new Graphics();
+    const lift = ground - rise.top;
+    hump.moveTo(rise.x - rise.half, ground + 2);
+    for (let k = 0; k <= 40; k++) {
+      const u = k / 40;
+      const x = rise.x - rise.half + u * rise.half * 2;
+      // A flat-topped bump: smooth shoulders, a level top for the target to stand on.
+      const shoulder = Math.sin(u * Math.PI) ** 0.55;
+      hump.lineTo(x, ground - lift * shoulder + Math.sin(u * 17) * 1.5);
+    }
+    hump
+      .lineTo(rise.x + rise.half, ground + 2)
+      .closePath()
+      .fill(GROUND);
+    hump
+      .moveTo(rise.x - rise.half * 0.7, ground - lift * 0.82)
+      .quadraticCurveTo(
+        rise.x - rise.half * 0.2,
+        ground - lift - 4,
+        rise.x + rise.half * 0.3,
+        ground - lift,
+      )
+      .stroke({ width: 5, color: GROUND_LIGHT, alpha: 0.9 });
+    hump
+      .moveTo(rise.x + rise.half * 0.35, ground - lift * 0.96)
+      .quadraticCurveTo(
+        rise.x + rise.half * 0.75,
+        ground - lift * 0.6,
+        rise.x + rise.half * 0.92,
+        ground - 4,
+      )
+      .lineTo(rise.x + rise.half, ground + 2)
+      .lineTo(rise.x + rise.half * 0.3, ground + 2)
+      .closePath()
+      .fill({ color: GROUND_DARK, alpha: 0.35 });
+    for (let k = 0; k < 26; k++) {
+      const u = hash(k * 4.1 + 2);
+      const x = rise.x - rise.half * 0.9 + u * rise.half * 1.8;
+      const top =
+        ground - lift * Math.sin(((x - rise.x + rise.half) / (rise.half * 2)) * Math.PI) ** 0.55;
+      const y = top + 6 + hash(k * 2.7) * (ground - top);
+      const h = 8 + hash(k * 3.3) * 10;
+      hump
+        .moveTo(x - 4, y)
+        .lineTo(x, y - h)
+        .lineTo(x + 3, y)
+        .closePath();
+    }
+    hump.fill({ color: GROUND_DARK, alpha: 0.85 });
+    this.ground.addChild(groundGraphics, tufts, flowers, hump);
 
     // Beach: dry sand from the dunes down to the water, darker wet sand along the waterline.
     const step = 8;

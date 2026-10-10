@@ -62,3 +62,16 @@ export function css(color: number, alpha = 1): string {
 export function shade(color: number, t: number): number {
   return t < 0 ? lerpColor(color, 0x000000, -t) : lerpColor(color, 0xffffff, t);
 }
+
+const reducedQuery =
+  typeof window !== "undefined" && typeof window.matchMedia === "function"
+    ? window.matchMedia("(prefers-reduced-motion: reduce)")
+    : null;
+
+/**
+ * Reduced motion (08-screens.md 6.2): follows the device until Settings (S3) adds the switch.
+ * Floaters fade in place, particles drop to a quarter, the target blinks instead of squashing.
+ */
+export function reducedMotion(): boolean {
+  return reducedQuery?.matches === true;
+}

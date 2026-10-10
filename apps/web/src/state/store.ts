@@ -14,6 +14,7 @@
 import { applyCommand, type Command } from "@wipe-day/domain/commands";
 import { settle, suppliesAt } from "@wipe-day/domain/settle";
 import type { BaseState } from "@wipe-day/domain/state";
+import { hustleFactor, tapParts } from "@wipe-day/domain/taps";
 import type {
   CommandResponse,
   PlayerView,
@@ -67,6 +68,8 @@ interface WorldState {
   demoOpen: boolean;
   /** The game clock's whole second, published once a second for the HUD. */
   second: number;
+  /** Demo patches so far: the scene does not celebrate what a patch put there. */
+  patches: number;
 }
 
 interface Actions {
@@ -264,6 +267,7 @@ export const useWorld = create<Store>((set, get) => {
     toasts: [],
     demoOpen: false,
     second: 0,
+    patches: 0,
 
     async boot() {
       const demo = new URLSearchParams(window.location.search).has("demo");
@@ -308,7 +312,22 @@ export const useWorld = create<Store>((set, get) => {
       const gain = Math.max(0, after - before);
       set({ queue, base });
       lastCommandAt = now;
-      emit({ type: "tap_at", x, y, gain });
+      // A fell is shown on its own ("Timber! +380"): its bonus leaves the tap's running number.
+      const fells = base.run.target.felled - state.base.run.target.felled;
+      let fellValue = 0;
+      if (fells > 0) {
+        const parts = tapParts(content, base, now);
+        const { cap } = content.tap.hustle;
+        fellValue =
+          fells *
+          parts.fellBonus *
+          parts.base *
+          hustleFactor(base.run.hustle.value, cap, parts.hustlePeak);
+        fellValue = Math.min(gain, fellValue);
+      }
+      emit({ type: "tap_at", x, y, gain: gain - fellValue });
+      const target = targetOf(base);
+      if (fells > 0 && target) emit({ type: "felled", target, count: fells, value: fellValue });
       return gain;
     },
 
@@ -321,7 +340,10 @@ export const useWorld = create<Store>((set, get) => {
       set({ queue, base: rebase(state.confirmed, queue) });
       lastCommandAt = now;
       if (result.ok) for (const event of result.events) emit(event);
-      else toast(refusalMessage(result.refusal), "warning");
+      else {
+        toast(refusalMessage(result.refusal), "warning");
+        emit({ type: "refused" });
+      }
       void flush();
     },
 
@@ -381,10 +403,22 @@ export const useWorld = create<Store>((set, get) => {
     demoPatch(change) {
       if (!(backend instanceof LocalBackend)) return;
       const base = backend.patch(change);
-      set({ confirmed: base, base: rebase(base, get().queue), version: get().version + 1 });
+      // The backend's version, so an answer sent before the patch never overwrites it.
+      const version = Math.max(get().version + 1, backend.currentVersion);
+      set({
+        confirmed: base,
+        base: rebase(base, get().queue),
+        version,
+        patches: get().patches + 1,
+      });
     },
   };
 });
+
+/** The era's target id for a base (the one its taps fell). */
+function targetOf(base: BaseState): string | null {
+  return content.targets.find((target) => target.era === base.run.era)?.id ?? null;
+}
 
 /** The base settled to the game clock's now, without saving: for the scene's per-frame reads. */
 export function settledBase(state: Store): BaseState | null {

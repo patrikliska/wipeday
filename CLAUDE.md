@@ -326,6 +326,7 @@ and their measured values (warnings too), screenshot paths (`preview/web/index.h
 | `pnpm dev` | API (:8787) and web client (http://localhost:5173) together; login as test players 1-3 |
 | `pnpm web` | web dev server alone (demo mode without the API; `?demo` forces it) |
 | `pnpm web:shots [--only x]` | headless screenshots into `preview/web/` (needs `pnpm web` running) |
+| `pnpm web:perf [--throttle n]` | 30 s at 15 taps a second on the GPU: fps and live floaters (needs `pnpm web` running) |
 | `pnpm web:build` | production bundle into `apps/web/dist` |
 | `pnpm api` / `pnpm api:dev` | the API process / with restart on change (if `pnpm dev`'s API part hangs, run `pnpm api` + `pnpm web`) |
 | `pnpm sim [days]` / `pnpm sim check [--full]` | simulator v2 / pacing assertion |

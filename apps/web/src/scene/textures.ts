@@ -73,3 +73,26 @@ export function puffTexture(size = 128): Texture {
     ctx.fillRect(0, 0, size, size);
   });
 }
+
+/** Small white particle shapes, 16 px: tint and scale them. */
+export function shapeTexture(shape: "dot" | "leaf" | "chip" | "coin"): Texture {
+  return canvasTexture(`shape:${shape}`, 16, 16, (ctx) => {
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    if (shape === "dot") ctx.arc(8, 8, 7, 0, Math.PI * 2);
+    else if (shape === "leaf") ctx.ellipse(8, 8, 7.5, 4, 0, 0, Math.PI * 2);
+    else if (shape === "coin") {
+      ctx.arc(8, 8, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.fillStyle = "rgba(0,0,0,0.3)";
+      ctx.arc(8, 8, 4, 0, Math.PI * 2);
+    } else {
+      ctx.moveTo(2, 4);
+      ctx.lineTo(12, 1);
+      ctx.lineTo(15, 11);
+      ctx.lineTo(5, 15);
+    }
+    ctx.fill();
+  });
+}

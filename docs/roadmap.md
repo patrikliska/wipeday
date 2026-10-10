@@ -24,7 +24,21 @@ in `docs/archive/roadmap-w.md`.
   targets, Grip, the shelf, milestones and the roster, felling, flotsam on a seeded cursor, the
   island's clock and weather, welcome back and Collect, quiet hours, the advisor and the
   simulator's R1 checks (`pnpm sim check --phase R1`; `shipped` stays R0 until S5). The 115 icons
-  are on `redesign` (D150, D151). Next: S2, the scene.
+  are on `redesign` (D150, D151). S2 (the scene) is done (2026-10-10, D157-D163): the camera
+  reframe, the five targets with their fells, the 14 lines at 1, 25 and 100 owned with plots,
+  badges, product piles and line floaters, hands walking to their lines, pooled floaters, sound
+  and vibration; names pass 1 approved Go Bag and Tinned Fish. Next: S3, the HUD.
+
+### R1 S2 results (the scene)
+
+- **N27:** the target's tap box (a button over it, D158) is 140-180 × 160-174 CSS px on a 390 px
+  phone, the pine's centred at 41% of the height; 209-421 × 235-405 on 1600 × 900. The shots
+  audit fails on any button or scene tap area under 44 px and any target box under 120 px.
+- **Frames:** `pnpm web:perf`, 30 s at 15 taps a second on a busy Stone run: 60 fps (5th
+  percentile 60) with at most 12 floaters and 126 particles on the dev PC's GPU, and 60 fps with
+  the CPU slowed 4×.
+- **Bundle:** 310 KB of JS gzipped in all (the budget 450 KB).
+- **Review:** four rounds over 23 shots (`docs/ui-review.md`, `preview/web/index.html`).
 
 ### R0 results (acceptance)
 
@@ -640,7 +654,8 @@ cinematic. Waves 2 and 3 may slip but not be cut (guardrail 6).
 
 - [ ] Names pass 1 *(proposal)*: Supplies; Beachcomber, Ship Breaker, Reactor; Gus, Vera; the five
       targets and fell cries; Hustle; Hold to work; Night Shift; Drift Crate, Fuel Drum, Rally,
-      Adrenaline Kit; hands; Grip; the products; "Starter Kit" (`packed_crate`, the id stays; errata E27) renamed. Eras: keep the
+      Adrenaline Kit; hands; Grip; the products. Decided so far (D157): "Starter Kit"
+      (`packed_crate`) becomes **Go Bag**; "Fish Crates" (`food`) becomes **Tinned Fish**. Eras: keep the
       five Rust grades [leaning] or rename all five. Decisions 2 [Saltmarsh] and 15 [procedural
       sound] were made on 2026-10-10.
 - [x] Icons go to `packages/content/icons/<kind>/<id>.svg`. Safe now: `scrap` first; tier badges;

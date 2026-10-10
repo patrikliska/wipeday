@@ -1,14 +1,15 @@
 /**
- * The buildings around the base (W2), one drawing per type and level: level 1
- * is a humble start (a lean-to, a tent, a single bed of greens), level 3 the
- * finished thing (a stone-and-metal warehouse, a lit mast, a boathouse).
- * Flat vector like the rest of the scene; windows and lamps carry glows that
- * the base moves to the light layer so they stay warm at night (D47).
+ * The 14 lines' drawings (docs/redesign/02-the-run.md 2.3): each drawn anew at 1, 25 and 100
+ * owned (stages 1-3). Eleven reuse the W-phase buildings' three levels; the Beachcomber, the
+ * Ship Breaker and the Reactor are new. Flat vector like the rest of the scene; windows, fires
+ * and lamps carry glows that the scene moves to the light layer so they stay warm at night
+ * (D47). Origin: the drawing's bottom centre on the ground.
  */
 import { Container, Graphics } from "pixi.js";
 import { Glow } from "./effects";
+import { clamp, lerp } from "./util";
 
-/** One thing standing around the base: its drawing, lights and moving parts. */
+/** One line's drawing, its lights and moving parts. */
 export interface Station {
   id: string;
   container: Container;
@@ -19,6 +20,10 @@ export interface Station {
   animate?: (t: number) => void;
   /** Where smoke and sparks come from, relative to the station. */
   chimney?: { x: number; y: number };
+  /** Where its product piles up, relative to the station. */
+  pile?: { x: number; y: number };
+  /** Where its hand stands to work, relative to the station. */
+  work?: number;
   /** Shown only while the station is working (the furnace's lit interior and flames). */
   fire?: Container;
   /** The station's fire and glows, moved to the light layer when the station is placed. */
@@ -30,12 +35,10 @@ const WOOD_DARK = 0x5a3d26;
 const WOOD_LIGHT = 0xa87444;
 const PLANK = 0x9a6a3a;
 const STONE = 0x8a8f94;
-const STONE_DARK = 0x5d6064;
 const METAL = 0x6c97bc;
 const METAL_DARK = 0x46607a;
 const ROOF = 0x6b4423;
 const CANVAS = 0xd8c9a3;
-const CANVAS_DARK = 0xb2a07a;
 const GLASS = 0x2a3440;
 const WARM = 0xffc46b;
 const SOIL = 0x5a3d26;
@@ -69,100 +72,6 @@ function station(
   return { id, container, glows, ...extra };
 }
 
-// --- storage and crew --------------------------------------------------------------------
-
-function warehouse(level: number): Station {
-  const g = new Graphics();
-  const glows: Glow[] = [];
-  if (level <= 1) {
-    // A lean-to over stacked sacks and crates.
-    shadow(g, 96);
-    g.rect(-44, -58, 6, 58).fill(WOOD_DARK).rect(38, -46, 6, 46).fill(WOOD_DARK);
-    g.moveTo(-52, -62).lineTo(50, -48).lineTo(50, -42).lineTo(-52, -56).closePath().fill(ROOF);
-    g.rect(-30, -24, 26, 24).fill(PLANK).stroke({ width: 2, color: WOOD_DARK });
-    g.roundRect(0, -20, 18, 20, 5).fill(CANVAS).roundRect(18, -16, 16, 16, 5).fill(CANVAS_DARK);
-    return station("warehouse", g);
-  }
-  const w = level === 2 ? 112 : 136;
-  const h = level === 2 ? 78 : 96;
-  shadow(g, w);
-  const wall = level === 2 ? PLANK : STONE;
-  g.rect(-w / 2, -h, w, h).fill(wall);
-  if (level === 2) {
-    for (let y = -h + 12; y < 0; y += 14)
-      g.rect(-w / 2, y, w, 2).fill({ color: WOOD_DARK, alpha: 0.6 });
-  } else {
-    for (let y = -h + 16; y < 0; y += 16)
-      g.rect(-w / 2, y, w, 2).fill({ color: STONE_DARK, alpha: 0.5 });
-    g.rect(-w / 2, -h, 8, h)
-      .fill(STONE_DARK)
-      .rect(w / 2 - 8, -h, 8, h)
-      .fill(STONE_DARK);
-  }
-  // Gable roof: timber shingles, then corrugated metal at level 3.
-  const roof = level === 2 ? ROOF : METAL;
-  g.moveTo(-w / 2 - 10, -h)
-    .lineTo(0, -h - 34)
-    .lineTo(w / 2 + 10, -h)
-    .closePath()
-    .fill(roof);
-  g.moveTo(0, -h - 34)
-    .lineTo(w / 2 + 10, -h)
-    .lineTo(w / 4, -h)
-    .closePath();
-  g.fill({ color: 0x000000, alpha: 0.18 });
-  // Big double door.
-  const dw = level === 2 ? 40 : 48;
-  g.rect(-dw / 2, -h * 0.62, dw, h * 0.62).fill(WOOD_DARK);
-  g.moveTo(-dw / 2, -h * 0.62)
-    .lineTo(dw / 2, 0)
-    .moveTo(dw / 2, -h * 0.62)
-    .lineTo(-dw / 2, 0);
-  g.stroke({ width: 2, color: WOOD, alpha: 0.9 });
-  windowAt(g, -w / 2 + 12, -h + 16, 16, 14, glows);
-  if (level === 3) windowAt(g, w / 2 - 28, -h + 16, 16, 14, glows);
-  return station("warehouse", g, glows);
-}
-
-function bunkhouse(level: number): Station {
-  const g = new Graphics();
-  const glows: Glow[] = [];
-  if (level <= 1) {
-    // A canvas tent with a lamp inside.
-    shadow(g, 76);
-    g.moveTo(-38, 0).lineTo(0, -54).lineTo(38, 0).closePath().fill(CANVAS);
-    g.moveTo(0, -54).lineTo(38, 0).lineTo(14, 0).closePath().fill(CANVAS_DARK);
-    g.moveTo(-10, 0).lineTo(0, -34).lineTo(10, 0).closePath().fill(0x3a3026);
-    const glow = new Glow(WARM, 80, 0.8);
-    glow.sprite.position.set(0, -12);
-    glows.push(glow);
-    return station("bunkhouse", g, glows);
-  }
-  const w = level === 2 ? 92 : 104;
-  const h = level === 2 ? 58 : 96;
-  shadow(g, w);
-  g.rect(-w / 2, -h, w, h).fill(level === 2 ? WOOD : PLANK);
-  for (let y = -h + 10; y < 0; y += 12)
-    g.rect(-w / 2, y, w, 2).fill({ color: WOOD_DARK, alpha: 0.55 });
-  g.moveTo(-w / 2 - 8, -h)
-    .lineTo(0, -h - 30)
-    .lineTo(w / 2 + 8, -h)
-    .closePath()
-    .fill(ROOF);
-  g.rect(-10, -34, 20, 34).fill(WOOD_DARK);
-  windowAt(g, -w / 2 + 12, -h + 14, 14, 14, glows);
-  windowAt(g, w / 2 - 26, -h + 14, 14, 14, glows);
-  if (level === 3) {
-    // Second floor: a row of bunks behind two more windows, and a stovepipe.
-    g.rect(-w / 2, -h / 2 - 3, w, 5).fill(WOOD_DARK);
-    windowAt(g, -w / 2 + 12, -h / 2 + 8, 14, 12, glows);
-    windowAt(g, w / 2 - 26, -h / 2 + 8, 14, 12, glows);
-    g.rect(w / 4, -h - 34, 8, 20).fill(0x3b3833);
-    return station("bunkhouse", g, glows, { chimney: { x: w / 4 + 4, y: -h - 34 } });
-  }
-  return station("bunkhouse", g, glows);
-}
-
 // --- crafts ----------------------------------------------------------------------------
 
 function loom(level: number): Station {
@@ -177,10 +86,14 @@ function loom(level: number): Station {
   g.rect(-24, -60, 5, 60).fill(WOOD).rect(19, -60, 5, 60).fill(WOOD);
   g.rect(-26, -62, 52, 6).fill(WOOD_LIGHT).rect(-26, -18, 52, 5).fill(WOOD_LIGHT);
   for (let x = -17; x <= 17; x += 4) g.rect(x, -56, 1, 38).fill({ color: 0xece2c8, alpha: 0.9 });
-  g.rect(-18, -40, 36, 20).fill(level === 3 ? 0x8a4f6a : 0xb9a36a);
+  g.rect(-18, -40, 36, 20).fill(0xb9a36a);
   if (level === 3) {
-    // Finished bolts hang from the lean-to: colour says "cloth, soon".
-    g.rect(-34, -66, 10, 30).fill(0x4a7fb5).rect(26, -64, 10, 34).fill(0xc85a2b);
+    // Finished rope hangs in coils from the lean-to's posts.
+    for (const x of [-33, 33]) {
+      g.rect(x - 1, -70, 2, 8).fill(WOOD_DARK);
+      g.ellipse(x, -52, 9, 12).stroke({ width: 4, color: 0xb8a27a });
+      g.ellipse(x, -52, 4.5, 6.5).stroke({ width: 3, color: 0x9a845c });
+    }
   }
   return station("loom", g);
 }
@@ -255,239 +168,6 @@ function garden(level: number): Station {
       .fill(0x4a7fb5);
   }
   return station("garden", g);
-}
-
-function lights(level: number): Station {
-  const g = new Graphics();
-  const glows: Glow[] = [];
-  // Lamp posts along the yard: two, then three, then four with brighter lamps.
-  const spots = [-96, 96, -210, 210].slice(0, level + 1);
-  for (const x of spots) {
-    const tall = level === 3 ? 78 : 64;
-    g.rect(x - 2, -tall, 4, tall).fill(level === 3 ? METAL_DARK : WOOD_DARK);
-    g.rect(x - 10, -tall, 20, 3).fill(level === 3 ? METAL_DARK : WOOD_DARK);
-    g.roundRect(x - 6, -tall + 3, 12, 14, 3)
-      .fill(0x2a2a2a)
-      .rect(x - 4, -tall + 5, 8, 10)
-      .fill(0xffe08a);
-    const glow = new Glow(0xffe08a, level === 3 ? 200 : 160, 1);
-    glow.sprite.position.set(x, -tall + 10);
-    glows.push(glow);
-  }
-  return station("lights", g, glows);
-}
-
-function watchtower(level: number): Station {
-  const g = new Graphics();
-  const glows: Glow[] = [];
-  const h = [0, 108, 146, 168][level] ?? 108;
-  shadow(g, 56);
-  if (level === 3) {
-    // A stone foot, timber above.
-    g.moveTo(-26, 0).lineTo(-20, -60).lineTo(20, -60).lineTo(26, 0).closePath().fill(STONE);
-    for (let y = -52; y < 0; y += 13) g.rect(-24, y, 48, 2).fill({ color: STONE_DARK, alpha: 0.6 });
-  }
-  // Legs, braces and a ladder.
-  g.moveTo(-22, 0).lineTo(-14, -h).lineTo(-9, -h).lineTo(-16, 0).closePath().fill(WOOD_DARK);
-  g.moveTo(22, 0).lineTo(14, -h).lineTo(9, -h).lineTo(16, 0).closePath().fill(WOOD_DARK);
-  for (let y = -h + 24; y < -8; y += 30) {
-    g.moveTo(-18, y)
-      .lineTo(18, y - 22)
-      .moveTo(18, y)
-      .lineTo(-18, y - 22);
-  }
-  g.stroke({ width: 2, color: WOOD, alpha: 0.9 });
-  // Platform with a rail.
-  g.rect(-24, -h - 6, 48, 6)
-    .fill(WOOD)
-    .rect(-24, -h - 22, 3, 16)
-    .fill(WOOD_DARK)
-    .rect(21, -h - 22, 3, 16)
-    .fill(WOOD_DARK);
-  g.rect(-24, -h - 22, 48, 3).fill(WOOD_LIGHT);
-  if (level >= 2) {
-    g.moveTo(-30, -h - 22)
-      .lineTo(0, -h - 46)
-      .lineTo(30, -h - 22)
-      .closePath()
-      .fill(ROOF);
-  }
-  if (level === 3) {
-    g.rect(-1, -h - 70, 2, 26).fill(WOOD_DARK);
-    g.moveTo(1, -h - 70)
-      .lineTo(22, -h - 64)
-      .lineTo(1, -h - 58)
-      .closePath()
-      .fill(0xcd412b);
-    const glow = new Glow(WARM, 120, 0.9);
-    glow.sprite.position.set(0, -h - 12);
-    glows.push(glow);
-  }
-  return station("watchtower", g, glows);
-}
-
-/** The wall behind the base, `from` to `to` (container units): palisade, stone, sheet metal. */
-function walls(level: number, from: number, to: number, damaged = false): Station {
-  const g = new Graphics();
-  if (level <= 1) {
-    for (let x = from; x < to; x += 11) {
-      const h = 34 + ((Math.abs(x) * 7) % 9);
-      g.moveTo(x, 0)
-        .lineTo(x, -h)
-        .lineTo(x + 4.5, -h - 7)
-        .lineTo(x + 9, -h)
-        .lineTo(x + 9, 0)
-        .closePath();
-      g.fill(x % 2 === 0 ? WOOD : WOOD_LIGHT);
-    }
-    g.rect(from, -24, to - from, 3).fill(WOOD_DARK);
-  } else if (level === 2) {
-    g.rect(from, -44, to - from, 44).fill(STONE);
-    for (let y = -44; y < 0; y += 11) {
-      for (let x = from + ((y / 11) % 2 === 0 ? 0 : 12); x < to; x += 24) {
-        g.rect(x, y, 23, 10).fill({ color: STONE_DARK, alpha: 0.35 });
-      }
-    }
-    for (let x = from; x < to; x += 30) g.rect(x, -54, 16, 10).fill(STONE);
-  } else {
-    g.rect(from, -56, to - from, 56).fill(METAL);
-    for (let x = from; x < to; x += 22)
-      g.rect(x, -56, 2, 56).fill({ color: METAL_DARK, alpha: 0.7 });
-    g.rect(from, -30, to - from, 4).fill(METAL_DARK);
-    for (let x = from + 6; x < to; x += 18) {
-      g.moveTo(x, -56)
-        .lineTo(x + 4, -66)
-        .lineTo(x + 8, -56)
-        .closePath()
-        .fill(0x9aa0a6);
-    }
-  }
-  // A breach (W6): two broken sections with rubble at their foot until repaired, where the
-  // wall shows between the furnaces and the house, and past the workbench.
-  if (damaged) {
-    const top = [0, 40, 54, 66][level] ?? 40;
-    for (const at of [0.16, 0.9]) {
-      const x = from + (to - from) * at;
-      g.moveTo(x - 26, -top - 4)
-        .lineTo(x - 12, -top * 0.45)
-        .lineTo(x - 4, -top * 0.62)
-        .lineTo(x + 6, -top * 0.3)
-        .lineTo(x + 16, -top * 0.55)
-        .lineTo(x + 28, -top - 4)
-        .closePath()
-        .fill(0x1b1a18);
-      for (const [dx, r] of [
-        [-22, 6],
-        [-10, 8],
-        [4, 7],
-        [16, 9],
-        [28, 5],
-      ] as const) {
-        g.circle(x + dx, -r * 0.6, r).fill(level <= 1 ? WOOD_DARK : STONE_DARK);
-      }
-      if (level <= 1) {
-        // Stakes knocked flat across the gap.
-        g.moveTo(x - 30, -4)
-          .lineTo(x + 8, -16)
-          .stroke({ width: 5, color: WOOD });
-        g.moveTo(x - 6, -2)
-          .lineTo(x + 30, -12)
-          .stroke({ width: 5, color: WOOD_LIGHT });
-      }
-    }
-  }
-  return station("walls", g);
-}
-
-// --- defence (W6) ---------------------------------------------------------------------
-
-/** Stakes in the yard (level 1), a covered pit and a tripwire (2), iron jaws and a mine (3). */
-function traps(level: number): Station {
-  const g = new Graphics();
-  shadow(g, 120);
-  // A row of sharpened stakes leaning out toward the shore.
-  for (let x = -54; x <= 54; x += 12) {
-    const h = 22 + ((Math.abs(x) * 5) % 9);
-    g.moveTo(x - 3, 0)
-      .lineTo(x - 9, -h)
-      .lineTo(x - 6, -h - 6)
-      .lineTo(x + 3, 0)
-      .closePath()
-      .fill(x % 24 === 0 ? WOOD : WOOD_LIGHT);
-    if (level >= 3)
-      g.moveTo(x - 9, -h)
-        .lineTo(x - 6, -h - 6)
-        .lineTo(x - 7, -h + 2)
-        .fill(0xb0b8c0);
-  }
-  g.rect(-58, -10, 116, 3).fill(WOOD_DARK);
-  if (level >= 2) {
-    // A pit under brushwood, and a tripwire between two pegs.
-    g.ellipse(-82, 6, 22, 6).fill(0x2e2b27);
-    for (const dx of [-96, -88, -80, -72])
-      g.moveTo(dx, 2)
-        .lineTo(dx + 10, 9)
-        .stroke({ width: 2, color: 0x8a6a3a });
-    g.rect(64, -10, 3, 12).fill(WOOD_DARK).rect(96, -10, 3, 12).fill(WOOD_DARK);
-    g.moveTo(66, -7).lineTo(98, -7).stroke({ width: 1, color: 0xd8cfb8, alpha: 0.9 });
-  }
-  if (level >= 3) {
-    // Iron jaws, and a powder keg with a red flag: keep out.
-    g.ellipse(-110, 2, 10, 3).fill(0x46607a);
-    g.moveTo(-120, 0)
-      .lineTo(-115, -7)
-      .lineTo(-110, -1)
-      .lineTo(-105, -7)
-      .lineTo(-100, 0)
-      .stroke({ width: 2, color: 0x9aa0a6 });
-    g.roundRect(108, -18, 16, 18, 3).fill(0x7a5236).rect(108, -13, 16, 2).fill(0x46607a);
-    g.rect(122, -40, 2, 24).fill(WOOD_DARK).poly([124, -40, 138, -36, 124, -32]).fill(0xcd412b);
-  }
-  return station("traps", g);
-}
-
-/** A gun on a platform (1), on a stone tower behind a shield (2), a twin gun with a lamp (3). */
-function turret(level: number): Station {
-  const g = new Graphics();
-  const glows: Glow[] = [];
-  const h = [0, 78, 104, 126][level] ?? 78;
-  shadow(g, 64);
-  if (level === 1) {
-    g.moveTo(-26, 0).lineTo(-18, -h).lineTo(-12, -h).lineTo(-20, 0).closePath().fill(WOOD_DARK);
-    g.moveTo(26, 0).lineTo(18, -h).lineTo(12, -h).lineTo(20, 0).closePath().fill(WOOD_DARK);
-    g.moveTo(-20, -h * 0.35)
-      .lineTo(20, -h * 0.75)
-      .moveTo(20, -h * 0.35)
-      .lineTo(-20, -h * 0.75);
-    g.stroke({ width: 2, color: WOOD, alpha: 0.9 });
-    g.rect(-30, -h - 6, 60, 6).fill(WOOD);
-    // Sandbags round the gun.
-    for (const dx of [-24, -10, 4, 18]) g.roundRect(dx, -h - 16, 14, 10, 4).fill(CANVAS_DARK);
-  } else {
-    const wall = level === 2 ? STONE : METAL;
-    const dark = level === 2 ? STONE_DARK : METAL_DARK;
-    g.moveTo(-30, 0).lineTo(-24, -h).lineTo(24, -h).lineTo(30, 0).closePath().fill(wall);
-    for (let y = -h + 14; y < 0; y += 16) g.rect(-28, y, 56, 2).fill({ color: dark, alpha: 0.6 });
-    g.rect(-6, -h * 0.55, 12, 16).fill(GLASS);
-    g.rect(-30, -h - 8, 60, 8).fill(dark);
-    // The gun shield.
-    g.roundRect(-20, -h - 30, 34, 22, 4).fill(dark);
-  }
-  // The barrel(s), pointing out over the shore.
-  g.rect(-52, -h - (level === 1 ? 22 : 24), 40, 5).fill(0x2e2b27);
-  if (level === 3) g.rect(-52, -h - 16, 40, 5).fill(0x2e2b27);
-  g.circle(-2, -h - (level === 1 ? 20 : 18), 7).fill(0x3b3833);
-  if (level === 3) {
-    // A searchlight on the rail, lit at night.
-    g.roundRect(14, -h - 26, 12, 10, 3)
-      .fill(0x3b3833)
-      .circle(20, -h - 21, 3)
-      .fill(0xfff2c0);
-    const lamp = new Glow(0xfff2c0, 110, 0.9);
-    lamp.sprite.position.set(20, -h - 21);
-    glows.push(lamp);
-  }
-  return station("turret", g, glows);
 }
 
 // --- power and the sea -----------------------------------------------------------------
@@ -741,71 +421,422 @@ function campfire(level: number): Station {
   };
 }
 
-/** A building drawn at `level`, or null for ids the scene places elsewhere (the furnace). */
-export function makeBuilding(
-  id: string,
-  level: number,
-  span?: [number, number],
-  damaged = false,
-): Station | null {
-  switch (id) {
-    case "warehouse":
-      return warehouse(level);
-    case "bunkhouse":
-      return bunkhouse(level);
-    case "loom":
-      return loom(level);
-    case "tannery":
-      return tannery(level);
-    case "garden":
-      return garden(level);
-    case "lights":
-      return lights(level);
-    case "watchtower":
-      return watchtower(level);
-    case "walls":
-      return walls(level, span?.[0] ?? -300, span?.[1] ?? 300, damaged);
-    case "traps":
-      return traps(level);
-    case "turret":
-      return turret(level);
-    case "generator":
-      return generator(level);
-    case "radio_mast":
-      return radioMast(level);
-    case "dock":
-      return dock(level);
-    case "kiln":
-      return kiln(level);
-    case "press":
-      return press(level);
-    case "workbench":
-      return workbench(level);
-    case "campfire":
-      return campfire(level);
-    default:
-      return null;
-  }
+// --- the furnace: stone furnace, the large furnace, the electric smelter -----------------------
+
+/** Half-width of the furnace body at height y (it tapers from 32 at the base to 23 under the cap). */
+const furnaceHalfWidth = (y: number): number => lerp(32, 23, clamp((-y - 8) / 62, 0, 1));
+
+/** The arched mouth, as a path on `g` (not filled). */
+function furnaceMouth(g: Graphics, halfWidth: number, bottom: number, springY: number): Graphics {
+  return g
+    .moveTo(-halfWidth, bottom)
+    .lineTo(-halfWidth, springY)
+    .arc(0, springY, halfWidth, Math.PI, 0)
+    .lineTo(halfWidth, bottom)
+    .closePath();
 }
 
-/** Rough footprint of a building's drawing, for its construction scaffold. */
-export const FOOTPRINTS: Record<string, [number, number]> = {
-  warehouse: [120, 110],
-  bunkhouse: [100, 110],
-  loom: [70, 80],
-  tannery: [80, 60],
-  garden: [130, 30],
-  lights: [120, 70],
-  watchtower: [60, 150],
-  walls: [120, 50],
-  generator: [70, 60],
-  radio_mast: [40, 200],
-  dock: [120, 40],
-  kiln: [60, 80],
-  press: [60, 70],
-  workbench: [90, 96],
-  campfire: [60, 40],
-  furnace: [70, 100],
-  traps: [130, 40],
-  turret: [64, 130],
+function stoneFurnace(size: number): Station {
+  const container = new Container();
+  const g = new Graphics();
+  g.scale.set(size);
+  g.ellipse(0, 0, 40, 7).fill({ color: 0x000000, alpha: 0.22 });
+  g.roundRect(-37, -10, 74, 10, 3).fill(0x4a4d50);
+  g.rect(-37, -10, 74, 3).fill(0x5d6064);
+  g.moveTo(-32, -8).lineTo(-23, -70).lineTo(23, -70).lineTo(32, -8).closePath().fill(0x3f4246);
+  const tones = [0x7c7f83, 0x707377, 0x676a6e, 0x75787c];
+  for (let row = 0; row < 5; row++) {
+    const top = -70 + row * 12.4;
+    let x = -furnaceHalfWidth(top + 6) + 1;
+    const right = furnaceHalfWidth(top + 6) - 1;
+    let n = row * 3;
+    while (x < right - 3) {
+      const width = Math.min(right - x, row % 2 === 0 ? 12 + (n % 3) * 3 : 10 + ((n + 1) % 3) * 4);
+      g.roundRect(x, top + 1, width - 1.5, 10.4, 2).fill(tones[n % tones.length] ?? 0x707377);
+      x += width;
+      n++;
+    }
+  }
+  g.moveTo(14, -70).lineTo(23, -70).lineTo(32, -8).lineTo(20, -8).closePath();
+  g.fill({ color: 0x000000, alpha: 0.2 });
+  const bandHalf = furnaceHalfWidth(-52);
+  g.rect(-bandHalf - 1, -55, bandHalf * 2 + 2, 5).fill(0x3b3833);
+  g.roundRect(-27, -77, 54, 8, 2).fill(0x5d6064);
+  g.rect(-6, -98, 12, 22).fill(0x3b3833);
+  g.roundRect(-8, -102, 16, 5, 1.5).fill(0x2e2b27);
+  furnaceMouth(g, 17, -8, -30).fill(0x8a8d90);
+  furnaceMouth(g, 12, -8, -30).fill(0x1b1a18);
+  const fire = new Container();
+  fire.scale.set(size);
+  const interior = new Graphics();
+  const flame = new Graphics();
+  flame.position.set(0, -12);
+  fire.addChild(interior, flame);
+  const glow = new Glow(0xff8a3c, 120 * size, 1);
+  glow.sprite.position.set(0, -26 * size);
+  container.addChild(g, fire, glow.sprite);
+  return {
+    id: "furnace",
+    container,
+    glow,
+    fire,
+    chimney: { x: 0, y: -102 * size },
+    animate: (t) => {
+      const f = 0.85 + Math.sin(t * 17) * 0.15;
+      interior.clear();
+      furnaceMouth(interior, 12, -8, -30).fill({ color: 0x6e2410, alpha: 0.95 });
+      furnaceMouth(interior, 9, -9, -28).fill({ color: 0xb8461c, alpha: 0.45 + 0.3 * f });
+      interior.rect(-11, -12, 22, 3).fill({ color: 0xffb347, alpha: 0.7 + 0.3 * f });
+      drawFlame(flame, f, 0.6);
+    },
+  };
+}
+
+function electricFurnace(): Station {
+  const container = new Container();
+  const g = new Graphics();
+  g.ellipse(0, 0, 38, 7).fill({ color: 0x000000, alpha: 0.22 });
+  g.roundRect(-32, -86, 64, 86, 4).fill(0x6b625a);
+  g.rect(-32, -86, 8, 86).fill({ color: 0xffffff, alpha: 0.08 });
+  g.rect(24, -86, 8, 86).fill({ color: 0x000000, alpha: 0.18 });
+  for (const y of [-78, -8]) for (const x of [-26, -10, 10, 26]) g.circle(x, y, 1.6).fill(0x9aa0a6);
+  g.roundRect(-20, -58, 40, 30, 3).fill(0x1b1a18);
+  g.rect(-4, -106, 8, 20).fill(0x3b3833);
+  g.rect(20, -24, 10, 6).fill(0x9fd4ff);
+  // A cable runs off to the generator.
+  g.moveTo(32, -70).quadraticCurveTo(52, -40, 60, 0).stroke({ width: 2.5, color: 0x2e2b27 });
+  const fire = new Container();
+  const pane = new Graphics();
+  fire.addChild(pane);
+  const glow = new Glow(0xff8a3c, 120, 1);
+  glow.sprite.position.set(0, -44);
+  container.addChild(g, fire, glow.sprite);
+  return {
+    id: "furnace",
+    container,
+    glow,
+    fire,
+    chimney: { x: 0, y: -106 },
+    animate: (t) => {
+      const f = 0.8 + Math.sin(t * 11) * 0.2;
+      pane
+        .clear()
+        .roundRect(-17, -55, 34, 24, 2)
+        .fill({ color: 0xff6a1a, alpha: 0.6 + 0.4 * f });
+    },
+  };
+}
+
+function furnace(level: number): Station {
+  if (level >= 3) return electricFurnace();
+  return stoneFurnace(level === 2 ? 1.18 : 1);
+}
+
+// --- the Beachcomber (new) -----------------------------------------------------------------
+
+const DRIFT = 0xb3a386;
+const DRIFT_DARK = 0x8a7a62;
+const SACK = 0xc9b58a;
+
+/** A bleached log lying at `angle`, `len` long, centred on (x, y). */
+function driftLog(g: Graphics, x: number, y: number, len: number, angle: number, thick = 6): void {
+  const c = Math.cos(angle);
+  const s = Math.sin(angle);
+  const p = (u: number, v: number): [number, number] => [x + u * c - v * s, y + u * s + v * c];
+  g.poly([
+    ...p(-len / 2, -thick / 2),
+    ...p(len / 2, -thick / 2),
+    ...p(len / 2, thick / 2),
+    ...p(-len / 2, thick / 2),
+  ]).fill(DRIFT_DARK);
+  g.poly([
+    ...p(-len / 2, -thick / 2),
+    ...p(len / 2, -thick / 2),
+    ...p(len / 2, -thick / 6),
+    ...p(-len / 2, -thick / 6),
+  ]).fill(DRIFT);
+}
+
+/** A small figure with a sack over the shoulder, origin at the feet. */
+function sackFigure(): Graphics {
+  const g = new Graphics();
+  g.ellipse(0, 0, 9, 2.5).fill({ color: 0x000000, alpha: 0.25 });
+  g.roundRect(-4, -18, 3.5, 18, 1.5).fill(0x3b3f45).roundRect(1, -18, 3.5, 18, 1.5).fill(0x34383d);
+  g.roundRect(-6, -36, 12, 20, 4).fill(0x6e5a4a);
+  g.circle(0, -42, 6).fill(0xe5c39c);
+  g.moveTo(-6, -45).quadraticCurveTo(0, -52, 6, -45).fill(0x4a5d6e);
+  // The sack, slung behind.
+  g.roundRect(-16, -40, 12, 18, 5).fill(SACK);
+  g.moveTo(-6, -34).lineTo(4, -38).stroke({ width: 2, color: 0x8a7a5a });
+  return g;
+}
+
+function beachcomber(level: number): Station {
+  const container = new Container();
+  const g = new Graphics();
+  shadow(g, 70);
+  // Bundles of driftwood at the tideline.
+  for (let i = 0; i < (level >= 3 ? 1 : 2); i++) {
+    driftLog(g, 18 + i * 4, -4 - i * 6, 34, -0.08 + i * 0.12);
+    g.rect(14 + i * 4, -10 - i * 6, 3, 8).fill(0x8a6a3a);
+  }
+  if (level >= 2) {
+    // A drying rack: two A-frames and poles hung with bleached sticks; a second sack.
+    for (const x of [-46, -14]) {
+      g.moveTo(x - 7, 0)
+        .lineTo(x, -44)
+        .lineTo(x + 7, 0)
+        .stroke({ width: 3, color: DRIFT_DARK });
+    }
+    g.rect(-50, -40, 40, 3).fill(DRIFT_DARK);
+    for (let x = -44; x < -14; x += 6) g.rect(x, -38, 3, 22 + ((x * 7) % 5)).fill(DRIFT);
+    g.roundRect(-8, -16, 12, 16, 5).fill(SACK).roundRect(-8, -16, 12, 4, 2).fill(0xa8946a);
+  }
+  if (level >= 3) {
+    // A tarp shelter, a handcart and a big stack.
+    g.moveTo(-96, 0).lineTo(-96, -50).stroke({ width: 3, color: DRIFT_DARK });
+    g.moveTo(-60, 0).lineTo(-60, -38).stroke({ width: 3, color: DRIFT_DARK });
+    g.poly([-104, -54, -54, -40, -56, -34, -102, -48]).fill(0x4a7fb5);
+    g.poly([-104, -54, -54, -40, -78, -46]).fill({ color: 0xffffff, alpha: 0.12 });
+    for (let row = 0; row < 3; row++) {
+      for (let k = 0; k < 4 - row; k++)
+        driftLog(g, -92 + k * 9 + row * 4.5, -4 - row * 7, 30, 0, 7);
+    }
+    g.roundRect(30, -24, 32, 14, 2).fill(0x8a5a30).rect(30, -24, 32, 3).fill(0xa87444);
+    g.circle(46, -8, 7).fill(0x3b3833).circle(46, -8, 2.5).fill(0x8a8f94);
+    g.moveTo(62, -20).lineTo(80, -30).stroke({ width: 3, color: 0x5a3d26 });
+    for (let k = 0; k < 3; k++) driftLog(g, 46, -28 - k * 5, 30, 0.05, 5);
+  }
+  const walker = sackFigure();
+  container.addChild(g, walker);
+  return {
+    id: "beachcomber",
+    container,
+    pile: { x: 18, y: -18 },
+    work: -20,
+    animate: (t) => {
+      // Up and down the tideline, turning at each end.
+      const phase = (t * 0.12) % 2;
+      const along = phase < 1 ? phase : 2 - phase;
+      walker.x = lerp(-70, 70, along) + (level >= 3 ? 40 : 0);
+      walker.y = 10;
+      walker.scale.x = phase < 1 ? 1 : -1;
+      walker.rotation = Math.sin(t * 9) * 0.04;
+    },
+  };
+}
+
+// --- the Ship Breaker (new) ----------------------------------------------------------------
+
+const HULL = 0x6a5a52;
+const RUSTY = 0x8a4a2a;
+
+function hullSection(g: Graphics, x: number, w: number, h: number): void {
+  g.moveTo(x - w / 2, 0)
+    .quadraticCurveTo(x - w / 2 + 6, -h, x + w * 0.1, -h)
+    .lineTo(x + w / 2, -h * 0.9)
+    .lineTo(x + w / 2, 0)
+    .closePath()
+    .fill(HULL);
+  g.rect(x - w / 2 + 8, -h * 0.55, w - 12, 3).fill({ color: 0x2c2420, alpha: 0.6 });
+  for (let k = 0; k < 4; k++) g.circle(x - w / 3 + k * (w / 5), -h * 0.75, 1.8).fill(0x9aa0a6);
+  g.poly([x + w * 0.15, -h, x + w / 2, -h * 0.9, x + w / 2, -h * 0.4, x + w * 0.3, -h * 0.5]).fill({
+    color: RUSTY,
+    alpha: 0.7,
+  });
+  // The cut edge, bright where the torch went.
+  g.moveTo(x + w / 2, -h * 0.9)
+    .lineTo(x + w / 2, 0)
+    .stroke({ width: 2.5, color: 0xd8dde2 });
+}
+
+function shipbreaker(level: number): Station {
+  const container = new Container();
+  const g = new Graphics();
+  shadow(g, level >= 3 ? 170 : 100);
+  const glows: Glow[] = [];
+  if (level >= 3) {
+    // The slipway, half a ship on it, and a sledge of cut plates.
+    g.poly([-110, 0, 70, 0, 70, -6, -110, -18]).fill(0x7a5236);
+    for (let x = -100; x < 70; x += 16) g.rect(x, -14 + (x + 110) * 0.06, 3, 12).fill(0x5a3d26);
+    hullSection(g, -30, 140, 92);
+    g.rect(-60, -110, 4, 20).fill(0x3a4448);
+    g.roundRect(70, -12, 46, 10, 3).fill(0x5a3d26);
+    for (let k = 0; k < 4; k++)
+      g.rect(72 + k, -18 - k * 4, 40, 4).fill(k % 2 ? 0x8fa3b5 : 0x7a8c9c);
+  } else {
+    hullSection(g, -6, 86, 54);
+  }
+  if (level >= 2) {
+    // A gantry over the hull with a winch and a hook.
+    const gx = level >= 3 ? -30 : -6;
+    const span = level >= 3 ? 90 : 64;
+    g.moveTo(gx - span, 0)
+      .lineTo(gx - span + 10, -120)
+      .stroke({ width: 4, color: 0x3a4448 });
+    g.moveTo(gx + span, 0)
+      .lineTo(gx + span - 10, -120)
+      .stroke({ width: 4, color: 0x3a4448 });
+    g.rect(gx - span + 4, -124, span * 2 - 8, 6).fill(0x3a4448);
+    g.roundRect(gx - 10, -134, 20, 12, 2).fill(0xe3a32f);
+    g.moveTo(gx, -118).lineTo(gx, -84).stroke({ width: 1.5, color: 0x2e2b27 });
+    g.moveTo(gx - 4, -84)
+      .quadraticCurveTo(gx, -76, gx + 4, -84)
+      .stroke({ width: 2, color: 0x2e2b27 });
+  }
+  // The torch: a gas bottle and a hissing flame at the cut.
+  const tx = level >= 3 ? 46 : 42;
+  g.roundRect(tx + 8, -26, 9, 26, 3).fill(0x4a7fb5);
+  const flame = new Graphics();
+  flame.position.set(tx - 2, level >= 3 ? -60 : -34);
+  const glow = new Glow(0x9fd4ff, 90, 1);
+  glow.sprite.position.copyFrom(flame.position);
+  glows.push(glow);
+  container.addChild(g, flame);
+  for (const item of glows) container.addChild(item.sprite);
+  return {
+    id: "shipbreaker",
+    container,
+    glows,
+    pile: { x: level >= 3 ? 92 : 60, y: -12 },
+    work: tx - 14,
+    animate: (t) => {
+      const f = 0.7 + Math.abs(Math.sin(t * 23)) * 0.3;
+      flame.clear();
+      flame
+        .moveTo(0, 0)
+        .lineTo(-9 * f, -3)
+        .lineTo(0, -6)
+        .closePath()
+        .fill(0xdff6ff);
+      flame
+        .moveTo(0, -1)
+        .lineTo(-5 * f, -3)
+        .lineTo(0, -5)
+        .closePath()
+        .fill(0xffffff);
+    },
+  };
+}
+
+// --- the Reactor (new) ---------------------------------------------------------------------
+
+function reactor(level: number): Station {
+  const container = new Container();
+  const g = new Graphics();
+  const glows: Glow[] = [];
+  shadow(g, level >= 3 ? 150 : 90);
+  // The fenced pit with a salvaged drum in it.
+  g.ellipse(0, -2, 40, 8).fill(0x2e2b27);
+  g.roundRect(-14, -34, 28, 34, 4).fill(0x7a8a7a);
+  g.rect(-14, -26, 28, 5).fill(0xe3a32f);
+  g.rect(-14, -12, 28, 3).fill({ color: 0x000000, alpha: 0.25 });
+  g.ellipse(0, -34, 14, 3.5).fill(0x5d6b5d);
+  for (let x = -48; x <= 48; x += 12) g.rect(x - 1, -26, 2, 26).fill(0x5d6064);
+  g.moveTo(-48, -22)
+    .lineTo(48, -22)
+    .moveTo(-48, -8)
+    .lineTo(48, -8)
+    .stroke({ width: 1, color: 0x8a8f94, alpha: 0.8 });
+  const lamps: Glow[] = [];
+  if (level >= 2) {
+    // Pipes out of the pit and a short cooling stack.
+    g.moveTo(14, -24).lineTo(40, -24).lineTo(40, -60).stroke({ width: 5, color: 0x8a8f94 });
+    g.roundRect(30, -100, 22, 44, 3).fill(0x9aa0a6);
+    g.rect(30, -88, 22, 4).fill(0xcd412b);
+    g.moveTo(-14, -18).lineTo(-36, -18).lineTo(-36, 0).stroke({ width: 4, color: 0x8a8f94 });
+  }
+  if (level >= 3) {
+    // The cooling tower: a waisted shell with a red band, and warning lights.
+    const cx = -80;
+    g.moveTo(cx - 34, 0)
+      .quadraticCurveTo(cx - 16, -60, cx - 24, -120)
+      .lineTo(cx + 24, -120)
+      .quadraticCurveTo(cx + 16, -60, cx + 34, 0)
+      .closePath()
+      .fill(0xb8b4aa);
+    g.moveTo(cx + 6, 0)
+      .quadraticCurveTo(cx + 12, -60, cx + 10, -120)
+      .lineTo(cx + 24, -120)
+      .quadraticCurveTo(cx + 16, -60, cx + 34, 0)
+      .closePath()
+      .fill({ color: 0x000000, alpha: 0.16 });
+    g.rect(cx - 25, -112, 50, 4).fill(0xcd412b);
+    g.ellipse(cx, -120, 24, 4).fill(0x8a867c);
+    for (const [x, y] of [
+      [cx - 22, -124],
+      [cx + 22, -124],
+      [41, -104],
+    ] as const) {
+      g.circle(x, y, 2.5).fill(0xf05252);
+      const lamp = new Glow(0xf05252, 46, 1);
+      lamp.sprite.position.set(x, y);
+      lamps.push(lamp);
+      glows.push(lamp);
+    }
+  }
+  // The core's glow through the drum's seams.
+  const core = new Glow(0x9be564, 80, 0.8);
+  core.sprite.position.set(0, -18);
+  glows.push(core);
+  container.addChild(g);
+  for (const item of glows) container.addChild(item.sprite);
+  const chimney = level >= 3 ? { x: -80, y: -124 } : level >= 2 ? { x: 41, y: -102 } : null;
+  return {
+    id: "reactor",
+    container,
+    glows,
+    ...(chimney ? { chimney } : {}),
+    pile: { x: 60, y: -6 },
+    work: 52,
+    animate: (t) => {
+      const on = Math.sin(t * 2.4) > 0;
+      for (const lamp of lamps) lamp.sprite.visible = on;
+    },
+  };
+}
+
+// --- the table -----------------------------------------------------------------------------
+
+/** Per line: where the product piles and where the hand works, when the drawing sets neither. */
+const SPOTS: Record<string, { pile: [number, number]; work: number }> = {
+  campfire: { pile: [34, -6], work: -30 },
+  garden: { pile: [0, -14], work: 40 },
+  loom: { pile: [36, -8], work: -34 },
+  workbench: { pile: [-58, -6], work: 0 },
+  kiln: { pile: [36, -8], work: -36 },
+  furnace: { pile: [44, -8], work: -42 },
+  tannery: { pile: [40, -8], work: -40 },
+  press: { pile: [-44, -8], work: 0 },
+  dock: { pile: [-20, -18], work: -60 },
+  generator: { pile: [-40, -8], work: 30 },
+  radio_mast: { pile: [30, -8], work: -24 },
 };
+
+const DRAW: Record<string, (stage: number) => Station> = {
+  beachcomber,
+  campfire,
+  garden,
+  loom,
+  workbench,
+  kiln,
+  furnace,
+  tannery,
+  press,
+  dock,
+  generator,
+  radio_mast: radioMast,
+  shipbreaker,
+  reactor,
+};
+
+/** Line `id` drawn at `stage` (1 at one owned, 2 at 25, 3 at 100), or null for an unknown id. */
+export function drawLine(id: string, stage: number): Station | null {
+  const draw = DRAW[id];
+  if (!draw) return null;
+  const drawn = draw(clamp(stage, 1, 3));
+  const spot = SPOTS[id];
+  drawn.pile ??= spot ? { x: spot.pile[0], y: spot.pile[1] } : { x: 30, y: -8 };
+  drawn.work ??= spot?.work ?? -30;
+  return drawn;
+}

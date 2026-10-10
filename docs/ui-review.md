@@ -1068,3 +1068,71 @@ bottle with its note), all three on the flotsam wave.
   they differ at 16 px and never share a view (the Crew panel against the shop), but a rank pip
   drawing may suit R5's portrait frames better. `toolbelt/flare` stays airy by design: it sits on
   a 48 px Toolbelt button, not in a chip.
+
+## R1 S2: the island scene
+
+Shots: `phone_first_tap`, `phone_first_buy`, `phone_taps__zoom`, `phone_hold__zoom`,
+`phone_fell__zoom`, `phone_timber_era`, `phone_hand_hired`, `phone_stone_day` / `_dusk` /
+`_night` / `_rain` / `_fog`, `phone_lines_1` / `_25` / `_100`, `phone_wreck__zoom`,
+`phone_metal_vent__zoom`, `desktop_day`, `desktop_lines_100`, `desktop_night_metal`, `laptop`,
+`tablet`, `phone_landscape` (`preview/web/index.html`). The HUD is still R0's (S3 builds it), so
+only the counter and the tap hint sit over the scene.
+
+### Iteration 1: the first full run
+- **Weather.** `phone_first_tap` asked for a clear morning and showed rain: the overlay eased in
+  from the block before the jump. A jump of the game clock now shows its weather at once.
+- **Onboarding.** Run 1 at 0:00 showed three staked plots with prices beside the pine, against
+  rule 6.3.6 (the beach, one glowing pine, "Tap the tree."). Twig's plots now appear one by one,
+  as the run first makes each price (D160).
+- **Price signs.** A pale board with the floaters' ink-stroked font read as blobs ("6", "96"):
+  now a dark board with pale figures, the same font and size as the count badges.
+- **Layout.** At 100 owned the lines piled onto each other, the Armored house filled the right
+  third, the loom and the reactor were cut off at the right edge of a 390 px phone, and the
+  badges overlapped into a wall of "100". The ore seam's veins read as pickaxes stuck in the
+  rock; the Wreck's sand drift floated on the grass of the rise.
+- **Juice.** No product piles or line floaters in any shot: shots pause the game clock, so no
+  cycle ever completed.
+
+### Iteration 2: the layout table, badges, the rocks
+- One layout table in three rows (D159); the house at 0.4 scale; the right-hand lines pulled
+  inside x 1270. Badges are 11 px on a 15 px pill and step up when they would cover one already
+  placed; a manned line under a second shows a steady full bar instead of a flicker.
+- The ore and the sulfur show as broad patches with nuggets or crystals on them; the Wreck is
+  drawn at 0.8 with earth and grass heaped against it, rust in drips and peels as sprung plates
+  (its first rust patches read as little flags).
+- The shot fast-forward now moves the demo's game clock: piles fill, line floaters fly with the
+  product's icon on a dark badge (`phone_fell__zoom`: driftwood "+20" on its way to the counter).
+- **Still wrong:** the era and hire shots showed a counter of 0 and no era swap. A ping answered
+  during the patch overwrote it (the patch did not take the backend's version, D163).
+
+### Iteration 3: night, the furnace, celebrations
+- `phone_stone_night`: the target's halo floodlit the whole ore seam. It is now a faint rim that
+  rises with darkness and fog (0.06 + 0.2 at night), still enough to find the target.
+- The furnace stood behind the ore seam (only its fire showed): moved up the beach behind the
+  kiln. Pile icons came down from 42 to 34 units; stacks overlap by half.
+- `phone_lines_25` fired 14 milestone floaters at once, an unreadable heap: at most two per
+  frame now, and a demo patch is not celebrated at all (D161).
+- *Fine:* the fell (`phone_fell__zoom`) shows the old pine tipping toward the sea behind the new
+  one springing up, "Timber! +17" in gold over the running "+2"; the era swap shows the pine
+  going down behind the fresh outcrop; Mara walks from the cabin door with "Mara's on it" over
+  it. Rain and fog grey the sky and leave the badges and signs legible; dusk and night keep the
+  fire, the windows and the furnace warm on the lights layer.
+
+### Iteration 4: hold to work
+- `phone_hold__zoom`: a press held still shows a white ring round the finger that closes over
+  0.35 s, then pulses with each counted tap, inside the Hustle arc.
+
+### Checklist
+1. Hierarchy: the target (and its Hustle arc) is where the eye lands; the counter second.
+2. Legibility: badges 11 px bold on a dark pill; floaters 22-28 px with the ink stroke.
+3. Spacing: badges never touch; the tap hint sits 8 px under the tap box.
+4. Overflow: "1.00Qa", "25.8B" and "6.29M" fit their pills and signs.
+5. Consistency: a line's product icon is the same on its pile and its floater.
+6. Contrast: day, dusk, night, rain and fog reviewed (the `phone_stone_*` set).
+7. Rules: no crown in the scene (S3's drawer carries it); no dead end; nothing unshipped is
+   drawn (no Kettle, no flotsam, no Armored before its era).
+8. Juice: a tap floats within the frame; 12 floaters at most (`pnpm web:perf`).
+9. Touch: the audit list is empty on every phone shot; the target's box is 140-180 × 160-174.
+10. Still open: on a phone, stage-1 lines are 15-25 px (shapes, not detail), and the sky above
+    the island is large until S3's drawer takes the lower half; the counter keeps R0's lettered
+    tile until S3 wires the icons; sound and vibration wait for the owner's phone.

@@ -95,6 +95,16 @@
   border-radius: 999px;
 }
 
+.counter.bump {
+  animation: counter-bump 200ms ease-out;
+}
+
+@keyframes counter-bump {
+  40% {
+    transform: scale(1.04);
+  }
+}
+
 .counter .tile {
   width: 34px;
   height: 34px;
@@ -124,11 +134,12 @@
   white-space: nowrap;
 }
 
-/* The one thing to do on a fresh island (rule 6.3.6): it pulses until the first tap. */
+/* The one thing to do on a fresh island (rule 6.3.6): it pulses until the first tap. It sits
+   just under the target's tap box, which the scene publishes as --target-bottom. */
 .tap-hint {
   position: absolute;
   left: 50%;
-  bottom: calc(22% + var(--safe-bottom));
+  top: calc(var(--target-bottom, 55%) + 8px);
   transform: translateX(-50%);
   padding: 10px 20px;
   border-radius: 999px;
@@ -320,4 +331,30 @@
     right: 12px;
     width: auto;
   }
+}
+
+/* --- the target's tap area: a transparent button the scene keeps over the target (D48) --- */
+
+.target-hit {
+  position: absolute;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 24px;
+  background: transparent;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.target-hit:focus {
+  outline: none;
+}
+
+.target-hit:focus-visible {
+  outline: 2px dashed rgba(236, 232, 223, 0.7);
+  outline-offset: 2px;
 }

@@ -1723,3 +1723,78 @@ inside `pnpm test`'s 10 s (errata E4) the domain memoises per state what does no
 commands (each line's buff-free unit rate and cycle, the full and manned rates, price folds, a
 tap's folds), and the buyer scores again only when prices or buffs change or the supplies reach
 the next price (among purchases not yet affordable the ranking does not depend on the supplies).
+
+### D157. Names pass 1, the first two: Go Bag and Tinned Fish
+The owner approved two names on 2026-10-10. Works 1.1 (`packed_crate`) is the **Go Bag**, not
+"Starter Kit", a Cookie Clicker upgrade name (errata E27); it ships with R2's Blast Map, so the
+rename lives in the docs until then. The Dock's product (`food`) is **Tinned Fish**, not "Fish
+Crates", so the two fish products read apart (Smoked Fish on the skewer, tins on the jetty); its
+placeholder tile letters are `TF`. Ids and icons stay. The rest of names pass 1 is still open.
+
+### D158. The target is tapped through a button over it, sized on screen
+The era's target stands on a rise at world x 870 (`scene/target.ts`, replacing `nodes.ts`). Its
+tap area is a transparent DOM button the scene keeps over it each frame: the drawn bounds on
+screen padded by 12 px, never under 140 × 160 CSS px (D48, N27). Measured: 140-180 × 160-174 on a
+390 px phone (the pine's box centred at 41% of the height), 209-421 × 235-405 on a 1600 × 900
+desktop. Being a button, it carries the label ("Tap the Lone Pine"), takes Space and Enter
+(holding Space is hold to work, `08-screens.md` 6.5) and is what the 44 px audit sees. A press
+held still for 0.35 s counts 4 taps a second with a ring round the finger (02 7.5); moving more
+than 12 px ends the hold. The tap hint sits under the box (`--target-bottom`). The scene no
+longer takes taps on the bare land.
+
+### D159. The island's layout: one table, three rows
+Phones keep 880 world units across centred on x 870 with the ground line at 52% of the height
+(`08-screens.md` 1.1's proposal). The waterline sits at about x 600, so a phone shows a sea strip
+of about 75 px. The 14 lines stand in `LAYOUT` (`scene/lines.ts`): the dock, the beached Ship
+Breaker and the Beachcomber on the shore; the Campfire, the Kiln and the Furnace left of the
+rise; the Tannery, the Garden, the Workbench and the Loom round the house; the Press, the Radio
+Mast, the Generator and the Reactor up the hill, each row smaller (0.75 to 0.42). The house is
+drawn at 0.4 of the W-phase size. Count badges in screen space step up when they would cover one
+already placed. Layout is presentation, so the table lives in the scene, not in `data/`.
+
+### D160. Plots, products and line floaters
+- A line not yet owned shows a staked plot with a price sign once its era is open. Twig's three
+  appear one by one, as the run first makes each price, so run 1 opens on the beach and the pine
+  alone (rule 6.3.6); a later era's three appear together when it is bought (02 6.2).
+- Every completed cycle pops the line's product icon (`icons/product`, tinted its colour) onto a
+  pile, at most twice a second; 3 to a stack, a second stack from 10 owned; a full pile is carted
+  off in a puff of dust; 40 sprites at most across the island.
+- Line floaters follow `08-screens.md` 4.2 rather than 02 1.2: the four lines with the biggest
+  payout per cycle send one at most every 2 s, cycles merged, carrying the product icon on a dark
+  badge, flying 700 ms into the counter, which bumps (at most four times a second). 02's "cycles
+  of 2 s or more only" would leave the first minutes, where every line is fast, without any.
+- The cycle bar under the badge: a manned line loops; a manned line under a second shows full
+  and steady instead of flickering; an unmanned one fills only while a cycle is in flight.
+
+### D161. Fells, milestones and other celebrations
+The store predicts a taps batch's fells (the change in `target.felled`) and takes the fell's
+bonus out of the tap's running number (estimated as fells × fellBonus × a tap at the batch's
+Hustle), so "Timber! +17" and "+2" never count the same supplies twice. A milestone crossed by a
+purchase floats "Beachcomber ×2" (or "×2 speed") over its line, at most two in one frame; the
+roster floats "All lines ×2"; an era floats "Stone era · ×2" while the old target is felled one
+last time and the new one pops up. A demo patch rewrites the run and is not celebrated (the
+store counts patches), so shots and the demo drawer show no false milestones.
+
+### D162. Sound and haptics until Settings exists
+R1's procedural voices ship (`apps/web/src/sound`): tap (per target, rising with Hustle, at most
+15 a second, louder rather than stacked), buy (a third note for bulk), milestone, fell (per
+target), the UI ticks and refuse. One AudioContext from the first touch, a compressor, 8 voices
+at most, suspended while hidden; `navigator.audioSession` set to ambient where it exists. An
+owner file `public/sound/<cue>.ogg` replaces its cue once it decodes. Sound (on, 70%) and haptics
+(on) are kept in localStorage (`wipeday.sound`, `wipeday.volume`, `wipeday.haptics`) until S3's
+Settings shows them; reduced motion follows the device until then. Vibration: fell 20 ms,
+milestone 15-40-15, era 30-50-30, never on taps.
+
+### D163. Shots play time, audit, and the frame check runs on the GPU
+- A demo patch now takes the backend's version (`LocalBackend.currentVersion`): before, an
+  answer already in flight (a ping) carried the same version and overwrote the patch.
+- `__wipeDay.fastForward(s)` plays the scene in 60 fps steps at once and moves the demo's game
+  clock along, so a shot can show a hand mid-walk, a fell mid-fall or piles that have filled;
+  shots pick their weather by moving whole days at the same hour (`weather: "rain"`).
+- Each shot is audited: buttons and scene tap areas under 44 px on a phone, a target box under
+  120 px (N27), more than one crowned element; any problem is listed on the contact sheet and
+  fails the run.
+- `pnpm web:perf` taps 15 a second for 30 s on a busy Stone run in Chromium on the machine's GPU
+  and reads the frame counter: 60 fps (5th percentile 60) with 12 floaters and 126 particles at
+  most on the dev PC, and 60 fps with the CPU slowed 4× (`--throttle 4`). The owner's phone stays
+  the acceptance (`08-screens.md` 4.6).

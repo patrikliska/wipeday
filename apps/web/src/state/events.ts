@@ -6,8 +6,13 @@ import type { GameEvent as DomainEvent } from "@wipe-day/domain/events";
 
 export type GameEvent =
   | DomainEvent
-  /** A tap landed at `x, y` (screen CSS px) and is predicted to bring in `gain`. */
-  | { type: "tap_at"; x: number; y: number; gain: number };
+  /**
+   * A tap landed at `x, y` (screen CSS px) and is predicted to bring in `gain` (a fell's bonus
+   * comes apart, as a `felled` event right after).
+   */
+  | { type: "tap_at"; x: number; y: number; gain: number }
+  /** A command was refused (the toast says why): the refuse sound. */
+  | { type: "refused" };
 
 type Listener = (event: GameEvent) => void;
 

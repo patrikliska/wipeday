@@ -92,6 +92,11 @@ export class LocalBackend implements Backend {
 
   async logout(): Promise<void> {}
 
+  /** The state's version now: a demo patch hands it to the store, so older answers lose. */
+  get currentVersion(): number {
+    return this.version;
+  }
+
   /** Demo drawer and shots: rewrites the run, as if the player had played a while. */
   patch(change: Partial<BaseState["run"]>): BaseState {
     const now = this.clock.now();
