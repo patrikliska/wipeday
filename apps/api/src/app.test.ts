@@ -45,11 +45,19 @@ function setup(file = ":memory:", clock: ManualClock = manualClock(T0)) {
   /** What the push service was asked to deliver; a 410 for endpoints marked gone. */
   const sent: { endpoint: string; payload: { kind: string; title: string; body: string } }[] = [];
   const gone = new Set<string>();
-  const notifier = new Notifier(db, locale, log, "mailto:test@localhost.invalid", async (s, p) => {
-    if (gone.has(s.endpoint)) throw Object.assign(new Error("gone"), { statusCode: 410 });
-    sent.push({ endpoint: s.endpoint, payload: JSON.parse(p) });
-    return { statusCode: 201 };
-  });
+  const notifier = new Notifier(
+    db,
+    locale,
+    log,
+    "mailto:test@localhost.invalid",
+    async (s, p) => {
+      if (gone.has(s.endpoint)) throw Object.assign(new Error("gone"), { statusCode: 410 });
+      sent.push({ endpoint: s.endpoint, payload: JSON.parse(p) });
+      return { statusCode: 201 };
+    },
+    undefined,
+    { clock },
+  );
   const game = new Game({
     db,
     content,
@@ -169,7 +177,15 @@ const playing =
   (supplies: number) =>
   (base: BaseState): BaseState => ({
     ...base,
-    run: { ...base.run, supplies, lines: { beachcomber: 3, campfire: 1 }, hands: ["beachcomber"] },
+    run: {
+      ...base.run,
+      supplies,
+      lines: { beachcomber: 3, campfire: 1 },
+      hands: ["beachcomber"],
+      // Run 1 started three minutes ago: its guaranteed crate floats now.
+      startedAt: T0 - 180,
+      flotsam: { k: 0, at: T0, caught: 0, last: -1 },
+    },
   });
 
 /** The rows of a player's command records, parsed. */
@@ -198,6 +214,10 @@ describe("state and commands", () => {
     { type: "ping" },
     { type: "buy_line", line: "beachcomber", count: 1 },
     { type: "hire_hand", line: "campfire" },
+    { type: "buy_upgrade", upgrade: "stone_tools" },
+    { type: "buy_era", era: "wood" },
+    { type: "claim_flotsam", run: 1, k: 0 },
+    { type: "collect" },
   ] as const;
 
   for (const command of COMMANDS) {
@@ -218,9 +238,32 @@ describe("state and commands", () => {
       expect(replay.state.run.lines).toEqual(first.state.run.lines);
       expect(replay.state.run.hands).toEqual(first.state.run.hands);
       expect(replay.state.run.taps).toBe(first.state.run.taps);
+      expect(replay.state.run.upgrades).toEqual(first.state.run.upgrades);
+      expect(replay.state.run.era).toBe(first.state.run.era);
+      expect(replay.state.run.flotsam).toEqual(first.state.run.flotsam);
       expect(replay.state.run.supplies).toBeCloseTo(suppliesAt(content, first.state, T0 + 10), 6);
     });
   }
+
+  it("greets a player back after an hour with what the hands made, and Collect clears it", async () => {
+    const { login, state, send, patch, clock } = setup();
+    const cookie = await login(1);
+    await state(cookie);
+    patch(1, playing(0));
+    clock.advance(59 * 60);
+    expect((await state(cookie)).welcomeBack).toBeNull();
+    clock.advance(16 * 3600);
+    const back = await state(cookie);
+    // 3 Beachcombers manned, 12 h of Night Shift: nothing more after the window (N18).
+    expect(back.welcomeBack).toMatchObject({
+      awaySeconds: 59 * 60 + 16 * 3600,
+      hands: 1,
+      nightShift: { worked: 12 * 3600, window: 12 * 3600, full: true },
+    });
+    expect(back.welcomeBack?.gain).toBeCloseTo(3 * 1.5 * 12 * 3600, 3);
+    await send(cookie, "key-collect", { type: "collect" });
+    expect((await state(cookie)).welcomeBack).toBeNull();
+  });
 
   it("judges a stale prediction by the current state: a double click cannot buy twice", async () => {
     const { login, state, send, patch } = setup();
@@ -513,9 +556,9 @@ describe("notifications", () => {
     const cookie = await login(1);
     await state(cookie);
     const prefs = await json(cookie, "/api/notify");
-    expect(prefs.body.prefs).toEqual({ night_shift_over: true });
+    expect(prefs.body.prefs).toEqual({ night_shift_over: true, quiet: true });
     const changed = await json(cookie, "/api/notify", "PUT", { night_shift_over: false });
-    expect(changed.body.prefs).toEqual({ night_shift_over: false });
+    expect(changed.body.prefs).toEqual({ night_shift_over: false, quiet: true });
     expect((await json(cookie, "/api/notify", "PUT", { party_back: true })).status).toBe(400);
   });
 
@@ -531,7 +574,8 @@ describe("notifications", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(sent).toHaveLength(0);
 
-    await json(cookie, "/api/notify", "PUT", { night_shift_over: true });
+    // This window ends past midnight: quiet hours off, so it is sent (and finds the device gone).
+    await json(cookie, "/api/notify", "PUT", { night_shift_over: true, quiet: false });
     gone.add(DEVICE.endpoint);
     patch(1, (base) => ({
       ...playing(0)(base),
@@ -541,5 +585,24 @@ describe("notifications", () => {
     game.tick();
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(notifier.devices(1)).toBe(0);
+  });
+
+  it("holds a notification through quiet hours and sends it at the player's 08:00 (E19)", async () => {
+    const { login, state, patch, game, clock, json, sent, notifier } = setup();
+    const cookie = await login(1);
+    await state(cookie);
+    // UTC−3: the window ends at 10:13 UTC, 07:13 for the player.
+    await json(cookie, "/api/push/subscribe", "POST", { ...DEVICE, tzOffsetMinutes: -180 });
+    patch(1, playing(0));
+    clock.advance(12 * 3600 + 1);
+    expect(game.tick()).toEqual([1]);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(sent).toHaveLength(0);
+    clock.advance(40 * 60);
+    expect(await notifier.flushHeld()).toBe(0);
+    clock.advance(10 * 60);
+    expect(await notifier.flushHeld()).toBe(1);
+    expect(sent[0]?.payload).toMatchObject({ kind: "night_shift_over" });
+    expect(await notifier.flushHeld()).toBe(0);
   });
 });

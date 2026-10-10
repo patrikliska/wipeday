@@ -48,7 +48,9 @@ export type Command =
   /** The next era. */
   | { type: "buy_era"; era: string }
   /** Catch flotsam arrival `k` of run `run` while it floats. */
-  | { type: "claim_flotsam"; run: number; k: number };
+  | { type: "claim_flotsam"; run: number; k: number }
+  /** The welcome-back card's one button: back to work (restarts the Night Shift). */
+  | { type: "collect" };
 
 export type CommandType = Command["type"];
 
@@ -136,6 +138,7 @@ function step(content: Content, state: BaseState, command: Command, now: number)
     case "taps":
       return { ok: true, ...applyTaps(content, state, command, now) };
     case "ping":
+    case "collect":
       return { ok: true, state, events: [] };
     case "buy_line":
       return buyLine(content, state, command.line, command.count);

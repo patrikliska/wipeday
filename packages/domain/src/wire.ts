@@ -6,17 +6,14 @@ import type { Refusal } from "./commands";
 import type { GameEvent } from "./events";
 import type { NotifyKind } from "./feed";
 import type { BaseState } from "./state";
+import type { WelcomeBack } from "./welcome";
+
+export type { WelcomeBack };
 
 export interface PlayerView {
   id: number;
   name: string;
   avatarUrl: string | null;
-}
-
-/** Back after a long absence: what happened, oldest first (R1 adds the gain and Collect). */
-export interface WelcomeBack {
-  awaySeconds: number;
-  events: GameEvent[];
 }
 
 /** `GET /api/state`. */

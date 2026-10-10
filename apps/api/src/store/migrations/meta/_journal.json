@@ -43,6 +43,13 @@
       "when": 1791635679940,
       "tag": "0005_redesign",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1791652543943,
+      "tag": "0006_r1_quiet_hours",
+      "breakpoints": true
     }
   ]
 }

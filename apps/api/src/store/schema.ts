@@ -34,6 +34,10 @@ export const players = sqliteTable("players", {
    * on), 0 once they turn them off.
    */
   discordDm: integer("discord_dm"),
+  /** R1: the browser's minutes east of UTC, sent with a push subscription (quiet hours). */
+  tzOffsetMinutes: integer("tz_offset_minutes"),
+  /** R1: notifications held through quiet hours (JSON `{until, notes}`), sent at 08:00. */
+  heldJson: text("held_json"),
 });
 
 /** Login sessions. Only the SHA-256 of the cookie token is stored. */

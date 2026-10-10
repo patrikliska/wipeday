@@ -23,6 +23,7 @@ export const commandSchema = z.discriminatedUnion("type", [
     to: second,
   }),
   z.strictObject({ type: z.literal("ping") }),
+  z.strictObject({ type: z.literal("collect") }),
   z.strictObject({
     type: z.literal("buy_line"),
     line: id,

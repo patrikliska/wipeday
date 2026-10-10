@@ -215,7 +215,7 @@ export function createApp(deps: AppDeps): Hono<Env> {
       });
     });
 
-    const prefsSchema = z.partialRecord(z.enum(NOTIFY_KINDS), z.boolean());
+    const prefsSchema = z.partialRecord(z.enum([...NOTIFY_KINDS, "quiet"]), z.boolean());
     authed.put("/notify", async (c) => {
       const parsed = prefsSchema.safeParse(await c.req.json().catch(() => null));
       if (!parsed.success) return c.json({ error: "bad_request" }, 400);
@@ -225,11 +225,14 @@ export function createApp(deps: AppDeps): Hono<Env> {
     const subscriptionSchema = z.object({
       endpoint: z.url().max(2000),
       keys: z.object({ p256dh: z.string().min(1).max(500), auth: z.string().min(1).max(500) }),
+      /** Minutes east of UTC (−Date#getTimezoneOffset()): sets quiet hours. */
+      tzOffsetMinutes: z.int().min(-720).max(840).optional(),
     });
     authed.post("/push/subscribe", async (c) => {
       const parsed = subscriptionSchema.safeParse(await c.req.json().catch(() => null));
       if (!parsed.success) return c.json({ error: "bad_request" }, 400);
-      notifier.subscribe(c.get("playerId"), parsed.data, clock.now());
+      const { tzOffsetMinutes, ...subscription } = parsed.data;
+      notifier.subscribe(c.get("playerId"), subscription, clock.now(), tzOffsetMinutes);
       return c.json({ ok: true });
     });
 

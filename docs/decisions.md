@@ -1693,3 +1693,17 @@ owned line as if manned, with every multiplier but buffs (02 8.1): 06's idle-rat
 almost nothing in run 1, where most lines are unmanned. `flotsam_claimed` is logged. Weather
 (`weather.ts`) only times flotsam in R1; settle cuts at weather blocks once an effect with `when:
 rain` exists. A fell pays `fellBonusTaps` taps at the felling tap's Hustle, without a crit.
+
+### D155. Welcome back, Collect and quiet hours on the server
+`GET /api/state` answers `welcomeBack` once the last command is at least `welcomeAfterMinutes`
+(60) back: the seconds away, the gain since that command (`made − madeAtActive`), the Night Shift
+worked against its window and whether it ran out, the hands manned (none: nobody was on shift),
+and the events settle found. `collect` is a standard command that does nothing else, so it
+restarts the window like any command and the card goes away; the welcome-back screen and its
+copy are R1's S4. The "away" line stays at 330 s (the 5-minute ping plus 30 s grace, R0's code
+and `09-architecture.md` 4.2), not 02's rounded "6 minutes". Quiet hours (errata E19): a
+notification due between 22:00 and 08:00 the player's time is held, one per kind, on the player
+row and sent by the scheduler at 08:00, Discord DMs included (a DM buzzes the same phone). The
+player's offset comes from the browser with the push subscription (`tzOffsetMinutes`, migration
+0006); until one arrives the island's clock (UTC+1) stands in. `quiet` is a notify preference,
+on by default; its Settings row comes with R1's UI.

@@ -25,6 +25,7 @@ import { FEED_TYPES, type FeedItem, isFeedWorthy } from "@wipe-day/domain/feed";
 import { normalizeState } from "@wipe-day/domain/normalize";
 import { nextEventAt, settle } from "@wipe-day/domain/settle";
 import { type BaseState, newBase } from "@wipe-day/domain/state";
+import { welcomeBack } from "@wipe-day/domain/welcome";
 import type {
   CommandOutcome,
   CommandResponse,
@@ -263,7 +264,7 @@ export class Game {
     now: number,
     out: Outbox,
     notify = false,
-  ): { loaded: Loaded; state: BaseState; version: number } {
+  ): { loaded: Loaded; state: BaseState; version: number; events: GameEvent[] } {
     const loaded = this.load(playerId, now);
     const settled = settle(this.deps.content, loaded.state, now);
     let version = loaded.version;
@@ -281,7 +282,7 @@ export class Game {
         if (notify) out.notify.push({ playerId, events });
       }
     }
-    return { loaded, state: settled.state, version };
+    return { loaded, state: settled.state, version, events: settled.events };
   }
 
   /** `GET /state`: settle, save if needed. `seen` false (the Discord bot) leaves lastSeenAt. */
@@ -290,9 +291,10 @@ export class Game {
     const out = outbox();
     const response = this.db.transaction(() => {
       const { lastSeenAt: _last, ...player } = this.player(playerId);
-      const { state, version } = this.settleStored(playerId, now, out);
+      const { state, version, events } = this.settleStored(playerId, now, out);
       if (seen) this.seen(playerId, now);
-      return { serverNow: now, version, player, state, welcomeBack: null };
+      const welcome = welcomeBack(this.deps.content, state, now, events);
+      return { serverNow: now, version, player, state, welcomeBack: welcome };
     });
     this.flush(out);
     return response;

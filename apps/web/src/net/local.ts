@@ -7,6 +7,7 @@
 import { applyCommand, type Command, isSlim } from "@wipe-day/domain/commands";
 import { settle } from "@wipe-day/domain/settle";
 import { type BaseState, newBase } from "@wipe-day/domain/state";
+import { welcomeBack } from "@wipe-day/domain/welcome";
 import type {
   CommandOutcome,
   CommandResponse,
@@ -53,7 +54,7 @@ export class LocalBackend implements Backend {
       version: this.version,
       player,
       state: settled.state,
-      welcomeBack: null,
+      welcomeBack: welcomeBack(content, settled.state, now, settled.events),
     };
   }
 

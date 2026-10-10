@@ -27,14 +27,23 @@ const hub = new EventHub();
 const subject = config.publicUrl.startsWith("https://")
   ? config.publicUrl
   : "mailto:wipeday@localhost.invalid";
-const notifier = new Notifier(db, locale, log, subject, undefined, (discordId, notes) => {
-  // The Discord bot (W8) sends these as DMs; links open the game where it matters.
-  for (const { kind, title, body, url } of notes)
-    hub.broadcastBot({
-      event: "dm",
-      data: { discordId, kind, title, body, url: `${config.publicUrl}${url}` },
-    });
-});
+const notifier = new Notifier(
+  db,
+  locale,
+  log,
+  subject,
+  undefined,
+  (discordId, notes) => {
+    // The Discord bot (W8) sends these as DMs; links open the game where it matters.
+    for (const { kind, title, body, url } of notes)
+      hub.broadcastBot({
+        event: "dm",
+        data: { discordId, kind, title, body, url: `${config.publicUrl}${url}` },
+      });
+  },
+  // Quiet hours: the island's clock until a browser says otherwise.
+  { clock, defaultOffsetMinutes: content.islandClock.utcOffsetMinutes },
+);
 const game = new Game({
   db,
   content,
@@ -59,6 +68,10 @@ const tick = () => {
   try {
     const changed = game.tick();
     if (changed.length > 0) log.info("scheduler: settled bases", { players: changed.length });
+    notifier
+      .flushHeld()
+      .then((sent) => sent > 0 && log.info("quiet hours over: sent held notifications", { sent }))
+      .catch((error: Error) => log.error("held notifications failed", { error: error.message }));
   } catch (error) {
     log.error("scheduler failed", { error: (error as Error).message });
   }
