@@ -31,6 +31,11 @@ export const commandSchema = z.discriminatedUnion("type", [
   z.strictObject({ type: z.literal("hire_hand"), line: id }),
   z.strictObject({ type: z.literal("buy_upgrade"), upgrade: id }),
   z.strictObject({ type: z.literal("buy_era"), era: id }),
+  z.strictObject({
+    type: z.literal("claim_flotsam"),
+    run: z.int().min(1).max(1e9),
+    k: z.int().min(0).max(1e9),
+  }),
 ]) satisfies z.ZodType<Command>;
 
 /** Fails to compile while a domain command has no shape above (the error names it). */

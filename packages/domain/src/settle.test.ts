@@ -9,7 +9,7 @@
  *    that holds only while the player is away.
  * 2. Path independence: settling to t1 and then t2 equals settling to t2, within 1e-9, over
  *    10,000 states, with t1 placed around the window's end, buff ends and payouts; the same
- *    over 10,000 random command sequences (buys, hires, shelf rows, eras, taps, pings) with extra settles between.
+ *    over 10,000 random command sequences (buys, hires, shelf rows, eras, flotsam claims, taps, pings) with extra settles between.
  * 3. A tick oracle: an independent loop over whole seconds (manned production that second, each
  *    unmanned cycle at its end second) agrees with settle within 1e-6 over 1,000 states × 48 h.
  * 4. `suppliesAt` equals the settled supplies at random times.
@@ -101,6 +101,9 @@ function randomCase(random: Rng): Case {
       made: random.next() * 1e7,
       settledAt: T0,
       activeAt: T0 - random.int(0, 20 * HOUR),
+      // Most runs have started (the flotsam schedule runs); run 1 has guaranteed crates.
+      n: random.int(1, 2),
+      startedAt: random.next() < 0.8 ? T0 - random.int(0, 30 * HOUR) : null,
     },
     meta: { ...base.meta, glass: { ...base.meta.glass, ever: random.int(0, 5000) } },
   };
@@ -154,6 +157,7 @@ describe("settle's path independence (N24)", () => {
   });
 
   it("holds over 10,000 random command sequences with extra settles between", () => {
+    let caught = 0;
     for (let seed = 1; seed <= 10_000; seed++) {
       const random = rng(seed * 7919);
       const { content, state } = randomCase(random);
@@ -163,12 +167,18 @@ describe("settle's path independence (N24)", () => {
       let t = T0;
       for (let step = random.int(2, 6); step > 0; step--) {
         t += random.int(1, 4 * HOUR);
+        // Sometimes land inside the next flotsam's window, and claim it.
+        const cursor = settle(content, a, t).state.run.flotsam;
+        const floating = cursor.at !== null && random.next() < 0.3;
+        if (floating && cursor.at !== null && cursor.at + 16 > t)
+          t = Math.max(t, cursor.at) + random.int(0, 3);
         const line = ids[random.int(0, ids.length - 1)] ?? "beachcomber";
         const roll = random.next();
         const upgrade = content.upgrades[random.int(0, content.upgrades.length - 1)]?.id ?? "";
         const era = TIERS[random.int(0, TIERS.length - 1)] ?? "wood";
-        const command: Command =
-          roll < 0.25
+        const command: Command = floating
+          ? { type: "claim_flotsam", run: a.run.n, k: cursor.k }
+          : roll < 0.25
             ? { type: "buy_line", line, count: random.next() < 0.5 ? 1 : 10 }
             : roll < 0.4
               ? { type: "hire_hand", line }
@@ -182,12 +192,16 @@ describe("settle's path independence (N24)", () => {
         // B settles somewhere in between first; A does not.
         const between = t - random.int(1, Math.max(1, t - b.run.settledAt));
         if (between > b.run.settledAt) b = settle(content, b, between).state;
-        a = applyCommand(content, a, command, t).state;
+        const result = applyCommand(content, a, command, t);
+        if (result.ok && command.type === "claim_flotsam") caught += 1;
+        a = result.state;
         b = applyCommand(content, b, command, t).state;
       }
       const end = t + random.int(0, 30 * HOUR);
       expectSame(settle(content, b, end).state, settle(content, a, end).state, `sequence ${seed}`);
     }
+    // The sequences really catch flotsam (and so restart buffs and move the cursor).
+    expect(caught).toBeGreaterThan(1000);
   });
 });
 

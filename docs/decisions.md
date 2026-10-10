@@ -1679,3 +1679,17 @@ old target's last fall is the scene's animation and pays nothing (02 6.2 leaves 
 `era_reached {era, at}` is logged, `at` in seconds after the run's first tap or purchase.
 `commandSchema.ts` now fails the typecheck when a domain command has no wire shape (`satisfies`
 alone accepted a shorter list).
+
+### D154. Flotsam starts at the first tap, and its schedule is a cursor
+The flotsam schedule starts with the run's clock (`startedAt`, the first taps or purchase), not at
+`createdAt` as `09-architecture.md` 6.4 says: run 1's guaranteed crate is timed "3:00" from the
+first tap (errata E1, `10-balance.md` 4.2), and time on the title or rebuild screen costs
+nothing. Rain shortens the gap drawn at the arrival before it (`weatherAt` of that arrival's
+second), so the schedule is a pure function of the state and settle stays path independent; settle
+moves the cursor past arrivals whose window closed, and a claim moves it to the next arrival after
+the caught one's own time, whenever it was caught. The cursor keeps `last` (the latest caught
+index), so a double claim reads "already caught", not "drifted off". A crate's "output" is every
+owned line as if manned, with every multiplier but buffs (02 8.1): 06's idle-rate reading would pay
+almost nothing in run 1, where most lines are unmanned. `flotsam_claimed` is logged. Weather
+(`weather.ts`) only times flotsam in R1; settle cuts at weather blocks once an effect with `when:
+rain` exists. A fell pays `fellBonusTaps` taps at the felling tap's Hustle, without a crit.

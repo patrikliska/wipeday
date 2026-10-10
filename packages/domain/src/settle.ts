@@ -13,6 +13,7 @@ import type { Content } from "@wipe-day/content/schema";
 import { finite } from "./amount";
 import { type Conditions, cycleOf, hasOnlineEffects, rates, unitRate } from "./effects";
 import type { GameEvent } from "./events";
+import { flotsamAt } from "./flotsam";
 import { lineOf } from "./lines";
 import type { BaseState } from "./state";
 
@@ -98,7 +99,10 @@ export interface Settled {
   changed: boolean;
 }
 
-/** Credits production up to `now`. Returns the same object when there is nothing to do. */
+/**
+ * Credits production up to `now` and moves the flotsam cursor past arrivals that drifted off.
+ * Returns the same object when there is nothing to do.
+ */
 export function settle(content: Content, state: BaseState, now: number): Settled {
   const run = state.run;
   if (now <= run.settledAt) return { state, events: [], changed: false };
@@ -109,6 +113,7 @@ export function settle(content: Content, state: BaseState, now: number): Settled
     events.push({ type: "night_shift_over", at: end });
   }
   const buffs = run.buffs.filter((buff) => buff.until > now);
+  const flotsam = flotsamAt(content, state, now);
   const next: BaseState = {
     ...state,
     run: {
@@ -117,9 +122,11 @@ export function settle(content: Content, state: BaseState, now: number): Settled
       made: run.made + gain,
       settledAt: now,
       buffs: buffs.length === run.buffs.length ? run.buffs : buffs,
+      flotsam,
     },
   };
-  return { state: next, events, changed: events.length > 0 || buffs.length !== run.buffs.length };
+  const changed = events.length > 0 || buffs.length !== run.buffs.length || flotsam !== run.flotsam;
+  return { state: next, events, changed };
 }
 
 /** When the scheduler should look at this base again: the window's end, if still ahead. */

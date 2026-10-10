@@ -21,6 +21,8 @@ export const SEED = {
   drone: 0xd403,
   /** The nuke's flight variant. */
   flight: 0xf119,
+  /** The island's weather per block (on the island's seed: the same for every friend). */
+  weather: 0x3e47,
   /** The Magnet's hauls (on the base's seed: they span runs). */
   magnet: 0x3a6e,
 } as const;

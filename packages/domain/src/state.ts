@@ -57,9 +57,10 @@ export interface RunState {
   target: { taps: number; felled: number };
   /**
    * The flotsam cursor (09-architecture.md 6.4): arrival `k` washes up at `at` (null until the
-   * run's first tap or purchase); `caught` counts this run's catches.
+   * run's first tap or purchase); `caught` counts this run's catches, `last` is the index of the
+   * latest (−1: none), so a second claim of it reads "already caught", not "drifted off".
    */
-  flotsam: { k: number; at: number | null; caught: number };
+  flotsam: { k: number; at: number | null; caught: number; last: number };
   /** Units owned per line. */
   lines: Record<string, number>;
   /** Manned lines, in hire order. */
@@ -151,7 +152,7 @@ export function newRun(content: Content, meta: Meta, baseSeed: number, now: numb
     roster: 0,
     upgrades: [],
     target: { taps: 0, felled: 0 },
-    flotsam: { k: 0, at: null, caught: 0 },
+    flotsam: { k: 0, at: null, caught: 0, last: -1 },
     lines: {},
     hands: [],
     readyAt: {},

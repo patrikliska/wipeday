@@ -9,10 +9,12 @@
  * 3. raises Hustle per credited tap (after its grace and drain);
  * 4. values each tap: (flat × global + p × fullRate) × T × Hustle × Afterglow × crit, crits
  *    seeded by the tap's index so the client predicts them;
- * 5. starts a cycle on each unmanned line that is idle (busy-until): the cycles that ended by
+ * 5. fells the era's target every `fellTaps` credited taps: each fell pays `fellBonusTaps`
+ *    taps' worth at the felling tap's Hustle, without a crit (02-the-run.md 7.5);
+ * 6. starts a cycle on each unmanned line that is idle (busy-until): the cycles that ended by
  *    `now` pay at once, the one still in flight pays when settle passes its `readyAt`.
  *
- * Felling arrives with the era targets in R1. Pure: state and `now` in, state and events out.
+ * Pure: state and `now` in, state and events out.
  */
 import type { Content } from "@wipe-day/content/schema";
 import { finite } from "./amount";
@@ -62,7 +64,14 @@ export function tapParts(content: Content, state: BaseState, t: number) {
     }
   }
   const { hustle } = content.tap;
+  const target = content.targets.find((row) => row.era === state.run.era);
   return {
+    /** The era's target, felled every `fellEvery` credited taps. */
+    target: target?.id ?? null,
+    fellEvery: target
+      ? Math.max(1, Math.round(foldStat("fell_taps", effects, target.fellTaps)))
+      : Number.POSITIVE_INFINITY,
+    fellBonus: foldStat("fell_bonus", effects, content.tap.fellBonusTaps),
     /** A tap's value before Hustle and crits. */
     base: (flat * r.tapGlobal + share * fullRate) * tapMult * afterglowAt(content, state, t),
     hustleCap: hustle.cap,
@@ -108,9 +117,15 @@ export function applyTaps(
   const h0 = Math.max(0, run.hustle.value - parts.drain * idle);
   let value = 0;
   let crits = 0;
+  let fells = 0;
+  let fellValue = 0;
   for (let k = 1; k <= credited; k++) {
     const h = Math.min(parts.hustleCap, h0 + parts.gain * k);
     let tap = parts.base * hustleFactor(h, parts.hustleCap, parts.hustlePeak);
+    if ((run.target.taps + k) % parts.fellEvery === 0) {
+      fells += 1;
+      fellValue += parts.fellBonus * tap;
+    }
     if (parts.critChance > 0) {
       const roll = rng(seedOf(run.seed, SEED.crit, run.taps + k)).next();
       if (roll < parts.critChance) {
@@ -147,7 +162,10 @@ export function applyTaps(
     cycles += k;
   }
 
-  const gain = finite(value + payouts, "taps gain");
+  const gain = finite(value + fellValue + payouts, "taps gain");
+  const fellTaps = Number.isFinite(parts.fellEvery)
+    ? (run.target.taps + credited) % parts.fellEvery
+    : run.target.taps + credited;
   const next: BaseState = {
     ...state,
     run: {
@@ -159,8 +177,19 @@ export function applyTaps(
       bucket,
       readyAt,
       taps: run.taps + credited,
+      target: { taps: fellTaps, felled: run.target.felled + fells },
     },
-    meta: { ...state.meta, stats: { ...state.meta.stats, taps: state.meta.stats.taps + credited } },
+    meta: {
+      ...state.meta,
+      stats: {
+        ...state.meta.stats,
+        taps: state.meta.stats.taps + credited,
+        felled: state.meta.stats.felled + fells,
+      },
+    },
   };
-  return { state: next, events: [{ type: "tapped", credited, value: gain, crits, cycles }] };
+  const events: GameEvent[] = [{ type: "tapped", credited, value: gain, crits, cycles }];
+  if (fells > 0 && parts.target)
+    events.push({ type: "felled", target: parts.target, count: fells, value: fellValue });
+  return { state: next, events };
 }

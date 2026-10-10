@@ -16,6 +16,7 @@ import type { Content } from "@wipe-day/content/schema";
 import { TIERS } from "@wipe-day/content/tiers";
 import type { Amount } from "./amount";
 import type { GameEvent } from "./events";
+import { arrivalKind, claimUntil, crateValue, flotsamAt, gapBefore } from "./flotsam";
 import { costFactor, costOf, eraOpen, handPriceOf, lineOf, maxAffordable } from "./lines";
 import { cyclePayout, settle } from "./settle";
 import {
@@ -45,7 +46,9 @@ export type Command =
   /** A shelf row: a Grip rung, a Line Mk or an island upgrade. */
   | { type: "buy_upgrade"; upgrade: string }
   /** The next era. */
-  | { type: "buy_era"; era: string };
+  | { type: "buy_era"; era: string }
+  /** Catch flotsam arrival `k` of run `run` while it floats. */
+  | { type: "claim_flotsam"; run: number; k: number };
 
 export type CommandType = Command["type"];
 
@@ -70,7 +73,13 @@ export type Refusal =
   /** That shelf row or era is already bought. */
   | { reason: "owned" }
   /** Eras go in order: `era` comes first. */
-  | { reason: "not_next"; era: string };
+  | { reason: "not_next"; era: string }
+  /** That flotsam drifted off (or has not washed up yet); `at` is when the next one does. */
+  | { reason: "gone"; at: number | null }
+  /** That flotsam is already caught. */
+  | { reason: "claimed" }
+  /** That flotsam belonged to an earlier run. */
+  | { reason: "stale_run" };
 
 export type { Gate };
 
@@ -98,6 +107,8 @@ export function applyCommand(
   let base = settled.state;
   if (base.run.startedAt === null && (command.type === "taps" || isPurchase(command))) {
     base = { ...base, run: { ...base.run, startedAt: now } };
+    // The flotsam schedule starts with the run's clock (D154).
+    base = { ...base, run: { ...base.run, flotsam: flotsamAt(content, base, now) } };
   }
   const result = step(content, base, command, now);
   if (!result.ok) {
@@ -134,7 +145,50 @@ function step(content: Content, state: BaseState, command: Command, now: number)
       return buyUpgrade(content, state, command.upgrade);
     case "buy_era":
       return buyEra(content, state, command.era, now);
+    case "claim_flotsam":
+      return claimFlotsam(content, state, command.run, command.k, now);
   }
+}
+
+function claimFlotsam(content: Content, state: BaseState, n: number, k: number, now: number): Step {
+  const run = state.run;
+  if (n !== run.n) return { ok: false, refusal: { reason: "stale_run" } };
+  const cursor = run.flotsam;
+  if (k === cursor.last) return { ok: false, refusal: { reason: "claimed" } };
+  // Settle has already moved the cursor past arrivals whose window closed.
+  const at = cursor.at;
+  if (k !== cursor.k || at === null || now < at || now > claimUntil(content, state, at))
+    return { ok: false, refusal: { reason: "gone", at } };
+  const kind = arrivalKind(content, state, k);
+  const effect = kind.effect;
+  const lump = crateValue(content, state, kind, now);
+  const buffs =
+    "buff" in effect
+      ? [
+          // The same kind again restarts its timer; different kinds multiply (D148).
+          ...run.buffs.filter((buff) => buff.kind !== effect.buff),
+          { kind: effect.buff, until: now + effect.seconds },
+        ]
+      : run.buffs;
+  const caught: BaseState = {
+    ...state,
+    run: {
+      ...run,
+      supplies: run.supplies + lump,
+      made: run.made + lump,
+      buffs,
+      flotsam: { k, at, caught: cursor.caught + 1, last: k },
+    },
+    meta: { ...state.meta, stats: { ...state.meta.stats, flotsam: state.meta.stats.flotsam + 1 } },
+  };
+  // The next arrival follows this one's own time, whenever it was caught.
+  const next = k + 1;
+  const flotsam = { ...caught.run.flotsam, k: next, at: at + gapBefore(content, caught, next, at) };
+  return {
+    ok: true,
+    state: { ...caught, run: { ...caught.run, flotsam } },
+    events: [{ type: "flotsam_claimed", kind: kind.id, k, value: lump }],
+  };
 }
 
 function buyLine(content: Content, state: BaseState, id: string, count: BuyCount): Step {

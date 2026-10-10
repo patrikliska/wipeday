@@ -43,5 +43,11 @@ export function refusalMessage(refusal: Refusal): string {
       return t("refusal.owned");
     case "not_next":
       return t("refusal.not_next", { era: tierName(refusal.era) });
+    case "gone":
+      return t("refusal.gone");
+    case "claimed":
+      return t("refusal.claimed");
+    case "stale_run":
+      return t("refusal.stale_run");
   }
 }
