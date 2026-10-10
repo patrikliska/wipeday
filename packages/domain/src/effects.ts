@@ -9,20 +9,79 @@
  * player is away). Effects with a `when` apply only while their condition holds, so they are
  * evaluated per settle segment, never cached.
  *
- * Sources in R0: Glow (from glass ever) and timed buffs (`content.buffs`, empty until flotsam
- * ships). Eras, milestones, the shelf, nodes, ranks and the Logbook join in their phases
- * through `activeEffects`.
+ * Sources from R1: the eras bought, each line's milestones (from its owned count), the roster
+ * tiers reached, and the shelf (Grip rungs, Line Mks, island upgrades); Glow from glass ever;
+ * and timed buffs from flotsam (`content.buffs`). Nodes, ranks and the Logbook join in their
+ * phases through `activeEffects`.
  */
 import { type Effect, STATS, type StatId } from "@wipe-day/content/effects";
 import type { Content, LineDef } from "@wipe-day/content/schema";
+import { TIERS } from "@wipe-day/content/tiers";
 import { glow } from "./prestige";
 import type { BaseState, Buff } from "./state";
 
 export type { Effect, StatId };
 
+/**
+ * The effects that multiply the flat part of a tap as well as the lines (errata E23): eras,
+ * island upgrades and roster tiers. Glow and Morale join them in `rates`; nothing else does, so a
+ * Rally or a Line Mk never inflates the flat tap.
+ */
+export function globalEffects(content: Content, state: BaseState): Effect[] {
+  const out: Effect[] = [];
+  const era = TIERS.indexOf(state.run.era);
+  for (const def of content.eras) if (TIERS.indexOf(def.id) <= era) out.push(...def.effects);
+  for (const step of content.milestones.roster.slice(0, state.run.roster)) {
+    out.push({ stat: "output", op: "more", value: step.payout });
+  }
+  for (const upgrade of content.upgrades) {
+    if (upgrade.kind === "island" && state.run.upgrades.includes(upgrade.id))
+      out.push(...upgrade.effects);
+  }
+  return out;
+}
+
+/** A line's milestone multipliers at `owned` units (02-the-run.md 4.1): payout and speed. */
+export function milestoneFactors(
+  content: Content,
+  owned: number,
+): { payout: number; speed: number } {
+  let payout = 1;
+  let speed = 1;
+  const { line, lineEvery } = content.milestones;
+  for (const step of line) {
+    if (step.at > owned) break;
+    payout *= step.payout ?? 1;
+    speed *= step.speed ?? 1;
+  }
+  // Past the list, closed form: every step reached pays lineEvery's payout, a special its own.
+  if (owned >= lineEvery.from) {
+    let steps = Math.floor((owned - lineEvery.from) / lineEvery.step) + 1;
+    for (const special of lineEvery.special) {
+      if (special.at > owned) continue;
+      payout *= special.payout;
+      steps -= 1;
+    }
+    payout *= lineEvery.payout ** steps;
+  }
+  return { payout, speed };
+}
+
 /** The effects that hold for this state, from every source (conditional ones included). */
-export function activeEffects(_content: Content, _state: BaseState): Effect[] {
-  return [];
+export function activeEffects(content: Content, state: BaseState): Effect[] {
+  const out = globalEffects(content, state);
+  for (const line of content.lines) {
+    const n = state.run.lines[line.id] ?? 0;
+    if (n <= 0) continue;
+    const { payout, speed } = milestoneFactors(content, n);
+    if (payout > 1) out.push({ stat: "output", op: "more", value: payout, scope: line.id });
+    if (speed > 1) out.push({ stat: "speed", op: "more", value: speed, scope: line.id });
+  }
+  for (const upgrade of content.upgrades) {
+    if (upgrade.kind !== "island" && state.run.upgrades.includes(upgrade.id))
+      out.push(...upgrade.effects);
+  }
+  return out;
 }
 
 /** What a scoped stat is asked about: a line (and its era), or the whole island. */
@@ -145,6 +204,8 @@ export function buffEffects(
 /** The parts of a state's fold that hold between commands: cached per state. */
 export interface Rates {
   effects: Effect[];
+  /** What multiplies a tap's flat part (E23): eras × island upgrades × roster × Glow × Morale. */
+  tapGlobal: number;
   glow: number;
   /** Morale (R4): 1 for now. */
   morale: number;
@@ -169,7 +230,9 @@ export function rates(content: Content, state: BaseState): Rates {
     old.meta.glass === state.meta.glass &&
     old.meta.nodes === state.meta.nodes &&
     old.run.hands === state.run.hands &&
-    old.run.era === state.run.era
+    old.run.era === state.run.era &&
+    old.run.roster === state.run.roster &&
+    old.run.upgrades === state.run.upgrades
   ) {
     return hit.rates;
   }
@@ -177,10 +240,13 @@ export function rates(content: Content, state: BaseState): Rates {
   const k = foldStat("glow_k", effects, content.prestige.glowK);
   const { windowHours, maxHours } = content.run.nightShift;
   const hours = Math.min(maxHours, foldStat("night_shift", effects, windowHours));
+  const glowNow = glow(content, state.meta.glass.ever, k);
+  const morale = 1;
   const result: Rates = {
     effects,
-    glow: glow(content, state.meta.glass.ever, k),
-    morale: 1,
+    tapGlobal: foldStat("output", globalEffects(content, state), 1) * glowNow * morale,
+    glow: glowNow,
+    morale,
     nightShift: Math.round(hours * 3600),
   };
   cache.set(state.run.lines, { content, state, rates: result });

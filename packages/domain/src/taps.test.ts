@@ -83,6 +83,8 @@ describe("unmanned lines: busy-until (resolution 3.3)", () => {
   const kiln = content.lines.find((line) => line.id === "kiln");
   if (!kiln) throw new Error("no kiln");
   const owned = (n: number) => fresh({ era: "wood", lines: { kiln: n }, supplies: 0 });
+  // The Timber era doubles every line and the flat tap (eras.json5).
+  const ERA = 2;
 
   it("runs one cycle at a time: a tap a second on the 19 s Kiln pays once every 19 s", () => {
     let state = owned(1);
@@ -91,9 +93,10 @@ describe("unmanned lines: busy-until (resolution 3.3)", () => {
     }
     // The fifth cycle (19.2 s each) ends at 96 s: look after it.
     state = applyCommand(content, state, { type: "ping" }, T0 + 100).state;
-    const perCycle = kiln.rate * kiln.cycle;
-    const tapValue = state.run.taps; // a tap is worth 1 with no Glow, Grip or Hustle peak
-    expect(state.run.made - tapValue * 1).toBeGreaterThan(perCycle * 4.99);
+    const perCycle = ERA * kiln.rate * kiln.cycle;
+    // A tap is worth ERA with no Glow or Grip, at most twice that at Hustle's peak.
+    const tapValue = state.run.taps * ERA;
+    expect(state.run.made - tapValue).toBeGreaterThan(perCycle * 4.99);
     expect(state.run.made).toBeLessThan(perCycle * 5.01 + tapValue * 2);
   });
 
@@ -102,7 +105,7 @@ describe("unmanned lines: busy-until (resolution 3.3)", () => {
     expect(state.run.readyAt.kiln).toBeCloseTo(T0 + kiln.cycle, 9);
     const before = applyCommand(content, state, { type: "ping" }, T0 + 10).state;
     const after = applyCommand(content, state, { type: "ping" }, T0 + 30).state;
-    expect(after.run.made - before.run.made).toBeCloseTo(2 * kiln.rate * kiln.cycle, 6);
+    expect(after.run.made - before.run.made).toBeCloseTo(ERA * 2 * kiln.rate * kiln.cycle, 6);
   });
 
   it("hands the cycle in flight to a hire, paid at once", () => {
@@ -115,7 +118,7 @@ describe("unmanned lines: busy-until (resolution 3.3)", () => {
     );
     if (!hired.ok) throw new Error("hire refused");
     expect(hired.state.run.readyAt.kiln).toBeUndefined();
-    expect(hired.state.run.made - state.run.made).toBeCloseTo(kiln.rate * kiln.cycle, 6);
+    expect(hired.state.run.made - state.run.made).toBeCloseTo(ERA * kiln.rate * kiln.cycle, 6);
   });
 });
 

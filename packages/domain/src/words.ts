@@ -104,6 +104,11 @@ export interface Words extends NumberFormat {
   tierName: (id: string) => string;
   toolName: (id: string) => string;
   islandName: (id: string) => string;
+  targetName: (id: string) => string;
+  /** A shelf row's name: a Grip rung is its tool. */
+  upgradeName: (id: string) => string;
+  flotsamName: (id: string) => string;
+  buffName: (id: string) => string;
   /** One line of the feed, about `who` (a player's name, or "You"). */
   feedLine: (event: FeedEvent, who: string) => string;
 }
@@ -115,7 +120,7 @@ export function suffixesOf(locale: Locale): string[] {
 
 export function words(
   locale: Locale,
-  _content: Content,
+  content: Content,
   options: { scientific?: boolean } = {},
 ): Words {
   const t = (key: string, args?: LocaleArgs): string => locale.t(key, args);
@@ -128,6 +133,11 @@ export function words(
     tierName: (id) => t(`base_tier.${id}.name`),
     toolName: (id) => t(`tool.${id}.name`),
     islandName: (id) => t(`island.${id}.name`),
+    targetName: (id) => t(`target.${id}.name`),
+    upgradeName: (id) =>
+      content.tools.some((tool) => tool.id === id) ? t(`tool.${id}.name`) : t(`upgrade.${id}.name`),
+    flotsamName: (id) => t(`flotsam.${id}.name`),
+    buffName: (id) => t(`buff.${id}.name`),
     // The feed has no event types until R2: every line is `feed.<type>`.
     feedLine: (event, who) => t(`feed.${(event as { type: string }).type}`, { who }),
   };

@@ -1,7 +1,7 @@
 /**
  * The wire shape of a command: zod checks the shape (ids, counts, ranges), the domain checks
- * the rules. `satisfies` keeps this list and the domain's `Command` union in step: a new
- * command that is missing here fails the typecheck.
+ * the rules. `satisfies` keeps each shape inside the domain's `Command` union, and
+ * `EveryCommand` fails the typecheck when a domain command is missing here.
  */
 import type { Command } from "@wipe-day/domain/commands";
 import { z } from "zod";
@@ -29,7 +29,15 @@ export const commandSchema = z.discriminatedUnion("type", [
     count: z.union([z.literal(1), z.literal(10), z.literal(100), z.literal("max")]),
   }),
   z.strictObject({ type: z.literal("hire_hand"), line: id }),
+  z.strictObject({ type: z.literal("buy_upgrade"), upgrade: id }),
+  z.strictObject({ type: z.literal("buy_era"), era: id }),
 ]) satisfies z.ZodType<Command>;
+
+/** Fails to compile while a domain command has no shape above (the error names it). */
+type NoneMissing<T extends never> = T;
+export type EveryCommand = NoneMissing<
+  Exclude<Command["type"], z.infer<typeof commandSchema>["type"]>
+>;
 
 export const commandRequestSchema = z.strictObject({
   key: z.string().min(8).max(64),

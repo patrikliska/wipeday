@@ -2,13 +2,14 @@
  * Settle's property tests (N24; docs/redesign/09-architecture.md 4.8), seeded through `rng.ts`
  * like W6's property tests, so a failure names its seed and replays.
  *
- * 1. A generator of random states: up to 300 owned per line, a random manned subset, cycles in
- *    flight on unmanned lines, up to three buffs, the last command up to 20 h back, a Night Shift
- *    of 12-48 h, glass for Glow. The fixture content adds what R0's data lacks: buffs (a global
- *    ×4, a one-line ×12) and an effect that holds only while the player is away.
+ * 1. A generator of random states: up to 1,200 owned per line (every milestone kind), a random
+ *    era, roster tiers and shelf rows, a random manned subset, cycles in flight on unmanned
+ *    lines, up to three buffs, the last command up to 20 h back, a Night Shift of 12-48 h,
+ *    glass for Glow. The fixture content adds buffs (a global ×4, a one-line ×12) and an effect
+ *    that holds only while the player is away.
  * 2. Path independence: settling to t1 and then t2 equals settling to t2, within 1e-9, over
  *    10,000 states, with t1 placed around the window's end, buff ends and payouts; the same
- *    over 10,000 random command sequences (buys, hires, taps, pings) with extra settles between.
+ *    over 10,000 random command sequences (buys, hires, shelf rows, eras, taps, pings) with extra settles between.
  * 3. A tick oracle: an independent loop over whole seconds (manned production that second, each
  *    unmanned cycle at its end second) agrees with settle within 1e-6 over 1,000 states × 48 h.
  * 4. `suppliesAt` equals the settled supplies at random times.
@@ -65,7 +66,7 @@ function randomCase(random: Rng): Case {
   const readyAt: Record<string, number> = {};
   for (const line of content.lines) {
     if (random.next() < 0.4) continue;
-    const owned = random.int(1, 300);
+    const owned = random.next() < 0.8 ? random.int(1, 300) : random.int(300, 1200);
     lines[line.id] = owned;
     if (random.next() < 0.5) hands.push(line.id);
     else if (random.next() < 0.6) readyAt[line.id] = T0 + random.int(1, 3 * HOUR);
@@ -82,11 +83,16 @@ function randomCase(random: Rng): Case {
       ...(kind === "drone" && line ? { line } : {}),
     });
   }
+  const upgrades = content.upgrades
+    .filter((upgrade) => upgrade.kind !== "grip" && random.next() < 0.3)
+    .map((upgrade) => upgrade.id);
   const state: BaseState = {
     ...base,
     run: {
       ...base.run,
-      era: TIERS[TIERS.length - 1] ?? "hqm",
+      era: TIERS[random.int(0, TIERS.length - 1)] ?? "hqm",
+      roster: random.int(0, content.milestones.roster.length),
+      upgrades,
       lines,
       hands,
       readyAt,
@@ -159,14 +165,20 @@ describe("settle's path independence (N24)", () => {
         t += random.int(1, 4 * HOUR);
         const line = ids[random.int(0, ids.length - 1)] ?? "beachcomber";
         const roll = random.next();
+        const upgrade = content.upgrades[random.int(0, content.upgrades.length - 1)]?.id ?? "";
+        const era = TIERS[random.int(0, TIERS.length - 1)] ?? "wood";
         const command: Command =
-          roll < 0.3
+          roll < 0.25
             ? { type: "buy_line", line, count: random.next() < 0.5 ? 1 : 10 }
-            : roll < 0.5
+            : roll < 0.4
               ? { type: "hire_hand", line }
-              : roll < 0.85
-                ? { type: "taps", count: random.int(1, 30), from: t - random.int(0, 2), to: t }
-                : { type: "ping" };
+              : roll < 0.5
+                ? { type: "buy_upgrade", upgrade }
+                : roll < 0.55
+                  ? { type: "buy_era", era }
+                  : roll < 0.85
+                    ? { type: "taps", count: random.int(1, 30), from: t - random.int(0, 2), to: t }
+                    : { type: "ping" };
         // B settles somewhere in between first; A does not.
         const between = t - random.int(1, Math.max(1, t - b.run.settledAt));
         if (between > b.run.settledAt) b = settle(content, b, between).state;
@@ -180,10 +192,43 @@ describe("settle's path independence (N24)", () => {
 });
 
 /**
+ * A line's steady multiplier and speed from first principles, sharing no code with the
+ * evaluator: the eras reached, the island upgrades and Line Mks bought, the roster tiers, and
+ * the milestone table walked one step at a time.
+ */
+function lineFactors(
+  content: Content,
+  state: BaseState,
+  id: string,
+): { output: number; speed: number } {
+  const { run } = state;
+  let output = 1;
+  for (const era of content.eras.slice(0, TIERS.indexOf(run.era) + 1))
+    for (const effect of era.effects) output *= effect.value;
+  for (const upgrade of content.upgrades) {
+    if (!run.upgrades.includes(upgrade.id)) continue;
+    if (upgrade.kind === "island" || upgrade.line === id)
+      for (const effect of upgrade.effects) output *= effect.value;
+  }
+  for (const tier of content.milestones.roster.slice(0, run.roster)) output *= tier.payout;
+  const n = run.lines[id] ?? 0;
+  let speed = 1;
+  for (const step of content.milestones.line) {
+    if (n < step.at) continue;
+    output *= step.payout ?? 1;
+    speed *= step.speed ?? 1;
+  }
+  const every = content.milestones.lineEvery;
+  for (let at = every.from; at <= n; at += every.step)
+    output *= every.special.find((special) => special.at === at)?.payout ?? every.payout;
+  return { output, speed };
+}
+
+/**
  * The oracle: production second by second from first principles, sharing no code with settle.
- * Manned lines make owned × rate × Glow × the buffs running that second while the window is
- * open (× the away factor once the player has been gone 330 s); each unmanned cycle pays its
- * cycle's worth at its end second.
+ * Manned lines make owned × rate × their multipliers × speed × Glow × the buffs running that
+ * second while the window is open (× the away factor once the player has been gone 330 s);
+ * each unmanned cycle pays its rate × its cycle (never under the floor) at its end second.
  */
 function oracle(content: Content, state: BaseState, until: number): number {
   const { run } = state;
@@ -195,7 +240,8 @@ function oracle(content: Content, state: BaseState, until: number): number {
   const mannedByLine = new Map<string, number>();
   for (const id of run.hands) {
     const line = rates.get(id);
-    const per = (run.lines[id] ?? 0) * (line?.rate ?? 0) * glow;
+    const { output, speed } = lineFactors(content, state, id);
+    const per = (run.lines[id] ?? 0) * (line?.rate ?? 0) * output * speed * glow;
     manned += per;
     mannedByLine.set(id, per);
   }
@@ -235,8 +281,10 @@ function oracle(content: Content, state: BaseState, until: number): number {
     if (ready <= run.settledAt || ready > until || run.hands.includes(id)) continue;
     const line = rates.get(id);
     if (!line) continue;
-    const cycle = Math.max(content.formula.cycleFloor, line.cycle);
-    total += (run.lines[id] ?? 0) * line.rate * glow * factorAt(ready, id) * cycle;
+    const { output, speed } = lineFactors(content, state, id);
+    const cycle = Math.max(content.formula.cycleFloor, line.cycle / speed);
+    const rate = (run.lines[id] ?? 0) * line.rate * output * speed * glow;
+    total += rate * factorAt(ready, id) * cycle;
   }
   return total;
 }

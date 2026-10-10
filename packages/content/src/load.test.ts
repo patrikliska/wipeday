@@ -60,7 +60,11 @@ describe("the shipped data files", () => {
     expect([count("grip"), count("mk"), count("island")]).toEqual([4, 28, 8]);
     const byId = new Map(upgrades.map((upgrade) => [upgrade.id, upgrade]));
     // 02 5.3's prices: Driftwood Hooks 60k, Beach Sledges 600M, Rope Walk 2.46T.
-    expect(byId.get("beachcomber_mk2")).toMatchObject({ cost: 6e4, needOwned: 25, line: "beachcomber" });
+    expect(byId.get("beachcomber_mk2")).toMatchObject({
+      cost: 6e4,
+      needOwned: 25,
+      line: "beachcomber",
+    });
     expect(byId.get("beachcomber_mk3")).toMatchObject({ cost: 6e8, after: "beachcomber_mk2" });
     expect((byId.get("loom_mk3")?.cost ?? 0) / 2.46e12).toBeCloseTo(1, 2);
     expect(byId.get("loom_mk2")?.effects).toEqual([
@@ -190,7 +194,9 @@ describe("validation", () => {
       ]),
     );
     const island = dataWith("island.json5", (text) => text.replace("fog: 10", "fog: 15"));
-    expect(problemsOf(island)).toContain("island.json5 `saltmarsh`: weather shares must sum to 100");
+    expect(problemsOf(island)).toContain(
+      "island.json5 `saltmarsh`: weather shares must sum to 100",
+    );
   });
 
   it("reports a missing file", () => {

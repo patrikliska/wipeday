@@ -11,6 +11,10 @@ export type GameEvent =
   /** Units bought (client feedback only; the run summary counts them from R2). */
   | { type: "bought"; line: string; count: number; cost: Amount }
   | { type: "hand_hired"; line: string; hand: string }
+  /** A shelf row bought (client feedback only). */
+  | { type: "upgraded"; upgrade: string; cost: Amount }
+  /** The run reached an era, `at` seconds after its first tap or purchase. */
+  | { type: "era_reached"; era: string; at: number }
   /** The Night Shift window closed at `at`: manned lines stopped until the next command. */
   | { type: "night_shift_over"; at: number }
   /** A stored base of an older shape was replaced by a fresh v2 base (the API logs it). */
@@ -19,6 +23,7 @@ export type GameEvent =
 /** Event types written to `event_log`. Everything else is feedback for the clients. */
 export const LOGGED_TYPES: ReadonlySet<GameEvent["type"]> = new Set([
   "hand_hired",
+  "era_reached",
   "night_shift_over",
   "base_reset",
 ]);

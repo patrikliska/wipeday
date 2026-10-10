@@ -54,7 +54,6 @@ export function tapParts(content: Content, state: BaseState, t: number) {
   const flat = foldStat("tap_flat", effects, content.tap.flat, {}, when);
   const share = foldStat("tap_share", effects, content.tap.share, {}, when);
   const tapMult = foldStat("tap", effects, 1, {}, when);
-  const global = foldStat("output", effects, 1, {}, when) * r.glow * r.morale;
   let fullRate = 0;
   if (share > 0) {
     for (const line of content.lines) {
@@ -65,7 +64,7 @@ export function tapParts(content: Content, state: BaseState, t: number) {
   const { hustle } = content.tap;
   return {
     /** A tap's value before Hustle and crits. */
-    base: (flat * global + share * fullRate) * tapMult * afterglowAt(content, state, t),
+    base: (flat * r.tapGlobal + share * fullRate) * tapMult * afterglowAt(content, state, t),
     hustleCap: hustle.cap,
     hustlePeak: Math.min(hustle.peakCeiling, foldStat("hustle_max", effects, hustle.peak)),
     hold: foldStat("hustle_hold", effects, hustle.graceSeconds),

@@ -1666,3 +1666,16 @@ lost and each line shows one Mk row). Out of order, the server refuses with a `p
 `content.upgrades` is the derived shelf (Grip after Rock, then the 28 generated Mk rows, then
 the island upgrades); era names keep their `base_tier.*` keys. *Revisit* if Pockets (R5) want a
 Mk III without its Mk II.
+
+### D153. Eras, roster and the tap's global fold in the domain
+`activeEffects` now gathers the run's sources: the eras reached, each line's milestones (one
+payout and one speed effect per line, from its owned count; the every-100 tail in closed form),
+the roster tiers in `run.roster`, and the shelf rows in `run.upgrades`. The flat part of a tap is
+multiplied only by eras, island upgrades and roster tiers (× Glow × Morale, errata E23), cached as
+`rates().tapGlobal`, so a Rally or a Line Mk never inflates it; R0 folded every `output` effect
+there. A roster tier is checked after each `buy_line` and kept for the run, so buying an era (three
+lines at 0) never lowers income. Buying an era resets the fell count to 0 for the new target; the
+old target's last fall is the scene's animation and pays nothing (02 6.2 leaves it open).
+`era_reached {era, at}` is logged, `at` in seconds after the run's first tap or purchase.
+`commandSchema.ts` now fails the typecheck when a domain command has no wire shape (`satisfies`
+alone accepted a shorter list).

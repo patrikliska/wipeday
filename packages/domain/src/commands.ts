@@ -9,13 +9,26 @@
  * window restarts (`activeAt`).
  *
  * R0's commands: `taps` and `ping` (the slim path, D134), `buy_line` and `hire_hand`. R1 adds
- * the shelf, eras, flotsam and Collect; R2 the nuke and the Blast Map.
+ * the shelf (`buy_upgrade`), eras (`buy_era`), flotsam and Collect; R2 the nuke and the Blast
+ * Map.
  */
 import type { Content } from "@wipe-day/content/schema";
+import { TIERS } from "@wipe-day/content/tiers";
 import type { Amount } from "./amount";
 import type { GameEvent } from "./events";
 import { costFactor, costOf, eraOpen, handPriceOf, lineOf, maxAffordable } from "./lines";
 import { cyclePayout, settle } from "./settle";
+import {
+  bought,
+  eraCost,
+  eraGate,
+  type Gate,
+  nextEra,
+  rosterReached,
+  upgradeCost,
+  upgradeGate,
+  upgradeOf,
+} from "./shelf";
 import type { BaseState } from "./state";
 import { applyTaps } from "./taps";
 import type { World } from "./world";
@@ -28,7 +41,11 @@ export type Command =
   /** A visible tab is still there: restarts the Night Shift window. */
   | { type: "ping" }
   | { type: "buy_line"; line: string; count: BuyCount }
-  | { type: "hire_hand"; line: string };
+  | { type: "hire_hand"; line: string }
+  /** A shelf row: a Grip rung, a Line Mk or an island upgrade. */
+  | { type: "buy_upgrade"; upgrade: string }
+  /** The next era. */
+  | { type: "buy_era"; era: string };
 
 export type CommandType = Command["type"];
 
@@ -45,11 +62,17 @@ export const SERVER_ONLY: readonly CommandType[] = [];
  */
 export type Refusal =
   | { reason: "unknown"; what: string }
-  | { reason: "locked"; gate: { kind: "era"; value: string } }
+  | { reason: "locked"; gate: Gate }
   | { reason: "supplies"; need: Amount; have: Amount }
   | { reason: "max_owned"; have: number }
   | { reason: "no_units" }
-  | { reason: "hired" };
+  | { reason: "hired" }
+  /** That shelf row or era is already bought. */
+  | { reason: "owned" }
+  /** Eras go in order: `era` comes first. */
+  | { reason: "not_next"; era: string };
+
+export type { Gate };
 
 export type CommandResult =
   | { ok: true; state: BaseState; events: GameEvent[]; changed: boolean }
@@ -57,8 +80,8 @@ export type CommandResult =
 
 type Step = { ok: true; state: BaseState; events: GameEvent[] } | { ok: false; refusal: Refusal };
 
-const isPurchase = (command: Command): boolean =>
-  command.type === "buy_line" || command.type === "hire_hand";
+const PURCHASES: readonly CommandType[] = ["buy_line", "hire_hand", "buy_upgrade", "buy_era"];
+const isPurchase = (command: Command): boolean => PURCHASES.includes(command.type);
 
 /**
  * Settles `state` to `now`, then applies `command`. Pure; the caller owns the clock.
@@ -107,6 +130,10 @@ function step(content: Content, state: BaseState, command: Command, now: number)
       return buyLine(content, state, command.line, command.count);
     case "hire_hand":
       return hireHand(content, state, command.line, now);
+    case "buy_upgrade":
+      return buyUpgrade(content, state, command.upgrade);
+    case "buy_era":
+      return buyEra(content, state, command.era, now);
   }
 }
 
@@ -135,6 +162,33 @@ function buyLine(content: Content, state: BaseState, id: string, count: BuyCount
   const cost = costOf(line, n, k, factor);
   if (cost > supplies)
     return { ok: false, refusal: { reason: "supplies", need: cost, have: supplies } };
+  const next: BaseState = {
+    ...state,
+    run: {
+      ...state.run,
+      supplies: Math.max(0, supplies - cost),
+      lines: { ...state.run.lines, [id]: n + k },
+    },
+  };
+  // A roster tier, once every open line reaches it, stays for the run.
+  const roster = rosterReached(content, next);
+  return {
+    ok: true,
+    state: roster === next.run.roster ? next : { ...next, run: { ...next.run, roster } },
+    events: [{ type: "bought", line: id, count: k, cost }],
+  };
+}
+
+function buyUpgrade(content: Content, state: BaseState, id: string): Step {
+  const upgrade = upgradeOf(content, id);
+  if (!upgrade) return { ok: false, refusal: { reason: "unknown", what: id } };
+  if (bought(state, id)) return { ok: false, refusal: { reason: "owned" } };
+  const gate = upgradeGate(content, state, upgrade);
+  if (gate) return { ok: false, refusal: { reason: "locked", gate } };
+  const cost = upgradeCost(content, state, upgrade);
+  const supplies = state.run.supplies;
+  if (cost > supplies)
+    return { ok: false, refusal: { reason: "supplies", need: cost, have: supplies } };
   return {
     ok: true,
     state: {
@@ -142,10 +196,42 @@ function buyLine(content: Content, state: BaseState, id: string, count: BuyCount
       run: {
         ...state.run,
         supplies: Math.max(0, supplies - cost),
-        lines: { ...state.run.lines, [id]: n + k },
+        upgrades: [...state.run.upgrades, id],
       },
     },
-    events: [{ type: "bought", line: id, count: k, cost }],
+    events: [{ type: "upgraded", upgrade: id, cost }],
+  };
+}
+
+function buyEra(content: Content, state: BaseState, id: string, now: number): Step {
+  const era = content.eras.find((row) => row.id === id);
+  if (!era) return { ok: false, refusal: { reason: "unknown", what: id } };
+  const next = nextEra(content, state);
+  if (!next || TIERS.indexOf(era.id) < TIERS.indexOf(next.id))
+    return { ok: false, refusal: { reason: "owned" } };
+  if (era.id !== next.id) return { ok: false, refusal: { reason: "not_next", era: next.id } };
+  const gate = eraGate(state, era);
+  if (gate) return { ok: false, refusal: { reason: "locked", gate } };
+  const cost = eraCost(content, state, era);
+  const supplies = state.run.supplies;
+  if (cost > supplies)
+    return { ok: false, refusal: { reason: "supplies", need: cost, have: supplies } };
+  // A purchase starts the run's clock before the step, so `startedAt` is set.
+  const at = now - (state.run.startedAt ?? now);
+  return {
+    ok: true,
+    state: {
+      ...state,
+      run: {
+        ...state.run,
+        supplies: Math.max(0, supplies - cost),
+        era: era.id,
+        eraAt: { ...state.run.eraAt, [era.id]: at },
+        // The new target starts fresh; the old one's last fall is the scene's (D153).
+        target: { ...state.run.target, taps: 0 },
+      },
+    },
+    events: [{ type: "era_reached", era: era.id, at }],
   };
 }
 

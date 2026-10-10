@@ -56,7 +56,8 @@ export const t = (key: string, args?: LocaleArgs): string => locale.t(key, args)
 
 /** Names and numbers, shared with the Discord bot (W8). Scientific notation arrives in R1. */
 export const words = makeWords(locale, content);
-export const { fmt, fmtRate, fmtCount, resourceName, crewName, lineName, tierName } = words;
+export const { fmt, fmtRate, fmtCount, resourceName, crewName, lineName, tierName, upgradeName } =
+  words;
 
 export { duration, initials, resourceColor };
 export const resourceInitials = (id: string): string =>

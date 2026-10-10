@@ -35,6 +35,7 @@ export function normalizeState(content: Content, stored: unknown): BaseState | n
   const known = new Set(content.lines.map((line) => line.id));
   const keep = <T>(record: Record<string, T>): Record<string, T> =>
     Object.fromEntries(Object.entries(record).filter(([id]) => known.has(id)));
+  const shelf = new Set(content.upgrades.map((upgrade) => upgrade.id));
   return {
     ...state,
     run: {
@@ -42,6 +43,7 @@ export function normalizeState(content: Content, stored: unknown): BaseState | n
       lines: keep(state.run.lines),
       readyAt: keep(state.run.readyAt),
       hands: state.run.hands.filter((id) => known.has(id)),
+      upgrades: state.run.upgrades.filter((id) => shelf.has(id)),
     },
   };
 }

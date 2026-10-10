@@ -5,8 +5,8 @@
  * - `meta`: what lasts. Glass, the Blast Map, Wipe Days, records and stats.
  *
  * Times are whole unix seconds; amounts are finite doubles (`Amount`, D130); counts are
- * integers. R0 holds the fields its rules use; each later phase adds its own with defaults,
- * which `normalizeState` fills in for stored bases.
+ * integers. Each phase adds the fields its rules use, with defaults, which `normalizeState`
+ * fills in for stored bases (R1: eras, the shelf, the roster, the target and the flotsam).
  */
 import type { Content } from "@wipe-day/content/schema";
 import type { Tier } from "@wipe-day/content/tiers";
@@ -47,6 +47,19 @@ export interface RunState {
   /** Earned this run from every source. */
   made: Amount;
   era: Tier;
+  /** Seconds after `startedAt` each era was reached (Twig is the start). */
+  eraAt: Partial<Record<Tier, number>>;
+  /** Roster tiers reached (milestones.json5 `roster`): kept for the run once reached. */
+  roster: number;
+  /** Shelf rows bought this run, in order: Grip rungs, Line Mks, island upgrades. */
+  upgrades: string[];
+  /** The era's target: credited taps toward the next fell, and fells this run. */
+  target: { taps: number; felled: number };
+  /**
+   * The flotsam cursor (09-architecture.md 6.4): arrival `k` washes up at `at` (null until the
+   * run's first tap or purchase); `caught` counts this run's catches.
+   */
+  flotsam: { k: number; at: number | null; caught: number };
   /** Units owned per line. */
   lines: Record<string, number>;
   /** Manned lines, in hire order. */
@@ -76,7 +89,7 @@ export interface Meta {
   /** Uses per hint; a hint retires after two. */
   hints: Record<string, number>;
   /** Lifetime counters. */
-  stats: { taps: number; hands: number };
+  stats: { taps: number; hands: number; felled: number; flotsam: number };
   /** The chosen cosmetic; owned ones live in the `legacy` row. */
   skin: string | null;
 }
@@ -113,7 +126,7 @@ export function newMeta(): Meta {
     glass: { ever: 0, held: 0, level: 0, spent: 0 },
     nodes: [],
     hints: {},
-    stats: { taps: 0, hands: 0 },
+    stats: { taps: 0, hands: 0, felled: 0, flotsam: 0 },
     skin: null,
   };
 }
@@ -134,6 +147,11 @@ export function newRun(content: Content, meta: Meta, baseSeed: number, now: numb
     supplies: 0,
     made: 0,
     era: "twig",
+    eraAt: {},
+    roster: 0,
+    upgrades: [],
+    target: { taps: 0, felled: 0 },
+    flotsam: { k: 0, at: null, caught: 0 },
     lines: {},
     hands: [],
     readyAt: {},
