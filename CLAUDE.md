@@ -302,7 +302,7 @@ R0, R2 and R7.
 
 | Phase | Goal |
 | --- | --- |
-| R0 Foundations | backup, branch, docs, the cut, state v2, effects, settle, taps, simulator v2 |
+| R0 Foundations | backup, branch, docs, the cut, state v2, effects, settle, taps, simulator v2 (done) |
 | R1 The run | from the first tap to Sheet Metal; looks great on a phone |
 | R2 The Big Red | the full loop; cut-over, friends play |
 | R3 Blast Map wave 2 | rings 4-6; months of goals |

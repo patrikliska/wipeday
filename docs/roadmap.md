@@ -6,21 +6,59 @@ should think, and what "done" means**. It was rewritten in R0 from the approved 
 (`docs/redesign/11-roadmap.md`, which keeps the reasons); the W-phase roadmap and its results are
 in `docs/archive/roadmap-w.md`.
 
-## Where we are (2026-10-10, R0 in progress)
+## Where we are (2026-10-10, after R0)
 
 - **The live game** is W8 on frozen `main` at https://wipeday.patrikliska.dev: season 1 (started
   2026-10-07) sits untouched and nobody plays it now (owner decision 7). It ends quietly at the
-  cut-over at the end of R2. Nothing lands on `main` but emergency fixes (D145).
+  cut-over at the end of R2. Nothing lands on `main` but emergency fixes (D145). Its database is
+  copied off the server every night (D143).
 - **The redesign** was approved on 2026-10-10 (every owner decision in
   `docs/redesign/README.md` section 3). It is built on the `redesign` branch, which starts at the
-  `pre-redesign` tag; everything R0 deletes stays reachable there.
-- **R0 so far:** the off-server backup is live on `main` (rclone into the owner's encrypted
-  Google Drive at 04:30 every night, restore drill in `docs/deploy.md`, D143); `pre-redesign`
-  and `redesign` are on GitHub; the plan is committed in `docs/redesign/`; this roadmap,
-  `CLAUDE.md`, `docs/game-design.md` and D127-D145 are rewritten from it.
-- **Next in R0:** delete the cut systems, build state v2, `Amount`, the formatter, the effects
-  evaluator, closed-form settle with its property tests, the taps transport, the demo clocks and
-  simulator v2; a bare island in the client.
+  `pre-redesign` tag; everything R0 deleted stays reachable there.
+- **R0 is done** (results below): the backup off the server, the tag and branch, the spec and
+  decisions rewritten, the cut systems deleted, state v2 with `Amount`, the formatter, the
+  effects evaluator, closed-form settle with its property tests, the slim taps transport, the
+  demo clocks at 1× with jumps and a wall clock, simulator v2, and a bare island with a supplies
+  counter that taps work on, end to end against the API.
+- **Next: R1 The run** (below): data and domain first (eras, the shelf, milestones, targets,
+  flotsam, the island's clock and weather), then the scene, then the drawer.
+
+### R0 results (acceptance)
+
+- **Backup:** `deploy/offsite.sh` from `vpsuser`'s crontab at 04:30 into `wipeday-offsite:` (rclone
+  `crypt` over the owner's Google Drive, own OAuth client, `drive.file`): `pre/` forever,
+  `nightly/` 30 days, copy only. The first run copied 23 files, `wipeday-pre-r0.db` and the
+  2026-10-10 nightly among them; the restore drill read both back (integrity ok, 3 players,
+  2 bases, 195 and 182 `event_log` rows; `docs/deploy.md`).
+- **Branch and docs:** `pre-redesign` and `redesign` on GitHub; the plan in `docs/redesign/`;
+  `CLAUDE.md`, `docs/game-design.md` and this roadmap rewritten; D127-D145, then D146-D149 for
+  what building R0 decided.
+- **Numbers (D130):** the domain and `save()` throw on NaN and Infinity (a corrupt row answers 500
+  and stays as it was); content amounts are `finite().nonnegative()`. The formatter prints
+  `12.4k`, `1.50Qa`, `999Dc`, `1.23e36` and `0.4/s` (every row of `09` 2.4 is a test).
+- **Effects (D135):** one test per op in the fold order, scope, conditions and `per` with `max`;
+  monotonicity over 10,000 seeded random sets; a per-stat bound (the Blast Map's ceilings join in
+  R2). `legacy.test.ts` and its 12,288 combinations are gone.
+- **N24:** path independence worst 4.4e-16 over 10,000 states and 1.1e-14 over 10,000 command
+  sequences (the bound 1e-9); the tick oracle, which shares no code with settle, worst 8.2e-12
+  over 1,000 states × 48 h (the bound 1e-6).
+- **N10, N25:** over 2,000 adversarial sequences the credit reaches exactly, never passes,
+  `45 + 15 × elapsed`; an honest tapper is never clamped; hold counts 4 a second; a replayed
+  batch is credited once (after its record expired, only from tokens left). No record holds a
+  state; slim records expire after 1 hour and write no `event_log` row. An hour at 15 taps a
+  second from one tab stores 3,600 slim records (the bound 3,700), credits all 54,000 taps and
+  the server's supplies equal the prediction exactly; two tabs at 15 a second each got 930 of
+  1,800 taps in 60 s (the bound 945).
+- **Clocks (D138):** the demo game clock runs at 1× with +1 h, +6 h and next 08:00; a jump never
+  moves the wall clock (a test); `__wipeDay.clocks` exposes `game` and `wall`, and shots pin both.
+- **Simulator v2 (D144):** N21 passes (fifth root, `L0` 5e5, Glow 0.25, first nuke 10) and N23
+  passes (every number finite every step; the largest 3.5e10 in 90 days, 1.9e11 in 365 days ×
+  3 seeds, against 1e150). `pnpm sim 30` plays the five archetypes and both scenarios; the test
+  profile runs in 1.4 s inside `pnpm test` (the budget 10 s), `--full` in 18 s. Every other
+  assertion is listed with its phase and pending. For information (R1 asserts it): the first hand
+  comes at 143 s (active) to 171 s (casual), against N4's 120 s once eras and Grip exist.
+- **Visual review:** two rounds on the bare island, the drawer and `/base` (`docs/ui-review.md`);
+  `preview/web/index.html`, `preview/discord/index.html`.
 
 ## Overview
 

@@ -1596,3 +1596,40 @@ tags the old game `season-1-final`, ends season 1 once, wipes run state only
 (`09-architecture.md` 13) and merges `redesign` with `--no-ff`. After it `main` is live again
 and each phase gets its own branch. *Revisit* never: shipping pieces early would mix two games
 in one image.
+
+### D146. R0's client: the land is the tap surface until the tree stands
+R0 ships "no visuals beyond a bare island" (`11-roadmap.md` 6.1), yet the taps transport has to
+be played end to end. So the island's land (on or below the ground line, east of the surf) counts
+taps and holds (4 a second after 0.35 s), with a "+N" rising from the finger, and a pulsing "Tap
+the island" pill is the one thing to do until the first tap. R1 replaces both with the era
+target and "Tap the tree." The counter shows its `/s` line only once something runs by itself,
+so a fresh island shows one number. The demo starts on day 1 at 08:00 UTC; shots render in UTC;
+the sky follows the browser's time zone until R1's island clock (UTC+1, `island.json5`).
+*Revisit* in R1, where all of it is replaced.
+
+### D147. Outcomes on replay, saves on change, and a rate limit
+A replayed key answers its stored outcome with the base as it is now, flagged `replay`; a record
+past its time runs again (a taps batch then credits only tokens left; from R2 a `nuke` refuses
+`stale_run`). `GET /state` and the scheduler save a base only when settling moved something
+beyond time (an event, a buff that ran out, a new or reset base): settle is path-independent, so
+pure accrual needs no write and no push. `POST /api/commands` allows 10 a second per player,
+burst 30, then `429 slow_down` with the wait (`09-architecture.md` 9.7), which the client retries
+under the same key. The bot's command route answers `403 not_on_discord` until R2 lets it
+Collect. *Revisit* the limit if an honest client ever meets it.
+
+### D148. The effect vocabulary lives in content; buffs are content
+`packages/content/src/effects.ts` registers every stat, op, `per` and `when` (`09` 5.1), because
+the data's validation needs it; the domain only folds. Timed buffs carry a kind, and what a kind
+does is `content.buffs` (filled from `flotsam.json5` in R1, empty in R0), so Rally's ×4 and
+Adrenaline's ×100 stay in data. Buffs multiply with everything, each other included (two drones
+on one line make it ×144), and tap buffs count in a tap's value. *Revisit* if a buff ever needs a
+rule an effect cannot express.
+
+### D149. `pacing.json5` v2 is a list of assertions, each switched on by a phase
+The pacing file holds the archetypes and scenarios as data and a flat list of assertions, each
+with its canon number (`n`), the phase that switches it on (`on`), the check's name and its
+numbers. `shipped` names the last shipped phase: an assertion switched on by then must pass, and
+one without an implementation fails the test (`missing`); later ones print `pending`, so the
+whole plan of targets is visible in one place. Until R2's `nuke`, the simulator presses a stub
+that folds the run into `meta` by the prestige formula, and it batches taps as the client does
+(1 s, then 5 s, never more than 30 taps). *Revisit* when R2's real `nuke` replaces the stub.
