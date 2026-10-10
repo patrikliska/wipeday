@@ -906,7 +906,7 @@ of the counter, the floater or the drawer. Shots now render in UTC and pin two c
 
 ## Icons: R1's first set (`packages/content/icons`, branch `icons-r1`)
 
-54 hand-drawn icons, in the order of `07-what-changes.md` 8: `currency/scrap`,
+54 hand-drawn icons (25 more below), in the order of `07-what-changes.md` 8: `currency/scrap`,
 `currency/supplies`, the 14 `product/` badges, the 14 `line/` buildings, the 5 `tier/` eras, the
 5 `tool/` Grip tools, `target/` tree, stone, ore, sulfur, wreck, `flotsam/crate`, `ui/hustle`,
 `ui/hand`, `ui/night_shift`, and the 5 `nav/` items. Sheet: `pnpm icons` (`preview/icons/`): each
@@ -962,3 +962,36 @@ the 2-unit margin) and prints each icon's ink share, so visual weight can be com
   - Visual weight still spans 15-58% ink: line-drawn things (tools, broadcast, the fish) stay
     lighter than solid ones (`tier/metal`, `product/plates`); R1's shop rows should be checked
     with the real 40/18 px badge sizes before this is evened out further.
+
+### Icons, second batch: the rest of R1's list and the redo list (79 in all)
+
+New: the 14 hand portraits (`crew/`), `flotsam/fuel_drum` and `flotsam/adrenaline`, and the UI
+glyphs `ui/crown`, `lock`, `finger`, `chevron`, `close`, `menu`, `upgrade`, `buy_max`, `roster`.
+A portrait is the face in half tone, the person's one sign in full, and shared shoulders, so the
+headgear carries the silhouette. `ui/pocket` waits for R5.
+
+- Iteration 1, what was wrong:
+  - Look-alike portraits at 16 px: Mara's sun hat, Pike's sou'wester and Otto's cap were all
+    "a hat with a brim"; Dax's pompom and Sela's bun were both a ball on top; Juno's braids and
+    Tamsin's headset were both blocks at the sides of the face.
+  - The spec draws the Rally drum (`flotsam/fuel_drum`) as "a red-banded drum", the same picture
+    as `product/fuel`. The Adrenaline tin with a cut-out bolt was the battery's box and bolt.
+  - The redo list: `product/plates` (one slab, four holes) was a die again; `line/loom` with a
+    straight shuttle was one more bar in the crib.
+- What changed:
+  - Pike wears a diver's helmet with a porthole onto the face; Gus a welding helmet pushed up
+    (visor slit); Sela a ponytail swinging out behind. Otto keeps the one-sided flat cap and Mara
+    the round sun hat.
+  - All flotsam floats: the crate, the drum and the tin sit on the same wave, now drawn in
+    `currentColor` (the crate's sea blue went), so the family reads at once and the drum keeps its
+    red band as its one accent. The drum lies on its side and tilts; `product/fuel` stands upright.
+    The tin's bolt is filled in fire orange, not cut out, and the tin has a lid seam and no posts.
+  - Plates became three thin sheets with half-tone edges, two cut holes on the top one; the
+    loom's shuttle is boat-shaped, tilted 18 degrees across half-tone warp threads.
+- Iteration 2: Juno's first fix (two buns) made a famous cartoon-mouse silhouette (D43), so Juno
+  wears a long stocking cap drooping to the left with a tassel. The 14 portraits now differ at
+  16 px.
+- Still open: `product/plates` is legible as a stack of sheets but sits close to `planks` at
+  16 px (thin slanted sheets against thick boxes): still the one I would redo, ideally after the
+  owner's naming pass (an I-beam would say "steel" but not "plates"). The `loom` is better but
+  still busy. Mara (round brim) and Otto (one-sided brim) are the closest pair of portraits.

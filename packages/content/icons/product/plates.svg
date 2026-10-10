@@ -1,6 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="currentColor">
-  <path opacity=".5" d="M4 26H35V31H4ZM35 26 44 13V18L35 31Z"/>
-  <path fill-rule="evenodd" d="M4 26 13 13H44L35 26ZM17 17a2.5 2.5 0 1 0 0 5 2.5 2.5 0 1 0 0-5ZM31 17a2.5 2.5 0 1 0 0 5 2.5 2.5 0 1 0 0-5Z"/>
-  <path d="M4 34H35V40H4Z"/>
-  <path opacity=".5" d="M35 34 44 21V27L35 40Z"/>
+  <path d="M4 40 11 32H44L37 40Z"/>
+  <path opacity=".5" d="M4 40H37V43H4ZM37 40 44 32V35L37 43Z"/>
+  <path d="M4 28 11 20H44L37 28Z"/>
+  <path opacity=".5" d="M4 28H37V31H4ZM37 28 44 20V23L37 31Z"/>
+  <path fill-rule="evenodd" d="M4 16 11 8H44L37 16ZM14 10.5h4v3h-4ZM31 10.5h4v3h-4Z"/>
+  <path opacity=".5" d="M4 16H37V19H4ZM37 16 44 8V11L37 19Z"/>
 </svg>

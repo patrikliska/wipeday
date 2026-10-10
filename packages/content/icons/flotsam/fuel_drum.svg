@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="currentColor">
+  <g transform="rotate(-8 24 25)">
+    <path fill-rule="evenodd" d="M10 14H38A4 4 0 0 1 42 18V31A4 4 0 0 1 38 35H10A4 4 0 0 1 6 31V18A4 4 0 0 1 10 14ZM13 17H16V32H13ZM32 17H35V32H32Z"/>
+    <rect fill="#cd412b" x="20" y="14" width="8" height="21"/>
+  </g>
+  <path fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" d="M4 41.5Q9 37.5 14 41.5T24 41.5 34 41.5 44 41.5"/>
+</svg>

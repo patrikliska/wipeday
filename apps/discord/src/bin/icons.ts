@@ -21,7 +21,18 @@ const OUT = join(ROOT, "preview", "icons");
 mkdirSync(join(OUT, "png"), { recursive: true });
 
 /** Kinds in the order they are drawn (docs/redesign/07-what-changes.md 8). */
-const KINDS = ["currency", "product", "line", "tier", "tool", "target", "flotsam", "ui", "nav"];
+const KINDS = [
+  "currency",
+  "product",
+  "line",
+  "crew",
+  "tier",
+  "tool",
+  "target",
+  "flotsam",
+  "ui",
+  "nav",
+];
 const SIZES = [16, 24, 48] as const;
 const THEMES = {
   dark: { bg: "#1b1a18", fg: "#ece8df", label: "#a49e93" },

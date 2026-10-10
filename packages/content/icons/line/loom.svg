@@ -2,7 +2,7 @@
   <rect x="6" y="4" width="5" height="40" rx="1.5"/>
   <rect x="37" y="4" width="5" height="40" rx="1.5"/>
   <rect x="6" y="7" width="36" height="5"/>
-  <rect x="6" y="36" width="36" height="5"/>
-  <path fill="none" stroke="currentColor" stroke-width="3" d="M16.5 12V24M24 12V24M31.5 12V24"/>
-  <rect x="11" y="24" width="26" height="9"/>
+  <path opacity=".5" fill="none" stroke="currentColor" stroke-width="3" d="M15.5 12V31M21 12V31M26.5 12V31M32 12V31"/>
+  <rect x="11" y="31" width="26" height="8"/>
+  <path fill-rule="evenodd" transform="rotate(-18 24 23)" d="M3 23C9 17.5 39 17.5 45 23 39 28.5 9 28.5 3 23ZM19 21.5H29V24.5H19Z"/>
 </svg>
