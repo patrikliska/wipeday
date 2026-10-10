@@ -1,0 +1,456 @@
+[
+  {
+    "id": "souvenir_jar", "sector": "blast", "ring": 1, "slot": 1, "type": "notable",
+    "name": "Souvenir Jar",
+    "text": "Afterglow's half-life +1 min. A jar on the shelf fills with glass.",
+    "effects": [
+      {"stat": "afterglow_half", "op": "add", "value": 60}
+    ],
+    "cost": 3, "requires": ["ground_zero"], "wave": "R2",
+    "scene": "a jar on the cabin shelf, a little fuller of glass each Wipe Day"
+  },
+  {
+    "id": "bigger_payload", "sector": "blast", "ring": 1, "slot": 2, "type": "small",
+    "name": "Bigger Payload",
+    "text": "Crater glass +10% from every nuke.",
+    "effects": [
+      {"stat": "glass_gain", "op": "inc", "value": 0.1}
+    ],
+    "cost": 2, "requires": ["ground_zero"], "wave": "R2",
+    "anchor": true
+  },
+  {
+    "id": "forecast", "sector": "blast", "ring": 2, "slot": 1, "type": "automation",
+    "name": "Forecast",
+    "text": "The Big Red's card tells you when the next Wipe Day will count, at this rate.",
+    "effects": [
+      {"stat": "feature:forecast", "op": "unlock", "value": 1}
+    ],
+    "cost": 5, "requires": ["souvenir_jar"], "wave": "R2",
+    "feature": "feature:forecast"
+  },
+  {
+    "id": "warm_embers_1", "sector": "blast", "ring": 2, "slot": 2, "type": "small",
+    "name": "Warm Embers I",
+    "series": "warm_embers",
+    "text": "Afterglow's half-life +60 s.",
+    "effects": [
+      {"stat": "afterglow_half", "op": "add", "value": 60}
+    ],
+    "cost": 4, "requires": ["souvenir_jar", "bigger_payload"], "wave": "R2"
+  },
+  {
+    "id": "tinfoil_hats", "sector": "blast", "ring": 2, "slot": 3, "type": "notable",
+    "name": "Tinfoil Hats",
+    "text": "Glow factor +0.01 and crater glass +5%. The crew swear by them.",
+    "effects": [
+      {"stat": "glow_k", "op": "add", "value": 0.01},
+      {"stat": "glass_gain", "op": "inc", "value": 0.05}
+    ],
+    "cost": 11, "requires": ["bigger_payload"], "wave": "R2",
+    "scene": "the crew wear tinfoil hats while the sky is still green after a Wipe Day"
+  },
+  {
+    "id": "bigger_payload_2", "sector": "blast", "ring": 3, "slot": 1, "type": "small",
+    "name": "Bigger Payload II",
+    "series": "bigger_payload",
+    "text": "Crater glass ×1.1.",
+    "effects": [
+      {"stat": "glass_gain", "op": "more", "value": 1.1}
+    ],
+    "cost": 33, "requires": ["forecast"], "wave": "R2"
+  },
+  {
+    "id": "glow_lamp", "sector": "blast", "ring": 3, "slot": 2, "type": "notable",
+    "name": "Glow Lamp",
+    "text": "Glow factor +0.02. A green lamp glows on the Kettle's pad.",
+    "effects": [
+      {"stat": "glow_k", "op": "add", "value": 0.02}
+    ],
+    "cost": 77, "requires": ["forecast", "warm_embers_1"], "wave": "R2",
+    "anchor": true,
+    "scene": "a green lamp on the Kettle's pad, its glow on the lights layer"
+  },
+  {
+    "id": "flight_school", "sector": "blast", "ring": 3, "slot": 3, "type": "unlock",
+    "name": "Flight School",
+    "text": "Pick the missile's flight on the cover card, from the flights you've seen.",
+    "effects": [
+      {"stat": "feature:flight_school", "op": "unlock", "value": 1}
+    ],
+    "cost": 44, "requires": ["warm_embers_1", "tinfoil_hats"], "wave": "R2",
+    "feature": "feature:flight_school"
+  },
+  {
+    "id": "fertile_ash_1", "sector": "blast", "ring": 3, "slot": 4, "type": "small",
+    "name": "Fertile Ash I",
+    "series": "fertile_ash",
+    "text": "Gardens +60%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.6, "scope": "garden"}
+    ],
+    "cost": 25, "requires": ["tinfoil_hats"], "wave": "R2"
+  },
+  {
+    "id": "quick_rebuild", "sector": "blast", "ring": 4, "slot": 1, "type": "automation",
+    "name": "Quick Rebuild",
+    "text": "Rebuild in one tap: skip the rebuild screen and keep your last loadout.",
+    "effects": [
+      {"stat": "feature:quick_rebuild", "op": "unlock", "value": 1}
+    ],
+    "cost": 333, "requires": ["bigger_payload_2"], "wave": "R3",
+    "feature": "feature:quick_rebuild"
+  },
+  {
+    "id": "fertile_ash_2", "sector": "blast", "ring": 4, "slot": 2, "type": "small",
+    "name": "Fertile Ash II",
+    "series": "fertile_ash",
+    "text": "Twig lines +30%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "scope": "twig"}
+    ],
+    "cost": 222, "requires": ["bigger_payload_2", "glow_lamp"], "wave": "R3"
+  },
+  {
+    "id": "glass_garden", "sector": "blast", "ring": 4, "slot": 3, "type": "completion",
+    "name": "Glass Garden",
+    "text": "Crater glass ×1.1. Glass shards glitter in the crater.",
+    "effects": [
+      {"stat": "glass_gain", "op": "more", "value": 1.1}
+    ],
+    "cost": 555, "requires": ["bigger_payload_2", "glow_lamp", "flight_school", "fertile_ash_1"], "wave": "R3",
+    "scene": "glass shards glitter along the crater rim (lights layer)"
+  },
+  {
+    "id": "warm_embers_2", "sector": "blast", "ring": 4, "slot": 4, "type": "small",
+    "name": "Warm Embers II",
+    "series": "warm_embers",
+    "text": "Afterglow's half-life +60 s.",
+    "effects": [
+      {"stat": "afterglow_half", "op": "add", "value": 60}
+    ],
+    "cost": 333, "requires": ["flight_school", "fertile_ash_1"], "wave": "R3"
+  },
+  {
+    "id": "crater_lake", "sector": "blast", "ring": 4, "slot": 5, "type": "notable",
+    "name": "Crater Lake",
+    "text": "Glow factor +0.02. Rain pools in the crater; the gulls approve.",
+    "effects": [
+      {"stat": "glow_k", "op": "add", "value": 0.02}
+    ],
+    "cost": 777, "requires": ["fertile_ash_1"], "wave": "R3",
+    "scene": "a glassy pool in the crater's low end, with a gull paddling in it"
+  },
+  {
+    "id": "bigger_payload_3", "sector": "blast", "ring": 5, "slot": 1, "type": "small",
+    "name": "Bigger Payload III",
+    "series": "bigger_payload",
+    "text": "Crater glass ×1.1.",
+    "effects": [
+      {"stat": "glass_gain", "op": "more", "value": 1.1}
+    ],
+    "cost": 3333, "requires": ["quick_rebuild"], "wave": "R3"
+  },
+  {
+    "id": "blast_radius", "sector": "blast", "ring": 5, "slot": 2, "type": "notable",
+    "name": "Blast Radius",
+    "text": "All lines +0.5% for every lit Blast node, up to ×1.1.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.005, "scope": "all", "per": "sector:blast", "max": 1.1}
+    ],
+    "cost": 5555, "requires": ["fertile_ash_2"], "wave": "R3"
+  },
+  {
+    "id": "hot_core", "sector": "blast", "ring": 5, "slot": 3, "type": "keystone",
+    "name": "Hot Core",
+    "text": "Crater glass ×1.5, but lines run at a quarter while Afterglow lasts.",
+    "effects": [
+      {"stat": "glass_gain", "op": "more", "value": 1.5},
+      {"stat": "output", "op": "more", "value": 0.25, "scope": "all", "when": "afterglow"}
+    ],
+    "cost": 7777, "requires": ["glass_garden"], "wave": "R3",
+    "conflicts": ["wipe_day_rush"]
+  },
+  {
+    "id": "glass_strata", "sector": "blast", "ring": 5, "slot": 4, "type": "notable",
+    "name": "Glass Strata",
+    "text": "Glow factor +0.001 for every Wipe Day, up to +0.02.",
+    "effects": [
+      {"stat": "glow_k", "op": "add", "value": 0.001, "per": "nukes", "max": 0.02}
+    ],
+    "cost": 4444, "requires": ["warm_embers_2"], "wave": "R3"
+  },
+  {
+    "id": "warm_embers_3", "sector": "blast", "ring": 5, "slot": 5, "type": "small",
+    "name": "Warm Embers III",
+    "series": "warm_embers",
+    "text": "Afterglow's half-life +90 s.",
+    "effects": [
+      {"stat": "afterglow_half", "op": "add", "value": 90}
+    ],
+    "cost": 2222, "requires": ["crater_lake"], "wave": "R3"
+  },
+  {
+    "id": "bright_glass_1", "sector": "blast", "ring": 6, "slot": 1, "type": "small",
+    "name": "Bright Glass I",
+    "series": "bright_glass",
+    "text": "Glow factor +0.04.",
+    "effects": [
+      {"stat": "glow_k", "op": "add", "value": 0.04}
+    ],
+    "cost": 44400, "requires": ["bigger_payload_3"], "wave": "R3"
+  },
+  {
+    "id": "dead_hand", "sector": "blast", "ring": 6, "slot": 2, "type": "automation",
+    "name": "Dead Hand",
+    "text": "An opt-in switch that presses the Big Red for you while the page is open.",
+    "effects": [
+      {"stat": "feature:dead_hand", "op": "unlock", "value": 1}
+    ],
+    "cost": 22200, "requires": ["bigger_payload_3", "blast_radius"], "wave": "R5", "gate": 25,
+    "feature": "feature:dead_hand",
+    "anchor": true
+  },
+  {
+    "id": "fertile_ash_3", "sector": "blast", "ring": 6, "slot": 3, "type": "small",
+    "name": "Fertile Ash III",
+    "series": "fertile_ash",
+    "text": "All lines ×1.18.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.18, "scope": "all"}
+    ],
+    "cost": 33300, "requires": ["blast_radius", "hot_core"], "wave": "R3"
+  },
+  {
+    "id": "shockwave_1", "sector": "blast", "ring": 6, "slot": 4, "type": "small",
+    "name": "Shockwave I",
+    "series": "shockwave",
+    "text": "All lines run 18% faster.",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 1.18, "scope": "all"}
+    ],
+    "cost": 33300, "requires": ["hot_core", "glass_strata"], "wave": "R3"
+  },
+  {
+    "id": "postcard_album", "sector": "blast", "ring": 6, "slot": 5, "type": "unlock",
+    "name": "Postcard Album",
+    "text": "Your last 20 postcards, each with a snapshot of the island you flattened.",
+    "effects": [
+      {"stat": "feature:postcard_album", "op": "unlock", "value": 1}
+    ],
+    "cost": 44400, "requires": ["glass_strata", "warm_embers_3"], "wave": "R3",
+    "feature": "feature:postcard_album"
+  },
+  {
+    "id": "bigger_payload_4", "sector": "blast", "ring": 6, "slot": 6, "type": "small",
+    "name": "Bigger Payload IV",
+    "series": "bigger_payload",
+    "text": "Crater glass ×1.1.",
+    "effects": [
+      {"stat": "glass_gain", "op": "more", "value": 1.1}
+    ],
+    "cost": 55500, "requires": ["warm_embers_3"], "wave": "R3"
+  },
+  {
+    "id": "ash_bloom", "sector": "blast", "ring": 7, "slot": 1, "type": "notable",
+    "name": "Ash Bloom",
+    "text": "While Afterglow lasts, every line ×2. Odd flowers push up through the ash.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "all", "when": "afterglow"}
+    ],
+    "cost": 555000, "requires": ["bright_glass_1"], "wave": "R7", "data_from": "R3",
+    "scene": "pale, faintly glowing flowers push up through the ash while Afterglow lasts"
+  },
+  {
+    "id": "bright_glass_2", "sector": "blast", "ring": 7, "slot": 2, "type": "small",
+    "name": "Bright Glass II",
+    "series": "bright_glass",
+    "text": "Glow factor +0.04.",
+    "effects": [
+      {"stat": "glow_k", "op": "add", "value": 0.04}
+    ],
+    "cost": 444000, "requires": ["dead_hand"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "shockwave_2", "sector": "blast", "ring": 7, "slot": 3, "type": "small",
+    "name": "Shockwave II",
+    "series": "shockwave",
+    "text": "All lines run 10% faster.",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 222000, "requires": ["fertile_ash_3"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "fertile_ash_4", "sector": "blast", "ring": 7, "slot": 4, "type": "small",
+    "name": "Fertile Ash IV",
+    "series": "fertile_ash",
+    "text": "All lines ×1.13.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.13, "scope": "all"}
+    ],
+    "cost": 333000, "requires": ["shockwave_1"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "shockwave_3", "sector": "blast", "ring": 7, "slot": 5, "type": "small",
+    "name": "Shockwave III",
+    "series": "shockwave",
+    "text": "All lines run 10% faster.",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 333000, "requires": ["postcard_album"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "double_barrel", "sector": "blast", "ring": 7, "slot": 6, "type": "unlock",
+    "name": "Double Barrel",
+    "text": "A twin Kettle joins the pad: crater glass ×1.1, and the film launches both.",
+    "effects": [
+      {"stat": "glass_gain", "op": "more", "value": 1.1},
+      {"stat": "feature:double_barrel", "op": "unlock", "value": 1}
+    ],
+    "cost": 444000, "requires": ["bigger_payload_4"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:double_barrel",
+    "scene": "a smaller twin Kettle stands beside the first on the pad; the film launches both"
+  },
+  {
+    "id": "shockwave_4", "sector": "blast", "ring": 8, "slot": 1, "type": "small",
+    "name": "Shockwave IV",
+    "series": "shockwave",
+    "text": "All lines run 12% faster.",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 1.12, "scope": "all"}
+    ],
+    "cost": 2220000, "requires": ["ash_bloom"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bigger_payload_5", "sector": "blast", "ring": 8, "slot": 2, "type": "small",
+    "name": "Bigger Payload V",
+    "series": "bigger_payload",
+    "text": "Crater glass ×1.1.",
+    "effects": [
+      {"stat": "glass_gain", "op": "more", "value": 1.1}
+    ],
+    "cost": 5550000, "requires": ["ash_bloom", "bright_glass_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "glowing_bunks", "sector": "blast", "ring": 8, "slot": 3, "type": "notable",
+    "name": "Glowing Bunks",
+    "text": "Glow factor +0.001 for every lit Bunker node, up to +0.04.",
+    "effects": [
+      {"stat": "glow_k", "op": "add", "value": 0.001, "per": "sector:bunker", "max": 0.04}
+    ],
+    "cost": 9990000, "requires": ["bright_glass_2", "shockwave_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "chain_reaction", "sector": "blast", "ring": 8, "slot": 4, "type": "keystone",
+    "name": "Chain Reaction",
+    "text": "Glow factor +0.25, but every nuke pays half the glass.",
+    "effects": [
+      {"stat": "glow_k", "op": "add", "value": 0.25},
+      {"stat": "glass_gain", "op": "more", "value": 0.5}
+    ],
+    "cost": 7770000, "requires": ["shockwave_2", "fertile_ash_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "kettle_watch", "sector": "blast", "ring": 8, "slot": 5, "type": "automation",
+    "name": "Kettle Watch",
+    "text": "A notification when the Big Red is crowned, if you switch it on.",
+    "effects": [
+      {"stat": "feature:kettle_watch", "op": "unlock", "value": 1}
+    ],
+    "cost": 3330000, "requires": ["fertile_ash_4", "shockwave_3"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:kettle_watch"
+  },
+  {
+    "id": "fertile_ash_5", "sector": "blast", "ring": 8, "slot": 6, "type": "small",
+    "name": "Fertile Ash V",
+    "series": "fertile_ash",
+    "text": "All lines ×1.12.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.12, "scope": "all"}
+    ],
+    "cost": 3330000, "requires": ["shockwave_3", "double_barrel"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "shockwave_5", "sector": "blast", "ring": 8, "slot": 7, "type": "small",
+    "name": "Shockwave V",
+    "series": "shockwave",
+    "text": "All lines run 11% faster.",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 1.11, "scope": "all"}
+    ],
+    "cost": 2220000, "requires": ["double_barrel"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "fertile_ash_6", "sector": "blast", "ring": 9, "slot": 1, "type": "small",
+    "name": "Fertile Ash VI",
+    "series": "fertile_ash",
+    "text": "All lines ×1.12.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.12, "scope": "all"}
+    ],
+    "cost": 22200000, "requires": ["shockwave_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "nose_art", "sector": "blast", "ring": 9, "slot": 2, "type": "unlock",
+    "name": "Nose Art",
+    "text": "Paint the missile in a livery earned from your flights and records.",
+    "effects": [
+      {"stat": "feature:nose_art", "op": "unlock", "value": 1}
+    ],
+    "cost": 33300000, "requires": ["bigger_payload_5"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:nose_art",
+    "scene": "the Kettle wears the chosen livery on the pad and in the film"
+  },
+  {
+    "id": "shockwave_6", "sector": "blast", "ring": 9, "slot": 3, "type": "small",
+    "name": "Shockwave VI",
+    "series": "shockwave",
+    "text": "All lines run 12% faster.",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 1.12, "scope": "all"}
+    ],
+    "cost": 33300000, "requires": ["glowing_bunks"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "second_sun", "sector": "blast", "ring": 9, "slot": 4, "type": "completion",
+    "name": "Second Sun",
+    "text": "Glow factor +0.05. A pale second sun hangs over the island.",
+    "effects": [
+      {"stat": "glow_k", "op": "add", "value": 0.05}
+    ],
+    "cost": 55500000, "requires": ["shockwave_4", "bigger_payload_5", "glowing_bunks", "chain_reaction", "kettle_watch", "fertile_ash_5", "shockwave_5"], "wave": "R7", "data_from": "R3",
+    "scene": "a pale second sun in the sky, day and night"
+  },
+  {
+    "id": "warm_embers_4", "sector": "blast", "ring": 9, "slot": 5, "type": "small",
+    "name": "Warm Embers IV",
+    "series": "warm_embers",
+    "text": "Afterglow's half-life +90 s.",
+    "effects": [
+      {"stat": "afterglow_half", "op": "add", "value": 90}
+    ],
+    "cost": 22200000, "requires": ["kettle_watch"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "sunburst", "sector": "blast", "ring": 9, "slot": 6, "type": "notable",
+    "name": "Sunburst",
+    "text": "Crater glass ×1.1. The mushroom cloud glows gold.",
+    "effects": [
+      {"stat": "glass_gain", "op": "more", "value": 1.1}
+    ],
+    "cost": 77700000, "requires": ["fertile_ash_5"], "wave": "R7", "data_from": "R3",
+    "scene": "the mushroom cloud glows gold in the film"
+  },
+  {
+    "id": "fertile_ash_7", "sector": "blast", "ring": 9, "slot": 7, "type": "small",
+    "name": "Fertile Ash VII",
+    "series": "fertile_ash",
+    "text": "All lines ×1.11.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.11, "scope": "all"}
+    ],
+    "cost": 44400000, "requires": ["shockwave_5"], "wave": "R7", "data_from": "R3"
+  }
+]

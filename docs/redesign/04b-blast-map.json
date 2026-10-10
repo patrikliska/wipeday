@@ -1,0 +1,3660 @@
+[
+  {
+    "id": "ground_zero", "sector": null, "ring": 0, "slot": 0, "type": "unlock",
+    "name": "Ground Zero",
+    "text": "Lit by the first nuke: the map opens and Glow works from Wipe Day #1.",
+    "effects": [
+      {"stat": "feature:glow", "op": "unlock", "value": 1}
+    ],
+    "cost": 0, "requires": [], "wave": "R2",
+    "feature": "feature:glow",
+    "anchor": true,
+    "scene": "the crater and its sign"
+  },
+  {
+    "id": "second_wind", "sector": "grip", "ring": 1, "slot": 1, "type": "notable",
+    "name": "Second Wind",
+    "text": "Hustle holds 3 s (was 2) and drains 20% slower",
+    "effects": [
+      {"stat": "hustle_hold", "op": "add", "value": 1},
+      {"stat": "hustle_drain", "op": "more", "value": 0.8}
+    ],
+    "cost": 2, "requires": ["ground_zero"], "wave": "R2"
+  },
+  {
+    "id": "steady_hands", "sector": "grip", "ring": 1, "slot": 2, "type": "small",
+    "name": "Calloused Hands",
+    "text": "Taps +50%",
+    "effects": [
+      {"stat": "tap", "op": "inc", "value": 0.5}
+    ],
+    "cost": 1, "requires": ["ground_zero"], "wave": "R2",
+    "anchor": true
+  },
+  {
+    "id": "whetstone", "sector": "grip", "ring": 2, "slot": 1, "type": "notable",
+    "name": "Whetstone",
+    "text": "Taps carry +0.16% of supplies/s; a whetstone by the target throws sparks",
+    "effects": [
+      {"stat": "tap_share", "op": "add", "value": 0.0016}
+    ],
+    "cost": 11, "requires": ["second_wind"], "wave": "R2",
+    "scene": "a whetstone on a stump beside the target; every tap throws a few sparks off it"
+  },
+  {
+    "id": "quick_fingers", "sector": "grip", "ring": 2, "slot": 2, "type": "small",
+    "name": "Quick Fingers",
+    "text": "Hustle tops out at ×2.25 (was ×2)",
+    "effects": [
+      {"stat": "hustle_max", "op": "add", "value": 0.25}
+    ],
+    "cost": 5, "requires": ["second_wind", "steady_hands"], "wave": "R2"
+  },
+  {
+    "id": "keep_swinging", "sector": "grip", "ring": 2, "slot": 3, "type": "automation",
+    "name": "Keep Swinging",
+    "text": "Unmanned lines keep running while Hustle is above zero, not just while you tap",
+    "effects": [
+      {"stat": "feature:keep_swinging", "op": "unlock", "value": 1}
+    ],
+    "cost": 7, "requires": ["steady_hands"], "wave": "R2",
+    "feature": "feature:keep_swinging"
+  },
+  {
+    "id": "steady_breath_1", "sector": "grip", "ring": 3, "slot": 1, "type": "small",
+    "name": "Steady Breath I",
+    "series": "steady_breath",
+    "text": "Hustle holds +0.5 s",
+    "effects": [
+      {"stat": "hustle_hold", "op": "add", "value": 0.5}
+    ],
+    "cost": 33, "requires": ["whetstone"], "wave": "R2"
+  },
+  {
+    "id": "lucky_swing", "sector": "grip", "ring": 3, "slot": 2, "type": "notable",
+    "name": "Lucky Swing",
+    "text": "5% of your taps crit for ×10",
+    "effects": [
+      {"stat": "crit_chance", "op": "add", "value": 0.05},
+      {"stat": "crit_mult", "op": "set", "value": 10}
+    ],
+    "cost": 77, "requires": ["whetstone", "quick_fingers"], "wave": "R2",
+    "anchor": true
+  },
+  {
+    "id": "heavy_haft", "sector": "grip", "ring": 3, "slot": 3, "type": "notable",
+    "name": "Heavy Haft",
+    "text": "Fells need 20% fewer taps",
+    "effects": [
+      {"stat": "fell_taps", "op": "more", "value": 0.8}
+    ],
+    "cost": 55, "requires": ["quick_fingers", "keep_swinging"], "wave": "R2"
+  },
+  {
+    "id": "rhythm_1", "sector": "grip", "ring": 3, "slot": 4, "type": "small",
+    "name": "Rhythm I",
+    "series": "rhythm",
+    "text": "Hustle +0.25 a tap",
+    "effects": [
+      {"stat": "hustle_gain", "op": "add", "value": 0.25}
+    ],
+    "cost": 44, "requires": ["keep_swinging"], "wave": "R2"
+  },
+  {
+    "id": "tool_rack", "sector": "grip", "ring": 4, "slot": 1, "type": "automation",
+    "name": "Tool Rack",
+    "text": "Grip rungs buy themselves the moment you can afford them (page open)",
+    "effects": [
+      {"stat": "feature:autobuy", "op": "unlock", "value": 1, "scope": "grip"}
+    ],
+    "cost": 333, "requires": ["steady_breath_1"], "wave": "R3",
+    "feature": "feature:autobuy"
+  },
+  {
+    "id": "slow_burn_1", "sector": "grip", "ring": 4, "slot": 2, "type": "small",
+    "name": "Slow Burn I",
+    "series": "slow_burn",
+    "text": "Hustle drains 10% slower",
+    "effects": [
+      {"stat": "hustle_drain", "op": "more", "value": 0.9}
+    ],
+    "cost": 222, "requires": ["steady_breath_1", "lucky_swing"], "wave": "R3"
+  },
+  {
+    "id": "iron_palms", "sector": "grip", "ring": 4, "slot": 3, "type": "completion",
+    "name": "Iron Palms",
+    "text": "Taps carry +0.15% more of supplies/s; Hustle holds 0.5 s longer",
+    "effects": [
+      {"stat": "tap_share", "op": "add", "value": 0.0015},
+      {"stat": "hustle_hold", "op": "add", "value": 0.5}
+    ],
+    "cost": 555, "requires": ["steady_breath_1", "lucky_swing", "heavy_haft", "rhythm_1"], "wave": "R3"
+  },
+  {
+    "id": "steady_breath_2", "sector": "grip", "ring": 4, "slot": 4, "type": "small",
+    "name": "Steady Breath II",
+    "series": "steady_breath",
+    "text": "Hustle holds +0.5 s",
+    "effects": [
+      {"stat": "hustle_hold", "op": "add", "value": 0.5}
+    ],
+    "cost": 333, "requires": ["heavy_haft", "rhythm_1"], "wave": "R3"
+  },
+  {
+    "id": "afterburn", "sector": "grip", "ring": 4, "slot": 5, "type": "notable",
+    "name": "Afterburn",
+    "text": "Afterglow's half-life 5 → 7 min",
+    "effects": [
+      {"stat": "afterglow_half", "op": "add", "value": 120}
+    ],
+    "cost": 777, "requires": ["rhythm_1"], "wave": "R3"
+  },
+  {
+    "id": "hard_graft_1", "sector": "grip", "ring": 5, "slot": 1, "type": "small",
+    "name": "Hard Graft I",
+    "series": "hard_graft",
+    "text": "All lines ×1.12",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.12, "scope": "all"}
+    ],
+    "cost": 3333, "requires": ["tool_rack"], "wave": "R3"
+  },
+  {
+    "id": "work_song", "sector": "grip", "ring": 5, "slot": 2, "type": "notable",
+    "name": "Work Song",
+    "text": "Afterglow holds its full ×3 for the first minute; the crew sing while you work",
+    "effects": [
+      {"stat": "afterglow_hold", "op": "set", "value": 60}
+    ],
+    "cost": 5555, "requires": ["slow_burn_1"], "wave": "R3",
+    "scene": "while Afterglow holds, the crew swing in time and sing (badly); a note floats over each"
+  },
+  {
+    "id": "wipe_day_rush", "sector": "grip", "ring": 5, "slot": 3, "type": "keystone",
+    "name": "Wipe Day Rush",
+    "text": "Afterglow holds ×5 for 60 min, then fades. Night Shift window ×0.5",
+    "effects": [
+      {"stat": "afterglow", "op": "set", "value": 5},
+      {"stat": "afterglow_hold", "op": "set", "value": 3600},
+      {"stat": "night_shift", "op": "more", "value": 0.5}
+    ],
+    "cost": 7777, "requires": ["iron_palms"], "wave": "R3",
+    "conflicts": ["hot_core"],
+    "anchor": true
+  },
+  {
+    "id": "masks_on", "sector": "grip", "ring": 5, "slot": 4, "type": "notable",
+    "name": "Masks On",
+    "text": "All lines ×2 while Afterglow lasts; the crew work on in gas masks",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "all", "when": "afterglow"}
+    ],
+    "cost": 7777, "requires": ["steady_breath_2"], "wave": "R3",
+    "scene": "while Afterglow lasts every crew member wears a gas mask; the filters puff at each cycle"
+  },
+  {
+    "id": "steady_breath_3", "sector": "grip", "ring": 5, "slot": 5, "type": "small",
+    "name": "Steady Breath III",
+    "series": "steady_breath",
+    "text": "Hustle holds +0.5 s",
+    "effects": [
+      {"stat": "hustle_hold", "op": "add", "value": 0.5}
+    ],
+    "cost": 2222, "requires": ["afterburn"], "wave": "R3"
+  },
+  {
+    "id": "steady_breath_4", "sector": "grip", "ring": 6, "slot": 1, "type": "small",
+    "name": "Steady Breath IV",
+    "series": "steady_breath",
+    "text": "Hustle holds +0.5 s",
+    "effects": [
+      {"stat": "hustle_hold", "op": "add", "value": 0.5}
+    ],
+    "cost": 22200, "requires": ["hard_graft_1"], "wave": "R3"
+  },
+  {
+    "id": "hair_trigger", "sector": "grip", "ring": 6, "slot": 2, "type": "automation",
+    "name": "Hair Trigger",
+    "text": "Rush fires itself the moment Hustle fills (page open)",
+    "effects": [
+      {"stat": "feature:hair_trigger", "op": "unlock", "value": 1, "scope": "rush"}
+    ],
+    "cost": 33300, "requires": ["hard_graft_1", "work_song"], "wave": "R5", "gate": 20,
+    "feature": "feature:hair_trigger"
+  },
+  {
+    "id": "rhythm_2", "sector": "grip", "ring": 6, "slot": 3, "type": "small",
+    "name": "Rhythm II",
+    "series": "rhythm",
+    "text": "Hustle +0.25 a tap",
+    "effects": [
+      {"stat": "hustle_gain", "op": "add", "value": 0.25}
+    ],
+    "cost": 33300, "requires": ["work_song", "wipe_day_rush"], "wave": "R3"
+  },
+  {
+    "id": "slow_burn_2", "sector": "grip", "ring": 6, "slot": 4, "type": "small",
+    "name": "Slow Burn II",
+    "series": "slow_burn",
+    "text": "Hustle drains 10% slower",
+    "effects": [
+      {"stat": "hustle_drain", "op": "more", "value": 0.9}
+    ],
+    "cost": 22200, "requires": ["wipe_day_rush", "masks_on"], "wave": "R3"
+  },
+  {
+    "id": "golden_chip", "sector": "grip", "ring": 6, "slot": 5, "type": "unlock",
+    "name": "Golden Chip",
+    "text": "A run's 20th fell drops a golden chip: all lines ×1.5 for the rest of the run",
+    "effects": [
+      {"stat": "feature:golden_chip", "op": "unlock", "value": 1}
+    ],
+    "counts_as": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "all"}
+    ],
+    "cost": 44400, "requires": ["masks_on", "steady_breath_3"], "wave": "R3",
+    "feature": "feature:golden_chip",
+    "scene": "the 20th fell spits out a spinning gold chip that flies up and nails itself over the cabin door for the run"
+  },
+  {
+    "id": "rhythm_3", "sector": "grip", "ring": 6, "slot": 6, "type": "small",
+    "name": "Rhythm III",
+    "series": "rhythm",
+    "text": "Hustle +0.25 a tap",
+    "effects": [
+      {"stat": "hustle_gain", "op": "add", "value": 0.25}
+    ],
+    "cost": 33300, "requires": ["steady_breath_3"], "wave": "R3"
+  },
+  {
+    "id": "long_dawn", "sector": "grip", "ring": 7, "slot": 1, "type": "notable",
+    "name": "Long Dawn",
+    "text": "Afterglow holds its full ×3 for the first 2 minutes",
+    "effects": [
+      {"stat": "afterglow_hold", "op": "set", "value": 120}
+    ],
+    "cost": 555000, "requires": ["steady_breath_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "rhythm_4", "sector": "grip", "ring": 7, "slot": 2, "type": "small",
+    "name": "Rhythm IV",
+    "series": "rhythm",
+    "text": "Hustle +0.25 a tap",
+    "effects": [
+      {"stat": "hustle_gain", "op": "add", "value": 0.25}
+    ],
+    "cost": 222000, "requires": ["hair_trigger"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "slow_burn_3", "sector": "grip", "ring": 7, "slot": 3, "type": "small",
+    "name": "Slow Burn III",
+    "series": "slow_burn",
+    "text": "Hustle drains 10% slower",
+    "effects": [
+      {"stat": "hustle_drain", "op": "more", "value": 0.9}
+    ],
+    "cost": 333000, "requires": ["rhythm_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "rhythm_5", "sector": "grip", "ring": 7, "slot": 4, "type": "small",
+    "name": "Rhythm V",
+    "series": "rhythm",
+    "text": "Hustle +0.25 a tap",
+    "effects": [
+      {"stat": "hustle_gain", "op": "add", "value": 0.25}
+    ],
+    "cost": 333000, "requires": ["slow_burn_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "green_sky_1", "sector": "grip", "ring": 7, "slot": 5, "type": "small",
+    "name": "Green Sky I",
+    "series": "green_sky",
+    "text": "All lines ×1.25 while Afterglow lasts",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.25, "scope": "all", "when": "afterglow"}
+    ],
+    "cost": 444000, "requires": ["golden_chip"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "woodpile", "sector": "grip", "ring": 7, "slot": 6, "type": "unlock",
+    "name": "Woodpile",
+    "text": "Each fell this run stacks a log by the cabin: all lines +2% a log, up to +40%",
+    "effects": [
+      {"stat": "feature:woodpile", "op": "unlock", "value": 1}
+    ],
+    "counts_as": [
+      {"stat": "output", "op": "more", "value": 1.4, "scope": "all"}
+    ],
+    "cost": 444000, "requires": ["rhythm_3"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:woodpile",
+    "scene": "a log pile grows by the cabin, one log a fell up to 20; at 20 a gull takes the top log as its perch"
+  },
+  {
+    "id": "hard_graft_2", "sector": "grip", "ring": 8, "slot": 1, "type": "small",
+    "name": "Hard Graft II",
+    "series": "hard_graft",
+    "text": "All lines ×1.1",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 3330000, "requires": ["long_dawn"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "hard_graft_3", "sector": "grip", "ring": 8, "slot": 2, "type": "small",
+    "name": "Hard Graft III",
+    "series": "hard_graft",
+    "text": "All lines ×1.1",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 4440000, "requires": ["long_dawn", "rhythm_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "clear_cut", "sector": "grip", "ring": 8, "slot": 3, "type": "notable",
+    "name": "Clear-Cut",
+    "text": "While Afterglow lasts, fells need half the taps",
+    "effects": [
+      {"stat": "fell_taps", "op": "more", "value": 0.5, "when": "afterglow"}
+    ],
+    "cost": 5550000, "requires": ["rhythm_4", "slow_burn_3"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "fever_pitch", "sector": "grip", "ring": 8, "slot": 4, "type": "keystone",
+    "name": "Fever Pitch",
+    "text": "Hustle peaks at ×6, not ×2; it holds 1.5 s less and drains ×3 as fast",
+    "effects": [
+      {"stat": "hustle_max", "op": "set", "value": 6},
+      {"stat": "hustle_hold", "op": "add", "value": -1.5},
+      {"stat": "hustle_drain", "op": "more", "value": 3}
+    ],
+    "cost": 7770000, "requires": ["slow_burn_3", "rhythm_5"], "wave": "R7", "data_from": "R3",
+    "conflicts": ["archivist"]
+  },
+  {
+    "id": "apprentice", "sector": "grip", "ring": 8, "slot": 5, "type": "automation",
+    "name": "Apprentice",
+    "text": "While the page is open and you aren't tapping, an apprentice taps once a second",
+    "effects": [
+      {"stat": "feature:apprentice", "op": "unlock", "value": 1}
+    ],
+    "cost": 3330000, "requires": ["rhythm_5", "green_sky_1"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:apprentice",
+    "scene": "a kid in a far too big hard hat chips at the target with a tiny hatchet whenever you stop"
+  },
+  {
+    "id": "hard_graft_4", "sector": "grip", "ring": 8, "slot": 6, "type": "small",
+    "name": "Hard Graft IV",
+    "series": "hard_graft",
+    "text": "All lines ×1.1",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 4440000, "requires": ["green_sky_1", "woodpile"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "hard_graft_5", "sector": "grip", "ring": 8, "slot": 7, "type": "small",
+    "name": "Hard Graft V",
+    "series": "hard_graft",
+    "text": "All lines ×1.1",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 3330000, "requires": ["woodpile"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "rhythm_6", "sector": "grip", "ring": 9, "slot": 1, "type": "small",
+    "name": "Rhythm VI",
+    "series": "rhythm",
+    "text": "Hustle +0.25 a tap",
+    "effects": [
+      {"stat": "hustle_gain", "op": "add", "value": 0.25}
+    ],
+    "cost": 22200000, "requires": ["hard_graft_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "muscle_memory", "sector": "grip", "ring": 9, "slot": 2, "type": "notable",
+    "name": "Muscle Memory",
+    "text": "Hustle holds 0.5 s longer and fills 0.25 a tap faster (the tree's limits)",
+    "effects": [
+      {"stat": "hustle_hold", "op": "add", "value": 0.5},
+      {"stat": "hustle_gain", "op": "add", "value": 0.25}
+    ],
+    "cost": 44400000, "requires": ["hard_graft_3"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "green_sky_2", "sector": "grip", "ring": 9, "slot": 3, "type": "small",
+    "name": "Green Sky II",
+    "series": "green_sky",
+    "text": "All lines ×1.25 while Afterglow lasts",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.25, "scope": "all", "when": "afterglow"}
+    ],
+    "cost": 33300000, "requires": ["clear_cut"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "iron_grip", "sector": "grip", "ring": 9, "slot": 4, "type": "completion",
+    "name": "Iron Grip",
+    "text": "All lines ×1.2; Hustle drains 10% slower",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.2, "scope": "all"},
+      {"stat": "hustle_drain", "op": "more", "value": 0.9}
+    ],
+    "cost": 55500000, "requires": ["hard_graft_2", "hard_graft_3", "clear_cut", "fever_pitch", "apprentice", "hard_graft_4", "hard_graft_5"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "rhythm_7", "sector": "grip", "ring": 9, "slot": 5, "type": "small",
+    "name": "Rhythm VII",
+    "series": "rhythm",
+    "text": "Hustle +0.25 a tap",
+    "effects": [
+      {"stat": "hustle_gain", "op": "add", "value": 0.25}
+    ],
+    "cost": 22200000, "requires": ["apprentice"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "trophy_rack", "sector": "grip", "ring": 9, "slot": 6, "type": "unlock",
+    "name": "Trophy Rack",
+    "text": "Each run with 50+ fells hangs a trophy: all lines +4% a trophy, up to +20%",
+    "effects": [
+      {"stat": "feature:trophy_rack", "op": "unlock", "value": 1}
+    ],
+    "counts_as": [
+      {"stat": "output", "op": "more", "value": 1.2, "scope": "all"}
+    ],
+    "cost": 33300000, "requires": ["hard_graft_4"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:trophy_rack",
+    "scene": "a plank rack by the cabin; each trophy is the run's last target in miniature: pine cone, geode, ore nugget, sulfur crystal or a rivet"
+  },
+  {
+    "id": "green_sky_3", "sector": "grip", "ring": 9, "slot": 7, "type": "small",
+    "name": "Green Sky III",
+    "series": "green_sky",
+    "text": "All lines ×1.25 while Afterglow lasts",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.25, "scope": "all", "when": "afterglow"}
+    ],
+    "cost": 44400000, "requires": ["hard_graft_5"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "old_friend", "sector": "crew", "ring": 1, "slot": 1, "type": "automation",
+    "name": "Old Friends",
+    "text": "Mara stays hired through every Wipe Day and rows back in with you",
+    "effects": [
+      {"stat": "keep_hand", "op": "unlock", "value": 1, "scope": "beachcomber"}
+    ],
+    "cost": 2, "requires": ["ground_zero"], "wave": "R2",
+    "anchor": true,
+    "scene": "Mara rows in with the crew at every landing and walks straight to the tideline"
+  },
+  {
+    "id": "fair_pay_1", "sector": "crew", "ring": 1, "slot": 2, "type": "small",
+    "name": "Fair Pay I",
+    "series": "fair_pay",
+    "text": "Hands cost ×0.95",
+    "effects": [
+      {"stat": "hand_cost", "op": "more", "value": 0.95}
+    ],
+    "cost": 1, "requires": ["ground_zero"], "wave": "R2"
+  },
+  {
+    "id": "hiring_board", "sector": "crew", "ring": 2, "slot": 1, "type": "notable",
+    "name": "Hiring Board",
+    "text": "Dax stays hired through every Wipe Day too, and every hand costs ×0.9",
+    "effects": [
+      {"stat": "keep_hand", "op": "unlock", "value": 1, "scope": "campfire"},
+      {"stat": "hand_cost", "op": "more", "value": 0.9}
+    ],
+    "cost": 9, "requires": ["old_friend"], "wave": "R2",
+    "scene": "a hiring board by the cabin, one painted name per kept hand"
+  },
+  {
+    "id": "work_gang_1", "sector": "crew", "ring": 2, "slot": 2, "type": "small",
+    "name": "Work Gang I",
+    "series": "work_gang",
+    "text": "Twig-era lines +25%",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.25, "scope": "twig"}
+    ],
+    "cost": 5, "requires": ["old_friend", "fair_pay_1"], "wave": "R2"
+  },
+  {
+    "id": "pep_talk", "sector": "crew", "ring": 2, "slot": 3, "type": "notable",
+    "name": "Pep Talk",
+    "text": "All lines +1% a hand on shift (up to +5%), twice that while Afterglow lasts",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.01, "per": "hands", "max": 0.05},
+      {"stat": "output", "op": "inc", "value": 0.01, "per": "hands", "max": 0.05, "when": "afterglow"}
+    ],
+    "cost": 11, "requires": ["fair_pay_1"], "wave": "R2"
+  },
+  {
+    "id": "work_gang_2", "sector": "crew", "ring": 3, "slot": 1, "type": "small",
+    "name": "Work Gang II",
+    "series": "work_gang",
+    "text": "Timber-era lines +30%",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "scope": "wood"}
+    ],
+    "cost": 25, "requires": ["hiring_board"], "wave": "R2"
+  },
+  {
+    "id": "old_crew_1", "sector": "crew", "ring": 3, "slot": 2, "type": "automation",
+    "name": "Old Crew I",
+    "text": "Hands for lines 1-6 stay hired through every Wipe Day",
+    "effects": [
+      {"stat": "keep_hand", "op": "unlock", "value": 1, "scope": "twig"},
+      {"stat": "keep_hand", "op": "unlock", "value": 1, "scope": "wood"}
+    ],
+    "cost": 33, "requires": ["hiring_board", "work_gang_1"], "wave": "R2",
+    "anchor": true
+  },
+  {
+    "id": "fair_wages", "sector": "crew", "ring": 3, "slot": 3, "type": "notable",
+    "name": "Fair Wages",
+    "text": "Hands cost ×0.9, and each hand on shift adds +0.5% to all lines (up to +5%)",
+    "effects": [
+      {"stat": "hand_cost", "op": "more", "value": 0.9},
+      {"stat": "output", "op": "inc", "value": 0.005, "per": "hands", "max": 0.05}
+    ],
+    "cost": 66, "requires": ["work_gang_1", "pep_talk"], "wave": "R2"
+  },
+  {
+    "id": "crew_kit_1", "sector": "crew", "ring": 3, "slot": 4, "type": "small",
+    "name": "Crew Kit I",
+    "series": "crew_kit",
+    "text": "Runs start with 10 Looms, at work as soon as Timber opens",
+    "effects": [
+      {"stat": "start_owned", "op": "set", "value": 10, "scope": "loom"}
+    ],
+    "cost": 44, "requires": ["pep_talk"], "wave": "R2"
+  },
+  {
+    "id": "pay_day", "sector": "crew", "ring": 4, "slot": 1, "type": "unlock",
+    "name": "Pay Day",
+    "text": "Ring the bell by the cabin once a run: manned lines ×3 for 5 minutes",
+    "effects": [
+      {"stat": "feature:pay_day", "op": "unlock", "value": 1}
+    ],
+    "counts_as": [
+      {"stat": "output", "op": "more", "value": 1.02, "scope": "all"}
+    ],
+    "cost": 333, "requires": ["work_gang_2"], "wave": "R3",
+    "feature": "feature:pay_day",
+    "scene": "a rusty bell on a post by the cabin; rung, the crew cheer and toss their caps for 5 minutes (a scene object, never a Toolbelt button)"
+  },
+  {
+    "id": "crew_kit_2", "sector": "crew", "ring": 4, "slot": 2, "type": "small",
+    "name": "Crew Kit II",
+    "series": "crew_kit",
+    "text": "Runs start with 10 Workbenches, at work as soon as Timber opens",
+    "effects": [
+      {"stat": "start_owned", "op": "set", "value": 10, "scope": "workbench"}
+    ],
+    "cost": 222, "requires": ["work_gang_2", "old_crew_1"], "wave": "R3"
+  },
+  {
+    "id": "full_crew", "sector": "crew", "ring": 4, "slot": 3, "type": "completion",
+    "name": "Full Crew",
+    "text": "All of Crew's ring 3 lit: hands cost ×0.85",
+    "effects": [
+      {"stat": "hand_cost", "op": "more", "value": 0.85}
+    ],
+    "cost": 555, "requires": ["work_gang_2", "old_crew_1", "fair_wages", "crew_kit_1"], "wave": "R3"
+  },
+  {
+    "id": "work_gang_3", "sector": "crew", "ring": 4, "slot": 4, "type": "small",
+    "name": "Work Gang III",
+    "series": "work_gang",
+    "text": "Stone-era lines +30%",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "scope": "stone"}
+    ],
+    "cost": 333, "requires": ["fair_wages", "crew_kit_1"], "wave": "R3"
+  },
+  {
+    "id": "roll_call", "sector": "crew", "ring": 4, "slot": 5, "type": "automation",
+    "name": "Roll Call",
+    "text": "A Roll Call button hires every hand you can afford, keeping the crown's price",
+    "effects": [
+      {"stat": "feature:roll_call", "op": "unlock", "value": 1}
+    ],
+    "cost": 444, "requires": ["crew_kit_1"], "wave": "R3",
+    "feature": "feature:roll_call"
+  },
+  {
+    "id": "fair_pay_2", "sector": "crew", "ring": 5, "slot": 1, "type": "small",
+    "name": "Fair Pay II",
+    "series": "fair_pay",
+    "text": "Hands cost ×0.85",
+    "effects": [
+      {"stat": "hand_cost", "op": "more", "value": 0.85}
+    ],
+    "cost": 2222, "requires": ["pay_day"], "wave": "R3"
+  },
+  {
+    "id": "old_crew_2", "sector": "crew", "ring": 5, "slot": 2, "type": "automation",
+    "name": "Old Crew II",
+    "text": "Hands for lines 1-10 stay hired through every Wipe Day",
+    "effects": [
+      {"stat": "keep_hand", "op": "unlock", "value": 1, "scope": "twig"},
+      {"stat": "keep_hand", "op": "unlock", "value": 1, "scope": "wood"},
+      {"stat": "keep_hand", "op": "unlock", "value": 1, "scope": "stone"},
+      {"stat": "keep_hand", "op": "unlock", "value": 1, "scope": "dock"}
+    ],
+    "cost": 3333, "requires": ["crew_kit_2"], "wave": "R3"
+  },
+  {
+    "id": "skeleton_crew", "sector": "crew", "ring": 5, "slot": 3, "type": "keystone",
+    "name": "Skeleton Crew",
+    "text": "Hands cost nothing and manned lines pay ×2, but only five hands work at once",
+    "effects": [
+      {"stat": "hand_cap", "op": "set", "value": 5},
+      {"stat": "hand_cost", "op": "more", "value": 0},
+      {"stat": "feature:skeleton_crew", "op": "unlock", "value": 1}
+    ],
+    "cost": 7777, "requires": ["full_crew"], "wave": "R3",
+    "feature": "feature:skeleton_crew",
+    "conflicts": ["lone_wolf"]
+  },
+  {
+    "id": "bunkhouse", "sector": "crew", "ring": 5, "slot": 4, "type": "notable",
+    "name": "Bunkhouse",
+    "text": "Rested hands: all lines cycle ×1.3 faster; the bunkhouse stands from the start",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 1.3}
+    ],
+    "cost": 4444, "requires": ["work_gang_3"], "wave": "R3",
+    "scene": "a bunkhouse with a stove pipe and a washing line stands by the cabin from the first second of every run"
+  },
+  {
+    "id": "crew_spirit_1", "sector": "crew", "ring": 5, "slot": 5, "type": "small",
+    "name": "Crew Spirit I",
+    "series": "crew_spirit",
+    "text": "All lines +1.5% a hand on shift (up to ×1.21)",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.015, "per": "hands", "max": 1.21}
+    ],
+    "cost": 3333, "requires": ["roll_call"], "wave": "R3"
+  },
+  {
+    "id": "crew_spirit_2", "sector": "crew", "ring": 6, "slot": 1, "type": "small",
+    "name": "Crew Spirit II",
+    "series": "crew_spirit",
+    "text": "All lines +2% a hand on shift (up to ×1.28)",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.02, "per": "hands", "max": 1.28}
+    ],
+    "cost": 22200, "requires": ["fair_pay_2"], "wave": "R3"
+  },
+  {
+    "id": "foremans_mate", "sector": "crew", "ring": 6, "slot": 2, "type": "automation",
+    "name": "Foreman's Mate",
+    "text": "The Foreman also buys units for lines with no hand on shift",
+    "effects": [
+      {"stat": "feature:foreman_unmanned", "op": "unlock", "value": 1}
+    ],
+    "cost": 33300, "requires": ["fair_pay_2", "old_crew_2"], "wave": "R5", "gate": 20,
+    "feature": "feature:foreman_unmanned"
+  },
+  {
+    "id": "old_crew_3", "sector": "crew", "ring": 6, "slot": 3, "type": "automation",
+    "name": "Old Crew III",
+    "text": "Every hand stays hired through every Wipe Day",
+    "effects": [
+      {"stat": "keep_hand", "op": "unlock", "value": 1, "scope": "all"}
+    ],
+    "cost": 44400, "requires": ["old_crew_2", "skeleton_crew"], "wave": "R3"
+  },
+  {
+    "id": "work_gang_4", "sector": "crew", "ring": 6, "slot": 4, "type": "small",
+    "name": "Work Gang IV",
+    "series": "work_gang",
+    "text": "Armored-era lines ×1.5",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "hqm"}
+    ],
+    "cost": 33300, "requires": ["skeleton_crew", "bunkhouse"], "wave": "R3"
+  },
+  {
+    "id": "crew_charter", "sector": "crew", "ring": 6, "slot": 5, "type": "notable",
+    "name": "Crew Charter",
+    "text": "All lines +3% for every Crew node you own (up to ×1.75)",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.03, "per": "sector:crew", "max": 1.75}
+    ],
+    "cost": 77700, "requires": ["bunkhouse", "crew_spirit_1"], "wave": "R3"
+  },
+  {
+    "id": "square_meals_1", "sector": "crew", "ring": 6, "slot": 6, "type": "small",
+    "name": "Square Meals I",
+    "series": "square_meals",
+    "text": "All lines ×1.15",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.15, "scope": "all"}
+    ],
+    "cost": 22200, "requires": ["crew_spirit_1"], "wave": "R3"
+  },
+  {
+    "id": "scar_tissue", "sector": "crew", "ring": 7, "slot": 1, "type": "notable",
+    "name": "Scar Tissue",
+    "text": "All lines +0.5% for every Wipe Day your crew has lived through (up to ×1.25)",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.005, "per": "nukes", "max": 1.25}
+    ],
+    "cost": 555000, "requires": ["crew_spirit_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "work_gang_5", "sector": "crew", "ring": 7, "slot": 2, "type": "small",
+    "name": "Work Gang V",
+    "series": "work_gang",
+    "text": "Armored-era lines ×1.5",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "hqm"}
+    ],
+    "cost": 333000, "requires": ["foremans_mate"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "square_meals_2", "sector": "crew", "ring": 7, "slot": 3, "type": "small",
+    "name": "Square Meals II",
+    "series": "square_meals",
+    "text": "All lines ×1.1",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 222000, "requires": ["old_crew_3"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "crew_spirit_3", "sector": "crew", "ring": 7, "slot": 4, "type": "small",
+    "name": "Crew Spirit III",
+    "series": "crew_spirit",
+    "text": "All lines +2% a hand on shift (up to ×1.28)",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.02, "per": "hands", "max": 1.28}
+    ],
+    "cost": 333000, "requires": ["work_gang_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "square_meals_3", "sector": "crew", "ring": 7, "slot": 5, "type": "small",
+    "name": "Square Meals III",
+    "series": "square_meals",
+    "text": "All lines ×1.1",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 222000, "requires": ["crew_charter"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "crew_photo", "sector": "crew", "ring": 7, "slot": 6, "type": "unlock",
+    "name": "Crew Photo",
+    "text": "All lines ×1.4 until this run out-earns your crew photo; then it's retaken",
+    "effects": [
+      {"stat": "feature:crew_photo", "op": "unlock", "value": 1}
+    ],
+    "counts_as": [
+      {"stat": "output", "op": "more", "value": 1.4, "scope": "all"}
+    ],
+    "cost": 444000, "requires": ["square_meals_1"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:crew_photo",
+    "scene": "a framed photo of your best run's crew on the cabin wall; a camera flash and a fresh photo when a run beats it"
+  },
+  {
+    "id": "crew_spirit_4", "sector": "crew", "ring": 8, "slot": 1, "type": "small",
+    "name": "Crew Spirit IV",
+    "series": "crew_spirit",
+    "text": "All lines +2% a hand on shift (up to ×1.28)",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.02, "per": "hands", "max": 1.28}
+    ],
+    "cost": 2220000, "requires": ["scar_tissue"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "square_meals_4", "sector": "crew", "ring": 8, "slot": 2, "type": "small",
+    "name": "Square Meals IV",
+    "series": "square_meals",
+    "text": "All lines ×1.1",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 2220000, "requires": ["scar_tissue", "work_gang_5"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "time_and_motion", "sector": "crew", "ring": 8, "slot": 3, "type": "notable",
+    "name": "Time and Motion",
+    "text": "All lines cycle ×1.7 faster",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 1.7}
+    ],
+    "cost": 5550000, "requires": ["work_gang_5", "square_meals_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "lone_wolf", "sector": "crew", "ring": 8, "slot": 4, "type": "keystone",
+    "name": "Lone Wolf",
+    "text": "Taps ×50, but no hands at all: lines run only while you tap (ranks still count)",
+    "effects": [
+      {"stat": "tap", "op": "more", "value": 50},
+      {"stat": "hand_cap", "op": "set", "value": 0}
+    ],
+    "cost": 7770000, "requires": ["square_meals_2", "crew_spirit_3"], "wave": "R7", "data_from": "R3",
+    "conflicts": ["archivist", "bunker_mentality", "skeleton_crew"],
+    "anchor": true
+  },
+  {
+    "id": "standing_crew", "sector": "crew", "ring": 8, "slot": 5, "type": "automation",
+    "name": "Standing Crew",
+    "text": "Each kept hand brings 10 units of their line, on top of any kit",
+    "effects": [
+      {"stat": "feature:standing_crew", "op": "unlock", "value": 1}
+    ],
+    "cost": 3330000, "requires": ["crew_spirit_3", "square_meals_3"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:standing_crew"
+  },
+  {
+    "id": "work_gang_6", "sector": "crew", "ring": 8, "slot": 6, "type": "small",
+    "name": "Work Gang VI",
+    "series": "work_gang",
+    "text": "Armored-era lines ×1.5",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "hqm"}
+    ],
+    "cost": 3330000, "requires": ["square_meals_3", "crew_photo"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "square_meals_5", "sector": "crew", "ring": 8, "slot": 7, "type": "small",
+    "name": "Square Meals V",
+    "series": "square_meals",
+    "text": "All lines ×1.1",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 2220000, "requires": ["crew_photo"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "square_meals_6", "sector": "crew", "ring": 9, "slot": 1, "type": "small",
+    "name": "Square Meals VI",
+    "series": "square_meals",
+    "text": "All lines ×1.1",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 22200000, "requires": ["crew_spirit_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "relief_crew", "sector": "crew", "ring": 9, "slot": 2, "type": "unlock",
+    "name": "Relief Crew",
+    "text": "Each line takes a second hand at ×10 the price: that line ×1.5",
+    "effects": [
+      {"stat": "feature:relief_crew", "op": "unlock", "value": 1}
+    ],
+    "counts_as": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "all"}
+    ],
+    "cost": 33300000, "requires": ["square_meals_4"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:relief_crew",
+    "scene": "a second figure works beside each hand; the pair swap places when the bell rings"
+  },
+  {
+    "id": "square_meals_7", "sector": "crew", "ring": 9, "slot": 3, "type": "small",
+    "name": "Square Meals VII",
+    "series": "square_meals",
+    "text": "All lines ×1.1",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 22200000, "requires": ["time_and_motion"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "crew_legends", "sector": "crew", "ring": 9, "slot": 4, "type": "completion",
+    "name": "Crew Legends",
+    "text": "All of Crew's ring 8 lit: all lines ×2",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "all"}
+    ],
+    "cost": 55500000, "requires": ["crew_spirit_4", "square_meals_4", "time_and_motion", "lone_wolf", "standing_crew", "work_gang_6", "square_meals_5"], "wave": "R7", "data_from": "R3",
+    "scene": "every hand's name burned into a driftwood sign over the base door"
+  },
+  {
+    "id": "campfire_stories", "sector": "crew", "ring": 9, "slot": 5, "type": "notable",
+    "name": "Campfire Stories",
+    "text": "All lines +0.1% for every Logbook page (up to ×1.15)",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.001, "per": "entries", "max": 1.15}
+    ],
+    "cost": 77700000, "requires": ["standing_crew"], "wave": "R7", "data_from": "R4"
+  },
+  {
+    "id": "lifers", "sector": "crew", "ring": 9, "slot": 6, "type": "automation",
+    "name": "Lifers",
+    "text": "Kept hands keep their line's Line Mk III through the blast",
+    "effects": [
+      {"stat": "feature:lifers", "op": "unlock", "value": 1}
+    ],
+    "cost": 33300000, "requires": ["work_gang_6"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:lifers"
+  },
+  {
+    "id": "fair_pay_3", "sector": "crew", "ring": 9, "slot": 7, "type": "small",
+    "name": "Fair Pay III",
+    "series": "fair_pay",
+    "text": "Hands cost ×0.85 (second hands too)",
+    "effects": [
+      {"stat": "hand_cost", "op": "more", "value": 0.85}
+    ],
+    "cost": 22200000, "requires": ["square_meals_5"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "packed_crate", "sector": "works", "ring": 1, "slot": 1, "type": "unlock",
+    "name": "Starter Kit",
+    "text": "Start every run with 10 Beachcombers and 5 Campfires, already working.",
+    "effects": [
+      {"stat": "start_owned", "op": "set", "value": 10, "scope": "beachcomber"},
+      {"stat": "start_owned", "op": "set", "value": 5, "scope": "campfire"}
+    ],
+    "cost": 2, "requires": ["ground_zero"], "wave": "R2",
+    "anchor": true,
+    "scene": "a packed crate rides in on the rowboat; at landing 10 Beachcombers and 5 Campfires pop in with their count badges"
+  },
+  {
+    "id": "hot_coals", "sector": "works", "ring": 1, "slot": 2, "type": "small",
+    "name": "Hot Coals",
+    "text": "Campfires +100%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 1, "scope": "campfire"}
+    ],
+    "cost": 1, "requires": ["ground_zero"], "wave": "R2"
+  },
+  {
+    "id": "first_light", "sector": "works", "ring": 2, "slot": 1, "type": "notable",
+    "name": "First Light",
+    "text": "Beachcombers, Campfires and Gardens cycle twice as fast. Up at dawn.",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 2, "scope": "twig"}
+    ],
+    "cost": 9, "requires": ["packed_crate"], "wave": "R2"
+  },
+  {
+    "id": "bulk_discount_1", "sector": "works", "ring": 2, "slot": 2, "type": "small",
+    "name": "Bulk Discount I",
+    "text": "Line units cost ×0.9.",
+    "effects": [
+      {"stat": "line_cost", "op": "more", "value": 0.9, "scope": "all"}
+    ],
+    "cost": 5, "requires": ["packed_crate", "hot_coals"], "wave": "R2"
+  },
+  {
+    "id": "bulk_buttons", "sector": "works", "ring": 2, "slot": 3, "type": "unlock",
+    "name": "Bulk Buttons",
+    "text": "Adds Next to the bulk toggle: buys just enough for each line's next milestone.",
+    "effects": [
+      {"stat": "feature:bulk_buy", "op": "unlock", "value": 1}
+    ],
+    "cost": 4, "requires": ["hot_coals"], "wave": "R2",
+    "feature": "feature:bulk_buy"
+  },
+  {
+    "id": "elbow_grease_1", "sector": "works", "ring": 3, "slot": 1, "type": "small",
+    "name": "Elbow Grease I",
+    "text": "All lines +15%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.15, "scope": "all"}
+    ],
+    "cost": 44, "requires": ["first_light"], "wave": "R2"
+  },
+  {
+    "id": "conveyor", "sector": "works", "ring": 3, "slot": 2, "type": "notable",
+    "name": "Conveyor Belts",
+    "text": "All lines +30%. Belts rattle between the buildings, carrying every product.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "scope": "all"}
+    ],
+    "cost": 77, "requires": ["first_light", "bulk_discount_1"], "wave": "R2",
+    "scene": "rattling belts link the buildings; each line's product rides them to the base"
+  },
+  {
+    "id": "prefab_walls", "sector": "works", "ring": 3, "slot": 3, "type": "unlock",
+    "name": "Prefab Walls",
+    "text": "Every run starts in the Timber era. The cabin comes flat-packed.",
+    "effects": [
+      {"stat": "start_era", "op": "set", "value": "wood"}
+    ],
+    "cost": 66, "requires": ["bulk_discount_1", "bulk_buttons"], "wave": "R2",
+    "scene": "the rebuild drops a flat-packed timber cabin instead of the twig lean-to"
+  },
+  {
+    "id": "bulk_discount_2", "sector": "works", "ring": 3, "slot": 4, "type": "small",
+    "name": "Bulk Discount II",
+    "text": "Line units cost ×0.9.",
+    "effects": [
+      {"stat": "line_cost", "op": "more", "value": 0.9, "scope": "all"}
+    ],
+    "cost": 33, "requires": ["bulk_buttons"], "wave": "R2"
+  },
+  {
+    "id": "big_kit", "sector": "works", "ring": 4, "slot": 1, "type": "automation",
+    "name": "Bigger Kit",
+    "text": "Start every run with 25 Beachcombers, 25 Campfires and 25 Gardens.",
+    "effects": [
+      {"stat": "start_owned", "op": "set", "value": 25, "scope": "beachcomber"},
+      {"stat": "start_owned", "op": "set", "value": 25, "scope": "campfire"},
+      {"stat": "start_owned", "op": "set", "value": 25, "scope": "garden"}
+    ],
+    "cost": 333, "requires": ["elbow_grease_1"], "wave": "R3"
+  },
+  {
+    "id": "retooling_1", "sector": "works", "ring": 4, "slot": 2, "type": "small",
+    "name": "Retooling I",
+    "text": "Timber lines +30%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "scope": "wood"}
+    ],
+    "cost": 222, "requires": ["elbow_grease_1", "conveyor"], "wave": "R3"
+  },
+  {
+    "id": "shop_floor", "sector": "works", "ring": 4, "slot": 3, "type": "completion",
+    "name": "Shop Floor",
+    "text": "Line units cost ×0.85. The shop floor finally has a floor.",
+    "effects": [
+      {"stat": "line_cost", "op": "more", "value": 0.85, "scope": "all"}
+    ],
+    "cost": 555, "requires": ["elbow_grease_1", "conveyor", "prefab_walls", "bulk_discount_2"], "wave": "R3"
+  },
+  {
+    "id": "retooling_2", "sector": "works", "ring": 4, "slot": 4, "type": "small",
+    "name": "Retooling II",
+    "text": "Stone lines +30%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "scope": "stone"}
+    ],
+    "cost": 333, "requires": ["prefab_walls", "bulk_discount_2"], "wave": "R3"
+  },
+  {
+    "id": "union_rules", "sector": "works", "ring": 4, "slot": 5, "type": "notable",
+    "name": "Union Rules",
+    "text": "Every ×2 milestone pays ×2.2. The crew read the small print.",
+    "effects": [
+      {"stat": "milestone_x2", "op": "set", "value": 2.2}
+    ],
+    "cost": 777, "requires": ["bulk_discount_2"], "wave": "R3",
+    "anchor": true
+  },
+  {
+    "id": "bulk_discount_3", "sector": "works", "ring": 5, "slot": 1, "type": "small",
+    "name": "Bulk Discount III",
+    "text": "Line units cost ×0.85.",
+    "effects": [
+      {"stat": "line_cost", "op": "more", "value": 0.85, "scope": "all"}
+    ],
+    "cost": 2222, "requires": ["big_kit"], "wave": "R3"
+  },
+  {
+    "id": "stone_foundations", "sector": "works", "ring": 5, "slot": 2, "type": "automation",
+    "name": "Stone Foundations",
+    "text": "Every run starts in the Stone era. Somebody finally poured concrete.",
+    "effects": [
+      {"stat": "start_era", "op": "set", "value": "stone"}
+    ],
+    "cost": 3333, "requires": ["retooling_1"], "wave": "R3",
+    "scene": "the cabin lands on a poured stone footing, in Stone-era colours from the first second"
+  },
+  {
+    "id": "mass_production", "sector": "works", "ring": 5, "slot": 3, "type": "keystone",
+    "name": "Mass Production",
+    "text": "Every line +2% per unit of it you own, up to ×8. Speed milestones do nothing.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.02, "scope": "all", "per": "owned", "max": 8},
+      {"stat": "feature:mass_production", "op": "unlock", "value": 1}
+    ],
+    "cost": 7777, "requires": ["shop_floor"], "wave": "R3",
+    "feature": "feature:mass_production"
+  },
+  {
+    "id": "assembly_line", "sector": "works", "ring": 5, "slot": 4, "type": "notable",
+    "name": "Assembly Line",
+    "text": "All lines +5% for every Works node you own, up to ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.05, "scope": "all", "per": "sector:works", "max": 2}
+    ],
+    "cost": 9999, "requires": ["retooling_2"], "wave": "R3"
+  },
+  {
+    "id": "elbow_grease_2", "sector": "works", "ring": 5, "slot": 5, "type": "small",
+    "name": "Elbow Grease II",
+    "text": "All lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3, "scope": "all"}
+    ],
+    "cost": 4444, "requires": ["union_rules"], "wave": "R3"
+  },
+  {
+    "id": "elbow_grease_3", "sector": "works", "ring": 6, "slot": 1, "type": "small",
+    "name": "Elbow Grease III",
+    "text": "All lines ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "all"}
+    ],
+    "cost": 44400, "requires": ["bulk_discount_3"], "wave": "R3"
+  },
+  {
+    "id": "full_roster", "sector": "works", "ring": 6, "slot": 2, "type": "notable",
+    "name": "Full Roster",
+    "text": "Roster milestones that pay ×2 pay ×3. Bunting for everyone.",
+    "effects": [
+      {"stat": "roster_x2", "op": "set", "value": 3}
+    ],
+    "cost": 55500, "requires": ["bulk_discount_3", "stone_foundations"], "wave": "R3"
+  },
+  {
+    "id": "retooling_3", "sector": "works", "ring": 6, "slot": 3, "type": "small",
+    "name": "Retooling III",
+    "text": "Armored lines ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "hqm"}
+    ],
+    "cost": 33300, "requires": ["stone_foundations", "mass_production"], "wave": "R3"
+  },
+  {
+    "id": "hot_cells_1", "sector": "works", "ring": 6, "slot": 4, "type": "small",
+    "name": "Hot Cells I",
+    "text": "Reactors ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "reactor"}
+    ],
+    "cost": 55500, "requires": ["mass_production", "assembly_line"], "wave": "R3"
+  },
+  {
+    "id": "standing_orders", "sector": "works", "ring": 6, "slot": 5, "type": "automation",
+    "name": "Standing Orders",
+    "text": "Line Mk II and III buy themselves when affordable, while the page is open.",
+    "effects": [
+      {"stat": "feature:autobuy", "op": "unlock", "value": 1, "scope": "line_mk"}
+    ],
+    "cost": 33300, "requires": ["assembly_line", "elbow_grease_2"], "wave": "R3",
+    "feature": "feature:autobuy"
+  },
+  {
+    "id": "bulk_discount_4", "sector": "works", "ring": 6, "slot": 6, "type": "small",
+    "name": "Bulk Discount IV",
+    "text": "Line units cost ×0.85.",
+    "effects": [
+      {"stat": "line_cost", "op": "more", "value": 0.85, "scope": "all"}
+    ],
+    "cost": 22200, "requires": ["elbow_grease_2"], "wave": "R3"
+  },
+  {
+    "id": "tin_roofs", "sector": "works", "ring": 7, "slot": 1, "type": "automation",
+    "name": "Tin Roofs",
+    "text": "Every run starts in the Sheet Metal era. Rain drums on tin, not on you.",
+    "effects": [
+      {"stat": "start_era", "op": "set", "value": "metal"}
+    ],
+    "cost": 333000, "requires": ["elbow_grease_3"], "wave": "R7", "data_from": "R3",
+    "scene": "corrugated tin roofs on every building from the landing; rain drums on them"
+  },
+  {
+    "id": "elbow_grease_4", "sector": "works", "ring": 7, "slot": 2, "type": "small",
+    "name": "Elbow Grease IV",
+    "text": "All lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3, "scope": "all"}
+    ],
+    "cost": 444000, "requires": ["full_roster"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bulk_discount_5", "sector": "works", "ring": 7, "slot": 3, "type": "small",
+    "name": "Bulk Discount V",
+    "text": "Line units cost ×0.85.",
+    "effects": [
+      {"stat": "line_cost", "op": "more", "value": 0.85, "scope": "all"}
+    ],
+    "cost": 222000, "requires": ["retooling_3"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "retooling_4", "sector": "works", "ring": 7, "slot": 4, "type": "small",
+    "name": "Retooling IV",
+    "text": "Armored lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3, "scope": "hqm"}
+    ],
+    "cost": 333000, "requires": ["hot_cells_1"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "hot_cells_2", "sector": "works", "ring": 7, "slot": 5, "type": "small",
+    "name": "Hot Cells II",
+    "text": "Reactors ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "reactor"}
+    ],
+    "cost": 555000, "requires": ["standing_orders"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "smokestacks", "sector": "works", "ring": 7, "slot": 6, "type": "notable",
+    "name": "Smokestacks",
+    "text": "All lines ×2. Every building grows a smokestack; the gulls hate it.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "all"}
+    ],
+    "cost": 1110000, "requires": ["bulk_discount_4"], "wave": "R7", "data_from": "R3",
+    "scene": "a smokestack on every building, puffing in time with its bar; gulls circle wide of them"
+  },
+  {
+    "id": "elbow_grease_5", "sector": "works", "ring": 8, "slot": 1, "type": "small",
+    "name": "Elbow Grease V",
+    "text": "All lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3, "scope": "all"}
+    ],
+    "cost": 4440000, "requires": ["tin_roofs"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bulk_discount_6", "sector": "works", "ring": 8, "slot": 2, "type": "small",
+    "name": "Bulk Discount VI",
+    "text": "Line units cost ×0.85.",
+    "effects": [
+      {"stat": "line_cost", "op": "more", "value": 0.85, "scope": "all"}
+    ],
+    "cost": 2220000, "requires": ["tin_roofs", "elbow_grease_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "rivet_gun", "sector": "works", "ring": 8, "slot": 3, "type": "notable",
+    "name": "Rivet Gun",
+    "text": "Armored lines ×2. Every plate gets a rivet, needed or not.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "hqm"}
+    ],
+    "cost": 9990000, "requires": ["elbow_grease_4", "bulk_discount_5"], "wave": "R7", "data_from": "R3",
+    "scene": "riveted plates on the Ship Breaker and Reactor; a rivet gun's sparks flash on them now and then"
+  },
+  {
+    "id": "monoculture", "sector": "works", "ring": 8, "slot": 4, "type": "keystone",
+    "name": "Monoculture",
+    "text": "The highest line you own ×2; every other line ×0.5. The rest can make do.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.5, "scope": "all"},
+      {"stat": "feature:monoculture", "op": "unlock", "value": 1}
+    ],
+    "cost": 7770000, "requires": ["bulk_discount_5", "retooling_4"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:monoculture"
+  },
+  {
+    "id": "overtime", "sector": "works", "ring": 8, "slot": 5, "type": "notable",
+    "name": "Overtime",
+    "text": "Every line cycles twice as fast. Nobody asked the crew.",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 2, "scope": "all"}
+    ],
+    "cost": 5550000, "requires": ["retooling_4", "hot_cells_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "retooling_5", "sector": "works", "ring": 8, "slot": 6, "type": "small",
+    "name": "Retooling V",
+    "text": "Armored lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3, "scope": "hqm"}
+    ],
+    "cost": 3330000, "requires": ["hot_cells_2", "smokestacks"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "hot_cells_3", "sector": "works", "ring": 8, "slot": 7, "type": "small",
+    "name": "Hot Cells III",
+    "text": "Reactors ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "reactor"}
+    ],
+    "cost": 5550000, "requires": ["smokestacks"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bulk_discount_7", "sector": "works", "ring": 9, "slot": 1, "type": "small",
+    "name": "Bulk Discount VII",
+    "text": "Line units cost ×0.85.",
+    "effects": [
+      {"stat": "line_cost", "op": "more", "value": 0.85, "scope": "all"}
+    ],
+    "cost": 22200000, "requires": ["elbow_grease_5"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "barn_raising", "sector": "works", "ring": 9, "slot": 2, "type": "notable",
+    "name": "Barn Raising",
+    "text": "Runs start with 25 of every open line, and lines ×4 while Afterglow lasts.",
+    "effects": [
+      {"stat": "start_owned", "op": "set", "value": 25, "scope": "all"},
+      {"stat": "output", "op": "more", "value": 4, "scope": "all", "when": "afterglow"}
+    ],
+    "cost": 99900000, "requires": ["bulk_discount_6"], "wave": "R7", "data_from": "R3",
+    "scene": "the landing raises a whole town at its 25-owned stage at once; crews hammer on every roof while Afterglow lasts"
+  },
+  {
+    "id": "elbow_grease_6", "sector": "works", "ring": 9, "slot": 3, "type": "small",
+    "name": "Elbow Grease VI",
+    "text": "All lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3, "scope": "all"}
+    ],
+    "cost": 44400000, "requires": ["rivet_gun"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "the_works", "sector": "works", "ring": 9, "slot": 4, "type": "completion",
+    "name": "The Works",
+    "text": "All lines ×3. You built the whole works.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 3, "scope": "all"}
+    ],
+    "cost": 55500000, "requires": ["elbow_grease_5", "bulk_discount_6", "rivet_gun", "monoculture", "overtime", "retooling_5", "hot_cells_3"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "retooling_6", "sector": "works", "ring": 9, "slot": 5, "type": "small",
+    "name": "Retooling VI",
+    "text": "Armored lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3, "scope": "hqm"}
+    ],
+    "cost": 33300000, "requires": ["overtime"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "line_mk_iv", "sector": "works", "ring": 9, "slot": 6, "type": "unlock",
+    "name": "Line Mk IV",
+    "text": "Line Mk IV on the shelf (needs 100 owned): that line ×3, painted sign and all.",
+    "effects": [
+      {"stat": "feature:line_mk_iv", "op": "unlock", "value": 1}
+    ],
+    "counts_as": [
+      {"stat": "output", "op": "more", "value": 3, "scope": "all"}
+    ],
+    "cost": 33300000, "requires": ["retooling_5"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:line_mk_iv",
+    "scene": "a hand-painted Mk IV sign on every building that has one"
+  },
+  {
+    "id": "retooling_7", "sector": "works", "ring": 9, "slot": 7, "type": "small",
+    "name": "Retooling VII",
+    "text": "Sheet Metal lines ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "metal"}
+    ],
+    "cost": 22200000, "requires": ["hot_cells_3"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "lucky_tide", "sector": "tide", "ring": 1, "slot": 1, "type": "notable",
+    "name": "Lucky Tide",
+    "text": "Flotsam drifts in 5% more often.",
+    "effects": [
+      {"stat": "flotsam_rate", "op": "more", "value": 1.05}
+    ],
+    "cost": 3, "requires": ["ground_zero"], "wave": "R2",
+    "flavour": "The sea seems to like you. Don't push it."
+  },
+  {
+    "id": "slow_current_1", "sector": "tide", "ring": 1, "slot": 2, "type": "small",
+    "name": "Slow Current I",
+    "series": "slow_current",
+    "text": "Flotsam floats 1 s longer.",
+    "effects": [
+      {"stat": "flotsam_float", "op": "add", "value": 1}
+    ],
+    "cost": 1, "requires": ["ground_zero"], "wave": "R2"
+  },
+  {
+    "id": "lookout_post", "sector": "tide", "ring": 2, "slot": 1, "type": "unlock",
+    "name": "Lookout Post",
+    "text": "A lookout points and a bell rings 3 s before flotsam drifts in.",
+    "effects": [
+      {"stat": "feature:lookout_post", "op": "unlock", "value": 1}
+    ],
+    "cost": 7, "requires": ["lucky_tide"], "wave": "R2",
+    "feature": "feature:lookout_post",
+    "scene": "a lookout on a pole above the beach points out to sea and swings a ship's bell before each arrival",
+    "flavour": "The kid with the spyglass finally earns his beans."
+  },
+  {
+    "id": "driftwood_1", "sector": "tide", "ring": 2, "slot": 2, "type": "small",
+    "name": "Driftwood I",
+    "series": "driftwood",
+    "text": "Beachcombers +50%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.5, "scope": "beachcomber"}
+    ],
+    "cost": 4, "requires": ["lucky_tide", "slow_current_1"], "wave": "R2"
+  },
+  {
+    "id": "rally_cry", "sector": "tide", "ring": 2, "slot": 3, "type": "notable",
+    "name": "Rally Cry",
+    "text": "Flotsam pays 5% more, Rallies included; the crew cheer each Rally.",
+    "effects": [
+      {"stat": "flotsam_effect", "op": "inc", "value": 0.05}
+    ],
+    "cost": 9, "requires": ["slow_current_1"], "wave": "R2",
+    "scene": "the crew throw their arms up and cheer when a Rally starts",
+    "flavour": "Nothing lifts spirits like a drum of diesel in the surf."
+  },
+  {
+    "id": "slow_current_2", "sector": "tide", "ring": 3, "slot": 1, "type": "small",
+    "name": "Slow Current II",
+    "series": "slow_current",
+    "text": "Flotsam floats 2 s longer.",
+    "effects": [
+      {"stat": "flotsam_float", "op": "add", "value": 2}
+    ],
+    "cost": 44, "requires": ["lookout_post"], "wave": "R2"
+  },
+  {
+    "id": "rainmaker", "sector": "tide", "ring": 3, "slot": 2, "type": "notable",
+    "name": "Rainmaker",
+    "text": "In rain, flotsam floats 10 s longer.",
+    "effects": [
+      {"stat": "flotsam_float", "op": "add", "value": 10, "when": "rain"}
+    ],
+    "cost": 55, "requires": ["lookout_post", "driftwood_1"], "wave": "R2",
+    "flavour": "Bad weather, good pickings."
+  },
+  {
+    "id": "circling_gulls", "sector": "tide", "ring": 3, "slot": 3, "type": "notable",
+    "name": "Circling Gulls",
+    "text": "Gulls circle anything afloat: flotsam floats 3 s longer.",
+    "effects": [
+      {"stat": "flotsam_float", "op": "add", "value": 3}
+    ],
+    "cost": 66, "requires": ["driftwood_1", "rally_cry"], "wave": "R2",
+    "scene": "two gulls circle each flotsam until it is caught or sinks",
+    "flavour": "They want the fish. You want the crate. Everyone wins."
+  },
+  {
+    "id": "driftwood_2", "sector": "tide", "ring": 3, "slot": 4, "type": "small",
+    "name": "Driftwood II",
+    "series": "driftwood",
+    "text": "Beachcombers +60%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.6, "scope": "beachcomber"}
+    ],
+    "cost": 25, "requires": ["rally_cry"], "wave": "R2"
+  },
+  {
+    "id": "life_raft", "sector": "tide", "ring": 4, "slot": 1, "type": "unlock",
+    "name": "Life Raft",
+    "text": "New flotsam (4%): a castaway rows in and mans your top unmanned line for 10 min.",
+    "effects": [
+      {"stat": "feature:life_raft", "op": "unlock", "value": 1},
+      {"stat": "flotsam_weight", "op": "set", "value": 4, "scope": "life_raft"}
+    ],
+    "cost": 333, "requires": ["slow_current_2"], "wave": "R3",
+    "feature": "feature:life_raft",
+    "scene": "a castaway in a patched raft rows in, works the line, waves and rows off",
+    "flavour": "Won't say where he's from. Works for beans."
+  },
+  {
+    "id": "storm_drift", "sector": "tide", "ring": 4, "slot": 2, "type": "small",
+    "name": "Storm Drift",
+    "text": "In rain, flotsam floats 3 s longer.",
+    "effects": [
+      {"stat": "flotsam_float", "op": "add", "value": 3, "when": "rain"}
+    ],
+    "cost": 222, "requires": ["slow_current_2", "rainmaker"], "wave": "R3"
+  },
+  {
+    "id": "high_water", "sector": "tide", "ring": 4, "slot": 3, "type": "completion",
+    "name": "High Water",
+    "text": "Flotsam floats 3 s longer (25 s, the most); the tide line rises.",
+    "effects": [
+      {"stat": "flotsam_float", "op": "add", "value": 3}
+    ],
+    "cost": 555, "requires": ["slow_current_2", "rainmaker", "circling_gulls", "driftwood_2"], "wave": "R3",
+    "scene": "the waterline sits higher up the beach, so flotsam beaches closer to the camp",
+    "flavour": "The sea meets you halfway now."
+  },
+  {
+    "id": "slow_current_3", "sector": "tide", "ring": 4, "slot": 4, "type": "small",
+    "name": "Slow Current III",
+    "series": "slow_current",
+    "text": "Flotsam floats 3 s longer.",
+    "effects": [
+      {"stat": "flotsam_float", "op": "add", "value": 3}
+    ],
+    "cost": 333, "requires": ["circling_gulls", "driftwood_2"], "wave": "R3"
+  },
+  {
+    "id": "drag_line", "sector": "tide", "ring": 4, "slot": 5, "type": "automation",
+    "name": "Drag Line",
+    "text": "Flotsam you miss snags on a line and waits on the shore, one at a time.",
+    "effects": [
+      {"stat": "feature:drag_line", "op": "unlock", "value": 1}
+    ],
+    "cost": 444, "requires": ["driftwood_2"], "wave": "R3",
+    "feature": "feature:drag_line",
+    "scene": "a float line strung across the shallows; a snagged catch bobs at its end",
+    "flavour": "What the sea takes, the rope hands back."
+  },
+  {
+    "id": "beach_camp_1", "sector": "tide", "ring": 5, "slot": 1, "type": "small",
+    "name": "Beach Camp I",
+    "series": "beach_camp",
+    "text": "Twig-era lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3, "scope": "twig"}
+    ],
+    "cost": 2222, "requires": ["life_raft"], "wave": "R3"
+  },
+  {
+    "id": "storm_harvest", "sector": "tide", "ring": 5, "slot": 2, "type": "notable",
+    "name": "Storm Harvest",
+    "text": "In rain, all lines ×1.4 and flotsam floats 2 s longer.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.4, "scope": "all", "when": "rain"},
+      {"stat": "flotsam_float", "op": "add", "value": 2, "when": "rain"}
+    ],
+    "cost": 5555, "requires": ["storm_drift"], "wave": "R3",
+    "flavour": "Storm's coming. Get the barrels out."
+  },
+  {
+    "id": "scavengers_eye", "sector": "tide", "ring": 5, "slot": 3, "type": "keystone",
+    "name": "Scavenger's Eye",
+    "text": "Every flotsam is a Fuel Drum (Sealed Lockers aside): no crates, kits or bottles.",
+    "effects": [
+      {"stat": "flotsam_weight", "op": "set", "value": 99, "scope": "fuel_drum"},
+      {"stat": "flotsam_weight", "op": "more", "value": 0, "scope": "crate"},
+      {"stat": "flotsam_weight", "op": "more", "value": 0, "scope": "adrenaline"},
+      {"stat": "flotsam_weight", "op": "more", "value": 0, "scope": "drowned_drone"},
+      {"stat": "flotsam_weight", "op": "more", "value": 0, "scope": "bottle"},
+      {"stat": "flotsam_weight", "op": "more", "value": 0, "scope": "life_raft"},
+      {"stat": "flotsam_weight", "op": "more", "value": 0, "scope": "lost_cargo"}
+    ],
+    "cost": 7777, "requires": ["high_water"], "wave": "R3",
+    "conflicts": ["bunker_mentality"],
+    "flavour": "If it floats and it isn't diesel, you didn't see it."
+  },
+  {
+    "id": "beachcombers_net", "sector": "tide", "ring": 5, "slot": 4, "type": "automation",
+    "name": "Beachcomber's Net",
+    "text": "Drift Crates catch themselves while the page is open.",
+    "effects": [
+      {"stat": "feature:beachcombers_net", "op": "unlock", "value": 1}
+    ],
+    "cost": 3333, "requires": ["slow_current_3"], "wave": "R3",
+    "feature": "feature:beachcombers_net",
+    "scene": "a net on two posts at the tideline scoops crates ashore",
+    "flavour": "Mara strung it up and went back to sorting."
+  },
+  {
+    "id": "sea_wall_1", "sector": "tide", "ring": 5, "slot": 5, "type": "small",
+    "name": "Sea Wall I",
+    "series": "sea_wall",
+    "text": "All lines ×1.1.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 4444, "requires": ["drag_line"], "wave": "R3"
+  },
+  {
+    "id": "deep_nets_1", "sector": "tide", "ring": 6, "slot": 1, "type": "small",
+    "name": "Deep Nets I",
+    "series": "deep_nets",
+    "text": "Docks ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "dock"}
+    ],
+    "cost": 22200, "requires": ["beach_camp_1"], "wave": "R3"
+  },
+  {
+    "id": "flare_gun", "sector": "tide", "ring": 6, "slot": 2, "type": "unlock",
+    "name": "Flare Gun",
+    "text": "Choose what your Flare calls: any kind but the Sealed Locker and the Bottle.",
+    "effects": [
+      {"stat": "feature:flare_gun", "op": "unlock", "value": 1}
+    ],
+    "cost": 33300, "requires": ["beach_camp_1", "storm_harvest"], "wave": "R5", "gate": 20,
+    "feature": "feature:flare_gun",
+    "flavour": "Red for diesel, green for crates. Nobody remembers blue."
+  },
+  {
+    "id": "breakwater", "sector": "tide", "ring": 6, "slot": 3, "type": "notable",
+    "name": "Breakwater",
+    "text": "Beachcombers, Docks and Ship Breakers ×1.5; car hulks shelter the bay.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "beachcomber"},
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "dock"},
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "shipbreaker"}
+    ],
+    "cost": 77700, "requires": ["storm_harvest", "scavengers_eye"], "wave": "R3",
+    "scene": "a curved breakwater of rusted car hulks and tyres across the mouth of the bay",
+    "flavour": "Forty dead hatchbacks and one good idea."
+  },
+  {
+    "id": "rain_barrels", "sector": "tide", "ring": 6, "slot": 4, "type": "small",
+    "name": "Rain Barrels",
+    "text": "In rain, all lines ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "all", "when": "rain"}
+    ],
+    "cost": 44400, "requires": ["scavengers_eye", "beachcombers_net"], "wave": "R3"
+  },
+  {
+    "id": "tide_pump", "sector": "tide", "ring": 6, "slot": 5, "type": "notable",
+    "name": "Tide Pump",
+    "text": "Every line cycles 10% faster; a tide pump creaks at the water's edge.",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 55500, "requires": ["beachcombers_net", "sea_wall_1"], "wave": "R3",
+    "scene": "a timber tide pump at the water's edge, its rocking beam nodding with the waves and faster in rain (the island's Tide Mill upgrade keeps the waterwheel)",
+    "flavour": "Free power twice a day. The moon foots the bill."
+  },
+  {
+    "id": "driftwood_3", "sector": "tide", "ring": 6, "slot": 6, "type": "small",
+    "name": "Driftwood III",
+    "series": "driftwood",
+    "text": "Beachcombers ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "beachcomber"}
+    ],
+    "cost": 33300, "requires": ["sea_wall_1"], "wave": "R3"
+  },
+  {
+    "id": "rogue_wave", "sector": "tide", "ring": 7, "slot": 1, "type": "unlock",
+    "name": "Rogue Wave",
+    "text": "Once a run, tap the surf: a big wave rolls in carrying a Drift Crate.",
+    "effects": [
+      {"stat": "feature:rogue_wave", "op": "unlock", "value": 1}
+    ],
+    "cost": 333000, "requires": ["deep_nets_1"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:rogue_wave",
+    "scene": "while it is ready the surf glows; a tall wave curls in and drops a crate on the sand",
+    "flavour": "Stand back from the beach. No, further."
+  },
+  {
+    "id": "sea_wall_2", "sector": "tide", "ring": 7, "slot": 2, "type": "small",
+    "name": "Sea Wall II",
+    "series": "sea_wall",
+    "text": "All lines ×1.1.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 444000, "requires": ["flare_gun"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "cutting_torch_1", "sector": "tide", "ring": 7, "slot": 3, "type": "small",
+    "name": "Cutting Torch I",
+    "series": "cutting_torch",
+    "text": "Ship Breakers ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "shipbreaker"}
+    ],
+    "cost": 333000, "requires": ["breakwater"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "beach_camp_2", "sector": "tide", "ring": 7, "slot": 4, "type": "small",
+    "name": "Beach Camp II",
+    "series": "beach_camp",
+    "text": "Twig-era lines ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "twig"}
+    ],
+    "cost": 222000, "requires": ["rain_barrels"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "sea_wall_3", "sector": "tide", "ring": 7, "slot": 5, "type": "small",
+    "name": "Sea Wall III",
+    "series": "sea_wall",
+    "text": "All lines ×1.1.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 555000, "requires": ["tide_pump"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "lost_cargo", "sector": "tide", "ring": 7, "slot": 6, "type": "unlock",
+    "name": "Lost Cargo",
+    "text": "New flotsam (3%): a shipping container; line units cost half for 5 min.",
+    "effects": [
+      {"stat": "feature:lost_cargo", "op": "unlock", "value": 1},
+      {"stat": "flotsam_weight", "op": "set", "value": 3, "scope": "lost_cargo"}
+    ],
+    "cost": 444000, "requires": ["driftwood_3"], "wave": "R7", "data_from": "R7",
+    "feature": "feature:lost_cargo",
+    "scene": "a rusted shipping container drifts in, beaches and swings its doors open",
+    "flavour": "Manifest: 400 left boots, one forklift, no keys."
+  },
+  {
+    "id": "sea_wall_4", "sector": "tide", "ring": 8, "slot": 1, "type": "small",
+    "name": "Sea Wall IV",
+    "series": "sea_wall",
+    "text": "All lines ×1.1.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 4440000, "requires": ["rogue_wave"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "cutting_torch_2", "sector": "tide", "ring": 8, "slot": 2, "type": "small",
+    "name": "Cutting Torch II",
+    "series": "cutting_torch",
+    "text": "Ship Breakers ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "shipbreaker"}
+    ],
+    "cost": 5550000, "requires": ["rogue_wave", "sea_wall_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bottle_post", "sector": "tide", "ring": 8, "slot": 3, "type": "notable",
+    "name": "Bottle Post",
+    "text": "Messages in a Bottle wash up twice as often (1%); each still holds a crate.",
+    "effects": [
+      {"stat": "flotsam_weight", "op": "set", "value": 1, "scope": "bottle"}
+    ],
+    "cost": 4440000, "requires": ["sea_wall_2", "cutting_torch_1"], "wave": "R7", "data_from": "R4",
+    "flavour": "Most say 'help'. A few say where the good stuff is."
+  },
+  {
+    "id": "wreckers_moon", "sector": "tide", "ring": 8, "slot": 4, "type": "keystone",
+    "name": "Wreckers' Moon",
+    "text": "A Drift Crate washes up for each hour away, up to 12; online flotsam ×0.5.",
+    "effects": [
+      {"stat": "feature:wreckers_moon", "op": "unlock", "value": 1},
+      {"stat": "flotsam_rate", "op": "more", "value": 0.5}
+    ],
+    "cost": 7770000, "requires": ["cutting_torch_1", "beach_camp_2"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:wreckers_moon",
+    "conflicts": ["bunker_mentality"],
+    "scene": "a lantern burns on the rocks at night; by morning crates lie along the beach",
+    "flavour": "Hang a lantern on the rocks and see what the night brings in."
+  },
+  {
+    "id": "auto_flare", "sector": "tide", "ring": 8, "slot": 5, "type": "automation",
+    "name": "Auto Flare",
+    "text": "Your Flare fires itself when it's ready and nothing floats, page open.",
+    "effects": [
+      {"stat": "feature:auto_flare", "op": "unlock", "value": 1}
+    ],
+    "cost": 3330000, "requires": ["beach_camp_2", "sea_wall_3"], "wave": "R7", "data_from": "R5", "gate": 40,
+    "feature": "feature:auto_flare",
+    "flavour": "It goes off on its own. Like most things here."
+  },
+  {
+    "id": "deep_nets_2", "sector": "tide", "ring": 8, "slot": 6, "type": "small",
+    "name": "Deep Nets II",
+    "series": "deep_nets",
+    "text": "Docks ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "dock"}
+    ],
+    "cost": 3330000, "requires": ["sea_wall_3", "lost_cargo"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "driftwood_4", "sector": "tide", "ring": 8, "slot": 7, "type": "small",
+    "name": "Driftwood IV",
+    "series": "driftwood",
+    "text": "Beachcombers ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "beachcomber"}
+    ],
+    "cost": 2220000, "requires": ["lost_cargo"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "beach_camp_3", "sector": "tide", "ring": 9, "slot": 1, "type": "small",
+    "name": "Beach Camp III",
+    "series": "beach_camp",
+    "text": "Twig-era lines ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "twig"}
+    ],
+    "cost": 22200000, "requires": ["sea_wall_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "tide_tables", "sector": "tide", "ring": 9, "slot": 2, "type": "unlock",
+    "name": "Tide Tables",
+    "text": "A tide clock shows when the next three flotsam arrive, and what they are.",
+    "effects": [
+      {"stat": "feature:tide_tables", "op": "unlock", "value": 1}
+    ],
+    "cost": 33300000, "requires": ["cutting_torch_2"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:tide_tables",
+    "flavour": "Printed before the war. The sea never read the news."
+  },
+  {
+    "id": "sea_wall_5", "sector": "tide", "ring": 9, "slot": 3, "type": "small",
+    "name": "Sea Wall V",
+    "series": "sea_wall",
+    "text": "All lines ×1.1.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 44400000, "requires": ["bottle_post"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "king_tide", "sector": "tide", "ring": 9, "slot": 4, "type": "completion",
+    "name": "King Tide",
+    "text": "All lines ×1.2; the sea floods the low beach.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.2, "scope": "all"}
+    ],
+    "cost": 55500000, "requires": ["sea_wall_4", "cutting_torch_2", "bottle_post", "wreckers_moon", "auto_flare", "deep_nets_2", "driftwood_4"], "wave": "R7", "data_from": "R3",
+    "scene": "the sea floods the low beach into a shallow lagoon; the camp stands at the new edge",
+    "flavour": "Wet boots, full pockets."
+  },
+  {
+    "id": "relit_lighthouse", "sector": "tide", "ring": 9, "slot": 5, "type": "notable",
+    "name": "Relit Lighthouse",
+    "text": "All lines ×1.1; the lighthouse on the far island burns again at night.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 77700000, "requires": ["auto_flare"], "wave": "R7", "data_from": "R3",
+    "scene": "the dark lighthouse on the far island (terrain.back) lights up and sweeps the bay at night",
+    "flavour": "No ship has come in years. It's for us."
+  },
+  {
+    "id": "weather_buoy", "sector": "tide", "ring": 9, "slot": 6, "type": "unlock",
+    "name": "Weather Buoy",
+    "text": "A buoy shows the island's next 24 h of weather, so you can plan for rain.",
+    "effects": [
+      {"stat": "feature:weather_buoy", "op": "unlock", "value": 1}
+    ],
+    "cost": 44400000, "requires": ["deep_nets_2"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:weather_buoy",
+    "scene": "a striped buoy with a blinking light bobs off the point; tap it for the forecast",
+    "flavour": "Beeps all night. Never wrong."
+  },
+  {
+    "id": "deep_nets_3", "sector": "tide", "ring": 9, "slot": 7, "type": "small",
+    "name": "Deep Nets III",
+    "series": "deep_nets",
+    "text": "Docks ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "dock"}
+    ],
+    "cost": 22200000, "requires": ["driftwood_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "hot_breakfast", "sector": "bunker", "ring": 1, "slot": 1, "type": "unlock",
+    "name": "Hot Breakfast",
+    "text": "Back after 6 h or more? Collect also starts a Rally: all lines ×4 for 60 s.",
+    "effects": [
+      {"stat": "feature:hot_breakfast", "op": "unlock", "value": 6}
+    ],
+    "cost": 2, "requires": ["ground_zero"], "wave": "R2",
+    "feature": "feature:hot_breakfast",
+    "scene": "On a return after 6 h or more the crew sit round the fire with a steaming pot of beans while the Rally runs."
+  },
+  {
+    "id": "deep_cellars", "sector": "bunker", "ring": 1, "slot": 2, "type": "small",
+    "name": "Deep Cellars",
+    "text": "Night Shift +4 h.",
+    "effects": [
+      {"stat": "night_shift", "op": "add", "value": 4}
+    ],
+    "cost": 1, "requires": ["ground_zero"], "wave": "R2",
+    "anchor": true,
+    "scene": "A wooden cellar hatch in the ground beside the cabin, from the first second of every run."
+  },
+  {
+    "id": "night_lamps", "sector": "bunker", "ring": 2, "slot": 1, "type": "notable",
+    "name": "Night Lamps",
+    "text": "Lines +20% at night. Lanterns go up on every building after dusk.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.2, "scope": "all", "when": "night"}
+    ],
+    "cost": 11, "requires": ["hot_breakfast"], "wave": "R2",
+    "scene": "After dusk a lantern hangs on every building, drawn on the lights layer above the night tint."
+  },
+  {
+    "id": "lantern_oil_1", "sector": "bunker", "ring": 2, "slot": 2, "type": "small",
+    "name": "Lantern Oil I",
+    "series": "lantern_oil",
+    "text": "Lines +10% at night.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.1, "scope": "all", "when": "night"}
+    ],
+    "cost": 5, "requires": ["hot_breakfast", "deep_cellars"], "wave": "R2"
+  },
+  {
+    "id": "insulated_walls", "sector": "bunker", "ring": 2, "slot": 3, "type": "notable",
+    "name": "Insulated Walls",
+    "text": "Night Shift +4 h. Shutters go up and the draughts stay out.",
+    "effects": [
+      {"stat": "night_shift", "op": "add", "value": 4}
+    ],
+    "cost": 15, "requires": ["deep_cellars"], "wave": "R2",
+    "scene": "Plank shutters on the cabin windows; they swing shut at dusk."
+  },
+  {
+    "id": "lantern_oil_2", "sector": "bunker", "ring": 3, "slot": 1, "type": "small",
+    "name": "Lantern Oil II",
+    "series": "lantern_oil",
+    "text": "Lines +30% at night.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "scope": "all", "when": "night"}
+    ],
+    "cost": 44, "requires": ["night_lamps"], "wave": "R2"
+  },
+  {
+    "id": "all_clear", "sector": "bunker", "ring": 3, "slot": 2, "type": "notable",
+    "name": "All Clear",
+    "text": "Lines +50% while Afterglow lasts. The siren winds down; the crew climb out.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.5, "scope": "all", "when": "afterglow"}
+    ],
+    "cost": 77, "requires": ["night_lamps", "lantern_oil_1"], "wave": "R2",
+    "scene": "A hand-cranked siren on a pole by the hatch wails at the landing, and kept hands climb out of the hatch instead of the rowboat."
+  },
+  {
+    "id": "moonshine_still", "sector": "bunker", "ring": 3, "slot": 3, "type": "notable",
+    "name": "Moonshine Still",
+    "text": "Lines +1% at night per Bunker node you own, up to +10%. It's lamp fuel. Mostly.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.01, "scope": "all", "per": "sector:bunker", "max": 0.1, "when": "night"}
+    ],
+    "cost": 66, "requires": ["lantern_oil_1", "insulated_walls"], "wave": "R2",
+    "scene": "A dented copper still by the cellar hatch, bubbling and dripping at night."
+  },
+  {
+    "id": "root_cellar_1", "sector": "bunker", "ring": 3, "slot": 4, "type": "small",
+    "name": "Root Cellar I",
+    "series": "root_cellar",
+    "text": "Night Shift +4 h.",
+    "effects": [
+      {"stat": "night_shift", "op": "add", "value": 4}
+    ],
+    "cost": 33, "requires": ["insulated_walls"], "wave": "R2"
+  },
+  {
+    "id": "night_porter", "sector": "bunker", "ring": 4, "slot": 1, "type": "automation",
+    "name": "Night Porter",
+    "text": "Collect runs itself 3 s after the welcome-back card opens; the card stays.",
+    "effects": [
+      {"stat": "feature:night_porter", "op": "unlock", "value": 3}
+    ],
+    "cost": 333, "requires": ["lantern_oil_2"], "wave": "R3",
+    "feature": "feature:night_porter"
+  },
+  {
+    "id": "root_cellar_2", "sector": "bunker", "ring": 4, "slot": 2, "type": "small",
+    "name": "Root Cellar II",
+    "series": "root_cellar",
+    "text": "Night Shift +4 h.",
+    "effects": [
+      {"stat": "night_shift", "op": "add", "value": 4}
+    ],
+    "cost": 222, "requires": ["lantern_oil_2", "all_clear"], "wave": "R3"
+  },
+  {
+    "id": "snug", "sector": "bunker", "ring": 4, "slot": 3, "type": "completion",
+    "name": "Snug",
+    "text": "Lines ×1.1 while you're away. Blankets, a stove and a door that shuts.",
+    "effects": [
+      {"stat": "offline", "op": "more", "value": 1.1}
+    ],
+    "cost": 555, "requires": ["lantern_oil_2", "all_clear", "moonshine_still", "root_cellar_1"], "wave": "R3"
+  },
+  {
+    "id": "fuel_cache", "sector": "bunker", "ring": 4, "slot": 4, "type": "small",
+    "name": "Fuel Cache",
+    "text": "Oil Presses +60%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.6, "scope": "press"}
+    ],
+    "cost": 444, "requires": ["moonshine_still", "root_cellar_1"], "wave": "R3"
+  },
+  {
+    "id": "banked_fires", "sector": "bunker", "ring": 4, "slot": 5, "type": "notable",
+    "name": "Banked Fires",
+    "text": "Campfires, Kilns and Furnaces ×2 at night. The fires are banked, never out.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "campfire", "when": "night"},
+      {"stat": "output", "op": "more", "value": 2, "scope": "kiln", "when": "night"},
+      {"stat": "output", "op": "more", "value": 2, "scope": "furnace", "when": "night"}
+    ],
+    "cost": 777, "requires": ["root_cellar_1"], "wave": "R3",
+    "scene": "At night the Campfire, Kiln and Furnace glow twice as bright on the lights layer, embers drifting up."
+  },
+  {
+    "id": "night_rations_1", "sector": "bunker", "ring": 5, "slot": 1, "type": "small",
+    "name": "Night Rations I",
+    "series": "night_rations",
+    "text": "Lines ×1.1 while you're away.",
+    "effects": [
+      {"stat": "offline", "op": "more", "value": 1.1}
+    ],
+    "cost": 3333, "requires": ["night_porter"], "wave": "R3"
+  },
+  {
+    "id": "night_owls", "sector": "bunker", "ring": 5, "slot": 2, "type": "notable",
+    "name": "Night Owls",
+    "text": "Lines +2% at night for each hand on shift, up to +28%. Hire before bed.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.02, "scope": "all", "per": "hands", "max": 1.28, "when": "night"}
+    ],
+    "cost": 5555, "requires": ["root_cellar_2"], "wave": "R3"
+  },
+  {
+    "id": "bunker_mentality", "sector": "bunker", "ring": 5, "slot": 3, "type": "keystone",
+    "name": "Bunker Mentality",
+    "text": "Lines ×1.5 while you're away. No flotsam drifts in, ever.",
+    "effects": [
+      {"stat": "offline", "op": "more", "value": 1.5},
+      {"stat": "flotsam_rate", "op": "more", "value": 0}
+    ],
+    "cost": 7777, "requires": ["snug"], "wave": "R3",
+    "conflicts": ["scavengers_eye", "wreckers_moon", "lone_wolf"],
+    "anchor": true,
+    "scene": "While slotted, the hatch stays bolted and a hand-painted sign on it reads GONE TO GROUND."
+  },
+  {
+    "id": "wake_up_call", "sector": "bunker", "ring": 5, "slot": 4, "type": "automation",
+    "name": "Wake-up Call",
+    "text": "Grit fires itself on your first visit after it is ready.",
+    "effects": [
+      {"stat": "feature:wake_up_call", "op": "unlock", "value": 1}
+    ],
+    "cost": 3333, "requires": ["fuel_cache"], "wave": "R5", "gate": 10,
+    "feature": "feature:wake_up_call"
+  },
+  {
+    "id": "lantern_oil_3", "sector": "bunker", "ring": 5, "slot": 5, "type": "small",
+    "name": "Lantern Oil III",
+    "series": "lantern_oil",
+    "text": "Lines ×1.3 at night.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3, "scope": "all", "when": "night"}
+    ],
+    "cost": 2222, "requires": ["banked_fires"], "wave": "R3"
+  },
+  {
+    "id": "root_cellar_3", "sector": "bunker", "ring": 6, "slot": 1, "type": "small",
+    "name": "Root Cellar III",
+    "series": "root_cellar",
+    "text": "Night Shift +4 h.",
+    "effects": [
+      {"stat": "night_shift", "op": "add", "value": 4}
+    ],
+    "cost": 33300, "requires": ["night_rations_1"], "wave": "R3"
+  },
+  {
+    "id": "cold_storage", "sector": "bunker", "ring": 6, "slot": 2, "type": "notable",
+    "name": "Cold Storage",
+    "text": "Night Shift +4 h, and lines ×1.15 while you're away. The beans keep.",
+    "effects": [
+      {"stat": "night_shift", "op": "add", "value": 4},
+      {"stat": "output", "op": "more", "value": 1.15, "scope": "all", "when": "offline"}
+    ],
+    "cost": 77700, "requires": ["night_rations_1", "night_owls"], "wave": "R3",
+    "scene": "A frosted steel door set into the hill behind the cabin, a thermometer nailed beside it."
+  },
+  {
+    "id": "lantern_oil_4", "sector": "bunker", "ring": 6, "slot": 3, "type": "small",
+    "name": "Lantern Oil IV",
+    "series": "lantern_oil",
+    "text": "Lines ×1.5 at night.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "all", "when": "night"}
+    ],
+    "cost": 22200, "requires": ["night_owls", "bunker_mentality"], "wave": "R3"
+  },
+  {
+    "id": "night_rations_2", "sector": "bunker", "ring": 6, "slot": 4, "type": "small",
+    "name": "Night Rations II",
+    "series": "night_rations",
+    "text": "Lines ×1.1 while you're away.",
+    "effects": [
+      {"stat": "offline", "op": "more", "value": 1.1}
+    ],
+    "cost": 44400, "requires": ["bunker_mentality", "wake_up_call"], "wave": "R3"
+  },
+  {
+    "id": "lights_out", "sector": "bunker", "ring": 6, "slot": 5, "type": "unlock",
+    "name": "Lights Out",
+    "text": "Say when you'll be back. Return within 30 min of it: the Night Shift pays ×1.1.",
+    "effects": [
+      {"stat": "feature:lights_out", "op": "unlock", "value": 1.1}
+    ],
+    "counts_as": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 44400, "requires": ["wake_up_call", "lantern_oil_3"], "wave": "R3",
+    "feature": "feature:lights_out",
+    "scene": "While you're away, a hand-painted BACK AT 08:00 board hangs on the cabin door (the time is a screen-space label)."
+  },
+  {
+    "id": "tinned_beans_1", "sector": "bunker", "ring": 6, "slot": 6, "type": "small",
+    "name": "Tinned Beans I",
+    "series": "tinned_beans",
+    "text": "Lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3, "scope": "all"}
+    ],
+    "cost": 55500, "requires": ["lantern_oil_3"], "wave": "R3"
+  },
+  {
+    "id": "snooze", "sector": "bunker", "ring": 7, "slot": 1, "type": "automation",
+    "name": "Snooze",
+    "text": "'Night Shift over' rings an hour early, while there's still time to top up.",
+    "effects": [
+      {"stat": "feature:snooze", "op": "unlock", "value": 1}
+    ],
+    "cost": 222000, "requires": ["root_cellar_3"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:snooze"
+  },
+  {
+    "id": "root_cellar_4", "sector": "bunker", "ring": 7, "slot": 2, "type": "small",
+    "name": "Root Cellar IV",
+    "series": "root_cellar",
+    "text": "Night Shift +4 h.",
+    "effects": [
+      {"stat": "night_shift", "op": "add", "value": 4}
+    ],
+    "cost": 333000, "requires": ["cold_storage"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "tinned_beans_2", "sector": "bunker", "ring": 7, "slot": 3, "type": "small",
+    "name": "Tinned Beans II",
+    "series": "tinned_beans",
+    "text": "Lines ×1.4.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.4, "scope": "all"}
+    ],
+    "cost": 222000, "requires": ["lantern_oil_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "tinned_beans_3", "sector": "bunker", "ring": 7, "slot": 4, "type": "small",
+    "name": "Tinned Beans III",
+    "series": "tinned_beans",
+    "text": "Lines ×1.4.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.4, "scope": "all"}
+    ],
+    "cost": 444000, "requires": ["night_rations_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "night_rations_3", "sector": "bunker", "ring": 7, "slot": 5, "type": "small",
+    "name": "Night Rations III",
+    "series": "night_rations",
+    "text": "Lines ×1.1 while you're away.",
+    "effects": [
+      {"stat": "offline", "op": "more", "value": 1.1}
+    ],
+    "cost": 555000, "requires": ["lights_out"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "night_crew", "sector": "bunker", "ring": 7, "slot": 6, "type": "unlock",
+    "name": "Night Crew",
+    "text": "Lines without a hand work the Night Shift at 10%. Head-torches bob all night.",
+    "effects": [
+      {"stat": "feature:night_crew", "op": "unlock", "value": 0.1}
+    ],
+    "cost": 444000, "requires": ["tinned_beans_1"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:night_crew",
+    "scene": "At night small head-torch lights bob over every plot that has no hand, on the lights layer."
+  },
+  {
+    "id": "night_rations_4", "sector": "bunker", "ring": 8, "slot": 1, "type": "small",
+    "name": "Night Rations IV",
+    "series": "night_rations",
+    "text": "Lines ×1.1 while you're away.",
+    "effects": [
+      {"stat": "offline", "op": "more", "value": 1.1}
+    ],
+    "cost": 2220000, "requires": ["snooze"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "steel_plating_1", "sector": "bunker", "ring": 8, "slot": 2, "type": "small",
+    "name": "Steel Plating I",
+    "series": "steel_plating",
+    "text": "Sheet Metal lines ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "metal"}
+    ],
+    "cost": 3330000, "requires": ["snooze", "root_cellar_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bunk_beds", "sector": "bunker", "ring": 8, "slot": 3, "type": "notable",
+    "name": "Bunk Beds",
+    "text": "Night Shift +4 h: the window reaches 48 h, the most it gets.",
+    "effects": [
+      {"stat": "night_shift", "op": "add", "value": 4}
+    ],
+    "cost": 5550000, "requires": ["root_cellar_4", "tinned_beans_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "graveyard_shift", "sector": "bunker", "ring": 8, "slot": 4, "type": "keystone",
+    "name": "Graveyard Shift",
+    "text": "Lines ×4 at night but ×0.5 always: double after dark, half by day.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 4, "scope": "all", "when": "night"},
+      {"stat": "output", "op": "more", "value": 0.5, "scope": "all"}
+    ],
+    "cost": 7770000, "requires": ["tinned_beans_2", "tinned_beans_3"], "wave": "R7", "data_from": "R3",
+    "conflicts": [],
+    "scene": "While slotted, by day the crew doze in hammocks strung between the buildings; after dark every building blazes with work lights."
+  },
+  {
+    "id": "shift_report", "sector": "bunker", "ring": 8, "slot": 5, "type": "automation",
+    "name": "Shift Report",
+    "text": "The welcome-back card breaks the night down, line by line.",
+    "effects": [
+      {"stat": "feature:shift_report", "op": "unlock", "value": 1}
+    ],
+    "cost": 2220000, "requires": ["tinned_beans_3", "night_rations_3"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:shift_report"
+  },
+  {
+    "id": "tinned_beans_4", "sector": "bunker", "ring": 8, "slot": 6, "type": "small",
+    "name": "Tinned Beans IV",
+    "series": "tinned_beans",
+    "text": "Lines ×1.4.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.4, "scope": "all"}
+    ],
+    "cost": 4440000, "requires": ["night_rations_3", "night_crew"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "tinned_beans_5", "sector": "bunker", "ring": 8, "slot": 7, "type": "small",
+    "name": "Tinned Beans V",
+    "series": "tinned_beans",
+    "text": "Lines ×1.35.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.35, "scope": "all"}
+    ],
+    "cost": 5550000, "requires": ["night_crew"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "tinned_beans_6", "sector": "bunker", "ring": 9, "slot": 1, "type": "small",
+    "name": "Tinned Beans VI",
+    "series": "tinned_beans",
+    "text": "Lines ×1.2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.2, "scope": "all"}
+    ],
+    "cost": 22200000, "requires": ["night_rations_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "dug_in", "sector": "bunker", "ring": 9, "slot": 2, "type": "notable",
+    "name": "Dug In",
+    "text": "Lines +0.5% per Bunker node you own, up to +20%. Nobody's moving us.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.005, "scope": "all", "per": "sector:bunker", "max": 1.2}
+    ],
+    "cost": 77700000, "requires": ["steel_plating_1"], "wave": "R7", "data_from": "R3",
+    "scene": "Sandbags ring the hatch and a periscope pokes out of the hill, turning to follow passing gulls."
+  },
+  {
+    "id": "tinned_beans_7", "sector": "bunker", "ring": 9, "slot": 3, "type": "small",
+    "name": "Tinned Beans VII",
+    "series": "tinned_beans",
+    "text": "Lines ×1.2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.2, "scope": "all"}
+    ],
+    "cost": 33300000, "requires": ["bunk_beds"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "deep_sleep", "sector": "bunker", "ring": 9, "slot": 4, "type": "completion",
+    "name": "Deep Sleep",
+    "text": "Lines ×1.1 while you're away. The whole crew sleeps like logs.",
+    "effects": [
+      {"stat": "offline", "op": "more", "value": 1.1}
+    ],
+    "cost": 55500000, "requires": ["night_rations_4", "steel_plating_1", "bunk_beds", "graveyard_shift", "shift_report", "tinned_beans_4", "tinned_beans_5"], "wave": "R7", "data_from": "R3",
+    "scene": "At night a slow stream of Zzz drifts up out of the cellar hatch."
+  },
+  {
+    "id": "tinned_beans_8", "sector": "bunker", "ring": 9, "slot": 5, "type": "small",
+    "name": "Tinned Beans VIII",
+    "series": "tinned_beans",
+    "text": "Lines ×1.1.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 44400000, "requires": ["shift_report"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bunker_door", "sector": "bunker", "ring": 9, "slot": 6, "type": "unlock",
+    "name": "Bunker Door",
+    "text": "Away 24 h or more? A Fuel Drum and a Drift Crate wait at a door in the hill.",
+    "effects": [
+      {"stat": "feature:bunker_door", "op": "unlock", "value": 24}
+    ],
+    "cost": 33300000, "requires": ["tinned_beans_4"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:bunker_door",
+    "scene": "A steel door in the hillside; after a long absence it stands ajar with a drum and a crate outside, to tap."
+  },
+  {
+    "id": "steel_plating_2", "sector": "bunker", "ring": 9, "slot": 7, "type": "small",
+    "name": "Steel Plating II",
+    "series": "steel_plating",
+    "text": "Sheet Metal lines ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "metal"}
+    ],
+    "cost": 55500000, "requires": ["tinned_beans_5"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "souvenir_jar", "sector": "blast", "ring": 1, "slot": 1, "type": "notable",
+    "name": "Souvenir Jar",
+    "text": "Afterglow's half-life +1 min. A jar on the shelf fills with glass.",
+    "effects": [
+      {"stat": "afterglow_half", "op": "add", "value": 60}
+    ],
+    "cost": 3, "requires": ["ground_zero"], "wave": "R2",
+    "scene": "a jar on the cabin shelf, a little fuller of glass each Wipe Day"
+  },
+  {
+    "id": "bigger_payload", "sector": "blast", "ring": 1, "slot": 2, "type": "small",
+    "name": "Bigger Payload",
+    "text": "Crater glass +10% from every nuke.",
+    "effects": [
+      {"stat": "glass_gain", "op": "inc", "value": 0.1}
+    ],
+    "cost": 2, "requires": ["ground_zero"], "wave": "R2",
+    "anchor": true
+  },
+  {
+    "id": "forecast", "sector": "blast", "ring": 2, "slot": 1, "type": "automation",
+    "name": "Forecast",
+    "text": "The Big Red's card tells you when the next Wipe Day will count, at this rate.",
+    "effects": [
+      {"stat": "feature:forecast", "op": "unlock", "value": 1}
+    ],
+    "cost": 5, "requires": ["souvenir_jar"], "wave": "R2",
+    "feature": "feature:forecast"
+  },
+  {
+    "id": "warm_embers_1", "sector": "blast", "ring": 2, "slot": 2, "type": "small",
+    "name": "Warm Embers I",
+    "series": "warm_embers",
+    "text": "Afterglow's half-life +60 s.",
+    "effects": [
+      {"stat": "afterglow_half", "op": "add", "value": 60}
+    ],
+    "cost": 4, "requires": ["souvenir_jar", "bigger_payload"], "wave": "R2"
+  },
+  {
+    "id": "tinfoil_hats", "sector": "blast", "ring": 2, "slot": 3, "type": "notable",
+    "name": "Tinfoil Hats",
+    "text": "Glow factor +0.01 and crater glass +5%. The crew swear by them.",
+    "effects": [
+      {"stat": "glow_k", "op": "add", "value": 0.01},
+      {"stat": "glass_gain", "op": "inc", "value": 0.05}
+    ],
+    "cost": 11, "requires": ["bigger_payload"], "wave": "R2",
+    "scene": "the crew wear tinfoil hats while the sky is still green after a Wipe Day"
+  },
+  {
+    "id": "bigger_payload_2", "sector": "blast", "ring": 3, "slot": 1, "type": "small",
+    "name": "Bigger Payload II",
+    "series": "bigger_payload",
+    "text": "Crater glass ×1.1.",
+    "effects": [
+      {"stat": "glass_gain", "op": "more", "value": 1.1}
+    ],
+    "cost": 33, "requires": ["forecast"], "wave": "R2"
+  },
+  {
+    "id": "glow_lamp", "sector": "blast", "ring": 3, "slot": 2, "type": "notable",
+    "name": "Glow Lamp",
+    "text": "Glow factor +0.02. A green lamp glows on the Kettle's pad.",
+    "effects": [
+      {"stat": "glow_k", "op": "add", "value": 0.02}
+    ],
+    "cost": 77, "requires": ["forecast", "warm_embers_1"], "wave": "R2",
+    "anchor": true,
+    "scene": "a green lamp on the Kettle's pad, its glow on the lights layer"
+  },
+  {
+    "id": "flight_school", "sector": "blast", "ring": 3, "slot": 3, "type": "unlock",
+    "name": "Flight School",
+    "text": "Pick the missile's flight on the cover card, from the flights you've seen.",
+    "effects": [
+      {"stat": "feature:flight_school", "op": "unlock", "value": 1}
+    ],
+    "cost": 44, "requires": ["warm_embers_1", "tinfoil_hats"], "wave": "R2",
+    "feature": "feature:flight_school"
+  },
+  {
+    "id": "fertile_ash_1", "sector": "blast", "ring": 3, "slot": 4, "type": "small",
+    "name": "Fertile Ash I",
+    "series": "fertile_ash",
+    "text": "Gardens +60%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.6, "scope": "garden"}
+    ],
+    "cost": 25, "requires": ["tinfoil_hats"], "wave": "R2"
+  },
+  {
+    "id": "quick_rebuild", "sector": "blast", "ring": 4, "slot": 1, "type": "automation",
+    "name": "Quick Rebuild",
+    "text": "Rebuild in one tap: skip the rebuild screen and keep your last loadout.",
+    "effects": [
+      {"stat": "feature:quick_rebuild", "op": "unlock", "value": 1}
+    ],
+    "cost": 333, "requires": ["bigger_payload_2"], "wave": "R3",
+    "feature": "feature:quick_rebuild"
+  },
+  {
+    "id": "fertile_ash_2", "sector": "blast", "ring": 4, "slot": 2, "type": "small",
+    "name": "Fertile Ash II",
+    "series": "fertile_ash",
+    "text": "Twig lines +30%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "scope": "twig"}
+    ],
+    "cost": 222, "requires": ["bigger_payload_2", "glow_lamp"], "wave": "R3"
+  },
+  {
+    "id": "glass_garden", "sector": "blast", "ring": 4, "slot": 3, "type": "completion",
+    "name": "Glass Garden",
+    "text": "Crater glass ×1.1. Glass shards glitter in the crater.",
+    "effects": [
+      {"stat": "glass_gain", "op": "more", "value": 1.1}
+    ],
+    "cost": 555, "requires": ["bigger_payload_2", "glow_lamp", "flight_school", "fertile_ash_1"], "wave": "R3",
+    "scene": "glass shards glitter along the crater rim (lights layer)"
+  },
+  {
+    "id": "warm_embers_2", "sector": "blast", "ring": 4, "slot": 4, "type": "small",
+    "name": "Warm Embers II",
+    "series": "warm_embers",
+    "text": "Afterglow's half-life +60 s.",
+    "effects": [
+      {"stat": "afterglow_half", "op": "add", "value": 60}
+    ],
+    "cost": 333, "requires": ["flight_school", "fertile_ash_1"], "wave": "R3"
+  },
+  {
+    "id": "crater_lake", "sector": "blast", "ring": 4, "slot": 5, "type": "notable",
+    "name": "Crater Lake",
+    "text": "Glow factor +0.02. Rain pools in the crater; the gulls approve.",
+    "effects": [
+      {"stat": "glow_k", "op": "add", "value": 0.02}
+    ],
+    "cost": 777, "requires": ["fertile_ash_1"], "wave": "R3",
+    "scene": "a glassy pool in the crater's low end, with a gull paddling in it"
+  },
+  {
+    "id": "bigger_payload_3", "sector": "blast", "ring": 5, "slot": 1, "type": "small",
+    "name": "Bigger Payload III",
+    "series": "bigger_payload",
+    "text": "Crater glass ×1.1.",
+    "effects": [
+      {"stat": "glass_gain", "op": "more", "value": 1.1}
+    ],
+    "cost": 3333, "requires": ["quick_rebuild"], "wave": "R3"
+  },
+  {
+    "id": "blast_radius", "sector": "blast", "ring": 5, "slot": 2, "type": "notable",
+    "name": "Blast Radius",
+    "text": "All lines +0.5% for every lit Blast node, up to ×1.1.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.005, "scope": "all", "per": "sector:blast", "max": 1.1}
+    ],
+    "cost": 5555, "requires": ["fertile_ash_2"], "wave": "R3"
+  },
+  {
+    "id": "hot_core", "sector": "blast", "ring": 5, "slot": 3, "type": "keystone",
+    "name": "Hot Core",
+    "text": "Crater glass ×1.5, but lines run at a quarter while Afterglow lasts.",
+    "effects": [
+      {"stat": "glass_gain", "op": "more", "value": 1.5},
+      {"stat": "output", "op": "more", "value": 0.25, "scope": "all", "when": "afterglow"}
+    ],
+    "cost": 7777, "requires": ["glass_garden"], "wave": "R3",
+    "conflicts": ["wipe_day_rush"]
+  },
+  {
+    "id": "glass_strata", "sector": "blast", "ring": 5, "slot": 4, "type": "notable",
+    "name": "Glass Strata",
+    "text": "Glow factor +0.001 for every Wipe Day, up to +0.02.",
+    "effects": [
+      {"stat": "glow_k", "op": "add", "value": 0.001, "per": "nukes", "max": 0.02}
+    ],
+    "cost": 4444, "requires": ["warm_embers_2"], "wave": "R3"
+  },
+  {
+    "id": "warm_embers_3", "sector": "blast", "ring": 5, "slot": 5, "type": "small",
+    "name": "Warm Embers III",
+    "series": "warm_embers",
+    "text": "Afterglow's half-life +90 s.",
+    "effects": [
+      {"stat": "afterglow_half", "op": "add", "value": 90}
+    ],
+    "cost": 2222, "requires": ["crater_lake"], "wave": "R3"
+  },
+  {
+    "id": "bright_glass_1", "sector": "blast", "ring": 6, "slot": 1, "type": "small",
+    "name": "Bright Glass I",
+    "series": "bright_glass",
+    "text": "Glow factor +0.04.",
+    "effects": [
+      {"stat": "glow_k", "op": "add", "value": 0.04}
+    ],
+    "cost": 44400, "requires": ["bigger_payload_3"], "wave": "R3"
+  },
+  {
+    "id": "dead_hand", "sector": "blast", "ring": 6, "slot": 2, "type": "automation",
+    "name": "Dead Hand",
+    "text": "An opt-in switch that presses the Big Red for you while the page is open.",
+    "effects": [
+      {"stat": "feature:dead_hand", "op": "unlock", "value": 1}
+    ],
+    "cost": 22200, "requires": ["bigger_payload_3", "blast_radius"], "wave": "R5", "gate": 25,
+    "feature": "feature:dead_hand",
+    "anchor": true
+  },
+  {
+    "id": "fertile_ash_3", "sector": "blast", "ring": 6, "slot": 3, "type": "small",
+    "name": "Fertile Ash III",
+    "series": "fertile_ash",
+    "text": "All lines ×1.18.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.18, "scope": "all"}
+    ],
+    "cost": 33300, "requires": ["blast_radius", "hot_core"], "wave": "R3"
+  },
+  {
+    "id": "shockwave_1", "sector": "blast", "ring": 6, "slot": 4, "type": "small",
+    "name": "Shockwave I",
+    "series": "shockwave",
+    "text": "All lines run 18% faster.",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 1.18, "scope": "all"}
+    ],
+    "cost": 33300, "requires": ["hot_core", "glass_strata"], "wave": "R3"
+  },
+  {
+    "id": "postcard_album", "sector": "blast", "ring": 6, "slot": 5, "type": "unlock",
+    "name": "Postcard Album",
+    "text": "Your last 20 postcards, each with a snapshot of the island you flattened.",
+    "effects": [
+      {"stat": "feature:postcard_album", "op": "unlock", "value": 1}
+    ],
+    "cost": 44400, "requires": ["glass_strata", "warm_embers_3"], "wave": "R3",
+    "feature": "feature:postcard_album"
+  },
+  {
+    "id": "bigger_payload_4", "sector": "blast", "ring": 6, "slot": 6, "type": "small",
+    "name": "Bigger Payload IV",
+    "series": "bigger_payload",
+    "text": "Crater glass ×1.1.",
+    "effects": [
+      {"stat": "glass_gain", "op": "more", "value": 1.1}
+    ],
+    "cost": 55500, "requires": ["warm_embers_3"], "wave": "R3"
+  },
+  {
+    "id": "ash_bloom", "sector": "blast", "ring": 7, "slot": 1, "type": "notable",
+    "name": "Ash Bloom",
+    "text": "While Afterglow lasts, every line ×2. Odd flowers push up through the ash.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "all", "when": "afterglow"}
+    ],
+    "cost": 555000, "requires": ["bright_glass_1"], "wave": "R7", "data_from": "R3",
+    "scene": "pale, faintly glowing flowers push up through the ash while Afterglow lasts"
+  },
+  {
+    "id": "bright_glass_2", "sector": "blast", "ring": 7, "slot": 2, "type": "small",
+    "name": "Bright Glass II",
+    "series": "bright_glass",
+    "text": "Glow factor +0.04.",
+    "effects": [
+      {"stat": "glow_k", "op": "add", "value": 0.04}
+    ],
+    "cost": 444000, "requires": ["dead_hand"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "shockwave_2", "sector": "blast", "ring": 7, "slot": 3, "type": "small",
+    "name": "Shockwave II",
+    "series": "shockwave",
+    "text": "All lines run 10% faster.",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 222000, "requires": ["fertile_ash_3"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "fertile_ash_4", "sector": "blast", "ring": 7, "slot": 4, "type": "small",
+    "name": "Fertile Ash IV",
+    "series": "fertile_ash",
+    "text": "All lines ×1.13.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.13, "scope": "all"}
+    ],
+    "cost": 333000, "requires": ["shockwave_1"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "shockwave_3", "sector": "blast", "ring": 7, "slot": 5, "type": "small",
+    "name": "Shockwave III",
+    "series": "shockwave",
+    "text": "All lines run 10% faster.",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 333000, "requires": ["postcard_album"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "double_barrel", "sector": "blast", "ring": 7, "slot": 6, "type": "unlock",
+    "name": "Double Barrel",
+    "text": "A twin Kettle joins the pad: crater glass ×1.1, and the film launches both.",
+    "effects": [
+      {"stat": "glass_gain", "op": "more", "value": 1.1},
+      {"stat": "feature:double_barrel", "op": "unlock", "value": 1}
+    ],
+    "cost": 444000, "requires": ["bigger_payload_4"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:double_barrel",
+    "scene": "a smaller twin Kettle stands beside the first on the pad; the film launches both"
+  },
+  {
+    "id": "shockwave_4", "sector": "blast", "ring": 8, "slot": 1, "type": "small",
+    "name": "Shockwave IV",
+    "series": "shockwave",
+    "text": "All lines run 12% faster.",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 1.12, "scope": "all"}
+    ],
+    "cost": 2220000, "requires": ["ash_bloom"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bigger_payload_5", "sector": "blast", "ring": 8, "slot": 2, "type": "small",
+    "name": "Bigger Payload V",
+    "series": "bigger_payload",
+    "text": "Crater glass ×1.1.",
+    "effects": [
+      {"stat": "glass_gain", "op": "more", "value": 1.1}
+    ],
+    "cost": 5550000, "requires": ["ash_bloom", "bright_glass_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "glowing_bunks", "sector": "blast", "ring": 8, "slot": 3, "type": "notable",
+    "name": "Glowing Bunks",
+    "text": "Glow factor +0.001 for every lit Bunker node, up to +0.04.",
+    "effects": [
+      {"stat": "glow_k", "op": "add", "value": 0.001, "per": "sector:bunker", "max": 0.04}
+    ],
+    "cost": 9990000, "requires": ["bright_glass_2", "shockwave_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "chain_reaction", "sector": "blast", "ring": 8, "slot": 4, "type": "keystone",
+    "name": "Chain Reaction",
+    "text": "Glow factor +0.25, but every nuke pays half the glass.",
+    "effects": [
+      {"stat": "glow_k", "op": "add", "value": 0.25},
+      {"stat": "glass_gain", "op": "more", "value": 0.5}
+    ],
+    "cost": 7770000, "requires": ["shockwave_2", "fertile_ash_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "kettle_watch", "sector": "blast", "ring": 8, "slot": 5, "type": "automation",
+    "name": "Kettle Watch",
+    "text": "A notification when the Big Red is crowned, if you switch it on.",
+    "effects": [
+      {"stat": "feature:kettle_watch", "op": "unlock", "value": 1}
+    ],
+    "cost": 3330000, "requires": ["fertile_ash_4", "shockwave_3"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:kettle_watch"
+  },
+  {
+    "id": "fertile_ash_5", "sector": "blast", "ring": 8, "slot": 6, "type": "small",
+    "name": "Fertile Ash V",
+    "series": "fertile_ash",
+    "text": "All lines ×1.12.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.12, "scope": "all"}
+    ],
+    "cost": 3330000, "requires": ["shockwave_3", "double_barrel"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "shockwave_5", "sector": "blast", "ring": 8, "slot": 7, "type": "small",
+    "name": "Shockwave V",
+    "series": "shockwave",
+    "text": "All lines run 11% faster.",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 1.11, "scope": "all"}
+    ],
+    "cost": 2220000, "requires": ["double_barrel"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "fertile_ash_6", "sector": "blast", "ring": 9, "slot": 1, "type": "small",
+    "name": "Fertile Ash VI",
+    "series": "fertile_ash",
+    "text": "All lines ×1.12.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.12, "scope": "all"}
+    ],
+    "cost": 22200000, "requires": ["shockwave_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "nose_art", "sector": "blast", "ring": 9, "slot": 2, "type": "unlock",
+    "name": "Nose Art",
+    "text": "Paint the missile in a livery earned from your flights and records.",
+    "effects": [
+      {"stat": "feature:nose_art", "op": "unlock", "value": 1}
+    ],
+    "cost": 33300000, "requires": ["bigger_payload_5"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:nose_art",
+    "scene": "the Kettle wears the chosen livery on the pad and in the film"
+  },
+  {
+    "id": "shockwave_6", "sector": "blast", "ring": 9, "slot": 3, "type": "small",
+    "name": "Shockwave VI",
+    "series": "shockwave",
+    "text": "All lines run 12% faster.",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 1.12, "scope": "all"}
+    ],
+    "cost": 33300000, "requires": ["glowing_bunks"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "second_sun", "sector": "blast", "ring": 9, "slot": 4, "type": "completion",
+    "name": "Second Sun",
+    "text": "Glow factor +0.05. A pale second sun hangs over the island.",
+    "effects": [
+      {"stat": "glow_k", "op": "add", "value": 0.05}
+    ],
+    "cost": 55500000, "requires": ["shockwave_4", "bigger_payload_5", "glowing_bunks", "chain_reaction", "kettle_watch", "fertile_ash_5", "shockwave_5"], "wave": "R7", "data_from": "R3",
+    "scene": "a pale second sun in the sky, day and night"
+  },
+  {
+    "id": "warm_embers_4", "sector": "blast", "ring": 9, "slot": 5, "type": "small",
+    "name": "Warm Embers IV",
+    "series": "warm_embers",
+    "text": "Afterglow's half-life +90 s.",
+    "effects": [
+      {"stat": "afterglow_half", "op": "add", "value": 90}
+    ],
+    "cost": 22200000, "requires": ["kettle_watch"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "sunburst", "sector": "blast", "ring": 9, "slot": 6, "type": "notable",
+    "name": "Sunburst",
+    "text": "Crater glass ×1.1. The mushroom cloud glows gold.",
+    "effects": [
+      {"stat": "glass_gain", "op": "more", "value": 1.1}
+    ],
+    "cost": 77700000, "requires": ["fertile_ash_5"], "wave": "R7", "data_from": "R3",
+    "scene": "the mushroom cloud glows gold in the film"
+  },
+  {
+    "id": "fertile_ash_7", "sector": "blast", "ring": 9, "slot": 7, "type": "small",
+    "name": "Fertile Ash VII",
+    "series": "fertile_ash",
+    "text": "All lines ×1.11.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.11, "scope": "all"}
+    ],
+    "cost": 44400000, "requires": ["shockwave_5"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "tally_wall", "sector": "logbook", "ring": 1, "slot": 1, "type": "notable",
+    "name": "Tally Wall",
+    "text": "Lines +1% a Wipe Day, up to +10%. Somebody keeps score on the cabin wall.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.01, "per": "nukes", "max": 0.1}
+    ],
+    "cost": 3, "requires": ["ground_zero"], "wave": "R2",
+    "scene": "Scratch marks on the cabin wall, one per Wipe Day, struck through in fives (drawn up to 50)."
+  },
+  {
+    "id": "night_log_1", "sector": "logbook", "ring": 1, "slot": 2, "type": "small",
+    "name": "Night Log I",
+    "series": "night_log",
+    "text": "Lines +25% at night.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.25, "when": "night"}
+    ],
+    "cost": 1, "requires": ["ground_zero"], "wave": "R2"
+  },
+  {
+    "id": "personal_best", "sector": "logbook", "ring": 2, "slot": 1, "type": "unlock",
+    "name": "Personal Best",
+    "text": "Beat your last run's supplies made: the bell rings, lines +15% for the run.",
+    "effects": [
+      {"stat": "feature:personal_best", "op": "unlock", "value": 0.15}
+    ],
+    "counts_as": [
+      {"stat": "output", "op": "more", "value": 1.075, "scope": "all"}
+    ],
+    "cost": 7, "requires": ["tally_wall"], "wave": "R2",
+    "feature": "feature:personal_best",
+    "scene": "A ship's bell on a post by the cabin; it swings and clangs the moment this run passes the last one."
+  },
+  {
+    "id": "crib_notes_1", "sector": "logbook", "ring": 2, "slot": 2, "type": "small",
+    "name": "Crib Notes I",
+    "series": "crib_notes",
+    "text": "Twig lines +25%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.25, "scope": "twig"}
+    ],
+    "cost": 4, "requires": ["tally_wall", "night_log_1"], "wave": "R2"
+  },
+  {
+    "id": "weather_log", "sector": "logbook", "ring": 2, "slot": 3, "type": "notable",
+    "name": "Weather Log",
+    "text": "Lines +30% in rain. Today's entry: 'Wet. Again.'",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "when": "rain"}
+    ],
+    "cost": 11, "requires": ["night_log_1"], "wave": "R2"
+  },
+  {
+    "id": "crib_notes_2", "sector": "logbook", "ring": 3, "slot": 1, "type": "small",
+    "name": "Crib Notes II",
+    "series": "crib_notes",
+    "text": "Timber lines +30%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "scope": "wood"}
+    ],
+    "cost": 33, "requires": ["personal_best"], "wave": "R2"
+  },
+  {
+    "id": "almanac", "sector": "logbook", "ring": 3, "slot": 2, "type": "notable",
+    "name": "Almanac",
+    "text": "Lines +30% at night. The crew know when dark falls and work to it.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "when": "night"}
+    ],
+    "cost": 66, "requires": ["personal_best", "crib_notes_1"], "wave": "R2"
+  },
+  {
+    "id": "bookshelf", "sector": "logbook", "ring": 3, "slot": 3, "type": "notable",
+    "name": "Bookshelf",
+    "text": "Lines +1.5% per Logbook node you own, up to +9%. The shelf sags a bit.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.015, "per": "sector:logbook", "max": 0.09}
+    ],
+    "cost": 99, "requires": ["crib_notes_1", "weather_log"], "wave": "R2",
+    "scene": "A crooked plank shelf by the cabin door, one battered book per Logbook node owned (up to 9 drawn)."
+  },
+  {
+    "id": "night_log_2", "sector": "logbook", "ring": 3, "slot": 4, "type": "small",
+    "name": "Night Log II",
+    "series": "night_log",
+    "text": "Lines +30% at night.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "when": "night"}
+    ],
+    "cost": 44, "requires": ["weather_log"], "wave": "R2"
+  },
+  {
+    "id": "old_maps", "sector": "logbook", "ring": 4, "slot": 1, "type": "unlock",
+    "name": "Old Maps",
+    "text": "Secret hints show now, not at Wipe Day #15. Pinned up with a knife.",
+    "effects": [
+      {"stat": "feature:logbook_hints", "op": "unlock", "value": 1}
+    ],
+    "cost": 333, "requires": ["crib_notes_2"], "wave": "R4",
+    "feature": "feature:logbook_hints",
+    "scene": "A stained map pinned to the cabin wall with a knife."
+  },
+  {
+    "id": "war_stories", "sector": "logbook", "ring": 4, "slot": 2, "type": "small",
+    "name": "War Stories",
+    "text": "Morale per page +0.005 (0.02 to 0.025).",
+    "effects": [
+      {"stat": "morale_per", "op": "add", "value": 0.005}
+    ],
+    "cost": 222, "requires": ["crib_notes_2", "almanac"], "wave": "R4"
+  },
+  {
+    "id": "well_read", "sector": "logbook", "ring": 4, "slot": 3, "type": "completion",
+    "name": "Well Read",
+    "text": "Eras cost ×0.9. Somebody finally read the instructions.",
+    "effects": [
+      {"stat": "era_cost", "op": "more", "value": 0.9}
+    ],
+    "cost": 555, "requires": ["crib_notes_2", "almanac", "bookshelf", "night_log_2"], "wave": "R3"
+  },
+  {
+    "id": "crib_notes_3", "sector": "logbook", "ring": 4, "slot": 4, "type": "small",
+    "name": "Crib Notes III",
+    "series": "crib_notes",
+    "text": "Stone lines +30%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "scope": "stone"}
+    ],
+    "cost": 444, "requires": ["bookshelf", "night_log_2"], "wave": "R3"
+  },
+  {
+    "id": "long_memory", "sector": "logbook", "ring": 4, "slot": 5, "type": "notable",
+    "name": "Long Memory",
+    "text": "Lines +0.5% a Wipe Day, up to +10%. Nobody forgets a good blast.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.005, "per": "nukes", "max": 0.1}
+    ],
+    "cost": 777, "requires": ["night_log_2"], "wave": "R3"
+  },
+  {
+    "id": "margin_notes", "sector": "logbook", "ring": 5, "slot": 1, "type": "small",
+    "name": "Margin Notes",
+    "text": "Morale per page +0.005.",
+    "effects": [
+      {"stat": "morale_per", "op": "add", "value": 0.005}
+    ],
+    "cost": 3333, "requires": ["old_maps"], "wave": "R4"
+  },
+  {
+    "id": "page_turner", "sector": "logbook", "ring": 5, "slot": 2, "type": "notable",
+    "name": "Page Turner",
+    "text": "Lines +0.4% for every Logbook page, up to ×1.4. Nobody can put it down.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.004, "per": "entries", "max": 1.4}
+    ],
+    "cost": 9999, "requires": ["war_stories"], "wave": "R4"
+  },
+  {
+    "id": "tall_tales", "sector": "logbook", "ring": 5, "slot": 3, "type": "keystone",
+    "name": "Tall Tales",
+    "text": "While Hustle runs, lines lose Morale and taps get it twice (up to ×5 more).",
+    "effects": [
+      {"stat": "feature:tall_tales", "op": "unlock", "value": 5}
+    ],
+    "cost": 7777, "requires": ["well_read"], "wave": "R4",
+    "feature": "feature:tall_tales",
+    "conflicts": ["archivist"],
+    "scene": "While slotted and Hustle runs, the crew down tools at the fire and act out your swings, arms wide."
+  },
+  {
+    "id": "field_guide", "sector": "logbook", "ring": 5, "slot": 4, "type": "automation",
+    "name": "Field Guide",
+    "text": "Every page shows how close you are: bars on all, best tries on timed ones.",
+    "effects": [
+      {"stat": "feature:field_guide", "op": "unlock", "value": 1}
+    ],
+    "cost": 2222, "requires": ["crib_notes_3"], "wave": "R4",
+    "feature": "feature:field_guide"
+  },
+  {
+    "id": "old_plans_1", "sector": "logbook", "ring": 5, "slot": 5, "type": "small",
+    "name": "Old Plans I",
+    "series": "old_plans",
+    "text": "Eras cost ×0.9.",
+    "effects": [
+      {"stat": "era_cost", "op": "more", "value": 0.9}
+    ],
+    "cost": 2222, "requires": ["long_memory"], "wave": "R4"
+  },
+  {
+    "id": "ships_log_1", "sector": "logbook", "ring": 6, "slot": 1, "type": "small",
+    "name": "Ship's Log I",
+    "series": "ships_log",
+    "text": "Lines +2% a Wipe Day, up to ×1.35.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.02, "per": "nukes", "max": 1.35}
+    ],
+    "cost": 33300, "requires": ["margin_notes"], "wave": "R4"
+  },
+  {
+    "id": "dog_eared", "sector": "logbook", "ring": 6, "slot": 2, "type": "notable",
+    "name": "Dog-eared Pages",
+    "text": "Morale ×1.2. The good pages fall open on their own.",
+    "effects": [
+      {"stat": "morale", "op": "more", "value": 1.2}
+    ],
+    "cost": 55500, "requires": ["margin_notes", "page_turner"], "wave": "R4"
+  },
+  {
+    "id": "field_notes", "sector": "logbook", "ring": 6, "slot": 3, "type": "small",
+    "name": "Field Notes",
+    "text": "Morale per page +0.005.",
+    "effects": [
+      {"stat": "morale_per", "op": "add", "value": 0.005}
+    ],
+    "cost": 22200, "requires": ["page_turner", "tall_tales"], "wave": "R4"
+  },
+  {
+    "id": "night_log_3", "sector": "logbook", "ring": 6, "slot": 4, "type": "small",
+    "name": "Night Log III",
+    "series": "night_log",
+    "text": "Lines ×1.7 at night.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.7, "when": "night"}
+    ],
+    "cost": 44400, "requires": ["tall_tales", "field_guide"], "wave": "R4"
+  },
+  {
+    "id": "bottle_reader", "sector": "logbook", "ring": 6, "slot": 5, "type": "unlock",
+    "name": "Bottle Reader",
+    "text": "A Message in a Bottle names a secret's answer, not just its hint.",
+    "effects": [
+      {"stat": "feature:bottle_reader", "op": "unlock", "value": 1}
+    ],
+    "cost": 44400, "requires": ["field_guide", "old_plans_1"], "wave": "R4",
+    "feature": "feature:bottle_reader"
+  },
+  {
+    "id": "sea_stories_1", "sector": "logbook", "ring": 6, "slot": 6, "type": "small",
+    "name": "Sea Stories I",
+    "series": "sea_stories",
+    "text": "Lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3}
+    ],
+    "cost": 33300, "requires": ["old_plans_1"], "wave": "R4"
+  },
+  {
+    "id": "hint_lamp", "sector": "logbook", "ring": 7, "slot": 1, "type": "automation",
+    "name": "Hint Lamp",
+    "text": "With nothing crowned, the advisor points at your nearest unfound page.",
+    "effects": [
+      {"stat": "feature:hint_lamp", "op": "unlock", "value": 1}
+    ],
+    "cost": 333000, "requires": ["ships_log_1"], "wave": "R7", "data_from": "R4",
+    "feature": "feature:hint_lamp"
+  },
+  {
+    "id": "pressed_flowers", "sector": "logbook", "ring": 7, "slot": 2, "type": "small",
+    "name": "Pressed Flowers",
+    "text": "Morale per page +0.005.",
+    "effects": [
+      {"stat": "morale_per", "op": "add", "value": 0.005}
+    ],
+    "cost": 222000, "requires": ["dog_eared"], "wave": "R7", "data_from": "R4"
+  },
+  {
+    "id": "night_log_4", "sector": "logbook", "ring": 7, "slot": 3, "type": "small",
+    "name": "Night Log IV",
+    "series": "night_log",
+    "text": "Lines ×1.7 at night.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.7, "when": "night"}
+    ],
+    "cost": 333000, "requires": ["field_notes"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "ships_log_2", "sector": "logbook", "ring": 7, "slot": 4, "type": "small",
+    "name": "Ship's Log II",
+    "series": "ships_log",
+    "text": "Lines +2% a Wipe Day, up to ×1.35.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.02, "per": "nukes", "max": 1.35}
+    ],
+    "cost": 444000, "requires": ["night_log_3"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "sea_stories_2", "sector": "logbook", "ring": 7, "slot": 5, "type": "small",
+    "name": "Sea Stories II",
+    "series": "sea_stories",
+    "text": "Lines ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5}
+    ],
+    "cost": 555000, "requires": ["bottle_reader"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "double_dare", "sector": "logbook", "ring": 7, "slot": 6, "type": "unlock",
+    "name": "Double Dare",
+    "text": "Take two Dares in one run: both rules apply, each goal pays its reward.",
+    "effects": [
+      {"stat": "feature:double_dare", "op": "unlock", "value": 1}
+    ],
+    "cost": 444000, "requires": ["sea_stories_1"], "wave": "R7", "data_from": "R7", "gate": 30,
+    "feature": "feature:double_dare",
+    "scene": "Two flags fly on the crater sign instead of one while two Dares run."
+  },
+  {
+    "id": "ships_log_3", "sector": "logbook", "ring": 8, "slot": 1, "type": "small",
+    "name": "Ship's Log III",
+    "series": "ships_log",
+    "text": "Lines +2% a Wipe Day, up to ×1.35.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.02, "per": "nukes", "max": 1.35}
+    ],
+    "cost": 3330000, "requires": ["hint_lamp"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "old_plans_2", "sector": "logbook", "ring": 8, "slot": 2, "type": "small",
+    "name": "Old Plans II",
+    "series": "old_plans",
+    "text": "Eras cost ×0.9.",
+    "effects": [
+      {"stat": "era_cost", "op": "more", "value": 0.9}
+    ],
+    "cost": 2220000, "requires": ["hint_lamp", "pressed_flowers"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "rainy_day_fund", "sector": "logbook", "ring": 8, "slot": 3, "type": "notable",
+    "name": "Rainy Day Fund",
+    "text": "Lines ×2.4 in rain. Bad weather, good business.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2.4, "when": "rain"}
+    ],
+    "cost": 9990000, "requires": ["pressed_flowers", "night_log_4"], "wave": "R7", "data_from": "R3",
+    "scene": "In rain, tarps go up over every line and a dented RAINY DAY tin sits on the porch."
+  },
+  {
+    "id": "archivist", "sector": "logbook", "ring": 8, "slot": 4, "type": "keystone",
+    "name": "Archivist",
+    "text": "Morale ×2. Taps ×0.25: someone has to copy the Logbook out by hand.",
+    "effects": [
+      {"stat": "morale", "op": "more", "value": 2},
+      {"stat": "tap", "op": "more", "value": 0.25}
+    ],
+    "cost": 7770000, "requires": ["night_log_4", "ships_log_2"], "wave": "R7", "data_from": "R4",
+    "conflicts": ["tall_tales", "lone_wolf", "fever_pitch"],
+    "scene": "While slotted, a desk on the porch: one of the crew in cracked spectacles copies the Logbook by lantern."
+  },
+  {
+    "id": "dare_ledger", "sector": "logbook", "ring": 8, "slot": 5, "type": "automation",
+    "name": "Dare Ledger",
+    "text": "Rebuild picks your last unfinished Dare again. Change it if you like.",
+    "effects": [
+      {"stat": "feature:dare_ledger", "op": "unlock", "value": 1}
+    ],
+    "cost": 2220000, "requires": ["ships_log_2", "sea_stories_2"], "wave": "R7", "data_from": "R7", "gate": 40,
+    "feature": "feature:dare_ledger"
+  },
+  {
+    "id": "night_log_5", "sector": "logbook", "ring": 8, "slot": 6, "type": "small",
+    "name": "Night Log V",
+    "series": "night_log",
+    "text": "Lines ×1.5 at night.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "when": "night"}
+    ],
+    "cost": 4440000, "requires": ["sea_stories_2", "double_dare"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "sea_stories_3", "sector": "logbook", "ring": 8, "slot": 7, "type": "small",
+    "name": "Sea Stories III",
+    "series": "sea_stories",
+    "text": "Lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3}
+    ],
+    "cost": 5550000, "requires": ["double_dare"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bound_volume", "sector": "logbook", "ring": 9, "slot": 1, "type": "small",
+    "name": "Bound Volume",
+    "text": "Morale per page +0.010 (0.04 to 0.05).",
+    "effects": [
+      {"stat": "morale_per", "op": "add", "value": 0.01}
+    ],
+    "cost": 44400000, "requires": ["ships_log_3"], "wave": "R7", "data_from": "R4"
+  },
+  {
+    "id": "treasure_map", "sector": "logbook", "ring": 9, "slot": 2, "type": "unlock",
+    "name": "Treasure Map",
+    "text": "Once a week an X turns up on the island. Dig: one secret's answer.",
+    "effects": [
+      {"stat": "feature:treasure_map", "op": "unlock", "value": 1}
+    ],
+    "cost": 33300000, "requires": ["old_plans_2"], "wave": "R7", "data_from": "R4",
+    "feature": "feature:treasure_map",
+    "scene": "Once a week a chalk X somewhere on the island; tapped, a crew member digs up a tin box."
+  },
+  {
+    "id": "sea_stories_4", "sector": "logbook", "ring": 9, "slot": 3, "type": "small",
+    "name": "Sea Stories IV",
+    "series": "sea_stories",
+    "text": "Lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3}
+    ],
+    "cost": 33300000, "requires": ["rainy_day_fund"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "full_log", "sector": "logbook", "ring": 9, "slot": 4, "type": "completion",
+    "name": "Full Log",
+    "text": "Morale ×1.25. The first Logbook is full; volume two is started.",
+    "effects": [
+      {"stat": "morale", "op": "more", "value": 1.25}
+    ],
+    "cost": 55500000, "requires": ["ships_log_3", "old_plans_2", "rainy_day_fund", "archivist", "dare_ledger", "night_log_5", "sea_stories_3"], "wave": "R7", "data_from": "R4"
+  },
+  {
+    "id": "night_log_6", "sector": "logbook", "ring": 9, "slot": 5, "type": "small",
+    "name": "Night Log VI",
+    "series": "night_log",
+    "text": "Lines ×1.6 at night.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.6, "when": "night"}
+    ],
+    "cost": 22200000, "requires": ["dare_ledger"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "postcard_pen", "sector": "logbook", "ring": 9, "slot": 6, "type": "unlock",
+    "name": "Postcard Pen",
+    "text": "Write one line on each postcard (40 characters). It posts with the news.",
+    "effects": [
+      {"stat": "feature:postcard_pen", "op": "unlock", "value": 1}
+    ],
+    "cost": 33300000, "requires": ["night_log_5"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:postcard_pen"
+  },
+  {
+    "id": "ships_log_4", "sector": "logbook", "ring": 9, "slot": 7, "type": "small",
+    "name": "Ship's Log IV",
+    "series": "ships_log",
+    "text": "Lines +2% a Wipe Day, up to ×1.35.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.02, "per": "nukes", "max": 1.35}
+    ],
+    "cost": 44400000, "requires": ["sea_stories_3"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "scrap_heap", "sector": "scrapyard", "ring": 1, "slot": 1, "type": "notable",
+    "name": "Scrap Heap",
+    "text": "Grip rungs and Line Mks cost 15% less; the junk heap grows every Wipe Day.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.85, "scope": "grip"},
+      {"stat": "upgrade_cost", "op": "more", "value": 0.85, "scope": "line_mk"}
+    ],
+    "cost": 3, "requires": ["ground_zero"], "wave": "R2",
+    "scene": "a junk heap beside the beached skiff, one layer taller each Wipe Day (drawing caps at #50)"
+  },
+  {
+    "id": "odd_lumber_1", "sector": "scrapyard", "ring": 1, "slot": 2, "type": "small",
+    "name": "Odd Lumber I",
+    "text": "Island upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "island"}
+    ],
+    "cost": 1, "requires": ["ground_zero"], "wave": "R2"
+  },
+  {
+    "id": "tool_bag", "sector": "scrapyard", "ring": 2, "slot": 1, "type": "automation",
+    "name": "Tool Bag",
+    "text": "Start every run with Stone Tools in hand.",
+    "effects": [
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "stone_tools"}
+    ],
+    "cost": 5, "requires": ["scrap_heap"], "wave": "R2"
+  },
+  {
+    "id": "sharp_eye_1", "sector": "scrapyard", "ring": 2, "slot": 2, "type": "small",
+    "name": "Sharp Eye I",
+    "text": "Grip rungs cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "grip"}
+    ],
+    "cost": 4, "requires": ["scrap_heap", "odd_lumber_1"], "wave": "R2"
+  },
+  {
+    "id": "bargain_bin", "sector": "scrapyard", "ring": 2, "slot": 3, "type": "notable",
+    "name": "Bargain Bin",
+    "text": "Line Mk upgrades cost 15% less. Every bolt in the bin is 'nearly new'.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.85, "scope": "line_mk"}
+    ],
+    "cost": 11, "requires": ["odd_lumber_1"], "wave": "R2"
+  },
+  {
+    "id": "sharp_eye_2", "sector": "scrapyard", "ring": 3, "slot": 1, "type": "small",
+    "name": "Sharp Eye II",
+    "text": "Grip rungs cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "grip"}
+    ],
+    "cost": 25, "requires": ["tool_bag"], "wave": "R2"
+  },
+  {
+    "id": "patched_sail", "sector": "scrapyard", "ring": 3, "slot": 2, "type": "notable",
+    "name": "Patched Sail",
+    "text": "Island upgrades cost 20% less; the skiff flies a sail of three old tarps.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.8, "scope": "island"}
+    ],
+    "cost": 66, "requires": ["tool_bag", "sharp_eye_1"], "wave": "R2",
+    "scene": "the beached skiff gets a mast and a sail stitched from three mismatched tarps"
+  },
+  {
+    "id": "iron_bag", "sector": "scrapyard", "ring": 3, "slot": 3, "type": "automation",
+    "name": "Iron Bag",
+    "text": "Start every run with Iron Tools in hand.",
+    "effects": [
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "iron_tools"}
+    ],
+    "cost": 44, "requires": ["sharp_eye_1", "bargain_bin"], "wave": "R2"
+  },
+  {
+    "id": "bolt_bucket_1", "sector": "scrapyard", "ring": 3, "slot": 4, "type": "small",
+    "name": "Bolt Bucket I",
+    "text": "Line Mk upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "line_mk"}
+    ],
+    "cost": 33, "requires": ["bargain_bin"], "wave": "R2"
+  },
+  {
+    "id": "deep_pockets", "sector": "scrapyard", "ring": 4, "slot": 1, "type": "unlock",
+    "name": "Deep Pockets",
+    "text": "Pocket slot 2 opens (15 scrap): keep a second upgrade through every blast.",
+    "effects": [
+      {"stat": "feature:pocket_slot_2", "op": "unlock", "value": 1}
+    ],
+    "cost": 333, "requires": ["sharp_eye_2"], "wave": "R5",
+    "feature": "feature:pocket_slot_2",
+    "scene": "a second barnacled locker stands beside the first by the skiff"
+  },
+  {
+    "id": "odd_lumber_2", "sector": "scrapyard", "ring": 4, "slot": 2, "type": "small",
+    "name": "Odd Lumber II",
+    "text": "Island upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "island"}
+    ],
+    "cost": 222, "requires": ["sharp_eye_2", "patched_sail"], "wave": "R3"
+  },
+  {
+    "id": "sorted_yard", "sector": "scrapyard", "ring": 4, "slot": 3, "type": "completion",
+    "name": "Sorted Yard",
+    "text": "Every shelf upgrade costs 10% less. The heap finally has labels.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "grip"},
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "line_mk"},
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "island"}
+    ],
+    "cost": 555, "requires": ["sharp_eye_2", "patched_sail", "iron_bag", "bolt_bucket_1"], "wave": "R3",
+    "scene": "the junk heap is split into hand-labelled bins (TOOLS, BOLTS, PLANKS, ???)"
+  },
+  {
+    "id": "sharp_eye_3", "sector": "scrapyard", "ring": 4, "slot": 4, "type": "small",
+    "name": "Sharp Eye III",
+    "text": "Grip rungs cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "grip"}
+    ],
+    "cost": 222, "requires": ["iron_bag", "bolt_bucket_1"], "wave": "R3"
+  },
+  {
+    "id": "salvage_cart", "sector": "scrapyard", "ring": 4, "slot": 5, "type": "automation",
+    "name": "Salvage Cart",
+    "text": "One tap buys every shelf upgrade you can afford, cheapest first.",
+    "effects": [
+      {"stat": "feature:salvage_cart", "op": "unlock", "value": 1}
+    ],
+    "cost": 333, "requires": ["bolt_bucket_1"], "wave": "R3",
+    "feature": "feature:salvage_cart",
+    "scene": "a rusty shopping trolley with one wonky wheel parked by the skiff"
+  },
+  {
+    "id": "quick_winch", "sector": "scrapyard", "ring": 5, "slot": 1, "type": "small",
+    "name": "Quick Winch",
+    "text": "The Magnet hauls 1 h sooner: early from 19 h, sure from 22 h, by itself at 23 h.",
+    "effects": [
+      {"stat": "magnet_hours", "op": "set", "value": 23}
+    ],
+    "cost": 2222, "requires": ["deep_pockets"], "wave": "R5"
+  },
+  {
+    "id": "spare_parts", "sector": "scrapyard", "ring": 5, "slot": 2, "type": "notable",
+    "name": "Spare Parts",
+    "text": "Every Line Mk pays ×3.35, not ×3. Nobody asks where the spare bolts go.",
+    "effects": [
+      {"stat": "mk_mult", "op": "set", "value": 3.35}
+    ],
+    "cost": 5555, "requires": ["odd_lumber_2"], "wave": "R3"
+  },
+  {
+    "id": "hoarder", "sector": "scrapyard", "ring": 5, "slot": 3, "type": "keystone",
+    "name": "Hoarder",
+    "text": "Lines +10% per hour of output held unspent, to +100%. Line units cost ×2.",
+    "effects": [
+      {"stat": "feature:hoarder", "op": "unlock", "value": 1},
+      {"stat": "line_cost", "op": "more", "value": 2}
+    ],
+    "cost": 7777, "requires": ["sorted_yard"], "wave": "R3",
+    "feature": "feature:hoarder",
+    "scene": "while slotted: supply crates stack around the cabin, one stack per hour held (up to 10)"
+  },
+  {
+    "id": "first_shelf", "sector": "scrapyard", "ring": 5, "slot": 4, "type": "automation",
+    "name": "First Shelf",
+    "text": "Start every run with Sorting Tables already standing.",
+    "effects": [
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "sorting_tables"}
+    ],
+    "cost": 2222, "requires": ["sharp_eye_3"], "wave": "R3"
+  },
+  {
+    "id": "bolt_bucket_2", "sector": "scrapyard", "ring": 5, "slot": 5, "type": "small",
+    "name": "Bolt Bucket II",
+    "text": "Line Mk upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "line_mk"}
+    ],
+    "cost": 3333, "requires": ["salvage_cart"], "wave": "R3"
+  },
+  {
+    "id": "greased_cable", "sector": "scrapyard", "ring": 6, "slot": 1, "type": "small",
+    "name": "Greased Cable",
+    "text": "The Magnet hauls 1 h sooner again: early from 18 h, sure from 21 h, alone at 22 h.",
+    "effects": [
+      {"stat": "magnet_hours", "op": "set", "value": 22}
+    ],
+    "cost": 22200, "requires": ["quick_winch"], "wave": "R5"
+  },
+  {
+    "id": "cart_shed", "sector": "scrapyard", "ring": 6, "slot": 2, "type": "notable",
+    "name": "Cart Shed",
+    "text": "Start every run with Handcarts; island upgrades cost 10% less.",
+    "effects": [
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "handcarts"},
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "island"}
+    ],
+    "cost": 44400, "requires": ["quick_winch", "spare_parts"], "wave": "R3"
+  },
+  {
+    "id": "gold_braid", "sector": "scrapyard", "ring": 6, "slot": 3, "type": "notable",
+    "name": "Gold Braid",
+    "text": "Each crew rank pays ×2.1, not ×2: ×40.8 at rank 5, was ×32.",
+    "effects": [
+      {"stat": "rank_mult", "op": "set", "value": 2.1}
+    ],
+    "cost": 55500, "requires": ["spare_parts", "hoarder"], "wave": "R5"
+  },
+  {
+    "id": "wreck_salvage_1", "sector": "scrapyard", "ring": 6, "slot": 4, "type": "small",
+    "name": "Wreck Salvage I",
+    "text": "Armored lines (Ship Breaker, Reactor) ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "hqm"}
+    ],
+    "cost": 33300, "requires": ["hoarder", "first_shelf"], "wave": "R3"
+  },
+  {
+    "id": "sewn_lining", "sector": "scrapyard", "ring": 6, "slot": 5, "type": "unlock",
+    "name": "Sewn Lining",
+    "text": "Pocket slot 3 opens (40 scrap): a third upgrade rides out every blast.",
+    "effects": [
+      {"stat": "feature:pocket_slot_3", "op": "unlock", "value": 1}
+    ],
+    "cost": 44400, "requires": ["first_shelf", "bolt_bucket_2"], "wave": "R5",
+    "feature": "feature:pocket_slot_3",
+    "scene": "a third locker joins the row by the skiff, its lid wired shut with a coat hanger"
+  },
+  {
+    "id": "odd_lumber_3", "sector": "scrapyard", "ring": 6, "slot": 6, "type": "small",
+    "name": "Odd Lumber III",
+    "text": "Island upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "island"}
+    ],
+    "cost": 22200, "requires": ["bolt_bucket_2"], "wave": "R3"
+  },
+  {
+    "id": "mk_kit", "sector": "scrapyard", "ring": 7, "slot": 1, "type": "automation",
+    "name": "Mk Kit",
+    "text": "Start every run with Line Mk II on your first six lines (Beachcomber to Kiln).",
+    "effects": [
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "beachcomber_mk2"},
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "campfire_mk2"},
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "garden_mk2"},
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "loom_mk2"},
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "workbench_mk2"},
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "kiln_mk2"}
+    ],
+    "cost": 222000, "requires": ["greased_cable"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "heavy_coil", "sector": "scrapyard", "ring": 7, "slot": 2, "type": "small",
+    "name": "Heavy Coil",
+    "text": "The Magnet hauls 1 h sooner again: early from 17 h, sure from 20 h, alone at 21 h.",
+    "effects": [
+      {"stat": "magnet_hours", "op": "set", "value": 21}
+    ],
+    "cost": 222000, "requires": ["cart_shed"], "wave": "R7", "data_from": "R5"
+  },
+  {
+    "id": "double_rivets", "sector": "scrapyard", "ring": 7, "slot": 3, "type": "small",
+    "name": "Double Rivets",
+    "text": "Every Line Mk pays ×3.7.",
+    "effects": [
+      {"stat": "mk_mult", "op": "set", "value": 3.7}
+    ],
+    "cost": 444000, "requires": ["gold_braid"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "odd_lumber_4", "sector": "scrapyard", "ring": 7, "slot": 4, "type": "small",
+    "name": "Odd Lumber IV",
+    "text": "Island upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "island"}
+    ],
+    "cost": 333000, "requires": ["wreck_salvage_1"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bolt_bucket_3", "sector": "scrapyard", "ring": 7, "slot": 5, "type": "small",
+    "name": "Bolt Bucket III",
+    "text": "Line Mk upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "line_mk"}
+    ],
+    "cost": 333000, "requires": ["sewn_lining"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "odds_and_ends", "sector": "scrapyard", "ring": 7, "slot": 6, "type": "notable",
+    "name": "Odds and Ends",
+    "text": "All lines ×1.02 per Scrapyard node lit, up to ×1.6. Nothing here is junk.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.02, "per": "sector:scrapyard", "max": 1.6}
+    ],
+    "cost": 777000, "requires": ["odd_lumber_3"], "wave": "R7", "data_from": "R3",
+    "scene": "a junk wind chime by the skiff gains a piece (spoon, key, bottle cap) per Scrapyard node lit"
+  },
+  {
+    "id": "night_crane", "sector": "scrapyard", "ring": 8, "slot": 1, "type": "small",
+    "name": "Night Crane",
+    "text": "The Magnet hauls 1 h sooner again: early from 16 h, sure from 19 h, alone at 20 h.",
+    "effects": [
+      {"stat": "magnet_hours", "op": "set", "value": 20}
+    ],
+    "cost": 2220000, "requires": ["mk_kit"], "wave": "R7", "data_from": "R5"
+  },
+  {
+    "id": "wreck_salvage_2", "sector": "scrapyard", "ring": 8, "slot": 2, "type": "small",
+    "name": "Wreck Salvage II",
+    "text": "Armored lines (Ship Breaker, Reactor) ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "hqm"}
+    ],
+    "cost": 3330000, "requires": ["mk_kit", "heavy_coil"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "brass_polish", "sector": "scrapyard", "ring": 8, "slot": 3, "type": "notable",
+    "name": "Brass Polish",
+    "text": "Each crew rank pays ×2.2: ×51.5 at rank 5. Shine them pips.",
+    "effects": [
+      {"stat": "rank_mult", "op": "set", "value": 2.2}
+    ],
+    "cost": 5550000, "requires": ["heavy_coil", "double_rivets"], "wave": "R7", "data_from": "R5"
+  },
+  {
+    "id": "sentimental", "sector": "scrapyard", "ring": 8, "slot": 4, "type": "keystone",
+    "name": "Sentimental",
+    "text": "Pocketed island upgrades and Line Mks pay 40% more. One Pocket slot fewer.",
+    "effects": [
+      {"stat": "feature:sentimental", "op": "unlock", "value": 1}
+    ],
+    "cost": 7770000, "requires": ["double_rivets", "odd_lumber_4"], "wave": "R7", "data_from": "R5",
+    "feature": "feature:sentimental"
+  },
+  {
+    "id": "power_kit", "sector": "scrapyard", "ring": 8, "slot": 5, "type": "automation",
+    "name": "Power Kit",
+    "text": "Start every run with Salvaged Tools in hand.",
+    "effects": [
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "salvaged_tools"}
+    ],
+    "cost": 2220000, "requires": ["odd_lumber_4", "bolt_bucket_3"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "odd_lumber_5", "sector": "scrapyard", "ring": 8, "slot": 6, "type": "small",
+    "name": "Odd Lumber V",
+    "text": "Island upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "island"}
+    ],
+    "cost": 3330000, "requires": ["bolt_bucket_3", "odds_and_ends"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bolt_bucket_4", "sector": "scrapyard", "ring": 8, "slot": 7, "type": "small",
+    "name": "Bolt Bucket IV",
+    "text": "Line Mk upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "line_mk"}
+    ],
+    "cost": 2220000, "requires": ["odds_and_ends"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bolt_bucket_5", "sector": "scrapyard", "ring": 9, "slot": 1, "type": "small",
+    "name": "Bolt Bucket V",
+    "text": "Line Mk upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "line_mk"}
+    ],
+    "cost": 22200000, "requires": ["night_crane"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "junk_drawer", "sector": "scrapyard", "ring": 9, "slot": 2, "type": "unlock",
+    "name": "Junk Drawer",
+    "text": "Once a run, swap a full Pocket at any time, not just before your first buy.",
+    "effects": [
+      {"stat": "feature:junk_drawer", "op": "unlock", "value": 1}
+    ],
+    "cost": 33300000, "requires": ["wreck_salvage_2"], "wave": "R7", "data_from": "R5",
+    "feature": "feature:junk_drawer"
+  },
+  {
+    "id": "wreck_salvage_3", "sector": "scrapyard", "ring": 9, "slot": 3, "type": "small",
+    "name": "Wreck Salvage III",
+    "text": "Armored lines (Ship Breaker, Reactor) ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "hqm"}
+    ],
+    "cost": 44400000, "requires": ["brass_polish"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "yard_boss", "sector": "scrapyard", "ring": 9, "slot": 4, "type": "completion",
+    "name": "Yard Boss",
+    "text": "Each crew rank pays ×2.25 and every Line Mk ×4. The yard has a boss now.",
+    "effects": [
+      {"stat": "rank_mult", "op": "set", "value": 2.25},
+      {"stat": "mk_mult", "op": "set", "value": 4}
+    ],
+    "cost": 55500000, "requires": ["night_crane", "wreck_salvage_2", "brass_polish", "sentimental", "power_kit", "odd_lumber_5", "bolt_bucket_4"], "wave": "R7", "data_from": "R5",
+    "scene": "a YARD BOSS sign swings from the Magnet's crane; the crane's lamp gets a hard hat"
+  },
+  {
+    "id": "bolt_bucket_6", "sector": "scrapyard", "ring": 9, "slot": 5, "type": "small",
+    "name": "Bolt Bucket VI",
+    "text": "Line Mk upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "line_mk"}
+    ],
+    "cost": 22200000, "requires": ["power_kit"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "golden_hook", "sector": "scrapyard", "ring": 9, "slot": 6, "type": "unlock",
+    "name": "Golden Hook",
+    "text": "Once a week the Magnet lands a gold-painted bolt. Pretty. Worth nothing.",
+    "effects": [
+      {"stat": "feature:golden_hook", "op": "unlock", "value": 1}
+    ],
+    "cost": 33300000, "requires": ["odd_lumber_5"], "wave": "R7", "data_from": "R5",
+    "feature": "feature:golden_hook",
+    "scene": "a bolt board at the crane's foot; one gold-painted bolt screwed on each week"
+  },
+  {
+    "id": "odd_lumber_6", "sector": "scrapyard", "ring": 9, "slot": 7, "type": "small",
+    "name": "Odd Lumber VI",
+    "text": "Island upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "island"}
+    ],
+    "cost": 22200000, "requires": ["bolt_bucket_4"], "wave": "R7", "data_from": "R3"
+  }
+]

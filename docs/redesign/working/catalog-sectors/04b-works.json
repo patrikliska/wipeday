@@ -1,0 +1,432 @@
+[
+  {
+    "id": "packed_crate", "sector": "works", "ring": 1, "slot": 1, "type": "unlock",
+    "name": "Starter Kit",
+    "text": "Start every run with 10 Beachcombers and 5 Campfires, already working.",
+    "effects": [
+      {"stat": "start_owned", "op": "set", "value": 10, "scope": "beachcomber"},
+      {"stat": "start_owned", "op": "set", "value": 5, "scope": "campfire"}
+    ],
+    "cost": 2, "requires": ["ground_zero"], "wave": "R2",
+    "anchor": true,
+    "scene": "a packed crate rides in on the rowboat; at landing 10 Beachcombers and 5 Campfires pop in with their count badges"
+  },
+  {
+    "id": "hot_coals", "sector": "works", "ring": 1, "slot": 2, "type": "small",
+    "name": "Hot Coals",
+    "text": "Campfires +100%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 1, "scope": "campfire"}
+    ],
+    "cost": 1, "requires": ["ground_zero"], "wave": "R2"
+  },
+  {
+    "id": "first_light", "sector": "works", "ring": 2, "slot": 1, "type": "notable",
+    "name": "First Light",
+    "text": "Beachcombers, Campfires and Gardens cycle twice as fast. Up at dawn.",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 2, "scope": "twig"}
+    ],
+    "cost": 9, "requires": ["packed_crate"], "wave": "R2"
+  },
+  {
+    "id": "bulk_discount_1", "sector": "works", "ring": 2, "slot": 2, "type": "small",
+    "name": "Bulk Discount I",
+    "text": "Line units cost ×0.9.",
+    "effects": [
+      {"stat": "line_cost", "op": "more", "value": 0.9, "scope": "all"}
+    ],
+    "cost": 5, "requires": ["packed_crate", "hot_coals"], "wave": "R2"
+  },
+  {
+    "id": "bulk_buttons", "sector": "works", "ring": 2, "slot": 3, "type": "unlock",
+    "name": "Bulk Buttons",
+    "text": "Adds Next to the bulk toggle: buys just enough for each line's next milestone.",
+    "effects": [
+      {"stat": "feature:bulk_buy", "op": "unlock", "value": 1}
+    ],
+    "cost": 4, "requires": ["hot_coals"], "wave": "R2",
+    "feature": "feature:bulk_buy"
+  },
+  {
+    "id": "elbow_grease_1", "sector": "works", "ring": 3, "slot": 1, "type": "small",
+    "name": "Elbow Grease I",
+    "text": "All lines +15%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.15, "scope": "all"}
+    ],
+    "cost": 44, "requires": ["first_light"], "wave": "R2"
+  },
+  {
+    "id": "conveyor", "sector": "works", "ring": 3, "slot": 2, "type": "notable",
+    "name": "Conveyor Belts",
+    "text": "All lines +30%. Belts rattle between the buildings, carrying every product.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "scope": "all"}
+    ],
+    "cost": 77, "requires": ["first_light", "bulk_discount_1"], "wave": "R2",
+    "scene": "rattling belts link the buildings; each line's product rides them to the base"
+  },
+  {
+    "id": "prefab_walls", "sector": "works", "ring": 3, "slot": 3, "type": "unlock",
+    "name": "Prefab Walls",
+    "text": "Every run starts in the Timber era. The cabin comes flat-packed.",
+    "effects": [
+      {"stat": "start_era", "op": "set", "value": "wood"}
+    ],
+    "cost": 66, "requires": ["bulk_discount_1", "bulk_buttons"], "wave": "R2",
+    "scene": "the rebuild drops a flat-packed timber cabin instead of the twig lean-to"
+  },
+  {
+    "id": "bulk_discount_2", "sector": "works", "ring": 3, "slot": 4, "type": "small",
+    "name": "Bulk Discount II",
+    "text": "Line units cost ×0.9.",
+    "effects": [
+      {"stat": "line_cost", "op": "more", "value": 0.9, "scope": "all"}
+    ],
+    "cost": 33, "requires": ["bulk_buttons"], "wave": "R2"
+  },
+  {
+    "id": "big_kit", "sector": "works", "ring": 4, "slot": 1, "type": "automation",
+    "name": "Bigger Kit",
+    "text": "Start every run with 25 Beachcombers, 25 Campfires and 25 Gardens.",
+    "effects": [
+      {"stat": "start_owned", "op": "set", "value": 25, "scope": "beachcomber"},
+      {"stat": "start_owned", "op": "set", "value": 25, "scope": "campfire"},
+      {"stat": "start_owned", "op": "set", "value": 25, "scope": "garden"}
+    ],
+    "cost": 333, "requires": ["elbow_grease_1"], "wave": "R3"
+  },
+  {
+    "id": "retooling_1", "sector": "works", "ring": 4, "slot": 2, "type": "small",
+    "name": "Retooling I",
+    "text": "Timber lines +30%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "scope": "wood"}
+    ],
+    "cost": 222, "requires": ["elbow_grease_1", "conveyor"], "wave": "R3"
+  },
+  {
+    "id": "shop_floor", "sector": "works", "ring": 4, "slot": 3, "type": "completion",
+    "name": "Shop Floor",
+    "text": "Line units cost ×0.85. The shop floor finally has a floor.",
+    "effects": [
+      {"stat": "line_cost", "op": "more", "value": 0.85, "scope": "all"}
+    ],
+    "cost": 555, "requires": ["elbow_grease_1", "conveyor", "prefab_walls", "bulk_discount_2"], "wave": "R3"
+  },
+  {
+    "id": "retooling_2", "sector": "works", "ring": 4, "slot": 4, "type": "small",
+    "name": "Retooling II",
+    "text": "Stone lines +30%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "scope": "stone"}
+    ],
+    "cost": 333, "requires": ["prefab_walls", "bulk_discount_2"], "wave": "R3"
+  },
+  {
+    "id": "union_rules", "sector": "works", "ring": 4, "slot": 5, "type": "notable",
+    "name": "Union Rules",
+    "text": "Every ×2 milestone pays ×2.2. The crew read the small print.",
+    "effects": [
+      {"stat": "milestone_x2", "op": "set", "value": 2.2}
+    ],
+    "cost": 777, "requires": ["bulk_discount_2"], "wave": "R3",
+    "anchor": true
+  },
+  {
+    "id": "bulk_discount_3", "sector": "works", "ring": 5, "slot": 1, "type": "small",
+    "name": "Bulk Discount III",
+    "text": "Line units cost ×0.85.",
+    "effects": [
+      {"stat": "line_cost", "op": "more", "value": 0.85, "scope": "all"}
+    ],
+    "cost": 2222, "requires": ["big_kit"], "wave": "R3"
+  },
+  {
+    "id": "stone_foundations", "sector": "works", "ring": 5, "slot": 2, "type": "automation",
+    "name": "Stone Foundations",
+    "text": "Every run starts in the Stone era. Somebody finally poured concrete.",
+    "effects": [
+      {"stat": "start_era", "op": "set", "value": "stone"}
+    ],
+    "cost": 3333, "requires": ["retooling_1"], "wave": "R3",
+    "scene": "the cabin lands on a poured stone footing, in Stone-era colours from the first second"
+  },
+  {
+    "id": "mass_production", "sector": "works", "ring": 5, "slot": 3, "type": "keystone",
+    "name": "Mass Production",
+    "text": "Every line +2% per unit of it you own, up to ×8. Speed milestones do nothing.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.02, "scope": "all", "per": "owned", "max": 8},
+      {"stat": "feature:mass_production", "op": "unlock", "value": 1}
+    ],
+    "cost": 7777, "requires": ["shop_floor"], "wave": "R3",
+    "feature": "feature:mass_production"
+  },
+  {
+    "id": "assembly_line", "sector": "works", "ring": 5, "slot": 4, "type": "notable",
+    "name": "Assembly Line",
+    "text": "All lines +5% for every Works node you own, up to ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.05, "scope": "all", "per": "sector:works", "max": 2}
+    ],
+    "cost": 9999, "requires": ["retooling_2"], "wave": "R3"
+  },
+  {
+    "id": "elbow_grease_2", "sector": "works", "ring": 5, "slot": 5, "type": "small",
+    "name": "Elbow Grease II",
+    "text": "All lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3, "scope": "all"}
+    ],
+    "cost": 4444, "requires": ["union_rules"], "wave": "R3"
+  },
+  {
+    "id": "elbow_grease_3", "sector": "works", "ring": 6, "slot": 1, "type": "small",
+    "name": "Elbow Grease III",
+    "text": "All lines ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "all"}
+    ],
+    "cost": 44400, "requires": ["bulk_discount_3"], "wave": "R3"
+  },
+  {
+    "id": "full_roster", "sector": "works", "ring": 6, "slot": 2, "type": "notable",
+    "name": "Full Roster",
+    "text": "Roster milestones that pay ×2 pay ×3. Bunting for everyone.",
+    "effects": [
+      {"stat": "roster_x2", "op": "set", "value": 3}
+    ],
+    "cost": 55500, "requires": ["bulk_discount_3", "stone_foundations"], "wave": "R3"
+  },
+  {
+    "id": "retooling_3", "sector": "works", "ring": 6, "slot": 3, "type": "small",
+    "name": "Retooling III",
+    "text": "Armored lines ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "hqm"}
+    ],
+    "cost": 33300, "requires": ["stone_foundations", "mass_production"], "wave": "R3"
+  },
+  {
+    "id": "hot_cells_1", "sector": "works", "ring": 6, "slot": 4, "type": "small",
+    "name": "Hot Cells I",
+    "text": "Reactors ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "reactor"}
+    ],
+    "cost": 55500, "requires": ["mass_production", "assembly_line"], "wave": "R3"
+  },
+  {
+    "id": "standing_orders", "sector": "works", "ring": 6, "slot": 5, "type": "automation",
+    "name": "Standing Orders",
+    "text": "Line Mk II and III buy themselves when affordable, while the page is open.",
+    "effects": [
+      {"stat": "feature:autobuy", "op": "unlock", "value": 1, "scope": "line_mk"}
+    ],
+    "cost": 33300, "requires": ["assembly_line", "elbow_grease_2"], "wave": "R3",
+    "feature": "feature:autobuy"
+  },
+  {
+    "id": "bulk_discount_4", "sector": "works", "ring": 6, "slot": 6, "type": "small",
+    "name": "Bulk Discount IV",
+    "text": "Line units cost ×0.85.",
+    "effects": [
+      {"stat": "line_cost", "op": "more", "value": 0.85, "scope": "all"}
+    ],
+    "cost": 22200, "requires": ["elbow_grease_2"], "wave": "R3"
+  },
+  {
+    "id": "tin_roofs", "sector": "works", "ring": 7, "slot": 1, "type": "automation",
+    "name": "Tin Roofs",
+    "text": "Every run starts in the Sheet Metal era. Rain drums on tin, not on you.",
+    "effects": [
+      {"stat": "start_era", "op": "set", "value": "metal"}
+    ],
+    "cost": 333000, "requires": ["elbow_grease_3"], "wave": "R7", "data_from": "R3",
+    "scene": "corrugated tin roofs on every building from the landing; rain drums on them"
+  },
+  {
+    "id": "elbow_grease_4", "sector": "works", "ring": 7, "slot": 2, "type": "small",
+    "name": "Elbow Grease IV",
+    "text": "All lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3, "scope": "all"}
+    ],
+    "cost": 444000, "requires": ["full_roster"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bulk_discount_5", "sector": "works", "ring": 7, "slot": 3, "type": "small",
+    "name": "Bulk Discount V",
+    "text": "Line units cost ×0.85.",
+    "effects": [
+      {"stat": "line_cost", "op": "more", "value": 0.85, "scope": "all"}
+    ],
+    "cost": 222000, "requires": ["retooling_3"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "retooling_4", "sector": "works", "ring": 7, "slot": 4, "type": "small",
+    "name": "Retooling IV",
+    "text": "Armored lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3, "scope": "hqm"}
+    ],
+    "cost": 333000, "requires": ["hot_cells_1"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "hot_cells_2", "sector": "works", "ring": 7, "slot": 5, "type": "small",
+    "name": "Hot Cells II",
+    "text": "Reactors ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "reactor"}
+    ],
+    "cost": 555000, "requires": ["standing_orders"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "smokestacks", "sector": "works", "ring": 7, "slot": 6, "type": "notable",
+    "name": "Smokestacks",
+    "text": "All lines ×2. Every building grows a smokestack; the gulls hate it.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "all"}
+    ],
+    "cost": 1110000, "requires": ["bulk_discount_4"], "wave": "R7", "data_from": "R3",
+    "scene": "a smokestack on every building, puffing in time with its bar; gulls circle wide of them"
+  },
+  {
+    "id": "elbow_grease_5", "sector": "works", "ring": 8, "slot": 1, "type": "small",
+    "name": "Elbow Grease V",
+    "text": "All lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3, "scope": "all"}
+    ],
+    "cost": 4440000, "requires": ["tin_roofs"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bulk_discount_6", "sector": "works", "ring": 8, "slot": 2, "type": "small",
+    "name": "Bulk Discount VI",
+    "text": "Line units cost ×0.85.",
+    "effects": [
+      {"stat": "line_cost", "op": "more", "value": 0.85, "scope": "all"}
+    ],
+    "cost": 2220000, "requires": ["tin_roofs", "elbow_grease_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "rivet_gun", "sector": "works", "ring": 8, "slot": 3, "type": "notable",
+    "name": "Rivet Gun",
+    "text": "Armored lines ×2. Every plate gets a rivet, needed or not.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "hqm"}
+    ],
+    "cost": 9990000, "requires": ["elbow_grease_4", "bulk_discount_5"], "wave": "R7", "data_from": "R3",
+    "scene": "riveted plates on the Ship Breaker and Reactor; a rivet gun's sparks flash on them now and then"
+  },
+  {
+    "id": "monoculture", "sector": "works", "ring": 8, "slot": 4, "type": "keystone",
+    "name": "Monoculture",
+    "text": "The highest line you own ×2; every other line ×0.5. The rest can make do.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.5, "scope": "all"},
+      {"stat": "feature:monoculture", "op": "unlock", "value": 1}
+    ],
+    "cost": 7770000, "requires": ["bulk_discount_5", "retooling_4"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:monoculture"
+  },
+  {
+    "id": "overtime", "sector": "works", "ring": 8, "slot": 5, "type": "notable",
+    "name": "Overtime",
+    "text": "Every line cycles twice as fast. Nobody asked the crew.",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 2, "scope": "all"}
+    ],
+    "cost": 5550000, "requires": ["retooling_4", "hot_cells_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "retooling_5", "sector": "works", "ring": 8, "slot": 6, "type": "small",
+    "name": "Retooling V",
+    "text": "Armored lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3, "scope": "hqm"}
+    ],
+    "cost": 3330000, "requires": ["hot_cells_2", "smokestacks"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "hot_cells_3", "sector": "works", "ring": 8, "slot": 7, "type": "small",
+    "name": "Hot Cells III",
+    "text": "Reactors ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "reactor"}
+    ],
+    "cost": 5550000, "requires": ["smokestacks"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bulk_discount_7", "sector": "works", "ring": 9, "slot": 1, "type": "small",
+    "name": "Bulk Discount VII",
+    "text": "Line units cost ×0.85.",
+    "effects": [
+      {"stat": "line_cost", "op": "more", "value": 0.85, "scope": "all"}
+    ],
+    "cost": 22200000, "requires": ["elbow_grease_5"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "barn_raising", "sector": "works", "ring": 9, "slot": 2, "type": "notable",
+    "name": "Barn Raising",
+    "text": "Runs start with 25 of every open line, and lines ×4 while Afterglow lasts.",
+    "effects": [
+      {"stat": "start_owned", "op": "set", "value": 25, "scope": "all"},
+      {"stat": "output", "op": "more", "value": 4, "scope": "all", "when": "afterglow"}
+    ],
+    "cost": 99900000, "requires": ["bulk_discount_6"], "wave": "R7", "data_from": "R3",
+    "scene": "the landing raises a whole town at its 25-owned stage at once; crews hammer on every roof while Afterglow lasts"
+  },
+  {
+    "id": "elbow_grease_6", "sector": "works", "ring": 9, "slot": 3, "type": "small",
+    "name": "Elbow Grease VI",
+    "text": "All lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3, "scope": "all"}
+    ],
+    "cost": 44400000, "requires": ["rivet_gun"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "the_works", "sector": "works", "ring": 9, "slot": 4, "type": "completion",
+    "name": "The Works",
+    "text": "All lines ×3. You built the whole works.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 3, "scope": "all"}
+    ],
+    "cost": 55500000, "requires": ["elbow_grease_5", "bulk_discount_6", "rivet_gun", "monoculture", "overtime", "retooling_5", "hot_cells_3"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "retooling_6", "sector": "works", "ring": 9, "slot": 5, "type": "small",
+    "name": "Retooling VI",
+    "text": "Armored lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3, "scope": "hqm"}
+    ],
+    "cost": 33300000, "requires": ["overtime"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "line_mk_iv", "sector": "works", "ring": 9, "slot": 6, "type": "unlock",
+    "name": "Line Mk IV",
+    "text": "Line Mk IV on the shelf (needs 100 owned): that line ×3, painted sign and all.",
+    "effects": [
+      {"stat": "feature:line_mk_iv", "op": "unlock", "value": 1}
+    ],
+    "counts_as": [
+      {"stat": "output", "op": "more", "value": 3, "scope": "all"}
+    ],
+    "cost": 33300000, "requires": ["retooling_5"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:line_mk_iv",
+    "scene": "a hand-painted Mk IV sign on every building that has one"
+  },
+  {
+    "id": "retooling_7", "sector": "works", "ring": 9, "slot": 7, "type": "small",
+    "name": "Retooling VII",
+    "text": "Sheet Metal lines ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "metal"}
+    ],
+    "cost": 22200000, "requires": ["hot_cells_3"], "wave": "R7", "data_from": "R3"
+  }
+]

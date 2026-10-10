@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!apps/discord/src/store/migrations", "!preview"]
+    "includes": ["**", "!apps/discord/src/store/migrations", "!preview", "!docs/redesign"]
   },
   "formatter": {
     "indentStyle": "space",

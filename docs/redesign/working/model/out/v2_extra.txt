@@ -1,0 +1,155 @@
+# Canon v2: extra tables
+
+## N9 by weather (active archetype at its first session of the day; 6 flotsam seeds)
+  day 14 clear active/idle 2.83 (taps, Hustle, Rush only 1.73; at 4 taps/s 2.49); tap share outside bursts 38%; flotsam share 22%
+  day 14 rain  active/idle 3.42 (taps, Hustle, Rush only 1.73; at 4 taps/s 3.03); tap share outside bursts 38%; flotsam share 28%
+  day 30 clear active/idle 2.83 (taps, Hustle, Rush only 1.73; at 4 taps/s 2.49); tap share outside bursts 38%; flotsam share 22%
+  day 30 rain  active/idle 3.42 (taps, Hustle, Rush only 1.73; at 4 taps/s 3.03); tap share outside bursts 38%; flotsam share 28%
+  day 60 clear active/idle 2.83 (taps, Hustle, Rush only 1.73; at 4 taps/s 2.49); tap share outside bursts 38%; flotsam share 22%
+  day 60 rain  active/idle 3.42 (taps, Hustle, Rush only 1.73; at 4 taps/s 3.03); tap share outside bursts 38%; flotsam share 28%
+  day 14 weather-weighted (80% clear or fog, 20% rain): 2.95
+  day 30 weather-weighted (80% clear or fog, 20% rain): 2.95
+  day 60 weather-weighted (80% clear or fog, 20% rain): 2.95
+
+## Run 1 and the first nuke over 12 seeds (N1-N3), alone
+  first_hour   first nuke wall min 40:00 median 44:30 max 46:00; glass [10]
+    lifetime 30M passed at online min 4:25 median 4:25 max 4:25
+    lifetime 1B passed at online min 10:10 median 12:15 max 12:47
+  autoclicker  first nuke wall min 32:30 median 38:00 max 39:30; glass [10]
+  casual       first nuke wall min 13h00 median 13h02 max 13h02; glass [10, 11]
+  casual first nuke by the day-1 21:00 check-in: 12 of 12 seeds
+
+## Scope shares of line income (alone, seed 11): top lines, eras Twig..Armored, night 19:12-05:31
+  casual  days   1-8   lines 12: 58%, 11: 19%, 13: 14%, 10: 6%; eras 0% 0% 3% 83% 14%; night 5%
+  casual  days   9-30  lines 14: 86%, 13: 11%, 12: 2%, 11: 0%; eras 0% 0% 0% 3% 97%; night 37%
+  casual  days  31-90  lines 14: 82%, 13: 15%, 12: 3%, 11: 0%; eras 0% 0% 0% 3% 97%; night 41%
+  casual  days  91-180 lines 14: 85%, 13: 12%, 12: 2%, 11: 0%; eras 0% 0% 0% 2% 98%; night 43%
+  active  days   1-8   lines 14: 76%, 13: 20%, 12: 4%, 11: 1%; eras 0% 0% 0% 4% 96%; night 45%
+  active  days   9-30  lines 14: 83%, 13: 15%, 12: 2%, 11: 0%; eras 0% 0% 0% 3% 97%; night 48%
+  active  days  31-90  lines 14: 81%, 13: 16%, 12: 3%, 11: 1%; eras 0% 0% 0% 4% 96%; night 44%
+  active  days  91-180 lines 14: 83%, 13: 15%, 12: 2%, 11: 0%; eras 0% 0% 0% 2% 98%; night 43%
+
+## N19: scrap as a 7-day average from day 2, the first Wipe Day's 3 excluded (min / mean / p90 / max; by d30, d180)
+  alone  idler    1.00 / 1.17 / 1.43 / 2.00; 37, 220
+  alone  casual   1.00 / 1.30 / 1.57 / 2.14; 47, 236
+  alone  active   1.00 / 1.56 / 2.00 / 2.57; 51, 285
+  alone  optimal  1.00 / 1.72 / 2.14 / 2.57; 45, 302
+  G5     idler    1.14 / 1.31 / 1.57 / 2.00; 40, 244
+  G5     casual   1.29 / 1.55 / 1.86 / 2.43; 54, 291
+  G5     active   1.29 / 1.75 / 2.00 / 2.57; 50, 311
+  G5     optimal  1.29 / 1.98 / 2.43 / 3.14; 55, 354
+
+## Alone, seeds 7/11/23 (cells: geometric mean glass ever / mean Wipe Days / lit share)
+### alone (no friends)
+  idler    d7 227/4/11%  d30 35.5k/10/33%  d90 145k/12/40%  d180 366k/13/42%  d365 581k/14/42%
+  casual   d7 1.05k/7/17%  d30 41.6k/24/34%  d90 238k/41/43%  d180 594k/50/47%  d365 3.87M/69/57%
+  active   d7 10.8k/12/28%  d30 68.6k/27/36%  d90 336k/43/44%  d180 801k/52/48%  d365 6.11M/73/60%
+  optimal  d7 14.2k/9/29%  d30 77.3k/15/37%  d90 403k/25/45%  d180 985k/32/49%  d365 6.84M/50/60%
+  gap idler    d30 0.85 d90 0.61 d180 0.62 d365 0.15; trough d25-35 0.45, d85-95 0.41
+  gap active   d30 1.65 d90 1.42 d180 1.35 d365 1.58
+  gap optimal  d30 1.86 d90 1.70 d180 1.66 d365 1.77
+  casual (seed 7): Wipe Days by d7 7, d30 [24, 25, 24] (all seeds); Blowback 0.0 crates a day (d1-30), 0.0 (d1-180); power per nuke 1.70/1.23/1.31; N11 0.55/0.75/0.78; later nodes median 2; 5-nuke alarms 0
+  optimal lit at d30: ['37%', '36%', '37%']
+
+## Groups (lockstep, seeds 7/11/23)
+### G5 with Late Tide, Blowback from friends' Wipe Days (365 days)
+  idler    d7 807/4/16%  d30 43.2k/8/31%  d90 293k/11/42%  d180 600k/12/42%  d365 1.21M/13/42%
+  casual   d7 10.4k/8/27%  d30 64.2k/21/36%  d90 298k/36/43%  d180 716k/45/47%  d365 4.76M/64/58%
+  active   d7 10.9k/12/28%  d30 68.3k/28/36%  d90 348k/44/44%  d180 830k/53/48%  d365 6.29M/74/60%
+  optimal  d7 13.3k/9/29%  d30 85.9k/17/37%  d90 447k/27/45%  d180 1.13M/35/50%  d365 7.69M/52/61%
+  late     d30 20.6/1/4%  d90 257k/25/43%  d180 663k/35/47%  d365 4.72M/55/58%
+  gap idler    d30 0.67 d90 0.98 d180 0.84 d365 0.25; trough d25-35 0.48, d85-95 0.53
+  gap active   d30 1.06 d90 1.17 d180 1.16 d365 1.32
+  gap optimal  d30 1.34 d90 1.50 d180 1.58 d365 1.62
+  gap late     d30 0.00 d90 0.86 d180 0.93 d365 0.99; reaches the day-30 casual after [14, 12, 13] days
+  casual (seed 7): Wipe Days by d7 8, d30 [22, 22, 20] (all seeds); Blowback 5.1 crates a day (d1-30), 1.6 (d1-180); power per nuke 1.92/1.26/1.32; N11 0.46/0.81/0.80; later nodes median 2; 5-nuke alarms 0
+  optimal lit at d30: ['37%', '37%', '37%']
+
+### G5 without Late Tide
+  idler    d7 245/4/12%  d30 41.3k/10/34%  d90 167k/12/41%  d180 334k/13/42%
+  casual   d7 970/7/17%  d30 43.9k/24/34%  d90 266k/41/43%  d180 684k/51/47%
+  active   d7 11.9k/12/28%  d30 70.9k/28/36%  d90 358k/44/44%  d180 908k/54/49%
+  optimal  d7 13.4k/9/29%  d30 83.4k/16/37%  d90 447k/26/45%  d180 1.13M/34/50%
+  late     d30 10.3/1/3%  d90 109k/33/39%  d180 504k/48/46%
+  gap idler    d30 0.94 d90 0.63 d180 0.49; trough d25-35 0.52, d85-95 0.55
+  gap active   d30 1.62 d90 1.34 d180 1.33
+  gap optimal  d30 1.90 d90 1.68 d180 1.66
+  gap late     d30 0.00 d90 0.41 d180 0.74; reaches the day-30 casual after [33, 31, 30] days
+  casual (seed 7): Wipe Days by d7 7, d30 [24, 25, 24] (all seeds); Blowback 4.9 crates a day (d1-30), 1.5 (d1-180); power per nuke 1.63/1.24/1.21; N11 0.68/0.79/0.86; later nodes median 2; 5-nuke alarms 0
+  optimal lit at d30: ['37%', '37%', '37%']
+
+### pair casual+active, Late Tide on
+  casual   d7 8.62k/8/26%  d30 61.3k/22/36%  d90 308k/38/43%  d180 716k/46/48%
+  active   d7 10.5k/12/28%  d30 70.8k/29/36%  d90 364k/45/44%  d180 893k/54/49%
+  gap active   d30 1.15 d90 1.18 d180 1.25
+  casual (seed 7): Wipe Days by d7 8, d30 [22, 23, 22] (all seeds); Blowback 2.6 crates a day (d1-30), 0.8 (d1-180); power per nuke 1.92/1.24/1.22; N11 0.85/0.80/0.81; later nodes median 2; 5-nuke alarms 0
+
+### pair casual+optimal, Late Tide on
+  casual   d7 13.9k/8/29%  d30 74.6k/20/37%  d90 351k/34/44%  d180 766k/42/48%
+  optimal  d7 13.3k/9/29%  d30 85k/16/37%  d90 402k/26/45%  d180 1.11M/34/50%
+  gap optimal  d30 1.14 d90 1.15 d180 1.45
+  casual (seed 7): Wipe Days by d7 8, d30 [20, 19, 20] (all seeds); Blowback 1.1 crates a day (d1-30), 0.4 (d1-180); power per nuke 1.91/1.31/1.22; N11 0.85/0.73/0.83; later nodes median 2; 5-nuke alarms 0
+  optimal lit at d30: ['37%', '37%', '37%']
+
+### pair casual+idler, Late Tide on
+  casual   d7 1.05k/7/17%  d30 46.3k/24/34%  d90 270k/41/43%  d180 676k/50/47%
+  idler    d7 668/4/15%  d30 35.6k/9/31%  d90 150k/11/41%  d180 537k/13/42%
+  gap idler    d30 0.77 d90 0.56 d180 0.79; trough d25-35 0.52, d85-95 0.52
+  casual (seed 7): Wipe Days by d7 7, d30 [23, 25, 24] (all seeds); Blowback 0.0 crates a day (d1-30), 0.0 (d1-180); power per nuke 1.70/1.25/1.21; N11 0.55/0.77/0.86; later nodes median 2; 5-nuke alarms 0
+
+### pair casual+late, Late Tide on
+  casual   d7 1.05k/7/17%  d30 46.3k/24/34%  d90 266k/41/43%  d180 685k/50/47%
+  late     d30 27/1/4%  d90 238k/25/43%  d180 634k/35/47%
+  gap late     d30 0.00 d90 0.89 d180 0.93; reaches the day-30 casual after [12, 9, 10] days
+  casual (seed 7): Wipe Days by d7 7, d30 [23, 25, 24] (all seeds); Blowback 0.0 crates a day (d1-30), 0.0 (d1-180); power per nuke 1.70/1.25/1.21; N11 0.55/0.77/0.84; later nodes median 2; 5-nuke alarms 0
+
+## Late wall: rings 6-9 lines budget, 365 days (seed 11); v2 is x1,000 each
+  alone x30     casual lit d365 50%, Wipe Days d180-365 7; gaps d365 active 1.15 optimal 1.17 idler 0.39
+  alone x300    casual lit d365 52%, Wipe Days d180-365 10; gaps d365 active 1.55 optimal 2.33 idler 0.29
+  alone x3,000  casual lit d365 62%, Wipe Days d180-365 28; gaps d365 active 2.42 optimal 7.07 idler 0.04
+  G5    x30     casual lit d365 50%, Wipe Days d180-365 6; gaps d365 active 1.07 optimal 1.26 idler 0.90 late 1.10
+  G5    x300    casual lit d365 54%, Wipe Days d180-365 10; gaps d365 active 1.29 optimal 2.07 idler 0.55 late 1.00
+  G5    x3,000  casual lit d365 65%, Wipe Days d180-365 29; gaps d365 active 2.21 optimal 5.15 idler 0.07 late 1.03
+  alone x1,000 (seed 11) casual lit d365 57%, Wipe Days d180-365 19; gaps d365 active 1.49 optimal 1.61 idler 0.11
+  G5 x1,000 (seed 11)    casual lit d365 58%, Wipe Days d180-365 19; gaps d365 active 1.25 optimal 1.58 idler 0.20
+
+## Horizon (seed 11): glass ever / Wipe Days / lit at days 180, 240, 365; largest number
+  alone idler    d180 428k/14/42% | d240 428k/14/42% | d365 428k/14/42% | largest 26.5Dc
+  alone casual   d180 619k/51/47% | d240 908k/55/49% | d365 4.04M/70/57% | largest 4.99e+37
+  alone active   d180 789k/52/48% | d240 1.4M/58/52% | d365 6.03M/73/60% | largest 4.37e+38
+  alone optimal  d180 941k/31/49% | d240 1.81M/37/54% | d365 6.51M/49/60% | largest 8.95e+38
+  G5    idler    d180 485k/12/42% | d240 988k/13/42% | d365 988k/13/42% | largest 38.9Dc
+  G5    casual   d180 754k/46/48% | d240 1.12M/50/50% | d365 4.89M/65/58% | largest 1.50e+38
+  G5    active   d180 805k/52/48% | d240 1.43M/58/52% | d365 6.1M/73/60% | largest 4.57e+38
+  G5    optimal  d180 1.16M/34/50% | d240 2.71M/41/56% | d365 7.73M/51/61% | largest 1.18e+39
+  G5    late     d180 678k/34/47% | d240 1.1M/39/50% | d365 4.82M/54/58% | largest 1.54e+38
+
+## Levers: one change at a time from canon v2, a player alone, 180 days (seed 11)
+  lever                              N1      cas d30  n d30  active 30/90 optimal 30/90 idler 30/90  late  
+  canon v2 (alone)                   44:30   43.3k    25     1.59/1.42    1.66/1.62    0.60/0.46    4.5 d
+  canon run constants                19:00   29.6B    26     113132.87/71.70 622635.64/180.65 0.03/0.00    2.3 d
+  L0 x2 (1e6)                        50:00   30.2k    22     1.69/1.51    2.08/2.17    0.91/0.72    5.0 d
+  exponent 1/4 (L0 5e6)              44:30   36.5M    29     165.24/1.54  1544.16/1.69 0.04/0.00    2.0 d
+  exponent 1/3 (L0 5e7)              44:30   403B     37     2380.60/1.35 3053.38/1.47 0.00/0.00    1.8 d
+  k 0.15                             44:30   23.9k    26     2.30/1.98    2.93/2.52    1.15/0.83    4.0 d
+  k 0.35                             44:30   55.2k    24     1.37/1.25    1.53/1.62    0.84/0.65    4.5 d
+  output x5.0 per rung               36:00   63.7k    22     1.37/1.37    2.18/1.67    0.62/0.47    4.8 d
+  output x4.5 per rung               52:30   19.6k    25     2.11/1.63    3.21/2.59    0.88/0.62    4.7 d
+  ring 5 x15                         44:30   43.6k    25     1.66/1.33    1.67/1.54    0.59/0.36    3.7 d
+  rings 1-4 x2 each                  44:30   73.4k    24     1.37/1.35    1.98/1.50    0.66/0.48    4.5 d
+  ranks x3, together                 44:30   71.3k    23     1.43/1.38    2.22/1.76    0.81/0.43    4.0 d
+  ranks x2, focus allowed            44:30   43.3k    25     1.59/1.42    4.94/3.04    0.60/0.46    4.5 d
+  crown canon v1 (80% of peak only)  44:30   52.2k    16     1.44/1.22    1.37/1.35    0.49/0.38    7.8 d
+  crown any 10%                      44:30   36.8k    33     1.79/1.51    1.95/1.73    0.70/0.49    4.5 d
+  Night Shift base 8 h               44:30   43.3k    25     1.59/1.42    1.66/1.62    0.48/0.72    4.5 d
+  era costs x3                       45:00   36.6k    24     1.92/1.74    2.22/1.87    1.10/0.82    4.5 d
+  milestones 200-400 at x2           44:30   27.6k    24     1.85/1.42    2.31/1.90    0.86/0.91    7.0 d
+  Morale 1% per entry                44:30   19.1k    26     2.82/1.91    3.19/2.33    0.96/1.11    4.0 d
+  Blowback 9 crates a day            44:30   43.8k    25     1.58/1.32    1.86/1.74    0.51/0.71    4.5 d
+  p 1% per Grip rung                 37:00   45.9k    24     1.50/1.35    1.91/1.80    0.56/0.43    5.0 d
+  canon v1 flotsam and Rush          40:30   45.3k    25     1.55/1.32    2.06/1.87    0.57/0.42    4.0 d
+  no rain                            44:30   36.5k    24     1.67/1.62    2.33/1.98    0.71/0.53    4.5 d
+  Foreman pass without reserve       44:30   45.3k    26     1.49/1.35    0.87/1.42    0.47/0.38    5.0 d
+  optimal awake 07-23 only           optimal 1.59/1.59
+
+done in 262s

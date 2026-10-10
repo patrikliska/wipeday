@@ -1,0 +1,464 @@
+[
+  {
+    "id": "hot_breakfast", "sector": "bunker", "ring": 1, "slot": 1, "type": "unlock",
+    "name": "Hot Breakfast",
+    "text": "Back after 6 h or more? Collect also starts a Rally: all lines ×4 for 60 s.",
+    "effects": [
+      {"stat": "feature:hot_breakfast", "op": "unlock", "value": 6}
+    ],
+    "cost": 2, "requires": ["ground_zero"], "wave": "R2",
+    "feature": "feature:hot_breakfast",
+    "scene": "On a return after 6 h or more the crew sit round the fire with a steaming pot of beans while the Rally runs."
+  },
+  {
+    "id": "deep_cellars", "sector": "bunker", "ring": 1, "slot": 2, "type": "small",
+    "name": "Deep Cellars",
+    "text": "Night Shift +4 h.",
+    "effects": [
+      {"stat": "night_shift", "op": "add", "value": 4}
+    ],
+    "cost": 1, "requires": ["ground_zero"], "wave": "R2",
+    "anchor": true,
+    "scene": "A wooden cellar hatch in the ground beside the cabin, from the first second of every run."
+  },
+  {
+    "id": "night_lamps", "sector": "bunker", "ring": 2, "slot": 1, "type": "notable",
+    "name": "Night Lamps",
+    "text": "Lines +20% at night. Lanterns go up on every building after dusk.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.2, "scope": "all", "when": "night"}
+    ],
+    "cost": 11, "requires": ["hot_breakfast"], "wave": "R2",
+    "scene": "After dusk a lantern hangs on every building, drawn on the lights layer above the night tint."
+  },
+  {
+    "id": "lantern_oil_1", "sector": "bunker", "ring": 2, "slot": 2, "type": "small",
+    "name": "Lantern Oil I",
+    "series": "lantern_oil",
+    "text": "Lines +10% at night.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.1, "scope": "all", "when": "night"}
+    ],
+    "cost": 5, "requires": ["hot_breakfast", "deep_cellars"], "wave": "R2"
+  },
+  {
+    "id": "insulated_walls", "sector": "bunker", "ring": 2, "slot": 3, "type": "notable",
+    "name": "Insulated Walls",
+    "text": "Night Shift +4 h. Shutters go up and the draughts stay out.",
+    "effects": [
+      {"stat": "night_shift", "op": "add", "value": 4}
+    ],
+    "cost": 15, "requires": ["deep_cellars"], "wave": "R2",
+    "scene": "Plank shutters on the cabin windows; they swing shut at dusk."
+  },
+  {
+    "id": "lantern_oil_2", "sector": "bunker", "ring": 3, "slot": 1, "type": "small",
+    "name": "Lantern Oil II",
+    "series": "lantern_oil",
+    "text": "Lines +30% at night.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "scope": "all", "when": "night"}
+    ],
+    "cost": 44, "requires": ["night_lamps"], "wave": "R2"
+  },
+  {
+    "id": "all_clear", "sector": "bunker", "ring": 3, "slot": 2, "type": "notable",
+    "name": "All Clear",
+    "text": "Lines +50% while Afterglow lasts. The siren winds down; the crew climb out.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.5, "scope": "all", "when": "afterglow"}
+    ],
+    "cost": 77, "requires": ["night_lamps", "lantern_oil_1"], "wave": "R2",
+    "scene": "A hand-cranked siren on a pole by the hatch wails at the landing, and kept hands climb out of the hatch instead of the rowboat."
+  },
+  {
+    "id": "moonshine_still", "sector": "bunker", "ring": 3, "slot": 3, "type": "notable",
+    "name": "Moonshine Still",
+    "text": "Lines +1% at night per Bunker node you own, up to +10%. It's lamp fuel. Mostly.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.01, "scope": "all", "per": "sector:bunker", "max": 0.1, "when": "night"}
+    ],
+    "cost": 66, "requires": ["lantern_oil_1", "insulated_walls"], "wave": "R2",
+    "scene": "A dented copper still by the cellar hatch, bubbling and dripping at night."
+  },
+  {
+    "id": "root_cellar_1", "sector": "bunker", "ring": 3, "slot": 4, "type": "small",
+    "name": "Root Cellar I",
+    "series": "root_cellar",
+    "text": "Night Shift +4 h.",
+    "effects": [
+      {"stat": "night_shift", "op": "add", "value": 4}
+    ],
+    "cost": 33, "requires": ["insulated_walls"], "wave": "R2"
+  },
+  {
+    "id": "night_porter", "sector": "bunker", "ring": 4, "slot": 1, "type": "automation",
+    "name": "Night Porter",
+    "text": "Collect runs itself 3 s after the welcome-back card opens; the card stays.",
+    "effects": [
+      {"stat": "feature:night_porter", "op": "unlock", "value": 3}
+    ],
+    "cost": 333, "requires": ["lantern_oil_2"], "wave": "R3",
+    "feature": "feature:night_porter"
+  },
+  {
+    "id": "root_cellar_2", "sector": "bunker", "ring": 4, "slot": 2, "type": "small",
+    "name": "Root Cellar II",
+    "series": "root_cellar",
+    "text": "Night Shift +4 h.",
+    "effects": [
+      {"stat": "night_shift", "op": "add", "value": 4}
+    ],
+    "cost": 222, "requires": ["lantern_oil_2", "all_clear"], "wave": "R3"
+  },
+  {
+    "id": "snug", "sector": "bunker", "ring": 4, "slot": 3, "type": "completion",
+    "name": "Snug",
+    "text": "Lines ×1.1 while you're away. Blankets, a stove and a door that shuts.",
+    "effects": [
+      {"stat": "offline", "op": "more", "value": 1.1}
+    ],
+    "cost": 555, "requires": ["lantern_oil_2", "all_clear", "moonshine_still", "root_cellar_1"], "wave": "R3"
+  },
+  {
+    "id": "fuel_cache", "sector": "bunker", "ring": 4, "slot": 4, "type": "small",
+    "name": "Fuel Cache",
+    "text": "Oil Presses +60%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.6, "scope": "press"}
+    ],
+    "cost": 444, "requires": ["moonshine_still", "root_cellar_1"], "wave": "R3"
+  },
+  {
+    "id": "banked_fires", "sector": "bunker", "ring": 4, "slot": 5, "type": "notable",
+    "name": "Banked Fires",
+    "text": "Campfires, Kilns and Furnaces ×2 at night. The fires are banked, never out.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "campfire", "when": "night"},
+      {"stat": "output", "op": "more", "value": 2, "scope": "kiln", "when": "night"},
+      {"stat": "output", "op": "more", "value": 2, "scope": "furnace", "when": "night"}
+    ],
+    "cost": 777, "requires": ["root_cellar_1"], "wave": "R3",
+    "scene": "At night the Campfire, Kiln and Furnace glow twice as bright on the lights layer, embers drifting up."
+  },
+  {
+    "id": "night_rations_1", "sector": "bunker", "ring": 5, "slot": 1, "type": "small",
+    "name": "Night Rations I",
+    "series": "night_rations",
+    "text": "Lines ×1.1 while you're away.",
+    "effects": [
+      {"stat": "offline", "op": "more", "value": 1.1}
+    ],
+    "cost": 3333, "requires": ["night_porter"], "wave": "R3"
+  },
+  {
+    "id": "night_owls", "sector": "bunker", "ring": 5, "slot": 2, "type": "notable",
+    "name": "Night Owls",
+    "text": "Lines +2% at night for each hand on shift, up to +28%. Hire before bed.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.02, "scope": "all", "per": "hands", "max": 1.28, "when": "night"}
+    ],
+    "cost": 5555, "requires": ["root_cellar_2"], "wave": "R3"
+  },
+  {
+    "id": "bunker_mentality", "sector": "bunker", "ring": 5, "slot": 3, "type": "keystone",
+    "name": "Bunker Mentality",
+    "text": "Lines ×1.5 while you're away. No flotsam drifts in, ever.",
+    "effects": [
+      {"stat": "offline", "op": "more", "value": 1.5},
+      {"stat": "flotsam_rate", "op": "more", "value": 0}
+    ],
+    "cost": 7777, "requires": ["snug"], "wave": "R3",
+    "conflicts": ["scavengers_eye", "wreckers_moon", "lone_wolf"],
+    "anchor": true,
+    "scene": "While slotted, the hatch stays bolted and a hand-painted sign on it reads GONE TO GROUND."
+  },
+  {
+    "id": "wake_up_call", "sector": "bunker", "ring": 5, "slot": 4, "type": "automation",
+    "name": "Wake-up Call",
+    "text": "Grit fires itself on your first visit after it is ready.",
+    "effects": [
+      {"stat": "feature:wake_up_call", "op": "unlock", "value": 1}
+    ],
+    "cost": 3333, "requires": ["fuel_cache"], "wave": "R5", "gate": 10,
+    "feature": "feature:wake_up_call"
+  },
+  {
+    "id": "lantern_oil_3", "sector": "bunker", "ring": 5, "slot": 5, "type": "small",
+    "name": "Lantern Oil III",
+    "series": "lantern_oil",
+    "text": "Lines ×1.3 at night.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3, "scope": "all", "when": "night"}
+    ],
+    "cost": 2222, "requires": ["banked_fires"], "wave": "R3"
+  },
+  {
+    "id": "root_cellar_3", "sector": "bunker", "ring": 6, "slot": 1, "type": "small",
+    "name": "Root Cellar III",
+    "series": "root_cellar",
+    "text": "Night Shift +4 h.",
+    "effects": [
+      {"stat": "night_shift", "op": "add", "value": 4}
+    ],
+    "cost": 33300, "requires": ["night_rations_1"], "wave": "R3"
+  },
+  {
+    "id": "cold_storage", "sector": "bunker", "ring": 6, "slot": 2, "type": "notable",
+    "name": "Cold Storage",
+    "text": "Night Shift +4 h, and lines ×1.15 while you're away. The beans keep.",
+    "effects": [
+      {"stat": "night_shift", "op": "add", "value": 4},
+      {"stat": "output", "op": "more", "value": 1.15, "scope": "all", "when": "offline"}
+    ],
+    "cost": 77700, "requires": ["night_rations_1", "night_owls"], "wave": "R3",
+    "scene": "A frosted steel door set into the hill behind the cabin, a thermometer nailed beside it."
+  },
+  {
+    "id": "lantern_oil_4", "sector": "bunker", "ring": 6, "slot": 3, "type": "small",
+    "name": "Lantern Oil IV",
+    "series": "lantern_oil",
+    "text": "Lines ×1.5 at night.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "all", "when": "night"}
+    ],
+    "cost": 22200, "requires": ["night_owls", "bunker_mentality"], "wave": "R3"
+  },
+  {
+    "id": "night_rations_2", "sector": "bunker", "ring": 6, "slot": 4, "type": "small",
+    "name": "Night Rations II",
+    "series": "night_rations",
+    "text": "Lines ×1.1 while you're away.",
+    "effects": [
+      {"stat": "offline", "op": "more", "value": 1.1}
+    ],
+    "cost": 44400, "requires": ["bunker_mentality", "wake_up_call"], "wave": "R3"
+  },
+  {
+    "id": "lights_out", "sector": "bunker", "ring": 6, "slot": 5, "type": "unlock",
+    "name": "Lights Out",
+    "text": "Say when you'll be back. Return within 30 min of it: the Night Shift pays ×1.1.",
+    "effects": [
+      {"stat": "feature:lights_out", "op": "unlock", "value": 1.1}
+    ],
+    "counts_as": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 44400, "requires": ["wake_up_call", "lantern_oil_3"], "wave": "R3",
+    "feature": "feature:lights_out",
+    "scene": "While you're away, a hand-painted BACK AT 08:00 board hangs on the cabin door (the time is a screen-space label)."
+  },
+  {
+    "id": "tinned_beans_1", "sector": "bunker", "ring": 6, "slot": 6, "type": "small",
+    "name": "Tinned Beans I",
+    "series": "tinned_beans",
+    "text": "Lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3, "scope": "all"}
+    ],
+    "cost": 55500, "requires": ["lantern_oil_3"], "wave": "R3"
+  },
+  {
+    "id": "snooze", "sector": "bunker", "ring": 7, "slot": 1, "type": "automation",
+    "name": "Snooze",
+    "text": "'Night Shift over' rings an hour early, while there's still time to top up.",
+    "effects": [
+      {"stat": "feature:snooze", "op": "unlock", "value": 1}
+    ],
+    "cost": 222000, "requires": ["root_cellar_3"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:snooze"
+  },
+  {
+    "id": "root_cellar_4", "sector": "bunker", "ring": 7, "slot": 2, "type": "small",
+    "name": "Root Cellar IV",
+    "series": "root_cellar",
+    "text": "Night Shift +4 h.",
+    "effects": [
+      {"stat": "night_shift", "op": "add", "value": 4}
+    ],
+    "cost": 333000, "requires": ["cold_storage"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "tinned_beans_2", "sector": "bunker", "ring": 7, "slot": 3, "type": "small",
+    "name": "Tinned Beans II",
+    "series": "tinned_beans",
+    "text": "Lines ×1.4.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.4, "scope": "all"}
+    ],
+    "cost": 222000, "requires": ["lantern_oil_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "tinned_beans_3", "sector": "bunker", "ring": 7, "slot": 4, "type": "small",
+    "name": "Tinned Beans III",
+    "series": "tinned_beans",
+    "text": "Lines ×1.4.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.4, "scope": "all"}
+    ],
+    "cost": 444000, "requires": ["night_rations_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "night_rations_3", "sector": "bunker", "ring": 7, "slot": 5, "type": "small",
+    "name": "Night Rations III",
+    "series": "night_rations",
+    "text": "Lines ×1.1 while you're away.",
+    "effects": [
+      {"stat": "offline", "op": "more", "value": 1.1}
+    ],
+    "cost": 555000, "requires": ["lights_out"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "night_crew", "sector": "bunker", "ring": 7, "slot": 6, "type": "unlock",
+    "name": "Night Crew",
+    "text": "Lines without a hand work the Night Shift at 10%. Head-torches bob all night.",
+    "effects": [
+      {"stat": "feature:night_crew", "op": "unlock", "value": 0.1}
+    ],
+    "cost": 444000, "requires": ["tinned_beans_1"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:night_crew",
+    "scene": "At night small head-torch lights bob over every plot that has no hand, on the lights layer."
+  },
+  {
+    "id": "night_rations_4", "sector": "bunker", "ring": 8, "slot": 1, "type": "small",
+    "name": "Night Rations IV",
+    "series": "night_rations",
+    "text": "Lines ×1.1 while you're away.",
+    "effects": [
+      {"stat": "offline", "op": "more", "value": 1.1}
+    ],
+    "cost": 2220000, "requires": ["snooze"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "steel_plating_1", "sector": "bunker", "ring": 8, "slot": 2, "type": "small",
+    "name": "Steel Plating I",
+    "series": "steel_plating",
+    "text": "Sheet Metal lines ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "metal"}
+    ],
+    "cost": 3330000, "requires": ["snooze", "root_cellar_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bunk_beds", "sector": "bunker", "ring": 8, "slot": 3, "type": "notable",
+    "name": "Bunk Beds",
+    "text": "Night Shift +4 h: the window reaches 48 h, the most it gets.",
+    "effects": [
+      {"stat": "night_shift", "op": "add", "value": 4}
+    ],
+    "cost": 5550000, "requires": ["root_cellar_4", "tinned_beans_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "graveyard_shift", "sector": "bunker", "ring": 8, "slot": 4, "type": "keystone",
+    "name": "Graveyard Shift",
+    "text": "Lines ×4 at night but ×0.5 always: double after dark, half by day.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 4, "scope": "all", "when": "night"},
+      {"stat": "output", "op": "more", "value": 0.5, "scope": "all"}
+    ],
+    "cost": 7770000, "requires": ["tinned_beans_2", "tinned_beans_3"], "wave": "R7", "data_from": "R3",
+    "conflicts": [],
+    "scene": "While slotted, by day the crew doze in hammocks strung between the buildings; after dark every building blazes with work lights."
+  },
+  {
+    "id": "shift_report", "sector": "bunker", "ring": 8, "slot": 5, "type": "automation",
+    "name": "Shift Report",
+    "text": "The welcome-back card breaks the night down, line by line.",
+    "effects": [
+      {"stat": "feature:shift_report", "op": "unlock", "value": 1}
+    ],
+    "cost": 2220000, "requires": ["tinned_beans_3", "night_rations_3"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:shift_report"
+  },
+  {
+    "id": "tinned_beans_4", "sector": "bunker", "ring": 8, "slot": 6, "type": "small",
+    "name": "Tinned Beans IV",
+    "series": "tinned_beans",
+    "text": "Lines ×1.4.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.4, "scope": "all"}
+    ],
+    "cost": 4440000, "requires": ["night_rations_3", "night_crew"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "tinned_beans_5", "sector": "bunker", "ring": 8, "slot": 7, "type": "small",
+    "name": "Tinned Beans V",
+    "series": "tinned_beans",
+    "text": "Lines ×1.35.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.35, "scope": "all"}
+    ],
+    "cost": 5550000, "requires": ["night_crew"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "tinned_beans_6", "sector": "bunker", "ring": 9, "slot": 1, "type": "small",
+    "name": "Tinned Beans VI",
+    "series": "tinned_beans",
+    "text": "Lines ×1.2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.2, "scope": "all"}
+    ],
+    "cost": 22200000, "requires": ["night_rations_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "dug_in", "sector": "bunker", "ring": 9, "slot": 2, "type": "notable",
+    "name": "Dug In",
+    "text": "Lines +0.5% per Bunker node you own, up to +20%. Nobody's moving us.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.005, "scope": "all", "per": "sector:bunker", "max": 1.2}
+    ],
+    "cost": 77700000, "requires": ["steel_plating_1"], "wave": "R7", "data_from": "R3",
+    "scene": "Sandbags ring the hatch and a periscope pokes out of the hill, turning to follow passing gulls."
+  },
+  {
+    "id": "tinned_beans_7", "sector": "bunker", "ring": 9, "slot": 3, "type": "small",
+    "name": "Tinned Beans VII",
+    "series": "tinned_beans",
+    "text": "Lines ×1.2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.2, "scope": "all"}
+    ],
+    "cost": 33300000, "requires": ["bunk_beds"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "deep_sleep", "sector": "bunker", "ring": 9, "slot": 4, "type": "completion",
+    "name": "Deep Sleep",
+    "text": "Lines ×1.1 while you're away. The whole crew sleeps like logs.",
+    "effects": [
+      {"stat": "offline", "op": "more", "value": 1.1}
+    ],
+    "cost": 55500000, "requires": ["night_rations_4", "steel_plating_1", "bunk_beds", "graveyard_shift", "shift_report", "tinned_beans_4", "tinned_beans_5"], "wave": "R7", "data_from": "R3",
+    "scene": "At night a slow stream of Zzz drifts up out of the cellar hatch."
+  },
+  {
+    "id": "tinned_beans_8", "sector": "bunker", "ring": 9, "slot": 5, "type": "small",
+    "name": "Tinned Beans VIII",
+    "series": "tinned_beans",
+    "text": "Lines ×1.1.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 44400000, "requires": ["shift_report"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bunker_door", "sector": "bunker", "ring": 9, "slot": 6, "type": "unlock",
+    "name": "Bunker Door",
+    "text": "Away 24 h or more? A Fuel Drum and a Drift Crate wait at a door in the hill.",
+    "effects": [
+      {"stat": "feature:bunker_door", "op": "unlock", "value": 24}
+    ],
+    "cost": 33300000, "requires": ["tinned_beans_4"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:bunker_door",
+    "scene": "A steel door in the hillside; after a long absence it stands ajar with a drum and a crate outside, to tap."
+  },
+  {
+    "id": "steel_plating_2", "sector": "bunker", "ring": 9, "slot": 7, "type": "small",
+    "name": "Steel Plating II",
+    "series": "steel_plating",
+    "text": "Sheet Metal lines ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "metal"}
+    ],
+    "cost": 55500000, "requires": ["tinned_beans_5"], "wave": "R7", "data_from": "R3"
+  }
+]

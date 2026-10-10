@@ -1,0 +1,490 @@
+[
+  {
+    "id": "lucky_tide", "sector": "tide", "ring": 1, "slot": 1, "type": "notable",
+    "name": "Lucky Tide",
+    "text": "Flotsam drifts in 5% more often.",
+    "effects": [
+      {"stat": "flotsam_rate", "op": "more", "value": 1.05}
+    ],
+    "cost": 3, "requires": ["ground_zero"], "wave": "R2",
+    "flavour": "The sea seems to like you. Don't push it."
+  },
+  {
+    "id": "slow_current_1", "sector": "tide", "ring": 1, "slot": 2, "type": "small",
+    "name": "Slow Current I",
+    "series": "slow_current",
+    "text": "Flotsam floats 1 s longer.",
+    "effects": [
+      {"stat": "flotsam_float", "op": "add", "value": 1}
+    ],
+    "cost": 1, "requires": ["ground_zero"], "wave": "R2"
+  },
+  {
+    "id": "lookout_post", "sector": "tide", "ring": 2, "slot": 1, "type": "unlock",
+    "name": "Lookout Post",
+    "text": "A lookout points and a bell rings 3 s before flotsam drifts in.",
+    "effects": [
+      {"stat": "feature:lookout_post", "op": "unlock", "value": 1}
+    ],
+    "cost": 7, "requires": ["lucky_tide"], "wave": "R2",
+    "feature": "feature:lookout_post",
+    "scene": "a lookout on a pole above the beach points out to sea and swings a ship's bell before each arrival",
+    "flavour": "The kid with the spyglass finally earns his beans."
+  },
+  {
+    "id": "driftwood_1", "sector": "tide", "ring": 2, "slot": 2, "type": "small",
+    "name": "Driftwood I",
+    "series": "driftwood",
+    "text": "Beachcombers +50%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.5, "scope": "beachcomber"}
+    ],
+    "cost": 4, "requires": ["lucky_tide", "slow_current_1"], "wave": "R2"
+  },
+  {
+    "id": "rally_cry", "sector": "tide", "ring": 2, "slot": 3, "type": "notable",
+    "name": "Rally Cry",
+    "text": "Flotsam pays 5% more, Rallies included; the crew cheer each Rally.",
+    "effects": [
+      {"stat": "flotsam_effect", "op": "inc", "value": 0.05}
+    ],
+    "cost": 9, "requires": ["slow_current_1"], "wave": "R2",
+    "scene": "the crew throw their arms up and cheer when a Rally starts",
+    "flavour": "Nothing lifts spirits like a drum of diesel in the surf."
+  },
+  {
+    "id": "slow_current_2", "sector": "tide", "ring": 3, "slot": 1, "type": "small",
+    "name": "Slow Current II",
+    "series": "slow_current",
+    "text": "Flotsam floats 2 s longer.",
+    "effects": [
+      {"stat": "flotsam_float", "op": "add", "value": 2}
+    ],
+    "cost": 44, "requires": ["lookout_post"], "wave": "R2"
+  },
+  {
+    "id": "rainmaker", "sector": "tide", "ring": 3, "slot": 2, "type": "notable",
+    "name": "Rainmaker",
+    "text": "In rain, flotsam floats 10 s longer.",
+    "effects": [
+      {"stat": "flotsam_float", "op": "add", "value": 10, "when": "rain"}
+    ],
+    "cost": 55, "requires": ["lookout_post", "driftwood_1"], "wave": "R2",
+    "flavour": "Bad weather, good pickings."
+  },
+  {
+    "id": "circling_gulls", "sector": "tide", "ring": 3, "slot": 3, "type": "notable",
+    "name": "Circling Gulls",
+    "text": "Gulls circle anything afloat: flotsam floats 3 s longer.",
+    "effects": [
+      {"stat": "flotsam_float", "op": "add", "value": 3}
+    ],
+    "cost": 66, "requires": ["driftwood_1", "rally_cry"], "wave": "R2",
+    "scene": "two gulls circle each flotsam until it is caught or sinks",
+    "flavour": "They want the fish. You want the crate. Everyone wins."
+  },
+  {
+    "id": "driftwood_2", "sector": "tide", "ring": 3, "slot": 4, "type": "small",
+    "name": "Driftwood II",
+    "series": "driftwood",
+    "text": "Beachcombers +60%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.6, "scope": "beachcomber"}
+    ],
+    "cost": 25, "requires": ["rally_cry"], "wave": "R2"
+  },
+  {
+    "id": "life_raft", "sector": "tide", "ring": 4, "slot": 1, "type": "unlock",
+    "name": "Life Raft",
+    "text": "New flotsam (4%): a castaway rows in and mans your top unmanned line for 10 min.",
+    "effects": [
+      {"stat": "feature:life_raft", "op": "unlock", "value": 1},
+      {"stat": "flotsam_weight", "op": "set", "value": 4, "scope": "life_raft"}
+    ],
+    "cost": 333, "requires": ["slow_current_2"], "wave": "R3",
+    "feature": "feature:life_raft",
+    "scene": "a castaway in a patched raft rows in, works the line, waves and rows off",
+    "flavour": "Won't say where he's from. Works for beans."
+  },
+  {
+    "id": "storm_drift", "sector": "tide", "ring": 4, "slot": 2, "type": "small",
+    "name": "Storm Drift",
+    "text": "In rain, flotsam floats 3 s longer.",
+    "effects": [
+      {"stat": "flotsam_float", "op": "add", "value": 3, "when": "rain"}
+    ],
+    "cost": 222, "requires": ["slow_current_2", "rainmaker"], "wave": "R3"
+  },
+  {
+    "id": "high_water", "sector": "tide", "ring": 4, "slot": 3, "type": "completion",
+    "name": "High Water",
+    "text": "Flotsam floats 3 s longer (25 s, the most); the tide line rises.",
+    "effects": [
+      {"stat": "flotsam_float", "op": "add", "value": 3}
+    ],
+    "cost": 555, "requires": ["slow_current_2", "rainmaker", "circling_gulls", "driftwood_2"], "wave": "R3",
+    "scene": "the waterline sits higher up the beach, so flotsam beaches closer to the camp",
+    "flavour": "The sea meets you halfway now."
+  },
+  {
+    "id": "slow_current_3", "sector": "tide", "ring": 4, "slot": 4, "type": "small",
+    "name": "Slow Current III",
+    "series": "slow_current",
+    "text": "Flotsam floats 3 s longer.",
+    "effects": [
+      {"stat": "flotsam_float", "op": "add", "value": 3}
+    ],
+    "cost": 333, "requires": ["circling_gulls", "driftwood_2"], "wave": "R3"
+  },
+  {
+    "id": "drag_line", "sector": "tide", "ring": 4, "slot": 5, "type": "automation",
+    "name": "Drag Line",
+    "text": "Flotsam you miss snags on a line and waits on the shore, one at a time.",
+    "effects": [
+      {"stat": "feature:drag_line", "op": "unlock", "value": 1}
+    ],
+    "cost": 444, "requires": ["driftwood_2"], "wave": "R3",
+    "feature": "feature:drag_line",
+    "scene": "a float line strung across the shallows; a snagged catch bobs at its end",
+    "flavour": "What the sea takes, the rope hands back."
+  },
+  {
+    "id": "beach_camp_1", "sector": "tide", "ring": 5, "slot": 1, "type": "small",
+    "name": "Beach Camp I",
+    "series": "beach_camp",
+    "text": "Twig-era lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3, "scope": "twig"}
+    ],
+    "cost": 2222, "requires": ["life_raft"], "wave": "R3"
+  },
+  {
+    "id": "storm_harvest", "sector": "tide", "ring": 5, "slot": 2, "type": "notable",
+    "name": "Storm Harvest",
+    "text": "In rain, all lines ×1.4 and flotsam floats 2 s longer.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.4, "scope": "all", "when": "rain"},
+      {"stat": "flotsam_float", "op": "add", "value": 2, "when": "rain"}
+    ],
+    "cost": 5555, "requires": ["storm_drift"], "wave": "R3",
+    "flavour": "Storm's coming. Get the barrels out."
+  },
+  {
+    "id": "scavengers_eye", "sector": "tide", "ring": 5, "slot": 3, "type": "keystone",
+    "name": "Scavenger's Eye",
+    "text": "Every flotsam is a Fuel Drum (Sealed Lockers aside): no crates, kits or bottles.",
+    "effects": [
+      {"stat": "flotsam_weight", "op": "set", "value": 98.5, "scope": "fuel_drum"},
+      {"stat": "flotsam_weight", "op": "more", "value": 0, "scope": "crate"},
+      {"stat": "flotsam_weight", "op": "more", "value": 0, "scope": "adrenaline"},
+      {"stat": "flotsam_weight", "op": "more", "value": 0, "scope": "drowned_drone"},
+      {"stat": "flotsam_weight", "op": "more", "value": 0, "scope": "bottle"},
+      {"stat": "flotsam_weight", "op": "more", "value": 0, "scope": "life_raft"},
+      {"stat": "flotsam_weight", "op": "more", "value": 0, "scope": "lost_cargo"}
+    ],
+    "cost": 7777, "requires": ["high_water"], "wave": "R3",
+    "conflicts": ["bunker_mentality"],
+    "flavour": "If it floats and it isn't diesel, you didn't see it."
+  },
+  {
+    "id": "beachcombers_net", "sector": "tide", "ring": 5, "slot": 4, "type": "automation",
+    "name": "Beachcomber's Net",
+    "text": "Drift Crates catch themselves while the page is open.",
+    "effects": [
+      {"stat": "feature:beachcombers_net", "op": "unlock", "value": 1}
+    ],
+    "cost": 3333, "requires": ["slow_current_3"], "wave": "R3",
+    "feature": "feature:beachcombers_net",
+    "scene": "a net on two posts at the tideline scoops crates ashore",
+    "flavour": "Mara strung it up and went back to sorting."
+  },
+  {
+    "id": "sea_wall_1", "sector": "tide", "ring": 5, "slot": 5, "type": "small",
+    "name": "Sea Wall I",
+    "series": "sea_wall",
+    "text": "All lines ×1.1.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 4444, "requires": ["drag_line"], "wave": "R3"
+  },
+  {
+    "id": "deep_nets_1", "sector": "tide", "ring": 6, "slot": 1, "type": "small",
+    "name": "Deep Nets I",
+    "series": "deep_nets",
+    "text": "Docks ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "dock"}
+    ],
+    "cost": 22200, "requires": ["beach_camp_1"], "wave": "R3"
+  },
+  {
+    "id": "flare_gun", "sector": "tide", "ring": 6, "slot": 2, "type": "unlock",
+    "name": "Flare Gun",
+    "text": "Choose what your Flare calls: any kind but the Sealed Locker and the Bottle.",
+    "effects": [
+      {"stat": "feature:flare_gun", "op": "unlock", "value": 1}
+    ],
+    "cost": 33300, "requires": ["beach_camp_1", "storm_harvest"], "wave": "R5", "gate": 20,
+    "feature": "feature:flare_gun",
+    "flavour": "Red for diesel, green for crates. Nobody remembers blue."
+  },
+  {
+    "id": "breakwater", "sector": "tide", "ring": 6, "slot": 3, "type": "notable",
+    "name": "Breakwater",
+    "text": "Beachcombers, Docks and Ship Breakers ×1.5; car hulks shelter the bay.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "beachcomber"},
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "dock"},
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "shipbreaker"}
+    ],
+    "cost": 77700, "requires": ["storm_harvest", "scavengers_eye"], "wave": "R3",
+    "scene": "a curved breakwater of rusted car hulks and tyres across the mouth of the bay",
+    "flavour": "Forty dead hatchbacks and one good idea."
+  },
+  {
+    "id": "rain_barrels", "sector": "tide", "ring": 6, "slot": 4, "type": "small",
+    "name": "Rain Barrels",
+    "text": "In rain, all lines ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "all", "when": "rain"}
+    ],
+    "cost": 44400, "requires": ["scavengers_eye", "beachcombers_net"], "wave": "R3"
+  },
+  {
+    "id": "tide_pump", "sector": "tide", "ring": 6, "slot": 5, "type": "notable",
+    "name": "Tide Pump",
+    "text": "Every line cycles 10% faster; a tide pump creaks at the water's edge.",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 55500, "requires": ["beachcombers_net", "sea_wall_1"], "wave": "R3",
+    "scene": "a timber tide pump at the water's edge, its rocking beam nodding with the waves and faster in rain (the island's Tide Mill upgrade keeps the waterwheel)",
+    "flavour": "Free power twice a day. The moon foots the bill."
+  },
+  {
+    "id": "driftwood_3", "sector": "tide", "ring": 6, "slot": 6, "type": "small",
+    "name": "Driftwood III",
+    "series": "driftwood",
+    "text": "Beachcombers ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "beachcomber"}
+    ],
+    "cost": 33300, "requires": ["sea_wall_1"], "wave": "R3"
+  },
+  {
+    "id": "rogue_wave", "sector": "tide", "ring": 7, "slot": 1, "type": "unlock",
+    "name": "Rogue Wave",
+    "text": "Once a run, tap the surf: a big wave rolls in carrying a Drift Crate.",
+    "effects": [
+      {"stat": "feature:rogue_wave", "op": "unlock", "value": 1}
+    ],
+    "cost": 333000, "requires": ["deep_nets_1"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:rogue_wave",
+    "scene": "while it is ready the surf glows; a tall wave curls in and drops a crate on the sand",
+    "flavour": "Stand back from the beach. No, further."
+  },
+  {
+    "id": "sea_wall_2", "sector": "tide", "ring": 7, "slot": 2, "type": "small",
+    "name": "Sea Wall II",
+    "series": "sea_wall",
+    "text": "All lines ×1.1.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 444000, "requires": ["flare_gun"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "cutting_torch_1", "sector": "tide", "ring": 7, "slot": 3, "type": "small",
+    "name": "Cutting Torch I",
+    "series": "cutting_torch",
+    "text": "Ship Breakers ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "shipbreaker"}
+    ],
+    "cost": 333000, "requires": ["breakwater"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "beach_camp_2", "sector": "tide", "ring": 7, "slot": 4, "type": "small",
+    "name": "Beach Camp II",
+    "series": "beach_camp",
+    "text": "Twig-era lines ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "twig"}
+    ],
+    "cost": 222000, "requires": ["rain_barrels"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "sea_wall_3", "sector": "tide", "ring": 7, "slot": 5, "type": "small",
+    "name": "Sea Wall III",
+    "series": "sea_wall",
+    "text": "All lines ×1.1.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 555000, "requires": ["tide_pump"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "lost_cargo", "sector": "tide", "ring": 7, "slot": 6, "type": "unlock",
+    "name": "Lost Cargo",
+    "text": "New flotsam (3%): a shipping container; line units cost half for 5 min.",
+    "effects": [
+      {"stat": "feature:lost_cargo", "op": "unlock", "value": 1},
+      {"stat": "flotsam_weight", "op": "set", "value": 3, "scope": "lost_cargo"}
+    ],
+    "cost": 444000, "requires": ["driftwood_3"], "wave": "R7", "data_from": "R7",
+    "feature": "feature:lost_cargo",
+    "scene": "a rusted shipping container drifts in, beaches and swings its doors open",
+    "flavour": "Manifest: 400 left boots, one forklift, no keys."
+  },
+  {
+    "id": "sea_wall_4", "sector": "tide", "ring": 8, "slot": 1, "type": "small",
+    "name": "Sea Wall IV",
+    "series": "sea_wall",
+    "text": "All lines ×1.1.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 4440000, "requires": ["rogue_wave"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "cutting_torch_2", "sector": "tide", "ring": 8, "slot": 2, "type": "small",
+    "name": "Cutting Torch II",
+    "series": "cutting_torch",
+    "text": "Ship Breakers ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "shipbreaker"}
+    ],
+    "cost": 5550000, "requires": ["rogue_wave", "sea_wall_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bottle_post", "sector": "tide", "ring": 8, "slot": 3, "type": "notable",
+    "name": "Bottle Post",
+    "text": "Messages in a Bottle wash up twice as often (1%); each still holds a crate.",
+    "effects": [
+      {"stat": "flotsam_weight", "op": "set", "value": 1, "scope": "bottle"}
+    ],
+    "cost": 4440000, "requires": ["sea_wall_2", "cutting_torch_1"], "wave": "R7", "data_from": "R4",
+    "flavour": "Most say 'help'. A few say where the good stuff is."
+  },
+  {
+    "id": "wreckers_moon", "sector": "tide", "ring": 8, "slot": 4, "type": "keystone",
+    "name": "Wreckers' Moon",
+    "text": "A Drift Crate washes up for each hour away, up to 12; online flotsam ×0.5.",
+    "effects": [
+      {"stat": "feature:wreckers_moon", "op": "unlock", "value": 1},
+      {"stat": "flotsam_rate", "op": "more", "value": 0.5}
+    ],
+    "cost": 7770000, "requires": ["cutting_torch_1", "beach_camp_2"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:wreckers_moon",
+    "conflicts": ["bunker_mentality"],
+    "scene": "a lantern burns on the rocks at night; by morning crates lie along the beach",
+    "flavour": "Hang a lantern on the rocks and see what the night brings in."
+  },
+  {
+    "id": "auto_flare", "sector": "tide", "ring": 8, "slot": 5, "type": "automation",
+    "name": "Auto Flare",
+    "text": "Your Flare fires itself when it's ready and nothing floats, page open.",
+    "effects": [
+      {"stat": "feature:auto_flare", "op": "unlock", "value": 1}
+    ],
+    "cost": 3330000, "requires": ["beach_camp_2", "sea_wall_3"], "wave": "R7", "data_from": "R5", "gate": 40,
+    "feature": "feature:auto_flare",
+    "flavour": "It goes off on its own. Like most things here."
+  },
+  {
+    "id": "deep_nets_2", "sector": "tide", "ring": 8, "slot": 6, "type": "small",
+    "name": "Deep Nets II",
+    "series": "deep_nets",
+    "text": "Docks ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "dock"}
+    ],
+    "cost": 3330000, "requires": ["sea_wall_3", "lost_cargo"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "driftwood_4", "sector": "tide", "ring": 8, "slot": 7, "type": "small",
+    "name": "Driftwood IV",
+    "series": "driftwood",
+    "text": "Beachcombers ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "beachcomber"}
+    ],
+    "cost": 2220000, "requires": ["lost_cargo"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "beach_camp_3", "sector": "tide", "ring": 9, "slot": 1, "type": "small",
+    "name": "Beach Camp III",
+    "series": "beach_camp",
+    "text": "Twig-era lines ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "twig"}
+    ],
+    "cost": 22200000, "requires": ["sea_wall_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "tide_tables", "sector": "tide", "ring": 9, "slot": 2, "type": "unlock",
+    "name": "Tide Tables",
+    "text": "A tide clock shows when the next three flotsam arrive, and what they are.",
+    "effects": [
+      {"stat": "feature:tide_tables", "op": "unlock", "value": 1}
+    ],
+    "cost": 33300000, "requires": ["cutting_torch_2"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:tide_tables",
+    "flavour": "Printed before the war. The sea never read the news."
+  },
+  {
+    "id": "sea_wall_5", "sector": "tide", "ring": 9, "slot": 3, "type": "small",
+    "name": "Sea Wall V",
+    "series": "sea_wall",
+    "text": "All lines ×1.1.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 44400000, "requires": ["bottle_post"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "king_tide", "sector": "tide", "ring": 9, "slot": 4, "type": "completion",
+    "name": "King Tide",
+    "text": "All lines ×1.2; the sea floods the low beach.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.2, "scope": "all"}
+    ],
+    "cost": 55500000, "requires": ["sea_wall_4", "cutting_torch_2", "bottle_post", "wreckers_moon", "auto_flare", "deep_nets_2", "driftwood_4"], "wave": "R7", "data_from": "R3",
+    "scene": "the sea floods the low beach into a shallow lagoon; the camp stands at the new edge",
+    "flavour": "Wet boots, full pockets."
+  },
+  {
+    "id": "relit_lighthouse", "sector": "tide", "ring": 9, "slot": 5, "type": "notable",
+    "name": "Relit Lighthouse",
+    "text": "All lines ×1.1; the lighthouse on the far island burns again at night.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 77700000, "requires": ["auto_flare"], "wave": "R7", "data_from": "R3",
+    "scene": "the dark lighthouse on the far island (terrain.back) lights up and sweeps the bay at night",
+    "flavour": "No ship has come in years. It's for us."
+  },
+  {
+    "id": "weather_buoy", "sector": "tide", "ring": 9, "slot": 6, "type": "unlock",
+    "name": "Weather Buoy",
+    "text": "A buoy shows the island's next 24 h of weather, so you can plan for rain.",
+    "effects": [
+      {"stat": "feature:weather_buoy", "op": "unlock", "value": 1}
+    ],
+    "cost": 44400000, "requires": ["deep_nets_2"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:weather_buoy",
+    "scene": "a striped buoy with a blinking light bobs off the point; tap it for the forecast",
+    "flavour": "Beeps all night. Never wrong."
+  },
+  {
+    "id": "deep_nets_3", "sector": "tide", "ring": 9, "slot": 7, "type": "small",
+    "name": "Deep Nets III",
+    "series": "deep_nets",
+    "text": "Docks ×2.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "dock"}
+    ],
+    "cost": 22200000, "requires": ["driftwood_4"], "wave": "R7", "data_from": "R3"
+  }
+]

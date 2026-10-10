@@ -1,0 +1,451 @@
+[
+  {
+    "id": "tally_wall", "sector": "logbook", "ring": 1, "slot": 1, "type": "notable",
+    "name": "Tally Wall",
+    "text": "Lines +1% a Wipe Day, up to +10%. Somebody keeps score on the cabin wall.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.01, "per": "nukes", "max": 0.1}
+    ],
+    "cost": 3, "requires": ["ground_zero"], "wave": "R2",
+    "scene": "Scratch marks on the cabin wall, one per Wipe Day, struck through in fives (drawn up to 50)."
+  },
+  {
+    "id": "night_log_1", "sector": "logbook", "ring": 1, "slot": 2, "type": "small",
+    "name": "Night Log I",
+    "series": "night_log",
+    "text": "Lines +25% at night.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.25, "when": "night"}
+    ],
+    "cost": 1, "requires": ["ground_zero"], "wave": "R2"
+  },
+  {
+    "id": "personal_best", "sector": "logbook", "ring": 2, "slot": 1, "type": "unlock",
+    "name": "Personal Best",
+    "text": "Beat your last run's supplies made: the bell rings, lines +15% for the run.",
+    "effects": [
+      {"stat": "feature:personal_best", "op": "unlock", "value": 0.15}
+    ],
+    "counts_as": [
+      {"stat": "output", "op": "more", "value": 1.075, "scope": "all"}
+    ],
+    "cost": 7, "requires": ["tally_wall"], "wave": "R2",
+    "feature": "feature:personal_best",
+    "scene": "A ship's bell on a post by the cabin; it swings and clangs the moment this run passes the last one."
+  },
+  {
+    "id": "crib_notes_1", "sector": "logbook", "ring": 2, "slot": 2, "type": "small",
+    "name": "Crib Notes I",
+    "series": "crib_notes",
+    "text": "Twig lines +25%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.25, "scope": "twig"}
+    ],
+    "cost": 4, "requires": ["tally_wall", "night_log_1"], "wave": "R2"
+  },
+  {
+    "id": "weather_log", "sector": "logbook", "ring": 2, "slot": 3, "type": "notable",
+    "name": "Weather Log",
+    "text": "Lines +30% in rain. Today's entry: 'Wet. Again.'",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "when": "rain"}
+    ],
+    "cost": 11, "requires": ["night_log_1"], "wave": "R2"
+  },
+  {
+    "id": "crib_notes_2", "sector": "logbook", "ring": 3, "slot": 1, "type": "small",
+    "name": "Crib Notes II",
+    "series": "crib_notes",
+    "text": "Timber lines +30%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "scope": "wood"}
+    ],
+    "cost": 33, "requires": ["personal_best"], "wave": "R2"
+  },
+  {
+    "id": "almanac", "sector": "logbook", "ring": 3, "slot": 2, "type": "notable",
+    "name": "Almanac",
+    "text": "Lines +30% at night. The crew know when dark falls and work to it.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "when": "night"}
+    ],
+    "cost": 66, "requires": ["personal_best", "crib_notes_1"], "wave": "R2"
+  },
+  {
+    "id": "bookshelf", "sector": "logbook", "ring": 3, "slot": 3, "type": "notable",
+    "name": "Bookshelf",
+    "text": "Lines +1.5% per Logbook node you own, up to +9%. The shelf sags a bit.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.015, "per": "sector:logbook", "max": 0.09}
+    ],
+    "cost": 99, "requires": ["crib_notes_1", "weather_log"], "wave": "R2",
+    "scene": "A crooked plank shelf by the cabin door, one battered book per Logbook node owned (up to 9 drawn)."
+  },
+  {
+    "id": "night_log_2", "sector": "logbook", "ring": 3, "slot": 4, "type": "small",
+    "name": "Night Log II",
+    "series": "night_log",
+    "text": "Lines +30% at night.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "when": "night"}
+    ],
+    "cost": 44, "requires": ["weather_log"], "wave": "R2"
+  },
+  {
+    "id": "old_maps", "sector": "logbook", "ring": 4, "slot": 1, "type": "unlock",
+    "name": "Old Maps",
+    "text": "Secret hints show now, not at Wipe Day #15. Pinned up with a knife.",
+    "effects": [
+      {"stat": "feature:logbook_hints", "op": "unlock", "value": 1}
+    ],
+    "cost": 333, "requires": ["crib_notes_2"], "wave": "R4",
+    "feature": "feature:logbook_hints",
+    "scene": "A stained map pinned to the cabin wall with a knife."
+  },
+  {
+    "id": "war_stories", "sector": "logbook", "ring": 4, "slot": 2, "type": "small",
+    "name": "War Stories",
+    "text": "Morale per page +0.005 (0.02 to 0.025).",
+    "effects": [
+      {"stat": "morale_per", "op": "add", "value": 0.005}
+    ],
+    "cost": 222, "requires": ["crib_notes_2", "almanac"], "wave": "R4"
+  },
+  {
+    "id": "well_read", "sector": "logbook", "ring": 4, "slot": 3, "type": "completion",
+    "name": "Well Read",
+    "text": "Eras cost ×0.9. Somebody finally read the instructions.",
+    "effects": [
+      {"stat": "era_cost", "op": "more", "value": 0.9}
+    ],
+    "cost": 555, "requires": ["crib_notes_2", "almanac", "bookshelf", "night_log_2"], "wave": "R3"
+  },
+  {
+    "id": "crib_notes_3", "sector": "logbook", "ring": 4, "slot": 4, "type": "small",
+    "name": "Crib Notes III",
+    "series": "crib_notes",
+    "text": "Stone lines +30%.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "scope": "stone"}
+    ],
+    "cost": 444, "requires": ["bookshelf", "night_log_2"], "wave": "R3"
+  },
+  {
+    "id": "long_memory", "sector": "logbook", "ring": 4, "slot": 5, "type": "notable",
+    "name": "Long Memory",
+    "text": "Lines +0.5% a Wipe Day, up to +10%. Nobody forgets a good blast.",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.005, "per": "nukes", "max": 0.1}
+    ],
+    "cost": 777, "requires": ["night_log_2"], "wave": "R3"
+  },
+  {
+    "id": "margin_notes", "sector": "logbook", "ring": 5, "slot": 1, "type": "small",
+    "name": "Margin Notes",
+    "text": "Morale per page +0.005.",
+    "effects": [
+      {"stat": "morale_per", "op": "add", "value": 0.005}
+    ],
+    "cost": 3333, "requires": ["old_maps"], "wave": "R4"
+  },
+  {
+    "id": "page_turner", "sector": "logbook", "ring": 5, "slot": 2, "type": "notable",
+    "name": "Page Turner",
+    "text": "Lines +0.4% for every Logbook page, up to ×1.4. Nobody can put it down.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.004, "per": "entries", "max": 1.4}
+    ],
+    "cost": 9999, "requires": ["war_stories"], "wave": "R4"
+  },
+  {
+    "id": "tall_tales", "sector": "logbook", "ring": 5, "slot": 3, "type": "keystone",
+    "name": "Tall Tales",
+    "text": "While Hustle runs, lines lose Morale and taps get it twice (up to ×5 more).",
+    "effects": [
+      {"stat": "feature:tall_tales", "op": "unlock", "value": 5}
+    ],
+    "cost": 7777, "requires": ["well_read"], "wave": "R4",
+    "feature": "feature:tall_tales",
+    "conflicts": ["archivist"],
+    "scene": "While slotted and Hustle runs, the crew down tools at the fire and act out your swings, arms wide."
+  },
+  {
+    "id": "field_guide", "sector": "logbook", "ring": 5, "slot": 4, "type": "automation",
+    "name": "Field Guide",
+    "text": "Every page shows how close you are: bars on all, best tries on timed ones.",
+    "effects": [
+      {"stat": "feature:field_guide", "op": "unlock", "value": 1}
+    ],
+    "cost": 2222, "requires": ["crib_notes_3"], "wave": "R4",
+    "feature": "feature:field_guide"
+  },
+  {
+    "id": "old_plans_1", "sector": "logbook", "ring": 5, "slot": 5, "type": "small",
+    "name": "Old Plans I",
+    "series": "old_plans",
+    "text": "Eras cost ×0.9.",
+    "effects": [
+      {"stat": "era_cost", "op": "more", "value": 0.9}
+    ],
+    "cost": 2222, "requires": ["long_memory"], "wave": "R4"
+  },
+  {
+    "id": "ships_log_1", "sector": "logbook", "ring": 6, "slot": 1, "type": "small",
+    "name": "Ship's Log I",
+    "series": "ships_log",
+    "text": "Lines +2% a Wipe Day, up to ×1.35.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.02, "per": "nukes", "max": 1.35}
+    ],
+    "cost": 33300, "requires": ["margin_notes"], "wave": "R4"
+  },
+  {
+    "id": "dog_eared", "sector": "logbook", "ring": 6, "slot": 2, "type": "notable",
+    "name": "Dog-eared Pages",
+    "text": "Morale ×1.2. The good pages fall open on their own.",
+    "effects": [
+      {"stat": "morale", "op": "more", "value": 1.2}
+    ],
+    "cost": 55500, "requires": ["margin_notes", "page_turner"], "wave": "R4"
+  },
+  {
+    "id": "field_notes", "sector": "logbook", "ring": 6, "slot": 3, "type": "small",
+    "name": "Field Notes",
+    "text": "Morale per page +0.005.",
+    "effects": [
+      {"stat": "morale_per", "op": "add", "value": 0.005}
+    ],
+    "cost": 22200, "requires": ["page_turner", "tall_tales"], "wave": "R4"
+  },
+  {
+    "id": "night_log_3", "sector": "logbook", "ring": 6, "slot": 4, "type": "small",
+    "name": "Night Log III",
+    "series": "night_log",
+    "text": "Lines ×1.7 at night.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.7, "when": "night"}
+    ],
+    "cost": 44400, "requires": ["tall_tales", "field_guide"], "wave": "R4"
+  },
+  {
+    "id": "bottle_reader", "sector": "logbook", "ring": 6, "slot": 5, "type": "unlock",
+    "name": "Bottle Reader",
+    "text": "A Message in a Bottle names a secret's answer, not just its hint.",
+    "effects": [
+      {"stat": "feature:bottle_reader", "op": "unlock", "value": 1}
+    ],
+    "cost": 44400, "requires": ["field_guide", "old_plans_1"], "wave": "R4",
+    "feature": "feature:bottle_reader"
+  },
+  {
+    "id": "sea_stories_1", "sector": "logbook", "ring": 6, "slot": 6, "type": "small",
+    "name": "Sea Stories I",
+    "series": "sea_stories",
+    "text": "Lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3}
+    ],
+    "cost": 33300, "requires": ["old_plans_1"], "wave": "R4"
+  },
+  {
+    "id": "hint_lamp", "sector": "logbook", "ring": 7, "slot": 1, "type": "automation",
+    "name": "Hint Lamp",
+    "text": "With nothing crowned, the advisor points at your nearest unfound page.",
+    "effects": [
+      {"stat": "feature:hint_lamp", "op": "unlock", "value": 1}
+    ],
+    "cost": 333000, "requires": ["ships_log_1"], "wave": "R7", "data_from": "R4",
+    "feature": "feature:hint_lamp"
+  },
+  {
+    "id": "pressed_flowers", "sector": "logbook", "ring": 7, "slot": 2, "type": "small",
+    "name": "Pressed Flowers",
+    "text": "Morale per page +0.005.",
+    "effects": [
+      {"stat": "morale_per", "op": "add", "value": 0.005}
+    ],
+    "cost": 222000, "requires": ["dog_eared"], "wave": "R7", "data_from": "R4"
+  },
+  {
+    "id": "night_log_4", "sector": "logbook", "ring": 7, "slot": 3, "type": "small",
+    "name": "Night Log IV",
+    "series": "night_log",
+    "text": "Lines ×1.7 at night.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.7, "when": "night"}
+    ],
+    "cost": 333000, "requires": ["field_notes"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "ships_log_2", "sector": "logbook", "ring": 7, "slot": 4, "type": "small",
+    "name": "Ship's Log II",
+    "series": "ships_log",
+    "text": "Lines +2% a Wipe Day, up to ×1.35.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.02, "per": "nukes", "max": 1.35}
+    ],
+    "cost": 444000, "requires": ["night_log_3"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "sea_stories_2", "sector": "logbook", "ring": 7, "slot": 5, "type": "small",
+    "name": "Sea Stories II",
+    "series": "sea_stories",
+    "text": "Lines ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5}
+    ],
+    "cost": 555000, "requires": ["bottle_reader"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "double_dare", "sector": "logbook", "ring": 7, "slot": 6, "type": "unlock",
+    "name": "Double Dare",
+    "text": "Take two Dares in one run: both rules apply, each goal pays its reward.",
+    "effects": [
+      {"stat": "feature:double_dare", "op": "unlock", "value": 1}
+    ],
+    "cost": 444000, "requires": ["sea_stories_1"], "wave": "R7", "data_from": "R7", "gate": 30,
+    "feature": "feature:double_dare",
+    "scene": "Two flags fly on the crater sign instead of one while two Dares run."
+  },
+  {
+    "id": "ships_log_3", "sector": "logbook", "ring": 8, "slot": 1, "type": "small",
+    "name": "Ship's Log III",
+    "series": "ships_log",
+    "text": "Lines +2% a Wipe Day, up to ×1.35.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.02, "per": "nukes", "max": 1.35}
+    ],
+    "cost": 3330000, "requires": ["hint_lamp"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "old_plans_2", "sector": "logbook", "ring": 8, "slot": 2, "type": "small",
+    "name": "Old Plans II",
+    "series": "old_plans",
+    "text": "Eras cost ×0.9.",
+    "effects": [
+      {"stat": "era_cost", "op": "more", "value": 0.9}
+    ],
+    "cost": 2220000, "requires": ["hint_lamp", "pressed_flowers"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "rainy_day_fund", "sector": "logbook", "ring": 8, "slot": 3, "type": "notable",
+    "name": "Rainy Day Fund",
+    "text": "Lines ×2.4 in rain. Bad weather, good business.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2.4, "when": "rain"}
+    ],
+    "cost": 9990000, "requires": ["pressed_flowers", "night_log_4"], "wave": "R7", "data_from": "R3",
+    "scene": "In rain, tarps go up over every line and a dented RAINY DAY tin sits on the porch."
+  },
+  {
+    "id": "archivist", "sector": "logbook", "ring": 8, "slot": 4, "type": "keystone",
+    "name": "Archivist",
+    "text": "Morale ×2. Taps ×0.25: someone has to copy the Logbook out by hand.",
+    "effects": [
+      {"stat": "morale", "op": "more", "value": 2},
+      {"stat": "tap", "op": "more", "value": 0.25}
+    ],
+    "cost": 7770000, "requires": ["night_log_4", "ships_log_2"], "wave": "R7", "data_from": "R4",
+    "conflicts": ["tall_tales", "lone_wolf", "fever_pitch"],
+    "scene": "While slotted, a desk on the porch: one of the crew in cracked spectacles copies the Logbook by lantern."
+  },
+  {
+    "id": "dare_ledger", "sector": "logbook", "ring": 8, "slot": 5, "type": "automation",
+    "name": "Dare Ledger",
+    "text": "Rebuild picks your last unfinished Dare again. Change it if you like.",
+    "effects": [
+      {"stat": "feature:dare_ledger", "op": "unlock", "value": 1}
+    ],
+    "cost": 2220000, "requires": ["ships_log_2", "sea_stories_2"], "wave": "R7", "data_from": "R7", "gate": 40,
+    "feature": "feature:dare_ledger"
+  },
+  {
+    "id": "night_log_5", "sector": "logbook", "ring": 8, "slot": 6, "type": "small",
+    "name": "Night Log V",
+    "series": "night_log",
+    "text": "Lines ×1.5 at night.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "when": "night"}
+    ],
+    "cost": 4440000, "requires": ["sea_stories_2", "double_dare"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "sea_stories_3", "sector": "logbook", "ring": 8, "slot": 7, "type": "small",
+    "name": "Sea Stories III",
+    "series": "sea_stories",
+    "text": "Lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3}
+    ],
+    "cost": 5550000, "requires": ["double_dare"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bound_volume", "sector": "logbook", "ring": 9, "slot": 1, "type": "small",
+    "name": "Bound Volume",
+    "text": "Morale per page +0.010 (0.04 to 0.05).",
+    "effects": [
+      {"stat": "morale_per", "op": "add", "value": 0.01}
+    ],
+    "cost": 44400000, "requires": ["ships_log_3"], "wave": "R7", "data_from": "R4"
+  },
+  {
+    "id": "treasure_map", "sector": "logbook", "ring": 9, "slot": 2, "type": "unlock",
+    "name": "Treasure Map",
+    "text": "Once a week an X turns up on the island. Dig: one secret's answer.",
+    "effects": [
+      {"stat": "feature:treasure_map", "op": "unlock", "value": 1}
+    ],
+    "cost": 33300000, "requires": ["old_plans_2"], "wave": "R7", "data_from": "R4",
+    "feature": "feature:treasure_map",
+    "scene": "Once a week a chalk X somewhere on the island; tapped, a crew member digs up a tin box."
+  },
+  {
+    "id": "sea_stories_4", "sector": "logbook", "ring": 9, "slot": 3, "type": "small",
+    "name": "Sea Stories IV",
+    "series": "sea_stories",
+    "text": "Lines ×1.3.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.3}
+    ],
+    "cost": 33300000, "requires": ["rainy_day_fund"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "full_log", "sector": "logbook", "ring": 9, "slot": 4, "type": "completion",
+    "name": "Full Log",
+    "text": "Morale ×1.25. The first Logbook is full; volume two is started.",
+    "effects": [
+      {"stat": "morale", "op": "more", "value": 1.25}
+    ],
+    "cost": 55500000, "requires": ["ships_log_3", "old_plans_2", "rainy_day_fund", "archivist", "dare_ledger", "night_log_5", "sea_stories_3"], "wave": "R7", "data_from": "R4"
+  },
+  {
+    "id": "night_log_6", "sector": "logbook", "ring": 9, "slot": 5, "type": "small",
+    "name": "Night Log VI",
+    "series": "night_log",
+    "text": "Lines ×1.6 at night.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.6, "when": "night"}
+    ],
+    "cost": 22200000, "requires": ["dare_ledger"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "postcard_pen", "sector": "logbook", "ring": 9, "slot": 6, "type": "unlock",
+    "name": "Postcard Pen",
+    "text": "Write one line on each postcard (40 characters). It posts with the news.",
+    "effects": [
+      {"stat": "feature:postcard_pen", "op": "unlock", "value": 1}
+    ],
+    "cost": 33300000, "requires": ["night_log_5"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:postcard_pen"
+  },
+  {
+    "id": "ships_log_4", "sector": "logbook", "ring": 9, "slot": 7, "type": "small",
+    "name": "Ship's Log IV",
+    "series": "ships_log",
+    "text": "Lines +2% a Wipe Day, up to ×1.35.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.02, "per": "nukes", "max": 1.35}
+    ],
+    "cost": 44400000, "requires": ["sea_stories_3"], "wave": "R7", "data_from": "R3"
+  }
+]

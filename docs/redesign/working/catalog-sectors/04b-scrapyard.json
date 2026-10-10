@@ -1,0 +1,435 @@
+[
+  {
+    "id": "scrap_heap", "sector": "scrapyard", "ring": 1, "slot": 1, "type": "notable",
+    "name": "Scrap Heap",
+    "text": "Grip rungs and Line Mks cost 15% less; the junk heap grows every Wipe Day.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.85, "scope": "grip"},
+      {"stat": "upgrade_cost", "op": "more", "value": 0.85, "scope": "line_mk"}
+    ],
+    "cost": 3, "requires": ["ground_zero"], "wave": "R2",
+    "scene": "a junk heap beside the beached skiff, one layer taller each Wipe Day (drawing caps at #50)"
+  },
+  {
+    "id": "odd_lumber_1", "sector": "scrapyard", "ring": 1, "slot": 2, "type": "small",
+    "name": "Odd Lumber I",
+    "text": "Island upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "island"}
+    ],
+    "cost": 1, "requires": ["ground_zero"], "wave": "R2"
+  },
+  {
+    "id": "tool_bag", "sector": "scrapyard", "ring": 2, "slot": 1, "type": "automation",
+    "name": "Tool Bag",
+    "text": "Start every run with Stone Tools in hand.",
+    "effects": [
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "stone_tools"}
+    ],
+    "cost": 5, "requires": ["scrap_heap"], "wave": "R2"
+  },
+  {
+    "id": "sharp_eye_1", "sector": "scrapyard", "ring": 2, "slot": 2, "type": "small",
+    "name": "Sharp Eye I",
+    "text": "Grip rungs cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "grip"}
+    ],
+    "cost": 4, "requires": ["scrap_heap", "odd_lumber_1"], "wave": "R2"
+  },
+  {
+    "id": "bargain_bin", "sector": "scrapyard", "ring": 2, "slot": 3, "type": "notable",
+    "name": "Bargain Bin",
+    "text": "Line Mk upgrades cost 15% less. Every bolt in the bin is 'nearly new'.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.85, "scope": "line_mk"}
+    ],
+    "cost": 11, "requires": ["odd_lumber_1"], "wave": "R2"
+  },
+  {
+    "id": "sharp_eye_2", "sector": "scrapyard", "ring": 3, "slot": 1, "type": "small",
+    "name": "Sharp Eye II",
+    "text": "Grip rungs cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "grip"}
+    ],
+    "cost": 25, "requires": ["tool_bag"], "wave": "R2"
+  },
+  {
+    "id": "patched_sail", "sector": "scrapyard", "ring": 3, "slot": 2, "type": "notable",
+    "name": "Patched Sail",
+    "text": "Island upgrades cost 20% less; the skiff flies a sail of three old tarps.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.8, "scope": "island"}
+    ],
+    "cost": 66, "requires": ["tool_bag", "sharp_eye_1"], "wave": "R2",
+    "scene": "the beached skiff gets a mast and a sail stitched from three mismatched tarps"
+  },
+  {
+    "id": "iron_bag", "sector": "scrapyard", "ring": 3, "slot": 3, "type": "automation",
+    "name": "Iron Bag",
+    "text": "Start every run with Iron Tools in hand.",
+    "effects": [
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "iron_tools"}
+    ],
+    "cost": 44, "requires": ["sharp_eye_1", "bargain_bin"], "wave": "R2"
+  },
+  {
+    "id": "bolt_bucket_1", "sector": "scrapyard", "ring": 3, "slot": 4, "type": "small",
+    "name": "Bolt Bucket I",
+    "text": "Line Mk upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "line_mk"}
+    ],
+    "cost": 33, "requires": ["bargain_bin"], "wave": "R2"
+  },
+  {
+    "id": "deep_pockets", "sector": "scrapyard", "ring": 4, "slot": 1, "type": "unlock",
+    "name": "Deep Pockets",
+    "text": "Pocket slot 2 opens (15 scrap): keep a second upgrade through every blast.",
+    "effects": [
+      {"stat": "feature:pocket_slot_2", "op": "unlock", "value": 1}
+    ],
+    "cost": 333, "requires": ["sharp_eye_2"], "wave": "R5",
+    "feature": "feature:pocket_slot_2",
+    "scene": "a second barnacled locker stands beside the first by the skiff"
+  },
+  {
+    "id": "odd_lumber_2", "sector": "scrapyard", "ring": 4, "slot": 2, "type": "small",
+    "name": "Odd Lumber II",
+    "text": "Island upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "island"}
+    ],
+    "cost": 222, "requires": ["sharp_eye_2", "patched_sail"], "wave": "R3"
+  },
+  {
+    "id": "sorted_yard", "sector": "scrapyard", "ring": 4, "slot": 3, "type": "completion",
+    "name": "Sorted Yard",
+    "text": "Every shelf upgrade costs 10% less. The heap finally has labels.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "grip"},
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "line_mk"},
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "island"}
+    ],
+    "cost": 555, "requires": ["sharp_eye_2", "patched_sail", "iron_bag", "bolt_bucket_1"], "wave": "R3",
+    "scene": "the junk heap is split into hand-labelled bins (TOOLS, BOLTS, PLANKS, ???)"
+  },
+  {
+    "id": "sharp_eye_3", "sector": "scrapyard", "ring": 4, "slot": 4, "type": "small",
+    "name": "Sharp Eye III",
+    "text": "Grip rungs cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "grip"}
+    ],
+    "cost": 222, "requires": ["iron_bag", "bolt_bucket_1"], "wave": "R3"
+  },
+  {
+    "id": "salvage_cart", "sector": "scrapyard", "ring": 4, "slot": 5, "type": "automation",
+    "name": "Salvage Cart",
+    "text": "One tap buys every shelf upgrade you can afford, cheapest first.",
+    "effects": [
+      {"stat": "feature:salvage_cart", "op": "unlock", "value": 1}
+    ],
+    "cost": 333, "requires": ["bolt_bucket_1"], "wave": "R3",
+    "feature": "feature:salvage_cart",
+    "scene": "a rusty shopping trolley with one wonky wheel parked by the skiff"
+  },
+  {
+    "id": "quick_winch", "sector": "scrapyard", "ring": 5, "slot": 1, "type": "small",
+    "name": "Quick Winch",
+    "text": "The Magnet hauls 1 h sooner: early from 19 h, sure from 22 h, by itself at 23 h.",
+    "effects": [
+      {"stat": "magnet_hours", "op": "set", "value": 23}
+    ],
+    "cost": 2222, "requires": ["deep_pockets"], "wave": "R5"
+  },
+  {
+    "id": "spare_parts", "sector": "scrapyard", "ring": 5, "slot": 2, "type": "notable",
+    "name": "Spare Parts",
+    "text": "Every Line Mk pays ×3.35, not ×3. Nobody asks where the spare bolts go.",
+    "effects": [
+      {"stat": "mk_mult", "op": "set", "value": 3.35}
+    ],
+    "cost": 5555, "requires": ["odd_lumber_2"], "wave": "R3"
+  },
+  {
+    "id": "hoarder", "sector": "scrapyard", "ring": 5, "slot": 3, "type": "keystone",
+    "name": "Hoarder",
+    "text": "Lines +10% per hour of output held unspent, to +100%. Line units cost ×2.",
+    "effects": [
+      {"stat": "feature:hoarder", "op": "unlock", "value": 1},
+      {"stat": "line_cost", "op": "more", "value": 2}
+    ],
+    "cost": 7777, "requires": ["sorted_yard"], "wave": "R3",
+    "feature": "feature:hoarder",
+    "scene": "while slotted: supply crates stack around the cabin, one stack per hour held (up to 10)"
+  },
+  {
+    "id": "first_shelf", "sector": "scrapyard", "ring": 5, "slot": 4, "type": "automation",
+    "name": "First Shelf",
+    "text": "Start every run with Sorting Tables already standing.",
+    "effects": [
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "sorting_tables"}
+    ],
+    "cost": 2222, "requires": ["sharp_eye_3"], "wave": "R3"
+  },
+  {
+    "id": "bolt_bucket_2", "sector": "scrapyard", "ring": 5, "slot": 5, "type": "small",
+    "name": "Bolt Bucket II",
+    "text": "Line Mk upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "line_mk"}
+    ],
+    "cost": 3333, "requires": ["salvage_cart"], "wave": "R3"
+  },
+  {
+    "id": "greased_cable", "sector": "scrapyard", "ring": 6, "slot": 1, "type": "small",
+    "name": "Greased Cable",
+    "text": "The Magnet hauls 1 h sooner again: early from 18 h, sure from 21 h, alone at 22 h.",
+    "effects": [
+      {"stat": "magnet_hours", "op": "set", "value": 22}
+    ],
+    "cost": 22200, "requires": ["quick_winch"], "wave": "R5"
+  },
+  {
+    "id": "cart_shed", "sector": "scrapyard", "ring": 6, "slot": 2, "type": "notable",
+    "name": "Cart Shed",
+    "text": "Start every run with Handcarts; island upgrades cost 10% less.",
+    "effects": [
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "handcarts"},
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "island"}
+    ],
+    "cost": 44400, "requires": ["quick_winch", "spare_parts"], "wave": "R3"
+  },
+  {
+    "id": "gold_braid", "sector": "scrapyard", "ring": 6, "slot": 3, "type": "notable",
+    "name": "Gold Braid",
+    "text": "Each crew rank pays ×2.1, not ×2: ×40.8 at rank 5, was ×32.",
+    "effects": [
+      {"stat": "rank_mult", "op": "set", "value": 2.1}
+    ],
+    "cost": 55500, "requires": ["spare_parts", "hoarder"], "wave": "R5"
+  },
+  {
+    "id": "wreck_salvage_1", "sector": "scrapyard", "ring": 6, "slot": 4, "type": "small",
+    "name": "Wreck Salvage I",
+    "text": "Armored lines (Ship Breaker, Reactor) ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "hqm"}
+    ],
+    "cost": 33300, "requires": ["hoarder", "first_shelf"], "wave": "R3"
+  },
+  {
+    "id": "sewn_lining", "sector": "scrapyard", "ring": 6, "slot": 5, "type": "unlock",
+    "name": "Sewn Lining",
+    "text": "Pocket slot 3 opens (40 scrap): a third upgrade rides out every blast.",
+    "effects": [
+      {"stat": "feature:pocket_slot_3", "op": "unlock", "value": 1}
+    ],
+    "cost": 44400, "requires": ["first_shelf", "bolt_bucket_2"], "wave": "R5",
+    "feature": "feature:pocket_slot_3",
+    "scene": "a third locker joins the row by the skiff, its lid wired shut with a coat hanger"
+  },
+  {
+    "id": "odd_lumber_3", "sector": "scrapyard", "ring": 6, "slot": 6, "type": "small",
+    "name": "Odd Lumber III",
+    "text": "Island upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "island"}
+    ],
+    "cost": 22200, "requires": ["bolt_bucket_2"], "wave": "R3"
+  },
+  {
+    "id": "mk_kit", "sector": "scrapyard", "ring": 7, "slot": 1, "type": "automation",
+    "name": "Mk Kit",
+    "text": "Start every run with Line Mk II on your first six lines (Beachcomber to Kiln).",
+    "effects": [
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "beachcomber_mk2"},
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "campfire_mk2"},
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "garden_mk2"},
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "loom_mk2"},
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "workbench_mk2"},
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "kiln_mk2"}
+    ],
+    "cost": 222000, "requires": ["greased_cable"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "heavy_coil", "sector": "scrapyard", "ring": 7, "slot": 2, "type": "small",
+    "name": "Heavy Coil",
+    "text": "The Magnet hauls 1 h sooner again: early from 17 h, sure from 20 h, alone at 21 h.",
+    "effects": [
+      {"stat": "magnet_hours", "op": "set", "value": 21}
+    ],
+    "cost": 222000, "requires": ["cart_shed"], "wave": "R7", "data_from": "R5"
+  },
+  {
+    "id": "double_rivets", "sector": "scrapyard", "ring": 7, "slot": 3, "type": "small",
+    "name": "Double Rivets",
+    "text": "Every Line Mk pays ×3.7.",
+    "effects": [
+      {"stat": "mk_mult", "op": "set", "value": 3.7}
+    ],
+    "cost": 444000, "requires": ["gold_braid"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "odd_lumber_4", "sector": "scrapyard", "ring": 7, "slot": 4, "type": "small",
+    "name": "Odd Lumber IV",
+    "text": "Island upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "island"}
+    ],
+    "cost": 333000, "requires": ["wreck_salvage_1"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bolt_bucket_3", "sector": "scrapyard", "ring": 7, "slot": 5, "type": "small",
+    "name": "Bolt Bucket III",
+    "text": "Line Mk upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "line_mk"}
+    ],
+    "cost": 333000, "requires": ["sewn_lining"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "odds_and_ends", "sector": "scrapyard", "ring": 7, "slot": 6, "type": "notable",
+    "name": "Odds and Ends",
+    "text": "All lines ×1.02 per Scrapyard node lit, up to ×1.6. Nothing here is junk.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.02, "per": "sector:scrapyard", "max": 1.6}
+    ],
+    "cost": 777000, "requires": ["odd_lumber_3"], "wave": "R7", "data_from": "R3",
+    "scene": "a junk wind chime by the skiff gains a piece (spoon, key, bottle cap) per Scrapyard node lit"
+  },
+  {
+    "id": "night_crane", "sector": "scrapyard", "ring": 8, "slot": 1, "type": "small",
+    "name": "Night Crane",
+    "text": "The Magnet hauls 1 h sooner again: early from 16 h, sure from 19 h, alone at 20 h.",
+    "effects": [
+      {"stat": "magnet_hours", "op": "set", "value": 20}
+    ],
+    "cost": 2220000, "requires": ["mk_kit"], "wave": "R7", "data_from": "R5"
+  },
+  {
+    "id": "wreck_salvage_2", "sector": "scrapyard", "ring": 8, "slot": 2, "type": "small",
+    "name": "Wreck Salvage II",
+    "text": "Armored lines (Ship Breaker, Reactor) ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "hqm"}
+    ],
+    "cost": 3330000, "requires": ["mk_kit", "heavy_coil"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "brass_polish", "sector": "scrapyard", "ring": 8, "slot": 3, "type": "notable",
+    "name": "Brass Polish",
+    "text": "Each crew rank pays ×2.2: ×51.5 at rank 5. Shine them pips.",
+    "effects": [
+      {"stat": "rank_mult", "op": "set", "value": 2.2}
+    ],
+    "cost": 5550000, "requires": ["heavy_coil", "double_rivets"], "wave": "R7", "data_from": "R5"
+  },
+  {
+    "id": "sentimental", "sector": "scrapyard", "ring": 8, "slot": 4, "type": "keystone",
+    "name": "Sentimental",
+    "text": "Pocketed island upgrades and Line Mks pay 40% more. One Pocket slot fewer.",
+    "effects": [
+      {"stat": "feature:sentimental", "op": "unlock", "value": 1}
+    ],
+    "cost": 7770000, "requires": ["double_rivets", "odd_lumber_4"], "wave": "R7", "data_from": "R5",
+    "feature": "feature:sentimental"
+  },
+  {
+    "id": "power_kit", "sector": "scrapyard", "ring": 8, "slot": 5, "type": "automation",
+    "name": "Power Kit",
+    "text": "Start every run with Salvaged Tools in hand.",
+    "effects": [
+      {"stat": "start_upgrade", "op": "unlock", "value": 1, "scope": "salvaged_tools"}
+    ],
+    "cost": 2220000, "requires": ["odd_lumber_4", "bolt_bucket_3"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "odd_lumber_5", "sector": "scrapyard", "ring": 8, "slot": 6, "type": "small",
+    "name": "Odd Lumber V",
+    "text": "Island upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "island"}
+    ],
+    "cost": 3330000, "requires": ["bolt_bucket_3", "odds_and_ends"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bolt_bucket_4", "sector": "scrapyard", "ring": 8, "slot": 7, "type": "small",
+    "name": "Bolt Bucket IV",
+    "text": "Line Mk upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "line_mk"}
+    ],
+    "cost": 2220000, "requires": ["odds_and_ends"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "bolt_bucket_5", "sector": "scrapyard", "ring": 9, "slot": 1, "type": "small",
+    "name": "Bolt Bucket V",
+    "text": "Line Mk upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "line_mk"}
+    ],
+    "cost": 22200000, "requires": ["night_crane"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "junk_drawer", "sector": "scrapyard", "ring": 9, "slot": 2, "type": "unlock",
+    "name": "Junk Drawer",
+    "text": "Once a run, swap a full Pocket at any time, not just before your first buy.",
+    "effects": [
+      {"stat": "feature:junk_drawer", "op": "unlock", "value": 1}
+    ],
+    "cost": 33300000, "requires": ["wreck_salvage_2"], "wave": "R7", "data_from": "R5",
+    "feature": "feature:junk_drawer"
+  },
+  {
+    "id": "wreck_salvage_3", "sector": "scrapyard", "ring": 9, "slot": 3, "type": "small",
+    "name": "Wreck Salvage III",
+    "text": "Armored lines (Ship Breaker, Reactor) ×1.5.",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "hqm"}
+    ],
+    "cost": 44400000, "requires": ["brass_polish"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "yard_boss", "sector": "scrapyard", "ring": 9, "slot": 4, "type": "completion",
+    "name": "Yard Boss",
+    "text": "Each crew rank pays ×2.25 and every Line Mk ×4. The yard has a boss now.",
+    "effects": [
+      {"stat": "rank_mult", "op": "set", "value": 2.25},
+      {"stat": "mk_mult", "op": "set", "value": 4}
+    ],
+    "cost": 55500000, "requires": ["night_crane", "wreck_salvage_2", "brass_polish", "sentimental", "power_kit", "odd_lumber_5", "bolt_bucket_4"], "wave": "R7", "data_from": "R5",
+    "scene": "a YARD BOSS sign swings from the Magnet's crane; the crane's lamp gets a hard hat"
+  },
+  {
+    "id": "bolt_bucket_6", "sector": "scrapyard", "ring": 9, "slot": 5, "type": "small",
+    "name": "Bolt Bucket VI",
+    "text": "Line Mk upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "line_mk"}
+    ],
+    "cost": 22200000, "requires": ["power_kit"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "golden_hook", "sector": "scrapyard", "ring": 9, "slot": 6, "type": "unlock",
+    "name": "Golden Hook",
+    "text": "Once a week the Magnet lands a gold-painted bolt. Pretty. Worth nothing.",
+    "effects": [
+      {"stat": "feature:golden_hook", "op": "unlock", "value": 1}
+    ],
+    "cost": 33300000, "requires": ["odd_lumber_5"], "wave": "R7", "data_from": "R5",
+    "feature": "feature:golden_hook",
+    "scene": "a bolt board at the crane's foot; one gold-painted bolt screwed on each week"
+  },
+  {
+    "id": "odd_lumber_6", "sector": "scrapyard", "ring": 9, "slot": 7, "type": "small",
+    "name": "Odd Lumber VI",
+    "text": "Island upgrades cost 10% less.",
+    "effects": [
+      {"stat": "upgrade_cost", "op": "more", "value": 0.9, "scope": "island"}
+    ],
+    "cost": 22200000, "requires": ["bolt_bucket_4"], "wave": "R7", "data_from": "R3"
+  }
+]

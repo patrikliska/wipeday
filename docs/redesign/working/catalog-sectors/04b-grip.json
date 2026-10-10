@@ -1,0 +1,466 @@
+[
+  {
+    "id": "second_wind", "sector": "grip", "ring": 1, "slot": 1, "type": "notable",
+    "name": "Second Wind",
+    "text": "Hustle holds 3 s (was 2) and drains 20% slower",
+    "effects": [
+      {"stat": "hustle_hold", "op": "add", "value": 1},
+      {"stat": "hustle_drain", "op": "more", "value": 0.8}
+    ],
+    "cost": 2, "requires": ["ground_zero"], "wave": "R2"
+  },
+  {
+    "id": "steady_hands", "sector": "grip", "ring": 1, "slot": 2, "type": "small",
+    "name": "Calloused Hands",
+    "text": "Taps +50%",
+    "effects": [
+      {"stat": "tap", "op": "inc", "value": 0.5}
+    ],
+    "cost": 1, "requires": ["ground_zero"], "wave": "R2",
+    "anchor": true
+  },
+  {
+    "id": "whetstone", "sector": "grip", "ring": 2, "slot": 1, "type": "notable",
+    "name": "Whetstone",
+    "text": "Taps carry +0.16% of supplies/s; a whetstone by the target throws sparks",
+    "effects": [
+      {"stat": "tap_share", "op": "add", "value": 0.0016}
+    ],
+    "cost": 11, "requires": ["second_wind"], "wave": "R2",
+    "scene": "a whetstone on a stump beside the target; every tap throws a few sparks off it"
+  },
+  {
+    "id": "quick_fingers", "sector": "grip", "ring": 2, "slot": 2, "type": "small",
+    "name": "Quick Fingers",
+    "text": "Hustle tops out at ×2.25 (was ×2)",
+    "effects": [
+      {"stat": "hustle_max", "op": "add", "value": 0.25}
+    ],
+    "cost": 5, "requires": ["second_wind", "steady_hands"], "wave": "R2"
+  },
+  {
+    "id": "keep_swinging", "sector": "grip", "ring": 2, "slot": 3, "type": "automation",
+    "name": "Keep Swinging",
+    "text": "Unmanned lines keep running while Hustle is above zero, not just while you tap",
+    "effects": [
+      {"stat": "feature:keep_swinging", "op": "unlock", "value": 1}
+    ],
+    "cost": 7, "requires": ["steady_hands"], "wave": "R2",
+    "feature": "feature:keep_swinging"
+  },
+  {
+    "id": "steady_breath_1", "sector": "grip", "ring": 3, "slot": 1, "type": "small",
+    "name": "Steady Breath I",
+    "series": "steady_breath",
+    "text": "Hustle holds +0.5 s",
+    "effects": [
+      {"stat": "hustle_hold", "op": "add", "value": 0.5}
+    ],
+    "cost": 33, "requires": ["whetstone"], "wave": "R2"
+  },
+  {
+    "id": "lucky_swing", "sector": "grip", "ring": 3, "slot": 2, "type": "notable",
+    "name": "Lucky Swing",
+    "text": "5% of your taps crit for ×10",
+    "effects": [
+      {"stat": "crit_chance", "op": "add", "value": 0.05},
+      {"stat": "crit_mult", "op": "set", "value": 10}
+    ],
+    "cost": 77, "requires": ["whetstone", "quick_fingers"], "wave": "R2",
+    "anchor": true
+  },
+  {
+    "id": "heavy_haft", "sector": "grip", "ring": 3, "slot": 3, "type": "notable",
+    "name": "Heavy Haft",
+    "text": "Fells need 20% fewer taps",
+    "effects": [
+      {"stat": "fell_taps", "op": "more", "value": 0.8}
+    ],
+    "cost": 55, "requires": ["quick_fingers", "keep_swinging"], "wave": "R2"
+  },
+  {
+    "id": "rhythm_1", "sector": "grip", "ring": 3, "slot": 4, "type": "small",
+    "name": "Rhythm I",
+    "series": "rhythm",
+    "text": "Hustle +0.25 a tap",
+    "effects": [
+      {"stat": "hustle_gain", "op": "add", "value": 0.25}
+    ],
+    "cost": 44, "requires": ["keep_swinging"], "wave": "R2"
+  },
+  {
+    "id": "tool_rack", "sector": "grip", "ring": 4, "slot": 1, "type": "automation",
+    "name": "Tool Rack",
+    "text": "Grip rungs buy themselves the moment you can afford them (page open)",
+    "effects": [
+      {"stat": "feature:autobuy", "op": "unlock", "value": 1, "scope": "grip"}
+    ],
+    "cost": 333, "requires": ["steady_breath_1"], "wave": "R3",
+    "feature": "feature:autobuy"
+  },
+  {
+    "id": "slow_burn_1", "sector": "grip", "ring": 4, "slot": 2, "type": "small",
+    "name": "Slow Burn I",
+    "series": "slow_burn",
+    "text": "Hustle drains 10% slower",
+    "effects": [
+      {"stat": "hustle_drain", "op": "more", "value": 0.9}
+    ],
+    "cost": 222, "requires": ["steady_breath_1", "lucky_swing"], "wave": "R3"
+  },
+  {
+    "id": "iron_palms", "sector": "grip", "ring": 4, "slot": 3, "type": "completion",
+    "name": "Iron Palms",
+    "text": "Taps carry +0.15% more of supplies/s; Hustle holds 0.5 s longer",
+    "effects": [
+      {"stat": "tap_share", "op": "add", "value": 0.0015},
+      {"stat": "hustle_hold", "op": "add", "value": 0.5}
+    ],
+    "cost": 555, "requires": ["steady_breath_1", "lucky_swing", "heavy_haft", "rhythm_1"], "wave": "R3"
+  },
+  {
+    "id": "steady_breath_2", "sector": "grip", "ring": 4, "slot": 4, "type": "small",
+    "name": "Steady Breath II",
+    "series": "steady_breath",
+    "text": "Hustle holds +0.5 s",
+    "effects": [
+      {"stat": "hustle_hold", "op": "add", "value": 0.5}
+    ],
+    "cost": 333, "requires": ["heavy_haft", "rhythm_1"], "wave": "R3"
+  },
+  {
+    "id": "afterburn", "sector": "grip", "ring": 4, "slot": 5, "type": "notable",
+    "name": "Afterburn",
+    "text": "Afterglow's half-life 5 → 7 min",
+    "effects": [
+      {"stat": "afterglow_half", "op": "add", "value": 120}
+    ],
+    "cost": 777, "requires": ["rhythm_1"], "wave": "R3"
+  },
+  {
+    "id": "hard_graft_1", "sector": "grip", "ring": 5, "slot": 1, "type": "small",
+    "name": "Hard Graft I",
+    "series": "hard_graft",
+    "text": "All lines ×1.12",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.12, "scope": "all"}
+    ],
+    "cost": 3333, "requires": ["tool_rack"], "wave": "R3"
+  },
+  {
+    "id": "work_song", "sector": "grip", "ring": 5, "slot": 2, "type": "notable",
+    "name": "Work Song",
+    "text": "Afterglow holds its full ×3 for the first minute; the crew sing while you work",
+    "effects": [
+      {"stat": "afterglow_hold", "op": "set", "value": 60}
+    ],
+    "cost": 5555, "requires": ["slow_burn_1"], "wave": "R3",
+    "scene": "while Afterglow holds, the crew swing in time and sing (badly); a note floats over each"
+  },
+  {
+    "id": "wipe_day_rush", "sector": "grip", "ring": 5, "slot": 3, "type": "keystone",
+    "name": "Wipe Day Rush",
+    "text": "Afterglow holds ×5 for 60 min, then fades. Night Shift window ×0.5",
+    "effects": [
+      {"stat": "afterglow", "op": "set", "value": 5},
+      {"stat": "afterglow_hold", "op": "set", "value": 3600},
+      {"stat": "night_shift", "op": "more", "value": 0.5}
+    ],
+    "cost": 7777, "requires": ["iron_palms"], "wave": "R3",
+    "conflicts": ["hot_core"],
+    "anchor": true
+  },
+  {
+    "id": "masks_on", "sector": "grip", "ring": 5, "slot": 4, "type": "notable",
+    "name": "Masks On",
+    "text": "All lines ×2 while Afterglow lasts; the crew work on in gas masks",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "all", "when": "afterglow"}
+    ],
+    "cost": 7777, "requires": ["steady_breath_2"], "wave": "R3",
+    "scene": "while Afterglow lasts every crew member wears a gas mask; the filters puff at each cycle"
+  },
+  {
+    "id": "steady_breath_3", "sector": "grip", "ring": 5, "slot": 5, "type": "small",
+    "name": "Steady Breath III",
+    "series": "steady_breath",
+    "text": "Hustle holds +0.5 s",
+    "effects": [
+      {"stat": "hustle_hold", "op": "add", "value": 0.5}
+    ],
+    "cost": 2222, "requires": ["afterburn"], "wave": "R3"
+  },
+  {
+    "id": "steady_breath_4", "sector": "grip", "ring": 6, "slot": 1, "type": "small",
+    "name": "Steady Breath IV",
+    "series": "steady_breath",
+    "text": "Hustle holds +0.5 s",
+    "effects": [
+      {"stat": "hustle_hold", "op": "add", "value": 0.5}
+    ],
+    "cost": 22200, "requires": ["hard_graft_1"], "wave": "R3"
+  },
+  {
+    "id": "hair_trigger", "sector": "grip", "ring": 6, "slot": 2, "type": "automation",
+    "name": "Hair Trigger",
+    "text": "Rush fires itself the moment Hustle fills (page open)",
+    "effects": [
+      {"stat": "feature:hair_trigger", "op": "unlock", "value": 1, "scope": "rush"}
+    ],
+    "cost": 33300, "requires": ["hard_graft_1", "work_song"], "wave": "R5", "gate": 20,
+    "feature": "feature:hair_trigger"
+  },
+  {
+    "id": "rhythm_2", "sector": "grip", "ring": 6, "slot": 3, "type": "small",
+    "name": "Rhythm II",
+    "series": "rhythm",
+    "text": "Hustle +0.25 a tap",
+    "effects": [
+      {"stat": "hustle_gain", "op": "add", "value": 0.25}
+    ],
+    "cost": 33300, "requires": ["work_song", "wipe_day_rush"], "wave": "R3"
+  },
+  {
+    "id": "slow_burn_2", "sector": "grip", "ring": 6, "slot": 4, "type": "small",
+    "name": "Slow Burn II",
+    "series": "slow_burn",
+    "text": "Hustle drains 10% slower",
+    "effects": [
+      {"stat": "hustle_drain", "op": "more", "value": 0.9}
+    ],
+    "cost": 22200, "requires": ["wipe_day_rush", "masks_on"], "wave": "R3"
+  },
+  {
+    "id": "golden_chip", "sector": "grip", "ring": 6, "slot": 5, "type": "unlock",
+    "name": "Golden Chip",
+    "text": "A run's 20th fell drops a golden chip: all lines ×1.5 for the rest of the run",
+    "effects": [
+      {"stat": "feature:golden_chip", "op": "unlock", "value": 1}
+    ],
+    "counts_as": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "all"}
+    ],
+    "cost": 44400, "requires": ["masks_on", "steady_breath_3"], "wave": "R3",
+    "feature": "feature:golden_chip",
+    "scene": "the 20th fell spits out a spinning gold chip that flies up and nails itself over the cabin door for the run"
+  },
+  {
+    "id": "rhythm_3", "sector": "grip", "ring": 6, "slot": 6, "type": "small",
+    "name": "Rhythm III",
+    "series": "rhythm",
+    "text": "Hustle +0.25 a tap",
+    "effects": [
+      {"stat": "hustle_gain", "op": "add", "value": 0.25}
+    ],
+    "cost": 33300, "requires": ["steady_breath_3"], "wave": "R3"
+  },
+  {
+    "id": "long_dawn", "sector": "grip", "ring": 7, "slot": 1, "type": "notable",
+    "name": "Long Dawn",
+    "text": "Afterglow holds its full ×3 for the first 2 minutes",
+    "effects": [
+      {"stat": "afterglow_hold", "op": "set", "value": 120}
+    ],
+    "cost": 555000, "requires": ["steady_breath_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "rhythm_4", "sector": "grip", "ring": 7, "slot": 2, "type": "small",
+    "name": "Rhythm IV",
+    "series": "rhythm",
+    "text": "Hustle +0.25 a tap",
+    "effects": [
+      {"stat": "hustle_gain", "op": "add", "value": 0.25}
+    ],
+    "cost": 222000, "requires": ["hair_trigger"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "slow_burn_3", "sector": "grip", "ring": 7, "slot": 3, "type": "small",
+    "name": "Slow Burn III",
+    "series": "slow_burn",
+    "text": "Hustle drains 10% slower",
+    "effects": [
+      {"stat": "hustle_drain", "op": "more", "value": 0.9}
+    ],
+    "cost": 333000, "requires": ["rhythm_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "rhythm_5", "sector": "grip", "ring": 7, "slot": 4, "type": "small",
+    "name": "Rhythm V",
+    "series": "rhythm",
+    "text": "Hustle +0.25 a tap",
+    "effects": [
+      {"stat": "hustle_gain", "op": "add", "value": 0.25}
+    ],
+    "cost": 333000, "requires": ["slow_burn_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "green_sky_1", "sector": "grip", "ring": 7, "slot": 5, "type": "small",
+    "name": "Green Sky I",
+    "series": "green_sky",
+    "text": "All lines ×1.25 while Afterglow lasts",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.25, "scope": "all", "when": "afterglow"}
+    ],
+    "cost": 444000, "requires": ["golden_chip"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "woodpile", "sector": "grip", "ring": 7, "slot": 6, "type": "unlock",
+    "name": "Woodpile",
+    "text": "Each fell this run stacks a log by the cabin: all lines +2% a log, up to +40%",
+    "effects": [
+      {"stat": "feature:woodpile", "op": "unlock", "value": 1}
+    ],
+    "counts_as": [
+      {"stat": "output", "op": "more", "value": 1.4, "scope": "all"}
+    ],
+    "cost": 444000, "requires": ["rhythm_3"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:woodpile",
+    "scene": "a log pile grows by the cabin, one log a fell up to 20; at 20 a gull takes the top log as its perch"
+  },
+  {
+    "id": "hard_graft_2", "sector": "grip", "ring": 8, "slot": 1, "type": "small",
+    "name": "Hard Graft II",
+    "series": "hard_graft",
+    "text": "All lines ×1.1",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 3330000, "requires": ["long_dawn"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "hard_graft_3", "sector": "grip", "ring": 8, "slot": 2, "type": "small",
+    "name": "Hard Graft III",
+    "series": "hard_graft",
+    "text": "All lines ×1.1",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 4440000, "requires": ["long_dawn", "rhythm_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "clear_cut", "sector": "grip", "ring": 8, "slot": 3, "type": "notable",
+    "name": "Clear-Cut",
+    "text": "While Afterglow lasts, fells need half the taps",
+    "effects": [
+      {"stat": "fell_taps", "op": "more", "value": 0.5, "when": "afterglow"}
+    ],
+    "cost": 5550000, "requires": ["rhythm_4", "slow_burn_3"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "fever_pitch", "sector": "grip", "ring": 8, "slot": 4, "type": "keystone",
+    "name": "Fever Pitch",
+    "text": "Hustle peaks at ×6, not ×2; it holds 1.5 s less and drains ×3 as fast",
+    "effects": [
+      {"stat": "hustle_max", "op": "set", "value": 6},
+      {"stat": "hustle_hold", "op": "add", "value": -1.5},
+      {"stat": "hustle_drain", "op": "more", "value": 3}
+    ],
+    "cost": 7770000, "requires": ["slow_burn_3", "rhythm_5"], "wave": "R7", "data_from": "R3",
+    "conflicts": ["archivist"]
+  },
+  {
+    "id": "apprentice", "sector": "grip", "ring": 8, "slot": 5, "type": "automation",
+    "name": "Apprentice",
+    "text": "While the page is open and you aren't tapping, an apprentice taps once a second",
+    "effects": [
+      {"stat": "feature:apprentice", "op": "unlock", "value": 1}
+    ],
+    "cost": 3330000, "requires": ["rhythm_5", "green_sky_1"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:apprentice",
+    "scene": "a kid in a far too big hard hat chips at the target with a tiny hatchet whenever you stop"
+  },
+  {
+    "id": "hard_graft_4", "sector": "grip", "ring": 8, "slot": 6, "type": "small",
+    "name": "Hard Graft IV",
+    "series": "hard_graft",
+    "text": "All lines ×1.1",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 4440000, "requires": ["green_sky_1", "woodpile"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "hard_graft_5", "sector": "grip", "ring": 8, "slot": 7, "type": "small",
+    "name": "Hard Graft V",
+    "series": "hard_graft",
+    "text": "All lines ×1.1",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 3330000, "requires": ["woodpile"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "rhythm_6", "sector": "grip", "ring": 9, "slot": 1, "type": "small",
+    "name": "Rhythm VI",
+    "series": "rhythm",
+    "text": "Hustle +0.25 a tap",
+    "effects": [
+      {"stat": "hustle_gain", "op": "add", "value": 0.25}
+    ],
+    "cost": 22200000, "requires": ["hard_graft_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "muscle_memory", "sector": "grip", "ring": 9, "slot": 2, "type": "notable",
+    "name": "Muscle Memory",
+    "text": "Hustle holds 0.5 s longer and fills 0.25 a tap faster (the tree's limits)",
+    "effects": [
+      {"stat": "hustle_hold", "op": "add", "value": 0.5},
+      {"stat": "hustle_gain", "op": "add", "value": 0.25}
+    ],
+    "cost": 44400000, "requires": ["hard_graft_3"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "green_sky_2", "sector": "grip", "ring": 9, "slot": 3, "type": "small",
+    "name": "Green Sky II",
+    "series": "green_sky",
+    "text": "All lines ×1.25 while Afterglow lasts",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.25, "scope": "all", "when": "afterglow"}
+    ],
+    "cost": 33300000, "requires": ["clear_cut"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "iron_grip", "sector": "grip", "ring": 9, "slot": 4, "type": "completion",
+    "name": "Iron Grip",
+    "text": "All lines ×1.2; Hustle drains 10% slower",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.2, "scope": "all"},
+      {"stat": "hustle_drain", "op": "more", "value": 0.9}
+    ],
+    "cost": 55500000, "requires": ["hard_graft_2", "hard_graft_3", "clear_cut", "fever_pitch", "apprentice", "hard_graft_4", "hard_graft_5"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "rhythm_7", "sector": "grip", "ring": 9, "slot": 5, "type": "small",
+    "name": "Rhythm VII",
+    "series": "rhythm",
+    "text": "Hustle +0.25 a tap",
+    "effects": [
+      {"stat": "hustle_gain", "op": "add", "value": 0.25}
+    ],
+    "cost": 22200000, "requires": ["apprentice"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "trophy_rack", "sector": "grip", "ring": 9, "slot": 6, "type": "unlock",
+    "name": "Trophy Rack",
+    "text": "Each run with 50+ fells hangs a trophy: all lines +4% a trophy, up to +20%",
+    "effects": [
+      {"stat": "feature:trophy_rack", "op": "unlock", "value": 1}
+    ],
+    "counts_as": [
+      {"stat": "output", "op": "more", "value": 1.2, "scope": "all"}
+    ],
+    "cost": 33300000, "requires": ["hard_graft_4"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:trophy_rack",
+    "scene": "a plank rack by the cabin; each trophy is the run's last target in miniature: pine cone, geode, ore nugget, sulfur crystal or a rivet"
+  },
+  {
+    "id": "green_sky_3", "sector": "grip", "ring": 9, "slot": 7, "type": "small",
+    "name": "Green Sky III",
+    "series": "green_sky",
+    "text": "All lines ×1.25 while Afterglow lasts",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.25, "scope": "all", "when": "afterglow"}
+    ],
+    "cost": 44400000, "requires": ["hard_graft_5"], "wave": "R7", "data_from": "R3"
+  }
+]
