@@ -25,7 +25,8 @@
     "web:build": "pnpm --filter @wipe-day/web build",
     "web:typecheck": "pnpm --filter @wipe-day/web typecheck",
     "web:shots": "pnpm --filter @wipe-day/web shots",
-    "api:dev": "pnpm --filter @wipe-day/api dev"
+    "api:dev": "pnpm --filter @wipe-day/api dev",
+    "icons": "pnpm --filter @wipe-day/discord icons"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

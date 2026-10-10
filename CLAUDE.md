@@ -331,4 +331,5 @@ and their measured values (warnings too), screenshot paths (`preview/web/index.h
 | `pnpm sim [days]` / `pnpm sim check [--full]` | simulator v2 / pacing assertion |
 | `pnpm start` / `pnpm bot:dev` | the Discord bot (reads `.env` at the repo root; needs the API) |
 | `pnpm preview` | every bot message drawn at phone and desktop width into `preview/discord/` |
+| `pnpm icons` | lint every icon against D141 and draw the review sheet into `preview/icons/` |
 | `pnpm db:generate` | new drizzle migration after a change to `apps/api/src/store/schema.ts` |

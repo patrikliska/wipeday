@@ -13,7 +13,8 @@
     "start": "tsx src/bin/bot.ts",
     "preview": "tsx src/bin/preview.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "icons": "tsx src/bin/icons.ts"
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",

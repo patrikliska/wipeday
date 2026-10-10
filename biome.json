@@ -44,6 +44,16 @@
           "a11y": "off"
         }
       }
+    },
+    {
+      "includes": ["packages/content/icons/**/*.svg"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noSvgWithoutTitle": "off"
+          }
+        }
+      }
     }
   ]
 }

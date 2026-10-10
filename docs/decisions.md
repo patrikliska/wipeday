@@ -1633,3 +1633,13 @@ one without an implementation fails the test (`missing`); later ones print `pend
 whole plan of targets is visible in one place. Until R2's `nuke`, the simulator presses a stub
 that folds the run into `meta` by the prestige formula, and it batches taps as the client does
 (1 s, then 5 s, never more than 30 taps). *Revisit* when R2's real `nuke` replaces the stub.
+
+### D150. Icons: a half tone of `currentColor`, and no `<title>`
+Icons may draw a second tone as `currentColor` at `opacity=".5"` (a crate's top and side, a
+woodpile's log bodies, a plank's end grain, the back figure in `nav/friends`), so depth survives
+any tint without spending the one fixed accent; overlapping half-tone shapes sit in one
+`<g opacity>` so they never double up. Files carry no `<title>`: they are inlined next to a label,
+where a title would only add a tooltip that repeats it, so the R1 loader sets `aria-hidden` or a
+label; `biome.json` turns `noSvgWithoutTitle` off for `packages/content/icons` only. `pnpm icons`
+lints each file against D141 and renders the review sheet into `preview/icons/` with resvg (the
+bot's renderer, so a file the sheet draws is one the bot can draw). Extends D141.

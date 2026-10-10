@@ -903,3 +903,62 @@ of the counter, the floater or the drawer. Shots now render in UTC and pin two c
     (D141, R1's list).
   - The tap hint is the R0 stand-in for "Tap the tree." (R1's era target); it is drawn as a
     pulsing pill, not the signal-orange primary, which arrives with R1's contrast pass (D138).
+
+## Icons: R1's first set (`packages/content/icons`, branch `icons-r1`)
+
+54 hand-drawn icons, in the order of `07-what-changes.md` 8: `currency/scrap`,
+`currency/supplies`, the 14 `product/` badges, the 14 `line/` buildings, the 5 `tier/` eras, the
+5 `tool/` Grip tools, `target/` tree, stone, ore, sulfur, wreck, `flotsam/crate`, `ui/hustle`,
+`ui/hand`, `ui/night_shift`, and the 5 `nav/` items. Sheet: `pnpm icons` (`preview/icons/`): each
+icon at 16, 24 and 48 px, white on `--bg` and dark on `--text`, the 16 px render zoomed 4x without
+smoothing, and `strip16-*.png` with all of them side by side at a real 16 px. The script lints
+every file against D141 (viewBox, no width/height, no text, raster, filters, gradients, refs or
+ids, at most one accent and only from `palette.ts`/`tokens.css`, strokes of at least 3, ink inside
+the 2-unit margin) and prints each icon's ink share, so visual weight can be compared by number.
+
+- Iteration 1, what was wrong:
+  - Look-alikes at 16 px: `tier/wood` (palisade) and `tier/metal` (corrugated ridges) were both
+    a row of vertical bars; `nav/blast_map` (a burst with six spoked nodes) was a snowflake.
+  - Misreads: `tier/hqm` (shield, two rivets over a bar) was a face, or a "!" warning sign;
+    `product/plates` (square plate, three holes) was a die; `product/timber` (three log ends
+    with a hole) was coins; `currency/supplies` (sack with a lashing band) was an urn with a lid;
+    `line/furnace` (tower with a flame on top) was a lighthouse; `target/wreck` (hull and mast
+    with a yard) was a sailboat; `ui/night_shift` was too fat a crescent, a bitten cookie;
+    `product/fibre` (solid sheaf) was a trophy.
+  - Weak or small: `product/ingots` filled only the lower half (y 18-44); `tool/iron_tools`'
+    pick head was a hairline at 16 px; `product/cell` read as a door frame; `tool/rock`'s two
+    cut-out chips read as holes.
+  - Margins: `tier/twig` and `tool/stone_tools` reached past the 2-unit margin (the lint
+    caught both).
+- What changed (iteration 2):
+  - `tier/metal` became one plate with scalloped top and bottom edges (the corrugation profile)
+    and three slots; the palisade keeps its points, so the two differ in outline, not only in
+    stripes. `tier/hqm` became a shield with two chevron seams (plated, no face).
+  - `product/timber` is a woodpile: three log ends in front of their half-tone bodies. `plates`
+    became a riveted slab in perspective with a second slab under it. `supplies` lost the band:
+    a plain sack with a tied, flared neck. `furnace` became a block with a chimney and a glowing
+    mouth, so it no longer competes with the kiln's dome. `wreck` lists 17 degrees with a holed
+    hull and a snapped mast. The crescent is thinner. `fibre` is five stalks with seed heads,
+    bound in the middle.
+  - Ingots are taller (y 16-44), the pick head is thicker, `cell` is a canister with a window
+    onto its glowing core, `rock` is a knapped stone in two tones instead of holes.
+- Iteration 2, still wrong: `target/stone`'s crack read as a lightning bolt; the new
+  `nav/blast_map` (burst inside a ring with four nodes) read as a lifebuoy; `line/shipbreaker`
+  (hull split in two with a spark) read as a basket with a star.
+- Iteration 3: the stone lost its crack (the moss cap and the dome carry it); the blast map is a
+  burst at the foot of three ringed nodes, a tree growing from the blast; the ship breaker is a
+  crane hook over a cut hull. The stroke-drawn tools and the twig were the lightest icons
+  (15-17% ink against 30-44% for their neighbours); the twig, the hatchet and the pick got
+  heavier strokes (now 17-18%).
+- Still open, and what I would redo:
+  - `product/plates` reads as a slab or a sandwich, not "steel": the weakest product.
+  - `line/loom` is a framed grid (a crib, a barcode) at 16 px; `line/press` passes but is busy.
+  - `nav/blast_map` is legible but abstract: it needs the Blast Map screen beside it to mean
+    anything, and the burst could be the Big Red's red once the nav's accent policy is set.
+  - `product/cell` and `product/battery` are both "power" at a glance; they differ in shape
+    (canister with a teal core, box with posts and a bolt) but share a meaning.
+  - `product/charcoal` (lumps with an ember) and `target/ore` (rock with copper nuggets) are both
+    rocks with a warm accent; they never meet in one view (shop badge against tap target).
+  - Visual weight still spans 15-58% ink: line-drawn things (tools, broadcast, the fish) stay
+    lighter than solid ones (`tier/metal`, `product/plates`); R1's shop rows should be checked
+    with the real 40/18 px badge sizes before this is evened out further.
