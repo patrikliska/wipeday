@@ -16,7 +16,7 @@
  */
 import type { Content } from "@wipe-day/content/schema";
 import { finite } from "./amount";
-import { type Conditions, cycleOf, foldStat, rates, unitRate } from "./effects";
+import { buffEffects, type Conditions, cycleOf, foldStat, rates, unitRate } from "./effects";
 import type { GameEvent } from "./events";
 import { rng, SEED, seedOf } from "./rng";
 import { cyclePayout } from "./settle";
@@ -47,7 +47,10 @@ export function afterglowAt(content: Content, state: BaseState, t: number): numb
 export function tapParts(content: Content, state: BaseState, t: number) {
   const r = rates(content, state);
   const when: Conditions = { online: true };
-  const effects = r.effects;
+  // Tap buffs (Adrenaline, Rush) count while they run at `t`.
+  const effects = state.run.buffs.length
+    ? [...r.effects, ...buffEffects(content, state.run.buffs, t)]
+    : r.effects;
   const flat = foldStat("tap_flat", effects, content.tap.flat, {}, when);
   const share = foldStat("tap_share", effects, content.tap.share, {}, when);
   const tapMult = foldStat("tap", effects, 1, {}, when);
