@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import { applyCommand, type Command } from "./commands";
 import { rng } from "./rng";
 import { type BaseState, newBase } from "./state";
-import { afterglowAt, applyTaps } from "./taps";
+import { afterglowAt, applyTaps, hustleFactor } from "./taps";
 
 const content = loadContent(contentPaths.data, loadLocale());
 const T0 = 1_700_000_000;
@@ -100,6 +100,55 @@ describe("unmanned lines: busy-until (resolution 3.3)", () => {
     expect(state.run.made).toBeLessThan(perCycle * 5.01 + tapValue * 2);
   });
 
+  it("keeps a line faster than the taps busy, as if manned: 6 a second on the 0.6 s Beachcomber", () => {
+    const beachcomber = content.lines.find((line) => line.id === "beachcomber");
+    if (!beachcomber) throw new Error("no beachcomber");
+    // Whole-second batches, as the client sends them (`from` and `to` the same second).
+    let state = fresh({ lines: { beachcomber: 1 } });
+    let cycles = 0;
+    let direct = 0;
+    for (let t = 0; t < 60; t++) {
+      const result = applyCommand(content, state, taps(6, T0 + t, T0 + t), T0 + t);
+      state = result.state;
+      for (const event of result.events) {
+        if (event.type !== "tapped") continue;
+        cycles += event.cycles;
+        direct += event.direct;
+      }
+    }
+    // 60 s of tapping covers 100 cycles of 0.6 s back to back (D176), and each one pays.
+    expect(cycles).toBe(Math.ceil(60 / beachcomber.cycle));
+    expect(state.run.readyAt.beachcomber).toBeGreaterThanOrEqual(T0 + 60);
+    state = applyCommand(content, state, { type: "ping" }, T0 + 70).state;
+    expect(state.run.made - direct).toBeCloseTo(cycles * beachcomber.rate * beachcomber.cycle, 9);
+  });
+
+  it("starts cycles only inside the batch's seconds, never more than the taps credited", () => {
+    for (let seed = 1; seed <= 500; seed++) {
+      const random = rng(seed * 7);
+      let state = fresh({ lines: { beachcomber: random.int(1, 60), campfire: random.int(0, 30) } });
+      let t = T0;
+      for (let step = 0; step < 40; step++) {
+        t += random.int(0, 3);
+        const from = t;
+        const to = t + random.int(0, 4);
+        const before = state.run.readyAt;
+        const result = applyCommand(content, state, taps(random.int(1, 12), from, to), to);
+        state = result.state;
+        t = to;
+        const tapped = result.events.find((event) => event.type === "tapped");
+        if (tapped?.type !== "tapped") continue;
+        const lines = Object.keys(state.run.readyAt).length;
+        expect(tapped.cycles, `seed ${seed}`).toBeLessThanOrEqual(tapped.credited * lines);
+        for (const [id, ready] of Object.entries(state.run.readyAt)) {
+          if (ready === before[id]) continue;
+          // A line took new cycles only if it was free before the batch's last second ended.
+          expect(Math.max(from, before[id] ?? from), `seed ${seed}`).toBeLessThan(to + 1);
+        }
+      }
+    }
+  });
+
   it("pays the cycle in flight even when tapping stopped, at its end", () => {
     const state = applyCommand(content, owned(2), taps(1, T0, T0), T0).state;
     expect(state.run.readyAt.kiln).toBeCloseTo(T0 + kiln.cycle, 9);
@@ -123,6 +172,21 @@ describe("unmanned lines: busy-until (resolution 3.3)", () => {
 });
 
 describe("Hustle, crits and Afterglow", () => {
+  it("pays a tap ×1 on an empty meter, up to ×2 on a full one (N20)", () => {
+    const { cap, peak } = content.tap.hustle;
+    expect(hustleFactor(0, cap, peak)).toBe(1);
+    expect(hustleFactor(cap, cap, peak)).toBe(2);
+    expect(hustleFactor(cap * 3, cap, peak)).toBe(2);
+    const value = (hustle: number) => {
+      const state = fresh({ hustle: { value: hustle, at: T0 } });
+      const event = applyTaps(content, state, { count: 1, from: T0, to: T0 }, T0).events[0];
+      return event?.type === "tapped" ? event.direct : Number.NaN;
+    };
+    // The flat tap is 1 on a fresh island; the tap's own +1 counts before it is valued.
+    expect(value(0)).toBeCloseTo(hustleFactor(1, cap, peak), 12);
+    expect(value(cap)).toBe(2);
+  });
+
   it("builds Hustle per credited tap, holds it for its grace, then drains it", () => {
     let state = applyCommand(content, fresh(), taps(30, T0, T0), T0).state;
     expect(state.run.hustle.value).toBe(30);

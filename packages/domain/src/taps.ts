@@ -11,8 +11,9 @@
  *    seeded by the tap's index so the client predicts them;
  * 5. fells the era's target every `fellTaps` credited taps: each fell pays `fellBonusTaps`
  *    taps' worth at the felling tap's Hustle, without a crit (02-the-run.md 7.5);
- * 6. starts a cycle on each unmanned line that is idle (busy-until): the cycles that ended by
- *    `now` pay at once, the one still in flight pays when settle passes its `readyAt`.
+ * 6. starts a cycle on each unmanned line that is idle (busy-until), as many back to back as fit
+ *    the batch's seconds `[from, to + 1)` and no more than the taps credited: the cycles that
+ *    ended by `now` pay at once, the one still in flight pays when settle passes its `readyAt`.
  *
  * Pure: state and `now` in, state and events out.
  */
@@ -192,17 +193,27 @@ export function applyTaps(
     ...state,
     run: { ...run, afterglowFrom, hustle, bucket, activeAt: now },
   };
+  // Times are whole seconds, so the batch's taps fell anywhere in [from, to + 1): a line freed
+  // inside the last second was still being tapped (02 3.1: tapping faster than its cycle runs it
+  // as if manned; D176). The state keeps one `readyAt` a line, so when new cycles follow one
+  // still in flight, every cycle but the last is paid now (at most a second early, valued at its
+  // own end) and only the last waits for settle.
+  const end = to + 1;
   for (const line of content.lines) {
     const n = run.lines[line.id] ?? 0;
     if (n <= 0 || run.hands.includes(line.id)) continue;
-    const start = Math.max(from, readyAt[line.id] ?? from);
-    if (start > to) continue;
+    const flight = readyAt[line.id];
+    const start = Math.max(from, flight ?? from);
+    if (start >= end) continue;
     const length = cycleOf(content, afterTaps, line, start);
-    const k = Math.min(credited, Math.floor((to - start) / length) + 1);
+    const k = Math.min(credited, Math.ceil((end - start) / length));
     if (k <= 0) continue;
+    if (flight !== undefined && flight > now) {
+      payouts += cyclePayout(content, afterTaps, line.id, flight);
+    }
     for (let j = 1; j <= k; j++) {
-      const end = start + j * length;
-      if (end <= now) payouts += cyclePayout(content, afterTaps, line.id, end);
+      const done = start + j * length;
+      if (j < k || done <= now) payouts += cyclePayout(content, afterTaps, line.id, done);
     }
     readyAt[line.id] = start + k * length;
     cycles += k;

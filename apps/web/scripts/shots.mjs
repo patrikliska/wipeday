@@ -57,6 +57,33 @@ const STONE_RUN = {
   target: { taps: 22, felled: 64 },
 };
 
+/** Later in the Stone era, saving for Loom Mk II (246M) at about 2.8M/s. */
+const SAVING_RUN = {
+  ...STONE_RUN,
+  supplies: 283e3,
+  made: 2.1e8,
+  taps: 5200,
+  lines: {
+    beachcomber: 70,
+    campfire: 65,
+    garden: 65,
+    loom: 59,
+    workbench: 14,
+    kiln: 18,
+    furnace: 2,
+  },
+  hands: ["beachcomber", "campfire", "garden", "loom"],
+  upgrades: [
+    "stone_tools",
+    "sorting_tables",
+    "iron_tools",
+    "salvaged_tools",
+    "beachcomber_mk2",
+    "campfire_mk2",
+    "garden_mk2",
+  ],
+};
+
 const ALL_LINES = [
   "beachcomber",
   "campfire",
@@ -262,6 +289,28 @@ const SHOTS = [
       ...STONE_RUN,
       lines: { ...STONE_RUN.lines, furnace: 12 },
       ui: { expanded: true, tab: "upgrades", boughtOpen: true },
+    },
+    ff: 1,
+  },
+  // Saving up (D177): Loom Mk II scores best but is 87 s away, so the crown waits on the tap
+  // hint and the row leads the collapsed drawer unpainted; the expanded drawer crowns it.
+  {
+    name: "phone_saving",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...SAVING_RUN },
+    ff: 1,
+  },
+  {
+    name: "phone_saving_drawer",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...SAVING_RUN,
+      ui: { expanded: true, tab: "upgrades" },
     },
     ff: 1,
   },

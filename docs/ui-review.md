@@ -1274,3 +1274,48 @@ New shots: `phone_flotsam__zoom` (run 1's crate at 3:03 with its ring and hint),
 8. Still open: the sounds and the 15 ms buzz want the owner's phone; `pnpm web:perf` was not
    re-run this session (the PC was busy with a game, so frame numbers would mean nothing); the
    flotsam adds one sprite, one ring and a glow.
+
+## R1 S5: balance and polish
+
+No HUD code changed this session; the crown's rules did (D176, D177), so every shot was re-taken
+and read for what the new rules show. New shots: `phone_saving` (Loom Mk II scores best but is out
+of reach) and `phone_saving_drawer` (the same state, Upgrades expanded).
+
+### Iteration 1
+- `phone_saving`: the collapsed drawer led with the Workbench ("in 2s"), not the 246M Loom Mk II
+  the fixture was built for. Correct behaviour: the client weighs the wait at the top bar's
+  1.14M/s plus the pace, so the Workbench is the best score and the save lasts two seconds. Such
+  saves are the common case; the long one shows where it belongs, crowned orange in the expanded
+  Upgrades tab ("in 3m 5s · 246M"), with Beach Sledges, Handcarts and the rest below it unpainted.
+- `phone_saving`: the crown sits on "Tap the ore seam." while saving and no row is orange; the
+  affordable Beachcomber stays an enabled, secondary Buy. One crown, nothing disabled without its
+  reason ("in 2s").
+- `phone_timber_era` changed meaning: 40 held, Stone Tools (60) 2 s away, so the hint "Tap the
+  outcrop." is crowned and the affordable Beachcomber (32) waits secondary. It reads right; the
+  pill does not say what the player is saving for, which playtest 1 should judge (playtest kit,
+  "the crown").
+- `desktop_upgrades`, `phone_saving_drawer`: Handcarts reads 5.00B (D179); its countdown fits
+  the 104 px button.
+- Under D176 unmanned lines no longer go idle between taps, but a still shows no taps in flight,
+  so the `Idle · tap to run` rows in `phone_timber_era` and `phone_first_buy` are unchanged and
+  right for a frozen frame.
+
+### Iteration 2
+- After D177's third rule (a first unit as the way to a hand) every shot was re-taken: 55, the
+  audit list empty (no button under 44 px, the target's box over 120 px, at most one crown in what
+  is not inert), no console errors. `phone_first_tap` still opens on the pine, "Tap the tree." and
+  no drawer; `phone_first_buy` crowns the Beachcomber at 7; `phone_hand_hired` crowns Stone Tools
+  with Mara on shift.
+
+### Checklist
+1. Hierarchy: while saving, the tap hint is the one orange thing and the saved-for row leads the
+   drawer with its countdown.
+2. Legibility at 390 px: "in 3m 5s" and "in 1h 2m" fit the button on one line each.
+3. Spacing: unchanged from S3-S4.
+4. Overflow: Handcarts with "in 1h 2m · 5.00B" (phone) and "in 1h 42m" (desktop) fits.
+5. Consistency: a saving row uses the same "in 42s" wording as an era within 30 s.
+6. Contrast: unchanged (no colours touched).
+7. Rules: one crown per view, also while saving; no dead end; locked rows keep their real reasons.
+8. Still open: `pnpm web:perf` was not re-run at the end. A game was running on the PC; the
+   baseline at the session's start, on an idle machine, was 60 fps (5th percentile 59) with 4
+   floaters and 114 particles at most.

@@ -4,19 +4,20 @@
  *
  * Each archetype (`pacing.json5`) checks in on its sessions, taps as the client sends taps
  * (batches of 1 s for the first 10 online minutes of a run, then 5 s, through the token bucket),
- * buys with the domain's greedy buyer (`advisor.ts`: lines, hands, the shelf and eras), catches
- * its share of the flotsam that floats while it is online, and is away in between, where settle
- * runs in closed form. Deterministic: seeds only, no clock reads.
+ * buys what the crown picks (`advisor.ts` `crown()`, weighed by its own pace as the client
+ * weighs the player's; D178), catches its share of the flotsam that floats while it is online,
+ * and is away in between, where settle runs in closed form. Deterministic: seeds only, no clock
+ * reads.
  *
  * Until R2's real `nuke`, a stub nuke folds the run into `meta` by the prestige formula
  * (`prestige.ts`) and starts a fresh run, so the loop already plays lifetimes.
  */
 import type { Archetype, Assertion, Content, Phase } from "@wipe-day/content/schema";
 import { PHASES } from "@wipe-day/content/schema";
-import { choices } from "@wipe-day/domain/advisor";
+import { choices, crown, type Player } from "@wipe-day/domain/advisor";
 import { assertFiniteState } from "@wipe-day/domain/amount";
 import { applyCommand, type Command } from "@wipe-day/domain/commands";
-import { rates } from "@wipe-day/domain/effects";
+import { fullRate, rates } from "@wipe-day/domain/effects";
 import type { GameEvent } from "@wipe-day/domain/events";
 import { claimUntil, flotsamAt } from "@wipe-day/domain/flotsam";
 import { glassLevel } from "@wipe-day/domain/prestige";
@@ -56,11 +57,6 @@ export function sessionsOf(archetype: Archetype): Session[] {
     }
   }
   return out.sort((a, b) => a.start - b.start);
-}
-
-/** The share of the day the archetype is online (and so taps). */
-export function onlineShare(archetype: Archetype): number {
-  return Math.min(1, sessionsOf(archetype).reduce((sum, s) => sum + s.seconds, 0) / DAY);
 }
 
 export interface DayRow {
@@ -146,6 +142,7 @@ const largestOf = (state: BaseState): number =>
   Math.max(state.run.supplies, state.run.made, state.meta.lifetime, state.meta.glass.ever);
 
 const PURCHASES = new Set<Command["type"]>(["buy_line", "hire_hand", "buy_upgrade", "buy_era"]);
+const ONLINE = { online: true } as const;
 
 /** Whether `archetype` catches flotsam arrival `k` of its run (a seeded share of them). */
 function catches(archetype: Archetype, seed: number, run: number, k: number): boolean {
@@ -169,7 +166,6 @@ export function simulate(
   seed = 11,
   snapshotDays: readonly number[] = [],
 ): Life {
-  const share = onlineShare(archetype);
   const sessions = sessionsOf(archetype);
   const startDay = archetype.startDay ?? 1;
   const baseSeed = seedOf(seed, ...[...name].map((char) => char.charCodeAt(0)));
@@ -229,39 +225,58 @@ export function simulate(
   };
 
   /**
-   * The last scoring, while it still holds: among purchases not yet affordable the ranking does
-   * not depend on the supplies held (the wait term shifts every score alike), so the buyer only
-   * scores again when prices or buffs change or the supplies reach the next price.
+   * The player as the client's crown sees them (`state/pace.ts`, D165): tapping all the time at
+   * `tapsPerSecond` while they tap, not at all otherwise; income is what runs (unmanned lines
+   * too while tapping) plus the taps.
    */
-  let scored: { rates: object; buffs: object; next: number; any: boolean } | null = null;
+  const pace = (now: number, tapsPerSecond: number): Player => {
+    const tapShare = tapsPerSecond > 0 ? 1 : 0;
+    const manned = mannedRate(content, state, now);
+    const running = manned + tapShare * (fullRate(content, state, now, ONLINE) - manned);
+    const income = running + tapsPerSecond * tapParts(content, state, now).base;
+    return { income, tapShare, tapRate: tapsPerSecond };
+  };
 
-  /** Buys the best purchase while it is affordable; says whether anything at all was. */
+  /**
+   * The crown's last pick while it still holds: it saves for a purchase out of reach, and among
+   * those the ranking does not depend on the supplies held (the wait shifts every score alike;
+   * what is affordable only falls behind), so the pick changes only when prices, buffs or the
+   * pace change or the supplies reach the next price.
+   */
+  let waiting: { rates: object; buffs: object; pace: number; next: number; any: boolean } | null =
+    null;
+
+  /** Buys the crown's pick while it is affordable; says whether anything at all was. */
   const buy = (now: number, tapsPerSecond: number): boolean => {
-    const held = rates(content, state);
     if (
-      scored &&
-      scored.rates === held &&
-      scored.buffs === state.run.buffs &&
-      state.run.supplies < scored.next
+      waiting &&
+      waiting.rates === rates(content, state) &&
+      waiting.buffs === state.run.buffs &&
+      waiting.pace === tapsPerSecond &&
+      state.run.supplies < waiting.next
     ) {
-      return scored.any;
+      return waiting.any;
     }
     for (let i = 0; i < 100; i++) {
-      const tapRate = tapsPerSecond * share;
-      const income = mannedRate(content, state, now) + tapRate * tapParts(content, state, now).base;
-      const offered = choices(content, state, now, income, share, tapRate);
-      let best = offered[0];
-      for (const choice of offered) if (best && choice.score < best.score) best = choice;
-      if (!best?.affordable) {
+      const player = pace(now, tapsPerSecond);
+      const offered = choices(content, state, now, player.income, player.tapShare, player.tapRate);
+      const pick = crown(content, state, now, player, offered);
+      if (pick.kind !== "purchase" || !pick.choice.affordable) {
         const supplies = state.run.supplies;
         let next = Number.POSITIVE_INFINITY;
         for (const choice of offered)
           if (choice.cost > supplies) next = Math.min(next, choice.cost);
         const any = offered.some((choice) => choice.affordable);
-        scored = { rates: rates(content, state), buffs: state.run.buffs, next, any };
+        waiting = {
+          rates: rates(content, state),
+          buffs: state.run.buffs,
+          pace: tapsPerSecond,
+          next,
+          any,
+        };
         return any;
       }
-      step(best.command, now);
+      step(pick.choice.command, now);
     }
     return true;
   };
@@ -289,6 +304,8 @@ export function simulate(
         // What the manned lines make over run 1's first minute: everything else the taps drove.
         const manned =
           state.meta.nukes === 0 && runOnline < 60 ? mannedRate(content, state, t) * length : 0;
+        // Not tapping, the player still watches the counter rise: the state settles (D178).
+        if (count === 0) state = settle(content, state, to).state;
         if (count > 0) {
           const result = step({ type: "taps", count, from: t, to }, to);
           const tapped = result.events.find((event) => event.type === "tapped");
@@ -354,6 +371,25 @@ export function simulate(
   return life;
 }
 
+/** Every archetype of the pacing file, alone. */
+export function simulateArchetypes(
+  content: Content,
+  days: number,
+  seed = 11,
+  snapshotDays: readonly number[] = [],
+): Life[] {
+  return Object.entries(content.pacing.archetypes).map(([name, a]) =>
+    simulate(content, name, a, days, seed, snapshotDays),
+  );
+}
+
+/** Every scenario of the pacing file: one long session, so a single day covers it. */
+export function simulateScenarios(content: Content, seed = 11): Life[] {
+  return Object.entries(content.pacing.scenarios).map(([name, a]) =>
+    simulate(content, name, a, 1, seed),
+  );
+}
+
 /** Every archetype and scenario of the pacing file, alone. */
 export function simulateAll(
   content: Content,
@@ -361,13 +397,9 @@ export function simulateAll(
   seed = 11,
   snapshotDays: readonly number[] = [],
 ): Life[] {
-  const { archetypes, scenarios } = content.pacing;
   return [
-    ...Object.entries(archetypes).map(([name, a]) =>
-      simulate(content, name, a, days, seed, snapshotDays),
-    ),
-    // A scenario is one long session: a single day covers it.
-    ...Object.entries(scenarios).map(([name, a]) => simulate(content, name, a, 1, seed)),
+    ...simulateArchetypes(content, days, seed, snapshotDays),
+    ...simulateScenarios(content, seed),
   ];
 }
 
@@ -482,6 +514,24 @@ const pct = (value: number): string => `${(value * 100).toFixed(1)}%`;
 /** The lives of an archetype or scenario by name (one per seed). */
 const named = (lives: Life[], name: string): Life[] => lives.filter((life) => life.name === name);
 
+/** Values per name, in order of first appearance: "47s", or "45:39-51:24" over several seeds. */
+function perName(
+  rows: (readonly [string, number | undefined])[],
+  show: (value: number) => string,
+): string {
+  const byName = new Map<string, (number | undefined)[]>();
+  for (const [name, value] of rows) byName.set(name, [...(byName.get(name) ?? []), value]);
+  return [...byName].map(([name, values]) => `${name} ${range(values, show)}`).join(", ");
+}
+
+function range(values: (number | undefined)[], show: (value: number) => string): string {
+  if (values.some((value) => value === undefined)) return "never";
+  const known = values as number[];
+  const low = Math.min(...known);
+  const high = Math.max(...known);
+  return low === high ? show(low) : `${show(low)}-${show(high)}`;
+}
+
 /** The checks implemented so far, by name. A shipped assertion without one fails. */
 export const CHECKS: Record<string, Check> = {
   // N21: the prestige shape in data is the one the owner chose (decision 9).
@@ -518,7 +568,10 @@ export const CHECKS: Record<string, Check> = {
     const worst = Math.max(...times.map(([, s]) => s ?? Number.POSITIVE_INFINITY));
     return {
       ok: worst <= num(assertion.max, 120),
-      detail: times.map(([name, s]) => `${name} ${s === null ? "never" : `${s}s`}`).join(", "),
+      detail: perName(
+        times.map(([name, s]) => [name, s ?? undefined] as const),
+        (s) => `${s}s`,
+      ),
     };
   },
   // N5: in runs 1-5's first 10 online minutes, never more than maxSeconds with nothing to buy.
@@ -609,8 +662,9 @@ export const CHECKS: Record<string, Check> = {
       const times = scenario.map((life) => life.beats[key]);
       const inside = times.every((s) => s !== undefined && s >= low && s <= high);
       ok &&= inside;
-      const shown = times.map((s) => (s === undefined ? "never" : clock(s))).join("/");
-      parts.push(`${key} ${shown}${inside ? "" : ` (want ${clock(low)}-${clock(high)})`}`);
+      parts.push(
+        `${key} ${range(times, clock)}${inside ? "" : ` (want ${clock(low)}-${clock(high)})`}`,
+      );
     }
     return { ok, detail: parts.join(", ") };
   },
@@ -627,7 +681,10 @@ export function checkPacing(
   profile: "test" | "full" = "test",
   upTo: Phase = content.pacing.shipped,
 ): Verdict[] {
-  const { days, seeds } = content.pacing.profiles[profile] ?? { days: 90, seeds: [11] };
+  const { days, seeds, scenarioSeeds } = content.pacing.profiles[profile] ?? {
+    days: 90,
+    seeds: [11],
+  };
   const limit = phaseIndex(upTo);
   const due = content.pacing.assertions.filter((assertion) => phaseIndex(assertion.on) <= limit);
   // Snapshots only for the days an N9 check due now reads.
@@ -636,7 +693,10 @@ export function checkPacing(
       ? assertion.days.map((day) => num(day, 0))
       : [],
   );
-  const lives = seeds.flatMap((seed) => simulateAll(content, days, seed, snapshotDays));
+  const lives = [
+    ...seeds.flatMap((seed) => simulateArchetypes(content, days, seed, snapshotDays)),
+    ...(scenarioSeeds ?? seeds).flatMap((seed) => simulateScenarios(content, seed)),
+  ];
   return content.pacing.assertions.map((assertion): Verdict => {
     const base = { n: assertion.n, check: assertion.check, on: assertion.on };
     if (phaseIndex(assertion.on) > limit) return { ...base, status: "pending", detail: "" };

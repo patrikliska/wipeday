@@ -61,10 +61,12 @@ describe("the collapsed drawer (08-screens.md 1.4)", () => {
     expect(crowned(collapsedRows(view, 1))).toBe(0);
   });
 
-  it("an idle player is never crowned an unmanned line", () => {
-    const view = viewOf({ supplies: 7 }, 0);
+  it("an idle player is never crowned more of an unmanned line", () => {
+    // Three Beachcombers and no Mara: another one would only run while tapping. (A first unit
+    // of a new line may be crowned, as the way to its hand; D177.)
+    const view = viewOf({ supplies: 30, lines: { beachcomber: 3 } }, 0);
     const rows = collapsedRows(view, 1);
-    expect(rows.find((row) => row.crowned)?.kind ?? "none").not.toBe("line");
+    expect(rows.find((row) => row.crowned)?.key ?? "none").not.toBe("line:beachcomber");
   });
 });
 

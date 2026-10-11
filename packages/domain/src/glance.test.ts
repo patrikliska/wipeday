@@ -71,13 +71,29 @@ describe("the crown (02 11.1)", () => {
     });
   });
 
-  it("never crowns an idle player an unmanned line or a Grip rung", () => {
-    // Nothing runs and nobody taps: those purchases add nothing to this player's income.
+  it("never crowns an idle player more of an unmanned line, or a Grip rung", () => {
+    // Nothing runs and nobody taps: those purchases add nothing to this player's income. A first
+    // unit of a new line may be crowned, as the way to its hand (D177).
     const state = fresh({ era: "wood", supplies: 100, lines: { beachcomber: 3 } });
     const pick = crown(content, state, T0, idle);
-    const type = pick.kind === "purchase" ? pick.choice.command.type : "tap";
-    expect(type).not.toBe("buy_line");
-    expect(type).not.toBe("buy_upgrade");
+    const command = pick.kind === "purchase" ? pick.choice.command : null;
+    expect(command?.type).not.toBe("buy_upgrade");
+    if (command?.type === "buy_line") expect(state.run.lines[command.line] ?? 0).toBe(0);
+  });
+
+  it("leads a player who does not tap to a new line, as the way to its hand (D177)", () => {
+    // Mara runs the Beachcombers; nobody taps, so a Campfire only earns once Dax mans it.
+    const state = fresh({ lines: { beachcomber: 40 }, hands: ["beachcomber"], supplies: 1e9 });
+    const offered = choices(content, state, T0, 1e3, 0, 0);
+    const campfire = offered.find(
+      (choice) => choice.command.type === "buy_line" && choice.command.line === "campfire",
+    );
+    expect(campfire?.gain).toBeGreaterThan(0);
+    // ... at the price of the unit and the hand together.
+    const line = lineOf(content, "campfire");
+    if (!line || !campfire) throw new Error("campfire");
+    const unit = unitRate(content, state, line, T0, { online: true });
+    expect(campfire.cost / campfire.gain).toBeCloseTo((campfire.cost + 300 * line.cost) / unit, 6);
   });
 
   it("over 2,000 seeded states crowns a purchase in reach, or the hint", () => {
@@ -102,16 +118,39 @@ describe("the crown (02 11.1)", () => {
       };
       const offered = choices(content, state, T0, player.income, player.tapShare, player.tapRate);
       const pick = crown(content, state, T0, player, offered);
+      // The best score over every row: what rule 4 crowns, or saves for (D177).
+      const best = sheetPick({ kind: "tap" }, offered);
       if (pick.kind === "tap") {
-        expect(offered.some((choice) => choice.affordable && choice.gain > 0)).toBe(false);
+        expect(best === null || !best.affordable).toBe(true);
         continue;
       }
       const within = state.run.supplies + player.income * content.run.advisor.saveSeconds;
       expect(pick.choice.cost).toBeLessThanOrEqual(within);
-      if (pick.rule === "payback") expect(pick.choice.affordable).toBe(true);
+      if (pick.rule === "best") {
+        expect(pick.choice.affordable).toBe(true);
+        expect(pick.choice).toBe(best);
+      }
       // The expanded drawer crowns the same row whenever the pick is a purchase.
       expect(sheetPick(pick, offered)).toBe(pick.choice);
     }
+  });
+
+  it("saves for the best score instead of crowning a cheaper row (D177)", () => {
+    // Stone era, Grip bought: the Beachcomber's Mk II (60k) scores best but is out of reach.
+    const state = fresh({
+      era: "stone",
+      supplies: 1e4,
+      upgrades: ["stone_tools", "iron_tools", "salvaged_tools"],
+      lines: { beachcomber: 40, campfire: 30, garden: 20, loom: 10 },
+      hands: ["beachcomber", "campfire", "garden", "loom"],
+    });
+    const player: Player = { income: 2e4, tapShare: 1, tapRate: 6 };
+    const offered = choices(content, state, T0, player.income, player.tapShare, player.tapRate);
+    const best = sheetPick({ kind: "tap" }, offered);
+    expect(best?.affordable).toBe(false);
+    // Something cheaper is affordable, yet the crown waits on the hint.
+    expect(offered.some((choice) => choice.affordable && choice.gain > 0)).toBe(true);
+    expect(crown(content, state, T0, player, offered)).toEqual({ kind: "tap" });
   });
 
   it("the expanded drawer crowns the best score when the island crowns the hint", () => {

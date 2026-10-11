@@ -1941,3 +1941,85 @@ Under a sheet or the welcome card the HUD is inert (D168) and now also loses its
 drawer's crowned button turns secondary and the tap hint stops pulsing, so the dimmed view never
 shows a second orange button beside the sheet's primary. Floaters keep 8 px inside the screen's
 edges, so a sentence floated at the shore ("It sank...") is never cut off.
+
+### D176. A taps batch covers its last second: unmanned lines run as if manned while tapped
+Times are whole seconds, so a 1 s batch arrives with `from == to` and R1 S1's
+`k = floor((to − start) / t) + 1` started one cycle a batch: a 0.6 s Beachcomber ran 60% of the
+time at 6 taps a second, not "exactly as if manned" (02-the-run.md 3.1). The batch now covers
+`[from, to + 1)`: `k = min(credited, ceil((to + 1 − start) / t))`, a line busy past `to + 1` takes
+none. The state keeps one `readyAt` a line, so when new cycles follow one still in flight, every
+cycle but the last is paid at once (at most a second early, valued at its own end, as a hire
+finishes the cycle in flight) and only the last waits for settle. Tests: 60 s of 6 taps a second
+runs and pays 100 Beachcomber cycles; a tap a second still runs the 19 s Kiln once per 19 s; over
+500 seeded sequences a line takes cycles only if it was free before the batch's last second. The
+client predicts with the same function, so the top bar's `/s` no longer flickers for unmanned
+lines while tapping. Run 1: Timber 1:02 → 0:46 and Stone 7:07 → 6:21 with nothing else changed.
+
+### D177. The crown saves, scores over the player's day, and leads to hands
+Emulated, a player who follows R1 S3's crown never reached Sheet Metal in run 1: rule 4 crowned
+the best payback *affordable now*, so every supply went on small rows and the era rule's "within
+30 s" never fired for 2e10 (a longer `saveSeconds` only made it worse). Three changes in
+`advisor.ts`, with 02-the-run.md 11.1 read as the intent:
+- **Rule 4 is the best score** (the wait to afford it plus price ÷ added income, ties to the
+  cheaper): crowned when affordable; while it is out of reach the crown goes to the tap hint and
+  nothing cheaper is crowned, so the player saves. The collapsed drawer leads with that row
+  unpainted ("in 2s"); the expanded drawer crowns it as before (S3's `sheetPick`). A fresh island
+  still opens on "Tap the tree.", and Timber still comes before Mara.
+- **Purchases are scored over the player's day** (`advisor.away`, 0.5 in `lines.json5`): the
+  pace weighs what taps drive, times the half of the day the player is present, so unmanned lines
+  and Grip count half and a hand counts the rest even while the player taps. With pace alone a
+  tapping player scored every hand at zero; the active archetype left its Reactors unmanned and
+  its active hour ran 3.92× an idle one at day 14 (N9's ceiling is 3). Swept: 0.25 still fails
+  N9; 0.5 passes everything; 0.75 puts Sheet Metal at the band's edge; 0.9 fails the beats.
+- **A line nobody owns or mans also counts as the way to its hand**: its first unit is scored at
+  a unit's income for the unit's price plus the hand's (the better of that and the tapping
+  value). Without it, a player who does not tap was never crowned a second line and could never
+  hire a second hand; the idler made 22 glass by day 30 instead of 818.
+Tests: a saving state crowns the hint with a cheaper row affordable; over 2,000 seeded states the
+hint means the best score is out of reach, and rule 4 crowns exactly the best score; an idle
+player is crowned a first Campfire (at unit plus hand) but never a fourth unmanned Beachcomber.
+Playtest 1 asks whether saving feels dead (the longest gap between purchases in run 1 is about
+10 minutes, information only in 10-balance.md 4.3).
+
+### D178. The simulator plays what the crown says
+The simulator's buyer is now `crown()` itself (D165 left this to S5), weighed by the archetype's
+pace as the client weighs the player's (tapping now: pace 1 at its taps a second; not tapping:
+0), so the simulator and the game cannot disagree about what a player is told to buy. Before, it
+scored taps by the archetype's share of the whole day, 0.125 for the first-hour scenario's 3 h
+session, so it never bought a Furnace in run 1 and bought Sheet Metal at 39B made. A batch with
+no taps now settles the state: the idler, not tapping once Mara was hired, saw its supplies frozen
+for the rest of the session, which was N5 and N6's 152 s (now 20 s). The scenarios play their own
+seeds (`scenarioSeeds` per profile): 12 in `--full` (R1's "Done when"), 4 in the test profile,
+which must stay inside `pnpm test`'s 10 s; checks print one range per archetype instead of a
+value per seed.
+
+### D179. Run 1's economy: Handcarts at 5e9; taps and flotsam unchanged
+10-balance.md 8.1 in order, each from `pnpm sim check --full` over 12 scenario seeds after
+D176-D178. **Run economy:** with 02's prices, Sheet Metal fell at 45:39-51:24 (3 of 12 seeds past
+the band's 50:00) and the first nuke at 47:09-52:59. Single levers swept:
+
+| Lever | Sheet Metal | First nuke | N9 weighted (days 14/30/60) |
+| --- | --- | --- | --- |
+| none | 45:39-51:24 | 47:09-52:59 | 2.62 / 2.70 / 2.56 |
+| Sheet Metal 1.5e10 | 43:14-48:59 | 45:49-51:39 | 2.55 / 2.21 / 2.07 |
+| Sheet Metal 1.2e10 | 38:29-46:34 | 47:44-56:54 | 2.62 / 2.81 / 2.31 |
+| output ×4.85 per rung | 44:14-50:04 | 45:44-51:34 | 2.25 / 2.33 / 2.29 |
+| output ×5 per rung | 38:59-47:34 | 40:14-48:09 | 2.23 / 2.36 / 2.26 |
+| **Handcarts 5e9** | **40:24-48:14** | **42:54-49:04** | 2.66 / 2.23 / 2.22 |
+
+A cheaper Sheet Metal comes earlier but slows the nuke (its three new lines soak up the spend);
+output per rung moves every later phase. Handcarts (the second island upgrade, 02 5.4) at 5e9
+instead of 1e10 centres both bands with one price. **Taps and flotsam:** N8 70.6% in minute 0-1
+(≥ 50%) and 13.9% direct from minute 10 (5-25%), N9 2.22-2.66 weighted and 2.39-2.81 in rain
+(1.5-3): mid-band, so p, Hustle, Rally, Adrenaline, the crate cap and the weather stay as they
+are.
+
+### D180. R1 ships in the pacing file
+`pacing.json5` says `shipped: "R1"`; every R1 assertion passes (`pnpm sim check --full`: N4
+47-54 s, N5 and N6 20 s, N7 100% on day 1, N8, N9 and N23 above, run 1's beats on 12 seeds: Timber
+0:33, Mara 0:47, the crate 3:00, Sorting Tables 3:59, Stone 5:44). N18 and N20 are asserted
+outside the simulator, as 10-balance.md 7.4's table has them: N18 by the content check (the Night
+Shift 12-48 h) and the API's welcome-back tests; N20 by `flotsam.test.ts` (gaps of 4-10 minutes,
+13 s afloat) and a new `taps.test.ts` case (a tap ×1 on an empty Hustle meter, ×2 on a full one;
+the ceiling is a content check). R2's N7 over 30 days already reads 99.6%; its other rows have no
+checks until R2 builds them.

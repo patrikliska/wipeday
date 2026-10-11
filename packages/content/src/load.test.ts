@@ -72,7 +72,7 @@ describe("the shipped data files", () => {
     ]);
     expect(byId.get("stone_tools")?.after).toBeUndefined();
     expect(byId.get("iron_tools")).toMatchObject({ cost: 6e3, after: "stone_tools" });
-    expect(byId.get("handcarts")).toMatchObject({ cost: 1e10, after: "sorting_tables" });
+    expect(byId.get("handcarts")).toMatchObject({ cost: 5e9, after: "sorting_tables" });
   });
 
   it("hold eras, targets, flotsam buffs and the island's clock", () => {
@@ -172,7 +172,7 @@ describe("validation", () => {
       ]),
     );
     const shelf = dataWith("upgrades.json5", (text) =>
-      text.replace('id: "handcarts", cost: 1e10', 'id: "loom", cost: 1e5'),
+      text.replace('id: "handcarts", cost: 5e9', 'id: "loom", cost: 1e5'),
     );
     expect(problemsOf(shelf)).toEqual(
       expect.arrayContaining([

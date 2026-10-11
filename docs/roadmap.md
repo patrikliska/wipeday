@@ -6,7 +6,7 @@ should think, and what "done" means**. It was rewritten in R0 from the approved 
 (`docs/redesign/11-roadmap.md`, which keeps the reasons); the W-phase roadmap and its results are
 in `docs/archive/roadmap-w.md`.
 
-## Where we are (2026-10-10, R1 under way)
+## Where we are (2026-10-11, R1 done)
 
 - **The live game** is W8 on frozen `main` at https://wipeday.patrikliska.dev: season 1 (started
   2026-10-07) sits untouched and nobody plays it now (owner decision 7). It ends quietly at the
@@ -20,7 +20,7 @@ in `docs/archive/roadmap-w.md`.
   effects evaluator, closed-form settle with its property tests, the slim taps transport, the
   demo clocks at 1× with jumps and a wall clock, simulator v2, and a bare island with a supplies
   counter that taps work on, end to end against the API.
-- **R1 The run** is under way. S1 (data and domain) is done (2026-10-10, D152-D156): eras and
+- **R1 The run** is done (results below; 2026-10-11). S1 (data and domain) is done (2026-10-10, D152-D156): eras and
   targets, Grip, the shelf, milestones and the roster, felling, flotsam on a seeded cursor, the
   island's clock and weather, welcome back and Collect, quiet hours, the advisor and the
   simulator's R1 checks (`pnpm sim check --phase R1`; `shipped` stays R0 until S5). The 115 icons
@@ -32,7 +32,46 @@ in `docs/archive/roadmap-w.md`.
   column, the crown on screen (advisor v2), the nav row with Crew, Settings with notifications,
   signal orange. S4 (flotsam and away) is done (2026-10-11, D171-D175): flotsam on the water with
   its ring, hint, catch and sounds, the welcome-back card, the Odds sheet, one crown to the eye.
-  Next: S5, balance and polish (playtest 1).
+  S5 (balance and polish) is done (2026-10-11, D176-D180): unmanned lines run as if manned while
+  tapped, the crown saves and leads to hands, the simulator plays the crown, Handcarts at 5e9,
+  `shipped: "R1"`. Playtest 1 is the owner's (`docs/playtest-1.md`).
+- **Next: R2 The Big Red** (plan mode first; `docs/redesign/11-roadmap.md`), on `redesign`
+  until the cut-over at its end.
+
+### R1 results (acceptance)
+
+- **Pacing** (`pnpm sim check --full`, 365 days × seeds 7, 11, 23; the scenarios on 12 seeds;
+  `shipped: "R1"`): **N4** first hand 47-54 s (≤ 120); **N5**, **N6** 20 s at most with nothing
+  affordable (≤ 30, ≤ 120); **N7** a purchase at 100% of the casual's day-1 check-ins (R2's 30-day
+  reading: 99.6%); **N8** 70.6% tap-driven in minute 0-1 (≥ 50%), 13.9% direct from minute 10
+  (5-25%); **N9** the weather-weighted active hour 2.66 / 2.23 / 2.22 at days 14 / 30 / 60, rain
+  2.81 / 2.39 / 2.42 (1.5-3, rain a warning: none); **N23** run 1 ends at 5.0e10-2.7e11 made,
+  the largest number 8.6e25. Run 1's beats: Timber 0:33, Mara 0:47, the crate at exactly 3:00,
+  Sorting Tables 3:59, Stone 5:44, Sheet Metal 40:24-48:14, yield 10 at 42:54-49:04 (D179).
+- **N18, N20**: the content check holds the Night Shift to 12-48 h and the API tests the window
+  (a full window stops accrual and destroys nothing); flotsam every 4-10 minutes for 13 s and
+  Hustle ×1-×2 are domain tests (D180).
+- **What S5 changed** (D176-D179): a taps batch covers its last second, so unmanned lines run as
+  if manned while tapped (one cycle per batch had run a Beachcomber 60% of the time); the crown's
+  rule 4 is the best score and saves for it, purchases are scored over a day the player is away
+  half of, and a new line counts as the way to its hand (a crown-follower had never reached Sheet
+  Metal); the simulator's buyer is the crown and settles while not tapping (N5 and N6's 152 s was
+  that bug); Handcarts at 5e9. Taps and flotsam needed no change.
+- **Moved, not yet asserted** (R2 asserts them with the Blast Map): glass ever at day 30 alone,
+  HEAD → R1: casual 421 → 424, active 734 → 933, optimal 1,094 → 1,281, idler 756 → 818.
+  The active and optimal players' lead over the casual grew (2.2× and 3.0×, against N16's 2 and
+  2.5 for R3); R2 tunes it with the tree and `k`.
+- **Tests**: every command's idempotency and the 1,000-sequence prediction (client = server)
+  unchanged and passing; new: the batch-span cases (D176), the crown's saving and hand rules
+  (D177), Hustle's range (N20).
+- **Shots**: 55 (2 new: `phone_saving`, `phone_saving_drawer`), the audit clean, two rounds
+  (`docs/ui-review.md`, `preview/web/index.html`).
+- **Frames and time budgets**: on an idle PC at the session's start, `pnpm web:perf` 60 fps (5th
+  percentile 59, at most 4 floaters and 114 particles) and the simulator's test 8.6 s (budget
+  10 s): S4's 13 s was the PC's load, not the simulator. At the end, with R1 shipped (N9's
+  snapshots and four first-hour seeds switched on), it ran 9.5 s with a game running on the PC;
+  neither number was re-taken on an idle PC. R2 adds checks, so its plan should buy time back
+  (the effects folds take a third of it).
 
 ### R1 S4 results (flotsam and away)
 
@@ -701,8 +740,9 @@ cinematic. Waves 2 and 3 may slip but not be cut (guardrail 6).
       `shipbreaker`, `reactor`, `gus`, `vera`, `fuel_drum`, `adrenaline`, five nav icons, `upgrade`,
       `roster`, `buy_max`, and products `battery`, `broadcast`, `cell`. (Drawn by the agent and
       approved 2026-10-10, with R2's and R4-R5's lists ahead: 115 icons, D150-D151; `pnpm icons`.)
-- [ ] Playtest 1 (phone on the LAN, about 45 minutes to Sheet Metal): where were you lost? Do
-      unmanned lines feel right? Is the first minute too rushed? Base or spreadsheet? Is the phone
+- [ ] Playtest 1 (phone on the LAN, about 45 minutes to Sheet Metal; setup, beats and questions
+      in `docs/playtest-1.md`): where were you lost? Do unmanned lines feel right? Does the
+      crown's saving read? Is the first minute too rushed? Base or spreadsheet? Is the phone
       warm? Send screenshots.
 - [ ] Post three phone screenshots to `#wipe-day-idle`.
 

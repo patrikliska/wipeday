@@ -102,7 +102,7 @@ Retired with the redesign: the 25% legacy cap and its four enforcements, "8 chec
 | --- | --- | --- |
 | seconds | tap, Hustle, felling, flotsam (13 s), buffs (12-60 s) | tap hard, catch flotsam |
 | minutes | lines, milestones, hands, eras, Afterglow (30 min) | buy the crown, hire, climb |
-| hours | run 1 (46-48 min of play; day-1 21:00 casual), runs 2-5 | check in, Collect |
+| hours | run 1 (43-49 min of play; day-1 21:00 casual), runs 2-5 | check in, Collect |
 | days | runs of a day (month 1), 4-5 days (months 2-6); the Magnet | nuke when crowned |
 | weeks | the Freighter, Pockets, crew ranks, the agenda | pick a loadout, load a ship |
 | months | the Blast Map, Logbook, ranks (7-9 months to max) | grow a sector |
@@ -204,9 +204,10 @@ Grit, nodes), Glow, Morale, buffs.
 **Manned and unmanned lines.** A manned line (a hand hired) produces continuously, also while you
 are away inside the Night Shift. An unmanned line runs only in cycles that credited taps start: at
 most one cycle in flight, started only when the line is idle, tracked by a busy-until `readyAt`.
-A started cycle pays at its end even if tapping stopped. So one tap a second on a 19-second Kiln
-runs it once every 19 seconds. Speed milestones pay fully only with a hand: one more reason to
-hire.
+A started cycle pays at its end even if tapping stopped. A batch of taps covers its seconds to
+the end of the last one, so tapping faster than a line's cycle keeps it running exactly as if
+manned (D176), while one tap a second on a 19-second Kiln runs it once every 19 seconds. Stop
+tapping and every unmanned line stops: hands are what keep a line running while you are away.
 
 **Milestones.** Per line: 10 owned ×2, 25 speed ×2, 50 speed ×2, 100 ×2, 200 ×3, 300 ×3, 400 ×4,
 500-900 ×2 each, 1,000 ×5, then ×2 every 100. A speed milestone that would take the cycle under
@@ -282,7 +283,7 @@ A hand is a named crew member hired onto one line (price `300 × c_i`, needs one
 on the line runs forever. No tiredness, injuries, gear or levels. Hiring has its own row under
 each line, one button and one price.
 
-**The automation ladder:** hands, one line at a time, from about 0:41 of run 1, and bulk buying
+**The automation ladder:** hands, one line at a time, from about 0:47 of run 1, and bulk buying
 from the second hand (R1); the start of a run with Go Bag, Old Friends (Mara kept) and
 Afterglow from Wipe Day #1, and hands for lines 1-3 kept from #3, extended by the Old Crew nodes
 (R2); buying lines with the Foreman from #7 (lines 1-6) and #20 (all), calling flotsam with the
@@ -309,9 +310,14 @@ Flare from #15, and the nuke itself with Dead Hand from #25, opt-in and online o
 
 Exactly one thing is crowned, in signal orange; first match wins: (1) the Big Red when
 recommended (5.7); (2) the next era, affordable within 30 s; (3) a hand for the top-earning
-unmanned line, affordable within 30 s; (4) the best-payback purchase affordable now (`price /
-Δincome`, with the player's own tap rate); (5) waiting Blowback crates (R6); (6) a ready Toolbelt
-skill (R5); (7) otherwise "Tap the {target}". Flotsam and the Magnet glow but never take it.
+unmanned line, affordable within 30 s; (4) the best purchase by score (the wait to afford it
+plus `price / Δincome`) when it is affordable; while it is out of reach the player saves, so the
+crown goes to the tap hint and the row leads the drawer with its countdown; (5) waiting Blowback
+crates (R6); (6) a ready Toolbelt skill (R5); (7) otherwise "Tap the {target}". Flotsam and the
+Magnet glow but never take it. Δincome is weighed over the player's day (D177): their own tap
+pace, times the half of the day they are present, counts for unmanned lines and Grip, and a hand
+earns the rest; a line nobody owns also counts as the way to its hand, so a player who never taps
+is still led to new lines.
 
 **One crown per view:** while the crown sits on the Big Red, crates, a skill or the tap hint, the
 collapsed drawer shows no orange row; the expanded drawer always crowns one row. The era comes
@@ -503,32 +509,32 @@ fog.
 
 ## 6. Progression
 
-All times and amounts are the P1 model's (`10` 4); the simulator re-measures them.
+Run 1's times are the simulator's (R1, a player following the crown, 12 flotsam seeds; D179);
+the rest are the P1 model's (`10` 4) until their phase re-measures them.
 
 **The first ten minutes** (phone, continuous play at 6 taps a second):
 
 | Time | What happens |
 | --- | --- |
 | 0:00 | Dawn, a twig lean-to, a glowing pine. The only text: "Tap the tree." |
-| 0:02 | The drawer slides up with one crowned row: Beachcomber, 6. |
+| 0:01 | The drawer slides up with one crowned row: Beachcomber, 6. |
 | 0:07 | Forty taps fell the tree ("Timber!"); a new one pops up. |
-| 0:08 | Stone Tools (60): taps ×2 and +0.4% of supplies per second. |
-| 0:12 | 10 Beachcombers: ×2. |
-| 0:36 | Timber era (1.5k): a cabin, the outcrop, three new lines. |
-| 0:41 | Hire Mara (1.8k): the first line runs without taps. The nav row slides in. |
-| 1:30 | The second hand; the ×10 / ×100 / Max toggle appears. |
+| 0:09 | Stone Tools (60): taps ×2 and +0.4% of supplies per second. |
+| 0:33 | Timber era (1.5k): a cabin, the outcrop, three new lines. |
+| 0:47 | Hire Mara (1.8k): the first line runs without taps. The nav row slides in. |
 | 3:00 | The first crate: a flat 2 minutes of output, back every 3 minutes until caught. |
-| 3:01 | Sorting Tables (1M): everything ×2. |
-| 4:30 | Stone era (3M); the target becomes an ore seam. |
+| 3:59 | Sorting Tables (1M): everything ×2. |
+| 5:44 | Stone era (3M); the target becomes an ore seam. |
 | 9-10 min | At 5e8 made the Kettle's taped "DO NOT" pad rises, with its locked card (R2). |
 
 R1 may slow the very first minute (for example a dearer Timber era) if playtests find it rushed,
 within the asserted numbers.
 
 **The first hour.** From minute 10 taps are about 14% of income outside bursts. The Kettle's
-frame goes up at a yield of 5 (about minute 12-13), Sheet Metal lands at about minute 42-46, and
-about seven or eight flotsam are caught. **The first nuke comes at about 46-48 minutes**, worth 10
-glass; an autoclicker cannot bring it under 25 minutes.
+frame goes up at a yield of 5 (about minute 12-13), Sheet Metal lands at about minute 40-48
+(Handcarts, the second island upgrade, at 5e9 on the way), and about seven or eight flotsam are
+caught. **Yield 10, the first nuke's, comes at about 43-49 minutes**; an autoclicker cannot bring
+it under 25 minutes.
 
 **Day 1, casual.** 08:00: about 40 purchases, the Timber era and Mara. 13:00: one Collect after
 five hours of Night Shift, the Stone era, four hands and Sorting Tables. 21:00: about 40B made, the

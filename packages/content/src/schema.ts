@@ -110,10 +110,11 @@ export const runRulesSchema = z.strictObject({
   /** The ×1/×10/×100/Max toggle shows from this many hands on (02 9.1). */
   bulkAfterHands: count,
   /**
-   * The crown (02 11.1): the next era or a hand is crowned when it is affordable within this
-   * many seconds at the current income.
+   * The crown (02 11.1): the next era or a hand is crowned when it is affordable within
+   * `saveSeconds` at the current income. Purchases are scored over a day the player is away
+   * `away` of, even while they tap now: unmanned lines and taps stop then, hands work (D177).
    */
-  advisor: z.strictObject({ saveSeconds: factor }),
+  advisor: z.strictObject({ saveSeconds: factor, away: z.number().finite().min(0).lt(1) }),
 });
 export type RunRules = z.infer<typeof runRulesSchema>;
 
@@ -349,7 +350,12 @@ export const pacingSchema = z.strictObject({
   shipped: z.enum(PHASES),
   profiles: z.record(
     z.string(),
-    z.strictObject({ days: z.int().min(1), seeds: z.array(z.int()).min(1) }),
+    z.strictObject({
+      days: z.int().min(1),
+      seeds: z.array(z.int()).min(1),
+      /** The scenarios' seeds, when they differ from the archetypes' (a scenario is one day). */
+      scenarioSeeds: z.array(z.int()).min(1).optional(),
+    }),
   ),
   archetypes: z.record(z.string(), archetypeSchema),
   scenarios: z.record(z.string(), archetypeSchema),

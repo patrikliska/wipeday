@@ -6,10 +6,12 @@
 // on or before `shipped` must pass (a test fails if one has no implementation); later ones are
 // listed so the plan is visible in one place. `warn: true` prints WARN instead of failing.
 {
-  shipped: "R0",
+  shipped: "R1",
+  // The scenarios play 12 flotsam draws in full (R1's "Done when"; 10-balance.md 8.1 step 1), 4
+  // inside `pnpm test`'s 10 s.
   profiles: {
-    test: { days: 90, seeds: [11] },
-    full: { days: 365, seeds: [7, 11, 23] },
+    test: { days: 90, seeds: [11], scenarioSeeds: [1, 2, 3, 4] },
+    full: { days: 365, seeds: [7, 11, 23], scenarioSeeds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
   },
   // Sessions: "HH:MM+Nm" every day (UTC), or "hourly+Nm". Taps a second while a session runs;
   // `tapsWhileNothingRuns` taps only while no line runs by itself (the idler); `catches` is the

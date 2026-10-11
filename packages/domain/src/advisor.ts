@@ -5,11 +5,11 @@
  * Greedy best payback with waiting: every purchase scores
  * `wait until affordable + cost ÷ added income` and the best one wins; the player buys it when it
  * is affordable and otherwise saves. An unmanned line's income counts only the share of the day
- * the player taps (`tapShare`); a hand counts the rest. Shelf rows and eras are scored by what
- * they add, in closed form: a Line Mk ×3 adds twice its line's income; an island upgrade doubles
- * every line and the flat tap; an era does too and opens three lines, which count as much again
- * (02 6.2 crowns the era before the hand); a Grip rung doubles the flat tap and adds its share of
- * the full rate.
+ * the player taps (their pace now, times the share of the day they are present); a hand counts
+ * the rest. Shelf rows and eras are scored by what they add, in closed form: a Line Mk ×3 adds
+ * twice its line's income; an island upgrade doubles every line and the flat tap; an era does too
+ * and opens three lines, which count as much again (02 6.2 crowns the era before the hand); a
+ * Grip rung doubles the flat tap and adds its share of the full rate.
  * Rows still shut by a gate other than the price are not offered.
  */
 import type { Content } from "@wipe-day/content/schema";
@@ -35,18 +35,23 @@ export interface Choice {
 const ONLINE: Conditions = { online: true };
 
 /**
- * Every purchase on offer with its score. `income` is the player's average supplies a second
- * (taps included), used for the wait; `tapShare` the share of the day they tap, and `tapRate`
- * their taps a second over the whole day (what a better tap is worth).
+ * Every purchase on offer with its score. `income` is the player's supplies a second now (taps
+ * included), used for the wait; `pace` the share of the time they tap now, and `paceRate` their
+ * taps a second (what a better tap is worth). What taps drive is scored over the player's day:
+ * they are away `advisor.away` of it, when unmanned lines and taps stop and a hand still works
+ * (D177), so a player tapping now is still crowned the hand for their best line.
  */
 export function choices(
   content: Content,
   state: BaseState,
   now: number,
   income: number,
-  tapShare: number,
-  tapRate = 0,
+  pace: number,
+  paceRate = 0,
 ): Choice[] {
+  const present = 1 - content.run.advisor.away;
+  const tapShare = pace * present;
+  const tapRate = paceRate * present;
   const supplies = state.run.supplies;
   const out: Choice[] = [];
   const score = (cost: number, gain: number): number => {
@@ -69,7 +74,13 @@ export function choices(
     lines += earns;
     if (n < line.maxOwned) {
       const cost = costOf(line, n, 1, costFactor(content, state, line));
-      const gain = unit * (manned ? 1 : tapShare);
+      // A line nobody owns or mans also counts as the way to its hand: its first unit plus the
+      // hand earn a unit's income, so a player who does not tap is still led to new lines
+      // (D177). Gain is scaled so the payback reads (unit + hand) ÷ income; the wait stays the
+      // unit's own.
+      const manning =
+        n === 0 && !manned ? (unit * cost) / (cost + handPriceOf(content, state, line)) : 0;
+      const gain = Math.max(unit * (manned ? 1 : tapShare), manning);
       out.push({
         command: { type: "buy_line", line: line.id, count: 1 },
         cost,
@@ -155,7 +166,7 @@ export interface Player {
 }
 
 /** Which rule of 02-the-run.md 11.1 crowned a purchase. */
-export type CrownRule = "era" | "hand" | "payback";
+export type CrownRule = "era" | "hand" | "best";
 
 /** The advisor's pick inside a run: a purchase, or the tap hint (rule 7). */
 export type Pick = { kind: "purchase"; rule: CrownRule; choice: Choice } | { kind: "tap" };
@@ -166,9 +177,6 @@ export function byScore(a: Choice, b: Choice): number {
   return a.cost - b.cost;
 }
 
-const payback = (choice: Choice): number =>
-  choice.gain > 0 ? choice.cost / choice.gain : Number.POSITIVE_INFINITY;
-
 /**
  * The crown inside a run (02-the-run.md 11.1; canon 12.5; first match wins). R1 has rules 2-4
  * and 7; the Big Red (R2), Blowback crates (R6) and the Toolbelt (R5) join with their phases.
@@ -176,9 +184,13 @@ const payback = (choice: Choice): number =>
  * 2. The next era, when it is affordable within `saveSeconds` at the current income: it comes
  *    before the hand (Timber at 1.5k is crowned before Mara at 1.8k).
  * 3. The hand for the top-earning unmanned line, affordable within `saveSeconds`.
- * 4. The best-payback purchase affordable now: least price ÷ added income, where the income of
- *    an unmanned line or a Grip rung counts the player's own tapping, so an idle player is never
- *    crowned one. Ties go to the cheaper.
+ * 4. The best purchase by score (the wait to afford it plus price ÷ added income), when it is
+ *    affordable now. The income of an unmanned line or a Grip rung counts the player's own
+ *    tapping, so an idle player is never crowned more of one (a new line's first unit, the way to
+ *    its hand, may be). Ties go to the cheaper. While the best is
+ *    still out of reach the player saves for it: the crown goes to the tap hint and nothing
+ *    cheaper is crowned, or a crown-follower would spend every supply on small rows and never
+ *    reach the next era (D177; 02 11.1 had "best payback affordable now").
  * 7. Otherwise the tap hint.
  */
 export function crown(
@@ -205,13 +217,8 @@ export function crown(
     }
   }
   if (hand && hand.cost <= within) return { kind: "purchase", rule: "hand", choice: hand };
-  let best: Choice | null = null;
-  for (const choice of offered) {
-    if (!choice.affordable || payback(choice) === Number.POSITIVE_INFINITY) continue;
-    if (!best || payback(choice) < payback(best)) best = choice;
-    else if (payback(choice) === payback(best) && choice.cost < best.cost) best = choice;
-  }
-  return best ? { kind: "purchase", rule: "payback", choice: best } : { kind: "tap" };
+  const best = bestScore(offered);
+  return best?.affordable ? { kind: "purchase", rule: "best", choice: best } : { kind: "tap" };
 }
 
 /**
@@ -219,7 +226,11 @@ export function crown(
  * the pick when it is a purchase, otherwise the best score (payback with the wait to afford it).
  */
 export function sheetPick(pick: Pick, offered: readonly Choice[]): Choice | null {
-  if (pick.kind === "purchase") return pick.choice;
+  return pick.kind === "purchase" ? pick.choice : bestScore(offered);
+}
+
+/** The purchase with the best score, affordable or not; null when none adds anything. */
+function bestScore(offered: readonly Choice[]): Choice | null {
   let best: Choice | null = null;
   for (const choice of offered) {
     if (choice.score === Number.POSITIVE_INFINITY) continue;

@@ -22,7 +22,8 @@
   ],
   island: [
     { id: "sorting_tables", cost: 1e6, prop: "sorting_tables", pocket: true, effects: [{ stat: "output", op: "more", value: 2 }] },
-    { id: "handcarts", cost: 1e10, prop: "handcarts", pocket: true, effects: [{ stat: "output", op: "more", value: 2 }] },
+    // 5e9, not 02's 1e10: a crown-following run 1 reaches Sheet Metal near minute 44 (D179).
+    { id: "handcarts", cost: 5e9, prop: "handcarts", pocket: true, effects: [{ stat: "output", op: "more", value: 2 }] },
     { id: "rope_lift", cost: 1e14, prop: "rope_lift", pocket: true, effects: [{ stat: "output", op: "more", value: 2 }] },
     { id: "rail_spur", cost: 1e18, prop: "rail_spur", pocket: true, effects: [{ stat: "output", op: "more", value: 2 }] },
     { id: "diesel_crane", cost: 1e22, prop: "diesel_crane", pocket: true, effects: [{ stat: "output", op: "more", value: 2 }] },
