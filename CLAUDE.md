@@ -69,6 +69,17 @@ the server settles lazily, in closed form. No native apps: the web client is mob
 - Where the project stands and the next phase's scope: `docs/roadmap.md` ("Where we are").
   Setting up a new computer: `README.md` ("Start here"). Deploying, the off-server backups and
   the rules for the shared VPS (never touch the tk-toolkit containers): `docs/deploy.md`.
+- **End every reply that finished work with three short blocks** (owner, 2026-10-18):
+  1. **Summary**: two to four plain lines of what changed.
+  2. **Your turn**: only what needs the owner: a decision, a pick, money, or a big visible change
+     worth a look (with the one shot or page to open). Never "check everything"; omit the block
+     when nothing needs them.
+  3. **Session**: keep going, `/compact`, or `/clear`, and when it is `/clear` the exact prompt to
+     paste into the new session. Recommend `/clear` at a phase or session boundary or when the
+     conversation has grown long; the docs, decisions and memory carry the context.
+- Art in the scene: images replaced under the same file name can stay cached in a running dev
+  server; tell the owner to hard-refresh (Ctrl+Shift+R) or restart `pnpm web`. Background art is
+  always smaller than the front row's; never tile a texture with distinctive features (D208, D210).
 
 ## 3. Repository layout
 
