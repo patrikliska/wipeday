@@ -19,7 +19,7 @@
     "ingots": { "name": "Ingots" },
     "leather": { "name": "Leather" },
     "fuel": { "name": "Lamp Oil" },
-    "food": { "name": "Tinned Fish" },
+    "food": { "name": "Clean Water" },
     "battery": { "name": "Batteries" },
     "broadcast": { "name": "Broadcasts" },
     "plates": { "name": "Steel Plates" },
@@ -73,7 +73,7 @@
   },
   "target": {
     "tree": {
-      "name": "Lone Pine",
+      "name": "Dead Oak",
       "cry": "Timber!",
       "hint": "Tap the tree.",
       "tap": "Tap the tree"

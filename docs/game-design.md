@@ -161,7 +161,7 @@ names are approved.
 | Mara ... Tamsin (kept); Gus, Vera | crew ids | the 14 hands; survivor cards from R3 |
 | Twig, Timber, Stone, Sheet Metal, Armored (kept) | `twig` ... `hqm` | eras |
 | Rock ... Power Tools (kept) | tool ids | Grip rungs |
-| Lone Pine, Outcrop, Ore Seam, Sulfur Vent, The Crashed Plane | `tree` ... `wreck` | tap targets |
+| Dead Oak, Outcrop, Ore Seam, Sulfur Vent, The Crashed Plane | `tree` ... `wreck` | tap targets |
 | the stockpile *(proposal)* | | the prop the tap's chips land on |
 | Workshop; Spare Wicks *(proposal)* | `{line}_mk` | the per-run research tree; its offline item |
 | Sharper Hooks, Dry Kindling, Calloused Thumbs *(proposal)* | | Workshop tier-1 items |
@@ -183,7 +183,7 @@ names are approved.
 | The Barge, the Crossing, Sea Charts *(proposal)* | `barge`, `sea_charts` | second layer, later |
 
 Names pass 1 (D157, D164): the Go Bag (`packed_crate`, once "Starter Kit", a Cookie Clicker
-upgrade name) and Tinned Fish (`food`, once "Fish Crates"); every other pass-1 name kept as
+upgrade name) and Clean Water (`food`, once "Fish Crates"); every other pass-1 name kept as
 proposed, Hold to work and Grip included. The Radio Mast's product is `broadcast`, never `signal`.
 Crew rank (`rank`) goes with the ranks (D181).
 
@@ -287,7 +287,7 @@ the next one ("38/50 → speed ×2"). Buildings redraw at 1, 25 and 100 owned.
 Grip rungs and island upgrades are Pocket-eligible (never an era; the Mk items' eligibility is
 open, section 10). Works nodes may cut prices, capped at ×0.25 per shelf kind and ×0.5 for eras.
 
-**Eras and targets.** Each era changes the tap target and how many taps fell it: Lone Pine (40,
+**Eras and targets.** Each era changes the tap target and how many taps fell it: Dead Oak (40,
 "Timber!"), Outcrop (60, "Crumble!"), Ore Seam (80, "Rich vein!"), Sulfur Vent (100, "Pop!"), The
 Wreck (120, "Cracked open!"). An era purchase plays about 1.2 s of show: a last fell, the base
 redrawn in the tier colour, three staked plots with price signs.

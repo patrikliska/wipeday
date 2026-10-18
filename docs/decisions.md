@@ -2316,3 +2316,8 @@ three sea-themed things: the Dock becomes the **Rain Catcher**, the Ship Breaker
 **Scrapyard**, Armored's Wreck **The Crashed Plane** (a rename is a locale edit; ids, icons and
 data stay). Their art comes with their eras. `scripts/art/picks/s2.json`.
 
+### D213. Dead Oak and Clean Water (owner, 2026-10-18)
+The owner approved two names that follow D212: Twig's target is the **Dead Oak** (it was the Lone
+Pine), and the Rain Catcher's product is **Clean Water** (it was Tinned Fish, D157). Locale edits;
+the product's icon still shows a fish and is redrawn with the Rain Catcher's art.
+
