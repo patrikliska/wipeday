@@ -115,6 +115,16 @@ const ALL_LINES = [
 ];
 const every = (n) => Object.fromEntries(ALL_LINES.map((id) => [id, n]));
 
+/** Twig a few minutes in: the three Twig lines, one hand, the tree half worn. */
+const TWIG_HERO = {
+  supplies: 420,
+  made: 980,
+  taps: 130,
+  target: { taps: 10, felled: 3 },
+  lines: { beachcomber: 9, campfire: 2, garden: 1 },
+  hands: [],
+};
+
 /** Sheet Metal with every line to its Rain Catcher, radio mast and generator; ten hands. */
 const METAL_RUN = {
   time: at(1, 11),
@@ -1057,6 +1067,90 @@ const SHOTS = [
     scale: 2,
     state: { ...HQM_RUN, ui: { house: true } },
     ff: 3,
+  },
+  // R2 Feel S3, the hero tap (D217): chips arc onto the stockpile at 6 taps a second; a full
+  // pile sells its top piece; a fell lands three pieces and shakes; each era's chips.
+  {
+    name: "s3_hero_phone",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      ...TWIG_HERO,
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+    },
+    taps: [7, 1],
+    ff: 0.12,
+    clip: [60, 280, 300, 190],
+  },
+  {
+    name: "s3_hero_full",
+    viewport: DESKTOP,
+    state: { ...TWIG_HERO, time: at(1, 9.5), wall: WALL, weather: "clear" },
+    taps: [16, 1],
+    ff: 0.3,
+    clip: [300, 420, 520, 300],
+  },
+  {
+    name: "s3_hero_fell",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      ...TWIG_HERO,
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+      target: { taps: 39, felled: 3 },
+    },
+    taps: [4, 1],
+    ff: 0.2,
+    clip: [60, 280, 300, 190],
+  },
+  {
+    name: "s3_hero_stone",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...TIMBER_YARD },
+    taps: [9, 1],
+    ff: 0.4,
+    clip: [60, 280, 300, 190],
+  },
+  {
+    name: "s3_hero_ore",
+    viewport: DESKTOP,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    taps: [8, 1],
+    ff: 0.4,
+  },
+  {
+    name: "s3_hero_sulfur_phone",
+    viewport: PHONE,
+    scale: 2,
+    state: { ...METAL_RUN, target: { taps: 4, felled: 80 } },
+    taps: [10, 1],
+    ff: 0.4,
+  },
+  {
+    name: "s3_hero_hqm_phone",
+    viewport: PHONE,
+    scale: 2,
+    state: { ...HQM_RUN, target: { taps: 4, felled: 120 } },
+    taps: [10, 1],
+    ff: 0.4,
+  },
+  {
+    name: "s3_clouds_dusk_phone",
+    viewport: PHONE,
+    scale: 2,
+    state: { ...TWIG_HERO, time: at(1, 19), wall: WALL, weather: "clear" },
+    ff: 0.2,
+  },
+  {
+    name: "s3_clouds_rain",
+    viewport: DESKTOP,
+    state: { ...TWIG_HERO, time: at(1, 12), wall: WALL, weather: "rain" },
+    ff: 0.2,
   },
 ];
 

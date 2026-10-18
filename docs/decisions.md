@@ -2358,3 +2358,30 @@ rocks crack (a seeded seam 3-5 px down with a pale lip, one more per step), the 
 tear (a dark hole under a bright bent edge), the dead tree takes a notch on its fall side, up to
 60% through the trunk. Marks land only on interior pixels of the sprite, so they never leave the
 silhouette, and a target always wears the same way. Tested in `wear.test.ts`.
+
+### D217. The hero tap: the stockpile, the chips, squash on the step grid, the fell's shake (R2 Feel S3)
+Every tap chips a piece off the target that arcs onto a **stockpile** at the target's right foot
+(`12-feel.md` 3.1): a log, a stone, an ore nugget, a lump of sulfur, a hull plate. The pieces and
+the pallet are hand-pixelled in the palette (`scripts/art/chips.py`, 6-7 px: too small for a
+generator to help) into `art/scene/chip/<target>.png` and `prop/pallet.png`. The pile holds nine
+pieces in a 4-3-2 heap, wider than tall, nudged a pixel per slot; a full pile sells its top piece for each new
+one (it hops and turns into coins); a pile left alone 6 s is carted off a piece every 2.5 s, so
+tapping keeps it high. The counter credits at once, as before: the pile is only its picture. A
+fell lands three pieces and shakes the camera a whole art pixel for 60 ms; the squash is 2, then
+1 art px wider and shorter, then 1 px taller, then rest over 120 ms (whole pixels, D188). The
+pallet is laid by a run's first chip, so the first screen is still the tree and its hint. Reduced
+motion: pieces appear in their slot and leave without the hop; no shake. The front row on a
+phone had no room for it (156 art px, every piece touching), so the row moved: the target 172 to
+166, the beachcomber 120 to 112, the campfire 142 to 134, the garden 200 to 211, the house 232 to
+238, the stockpile at 190; in Armored's wide view the plane at 166, the pile at 203, the garden
+222, the bunker 254, the kiln 166. The Hustle multiplier moved from the arc's end (on the pile) to
+its open bottom. `tap_at` carries the taps' `count` (at most three chips per event).
+`apps/web/src/scene/stockpile.ts`, `target.ts`, `island.ts`.
+
+### D218. Pixel clouds, seeded one by one (R2 Feel S3)
+The sky's soft puff clouds are replaced by pixel clouds generated in code (`scene/clouds.ts`): a
+row of round bumps on a flat base, a bright rim on the lit top, the underside and the right edge
+in shade, three greys tinted by the hour's cloud colour. Each of the 18 clouds has its own seed,
+so no two match and a 2k screen shows no repeat (D208); the high ones are bigger and faster, the
+low ones small and pale. A clear sky shows 11, rain and fog all 18, more opaque. They move in
+whole art pixels. No generated art was spent (Retro Diffusion balance unchanged, about 4.39 USD).

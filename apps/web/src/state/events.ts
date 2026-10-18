@@ -7,10 +7,10 @@ import type { GameEvent as DomainEvent } from "@wipe-day/domain/events";
 export type GameEvent =
   | DomainEvent
   /**
-   * A tap landed at `x, y` (screen CSS px) and is predicted to bring in `gain` (a fell's bonus
-   * comes apart, as a `felled` event right after).
+   * `count` taps landed at `x, y` (screen CSS px) and are predicted to bring in `gain` (a
+   * fell's bonus comes apart, as a `felled` event right after).
    */
-  | { type: "tap_at"; x: number; y: number; gain: number }
+  | { type: "tap_at"; x: number; y: number; gain: number; count: number }
   /** A command was refused (the toast says why): the refuse sound. */
   | { type: "refused" }
   /** "Tap the ore seam": the panels close and the target pulses (a refusal's button). */

@@ -1478,3 +1478,35 @@ phone, Armored on desktop, phone, 2k in rain and at night, the stone, shack and 
   stands in front of the hearth and blends into it a little.
 - Still open: hands are as tall as the lines and crowd a full camp; the stockpile, chips and
   squash of the hero tap; pixel clouds.
+
+## R2 Feel S3: the hero tap and pixel clouds (D217, D218)
+New shots `s3_hero_*` (Twig at 6 taps a second on a phone, a full pile on desktop, a fell, the
+pile in Timber, Stone, Sheet Metal and Armored) and `s3_clouds_*` (dusk phone, desktop rain).
+
+### Iteration 1
+- `s3_hero_phone`: the Hustle multiplier (`×1.1`) at the arc's end sat on the stockpile; moved
+  into the arc's open bottom, under the target.
+- `s3_hero_full`: a full pile of 10 read as a brick tower, and the grey-green logs merged with
+  the dead tree; the logs are brown with a bright cut end now, the heap 4-3-2 and nudged a pixel
+  either way per slot.
+- `s3_hero_fell`: a hire's walk from the house crossed the pile mid-shot (a demo patch); the hero
+  shots start with no hands.
+- `desktop_2k`, `s3_clouds_dusk_phone`: only two clouds on 2k and none on the phone, low over the
+  skyline, flat slabs. 18 clouds (11 in a clear sky), spread from above the skyline to the top of
+  a tall phone's sky, rounder puffs.
+- Every shot: no pallet. It was built before the art loaded; it is now laid by a run's first chip.
+
+### Iteration 2
+- `s3_hero_phone__zoom`: logs arc from the trunk onto a pallet at the tree's right foot; the pile
+  stands clear of the campfire and the garden.
+- `s3_hero_full__zoom`: a tumbled woodpile on its pallet; the top piece hops and turns into
+  coins as each new one lands.
+- `s3_hero_stone__zoom`, `s3_hero_ore`, `s3_hero_hqm_phone`: grey stones, rusty nuggets and hull
+  plates on the pallet between the target and the garden; in Armored's wide view it stands clear
+  of the plane's tail.
+- `phone_first_tap`: the first screen is still the tree, the tent and "Tap the tree.": no pallet
+  until the first chip. The tree stands 6 art px left of before.
+- `desktop_tall_rain`, `desktop_2k`: pixel clouds, every one a different shape; no repeat at
+  2560 px. In rain they are grey and more of them show.
+- Still open: the tree's fall still rotates the old sprite off the grid (into the ground at the
+  end); the Hustle arc gives way to the Frenzy meter in S7.

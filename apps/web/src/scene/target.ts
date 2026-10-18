@@ -502,6 +502,18 @@ const CHIPS: Record<TargetKind, { kind: Emit; color: number }> = {
   wreck: { kind: "sparks", color: 0xffd25a },
 };
 
+/**
+ * The squash's steps (12-feel.md 3.1, 08-screens.md 1.3): over the 120 ms after a tap the
+ * target is 2 art px wider and shorter, then 1, then a pixel taller and narrower, then at rest.
+ * `[width, height]` change in art px for the squash's progress `t` (0..1).
+ */
+export function squashStep(t: number): readonly [number, number] {
+  if (t >= 1) return [0, 0];
+  if (t < 1 / 3) return [2, -2];
+  if (t < 2 / 3) return [1, -1];
+  return [-1, 1];
+}
+
 const POP_SECONDS = 0.3;
 const SQUASH_SECONDS = 0.12;
 /** The sea is on the left: trees fall toward it, away from the base. */
@@ -540,7 +552,7 @@ export class Target {
       text: "",
       style: { fontFamily: "wipeday-floater", fontSize: 13 },
     });
-    this.label.anchor.set(0, 0.5);
+    this.label.anchor.set(0.5, 0.5);
     this.overlay.addChild(this.arc, this.label);
   }
 
@@ -620,6 +632,17 @@ export class Target {
     }
   }
 
+  /**
+   * Where a tap's chip comes off (world units): on the target's face toward the stockpile, at
+   * the tap's height kept inside the body's lower three quarters.
+   */
+  chipPoint(y: number): { x: number; y: number } {
+    const b = this.bounds;
+    const top = this.container.y + b.y + b.height * 0.25;
+    const bottom = this.container.y + b.y + b.height - 15;
+    return { x: this.container.x + b.x + b.width * 0.6, y: clamp(y, top, Math.max(top, bottom)) };
+  }
+
   /** The point a tap's number rises from: just above the top (world units). */
   get floatPoint(): { x: number; y: number } {
     return {
@@ -636,8 +659,18 @@ export class Target {
     this.pop = Math.min(1, this.pop + dt / POP_SECONDS);
     this.squash = Math.min(1, this.squash + dt / SQUASH_SECONDS);
     const grow = this.pop < 1 ? 0.2 + 0.8 * easeOutBack(this.pop) : 1;
-    const s = this.squash < 1 ? Math.sin(this.squash * Math.PI) : 0;
-    body.container.scale.set(grow * (1 + 0.06 * s), grow * (1 - 0.06 * s));
+    if (body.pixel) {
+      // On the step grid: whole art pixels of squash, then a pixel of stretch, then rest.
+      const { width: w, height: h } = body.pixel.frame;
+      const [dw, dh] = squashStep(this.squash);
+      body.container.scale.set(
+        Math.max(1, Math.round(w * grow) + dw) / w,
+        Math.max(1, Math.round(h * grow) + dh) / h,
+      );
+    } else {
+      const s = this.squash < 1 ? Math.sin(this.squash * Math.PI) : 0;
+      body.container.scale.set(grow * (1 + 0.06 * s), grow * (1 - 0.06 * s));
+    }
     body.container.alpha = clamp(this.pop * 3, 0, 1);
     const sway = this.kind === "tree" ? Math.sin(this.time * 1.3) * 0.006 + wind * 0.002 : 0;
     body.container.skew.x = sway;
@@ -684,7 +717,8 @@ export class Target {
 
   /**
    * The Hustle arc around the tap box (CSS px): 270°, open at the bottom, filling from the
-   * left; its multiplier in small print at the end. Hidden at zero.
+   * left; its multiplier in small print in the opening (clear of the stockpile at the arc's
+   * end). Hidden at zero.
    */
   drawHustle(
     box: { x: number; y: number; width: number; height: number },
@@ -707,13 +741,9 @@ export class Target {
     this.arc
       .arc(cx, cy, r, start, start + sweep * clamp(fill, 0, 1))
       .stroke({ width: 4, color: lerpColor(HUSTLE_LO, HUSTLE_HI, fill), cap: "round" });
-    const end = start + sweep;
     this.label.visible = true;
     this.label.text = multiplier;
-    this.label.position.set(
-      Math.round(cx + Math.cos(end) * r + 6),
-      Math.round(cy + Math.sin(end) * r + 2),
-    );
+    this.label.position.set(Math.round(cx), Math.round(cy + r - 4));
     this.label.tint = lerpColor(HUSTLE_LO, HUSTLE_HI, fill);
   }
 }

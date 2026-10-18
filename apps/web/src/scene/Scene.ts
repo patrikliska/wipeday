@@ -49,7 +49,9 @@ import {
   houseSpotFor,
   INSIDE,
   ROOM,
+  STOCKPILE_SPOT,
   stageSpot,
+  stockpileSpotFor,
   TARGET_SPOT,
   VIEW,
   type View,
@@ -62,8 +64,9 @@ import { ART, loadArt } from "./pixel";
 import { milestoneCrossed } from "./reveal";
 import { Room } from "./room";
 import { Sky } from "./sky";
+import { Stockpile } from "./stockpile";
 import { Target, type TargetKind } from "./target";
-import { clamp, lerp } from "./util";
+import { clamp, lerp, reducedMotion } from "./util";
 
 /** Design space: a 16:9 stage, the ground line a little below centre. */
 const W = 1600;
@@ -83,6 +86,17 @@ const MAX_ZOOM = 7;
 const TARGET = { x: stageSpot(TARGET_SPOT).x, y: GROUND + stageSpot(TARGET_SPOT).y };
 /** The house's place; Armored's wider camp moves it right (`houseSpotFor`). */
 const HOUSE = { x: stageSpot(HOUSE_SPOT).x, y: GROUND + stageSpot(HOUSE_SPOT).y, scale: 1 };
+/** The stockpile at the target's foot (D217); Armored's wider camp moves it (`stockpileSpotFor`). */
+const PILE = { x: stageSpot(STOCKPILE_SPOT).x, y: GROUND + stageSpot(STOCKPILE_SPOT).y };
+/** A fell shakes the camera for this long, a whole art pixel at a time (12-feel.md 3.1). */
+const SHAKE_MS = 60;
+const SHAKE: readonly (readonly [number, number])[] = [
+  [1, 0],
+  [-1, 1],
+  [0, -1],
+];
+/** A fell lands this many pieces on the stockpile. */
+const FELL_CHIPS = 3;
 /** Phones: the ground line at this fraction of the height. */
 const PHONE_GROUND = 0.53;
 /** The tap box: the drawn target padded by this, never smaller than the minimum (CSS px). */
@@ -139,6 +153,7 @@ export class Scene {
   private readonly sky = new Sky(W, HORIZON, EXTEND);
   private readonly terrain = new Landscape({ width: W, height: H, extend: EXTEND });
   private readonly target = new Target(this.particles);
+  private readonly stockpile = new Stockpile(this.particles);
   private readonly flotsam = new Flotsam({
     claim: (run, k) => useWorld.getState().send({ type: "claim_flotsam", run, k }),
     arrived: () => sound.play("flotsam_in"),
@@ -205,6 +220,8 @@ export class Scene {
     peak: 2,
   };
   private lastBumpMs = 0;
+  /** When the last fell shook the camera (wall ms). */
+  private shakeAt = -Infinity;
   /** The store's demo patch count at the last frame. */
   private patches = 0;
   /** The game clock at the last frame. */
@@ -242,7 +259,8 @@ export class Scene {
     this.target.container.zIndex = TARGET.y;
     this.house.container.position.set(HOUSE.x, HOUSE.y);
     this.house.container.zIndex = HOUSE.y;
-    this.props.addChild(this.house.container, this.target.container);
+    this.stockpile.place(PILE.x, PILE.y);
+    this.props.addChild(this.house.container, this.target.container, this.stockpile.container);
     this.world.addChild(
       this.sky.container,
       this.hands.sky,
@@ -537,7 +555,16 @@ export class Scene {
     // Whole device pixels only, so the art grid stays sharp (D188).
     const res = this.app.renderer.resolution;
     const px = (value: number) => Math.round(value * res) / res;
-    this.world.position.set(px(-left * this.scale - this.parallax * 6), px(-this.top * this.scale));
+    // A fell's shake: a whole art pixel each way for a few frames (none with reduced motion).
+    const shaking = nowMs - this.shakeAt < SHAKE_MS && !reducedMotion();
+    const [sx, sy] = shaking
+      ? (SHAKE[Math.floor(((nowMs - this.shakeAt) / SHAKE_MS) * SHAKE.length)] ?? [0, 0])
+      : [0, 0];
+    const unit = ART * this.scale;
+    this.world.position.set(
+      px(-left * this.scale - this.parallax * 6 + sx * unit),
+      px(-this.top * this.scale + sy * unit),
+    );
     this.floaters.setCamera(
       this.world.position.x,
       this.world.position.y,
@@ -547,11 +574,12 @@ export class Scene {
     this.lights.position.copyFrom(this.world.position);
     this.lights.scale.copyFrom(this.world.scale);
 
-    this.sky.update(dt, fraction, palette, this.wind, 0);
+    this.sky.update(dt, fraction, palette, this.wind, 0, Math.max(rain, fog));
     this.terrain.update(dt, palette, this.wind, this.parallax);
     this.house.update(dt, darkness);
     this.target.crowned = useAdvisor.getState().view?.pick.kind === "tap";
     this.target.update(dt, this.wind, darkness, fog);
+    this.stockpile.update(dt);
     this.hands.setNight(darkness > 0.6);
     this.hands.update(dt, this.wind);
     this.particles.update(dt, this.wind);
@@ -577,9 +605,11 @@ export class Scene {
       !previous || previous.run.n !== base.run.n || previous.run.createdAt !== base.run.createdAt;
     this.seen = base;
     const era = base.run.era;
+    if (fresh) this.stockpile.reset();
     if (era !== this.era) {
       const animate = !fresh && this.era !== null;
       this.target.set(targetOf(era), animate);
+      this.stockpile.setKind(targetOf(era), animate);
       this.house.setTier(era, animate);
       this.era = era;
       if (viewFor(era) !== this.view) {
@@ -589,6 +619,7 @@ export class Scene {
         this.lines.relayout(layoutFor(era));
         HOUSE.x = stageSpot(houseSpotFor(era)).x;
         this.house.container.position.set(HOUSE.x, HOUSE.y);
+        this.stockpile.place(stageSpot(stockpileSpotFor(era)).x, PILE.y);
       }
       this.button.setAttribute(
         "aria-label",
@@ -955,6 +986,8 @@ export class Scene {
       case "tap_at": {
         const at = this.toWorld(event.x, event.y);
         this.target.hit(at.x, at.y);
+        const from = this.target.chipPoint(at.y);
+        this.stockpile.chip(from.x, from.y, Math.min(event.count, FELL_CHIPS));
         const point = this.target.floatPoint;
         if (event.gain > 0)
           this.floaters.tap(point.x, point.y, event.gain, nowMs, this.floatSize());
@@ -964,7 +997,10 @@ export class Scene {
         break;
       }
       case "felled": {
+        const from = this.target.chipPoint(this.target.container.y - 30);
         this.target.fell();
+        this.stockpile.chip(from.x, from.y, FELL_CHIPS);
+        this.shakeAt = nowMs;
         const point = this.target.floatPoint;
         const cry = t(`target.${event.target}.cry`);
         this.floaters.add(

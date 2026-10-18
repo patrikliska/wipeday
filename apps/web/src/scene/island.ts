@@ -37,10 +37,10 @@ export const viewFor = (era: string): View => (era === "hqm" ? VIEW_WIDE : VIEW)
 
 /** Each outside line's spot: centre x and row (art px). */
 export const SPOTS: Readonly<Record<string, { x: number; row: Row }>> = {
-  // The front row: the Twig lines either side of the target.
-  beachcomber: { x: 120, row: "front" },
-  campfire: { x: 142, row: "front" },
-  garden: { x: 200, row: "front" },
+  // The front row: the Twig lines either side of the target and its stockpile (D217).
+  beachcomber: { x: 112, row: "front" },
+  campfire: { x: 134, row: "front" },
+  garden: { x: 211, row: "front" },
   // The back row, left to right, clear of the target's and the house's tops: the Scrapyard and
   // the Rain Catcher left (the Scrapyard only in Armored's wider view), the kiln just left of
   // the target, then the generator, the radio mast (tall: it shows over the house) and the reactor.
@@ -52,24 +52,29 @@ export const SPOTS: Readonly<Record<string, { x: number; row: Row }>> = {
   reactor: { x: 256, row: "back" },
 };
 
-/** The target in the middle of the front row; the house at its right end. */
-export const TARGET_SPOT = { x: 172, row: "front" as Row };
-export const HOUSE_SPOT = { x: 232, row: "front" as Row };
+/**
+ * The target a little left of the middle of the front row, its stockpile at its right foot
+ * (D217), the house at the row's right end.
+ */
+export const TARGET_SPOT = { x: 166, row: "front" as Row };
+export const STOCKPILE_SPOT = { x: 190, row: "front" as Row };
+export const HOUSE_SPOT = { x: 238, row: "front" as Row };
 
 /**
  * Armored's camp in its wider view (S3): the front row spreads round the Crashed Plane (60 px,
- * the widest target), the bunker moves right, the kiln stands behind the plane's low middle and
- * the generator clear of its tail.
+ * the widest target) with the stockpile clear of its tail, the bunker moves right, the kiln
+ * stands behind the plane's low middle and the generator clear of its tail.
  */
 const WIDE_SPOTS: Readonly<Record<string, number>> = {
   beachcomber: 100,
-  campfire: 124,
+  campfire: 123,
   dock: 133,
-  garden: 218,
-  kiln: 172,
+  garden: 222,
+  kiln: 166,
   generator: 210,
 };
-const WIDE_HOUSE = 252;
+const WIDE_HOUSE = 254;
+const WIDE_STOCKPILE = 203;
 
 /** Each outside line's spot in `era`. */
 export function spotsFor(era: string): Record<string, { x: number; row: Row }> {
@@ -80,6 +85,11 @@ export function spotsFor(era: string): Record<string, { x: number; row: Row }> {
       { x: (wide ? WIDE_SPOTS[id] : undefined) ?? spot.x, row: spot.row },
     ]),
   );
+}
+
+/** The stockpile's spot in `era`: clear of the Crashed Plane's tail in Armored's wider camp. */
+export function stockpileSpotFor(era: string): { x: number; row: Row } {
+  return viewFor(era) === VIEW_WIDE ? { ...STOCKPILE_SPOT, x: WIDE_STOCKPILE } : STOCKPILE_SPOT;
 }
 
 /** The house's spot in `era`. */

@@ -35,11 +35,23 @@ in `docs/archive/roadmap-w.md`.
   with two rows under a ruined skyline, and flotsam to airdrops (D209).
 - **R2 Feel S3's art is done** (2026-10-18; results below): Stone to Armored in pixel art, the
   rooms, the back row placed deeper, Armored's wider camp, pixel wear (D214-D216).
-- **Next: the rest of S3, the hero tap**: the stockpile and the chips (every tap chips a sprite
-  onto it), squash and stretch on the step grid, the fell's shake; pixel clouds. Retro Diffusion
-  has about 4.39 USD left.
+- **R2 Feel S3 is done** (2026-10-18; results below): the hero tap (the stockpile, the chips,
+  squash on the step grid, the fell's shake; D217) and pixel clouds (D218).
+- **Next: R2 Feel S4, the HUD**: the Feel Board's tokens and fonts, the dock, panels as sheets,
+  the card shop in fixed order with the Best buy chip, the lamp, the ticker. Retro Diffusion has
+  about 4.39 USD left.
 
-### R2 Feel S3 results so far (the art)
+### R2 Feel S3 results: the hero tap and pixel clouds
+- **The hero tap** (D217): every tap chips a log, stone, nugget, sulfur lump or hull plate that
+  arcs onto a pallet at the target's right foot; nine pieces, then each new one sells the top
+  piece for coins; a pile left alone is carted off. A fell lands three pieces and shakes the camera
+  a whole art pixel for 60 ms; the squash steps 2, 1, -1 art px. The front row moved a few pixels
+  to make room (the target at 166). Chips and pallet: `scripts/art/chips.py`.
+- **Pixel clouds** (D218): 18 seeded shapes on the grid, tinted by the hour, more in rain.
+- **Checks:** `pnpm check` green; the shots audit passes on `s3_*`. No rule changed, so the
+  N-values read as at S1.
+
+### R2 Feel S3 results (the art)
 - **Art** (`scripts/art/picks/s3.json`, 6.12 USD): the furnace, tannery and oil press; the Rain
   Catcher, generator, radio mast, Scrapyard and reactor at three stages; Ore, Sulfur and The
   Crashed Plane; the stone hut, the shack and the bunker with their rooms. Every line, target,
