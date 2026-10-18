@@ -30,7 +30,7 @@ export function DemoDrawer() {
     <>
       <button
         type="button"
-        className={`glass demo-toggle${open ? " active" : ""}`}
+        className={`plate demo-toggle${open ? " active" : ""}`}
         onClick={toggle}
         title={t("demo.title")}
         aria-label={t("demo.title")}
@@ -38,7 +38,7 @@ export function DemoDrawer() {
         ✦
       </button>
       {open ? (
-        <div className="glass demo">
+        <div className="plate demo">
           <h3>{t("demo.title")}</h3>
           <div className="clock">
             <span>{t("demo.clock")}</span>

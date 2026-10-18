@@ -174,7 +174,11 @@
     "counter_label": "Supplies {amount}, {rate}. Show every multiplier.",
     "menu": "Settings",
     "buff": "{name} ×{factor} · {time}",
-    "buffs_more": "+{count}"
+    "buffs_more": "+{count}",
+    "best_buy": "Best buy",
+    "lamp": "Night Shift",
+    "lamp_of": "of {window}",
+    "lamp_label": "Night Shift: your hands work {left} of {window} if you leave now"
   },
   "sea": {
     "catch": "Catch the {name}",
@@ -201,13 +205,15 @@
     "title": "Welcome back",
     "away": "Away {time}",
     "worked_all": "Your hands worked the whole time.",
-    "worked_full": "Your hands worked the Night Shift ({hours} h of it).",
+    "worked_full": "Your hands worked the whole Night Shift: {time}.",
     "stopped_today": "They stopped at {time}.",
     "stopped_yesterday": "They stopped yesterday at {time}.",
     "stopped_day": "They stopped on {day} at {time}.",
     "nobody": "Nobody was on shift: lines without a hand only run while you tap.",
     "collect": "Collect",
-    "back_to_work": "Back to work"
+    "back_to_work": "Back to work",
+    "lamp_out": "The lamp burnt out.",
+    "lamp_left": "{left} of {window} still in the lamp."
   },
   "house": {
     "twig": "tent",
@@ -300,8 +306,8 @@
     "see_all": "See all",
     "close": "Close",
     "lines": "Lines",
-    "upgrades": "Upgrades",
-    "upgrades_count": "Upgrades {count}",
+    "upgrades": "Shelf",
+    "upgrades_count": "Shelf {count}",
     "shop": "Shop",
     "bulk": "Buy how many",
     "bulk_one": "×1",
@@ -330,6 +336,8 @@
     "era_ready": "Ready to build",
     "unmanned": "Runs while you tap",
     "idle": "Idle · tap to run",
+    "rate_tapped": "{rate} while tapped",
+    "line_first": "Makes {product}",
     "milestone_payout": "{owned}/{at} → ×{factor}",
     "milestone_speed": "{owned}/{at} → speed ×{factor}",
     "milestone_every": "×{factor} every {step} · next at {at}",
@@ -348,13 +356,14 @@
   "nav": {
     "label": "Go to",
     "island": "Island",
-    "crew": "Crew"
+    "crew": "Crew",
+    "with_badge": "{place}, {count} new"
   },
   "crew_panel": {
     "title": "Crew",
     "summary": "{on} of {total} on shift",
     "on_shift": "On shift",
-    "not_hired": "Not hired this run · hire on the Lines tab",
+    "not_hired": "Not hired this run · hire on its card",
     "waiting": "Waiting for the first {line}",
     "opens_in": "Opens in the {era} era",
     "line": "{name} · {line}"
@@ -414,5 +423,37 @@
     "odds": "Flotsam odds",
     "source_factor": "{name} ×{factor}",
     "source_buff": "{name} ×{factor} · {time}"
+  },
+  "ticker": {
+    "any_1": "Radio: static, then a man selling batteries, then static.",
+    "any_2": "Someone painted WIPE DAY on the water tower again.",
+    "any_3": "Rule of the camp: if it rattles, it's fine. If it stops, run.",
+    "any_4": "A crow sat on the roof all morning, judging.",
+    "clear_1": "Clear skies over Saltmarsh. Good drying weather for socks.",
+    "clear_2": "Sun's out. The rust is practically glowing.",
+    "rain_1": "Rain on the tin roof. Everyone pretends it's applause.",
+    "rain_2": "Buckets out: free water, only slightly brown.",
+    "fog_1": "Fog in from the flats. Count your fingers, then your crew.",
+    "fog_2": "Can't see the skyline. It's still there. Probably.",
+    "night_1": "Lights out across the ruins, except ours.",
+    "twig_1": "Twig camp: held together with string and optimism.",
+    "wood_1": "Timber walls at last. The wind is furious about it.",
+    "stone_1": "Stone walls. Nobody can hear you snore any more.",
+    "metal_1": "Sheet metal hammered flat. The camp sounds like a drum.",
+    "hqm_1": "Armored plates bolted on. Even the rain knocks first.",
+    "mara_1": "Mara found a whole plank today. She named it.",
+    "dax_1": "Dax swears fish taste better smoked over tyres. They do not.",
+    "ivo_1": "Ivo talks to the hemp. The hemp seems to like it.",
+    "rook_1": "Rook is teaching knots. Nobody can untie the lesson.",
+    "sela_1": "Sela measured twice, cut once, and still blamed the saw.",
+    "bram_1": "Bram's eyebrows are growing back after the last kiln.",
+    "wren_1": "Wren keeps the furnace roaring and her tea cold.",
+    "otto_1": "Otto says the tannery smell is character.",
+    "juno_1": "Juno's press squeaks in B flat. She tuned it.",
+    "pike_1": "Pike checks the Rain Catcher like it owes him money.",
+    "hale_1": "Hale pedalled the generator for an hour. The lights blinked twice.",
+    "tamsin_1": "Tamsin reads the weather on the radio. Wrong, but warmly.",
+    "gus_1": "Gus pulled a car door out of the Scrapyard. It's a table now.",
+    "vera_1": "Vera calls the reactor's hum a lullaby. Nobody sleeps near it."
   }
 }

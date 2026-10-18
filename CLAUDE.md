@@ -177,8 +177,8 @@ Dependency rules:
   `styles/tokens.css` (the Feel Board's salvaged-materials tokens from R2 Feel S4: plywood and
   steel plates, D187). Each era (Twig, Timber, Stone, Sheet Metal, Armored) has one fixed colour
   used everywhere. The primary is signal orange (D138); the Big Red is never primary-styled.
-- Fonts: Big Shoulders Display for numbers and titles, Barlow for text (D187), self-hosted; Roboto
-  Condensed until R2 Feel S4 swaps them. No pixel font: text stays crisp CSS. Numbers always go
+- Fonts: Big Shoulders Display for numbers and titles, Barlow for text (D187, D219), self-hosted
+  in `apps/web/public/fonts/` with their OFL. No pixel font: text stays crisp CSS. Numbers always go
   through one formatter
   (`@wipe-day/domain/words`): `12.4k`, `1.50Qa`, suffixes up to `999Dc`, then `1.23e36`; held
   amounts floor, costs and rates round; a scientific toggle in settings.

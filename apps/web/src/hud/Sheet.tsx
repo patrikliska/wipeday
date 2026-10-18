@@ -40,7 +40,7 @@ export function SheetFrame({
         onClick={onClose}
       />
       <section
-        className={`glass sheet ${className}`}
+        className={`plate sheet ${className}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={`${id}-title`}

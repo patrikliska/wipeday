@@ -252,7 +252,7 @@ export class Scene {
     this.houseButton.hidden = true;
     this.houseButton.addEventListener("click", () => this.openHouse());
     this.houseHint = document.createElement("div");
-    this.houseHint.className = "glass house-hint";
+    this.houseHint.className = "plate house-hint";
     this.houseHint.setAttribute("role", "status");
     this.houseHint.hidden = true;
     this.target.container.position.set(TARGET.x, TARGET.y);

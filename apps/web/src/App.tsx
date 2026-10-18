@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { DemoDrawer } from "./hud/DemoDrawer";
+import { Dock } from "./hud/Dock";
 import { Login } from "./hud/Login";
 import { Multipliers } from "./hud/Multipliers";
-import { Nav, useNavShown } from "./hud/Nav";
 import { Odds } from "./hud/Odds";
 import { Panels } from "./hud/Panels";
 import { RoomBar } from "./hud/RoomBar";
@@ -21,9 +21,9 @@ export function App() {
   const playing = useWorld((state) => state.phase === "playing");
   const sheet = useUi((state) => state.sheet);
   const welcome = useWorld((state) => state.welcome !== null);
+  const panel = useUi((state) => state.panel);
   const motion = useUi((state) => state.motion);
   const column = useColumn();
-  const nav = useNavShown();
   const shop = useAdvisor((state) => shopOpen(state.view));
 
   useEffect(() => {
@@ -58,15 +58,20 @@ export function App() {
       <div className="hud">
         {playing ? (
           <>
-            {/* Under a sheet or the welcome card the rest of the HUD is inert: one view, one
-                crown (6.3 rule 1). */}
-            <div className={`hud-main${nav ? " with-nav" : ""}`} inert={sheet !== null || welcome}>
+            {/* Under a panel, a sheet or the welcome card the rest of the HUD is inert: one view,
+                one crown (6.3 rule 1). The dock stays live under a panel: it is the way between
+                destinations (D187). */}
+            <div className="hud-main" inert={panel !== null || sheet !== null || welcome}>
               <TopBar />
               <TapHint />
               <RoomBar />
               <Shop />
+            </div>
+            <div className="panel-layer" inert={sheet !== null || welcome}>
               <Panels />
-              {column ? null : <Nav />}
+            </div>
+            <div className="dock-layer" inert={sheet !== null || welcome}>
+              <Dock />
             </div>
             <Multipliers />
             <Odds />

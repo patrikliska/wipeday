@@ -296,8 +296,8 @@ function installFont(): void {
     resolution: 1,
     padding: 6,
     style: {
-      fontFamily: "Roboto Condensed",
-      fontWeight: "700",
+      fontFamily: "Big Shoulders Display",
+      fontWeight: "900",
       fontSize: FONT_SIZE,
       fill: 0xffffff,
       stroke: { color: INK, width: Math.round(FONT_SIZE * 0.2), join: "round" },

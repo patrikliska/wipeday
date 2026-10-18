@@ -1510,3 +1510,53 @@ pile in Timber, Stone, Sheet Metal and Armored) and `s3_clouds_*` (dusk phone, d
   2560 px. In rain they are grey and more of them show.
 - Still open: the tree's fall still rotates the old sprite off the grid (into the ground at the
   end); the Hustle arc gives way to the Frenzy meter in S7.
+
+## R2 Feel S4: the HUD (D219-D223)
+
+Shots `s4_*` (28: the desktop and phone heroes at day, dusk, night and rain; the first minute;
+the hire; the drawer's Lines and Shelf; the Stone run; Best buy before and after; three purchases
+in a row; the dock badge; Crew and Settings as sheets; the welcome lamp burnt out, at night and
+half full; the ticker; 999Dc; the short phone), against the Feel Board's two mocks.
+
+### Iteration 1
+- **The dock was missing everywhere.** Its layer was `position: relative` at the top of the HUD
+  with no height, so the dock sat above the screen. The layers are now full-screen, take no
+  pointer events, and only their children do.
+- **A saving hire read "in 9h 18m 118M"**: the wait replaced the hand's name. The name stays and
+  the price beside it is the reason (rule 3).
+- **The Best buy chip collided with the top-right pills on a phone** (the plate grew to 560 px of
+  390) and the expanded drawer cut the counter's foot. On a phone the chip moved beside the lamp
+  under the plate, and hides while the drawer is expanded (that view crowns its own card); the
+  expanded drawer starts under the plate.
+- **"IN 4H 41M" in capitals** on a saving Buy was hard to read: waits are lower case now; only
+  "Buy" and "Locked" stay in capitals.
+- **"×1" read as "×l"** in Big Shoulders: the bulk sizes are Barlow.
+- **The Crew badge counted every hand** in shots and on a first load: the "seen" mark used
+  `startedAt`, which is null before the first tap; it uses the run number now.
+- **A store selector returned a fresh object** (the Best buy's place) and React looped until it
+  unmounted the app; the selector returns the tab, a string.
+- *Shot artifact, not the HUD:* shots that patch a later era caught the old target's fall half
+  way (a dead tree across the ore or the plane). Those shots now settle 2.5 s.
+- *Fine:* one crown per view in every shot (audit); 999Dc fits the phone plate with its rate;
+  the crowned card's orange border and the gold Best buy never compete; the drawer's two cards
+  and the dock leave the target over 120 px tall, the short phone shows one card and a peek.
+
+### Iteration 2
+- **The ticker said "Sun's out" at dusk**: clear-weather lines keep to 07:00-19:00 now (tested).
+- **The welcome card said the window twice** ("worked the Night Shift (12 h of it)" and "the lamp
+  burnt out: all 12h used", with two spellings of hours). It says it once, in the one duration
+  format: "Your hands worked the whole Night Shift: 12h." and "The lamp burnt out." under an
+  empty, dashed lamp; a half-used window reads "7h of 12h still in the lamp." under the bar.
+- Crew's "hire on the Lines tab" became "hire on its card": the hire lives on the line's card.
+
+### Iteration 3 (the whole suite, 110 shots, audit clean)
+- **The refusal toast and the room bar sat on the lamp** on a phone (they were placed under a
+  one-row top bar). A `--hud-top` token holds the counter row's height per layout; toasts, the
+  room bar and the demo panel sit under it.
+- **The ticker crowded a landscape phone** under its short dock: it shows under the dock only on
+  desktop, and in the drawer's handle on a phone in portrait.
+- *Fine:* the first screen is the tree, "Tap the tree." and a dock with Island alone; the
+  Multipliers sheet, the room, the tablet's centred drawer and the landscape column all take the
+  new plates without other changes.
+- The stylesheet's rule order was tidied so the lint has no specificity warnings left (three were
+  there before this session).

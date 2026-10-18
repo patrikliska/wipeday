@@ -13,7 +13,7 @@ export function RoomBar() {
   if (!open || !era) return null;
   const house = t(`house.${era}`);
   return (
-    <section className="glass room-bar" aria-label={t("house.title", { house })}>
+    <section className="plate room-bar" aria-label={t("house.title", { house })}>
       <button
         type="button"
         className="btn room-back"

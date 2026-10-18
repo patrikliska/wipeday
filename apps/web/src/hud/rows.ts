@@ -1,7 +1,8 @@
 /**
- * The drawer's rows as plain data (docs/redesign/08-screens.md 1.4, 2.1, 2.2): what each row
- * says, what its button sends and whether it wears the crown. Pure, so the collapsed drawer, the
- * expanded tabs and the desktop column share it, and a test can read it without a browser.
+ * The shop's cards as plain data (docs/redesign/08-screens.md 1.4, 2.1; 12-feel.md 4): what each
+ * card says, what its buttons send and whether one wears the crown. Pure, so the drawer, its
+ * expanded tabs and the desktop column share it, and a test can read it without a browser. The
+ * order is fixed (D186): the crown lights a card where it stands and never moves one.
  *
  * Words come from the locale, numbers from the one formatter, rules from the domain: a row's
  * reason and the server's refusal never disagree (both read `shelf.ts`).
@@ -9,7 +10,7 @@
 import type { IconKind } from "@wipe-day/content/icons";
 import type { LineDef, UpgradeDef } from "@wipe-day/content/schema";
 import type { Tier } from "@wipe-day/content/tiers";
-import { byScore, type Choice, sameRow } from "@wipe-day/domain/advisor";
+import { type Choice, sameRow } from "@wipe-day/domain/advisor";
 import type { Command } from "@wipe-day/domain/commands";
 import { cycleOf, unitRate } from "@wipe-day/domain/effects";
 import {
@@ -30,7 +31,7 @@ import {
 } from "@wipe-day/domain/shelf";
 import type { BaseState } from "@wipe-day/domain/state";
 import type { AdvisorView } from "../state/advisor";
-import type { Bulk } from "../state/ui";
+import type { Bulk, Tab } from "../state/ui";
 import {
   content,
   crewName,
@@ -40,45 +41,62 @@ import {
   fmtFactor,
   fmtRate,
   lineName,
+  resourceName,
   t,
   tierName,
   upgradeName,
 } from "../state/world";
 
-export type RowKind = "line" | "hand" | "era" | "upgrade";
+export type RowKind = "line" | "era" | "upgrade";
+
+/** A button on a card: its two lines, whether it can be pressed, its spoken label. */
+export interface Button {
+  top: string;
+  cost: string;
+  enabled: boolean;
+  label: string;
+}
 
 export interface Row {
-  /** Stable across renders: `line:loom`, `hand:loom`, `era:stone`, `upgrade:loom_mk2`. */
+  /** Stable across renders: `line:loom`, `era:stone`, `upgrade:loom_mk2`. */
   key: string;
   kind: RowKind;
   /** What the button sends; null while locked. */
   command: Command | null;
   icon: { kind: IconKind; id: string };
-  /** The era colour the row wears (bars, frames). */
+  /** The card's pixel art (`line/loom_2`), drawn instead of the icon when it exists. */
+  art?: string;
+  /** The era colour the card wears (bars, frames). */
   tier: Tier;
-  /** A line's owned count, as a pill on its icon. */
+  /** A line's owned count: the level badge on its thumbnail. */
   owned?: number;
-  /** A line row: its hand's id when manned, null when not (the finger glyph). */
+  /** A line card: its hand's id when manned, null when not (the finger glyph). */
   hand?: string | null;
-  /** A Line Mk row: II or III, a chevron on the line's icon. */
+  /** A Line Mk card: II or III, a chevron on the line's art. */
   mk?: number;
   name: string;
-  /** Line 2 of a line row: its product badge, cycle bar and rate. */
+  /** A line card's rate line: its product badge, cycle bar and rate. */
   product?: string;
   bar?: Bar;
   rate?: string;
-  /** Line 2 of the other rows. */
+  /** Under the name on the other cards. */
   sub?: string;
-  /** Line 3: the next milestone, a hint or the real reason it is locked. */
+  /** The last line: the next milestone, a hint or the real reason it is locked. */
   note?: string;
-  /** The era row: how far the supplies are toward its price (0..1). */
+  /** The bar under the name (0..1): a line toward its next milestone, an era toward its price. */
   progress?: number;
-  button: { top: string; cost: string; enabled: boolean; label: string };
+  /** A line owned but not manned: its hand's hire, a second, smaller button on the card. */
+  hire?: { command: Command; button: Button; crowned: boolean; score: number };
+  button: Button;
   locked: boolean;
+  /** The crown is on this card's Buy (the hire's crown is `hire.crowned`). */
   crowned: boolean;
-  /** The advisor's score (lower is better), for the collapsed drawer's order. */
+  /** The advisor's score for the Buy (lower is better). */
   score: number;
 }
+
+/** Whether a card wears the crown, on either of its buttons. */
+export const cardCrowned = (row: Row): boolean => row.crowned || row.hire?.crowned === true;
 
 /** A cycle bar: a manned one loops; an unmanned one plays its cycle in flight, or sits empty. */
 export interface Bar {
@@ -92,18 +110,34 @@ export interface Bar {
 
 const ONLINE = { online: true } as const;
 
-function lineOrThrow(id: string): LineDef {
-  const line = lineOf(content, id);
-  if (!line) throw new Error(`unknown line ${id}`);
-  return line;
-}
-
 /** "in 42s", or "tap to earn" when nothing comes in. */
 export function affordIn(cost: number, view: AdvisorView): string {
   const missing = cost - view.base.run.supplies;
   if (missing <= 0) return "";
   if (view.income <= 0) return t("row.tap_to_earn");
   return t("row.in", { time: duration(Math.ceil(missing / view.income)) });
+}
+
+/**
+ * The milestone a line owning `n` is working toward and the one before it (02-the-run.md 4.1):
+ * the card's bar runs from `from` to `at`. Null once the line is full.
+ */
+export function milestoneSpan(line: LineDef, n: number): { from: number; at: number } | null {
+  if (n >= line.maxOwned) return null;
+  let from = 0;
+  for (const step of content.milestones.line) {
+    if (step.at <= n) {
+      from = step.at;
+      continue;
+    }
+    return { from, at: Math.min(step.at, line.maxOwned) };
+  }
+  const every = content.milestones.lineEvery;
+  const at =
+    n < every.from
+      ? every.from
+      : every.from + (Math.floor((n - every.from) / every.step) + 1) * every.step;
+  return { from: Math.max(from, at - every.step), at: Math.min(at, line.maxOwned) };
 }
 
 /** The next milestone of a line owning `n` (02-the-run.md 4.1), in words. */
@@ -135,6 +169,9 @@ export function milestoneNote(line: LineDef, n: number): string {
   return t("row.milestone_every", { factor: payout, step, at: fmtCount(next) });
 }
 
+/** The stage of a line's art the scene shows at `n` owned (scene/lines.ts): 1, 2 or 3. */
+export const artStage = (n: number): number => (n >= 100 ? 3 : n >= 25 ? 2 : 1);
+
 /** How many units a bulk size buys of `line` owning `n` (Max: as many as the supplies allow). */
 export function bulkCount(line: LineDef, n: number, bulk: Bulk, supplies: number, factor: number) {
   const room = Math.max(0, line.maxOwned - n);
@@ -142,9 +179,32 @@ export function bulkCount(line: LineDef, n: number, bulk: Bulk, supplies: number
   return Math.max(1, Math.min(room, bulk));
 }
 
-function buyButton(cost: number, view: AdvisorView, top: string, label: string) {
+function buyButton(cost: number, view: AdvisorView, top: string, label: string): Button {
   const enabled = cost <= view.base.run.supplies;
   return { top: enabled ? top : affordIn(cost, view), cost: fmt(cost, "cost"), enabled, label };
+}
+
+function scoreOfCommand(view: AdvisorView, command: Command): number {
+  const choice = view.offered.find((offer) => sameRow(offer.command, command));
+  return choice?.score ?? Number.POSITIVE_INFINITY;
+}
+
+/** A line's hand, as the hire button on its card (none once manned or before the first unit). */
+function hireOf(view: AdvisorView, line: LineDef): Row["hire"] {
+  const base = view.base;
+  const n = base.run.lines[line.id] ?? 0;
+  if (n === 0 || base.run.hands.includes(line.id)) return undefined;
+  const cost = handPriceOf(content, base, line);
+  const name = crewName(line.hand);
+  const command: Command = { type: "hire_hand", line: line.id };
+  // The hand's name stays on the button while saving: the price beside it is the reason.
+  const button = buyButton(cost, view, "", t("row.aria_hire", { name, cost: fmt(cost, "cost") }));
+  return {
+    command,
+    button: { ...button, top: t("row.hire_name", { name }) },
+    crowned: false,
+    score: scoreOfCommand(view, command),
+  };
 }
 
 function lineRow(view: AdvisorView, line: LineDef, bulk: Bulk): Row {
@@ -187,13 +247,21 @@ function lineRow(view: AdvisorView, line: LineDef, bulk: Bulk): Row {
     ? { seconds, manned, elapsed: Math.max(0, seconds - (ready - view.now)), until: ready }
     : { seconds, manned };
   let rate = "";
-  if (n > 0) rate = manned || running ? `+${fmtRate(perSecond)}` : t("row.idle");
-  const unmannedHint = !manned && n > 0 && base.run.hands.length < 2;
+  if (n > 0)
+    rate = manned
+      ? `+${fmtRate(perSecond)}`
+      : running
+        ? t("row.rate_tapped", { rate: `+${fmtRate(perSecond)}` })
+        : t("row.idle");
+  const span = milestoneSpan(line, n);
+  const hire = hireOf(view, line);
+  const command: Command | null = full ? null : { type: "buy_line", line: line.id, count: bulk };
   return {
     key: `line:${line.id}`,
     kind: "line",
-    command: full ? null : { type: "buy_line", line: line.id, count: bulk },
+    command,
     icon: { kind: "line", id: line.id },
+    art: `line/${line.id}_${artStage(n)}`,
     tier: line.era,
     owned: n,
     hand: manned ? line.hand : null,
@@ -201,42 +269,20 @@ function lineRow(view: AdvisorView, line: LineDef, bulk: Bulk): Row {
     product: line.product,
     bar,
     rate,
-    note: unmannedHint ? t("row.unmanned") : milestoneNote(line, n),
+    ...(n > 0 ? { progress: span ? (n - span.from) / (span.at - span.from) : 1 } : {}),
+    note:
+      n === 0
+        ? t("row.line_first", { product: resourceName(line.product) })
+        : milestoneNote(line, n),
+    ...(hire ? { hire } : {}),
     button,
     locked: false,
     crowned: false,
-    score: Number.POSITIVE_INFINITY,
+    score: command ? scoreOfCommand(view, command) : Number.POSITIVE_INFINITY,
   };
 }
 
-function handRow(view: AdvisorView, line: LineDef): Row {
-  const base = view.base;
-  const cost = handPriceOf(content, base, line);
-  const name = crewName(line.hand);
-  const first = base.meta.stats.hands < 2;
-  return {
-    key: `hand:${line.id}`,
-    kind: "hand",
-    command: { type: "hire_hand", line: line.id },
-    icon: { kind: "crew", id: line.hand },
-    tier: line.era,
-    name: t("row.hire_name", { name }),
-    sub: first
-      ? t("row.hand_first", { line: lineName(line.id) })
-      : t("row.hand_later", { line: lineName(line.id) }),
-    button: buyButton(
-      cost,
-      view,
-      t("row.hire"),
-      t("row.aria_hire", { name, cost: fmt(cost, "cost") }),
-    ),
-    locked: false,
-    crowned: false,
-    score: Number.POSITIVE_INFINITY,
-  };
-}
-
-/** The next era's row, or null when there is none or a later phase's gate shuts it (D140). */
+/** The next era's card, or null when there is none or a later phase's gate shuts it (D140). */
 function eraRow(view: AdvisorView): Row | null {
   const base = view.base;
   const era = nextEra(content, base);
@@ -249,10 +295,11 @@ function eraRow(view: AdvisorView): Row | null {
   for (const effect of era.effects ?? []) if (effect.op === "more") factor *= effect.value;
   const progress = Math.min(1, base.run.supplies / cost);
   const name = t("row.era_name", { era: tierName(era.id) });
+  const command: Command = { type: "buy_era", era: era.id };
   return {
     key: `era:${era.id}`,
     kind: "era",
-    command: { type: "buy_era", era: era.id },
+    command,
     icon: { kind: "tier", id: era.id },
     tier: era.id,
     name,
@@ -273,7 +320,7 @@ function eraRow(view: AdvisorView): Row | null {
     ),
     locked: false,
     crowned: false,
-    score: Number.POSITIVE_INFINITY,
+    score: scoreOfCommand(view, command),
   };
 }
 
@@ -321,16 +368,20 @@ function upgradeRow(view: AdvisorView, upgrade: UpgradeDef): Row {
           have: fmtCount(gate.have),
         })
       : undefined;
+  const command: Command | null = gate ? null : { type: "buy_upgrade", upgrade: upgrade.id };
+  const line = upgrade.kind === "mk" ? (upgrade.line ?? "") : "";
   return {
     key: `upgrade:${upgrade.id}`,
     kind: "upgrade",
-    command: gate ? null : { type: "buy_upgrade", upgrade: upgrade.id },
+    command,
     icon: upgradeIcon(upgrade),
+    ...(line ? { art: `line/${line}_${artStage(base.run.lines[line] ?? 0)}` } : {}),
     tier: upgradeTier(upgrade),
     ...(upgrade.kind === "mk" ? { mk: upgrade.after ? 3 : 2 } : {}),
     name,
     sub: upgradeEffect(upgrade),
     ...(reason ? { note: reason } : {}),
+    ...(gate?.kind === "owned" ? { progress: Math.min(1, gate.have / gate.value) } : {}),
     button: gate
       ? {
           top: t("row.locked"),
@@ -346,7 +397,7 @@ function upgradeRow(view: AdvisorView, upgrade: UpgradeDef): Row {
         ),
     locked: gate !== null,
     crowned: false,
-    score: Number.POSITIVE_INFINITY,
+    score: command ? scoreOfCommand(view, command) : Number.POSITIVE_INFINITY,
   };
 }
 
@@ -359,6 +410,7 @@ function lockedLineRow(line: LineDef): Row {
     kind: "line",
     command: null,
     icon: { kind: "line", id: line.id },
+    art: `line/${line.id}_1`,
     tier: line.era,
     owned: 0,
     hand: null,
@@ -376,82 +428,41 @@ function lockedLineRow(line: LineDef): Row {
   };
 }
 
-/** The row a purchase belongs to. */
-function rowOf(view: AdvisorView, command: Command, bulk: Bulk): Row | null {
-  switch (command.type) {
-    case "buy_line":
-      return lineRow(view, lineOrThrow(command.line), bulk);
-    case "hire_hand":
-      return handRow(view, lineOrThrow(command.line));
-    case "buy_era":
-      return eraRow(view);
-    case "buy_upgrade": {
-      const upgrade = content.upgrades.find((row) => row.id === command.upgrade);
-      return upgrade ? upgradeRow(view, upgrade) : null;
-    }
-    default:
-      return null;
-  }
-}
-
 /** The bulk size in force: the toggle exists from the run's second hand (02 9.1). */
 export function bulkShown(base: BaseState): boolean {
   return base.run.hands.length >= content.run.bulkAfterHands;
 }
 
-const scoreOf = (view: AdvisorView, row: Row): number => {
-  const choice = row.command
-    ? view.offered.find((offer) => sameRow(offer.command, row.command as Command))
-    : undefined;
-  return choice?.score ?? Number.POSITIVE_INFINITY;
-};
-
-/** Crowns the row of `choice` (if it is among `rows`); returns whether one was. */
+/** Crowns the button of `choice` among `rows` (a Buy or a hire); returns whether one was. */
 function crownRow(rows: Row[], choice: Choice | null | undefined): boolean {
   if (!choice) return false;
-  const row = rows.find((item) => item.command && sameRow(item.command, choice.command));
-  if (!row) return false;
-  row.crowned = true;
-  return true;
+  for (const row of rows) {
+    if (row.command && sameRow(row.command, choice.command)) {
+      row.crowned = true;
+      return true;
+    }
+    if (row.hire && sameRow(row.hire.command, choice.command)) {
+      row.hire.crowned = true;
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
- * The collapsed drawer (08-screens.md 1.4): the crowned row first, then the next by the
- * advisor's score. While the crown is on the tap hint no row is orange (resolution 3.25).
+ * The Lines tab, in its fixed order (D186): the lines of the eras reached by rung, then the next
+ * era's card, then that era's lines, locked with their reason. Nothing moves when the crown does:
+ * an era bought unlocks its lines where they already stand.
  */
-export function collapsedRows(view: AdvisorView, bulk: Bulk, count = 3): Row[] {
-  const sorted = [...view.offered].sort(byScore);
-  const picked: Choice[] = [];
-  if (view.pick.kind === "purchase") picked.push(view.pick.choice);
-  for (const choice of sorted) {
-    if (picked.length >= count) break;
-    if (!picked.some((other) => sameRow(other.command, choice.command))) picked.push(choice);
-  }
-  const rows: Row[] = [];
-  for (const choice of picked) {
-    const row = rowOf(view, choice.command, bulk);
-    if (row) rows.push({ ...row, score: choice.score });
-  }
-  if (view.pick.kind === "purchase") crownRow(rows, view.pick.choice);
-  return rows;
-}
-
-/** The Lines tab: the era row, lines 1-14 in order with their hand rows, the next era's locked. */
 export function linesTab(view: AdvisorView, bulk: Bulk): Row[] {
   const base = view.base;
   const rows: Row[] = [];
+  for (const line of content.lines) if (eraOpen(base, line)) rows.push(lineRow(view, line, bulk));
   const era = eraRow(view);
   if (era) rows.push(era);
-  for (const line of content.lines) {
-    if (!eraOpen(base, line)) continue;
-    rows.push(lineRow(view, line, bulk));
-    const n = base.run.lines[line.id] ?? 0;
-    if (n > 0 && !base.run.hands.includes(line.id)) rows.push(handRow(view, line));
-  }
   const next = nextEra(content, base);
   if (next && !eraGate(base, next))
     for (const line of content.lines) if (line.era === next.id) rows.push(lockedLineRow(line));
-  for (const row of rows) row.score = scoreOf(view, row);
   return rows;
 }
 
@@ -466,23 +477,21 @@ function shelfOnShow(base: BaseState): UpgradeDef[] {
   });
 }
 
-/** The Upgrades tab: on show by price, then what this run bought. */
+/** The Shelf tab: what is on show by price (prices never move, so neither do the cards). */
 export function upgradesTab(view: AdvisorView): {
   rows: Row[];
   bought: Array<{ id: string; name: string }>;
 } {
   const base = view.base;
-  const rows = shelfOnShow(base)
-    .map((upgrade) => upgradeRow(view, upgrade))
-    .sort((a, b) => (a.locked === b.locked ? 0 : a.locked ? 1 : -1));
-  const cost = (row: Row) => {
-    const id = row.key.slice("upgrade:".length);
-    const upgrade = content.upgrades.find((item) => item.id === id);
-    return upgrade ? upgradeCost(content, base, upgrade) : 0;
+  const priced = shelfOnShow(base).map((upgrade) => ({
+    row: upgradeRow(view, upgrade),
+    cost: upgradeCost(content, base, upgrade),
+  }));
+  priced.sort((a, b) => a.cost - b.cost);
+  return {
+    rows: priced.map((item) => item.row),
+    bought: base.run.upgrades.map((id) => ({ id, name: upgradeName(id) })),
   };
-  rows.sort((a, b) => cost(a) - cost(b));
-  for (const row of rows) row.score = scoreOf(view, row);
-  return { rows, bought: base.run.upgrades.map((id) => ({ id, name: upgradeName(id) })) };
 }
 
 /** How many shelf rows are affordable now: the tab's count. */
@@ -495,27 +504,55 @@ export function affordableUpgrades(view: AdvisorView): number {
 }
 
 /**
- * Crowns exactly one row of an expanded tab (a view of its own, resolution 3.25): the sheet's
- * pick when it is on this tab, otherwise the tab's best score.
+ * The island's crown on these cards (CLAUDE.md 6.3 rule 1): the collapsed drawer and the desktop
+ * column share the island's view, so they light the island's pick where it stands, and nothing
+ * while the crown is elsewhere (the tap hint).
  */
-export function crownTab(rows: Row[], view: AdvisorView): Row[] {
-  if (crownRow(rows, view.sheet)) return rows;
-  let best: Row | null = null;
-  for (const row of rows) {
-    if (!row.command || row.score === Number.POSITIVE_INFINITY) continue;
-    if (!best || row.score < best.score) best = row;
-  }
-  if (best) best.crowned = true;
+export function crownPick(rows: Row[], view: AdvisorView): Row[] {
+  if (view.pick.kind === "purchase") crownRow(rows, view.pick.choice);
   return rows;
 }
 
 /**
- * The island's pick as a crowned row, or null while the crown is elsewhere (the tap hint). The
- * desktop column pins it over its tabs: the column shares the island's view, so it shows that
- * one crown and no other (CLAUDE.md 6.3 rule 1).
+ * Crowns exactly one button of an expanded tab (a view of its own, resolution 3.25): the sheet's
+ * pick when it is on this tab, otherwise the tab's best score.
  */
-export function pickRow(view: AdvisorView, bulk: Bulk): Row | null {
+export function crownTab(rows: Row[], view: AdvisorView): Row[] {
+  if (crownRow(rows, view.sheet)) return rows;
+  let best = Number.POSITIVE_INFINITY;
+  let crown: (() => void) | null = null;
+  for (const row of rows) {
+    if (row.command && row.score < best) {
+      best = row.score;
+      crown = () => {
+        row.crowned = true;
+      };
+    }
+    const hire = row.hire;
+    if (hire && hire.score < best) {
+      best = hire.score;
+      crown = () => {
+        hire.crowned = true;
+      };
+    }
+  }
+  crown?.();
+  return rows;
+}
+
+/** Where the island's pick lives: its tab and its card's key; null while the crown is elsewhere. */
+export function pickPlace(view: AdvisorView): { tab: Tab; key: string } | null {
   if (view.pick.kind !== "purchase") return null;
-  const row = rowOf(view, view.pick.choice.command, bulk);
-  return row ? { ...row, crowned: true, score: view.pick.choice.score } : null;
+  const command = view.pick.choice.command;
+  switch (command.type) {
+    case "buy_line":
+    case "hire_hand":
+      return { tab: "lines", key: `line:${command.line}` };
+    case "buy_era":
+      return { tab: "lines", key: `era:${command.era}` };
+    case "buy_upgrade":
+      return { tab: "upgrades", key: `upgrade:${command.upgrade}` };
+    default:
+      return null;
+  }
 }

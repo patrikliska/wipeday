@@ -2385,3 +2385,65 @@ in shade, three greys tinted by the hour's cloud colour. Each of the 18 clouds h
 so no two match and a 2k screen shows no repeat (D208); the high ones are bigger and faster, the
 low ones small and pale. A clear sky shows 11, rain and fog all 18, more opaque. They move in
 whole art pixels. No generated art was spent (Retro Diffusion balance unchanged, about 4.39 USD).
+
+### D219. The Feel Board's tokens and fonts in the HUD (R2 Feel S4)
+`styles/tokens.css` now holds the Feel Board's salvaged materials (D187): a warm charcoal base,
+plywood plates with a brass lip, steel edges, signal orange as the only primary, gold for
+Supplies; every HUD surface is a `.plate`, every button has depth and a press. Numbers, titles and
+card names are **Big Shoulders Display** (one variable woff2, 700-900), text is **Barlow**
+(400-700), both self-hosted as Latin subsets with their OFL beside them in
+`apps/web/public/fonts/` and a line in `docs/credits.md`; Roboto Condensed left the web (the bot
+keeps its own copy until R4's card v2 restyles it). The scene's floaters and badges use Big
+Shoulders 900. Bulk sizes stay in Barlow: the display face's `1` reads as an `l`. The era colours
+stay as they are in the scene, the HUD and the bot (one colour per era everywhere); the Feel
+Board's red Armored is not taken, but Armored's teal is close to the Board's scrap teal, so R3
+picks scrap's colour against it.
+
+### D220. The shop as cards in a fixed order; the hire on its line's card; the Best buy chip (R2 Feel S4)
+Each shop row is now a **card** (`12-feel.md` 4): the line's own pixel art at the stage the island
+shows (whole-number zoom, `hud/PixelArt.tsx`), the level badge, the hand's portrait (or the finger
+while unmanned), the cycle as a strip along the art's foot, the name, the rate, a bar from the last
+milestone to the next, and one Buy. **A hand is no longer a row of its own**: its hire is a second,
+smaller button on its line's card, where the milestone line was ("Hire Mara 1.80k"), and the crown
+lights it there. The Lines tab keeps one order forever (D186): the lines of the eras reached by
+rung, then the next era's card, then that era's lines, locked; the era card moved from the top to
+its rung, so buying it unlocks its lines where they already stand. The Shelf (the tab is renamed
+from Upgrades) is ordered by price, which never moves. The collapsed phone drawer shows the same
+list (with its tabs) as a window of two cards and a peek; that window alone follows the island's
+crown, calmly, and never within 4 s of a touch; the desktop column and the expanded drawer never
+scroll by themselves. The column no longer pins the crowned row over its tabs: it lights the card
+in place. The **Best buy** chip (gold, never orange) shows only while the crowned card is out of
+sight (scrolled away, or on the other tab, which also wears a small crown mark); pressed, it
+switches the tab, scrolls the card to the middle and pulses it once. It sits in the counter plate
+on desktop and beside the lamp on a phone, and hides under a panel, a sheet, the room and the
+expanded drawer (which crowns its own card). The harness checks the order across three purchases
+(`s4_phone_order_kept`).
+
+### D221. The dock, and panels as sheets with the dock live under them (R2 Feel S4)
+The nav row and the column's foot are replaced by one **dock** (D187, D199): a bar along the
+bottom of a phone, a plate centred under the island on desktop. Island from 0:00, Crew from the
+first hand ever hired; Workshop and Logbook join with S6 and S7, Album with R3. Crew's **badge**
+counts hands hired since the Crew sheet last showed them this run (per device, like the other
+display settings). Settings stays a pill at the top right, not a dock place: it is not a
+destination of the game. **Crew and Settings open as sheets** over the scene: full height between
+the top and the dock on a phone, 760 px wide and centred over the dimmed island and column on
+desktop; Escape, back, a click outside, (x), Done and Island all close them. The dock stays live
+under a panel (another place is one tap away); under a small sheet (Multipliers, Odds) and the
+welcome card it is inert like the rest.
+
+### D222. The lamp: the Night Shift you would get if you left now (R2 Feel S4)
+The lamp in the counter row (`12-feel.md` 6) shows `activeAt + window − now` of the window: full
+while the player plays (taps and pings move `activeAt`), burning down only while nothing is sent.
+It shows once a hand is on shift (before that nobody works the night); a phone shows the bar and
+the time, desktop adds "Night Shift" and "of 12h". The welcome card draws the same bar for what
+was left of the window when the player came back: "7h of 12h still in the lamp", or an empty,
+dashed lamp and "The lamp burnt out". The window is still 12 h until S6 sets it to 2 h.
+
+### D223. The news ticker (R2 Feel S4)
+Thirty lines in `en.json` under `ticker`, each key naming when it is true: `any`, a weather
+(`clear` only between 07:00 and 19:00: they are sun lines), `night` (21:00-06:00), an era, or a
+hand's id (while that hand is on shift). Only true lines show, so the ticker never names what the
+player has not reached (D140); friends' Wipe Days join when there is a feed to read them from. A
+line every 9 s of real time (the wall clock: an active timer, rule 6.3.9), a seeded shuffle per
+pass so nothing repeats before the rest have shown. Under the dock on desktop, in the drawer's
+handle on a phone. `hud/tickerLines.ts` (pure, tested), `hud/Ticker.tsx`.

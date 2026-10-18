@@ -1,6 +1,6 @@
 /**
  * What the HUD shows, apart from the game: the drawer, its tab and bulk size, the open panel or
- * sheet, and the player's display settings (numbers, motion). Settings live in localStorage
+ * sheet, where the crown is in the shop, and the player's display settings (numbers, motion). Settings live in localStorage
  * (per device), like sound (D162); nothing here reaches the server.
  *
  * Back (08-screens.md 1.8): opening the expanded drawer, the house, a panel or a sheet pushes a history
@@ -32,6 +32,12 @@ interface UiState {
   house: boolean;
   scientific: boolean;
   motion: Motion;
+  /** Whether the crowned card is on screen in the shop (the Best buy chip shows when not). */
+  crownInView: boolean;
+  /** Bumped by the Best buy chip: the shop scrolls to the crowned card and pulses it once. */
+  focusAt: number;
+  /** The hands the Crew sheet last showed, per run: the dock's Crew badge counts the rest. */
+  crewSeen: { run: number; hands: number };
 }
 
 interface UiActions {
@@ -46,6 +52,10 @@ interface UiActions {
   toggleBought(): void;
   setScientific(on: boolean): void;
   setMotion(motion: Motion): void;
+  /** The Best buy chip: the crown's tab, and a scroll to its card. */
+  focusCrown(tab: Tab): void;
+  /** The Crew sheet was shown with `hands` on shift in the run started at `run`. */
+  seeCrew(run: number, hands: number): void;
   /** Closes the top layer (sheet, then panel, then the expanded drawer); false when none. */
   back(): boolean;
 }
@@ -69,6 +79,13 @@ function write(key: string, value: string): void {
 const storedBulk = (): Bulk => {
   const value = read("wipeday.bulk");
   return value === "max" ? "max" : value === "10" ? 10 : value === "100" ? 100 : 1;
+};
+
+const storedCrewSeen = (): { run: number; hands: number } => {
+  const [run, hands] = (read("wipeday.crew_seen") ?? "").split(":").map(Number);
+  return Number.isFinite(run) && Number.isFinite(hands)
+    ? { run: run ?? 0, hands: hands ?? 0 }
+    : { run: 0, hands: 0 };
 };
 
 const storedMotion = (): Motion => {
@@ -104,6 +121,9 @@ export const useUi = create<UiState & UiActions>((set, get) => {
     house: false,
     scientific: read("wipeday.scientific") === "1",
     motion: storedMotion(),
+    crownInView: true,
+    focusAt: 0,
+    crewSeen: storedCrewSeen(),
 
     expand(open) {
       if (open === get().expanded) return;
@@ -158,6 +178,15 @@ export const useUi = create<UiState & UiActions>((set, get) => {
     setMotion(motion) {
       write("wipeday.motion", motion);
       set({ motion });
+    },
+    focusCrown(tab) {
+      set({ tab, focusAt: get().focusAt + 1 });
+    },
+    seeCrew(run, hands) {
+      const seen = get().crewSeen;
+      if (seen.run === run && seen.hands === hands) return;
+      write("wipeday.crew_seen", `${run}:${hands}`);
+      set({ crewSeen: { run, hands } });
     },
     back() {
       const state = get();

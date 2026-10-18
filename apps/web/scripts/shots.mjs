@@ -678,7 +678,7 @@ const SHOTS = [
       ...STONE_RUN,
       ui: { panel: "settings" },
     },
-    scroll: ".panel .panel-scroll",
+    scroll: ".panel-sheet .panel-scroll",
     ff: 0.5,
   },
   {
@@ -1152,6 +1152,250 @@ const SHOTS = [
     state: { ...TWIG_HERO, time: at(1, 12), wall: WALL, weather: "rain" },
     ff: 0.2,
   },
+  // R2 Feel S4, the HUD (12-feel.md 13): the Feel Board's views, the dock, sheets, the cards in
+  // fixed order with the crown in place and the Best buy chip, the lamp, the ticker.
+  ...["day", "dusk", "night", "rain"].map((sky) => ({
+    name: sky === "day" ? "s4_desktop_hero" : `s4_desktop_hero_${sky}`,
+    viewport: [1440, 810],
+    state: {
+      time: at(1, sky === "dusk" ? 19.2 : sky === "night" ? 23 : 10.5),
+      wall: WALL,
+      weather: sky === "rain" ? "rain" : "clear",
+      ...TIMBER_YARD,
+    },
+    ff: 2.5,
+  })),
+  ...["day", "dusk", "night", "rain"].map((sky) => ({
+    name: sky === "day" ? "s4_phone_hero" : `s4_phone_hero_${sky}`,
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, sky === "dusk" ? 19.2 : sky === "night" ? 23 : 10.5),
+      wall: WALL,
+      weather: sky === "rain" ? "rain" : "clear",
+      ...TIMBER_YARD,
+    },
+    ff: 2.5,
+  })),
+  {
+    name: "s4_phone_first_minute",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      supplies: 12,
+      made: 60,
+      taps: 60,
+      target: { taps: 60, felled: 1 },
+      lines: { beachcomber: 2 },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s4_phone_hire",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      era: "wood",
+      eraAt: { wood: 36 },
+      supplies: 2600,
+      made: 4200,
+      taps: 380,
+      target: { taps: 4, felled: 9 },
+      lines: { beachcomber: 12, campfire: 2 },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s4_desktop_hire",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      era: "wood",
+      eraAt: { wood: 36 },
+      supplies: 2600,
+      made: 4200,
+      taps: 380,
+      target: { taps: 4, felled: 9 },
+      lines: { beachcomber: 12, campfire: 2 },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s4_phone_drawer_cards",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { expanded: true },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s4_phone_drawer_shelf",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { expanded: true, tab: "upgrades" },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s4_phone_stone",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+  },
+  {
+    name: "s4_desktop_stone",
+    viewport: [1440, 810],
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+  },
+  // The crown out of sight: the chip shows; pressed, the list scrolls to the card and pulses it.
+  {
+    name: "s4_desktop_best_buy",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      lines: { ...STONE_RUN.lines, tannery: 3, press: 1 },
+      hands: [...STONE_RUN.hands, "furnace"],
+    },
+    scrollRows: "end",
+    ff: 2.5,
+  },
+  {
+    name: "s4_desktop_best_buy_pressed",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      lines: { ...STONE_RUN.lines, tannery: 3, press: 1 },
+      hands: [...STONE_RUN.hands, "furnace"],
+    },
+    scrollRows: "end",
+    click: ".best-buy",
+    ff: 0.3,
+  },
+  // Three purchases in a row: the cards keep their order (D186); the harness checks it.
+  {
+    name: "s4_phone_order_kept",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { expanded: true },
+    },
+    orderSends: [
+      { type: "buy_line", line: "kiln", count: 1 },
+      { type: "buy_line", line: "beachcomber", count: 1 },
+      { type: "buy_line", line: "furnace", count: 1 },
+    ],
+    ff: 2.5,
+  },
+  {
+    name: "s4_phone_dock_badges",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...TIMBER_YARD, crewNew: 2 },
+    ff: 2.5,
+  },
+  {
+    name: "s4_desktop_sheet_crew",
+    viewport: [1440, 810],
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, ui: { panel: "crew" } },
+    ff: 2.5,
+  },
+  {
+    name: "s4_phone_sheet_crew",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, ui: { panel: "crew" } },
+    ff: 2.5,
+  },
+  {
+    name: "s4_desktop_sheet_settings",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { panel: "settings" },
+    },
+    ff: 2.5,
+  },
+  ...["day", "night"].map((sky) => ({
+    name: sky === "day" ? "s4_welcome_back_lamp" : "s4_welcome_back_lamp_night",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, sky === "night" ? 22 : 13),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      away: 13 * 3600,
+    },
+    ff: 2.5,
+  })),
+  {
+    name: "s4_welcome_back_lamp_left",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 15), wall: WALL, weather: "clear", ...STONE_RUN, away: 5 * 3600 },
+    ff: 2.5,
+  },
+  {
+    name: "s4_ticker",
+    viewport: [1440, 810],
+    state: { time: at(1, 10.5), wall: WALL, weather: "rain", ...TIMBER_YARD },
+    ff: 2.5,
+    clip: [300, 690, 760, 120],
+  },
+  {
+    name: "s4_phone_numbers_big",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...HQM_RUN,
+      supplies: 9.99e35,
+      made: 9.99e35,
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s4_phone_short",
+    viewport: PHONE_SHORT,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+  },
 ];
 
 /** Moves `time` by whole days (same hour) until the island has `weather` then. */
@@ -1233,7 +1477,7 @@ async function main() {
     // Entrance slides and fades would be caught half-way: shots show the settled layout.
     await page.addStyleTag({
       content:
-        ".drawer, .column, .nav, .panel, .sheet, .sheet-backdrop, .toast { animation: none !important; transition: none !important; }",
+        ".drawer, .column, .dock, .sheet, .sheet-backdrop, .toast, .ticker-line, .best-buy { animation: none !important; transition: none !important; }",
     });
     await page.waitForFunction(() => (window.__wipeDay?.frames ?? 0) > 5, null, {
       timeout: 20_000,
@@ -1265,6 +1509,7 @@ async function main() {
           flotsamKind,
           away,
           collect,
+          crewNew,
           ...run
         } = state;
         if (runAge !== undefined) run.startedAt = time - runAge;
@@ -1304,7 +1549,18 @@ async function main() {
           house: false,
           scientific: false,
           motion: "device",
+          crownInView: true,
+          focusAt: 0,
           ...ui,
+        });
+        // The Crew badge counts hands hired since the sheet last showed them: none new, unless
+        // the shot says how many.
+        const after = store.getState().base.run;
+        uiStore.setState({
+          crewSeen: {
+            run: after.n,
+            hands: Math.max(0, after.hands.length - (crewNew ?? 0)),
+          },
         });
         if (away) {
           clocks.game.set(time + away);
@@ -1330,6 +1586,26 @@ async function main() {
         window.__wipeDay.fastForward?.(1 / 60);
         window.__wipeDay.store.getState().send(command);
       }, shot.send);
+    }
+    const extra = [];
+    if (shot.orderSends) {
+      // Purchases one after another: the shop's cards must keep their order (D186).
+      const order = () =>
+        page.evaluate(() =>
+          [...document.querySelectorAll(".card")].map((card) => card.dataset.key).join(" "),
+        );
+      await page.waitForTimeout(150);
+      const before = await order();
+      for (const command of shot.orderSends) {
+        await page.evaluate((command) => {
+          window.__wipeDay.fastForward?.(1 / 60);
+          window.__wipeDay.store.getState().send(command);
+        }, command);
+        await page.waitForTimeout(150);
+        const now = await order();
+        if (now !== before)
+          extra.push(`the cards moved after ${command.type} ${command.line ?? ""}: ${now}`);
+      }
     }
     if (shot.taps) {
       const [rounds, perRound] = shot.taps;
@@ -1364,10 +1640,16 @@ async function main() {
     }
     if (shot.scrollRows === "end") {
       await page.evaluate(() => {
-        const list = document.querySelector(".rows.scroll");
+        const list = document.querySelector(".cards");
         if (list) list.scrollTop = list.scrollHeight;
       });
       await page.waitForTimeout(100);
+    }
+    if (shot.click) {
+      // After any scroll: the Best buy chip shows once its card is out of sight.
+      await page.waitForTimeout(250);
+      await page.click(shot.click);
+      await page.waitForTimeout(900);
     }
     if (shot.clip) {
       const [x, y, clipWidth, clipHeight] = shot.clip;
@@ -1378,7 +1660,7 @@ async function main() {
     }
     const file = path.join(outDir, `${shot.name}.png`);
     await page.screenshot({ path: file });
-    const problems = await audit(page, width);
+    const problems = [...extra, ...(await audit(page, width))];
     done.push({ ...shot, file: `${shot.name}.png`, errors, problems });
     const notes = [
       errors.length ? `${errors.length} console errors` : "",

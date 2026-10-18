@@ -5,11 +5,14 @@ import { seedPace } from "../state/pace";
 import { content } from "../state/world";
 import {
   affordIn,
-  collapsedRows,
+  cardCrowned,
+  crownPick,
   crownTab,
   linesTab,
   milestoneNote,
-  pickRow,
+  milestoneSpan,
+  pickPlace,
+  type Row,
   upgradesTab,
 } from "./rows";
 
@@ -27,7 +30,11 @@ const viewOf = (patch: Partial<BaseState["run"]> = {}, pace = 6) => {
   return computeAdvisor(base(patch), T0, MS);
 };
 
-const crowned = (rows: { crowned: boolean }[]) => rows.filter((row) => row.crowned).length;
+/** Crowned buttons, a card's Buy and its hire counted apart. */
+const crowns = (rows: Row[]) =>
+  rows.filter((row) => row.crowned).length + rows.filter((row) => row.hire?.crowned).length;
+
+const keys = (rows: Row[]) => rows.map((row) => row.key);
 
 const STONE = {
   era: "stone" as const,
@@ -45,75 +52,160 @@ const STONE = {
   upgrades: ["stone_tools", "sorting_tables", "iron_tools"],
 };
 
-describe("the collapsed drawer (08-screens.md 1.4)", () => {
-  it("shows the crowned row first, then the next two by score", () => {
-    const view = viewOf({ supplies: 7 });
-    const rows = collapsedRows(view, 1);
-    expect(rows).toHaveLength(3);
-    expect(rows[0]?.key).toBe("line:beachcomber");
-    expect(rows[0]?.crowned).toBe(true);
-    expect(crowned(rows)).toBe(1);
+describe("the shop's fixed order (D186)", () => {
+  it("lists the lines by rung, the next era's card after them, then its lines locked", () => {
+    const rows = linesTab(viewOf(STONE), 1);
+    expect(keys(rows)).toEqual([
+      "line:beachcomber",
+      "line:campfire",
+      "line:garden",
+      "line:loom",
+      "line:workbench",
+      "line:kiln",
+      "line:furnace",
+      "line:tannery",
+      "line:press",
+      "era:metal",
+      "line:dock",
+      "line:generator",
+      "line:radio_mast",
+    ]);
+    const locked = rows.filter((row) => row.locked).map((row) => row.key);
+    expect(locked).toEqual(["line:dock", "line:generator", "line:radio_mast"]);
+    expect(rows.find((row) => row.key === "line:dock")?.note).toBe("Opens in the Sheet Metal era");
   });
 
-  it("has no orange row while the crown is on the tap hint (resolution 3.25)", () => {
-    const view = viewOf({ supplies: 2, lines: { beachcomber: 1 } });
-    expect(view.pick.kind).toBe("tap");
-    expect(crowned(collapsedRows(view, 1))).toBe(0);
+  it("never moves a card when the supplies, the pace or the crown change", () => {
+    const order = keys(linesTab(viewOf(STONE), 1));
+    for (const supplies of [0, 1e3, 4e5, 3e7, 9e9])
+      for (const pace of [0, 2, 12]) {
+        const view = viewOf({ ...STONE, supplies }, pace);
+        expect(keys(crownPick(linesTab(view, 1), view))).toEqual(order);
+        expect(keys(crownTab(linesTab(view, 10), view))).toEqual(order);
+      }
+  });
+
+  it("keeps the order through three purchases", () => {
+    let run = { ...STONE, lines: { ...STONE.lines } };
+    const order = keys(linesTab(viewOf(run), 1));
+    for (const line of ["kiln", "beachcomber", "furnace"] as const) {
+      run = { ...run, lines: { ...run.lines, [line]: run.lines[line] + 1 } };
+      expect(keys(linesTab(viewOf(run), 1))).toEqual(order);
+    }
+  });
+
+  it("an era bought unlocks its lines where they already stood", () => {
+    const twig = viewOf({ supplies: 2e3, lines: { beachcomber: 12, campfire: 3 } });
+    const before = keys(linesTab(twig, 1));
+    const timber = viewOf({ era: "wood", supplies: 0, lines: { beachcomber: 12, campfire: 3 } });
+    const after = keys(linesTab(timber, 1));
+    expect(before.slice(0, 3)).toEqual(after.slice(0, 3));
+    const loom = before.indexOf("line:loom");
+    expect(after.indexOf("line:loom")).toBe(loom - 1);
+  });
+
+  it("orders the Shelf by price", () => {
+    const view = viewOf(STONE);
+    const rows = upgradesTab(view).rows;
+    expect(rows.length).toBeGreaterThan(1);
+    const again = upgradesTab(viewOf({ ...STONE, supplies: 1 })).rows;
+    expect(keys(again)).toEqual(keys(rows));
+  });
+});
+
+describe("the crown on the cards (CLAUDE.md 6.3 rule 1)", () => {
+  it("lights the island's pick in place, and nothing while the crown is on the tap hint", () => {
+    const start = viewOf({ supplies: 7 });
+    const rows = crownPick(linesTab(start, 1), start);
+    expect(rows[0]?.key).toBe("line:beachcomber");
+    expect(rows[0]?.crowned).toBe(true);
+    expect(crowns(rows)).toBe(1);
+
+    const hint = viewOf({ supplies: 2, lines: { beachcomber: 1 } });
+    expect(hint.pick.kind).toBe("tap");
+    expect(crowns(crownPick(linesTab(hint, 1), hint))).toBe(0);
+  });
+
+  it("an expanded tab crowns exactly one button, even when the island crowns the hint", () => {
+    for (const patch of [{ supplies: 2, lines: { beachcomber: 1 } }, STONE]) {
+      const view = viewOf(patch);
+      expect(crowns(crownTab(linesTab(view, 1), view))).toBe(1);
+      const shelf = upgradesTab(view).rows;
+      if (shelf.some((row) => row.command)) expect(crowns(crownTab(shelf, view))).toBe(1);
+    }
+  });
+
+  it("carries a line's hire on its card, and crowns the hire there", () => {
+    const view = viewOf({ era: "wood", supplies: 4e3, lines: { beachcomber: 12 } });
+    const rows = crownPick(linesTab(view, 1), view);
+    const card = rows.find((row) => row.key === "line:beachcomber");
+    expect(card?.hire?.command).toEqual({ type: "hire_hand", line: "beachcomber" });
+    expect(card?.hire?.button.top).toBe("Hire Mara");
+    expect(pickPlace(view)).toEqual({ tab: "lines", key: "line:beachcomber" });
+    if (view.pick.kind === "purchase" && view.pick.choice.command.type === "hire_hand") {
+      expect(card?.hire?.crowned).toBe(true);
+      expect(card?.crowned).toBe(false);
+    }
+    expect(card ? cardCrowned(card) : false).toBe(true);
+    // A manned line has no hire; an unowned one neither.
+    const manned = linesTab(viewOf(STONE), 1);
+    expect(manned.find((row) => row.key === "line:loom")?.hire).toBeUndefined();
+    expect(manned.find((row) => row.key === "line:tannery")?.hire).toBeUndefined();
+    expect(manned.find((row) => row.key === "line:furnace")?.hire).toBeDefined();
   });
 
   it("an idle player is never crowned more of an unmanned line", () => {
     // Three Beachcombers and no Mara: another one would only run while tapping. (A first unit
     // of a new line may be crowned, as the way to its hand; D177.)
     const view = viewOf({ supplies: 30, lines: { beachcomber: 3 } }, 0);
-    const rows = collapsedRows(view, 1);
+    const rows = crownPick(linesTab(view, 1), view);
     expect(rows.find((row) => row.crowned)?.key ?? "none").not.toBe("line:beachcomber");
+  });
+
+  it("names where the pick lives, for the Best buy chip", () => {
+    expect(pickPlace(viewOf({ supplies: 2, lines: { beachcomber: 1 } }))).toBeNull();
+    const place = pickPlace(viewOf(STONE));
+    expect(place?.tab === "lines" || place?.tab === "upgrades").toBe(true);
   });
 });
 
-describe("the expanded drawer, a view of its own", () => {
-  it("crowns exactly one row on each tab, even when the island crowns the hint", () => {
-    for (const patch of [{ supplies: 2, lines: { beachcomber: 1 } }, STONE]) {
-      const view = viewOf(patch);
-      expect(crowned(crownTab(linesTab(view, 1), view))).toBe(1);
-      const shelf = upgradesTab(view).rows;
-      if (shelf.some((row) => row.command)) expect(crowned(crownTab(shelf, view))).toBe(1);
-    }
-  });
-
-  it("lists the era first, lines in order with their hand rows, the next era's lines locked", () => {
-    const view = viewOf(STONE);
-    const rows = linesTab(view, 1);
-    expect(rows[0]?.key).toBe("era:metal");
-    const keys = rows.map((row) => row.key);
-    expect(keys.indexOf("hand:furnace")).toBe(keys.indexOf("line:furnace") + 1);
-    const locked = rows.filter((row) => row.locked).map((row) => row.key);
-    expect(locked).toEqual(["line:dock", "line:generator", "line:radio_mast"]);
-    expect(rows.find((row) => row.key === "line:dock")?.note).toBe("Opens in the Sheet Metal era");
-  });
-
+describe("cards", () => {
   it("never shows the Armored era before its Wipe Day (D140)", () => {
     const view = viewOf({ ...STONE, era: "metal" });
     expect(linesTab(view, 1).some((row) => row.key.startsWith("era:"))).toBe(false);
     expect(linesTab(view, 1).some((row) => row.key === "line:reactor")).toBe(false);
   });
 
-  it("shows a Line Mk short of units with its real reason", () => {
+  it("shows a Line Mk short of units with its real reason and how far along it is", () => {
     const view = viewOf(STONE);
     const mk = upgradesTab(view).rows.find((row) => row.key === "upgrade:furnace_mk2");
     expect(mk?.locked).toBe(true);
     expect(mk?.note).toBe("Needs 25 Furnaces (12 now)");
+    expect(mk?.progress).toBeCloseTo(12 / 25);
     expect(mk?.button.enabled).toBe(false);
+    expect(mk?.art).toBe("line/furnace_1");
   });
 
-  it("the desktop column pins the island's pick, and nothing while the hint has the crown", () => {
-    expect(pickRow(viewOf({ supplies: 2, lines: { beachcomber: 1 } }), 1)).toBeNull();
-    const pinned = pickRow(viewOf(STONE), 1);
-    expect(pinned?.crowned).toBe(true);
-    expect(pinned?.command).not.toBeNull();
+  it("draws a line at the stage the island shows", () => {
+    const rows = linesTab(viewOf(STONE), 1);
+    expect(rows.find((row) => row.key === "line:beachcomber")?.art).toBe("line/beachcomber_2");
+    expect(rows.find((row) => row.key === "line:kiln")?.art).toBe("line/kiln_1");
+    expect(rows.find((row) => row.key === "line:tannery")?.note).toBe("Makes Leather");
+  });
+
+  it("fills the bar from the last milestone to the next", () => {
+    const loom = content.lines.find((line) => line.id === "loom");
+    if (!loom) throw new Error("loom");
+    expect(milestoneSpan(loom, 4)).toEqual({ from: 0, at: 10 });
+    expect(milestoneSpan(loom, 17)).toEqual({ from: 10, at: 25 });
+    expect(milestoneSpan(loom, 450)).toEqual({ from: 400, at: 500 });
+    expect(milestoneSpan(loom, 1050)).toEqual({ from: 1000, at: 1100 });
+    const card = linesTab(viewOf(STONE), 1).find((row) => row.key === "line:loom");
+    expect(card?.progress).toBeCloseTo((26 - 25) / (50 - 25));
   });
 });
 
-describe("row words", () => {
+describe("card words", () => {
   it("names the next milestone", () => {
     const loom = content.lines.find((line) => line.id === "loom");
     if (!loom) throw new Error("loom");

@@ -5,7 +5,6 @@ import { type ReactNode, useEffect, useState } from "react";
 import type { NotifyView } from "../net/backend";
 import { currentSubscription, disablePush, enablePush, pushSupport } from "../net/push";
 import { haptics, sound } from "../sound/audio";
-import { useColumn } from "../state/layout";
 import { currentBackend, useWorld } from "../state/store";
 import { type Motion, type Panel, useUi } from "../state/ui";
 import { content, crewName, lineName, t, tierName } from "../state/world";
@@ -13,21 +12,37 @@ import { Icon } from "./Icon";
 import { tierVar, vars } from "./util";
 
 /**
- * Panels (08-screens.md 1.8): Crew and Settings sit between the top bar and the nav row on a
- * phone and replace the shop inside the desktop column. Each closes by its (x), by Island, by
- * Escape and by Android back, and has one primary: Done.
+ * Panels as sheets over the scene (12-feel.md 4; D187): Crew and Settings open from the dock or
+ * the settings pill, full height above the dock on a phone, wide and centred on desktop. Each
+ * closes by its (x), by Island, by a click outside, by Escape and by Android back, and has one
+ * primary: Done. The dock stays live under a panel, so another destination is one tap away.
  */
 export function Panels() {
   const panel = useUi((state) => state.panel);
-  const column = useColumn();
-  if (!panel || column) return null;
+  const openPanel = useUi((state) => state.openPanel);
+  if (!panel) return null;
+  const title = t(panel === "crew" ? "crew_panel.title" : "settings.title");
   return (
-    <section
-      className="glass panel"
-      aria-label={t(panel === "crew" ? "crew_panel.title" : "settings.title")}
-    >
-      <PanelBody panel={panel} />
-    </section>
+    <div className="sheet-backdrop panel-backdrop">
+      <button
+        type="button"
+        className="backdrop-hit"
+        tabIndex={-1}
+        aria-label={t("settings.close")}
+        onClick={() => {
+          sound.play("ui_close");
+          openPanel(null);
+        }}
+      />
+      <section
+        className={`plate sheet panel-sheet panel-${panel}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
+        <PanelBody panel={panel} />
+      </section>
+    </div>
   );
 }
 
@@ -70,6 +85,12 @@ function Shell({ title, sub, children }: { title: string; sub?: string; children
 /** The roster (08-screens.md 2.3; R1: who is on shift, no ranks yet). */
 function CrewPanel() {
   const base = useWorld((state) => state.base);
+  const run = base?.run.n ?? 0;
+  const hands = base?.run.hands.length ?? 0;
+  // The dock's Crew badge counts hands hired since this sheet last showed them.
+  useEffect(() => {
+    useUi.getState().seeCrew(run, hands);
+  }, [run, hands]);
   if (!base) return null;
   const next = nextEra(content, base);
   // Hands of the eras reached, then the next era's (their lines show locked in the shop).

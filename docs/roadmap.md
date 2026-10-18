@@ -6,7 +6,7 @@ should think, and what "done" means**. It was rewritten in R0 from the approved 
 (`docs/redesign/11-roadmap.md`, which keeps the reasons); the W-phase roadmap and its results are
 in `docs/archive/roadmap-w.md`.
 
-## Where we are (2026-10-18, R2 Feel S3 art done)
+## Where we are (2026-10-18, R2 Feel S4 done)
 
 - **The live game** is W8 on frozen `main` at https://wipeday.patrikliska.dev: season 1 (started
   2026-10-07) sits untouched and nobody plays it now (owner decision 7). It ends quietly at the
@@ -37,9 +37,32 @@ in `docs/archive/roadmap-w.md`.
   rooms, the back row placed deeper, Armored's wider camp, pixel wear (D214-D216).
 - **R2 Feel S3 is done** (2026-10-18; results below): the hero tap (the stockpile, the chips,
   squash on the step grid, the fell's shake; D217) and pixel clouds (D218).
-- **Next: R2 Feel S4, the HUD**: the Feel Board's tokens and fonts, the dock, panels as sheets,
-  the card shop in fixed order with the Best buy chip, the lamp, the ticker. Retro Diffusion has
-  about 4.39 USD left.
+- **R2 Feel S4, the HUD, is done** (2026-10-18; results below): the Feel Board's tokens and
+  fonts, the dock, panels as sheets, the shop as cards in a fixed order with the hire on its
+  line's card and the Best buy chip, the lamp, the ticker (D219-D223).
+- **Next: R2 Feel S5, sound and juice** (`sounds.json5`, the juice checklist on everything so
+  far, a credits panel; `docs/credits.md` holds its lines). The owner's playtest after S4 is due.
+  Retro Diffusion has about 4.39 USD left.
+
+### R2 Feel S4 results: the HUD
+- **Look** (D219): plywood and steel plates, signal orange as the only primary, gold Supplies;
+  Big Shoulders Display for numbers and titles, Barlow for text, self-hosted with their OFL.
+- **The shop** (D220): cards with the line's own pixel art at its stage, the level badge, the
+  hand's portrait, the cycle strip, the rate and the bar to the next milestone; the hire folded
+  into its line's card; the Lines tab by rung with the next era's card at its place; the Shelf by
+  price; the collapsed drawer a two-card window that follows the crown calmly; the Best buy chip
+  only while the crowned card is out of sight. The harness buys three cards in a row and fails
+  the shot if any card moves.
+- **The dock and sheets** (D221): Island from 0:00, Crew at the first hand with a badge for new
+  hands; Crew and Settings as sheets with the dock live under them.
+- **The lamp** (D222) in the counter row and on the welcome card; **the ticker** (D223), thirty
+  lines that only say what is true.
+- **Shots:** 28 new `s4_*` (the `desktop_hero`, `phone_hero` and `phone_drawer_cards` of
+  `08-screens.md` 8.3 at day, dusk, night and rain; `desktop_sheet_crew`, `phone_dock_badges`,
+  `welcome_back_lamp`, `ticker` at day and some at night; the other weathers of those four are
+  S8's); 110 in all, the audit clean. Three review rounds in `docs/ui-review.md`.
+- **Checks:** `pnpm check` green; `pnpm sim check` OK (shipped R1, 7.4 s). No rule changed, so the
+  N-values read as at S1.
 
 ### R2 Feel S3 results: the hero tap and pixel clouds
 - **The hero tap** (D217): every tap chips a log, stone, nugget, sulfur lump or hull plate that

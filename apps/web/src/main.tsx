@@ -12,8 +12,9 @@ if (!root) throw new Error("#root missing");
 
 // Canvas text (floating numbers) needs the font ready before the first frame.
 Promise.all([
-  document.fonts.load('400 16px "Roboto Condensed"'),
-  document.fonts.load('700 16px "Roboto Condensed"'),
+  document.fonts.load('400 16px "Barlow"'),
+  document.fonts.load('700 16px "Barlow"'),
+  document.fonts.load('900 16px "Big Shoulders Display"'),
 ])
   .catch(() => undefined)
   .finally(() => {

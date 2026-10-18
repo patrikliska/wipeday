@@ -115,7 +115,7 @@ export class Flotsam {
     this.button.addEventListener("contextmenu", (event) => event.preventDefault());
 
     this.hint = document.createElement("div");
-    this.hint.className = "glass flotsam-hint";
+    this.hint.className = "plate flotsam-hint";
     this.hint.setAttribute("role", "status");
     this.hint.hidden = true;
   }

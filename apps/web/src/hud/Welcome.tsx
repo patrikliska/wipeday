@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { sound } from "../sound/audio";
 import { gameSeconds, localSeconds, useWorld } from "../state/store";
 import { closeAll } from "../state/ui";
-import { clockLabel, duration, fmt, fmtFactor, t } from "../state/world";
+import { clockLabel, duration, fmt, t } from "../state/world";
 import { Icon, ResourceIcon } from "./Icon";
 import { SheetFrame } from "./Sheet";
 
@@ -28,11 +28,12 @@ export function Welcome() {
   if (!card) return null;
   const nobody = card.hands === 0;
   const gain = card.gain >= 1;
-  const { full, window } = card.nightShift;
+  const { full, window, worked } = card.nightShift;
+  const left = Math.max(0, window - worked);
   const lead = nobody
     ? t("welcome.nobody")
     : full
-      ? t("welcome.worked_full", { hours: fmtFactor(window / 3600) })
+      ? t("welcome.worked_full", { time: duration(window) })
       : t("welcome.worked_all");
   const stopped = !nobody && card.stoppedAt !== null ? stoppedLine(card.stoppedAt) : null;
   const button = nobody ? t("welcome.back_to_work") : t("welcome.collect");
@@ -63,6 +64,19 @@ export function Welcome() {
           {stopped ? <span className="welcome-stopped">{stopped}</span> : null}
         </span>
       </p>
+      {nobody ? null : (
+        // The lamp burning down (12-feel.md 6): what is left of the window the hands worked.
+        <div className={`welcome-lamp${full ? " out" : ""}`}>
+          <span className="lamp-bar" aria-hidden="true">
+            <i style={{ transform: `scaleX(${window > 0 ? left / window : 0})` }} />
+          </span>
+          <span className="welcome-lamp-text">
+            {full
+              ? t("welcome.lamp_out")
+              : t("welcome.lamp_left", { left: duration(left), window: duration(window) })}
+          </span>
+        </div>
+      )}
     </SheetFrame>
   );
 }

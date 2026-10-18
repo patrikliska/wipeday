@@ -1,49 +1,90 @@
-/* The one place with colours and type. Mirrors src/ui/theme.ts in the bot. */
+/* The one place with colours and type: the Saltmarsh Feel Board's salvaged materials (D187),
+   plywood and steel plates with a brass edge on a warm charcoal base, signal orange as the only
+   primary. The era colours are the scene's and the bot's (src/ui/theme.ts), unchanged (D219). */
 @font-face {
-  font-family: "Roboto Condensed";
-  src: url("/fonts/RobotoCondensed-Regular.ttf") format("truetype");
+  font-family: "Big Shoulders Display";
+  src: url("/fonts/BigShouldersDisplay-latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Barlow";
+  src: url("/fonts/Barlow-400.woff2") format("woff2");
   font-weight: 400;
   font-display: swap;
 }
 @font-face {
-  font-family: "Roboto Condensed";
-  src: url("/fonts/RobotoCondensed-Bold.ttf") format("truetype");
+  font-family: "Barlow";
+  src: url("/fonts/Barlow-500.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Barlow";
+  src: url("/fonts/Barlow-600.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Barlow";
+  src: url("/fonts/Barlow-700.woff2") format("woff2");
   font-weight: 700;
   font-display: swap;
 }
 
 :root {
-  --bg: #1b1a18;
-  --panel: #272521;
-  /* 0.86 over the brightest sky keeps --muted at 5.5:1 (08-screens.md 6.3). */
-  --panel-glass: rgba(27, 26, 24, 0.86);
-  --panel-glass-2: rgba(39, 37, 33, 0.72);
-  --border: #3b3832;
-  --border-soft: rgba(236, 232, 223, 0.08);
-  --text: #ece8df;
-  --muted: #b5afa4;
-  --success: #7fa043;
-  --warning: #e3a32f;
-  --danger: #f05252;
+  /* The base and the plates. */
+  --bg: #17150f;
+  --bg-2: #201c14;
+  --plate-hi: #3a3126;
+  --plate-lo: #2a2319;
+  --plate: linear-gradient(180deg, var(--plate-hi), var(--plate-lo));
+  --sunk: #15100a;
+  --edge: #5a4a36;
+  --edge-hi: #8a7250;
+  --edge-soft: #4a3c2a;
+  --lip: inset 0 1px 0 rgba(255, 230, 180, 0.16);
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.35);
+  /* Selected tabs and dock places: a lighter plate, never orange. */
+  --selected: linear-gradient(180deg, #5a4a36, #3f3324);
+
+  /* Text. */
+  --text: #f4ead3;
+  --text-2: #cdbc98;
+  --muted: #a8977a;
+  --faint: #8c7b5c;
+  --ink: #1a1208;
 
   /* The crown: one signal-orange button per view (D138), ink text on it (6.3). */
-  --primary: #f27a1a;
+  --primary: #ff6a00;
   --primary-hi: #ff9a3c;
-  --primary-lo: #e46c12;
-  --primary-glow: rgba(242, 122, 26, 0.5);
-  --on-primary: #1b1a18;
-  /* The Big Red's dome and glyph only (R2); never a button colour. */
+  --primary-edge: #ffb86b;
+  --primary-lip: #9a3a00;
+  --primary-glow: rgba(255, 120, 30, 0.45);
+  --on-primary: #1a0a00;
+
+  /* Each currency owns one colour. */
+  --supplies: #f2b134;
+  --supplies-hi: #ffd166;
+  --supplies-lip: #7a4a00;
+  --success: #9ee6a0;
+  --warning: #f2b134;
+  --danger: #e03a2f;
+  /* The Big Red's dome and glyph only (R4); never a button colour. */
   --big-red: #d8261c;
   --big-red-hi: #ff4a3d;
-  /* The red band of the old HUD, kept as an icon accent (D141). */
   --red-band: #cd412b;
   --hazard: #ffd21f;
   --hazard-ink: #1b1a18;
   --hustle-lo: #ffe7a8;
   --hustle-hi: #ff8c2a;
   --buff: #ffc95c;
-  /* Selected tabs and segments are neutral, so orange stays the crown's. */
-  --selected: rgba(236, 232, 223, 0.14);
+  /* Icon accents (D141): the icons' one extra colour each. */
+  --accent-amber: #e3a32f;
+  --accent-red: #f05252;
+  /* Dock badges: new things. */
+  --badge: #e03a2f;
 
   --tier-twig: #c2a868;
   --tier-wood: #b07840;
@@ -51,10 +92,11 @@
   --tier-metal: #6c97bc;
   --tier-hqm: #45c2c0;
 
-  --font: "Roboto Condensed", "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
-  --radius: 14px;
-  --radius-sm: 9px;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  --display: "Big Shoulders Display", "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Barlow", "Segoe UI", Roboto, system-ui, sans-serif;
+  --font: var(--body);
+  --radius: 12px;
+  --radius-sm: 10px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
@@ -63,26 +105,46 @@
   --t-slow: 400ms;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 
-  /* The phone frame (08-screens.md 1.1). */
-  --top-h: 56px;
-  --nav-h: 56px;
-  --row-h: 76px;
-  --row-gap: 4px;
+  /* The phone frame. */
+  --top-h: 60px;
+  --dock-h: calc(64px + var(--safe-bottom));
+  --card-h: 80px;
+  --card-gap: 8px;
   --handle-h: 44px;
-  /* The collapsed drawer: the handle and three rows (two on short screens). */
-  --drawer-h: calc(var(--handle-h) + 3 * (var(--row-h) + var(--row-gap)) + 6px);
+  --tabs-h: 52px;
+  /* The collapsed drawer: the handle, the tabs, two cards and a peek of the third. */
+  --drawer-h: calc(var(--handle-h) + var(--tabs-h) + 2 * (var(--card-h) + var(--card-gap)) + 22px);
   /* The desktop column; 0 while the drawer layout is in force. */
   --column-w: 0px;
+  /* The counter row (the plate, the lamp under it on a phone): toasts and the room bar sit below. */
+  --hud-top: calc(var(--safe-top) + 132px);
+  /* What covers the foot of the screen: the hint pill stays above it. */
+  --hint-floor: calc(var(--dock-h) + var(--drawer-h));
 }
 
 /* Keep in step with COLUMN_QUERY in src/state/layout.ts; only while the column is shown. */
 @media (min-width: 1024px) and (min-aspect-ratio: 6 / 5) {
+  :root {
+    --top-h: 84px;
+    --card-h: 96px;
+    --card-gap: 10px;
+    --hint-floor: 120px;
+    --hud-top: calc(var(--safe-top) + 104px);
+  }
+
   .app.has-column {
-    --column-w: 420px;
+    --column-w: 400px;
   }
 }
 
 @media (orientation: landscape) and (max-height: 520px) {
+  :root {
+    --top-h: 60px;
+    --card-h: 80px;
+    --hint-floor: calc(64px + var(--safe-bottom));
+    --hud-top: calc(var(--safe-top) + 84px);
+  }
+
   .app.has-column {
     --column-w: 320px;
   }
@@ -90,7 +152,6 @@
 
 @media (max-height: 739px) {
   :root {
-    --top-h: 52px;
-    --drawer-h: calc(var(--handle-h) + 2 * (var(--row-h) + var(--row-gap)) + 6px);
+    --drawer-h: calc(var(--handle-h) + var(--tabs-h) + var(--card-h) + var(--card-gap) + 22px);
   }
 }
