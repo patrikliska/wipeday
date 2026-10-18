@@ -29,8 +29,16 @@ export type GameEvent =
   | { type: "era_reached"; era: string; at: number }
   /** Flotsam arrival `k` caught; `value` is a crate's supplies (0 for a buff). */
   | { type: "flotsam_claimed"; kind: string; k: number; value: Amount }
+  /** Crow `k` caught; `elite` for a Magpie; `value` its seconds of output. */
+  | { type: "gull_caught"; k: number; elite: boolean; value: Amount }
   /** The era's target fell `count` times in a taps batch (client feedback only). */
   | { type: "felled"; target: string; count: number; value: Amount }
+  /** Frenzy tripped in a taps batch; its buff runs until `until` (client feedback only). */
+  | { type: "frenzy_tripped"; until: number }
+  /** Collect pressed; `full` when the Night Shift had already run out (client feedback only). */
+  | { type: "night_shift_collected"; full: boolean }
+  /** A badge earned (D198): the Logbook's toast; logged for the feed and balance. */
+  | { type: "badge_unlocked"; id: string }
   /** The Night Shift window closed at `at`: manned lines stopped until the next command. */
   | { type: "night_shift_over"; at: number }
   /** A stored base of an older shape was replaced by a fresh v2 base (the API logs it). */
@@ -43,6 +51,7 @@ export const LOGGED_TYPES: ReadonlySet<GameEvent["type"]> = new Set([
   "flotsam_claimed",
   "night_shift_over",
   "base_reset",
+  "badge_unlocked",
 ]);
 
 export const isLogged = (event: GameEvent): boolean => LOGGED_TYPES.has(event.type);

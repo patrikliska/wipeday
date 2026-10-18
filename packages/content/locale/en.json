@@ -160,7 +160,8 @@
   },
   "buff": {
     "rally": { "name": "Rally" },
-    "adrenaline": { "name": "Adrenaline" }
+    "adrenaline": { "name": "Adrenaline" },
+    "frenzy": { "name": "Frenzy" }
   },
   "weather": {
     "clear": { "name": "Clear" },
@@ -204,14 +205,31 @@
   },
   "odds": {
     "open": "Odds",
-    "title": "Airdrop odds",
-    "sub": "What drops in, and how often",
+    "title": "Odds",
+    "sub": "What drops in or flies by, and how often",
     "crate": "Supplies at once: {share} of what you hold, between {floor} and {cap} min of output",
     "buff_output": "{name}: all lines ×{factor} for {time}",
     "buff_tap": "{name}: taps ×{factor} for {time}",
     "schedule": "Something drops in every {min}-{max} minutes while the page is open; {rain}× as often in rain. You have {float} s to catch it.",
     "first": "On a new island every catch until the first is a Drift Crate: one every {every} minutes, worth {flat} minutes of output.",
-    "hidden": "While the page is hidden, airdrops come down unseen. Missing one costs nothing."
+    "hidden": "While the page is hidden, airdrops come down unseen. Missing one costs nothing.",
+    "crows": "Crows",
+    "crow": "{time} of output",
+    "crows_schedule": "A crow crosses the sky every 2-4 minutes while the page is open. Tap it before it is gone."
+  },
+  "frenzy": {
+    "hint": "Keep tapping: Frenzy",
+    "running": "FRENZY ×{factor}",
+    "tripped": "FRENZY! ×{factor}"
+  },
+  "gull": {
+    "name": "Crow",
+    "elite": "Magpie",
+    "catch": "Catch the {name}",
+    "hint": "A crow! Tap it before it flies off.",
+    "hint_elite": "A Magpie! Tap it quick.",
+    "paid": "+{time} of output",
+    "paid_elite": "Magpie! +{time} of output"
   },
   "welcome": {
     "title": "Welcome back",
@@ -399,6 +417,7 @@
     "island": "Island",
     "workshop": "Workshop",
     "crew": "Crew",
+    "logbook": "Logbook",
     "with_badge": "{place}, {count} new"
   },
   "crew_panel": {
@@ -475,6 +494,8 @@
     "roster": "Every line at {at}",
     "roster_title": "Roster",
     "glow": "Glow",
+    "morale": "Morale",
+    "badges": "badges: {count}",
     "buffs": "Buffs",
     "other": "Other",
     "all_running": "Every line running",
@@ -519,5 +540,104 @@
     "tamsin_1": "Tamsin reads the weather on the radio. Wrong, but warmly.",
     "gus_1": "Gus pulled a car door out of the Scrapyard. It's a table now.",
     "vera_1": "Vera calls the reactor's hum a lullaby. Nobody sleeps near it."
+  },
+  "badge": {
+    "timber_era": { "name": "Goodbye, Lean-to", "how": "Reach the Timber era." },
+    "stone_era": { "name": "Set in Stone", "how": "Reach the Stone era." },
+    "metal_era": { "name": "Tin Can Living", "how": "Reach the Sheet Metal era." },
+    "timber_sprint": {
+      "name": "Roof by Breakfast",
+      "how": "Reach Timber in a run's first minute."
+    },
+    "stone_sprint": { "name": "Quarry Rush", "how": "Reach Stone in a run's first 10 minutes." },
+    "first_line": { "name": "Open for Business", "how": "Buy your first line." },
+    "ten_of_a_kind": { "name": "Ten Alike", "how": "Own 10 of one line." },
+    "roster_25": { "name": "Bunting Up", "how": "Own 25 of every open line." },
+    "bit_of_everything": { "name": "A Bit of Everything", "how": "Own 100 of every open line." },
+    "twig_hundreds": { "name": "Smoke and Fibre", "how": "Own 100 of each Twig line." },
+    "timber_hundreds": { "name": "Rope and Planks", "how": "Own 100 of each Timber line." },
+    "stone_hundreds": { "name": "Hides and Ingots", "how": "Own 100 of each Stone line." },
+    "metal_hundreds": { "name": "Sparks and Static", "how": "Own 100 of each Sheet Metal line." },
+    "bronze_pennant": { "name": "Bronze Pennant", "how": "Own 200 of one line." },
+    "silver_pennant": { "name": "Silver Pennant", "how": "Own 300 of one line." },
+    "units_1k": { "name": "Busy Builders", "how": "Buy 1,000 line units." },
+    "units_10k": { "name": "Boom Town", "how": "Buy 10,000 line units." },
+    "first_hand": { "name": "Help Wanted", "how": "Hire your first hand." },
+    "twig_crew": { "name": "Camp Crew", "how": "Have Mara, Dax and Ivo at work at once." },
+    "timber_crew": { "name": "Rope Crew", "how": "Have Rook, Sela and Bram at work at once." },
+    "stone_crew": { "name": "Forge Crew", "how": "Have Wren, Otto and Juno at work at once." },
+    "metal_crew": { "name": "Static Crew", "how": "Have Pike, Hale and Tamsin at work at once." },
+    "six_on_shift": { "name": "Full Kettle", "how": "Have 6 hands at work at once." },
+    "twelve_on_shift": { "name": "Twelve Mugs", "how": "Have 12 hands at work at once." },
+    "first_fell": { "name": "Timber!", "how": "Fell your first target." },
+    "felled_100": { "name": "Hundred Stumps", "how": "Fell 100 targets." },
+    "felled_1000": { "name": "Thousand Stumps", "how": "Fell 1,000 targets." },
+    "sulfur_fell": { "name": "Rotten Eggs", "how": "Crack a sulfur rock." },
+    "taps_1k": { "name": "Warm Hands", "how": "Tap 1,000 times." },
+    "taps_10k": { "name": "Sore Thumbs", "how": "Tap 10,000 times." },
+    "taps_100k": { "name": "Iron Grip", "how": "Tap 100,000 times." },
+    "full_hustle": { "name": "In the Groove", "how": "Fill Hustle to the top." },
+    "first_frenzy": { "name": "Seeing Red", "how": "Trip your first Frenzy." },
+    "frenzies_10": { "name": "Hot Streak", "how": "Trip 10 Frenzies." },
+    "frenzies_100": { "name": "Wild Eyes", "how": "Trip 100 Frenzies." },
+    "frenzy_rally": { "name": "Full Throttle", "how": "Run a Frenzy and a Rally at once." },
+    "frenzy_adrenaline": {
+      "name": "Lightning Hands",
+      "how": "Run a Frenzy and Adrenaline at once."
+    },
+    "first_gull": { "name": "Caw!", "how": "Catch your first crow." },
+    "gulls_25": { "name": "Murder Most Fowl", "how": "Catch 25 crows." },
+    "gulls_250": { "name": "Scarecrow", "how": "Catch 250 crows." },
+    "first_magpie": { "name": "Shiny!", "how": "Catch a Magpie." },
+    "night_crow": { "name": "Night Owl", "how": "Catch a crow at night." },
+    "first_catch": { "name": "Special Delivery", "how": "Catch your first airdrop." },
+    "flotsam_25": { "name": "Drop Zone", "how": "Catch 25 airdrops." },
+    "flotsam_100": { "name": "Sky Watcher", "how": "Catch 100 airdrops." },
+    "first_rally": { "name": "Rally Round", "how": "Catch a Fuel Drum." },
+    "first_adrenaline": { "name": "Jolt", "how": "Catch an Adrenaline Kit." },
+    "rain_catch": { "name": "Wet Pickings", "how": "Catch an airdrop in the rain." },
+    "night_catch": { "name": "Night Drop", "how": "Catch an airdrop at night." },
+    "first_research": { "name": "Tinkerer", "how": "Buy your first Workshop level." },
+    "research_100": { "name": "Bench Hand", "how": "Buy 100 Workshop levels." },
+    "research_500": { "name": "Master Tinker", "how": "Buy 500 Workshop levels." },
+    "research_maxed": { "name": "Fully Tuned", "how": "Max out a Workshop item." },
+    "research_maxed_5": { "name": "Well Oiled", "how": "Max out 5 Workshop items." },
+    "first_collect": { "name": "Welcome Back", "how": "Collect what the Night Shift made." },
+    "collects_25": { "name": "Morning Routine", "how": "Collect 25 times." },
+    "slept_through": {
+      "name": "Slept Through It",
+      "how": "Collect after the Night Shift ran out."
+    },
+    "long_window": { "name": "Burning Late", "how": "Stretch the Night Shift to 4 hours." },
+    "made_1m": { "name": "Millionaire", "how": "Make 1M supplies." },
+    "made_1b": { "name": "Stockpiler", "how": "Make 1B supplies." },
+    "made_1t": { "name": "Hoard Lord", "how": "Make 1T supplies." },
+    "lucky_sevens": { "name": "Lucky Sevens", "how": "Hold supplies that start with 777." },
+    "not_found": { "name": "Not Found", "how": "Hold supplies that start with 404." },
+    "elite_heap": { "name": "Elite Heap", "how": "Hold supplies that start with 1337." }
+  },
+  "logbook": {
+    "title": "Logbook",
+    "summary": "{got} of {total} badges · Morale ×{morale}",
+    "chapter_count": "{got}/{total}",
+    "earned": "Earned {date}",
+    "progress": "{value} / {goal}",
+    "new": "New",
+    "toast": "Badge: {name}",
+    "toast_many": "{count} badges",
+    "toast_morale": "Morale ×{from} → ×{to}",
+    "open": "Logbook",
+    "chapter": {
+      "eras": "Eras",
+      "lines": "Lines",
+      "hands": "Hands",
+      "taps": "Taps",
+      "frenzy": "Frenzy",
+      "gulls": "Crows",
+      "airdrops": "Airdrops",
+      "workshop": "Workshop",
+      "night_shift": "Night Shift",
+      "supplies": "Supplies"
+    }
   }
 }

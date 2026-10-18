@@ -21,4 +21,20 @@
       effect: { buff: "adrenaline", seconds: 12, effects: [{ stat: "tap", op: "more", value: 100 }] },
     },
   ],
+  // Crows (id `gull`; 12-feel.md 9.3, D197, D238): the sky's tap-to-catch sibling of flotsam,
+  // only while the page is open. Slot j crosses at firstAfterSeconds + j × every on the run's
+  // clock plus a seeded offset in [0, jitter] (so gaps fall in 2-4 minutes, never under 120 s),
+  // taking crossSeconds (a Magpie, 1 in 1/eliteOdds, eliteCrossSeconds); the claim stays open
+  // graceSeconds after. A catch pays `seconds` of output, a Magpie `eliteSeconds`.
+  gulls: {
+    firstAfterSeconds: 480,
+    every: 180,
+    jitter: 60,
+    crossSeconds: 8,
+    eliteCrossSeconds: 5,
+    graceSeconds: 1,
+    eliteOdds: 0.05,
+    seconds: 30,
+    eliteSeconds: 180,
+  },
 }

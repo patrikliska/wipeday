@@ -80,4 +80,8 @@ describe("icons the content names", () => {
   it("are mostly drawn", () => {
     expect(missing.length).toBeLessThan(iconsWanted(content).length);
   });
+  it("include every badge's icon, drawn (badges reuse existing icons; D239)", () => {
+    const undrawn = content.achievements.badges.filter((badge) => !drawn.has(badge.icon));
+    expect(undrawn.map((badge) => `${badge.id}: ${badge.icon}`)).toEqual([]);
+  });
 });

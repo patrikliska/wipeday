@@ -13,6 +13,9 @@
 import { BitmapText, Container, Graphics, Sprite, type Texture } from "pixi.js";
 import type { Emit, Particles } from "./effects";
 import {
+  FRENZY_FILL,
+  FRENZY_HOT,
+  FRENZY_TRACK,
   GROUND,
   GROUND_LIGHT,
   HUSTLE_HI,
@@ -524,7 +527,7 @@ export class Target {
   readonly container = new Container();
   /** A halo on the lights layer (D47), so the target reads at night and in fog. */
   readonly light = new Container();
-  /** Screen space: the Hustle arc and its multiplier (D46). */
+  /** Screen space: the Hustle arc and its multiplier, the Frenzy bar under the target (D46). */
   readonly overlay = new Container();
   private kind: TargetKind | null = null;
   private body: Body | null = null;
@@ -532,6 +535,8 @@ export class Target {
   private readonly halo: Sprite;
   private readonly arc = new Graphics();
   private readonly label: BitmapText;
+  private readonly frenzyBar = new Graphics();
+  private readonly frenzyLabel: BitmapText;
   private level = 0;
   private squash = 1;
   private pop = 1;
@@ -553,7 +558,12 @@ export class Target {
       style: { fontFamily: "wipeday-floater", fontSize: 13 },
     });
     this.label.anchor.set(0.5, 0.5);
-    this.overlay.addChild(this.arc, this.label);
+    this.frenzyLabel = new BitmapText({
+      text: "",
+      style: { fontFamily: "wipeday-floater", fontSize: 13 },
+    });
+    this.frenzyLabel.anchor.set(0.5, 0.5);
+    this.overlay.addChild(this.arc, this.label, this.frenzyBar, this.frenzyLabel);
   }
 
   get current(): TargetKind | null {
@@ -745,5 +755,56 @@ export class Target {
     this.label.text = multiplier;
     this.label.position.set(Math.round(cx), Math.round(cy + r - 4));
     this.label.tint = lerpColor(HUSTLE_LO, HUSTLE_HI, fill);
+  }
+
+  /**
+   * The Frenzy bar over the tap box (CSS px; D237, D241): ten chunky segments filling with the
+   * meter, its name beside it while the player is new to it; once tripped the bar burns down as
+   * the buff's timer beside "FRENZY ×6". Above the target, clear of the Hustle arc, because
+   * under it a phone has the drawer. Hidden until Frenzy opens.
+   */
+  drawFrenzy(
+    box: { x: number; y: number; width: number; height: number },
+    view: { open: boolean; fill: number; left: number | null; label: string },
+    pulse: number,
+  ): void {
+    const g = this.frenzyBar;
+    g.clear();
+    if (!view.open) {
+      this.frenzyLabel.visible = false;
+      return;
+    }
+    const segments = 10;
+    const gap = 2;
+    const seg = 10;
+    const full = seg * segments + gap * (segments - 1);
+    const height = 10;
+    const hot = view.left !== null;
+    this.frenzyLabel.visible = view.label !== "";
+    this.frenzyLabel.text = view.label;
+    this.frenzyLabel.scale.set(hot ? 1.2 : 1);
+    const labelW = view.label !== "" ? Math.ceil(this.frenzyLabel.width) + 10 : 0;
+    const x0 = Math.round(box.x + box.width / 2 - (full + labelW) / 2);
+    // Above the arc's top (the arc runs 6 px outside the box).
+    const y0 = Math.round(box.y - 6 - 14 - height);
+    g.roundRect(x0 - 4, y0 - 4, full + 8, height + 8, 4).fill({ color: FRENZY_TRACK, alpha: 0.7 });
+    const amount = hot ? (view.left ?? 0) : view.fill;
+    const lit = amount * segments;
+    for (let i = 0; i < segments; i++) {
+      const part = clamp(lit - i, 0, 1);
+      const x = x0 + i * (seg + gap);
+      g.rect(x, y0, seg, height).fill({ color: 0xffffff, alpha: 0.14 });
+      if (part <= 0) continue;
+      const colour = hot ? FRENZY_HOT : lerpColor(HUSTLE_LO, FRENZY_FILL, i / (segments - 1));
+      g.rect(x, y0, Math.max(1, Math.round(seg * part)), height).fill({
+        color: colour,
+        alpha: hot ? 0.8 + pulse * 0.2 : 0.95,
+      });
+    }
+    this.frenzyLabel.tint = hot ? FRENZY_FILL : 0xf4f1e8;
+    this.frenzyLabel.position.set(
+      Math.round(x0 + full + 10 + (labelW - 10) / 2),
+      Math.round(y0 + height / 2),
+    );
   }
 }

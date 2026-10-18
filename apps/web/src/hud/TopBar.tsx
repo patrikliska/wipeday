@@ -181,18 +181,30 @@ function BuffPills() {
   return (
     <div className="buffs" aria-live="off">
       {shown.map((buff) => {
+        // Frenzy (D237) is one number on screen: taps and lines ×mult.
+        const frenzy = buff.kind === "frenzy";
         let factor = 1;
-        for (const effect of buffEffects(content, [buff], second)) {
-          if (effect.op === "more") factor *= effect.value;
-        }
+        if (frenzy) factor = content.tap.frenzy.mult;
+        else
+          for (const effect of buffEffects(content, [buff], second)) {
+            if (effect.op === "more") factor *= effect.value;
+          }
         const kind = content.flotsam.kinds.find(
           (row) => "buff" in row.effect && row.effect.buff === buff.kind,
         );
-        const total = kind && "seconds" in kind.effect ? kind.effect.seconds : buff.until - second;
+        const total = frenzy
+          ? content.tap.frenzy.seconds
+          : kind && "seconds" in kind.effect
+            ? kind.effect.seconds
+            : buff.until - second;
         const left = Math.max(0, buff.until - second);
         return (
-          <span key={buff.kind} className="plate buff">
-            <Icon kind="flotsam" id={kind?.id ?? buff.kind} size={18} />
+          <span key={buff.kind} className={`plate buff${frenzy ? " frenzy" : ""}`}>
+            {frenzy ? (
+              <Icon kind="ui" id="frenzy" size={18} />
+            ) : (
+              <Icon kind="flotsam" id={kind?.id ?? buff.kind} size={18} />
+            )}
             <span className="num">
               {t("hud.buff", {
                 name: buffName(buff.kind),

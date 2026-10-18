@@ -99,7 +99,7 @@ interface Actions {
   demoPause(paused: boolean): void;
   demoReset(): void;
   /** Rewrites the demo's run (the drawer, the shots). */
-  demoPatch(change: Partial<BaseState["run"]>): void;
+  demoPatch(change: Partial<BaseState["run"]>, meta?: Partial<BaseState["meta"]>): void;
   /** Shows the welcome-back card if the last command is an hour or more back. */
   checkAway(): void;
   /** The card's one button: back to work, and the gain flies into the counter. */
@@ -258,7 +258,8 @@ export const useWorld = create<Store>((set, get) => {
       base: rebase(confirmed, rest),
     });
     if (!response.ok) {
-      if (entry.command.type === "claim_flotsam") lostClaim(entry.command.k, response.refusal);
+      if (entry.command.type === "claim_flotsam" || entry.command.type === "claim_gull")
+        lostClaim(entry.command, response.refusal);
       else refuse(response.refusal);
     }
     if (entry.key) sentKeys.set(entry.key, wall.nowMs());
@@ -326,8 +327,14 @@ export const useWorld = create<Store>((set, get) => {
   };
 
   /** A claim too late is quiet (02-the-run.md 8.4): the scene says it drifted off. */
-  const lostClaim = (k: number, refusal: Refusal): void => {
-    if (refusal.reason === "gone") emit({ type: "flotsam_lost", k });
+  /** A claim came too late: the airdrop drifts off, the crow flies on (no toast). */
+  const lostClaim = (
+    command: { type: "claim_flotsam" | "claim_gull"; k: number },
+    refusal: Refusal,
+  ): void => {
+    if (refusal.reason !== "gone") return;
+    if (command.type === "claim_flotsam") emit({ type: "flotsam_lost", k: command.k });
+    else emit({ type: "gull_lost", k: command.k });
   };
 
   const connect = async (): Promise<void> => {
@@ -418,6 +425,15 @@ export const useWorld = create<Store>((set, get) => {
       const crits = base.meta.stats.crits - state.base.meta.stats.crits;
       if (crits > 0) emit({ type: "crit", count: crits });
       if (fells > 0) emit({ type: "felled", target, count: fells, value: fellValue });
+      // A Frenzy tripped and badges earned by these taps (predicted, as the server will find).
+      if (base.meta.stats.frenzies > state.base.meta.stats.frenzies) {
+        const frenzy = base.run.buffs.find((buff) => buff.kind === "frenzy");
+        if (frenzy) emit({ type: "frenzy_tripped", until: frenzy.until });
+      }
+      if (base.meta.badges !== state.base.meta.badges) {
+        for (const id of Object.keys(base.meta.badges))
+          if (state.base.meta.badges[id] === undefined) emit({ type: "badge_unlocked", id });
+      }
       return gain;
     },
 
@@ -430,7 +446,8 @@ export const useWorld = create<Store>((set, get) => {
       set({ queue, base: rebase(state.confirmed, queue) });
       lastCommandAt = now;
       if (result.ok) for (const event of result.events) emit(event);
-      else if (command.type === "claim_flotsam") lostClaim(command.k, result.refusal);
+      else if (command.type === "claim_flotsam" || command.type === "claim_gull")
+        lostClaim(command, result.refusal);
       else {
         refuse(result.refusal);
         emit({ type: "refused" });
@@ -524,9 +541,9 @@ export const useWorld = create<Store>((set, get) => {
       emit({ type: "collected", gain: card.gain });
     },
 
-    demoPatch(change) {
+    demoPatch(change, meta) {
       if (!(backend instanceof LocalBackend)) return;
-      const base = backend.patch(change);
+      const base = backend.patch(change, meta);
       // The backend's version, so an answer sent before the patch never overwrites it.
       const version = Math.max(get().version + 1, backend.currentVersion);
       set({

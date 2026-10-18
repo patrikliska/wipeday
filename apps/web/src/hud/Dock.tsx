@@ -1,8 +1,9 @@
+import { badgeCount } from "@wipe-day/domain/badges";
 import { useAdvisor } from "../state/advisor";
 import { useColumn } from "../state/layout";
 import { useWorld } from "../state/store";
 import { type Panel, useUi } from "../state/ui";
-import { t } from "../state/world";
+import { content, t } from "../state/world";
 import { Icon } from "./Icon";
 import { researchTab, workshopOpenItems, workshopShown } from "./rows";
 import { Ticker } from "./Ticker";
@@ -11,8 +12,9 @@ import { Ticker } from "./Ticker";
  * The dock (D187, D199; 12-feel.md 4): one bottom bar on every device, centred on desktop with
  * larger icons. Island from 0:00; each destination joins when it unlocks, and only once its phase
  * has shipped (D140): the Workshop two minutes into the run (it opens the shop on its tab), Crew
- * at the first hand. A badge counts new things (the Workshop: items opened since its tab last
- * showed; Crew: hands hired since the Crew sheet last showed this run). Island closes any sheet.
+ * at the first hand, the Logbook at the first badge. A badge counts new things (the Workshop:
+ * items opened since its tab last showed; Crew: hands hired since the Crew sheet last showed
+ * this run; the Logbook: badges earned since it last showed). Island closes any sheet.
  * On desktop the news ticker runs under it.
  */
 type Place = "island" | "workshop" | Panel;
@@ -31,6 +33,8 @@ export function Dock() {
   const tab = useUi((state) => state.tab);
   const expanded = useUi((state) => state.expanded);
   const workshopSeen = useUi((state) => state.workshopSeen);
+  const badges = useWorld((state) => (state.base ? badgeCount(content, state.base) : 0));
+  const badgesSeen = useUi((state) => state.badgesSeen);
   const view = useAdvisor((state) => state.view);
   const playing = useWorld((state) => state.phase === "playing");
   if (!playing) return null;
@@ -39,12 +43,16 @@ export function Dock() {
   const openItems = workshop && view ? workshopOpenItems(researchTab(view, 1).groups) : 0;
   const newItems = Math.max(0, openItems - (workshopSeen.run === run ? workshopSeen.items : 0));
   const onWorkshop = workshop && tab === "research" && (column || expanded);
-  const current: Place = panel === "crew" ? "crew" : onWorkshop ? "workshop" : "island";
+  const current: Place =
+    panel === "crew" || panel === "logbook" ? panel : onWorkshop ? "workshop" : "island";
   const newHands = Math.max(0, hands - (seen.run === run ? seen.hands : 0));
   const items: Array<{ id: Place; icon: string; badge: number }> = [
     { id: "island", icon: "island", badge: 0 },
     ...(workshop ? [{ id: "workshop" as const, icon: "workshop", badge: newItems }] : []),
     ...(crew ? [{ id: "crew" as const, icon: "crew", badge: newHands }] : []),
+    ...(badges > 0
+      ? [{ id: "logbook" as const, icon: "logbook", badge: Math.max(0, badges - badgesSeen) }]
+      : []),
   ];
   const go = (place: Place) => {
     const ui = useUi.getState();

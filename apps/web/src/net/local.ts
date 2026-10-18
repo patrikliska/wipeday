@@ -111,11 +111,18 @@ export class LocalBackend implements Backend {
     return this.version;
   }
 
-  /** Demo drawer and shots: rewrites the run, as if the player had played a while. */
-  patch(change: Partial<BaseState["run"]>): BaseState {
+  /**
+   * Demo drawer and shots: rewrites the run, as if the player had played a while; `meta`
+   * rewrites lifetime fields too (badges and counters for the Logbook's shots).
+   */
+  patch(change: Partial<BaseState["run"]>, meta: Partial<BaseState["meta"]> = {}): BaseState {
     const now = this.clock.now();
     const base = settle(content, this.base, now).state;
-    this.base = { ...base, run: { ...base.run, ...change, settledAt: now } };
+    this.base = {
+      ...base,
+      run: { ...base.run, ...change, settledAt: now },
+      meta: { ...base.meta, ...meta },
+    };
     this.version += 1;
     return this.base;
   }

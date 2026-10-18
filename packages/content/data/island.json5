@@ -6,4 +6,6 @@
   utcOffsetMinutes: 60,
   seed: 4107,
   weather: { blockMinutes: 30, clear: 70, rain: 20, fog: 10 },
+  // Night on the island's clock (the scene's night keyframes run 21:36 to 04:48).
+  night: { from: 21, to: 5 },
 }

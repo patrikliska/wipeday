@@ -181,6 +181,24 @@ export function gloom(palette: Palette, amount: number): Palette {
   };
 }
 
+/**
+ * Frenzy warms the sky (12-feel.md 3.1; D237): the dusk keyframe's ember tones laid over the
+ * hour's palette by `amount` (0 untouched), so night stays night but glows.
+ */
+export function warm(palette: Palette, amount: number): Palette {
+  const t = clamp(amount, 0, 1);
+  if (t <= 0) return palette;
+  return {
+    ...palette,
+    skyMid: lerpColor(palette.skyMid, 0xc76b57, t * 0.65),
+    skyHorizon: lerpColor(palette.skyHorizon, 0xffa25c, t * 0.75),
+    haze: lerpColor(palette.haze, 0xc98b74, t * 0.5),
+    cloud: lerpColor(palette.cloud, 0xf0946d, t * 0.6),
+    ambient: lerpColor(palette.ambient, 0xffb765, t * 0.25),
+    light: Math.max(palette.light, palette.light + (0.6 - palette.light) * t * 0.35),
+  };
+}
+
 export interface Material {
   wall: number;
   wallDark: number;
@@ -276,3 +294,10 @@ export const FLOTSAM_TINT: Record<string, number> = {
   adrenaline: 0xf4f1e8,
 };
 export const FLOTSAM_GLOW = 0xffe2a0;
+/** The Frenzy bar under the target (D237): its track, the fill, and the tripped buff's timer. */
+export const FRENZY_TRACK = 0x1b1a18;
+export const FRENZY_FILL = 0xffa25c;
+export const FRENZY_HOT = 0xff6f3c;
+/** Crows (D238): a crow's body and its light underside; a Magpie's white and its glint. */
+export const CROW = { body: 0x2f1822, rim: 0x6f5a66, white: 0xf4f1e8, glint: 0xe3c04f };
+export const CROW_GLOW = 0xfff0c0;

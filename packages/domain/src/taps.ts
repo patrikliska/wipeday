@@ -6,7 +6,9 @@
  *    of `now` and never move back;
  * 2. refills the bucket (perSecond a second, at most `burst`) and credits at most its whole
  *    tokens, so over any interval at most burst + perSecond × elapsed taps count (N10);
- * 3. raises Hustle per credited tap (after its grace and drain);
+ * 3. raises Hustle per credited tap (after its grace and drain), and Frenzy once it is open: a
+ *    tap that fills Frenzy trips its buff, and the taps after it (spread evenly over the batch)
+ *    take it (D196, D237);
  * 4. values each tap: (flat × global + p × fullRate) × T × Hustle × Afterglow × crit, crits
  *    seeded by the tap's index so the client predicts them;
  * 5. fells the era's target every `fellTaps` credited taps: each fell pays `fellBonusTaps`
@@ -29,6 +31,7 @@ import {
   type StatId,
 } from "./effects";
 import type { GameEvent } from "./events";
+import { frenzyMeter, frenzyOpensAt, frenzyRules, frenzyUntil } from "./frenzy";
 import { rng, SEED, seedOf } from "./rng";
 import { cyclePayout } from "./settle";
 import type { BaseState } from "./state";
@@ -157,17 +160,50 @@ export function applyTaps(
   const afterglowFrom = run.afterglowFrom ?? from;
   const started: BaseState = { ...state, run: { ...run, afterglowFrom } };
 
-  // 3-4. Hustle and the value of each tap.
-  const parts = tapParts(content, started, to);
+  // 3-4. Hustle, Frenzy and the value of each tap. Frenzy's parts are taken apart from the
+  // rest, so a tap reads the buff only when its own time falls inside it.
+  const calm: BaseState = {
+    ...started,
+    run: { ...started.run, buffs: started.run.buffs.filter((buff) => buff.kind !== "frenzy") },
+  };
+  const parts = tapParts(content, calm, to);
+  let hot: ReturnType<typeof tapParts> | null = null;
+  const hotParts = () => {
+    hot ??= tapParts(
+      content,
+      {
+        ...calm,
+        run: { ...calm.run, buffs: [...calm.run.buffs, { kind: "frenzy", until: to + 1 }] },
+      },
+      to,
+    );
+    return hot;
+  };
   const idle = Math.max(0, from - run.hustle.at - parts.hold);
   const h0 = Math.max(0, run.hustle.value - parts.drain * idle);
+  const frenzy = frenzyRules(content, started);
+  const opensAt = frenzyOpensAt(content, started);
+  let until = frenzyUntil(started, from) ?? 0;
+  let meter = frenzyMeter(content, started, from);
+  let trips = 0;
   let value = 0;
   let crits = 0;
   let fells = 0;
   let fellValue = 0;
   for (let k = 1; k <= credited; k++) {
+    const t = from + ((to - from) * k) / credited;
+    const running = t < until;
     const h = Math.min(parts.hustleCap, h0 + parts.gain * k);
-    let tap = parts.base * hustleFactor(h, parts.hustleCap, parts.hustlePeak);
+    let tap =
+      (running ? hotParts() : parts).base * hustleFactor(h, parts.hustleCap, parts.hustlePeak);
+    if (!running && opensAt !== null && t >= opensAt) {
+      meter = Math.min(frenzy.cap, meter + frenzy.perTap);
+      if (meter >= frenzy.cap) {
+        until = Math.ceil(t) + frenzy.seconds;
+        meter = 0;
+        trips += 1;
+      }
+    }
     if ((run.target.taps + k) % parts.fellEvery === 0) {
       fells += 1;
       fellValue += parts.fellBonus * tap;
@@ -182,6 +218,9 @@ export function applyTaps(
     value += tap;
   }
   const hustle = { value: Math.min(parts.hustleCap, h0 + parts.gain * credited), at: to };
+  // While a Frenzy runs the meter waits empty for its end; otherwise it holds from `to`.
+  const frenzyState = until > to ? { value: 0, at: until } : { value: meter, at: to };
+  const buffs = trips > 0 ? [...calm.run.buffs, { kind: "frenzy", until }] : run.buffs;
 
   // 5. Unmanned lines: start cycles on idle ones; pay the ones that already ended.
   let payouts = 0;
@@ -190,7 +229,7 @@ export function applyTaps(
   // The player is tapping, so online throughout (the pipeline sets activeAt right after).
   const afterTaps: BaseState = {
     ...state,
-    run: { ...run, afterglowFrom, hustle, bucket, activeAt: now },
+    run: { ...run, afterglowFrom, hustle, bucket, buffs, activeAt: now },
   };
   // Times are whole seconds, so the batch's taps fell anywhere in [from, to + 1): a line freed
   // inside the last second was still being tapped (02 3.1: tapping faster than its cycle runs it
@@ -230,6 +269,8 @@ export function applyTaps(
       made: run.made + gain,
       afterglowFrom,
       hustle,
+      frenzy: frenzyState,
+      buffs,
       bucket,
       readyAt,
       taps: run.taps + credited,
@@ -242,6 +283,7 @@ export function applyTaps(
         taps: state.meta.stats.taps + credited,
         felled: state.meta.stats.felled + fells,
         crits: state.meta.stats.crits + crits,
+        frenzies: state.meta.stats.frenzies + trips,
       },
     },
   };
@@ -250,5 +292,6 @@ export function applyTaps(
   ];
   if (fells > 0 && parts.target)
     events.push({ type: "felled", target: parts.target, count: fells, value: fellValue });
+  if (trips > 0) events.push({ type: "frenzy_tripped", until });
   return { state: next, events };
 }

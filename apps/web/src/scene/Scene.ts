@@ -13,6 +13,7 @@
  * `wall` clock, never the game clock, so a demo jump moves no animation (rule 6.3.9).
  */
 import { crateMinutes } from "@wipe-day/domain/flotsam";
+import { type FrenzyView, frenzyAt } from "@wipe-day/domain/frenzy";
 import { lineOf } from "@wipe-day/domain/lines";
 import type { BaseState } from "@wipe-day/domain/state";
 import { hustleFactor, tapParts } from "@wipe-day/domain/taps";
@@ -45,6 +46,7 @@ import { Hands, type Post } from "./actors";
 import { House } from "./base";
 import { Floaters, Particles, Weather } from "./effects";
 import { Flotsam } from "./flotsam";
+import { Gulls } from "./gulls";
 import { loadProductIcons } from "./icons";
 import {
   HOUSE_SPOT,
@@ -61,7 +63,7 @@ import {
 } from "./island";
 import { Landscape } from "./landscape";
 import { Lines, layoutFor, ROOM_LAYOUT } from "./lines";
-import { gloom, paletteAt } from "./palette";
+import { gloom, paletteAt, warm } from "./palette";
 import { ART, loadArt } from "./pixel";
 import { milestoneCrossed } from "./reveal";
 import { Room } from "./room";
@@ -165,6 +167,10 @@ export class Scene {
     arrived: () => emit({ type: "flotsam_arrived" }),
     sank: (x, y, firstRun, nowMs) => this.sank(x, y, firstRun, nowMs),
   });
+  private readonly gulls = new Gulls({
+    claim: (run, k) => useWorld.getState().send({ type: "claim_gull", run, k }),
+    arrived: (elite) => emit({ type: "gull_arrived", elite }),
+  });
   private readonly house = new House(this.particles);
   private readonly lines: Lines;
   private readonly hands: Hands;
@@ -217,6 +223,12 @@ export class Scene {
     counted: number;
     still: boolean;
   } | null = null;
+  /** Frenzy as the HUD draws it, a tenth of a second at a time. */
+  private frenzy: { base: BaseState | null; tenth: number; view: FrenzyView | null } = {
+    base: null,
+    tenth: -1,
+    view: null,
+  };
   private hustle = {
     base: null as BaseState | null,
     second: -1,
@@ -269,7 +281,6 @@ export class Scene {
     this.props.addChild(this.house.container, this.target.container, this.stockpile.container);
     this.world.addChild(
       this.sky.container,
-      this.hands.sky,
       this.terrain.back,
       this.terrain.ground,
       this.props,
@@ -305,6 +316,8 @@ export class Scene {
     this.host.appendChild(this.button);
     this.host.appendChild(this.flotsam.button);
     this.host.appendChild(this.flotsam.hint);
+    this.host.appendChild(this.gulls.button);
+    this.host.appendChild(this.gulls.hint);
     this.host.appendChild(this.houseButton);
     this.host.appendChild(this.houseHint);
     this.app.stage.addChild(
@@ -317,6 +330,7 @@ export class Scene {
       this.lines.overlay,
       this.roomLines.overlay,
       this.flotsam.overlay,
+      this.gulls.overlay,
       this.target.overlay,
       this.holdRing,
       this.floaters.container,
@@ -329,8 +343,12 @@ export class Scene {
       target: () => ({ ...this.box }),
       hitBoxes: () => {
         const flotsam = this.flotsam.hitBox;
-        const boxes = [{ name: "target", ...this.box }];
-        return flotsam ? [...boxes, { name: "flotsam", ...flotsam }] : boxes;
+        const gull = this.gulls.hitBox;
+        return [
+          { name: "target", ...this.box },
+          ...(flotsam ? [{ name: "flotsam", ...flotsam }] : []),
+          ...(gull ? [{ name: "gull", ...gull }] : []),
+        ];
       },
       counts: () => ({ floaters: this.floaters.count, particles: this.particles.count }),
       fastForward: (seconds, tick) => this.fastForward(seconds, tick),
@@ -347,6 +365,8 @@ export class Scene {
     this.houseHint.remove();
     this.flotsam.button.remove();
     this.flotsam.hint.remove();
+    this.gulls.button.remove();
+    this.gulls.hint.remove();
     if (!this.ready) return;
     this.ready = false;
     window.removeEventListener("pointermove", this.onPointerMove);
@@ -542,7 +562,14 @@ export class Scene {
     this.weather.set(sky, jump > 60);
     this.lastNow = now;
     const { rain, fog } = this.weather.amount;
-    const palette = gloom(paletteAt(fraction), rain * 0.85 + fog * 0.6);
+    const frenzy = base ? this.frenzyAt(base, now) : null;
+    // A Frenzy warms the sky: in over half a second, out over its last second and a half.
+    const heat =
+      frenzy?.until != null
+        ? clamp((now - (frenzy.until - frenzy.seconds)) / 0.5, 0, 1) *
+          clamp((frenzy.until - now) / 1.5, 0, 1)
+        : 0;
+    const palette = warm(gloom(paletteAt(fraction), rain * 0.85 + fog * 0.6), heat);
     const darkness = clamp(1 - palette.light, 0, 1);
     this.wind = 1 + Math.sin(this.time * 0.23) * 0.8 + rain * 1.5;
     this.parallax += (this.parallaxTarget - this.parallax) * Math.min(1, dt * 3);
@@ -577,17 +604,28 @@ export class Scene {
     this.target.crowned = useAdvisor.getState().view?.pick.kind === "tap";
     this.target.update(dt, this.wind, darkness, fog);
     this.stockpile.update(dt);
-    this.hands.setNight(darkness > 0.6);
-    this.hands.update(dt, this.wind);
+    this.hands.update(dt);
     this.particles.update(dt, this.wind);
     this.weather.update(dt, this.wind, darkness);
     this.ambient.tint = palette.ambient;
     if (base) {
-      this.lines.update(base, now, nowMs, dt, darkness);
+      // While a Frenzy runs the lines' machinery turns faster, as their cycles do.
+      const spin = frenzy?.until != null ? content.tap.frenzy.speed : 1;
+      this.lines.update(base, now, nowMs, dt * spin, darkness);
       this.lines.syncLights();
       this.lines.place(base, this.world.position.x, this.world.position.y, this.scale);
       this.drawHustle(base, now);
+      if (frenzy) this.drawFrenzy(base, frenzy, now);
       this.flotsam.update(base, now, nowMs, dt, this.camera(), Math.max(darkness, fog), jump > 5);
+      this.gulls.update(
+        base,
+        now,
+        nowMs,
+        this.viewW - this.insetRight,
+        this.camera(),
+        Math.max(darkness, fog),
+        jump > 5,
+      );
       this.updateRoom(base, now, nowMs, dt);
     }
     this.placeButton();
@@ -750,8 +788,11 @@ export class Scene {
     this.roomLines.overlay.visible = open;
     this.target.overlay.visible = !open;
     this.flotsam.overlay.visible = !open;
+    this.gulls.overlay.visible = !open;
     this.button.style.visibility = open ? "hidden" : "";
     this.flotsam.button.style.visibility = open ? "hidden" : "";
+    this.gulls.button.style.visibility = open ? "hidden" : "";
+    this.gulls.hint.style.visibility = open ? "hidden" : "";
     const res = this.app.renderer.resolution;
     const px = (value: number) => Math.round(value * res) / res;
     const size = this.room.size(this.scale);
@@ -764,7 +805,7 @@ export class Scene {
     this.roomLines.update(base, now, nowMs, dt, 0);
     this.roomLines.syncLights();
     this.roomLines.place(base, x, y, this.scale);
-    this.roomHands.update(dt, this.wind);
+    this.roomHands.update(dt);
     this.placeHouse(base, opens && !open);
   }
 
@@ -836,6 +877,34 @@ export class Scene {
     this.target.drawHustle(this.box, h / cache.cap, `×${Math.round(factor * 10) / 10}`);
   }
 
+  private frenzyAt(base: BaseState, now: number): FrenzyView {
+    const tenth = Math.floor(now * 10);
+    const cache = this.frenzy;
+    if (cache.base !== base || cache.tenth !== tenth || !cache.view) {
+      cache.base = base;
+      cache.tenth = tenth;
+      cache.view = frenzyAt(content, base, now);
+    }
+    return cache.view;
+  }
+
+  /** The Frenzy bar over the target: the meter filling, or the running Frenzy burning down. */
+  private drawFrenzy(base: BaseState, view: FrenzyView, now: number): void {
+    const running = view.until !== null;
+    const left = running ? clamp(((view.until ?? now) - now) / view.seconds, 0, 1) : null;
+    const label = running
+      ? t("frenzy.running", { factor: fmtFactor(view.mult) })
+      : base.meta.stats.frenzies < 2
+        ? t("frenzy.hint")
+        : "";
+    const pulse = running && !reducedMotion() ? (Math.sin(now * 10) + 1) / 2 : 0;
+    this.target.drawFrenzy(
+      this.box,
+      { open: view.open, fill: view.value / view.cap, left, label },
+      pulse,
+    );
+  }
+
   /** The ring round a held finger: it closes as the hold starts, then pulses with each tap. */
   private drawHoldRing(nowMs: number): void {
     const ring = this.holdRing;
@@ -898,6 +967,31 @@ export class Scene {
     if (!rect) return null;
     const host = this.host.getBoundingClientRect();
     return { x: rect.left + rect.width / 2 - host.left, y: rect.top + rect.height / 2 - host.top };
+  }
+
+  /** A crow caught (predicted): feathers where it flew, its seconds of output to the counter. */
+  private gullCaught(k: number, elite: boolean, value: number, nowMs: number): void {
+    const screen = this.gulls.screenPoint;
+    this.gulls.caught(k);
+    const at = this.toWorld(screen.x, screen.y);
+    this.particles.spawn("coins", at.x, at.y, elite ? 22 : 12);
+    const rules = content.flotsam.gulls;
+    this.floaters.add(
+      "event",
+      at.x,
+      at.y - 40,
+      t(elite ? "gull.paid_elite" : "gull.paid", {
+        time: duration(elite ? rules.eliteSeconds : rules.seconds),
+      }),
+      nowMs,
+      { size: this.floatSize(1.05), color: elite ? 0xffe2a0 : 0xffd25a, holdMs: 1500 },
+    );
+    const counter = this.counterPoint();
+    this.floaters.add("flotsam", at.x, at.y - 10, `+${fmt(value, "cost")}`, nowMs, {
+      size: this.floatSize(1.1),
+      ...SUPPLIES_ICON,
+      ...(counter ? { fly: { ...counter, arrive: () => this.bumpCounter() } } : {}),
+    });
   }
 
   /** Flotsam caught (predicted): it pops, coins and a splash, and says what it gave. */
@@ -1076,6 +1170,28 @@ export class Scene {
       }
       case "flotsam_claimed": {
         this.flotsamCaught(event.kind, event.k, event.value, nowMs);
+        break;
+      }
+      case "frenzy_tripped": {
+        const point = this.target.floatPoint;
+        this.target.pulse();
+        this.particles.spawn("sparks", point.x, point.y + 40, 24);
+        this.floaters.add(
+          "event",
+          point.x,
+          point.y - 70,
+          t("frenzy.tripped", { factor: fmtFactor(content.tap.frenzy.mult) }),
+          nowMs,
+          { size: this.floatSize(1.3), color: 0xffa25c, holdMs: 1400 },
+        );
+        break;
+      }
+      case "gull_caught": {
+        this.gullCaught(event.k, event.elite, event.value, nowMs);
+        break;
+      }
+      case "gull_lost": {
+        this.gulls.lost(event.k);
         break;
       }
       case "flotsam_lost": {

@@ -1,5 +1,5 @@
 /**
- * The hands (docs/redesign/02-the-run.md 9.1) and a few gulls. A hand hired onto a line walks
+ * The hands (docs/redesign/02-the-run.md 9.1). A hand hired onto a line walks
  * from the house door to the line's plot in about 2 s (real time), a pop rises over them, and
  * from then on they work there: arms busy, facing their building. Hands already hired when the
  * island loads stand at work. Reduced motion: they fade in at the plot. Simple figures with a
@@ -9,7 +9,7 @@ import { Container, Graphics, Sprite, type Texture } from "pixi.js";
 import { type SurvivorLook, survivorLook } from "../state/world";
 import { CLOTHES, SKIN } from "./palette";
 import { ART, frames } from "./pixel";
-import { easeInOutSine, hash, rand, reducedMotion, shade } from "./util";
+import { easeInOutSine, hash, reducedMotion, shade } from "./util";
 
 interface Figure {
   container: Container;
@@ -227,32 +227,11 @@ interface Hand {
 
 export class Hands {
   private readonly hands = new Map<string, Hand>();
-  private readonly gulls: Array<{
-    g: Graphics;
-    x: number;
-    y: number;
-    speed: number;
-    phase: number;
-  }> = [];
-  /** Gulls wheel over the sea and the island, in the world. */
-  readonly sky = new Container();
   private time = 0;
-  private night = false;
 
   /** `layer` is the island's sorted layer: hands stand in front of their buildings. */
-  constructor(private readonly layer: Container) {
-    for (let i = 0; i < 3; i++) {
-      const g = new Graphics();
-      this.gulls.push({
-        g,
-        x: rand(-100, 1500),
-        y: rand(160, 330),
-        speed: rand(18, 34),
-        phase: rand(0, 6),
-      });
-      this.sky.addChild(g);
-    }
-  }
+  // The sky's birds are the crows you can catch (`gulls.ts`, D238): no decorative ones.
+  constructor(private readonly layer: Container) {}
 
   /**
    * The hands on the island now: `posts` maps each manned line to where its hand works. New
@@ -304,11 +283,7 @@ export class Hands {
     return { x: c.x, y: c.y - (hand.pixel ? 26 * ART : 90 * c.scale.y) };
   }
 
-  setNight(night: boolean): void {
-    this.night = night;
-  }
-
-  update(dt: number, wind: number): void {
+  update(dt: number): void {
     this.time += dt;
     for (const hand of this.hands.values()) {
       const { figure } = hand;
@@ -359,18 +334,6 @@ export class Hands {
         figure.arms[0].rotation = -0.5 + Math.sin(beat) * 0.3;
         figure.body.y = 0;
       }
-    }
-    for (const gull of this.gulls) {
-      gull.x += (gull.speed + wind * 2) * dt;
-      if (gull.x > 1900) gull.x = -200;
-      const y = gull.y + Math.sin(this.time * 0.8 + gull.phase) * 14;
-      const flap = Math.sin(this.time * 7 + gull.phase) * 5;
-      gull.g.clear();
-      gull.g
-        .moveTo(gull.x - 12, y + flap)
-        .quadraticCurveTo(gull.x - 6, y - 3, gull.x, y)
-        .quadraticCurveTo(gull.x + 6, y - 3, gull.x + 12, y + flap)
-        .stroke({ width: 2, color: 0xe8ecf0, alpha: this.night ? 0.25 : 0.85 });
     }
   }
 }

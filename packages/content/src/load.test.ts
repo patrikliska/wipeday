@@ -40,18 +40,18 @@ describe("the shipped data files", () => {
     expect(first).toMatchObject({
       id: "beachcomber",
       cost: 6,
-      rate: 0.42,
+      rate: 0.34,
       cycle: 0.6,
       growth: 1.15,
     });
     expect(first?.handPrice).toBe(1800);
     expect(loom?.cost).toBe(6 * 16 ** 3);
-    expect(loom?.rate).toBeCloseTo(0.42 * 4.75 ** 3, 9);
+    expect(loom?.rate).toBeCloseTo(0.34 * 4.5 ** 3, 9);
     expect(loom?.growth).toBeCloseTo(1.132, 12);
     const reactor = lines[13];
-    // The table rounds: 27Qa and 263M (base output 0.42, D233).
+    // The table rounds: 27Qa and 105M (base output 0.34 × 4.5 a rung, D233, D240).
     expect((reactor?.cost ?? 0) / 27e15).toBeCloseTo(1, 2);
-    expect((reactor?.rate ?? 0) / 263e6).toBeCloseTo(1, 2);
+    expect((reactor?.rate ?? 0) / 105e6).toBeCloseTo(1, 2);
   });
 
   it("build the shelf: 4 Grip rungs and 8 island upgrades (02-the-run.md 5; D194)", () => {
@@ -76,7 +76,7 @@ describe("the shipped data files", () => {
     ]);
     expect(content.eras.at(-1)?.requires).toEqual({ wipeDays: 2 });
     expect(content.targets.map((target) => target.fellTaps)).toEqual([40, 60, 80, 100, 120]);
-    expect(Object.keys(content.buffs).sort()).toEqual(["adrenaline", "rally"]);
+    expect(Object.keys(content.buffs).sort()).toEqual(["adrenaline", "frenzy", "rally"]);
     expect(content.islandClock).toMatchObject({ id: "saltmarsh", utcOffsetMinutes: 60 });
   });
 });
@@ -148,6 +148,57 @@ describe("validation", () => {
     );
     expect(problemsOf(tight)).toContain(
       "research.json5: the Night Shift with the Workshop's hours passes its ceiling (N18)",
+    );
+  });
+
+  it("folds Frenzy into one buff: taps and lines ×mult (D237)", () => {
+    const { buffs, tap } = loadContent(paths.data, locale);
+    const [taps, speed, output] = buffs.frenzy ?? [];
+    expect(taps).toMatchObject({ stat: "tap", op: "more", value: tap.frenzy.mult });
+    expect((speed?.value ?? 0) * (output?.value ?? 0)).toBeCloseTo(tap.frenzy.mult, 12);
+    const loud = dataWith("targets.json5", (text) => text.replace("mult: 6,", "mult: 9,"));
+    expect(problemsOf(loud)).toContain(
+      "targets.json5 `frenzy`: Hustle's ceiling × Frenzy must stay within multCeiling",
+    );
+  });
+
+  it("keeps crows at least 120 s apart, and a Magpie faster and richer (D238)", () => {
+    const dir = dataWith("flotsam.json5", (text) =>
+      text.replace("jitter: 60,", "jitter: 90,").replace("eliteSeconds: 180", "eliteSeconds: 10"),
+    );
+    expect(problemsOf(dir)).toEqual(
+      expect.arrayContaining([
+        "flotsam.json5 `gulls`: crows must never cross under 120 s apart (every − jitter)",
+        "flotsam.json5 `gulls`: a Magpie pays more than a crow",
+      ]),
+    );
+  });
+
+  it("checks badges: names, conditions and the things they name (D239)", () => {
+    const content = loadContent(paths.data, locale);
+    expect(content.achievements.badges.length).toBeGreaterThanOrEqual(55);
+    expect(content.achievements.badges[0]?.when).toEqual({ kind: "state", state: "era", gte: 1 });
+    expect(content.achievements.badges[3]?.when).toEqual({
+      kind: "event",
+      event: "era_reached",
+      filters: { era: "wood", atLte: 60 },
+    });
+    const dir = dataWith("achievements.json5", (text) =>
+      text
+        .replace('kind: "fuel_drum" }', 'kind: "barrel" }')
+        .replace('{ state: "supplies_digits", eq: 777 }', '{ state: "supplies_digits", gte: 777 }')
+        .replace('{ buffs: ["frenzy", "rally"] }', '{ buffs: ["frenzy", "rush"] }'),
+    );
+    expect(problemsOf(dir)).toEqual(
+      expect.arrayContaining([
+        "achievements.json5 `first_rally`: unknown kind `barrel`",
+        "achievements.json5 `lucky_sevens`: `supplies_digits` takes `eq`",
+        "achievements.json5 `frenzy_rally`: unknown buff `rush`",
+      ]),
+    );
+    const unnamed = problemsOf(paths.data, Locale.fromObject({}));
+    expect(unnamed).toContain(
+      "achievements.json5 `first_line`: missing locale key `badge.first_line.name`",
     );
   });
 

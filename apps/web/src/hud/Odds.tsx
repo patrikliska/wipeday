@@ -1,4 +1,5 @@
 import { floatSeconds, guaranteedCrate, odds } from "@wipe-day/domain/flotsam";
+import { magpieOdds } from "@wipe-day/domain/gulls";
 import { useWorld } from "../state/store";
 import { useUi } from "../state/ui";
 import { buffName, content, duration, fmtFactor, t } from "../state/world";
@@ -8,7 +9,7 @@ import { SheetFrame } from "./Sheet";
 /**
  * The Odds sheet (02-the-run.md 8.5; 08-screens.md 2.15; guardrail 9): every shipped flotsam
  * kind with its chance and what it gives, how often something drifts in, and run 1's crates
- * while they last. Opened from Settings and from the Multipliers sheet; read-only.
+ * while they last; then the crows, a Magpie's chance among them (D238). Opened from Settings and from the Multipliers sheet; read-only.
  */
 export function Odds() {
   const sheet = useUi((state) => state.sheet);
@@ -44,6 +45,35 @@ export function Odds() {
           </li>
         ))}
       </ul>
+      <h3 className="odds-head">{t("odds.crows")}</h3>
+      <ul className="odds-list">
+        {[false, true].map((elite) => (
+          <li key={String(elite)} className={`odds-row${elite ? " elite" : ""}`}>
+            <span className="odds-icon">
+              <Icon
+                kind="ui"
+                id="gull"
+                size={32}
+                {...(elite ? { color: "var(--supplies-hi)" } : {})}
+              />
+            </span>
+            <span className="odds-text">
+              <span className="odds-name">{t(elite ? "gull.elite" : "gull.name")}</span>
+              <span className="odds-effect">
+                {t("odds.crow", {
+                  time: duration(
+                    elite ? content.flotsam.gulls.eliteSeconds : content.flotsam.gulls.seconds,
+                  ),
+                })}
+              </span>
+            </span>
+            <span className="odds-share num">
+              {((elite ? magpieOdds(content) : 1 - magpieOdds(content)) * 100).toFixed(1)}%
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="mult-note">{t("odds.crows_schedule")}</p>
       <p className="mult-note">
         {t("odds.schedule", {
           min: shortest,

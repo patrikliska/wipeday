@@ -1630,3 +1630,55 @@ the harness fails if a tile moves), `s6_welcome_lamp_2h`, `s6_welcome_lamp_4h_le
 - *Fine:* the S4-S5 shots now carry Workshop levels, so their drawers show three tabs and the ×1
   button in one row at 390 px, and the dock reads Island, Workshop, Crew; one crown per view
   throughout.
+
+## R2 Feel S7: the active layer (2026-10-19)
+
+Shots: `s7_desktop_frenzy`, `s7_gull_elite`, `s7_achievement_toast` and `s7_phone_dock_badges`,
+each with `_dusk`, `_night` and `_rain`; `s7_phone_frenzy`, `s7_phone_frenzy_filling`,
+`s7_desktop_frenzy_filling`, `s7_phone_gull`, `s7_phone_gull_elite_night`, `s7_phone_gull_caught`,
+`s7_desktop_achievement_toast`, `s7_phone_badges_merged`, `s7_phone_logbook`,
+`s7_phone_logbook_end`, `s7_desktop_logbook`, `s7_phone_multipliers_morale`,
+`s7_phone_odds_crows`, `s7_desktop_2k_frenzy`.
+
+### Iteration 1
+- **The Frenzy bar was invisible on a phone**: drawn under the target as `12-feel.md` asks, it fell
+  behind the drawer (Hustle's "×1.1" already sits at its edge), and on an 810 px desktop its label
+  fell behind the dock; where it did show, it sat on Hustle's label. It moved over the target,
+  above the Hustle arc, one row: ten segments and the label beside them (D241).
+- **The toast said "2 badges"** where the shot meant one (the run's unit counter was 0, so Open for
+  Business came too), and its Morale line wrapped ("Morale ×1 / → ×1.02"): Morale reads with two
+  decimals ("×1.09 → ×1.10") on one line; the shot sets the counters a player at that point has.
+- **The Logbook's dates followed the browser's locale** ("Earned 3. 1." in a Czech Chromium): one
+  fixed short form, "3 Jan".
+- **Eras showed 0/5 in the Stone era**: an era badge waited for the `era_reached` event, so a run
+  already past an era (and every older shot) could never earn it. The plain era badges read the
+  era reached (`state: era`); the two sprints keep the event (D239).
+- **The Magpie was a thin dark tick** against a bright day sky, its gold glow invisible (added
+  light on a pale sky): the bird is 15 × 8 at 5 px with two-pixel wings, a white belly and a gold
+  glint, and by day its glow is a normal-blend gold wash (added light only after dusk).
+- **The Odds sheet was titled "Airdrop odds"** with crows on it: "Odds", "What drops in or flies
+  by, and how often"; the Magpie's row has a gold icon.
+- *Fine:* the warm sky reads as Frenzy in day, dusk and rain and keeps the night a night; the
+  Frenzy pill under the counter says "Frenzy ×6 · 6s" (not ×36, which the effects multiplied out
+  to at first); the Multipliers sheet adds a Morale step ("badges: 11") and Frenzy ×6 under Buffs.
+
+### Iteration 2
+- *Fine:* on a phone the bar sits over the Dead Oak's arc, "FRENZY ×6" beside the burning
+  segments, clear of the airdrop's hint; filling, it says "Keep tapping: Frenzy" in pale print; the
+  crow crosses the upper sky with its hint fixed under the top bar; caught, it bursts into
+  feathers, "+30s of output" rises and the supplies fly to the counter while the first-crow badge's
+  toast drops in; the Logbook's chapters read in a fixed order with brass earned tiles, "New" tags,
+  locked tiles with their bars ("31.2M / 1.00B"), two columns on desktop; the dock reads Island,
+  Workshop 29, Crew 1, Logbook 3 in rain.
+- Left for S8: the juice checklist on S6-S7 together (the crow's catch has no coin arc into the
+  counter beyond its floater), and Frenzy's sting and the badge chime heard in a live session.
+
+### Iteration 3 (the whole suite, 162 shots, audit clean)
+- **Older shots popped badge toasts** over what they were about: `s5_phone_buy_flash`'s purchase
+  earned Open for Business over the drawer's tabs, because a shot patches the run (63
+  Beachcombers) but not the lifetime counters behind it. Before it fills the badges a run has
+  met, the harness raises the counters to at least what the run shows; the flash shot is clean
+  again and the toast shots still show exactly their one badge.
+- *Fine:* one crown per view everywhere, every tap area at least 44 px (the crow's 64 px button
+  is in the audit), the dock gains its Logbook place only where a badge was earned
+  (`phone_first_buy` still shows Island alone).

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { BadgeToast } from "./hud/BadgeToast";
 import { Credits } from "./hud/Credits";
 import { DemoDrawer } from "./hud/DemoDrawer";
 import { Dock } from "./hud/Dock";
@@ -84,6 +85,7 @@ export function App() {
             <Odds />
             <Credits />
             <Toasts />
+            <BadgeToast />
             <Welcome />
             <DemoDrawer />
           </>

@@ -110,6 +110,7 @@ const STEP_TITLE: Record<Step["id"], string> = {
   eras: "mult.eras",
   roster: "mult.roster_title",
   glow: "mult.glow",
+  morale: "mult.morale",
   buffs: "mult.buffs",
   other: "mult.other",
 };
@@ -135,16 +136,18 @@ function sourceName(step: Step, id: string): string {
 
 function StepRow({ step, second }: { step: Step; second: number }) {
   const sources = step.sources.map((source) =>
-    source.until !== undefined
-      ? t("mult.source_buff", {
-          name: sourceName(step, source.id),
-          factor: fmtFactor(source.factor),
-          time: duration(Math.max(0, source.until - second)),
-        })
-      : t("mult.source_factor", {
-          name: sourceName(step, source.id),
-          factor: fmtFactor(source.factor),
-        }),
+    step.id === "morale"
+      ? t("mult.badges", { count: Number(source.id) })
+      : source.until !== undefined
+        ? t("mult.source_buff", {
+            name: sourceName(step, source.id),
+            factor: fmtFactor(source.factor),
+            time: duration(Math.max(0, source.until - second)),
+          })
+        : t("mult.source_factor", {
+            name: sourceName(step, source.id),
+            factor: fmtFactor(source.factor),
+          }),
   );
   return (
     <tr>

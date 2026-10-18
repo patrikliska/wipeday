@@ -22,6 +22,13 @@ export function weatherAt(content: Content, t: number): Weather {
   return "fog";
 }
 
+/** Whether it is night on the island at `t` (island.json5 `night`). */
+export function isNight(content: Content, t: number): boolean {
+  const hour = islandHour(content, t);
+  const { from, to } = content.islandClock.night;
+  return from > to ? hour >= from || hour < to : hour >= from && hour < to;
+}
+
 /** The island's hour at `t` (0 ≤ h < 24): UTC plus its fixed offset, no daylight saving (E9). */
 export function islandHour(content: Content, t: number): number {
   const seconds = t + content.islandClock.utcOffsetMinutes * 60;

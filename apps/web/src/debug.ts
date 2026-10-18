@@ -2,7 +2,10 @@
  * Dev-only hook for the screenshot script and for poking the game from the console:
  * `__wipeDay.store.getState().demoPatch({ supplies: 1e6 })` (demo mode).
  */
+
+import { badgeMet } from "@wipe-day/domain/badges";
 import { arrivalKind } from "@wipe-day/domain/flotsam";
+import { crossing, gullAt } from "@wipe-day/domain/gulls";
 import { weatherAt } from "@wipe-day/domain/weather";
 import { demoClocks, wall } from "./state/clocks";
 import { seedPace } from "./state/pace";
@@ -36,6 +39,15 @@ interface DebugHook {
   weatherAt: (t: number) => string;
   /** The first flotsam arrival (from 1) of `kind` in this run, past run 1's crates. */
   flotsamK: (kind: string) => number;
+  /**
+   * When the run must have started for a crow (or with `elite`, a Magpie) to be `age` seconds
+   * into its crossing at `time` (D238), at least `minAge` seconds into the run.
+   */
+  gullStart: (time: number, age: number, elite: boolean, minAge?: number) => number;
+  /** The crow crossing now, as a claim names it, or null. */
+  gullNow: () => { run: number; k: number } | null;
+  /** Marks every badge the base already meets as earned (`at`), but `except`: shots of one toast. */
+  fillBadges: (at: number, except?: string[]) => void;
 }
 
 interface Box {
@@ -78,6 +90,41 @@ export function installDebug(): void {
       };
       for (let k = 1; k < 500; k++) if (arrivalKind(content, past, k).id === kind) return k;
       return 1;
+    },
+    gullStart: (time, age, elite, minAge = 0) => {
+      const base = useWorld.getState().base;
+      if (!base) return time;
+      for (let k = 0; k < 2000; k++) {
+        const slot = crossing(content, base, 0, k);
+        if (slot.elite === elite && slot.at + age >= minAge) return time - age - slot.at;
+      }
+      return time;
+    },
+    gullNow: () => {
+      const base = useWorld.getState().base;
+      if (!base) return null;
+      const slot = gullAt(content, base, Math.floor(demoClocks.game.now()));
+      return slot ? { run: base.run.n, k: slot.k } : null;
+    },
+    fillBadges: (at, except = []) => {
+      const current = useWorld.getState().base;
+      if (!current) return;
+      // Lifetime counters at least what the run shows (a shot patches the run, not its past).
+      const { run, meta } = current;
+      const owned = Object.values(run.lines).reduce((sum, n) => sum + n, 0);
+      const stats = {
+        ...meta.stats,
+        units: Math.max(meta.stats.units, owned),
+        hands: Math.max(meta.stats.hands, run.hands.length),
+        taps: Math.max(meta.stats.taps, run.taps),
+        felled: Math.max(meta.stats.felled, run.target.felled),
+      };
+      const base = { ...current, meta: { ...meta, stats } };
+      const badges = { ...meta.badges };
+      for (const badge of content.achievements.badges)
+        if (!except.includes(badge.id) && badgeMet(content, badge, base, [], at))
+          badges[badge.id] = at;
+      useWorld.getState().demoPatch({}, { stats, badges });
     },
     tap: (count, x, y) => {
       const box = window.__wipeDay?.target?.();

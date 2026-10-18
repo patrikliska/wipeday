@@ -374,7 +374,11 @@ function layerOf(content: Content, state: BaseState): Layer {
   const { windowHours, maxHours } = content.run.nightShift;
   const hours = Math.min(maxHours, foldStat("night_shift", effects, windowHours));
   const glowNow = glow(content, state.meta.glass.ever, k);
-  const morale = 1;
+  // Morale (D198): 1 + moralePer a badge earned that the content still lists.
+  let earned = 0;
+  for (const badge of content.achievements.badges)
+    if (state.meta.badges[badge.id] !== undefined) earned++;
+  const morale = 1 + content.achievements.moralePer * earned;
   const byStat = new Map<StatId, Effect[]>();
   for (const effect of effects) {
     const list = byStat.get(effect.stat);

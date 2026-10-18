@@ -277,6 +277,50 @@ const era: Play = (voice) => {
   return 0.85;
 };
 
+/** Frenzy: a saw arpeggio C5-E5-G5-C6 under an opening lowpass, then a shimmer. */
+const frenzy: Play = (voice) => {
+  const { ctx, at } = voice;
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(800, at);
+  filter.frequency.exponentialRampToValueAtTime(5000, at + 0.45);
+  for (const [i, note] of [523, 659, 784, 1047].entries())
+    tone(voice, "sawtooth", note, note, at + i * 0.07, 0.22, 0.09, filter);
+  tone(voice, "sine", 2093, 2093, at + 0.3, 0.4, 0.06);
+  return 0.7;
+};
+
+/** A crow: two hoarse "kraa"s, a square sliding down through a bandpass. */
+const caw: Play = (voice) => {
+  const { ctx, at } = voice;
+  for (const start of [0, 0.22]) {
+    const filter = ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.value = 1100;
+    filter.Q.value = 2.5;
+    tone(voice, "square", 760, 520, at + start, 0.16, 0.12, filter);
+  }
+  return 0.4;
+};
+
+/** A crow caught: a flap of wings, then the buy chime. */
+const gullCaught: Play = (voice) => {
+  noiseBurst(voice, voice.at, 0.12, 0.3, (filter) => {
+    filter.type = "bandpass";
+    filter.frequency.value = 900;
+    filter.Q.value = 0.8;
+  });
+  buy({ ...voice, at: voice.at + 0.08 }, {});
+  return 0.25;
+};
+
+/** A badge: a sine arpeggio G5-B5-D6-G6, bell-like. */
+const badge: Play = (voice) => {
+  for (const [i, note] of [784, 988, 1175, 1568].entries())
+    tone(voice, "sine", note, note, voice.at + i * 0.08, 0.45, 0.1);
+  return 0.8;
+};
+
 export const VOICES = {
   tap,
   buy,
@@ -292,6 +336,10 @@ export const VOICES = {
   crit,
   hand,
   era,
+  frenzy,
+  caw,
+  gull_caught: gullCaught,
+  badge,
 } satisfies Record<string, Play>;
 
 export type VoiceId = keyof typeof VOICES;

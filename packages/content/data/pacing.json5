@@ -6,7 +6,7 @@
 // on or before `shipped` must pass (a test fails if one has no implementation); later ones are
 // listed so the plan is visible in one place. `warn: true` prints WARN instead of failing.
 {
-  shipped: "R1",
+  shipped: "R2",
   // The scenarios play 12 flotsam draws in full (R1's "Done when"; 10-balance.md 8.1 step 1), 4
   // inside `pnpm test`'s 10 s. The test profile plays each archetype only as long as a due
   // assertion reads it (`early`: to N9's day 60 for the active player, past run 5 and run 1's end
@@ -44,15 +44,19 @@
     { n: "N5", on: "R1", check: "nothingAffordableEarly", maxSeconds: 30, runs: 5, onlineMinutes: 10 },
     { n: "N6", on: "R1", check: "nothingAffordableOnline", maxSeconds: 120, runs: 5 },
     { n: "N7", on: "R1", check: "casualCheckInsWithPurchase", min: 1, days: 1 },
-    { n: "N8", on: "R1", check: "tapShare", firstMinuteMin: 0.5, fromMinute10: [0.05, 0.25] },
+    // N8 and N9 in R2 Feel's bands (12-feel.md 11; R1's were 5-25% and 1.5-3): outside bursts
+    // (a buff running, or the batch that trips a Frenzy) direct taps are 10-30% from minute 10;
+    // an active hour is 4-6× an idle online hour on the weather-weighted hour (D240).
+    { n: "N8", on: "R2", check: "tapShare", firstMinuteMin: 0.5, fromMinute10: [0.1, 0.3] },
     // N9 on the weather-weighted hour; a rain hour alone only warns (errata E13).
-    { n: "N9", on: "R1", check: "activeHour", days: [14, 30, 60], min: 1.5, max: 3 },
-    { n: "N9", on: "R1", check: "activeHour", days: [14, 30, 60], rain: true, min: 1.5, max: 3, warn: true },
+    { n: "N9", on: "R2", check: "activeHour", days: [14, 30, 60], min: 4, max: 6 },
+    { n: "N9", on: "R2", check: "activeHour", days: [14, 30, 60], rain: true, min: 4, max: 6, warn: true },
     { n: "N23", on: "R1", check: "run1Made", min: 1e10, max: 1e12 },
     // Run 1's script (10-balance.md 4.2, errata E1's column), seconds after the first tap. R2 Feel
-    // S6 retuned it around the Workshop (base output ×0.28, earned back from 2:00): Timber about
-    // 0:52, Mara 1:13, the Workshop 2:00, the crate 3:00, Sorting Tables about 7:00, Stone about
-    // 9:00, Sheet Metal and the first nuke about 42-48 minutes (N1's 40-60 is R4's).
+    // S6 retuned it around the Workshop (base output ×0.28, earned back from 2:00), S7 around
+    // Morale, crows and Frenzy (×0.65 more, D240): Timber about 0:57, Mara 1:24, the Workshop
+    // 2:00, the crate 3:00, the first crow 8:00-9:00, Sorting Tables about 8:00, Stone about 10:00,
+    // Frenzy from 40:00, Sheet Metal and the first nuke about 42-46 minutes (N1's 40-60 is R4's).
     {
       n: "4.2",
       on: "R1",
@@ -63,9 +67,11 @@
         hand: [30, 120],
         research: [120, 150],
         flotsam: [180, 185],
+        gull: [480, 560],
         sorting_tables: [240, 600],
         era_stone: [360, 720],
         era_metal: [1800, 3000],
+        frenzy: [2400, 2700],
         nuke: [2400, 3600],
       },
     },

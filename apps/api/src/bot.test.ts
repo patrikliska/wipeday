@@ -57,6 +57,8 @@ function setup(overrides: Partial<Config> = {}) {
           data: { discordId, kind, title, body, url: `${config.publicUrl}${url}` },
         });
     },
+    // The test's clock, so quiet hours never depend on when the suite runs.
+    { clock },
   );
   const game = new Game({
     db,
@@ -246,7 +248,9 @@ describe("DMs (W8)", () => {
     hub.subscribeBot((message) => {
       if (message.event === "dm") dms.push(message.data);
     });
-    patch(player.id, (base) => manned(base, T0));
+    // T0 is 22:13 UTC: move to mid-morning, so the window ends outside quiet hours.
+    clock.advance(12 * 3600);
+    patch(player.id, (base) => manned(base, clock.now()));
     clock.advance(NIGHT_SHIFT + 60);
     game.tick();
     expect(dms).toEqual([

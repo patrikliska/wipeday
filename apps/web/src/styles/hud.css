@@ -2459,6 +2459,303 @@
 
 /* --- reduced motion (08-screens.md 6.2): pulses become steady glows, nothing slides --- */
 
+/* --- R2 Feel S7: crows, the Frenzy pill, the Logbook and its toast (D237-D239) --- */
+
+.gull-hit {
+  position: absolute;
+  z-index: 1;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gull-hit:focus {
+  outline: none;
+}
+
+.gull-hit:focus-visible {
+  outline: 2px dashed rgba(244, 234, 211, 0.7);
+  outline-offset: 2px;
+}
+
+/* Fixed under the top bar while a crow crosses: a moving line would be unreadable. */
+.gull-hint {
+  position: absolute;
+  z-index: 1;
+  top: calc(var(--hud-top) + 64px);
+  transform: translateX(-50%);
+  max-width: min(320px, calc(100vw - var(--column-w) - 32px));
+  padding: 8px 14px;
+  border-radius: 12px;
+  font: 700 14px / 1.3 var(--body);
+  color: var(--text);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.buff.frenzy {
+  --buff: #ffa25c;
+  border-color: color-mix(in srgb, #ff6f3c 70%, var(--edge));
+}
+
+.odds-head {
+  margin: 14px 0 4px;
+  font: 700 15px / 1.1 var(--display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+/* The Logbook (D239): chapters of badge tiles, earned ones lit in brass. */
+.logbook {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.logbook-chapter h3 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 8px;
+  font: 700 17px / 1.1 var(--display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.logbook-chapter h3 .count {
+  font: 700 14px / 1 var(--display);
+  color: var(--muted);
+}
+
+.badge-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+@media (min-width: 720px) {
+  .badge-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.badge-tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 8px 12px 8px 8px;
+  border-radius: 12px;
+  background: var(--plate);
+  border: 2px solid var(--edge-soft);
+}
+
+.badge-tile.earned {
+  border-color: color-mix(in srgb, var(--supplies) 55%, var(--edge));
+  box-shadow: var(--lip);
+}
+
+.badge-tile.locked {
+  background: linear-gradient(180deg, #2f281e, #221c14);
+}
+
+.badge-icon {
+  position: relative;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text);
+  background: radial-gradient(circle at 50% 32%, #4a3c2a, #2a2319);
+  border: 1px solid var(--edge);
+}
+
+.badge-tile.earned .badge-icon {
+  color: var(--supplies-hi);
+  background: radial-gradient(circle at 50% 32%, #6a5230, #33281a);
+  border-color: color-mix(in srgb, var(--supplies) 60%, var(--edge));
+}
+
+.badge-tile.locked .badge-icon {
+  color: var(--faint);
+}
+
+.badge-lock {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--muted);
+  background: var(--sunk);
+  border: 1px solid var(--edge);
+}
+
+.badge-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.badge-name {
+  font: 700 17px / 1.1 var(--display);
+  letter-spacing: 0.02em;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badge-tile.locked .badge-name {
+  color: var(--text-2);
+}
+
+.badge-how {
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--muted);
+}
+
+.badge-when {
+  font-size: 12px;
+  color: var(--success);
+}
+
+.badge-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.badge-bar {
+  position: relative;
+  flex: 1 1 auto;
+  max-width: 140px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--sunk);
+  overflow: hidden;
+}
+
+.badge-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--supplies);
+  transform-origin: left;
+}
+
+.badge-progress .num {
+  white-space: nowrap;
+}
+
+.badge-new {
+  position: absolute;
+  top: -7px;
+  right: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font: 700 11px / 1.4 var(--body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--supplies-hi);
+}
+
+/* A badge earned: one plate under the top bar, its icon, name and Morale. */
+.badge-toast-wrap {
+  position: absolute;
+  left: calc((100% - var(--column-w)) / 2);
+  top: calc(var(--hud-top) + 8px);
+  transform: translateX(-50%);
+  z-index: 7;
+  max-width: calc(100vw - 32px);
+  pointer-events: none;
+}
+
+.badge-toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 6px 6px 6px 8px;
+  border-radius: 16px;
+  border: 2px solid color-mix(in srgb, var(--supplies) 65%, var(--edge));
+  box-shadow: var(--lip), var(--shadow);
+  animation: badge-in 360ms var(--ease);
+  pointer-events: auto;
+}
+
+.badge-toast-icon {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--supplies-hi);
+  background: radial-gradient(circle at 50% 32%, #6a5230, #33281a);
+  border: 1px solid color-mix(in srgb, var(--supplies) 60%, var(--edge));
+}
+
+.badge-toast-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.badge-toast-title {
+  font: 700 18px / 1.1 var(--display);
+  letter-spacing: 0.02em;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badge-toast-morale {
+  font: 600 13px / 1.2 var(--body);
+  color: var(--supplies-hi);
+  white-space: nowrap;
+}
+
+@keyframes badge-in {
+  0% {
+    transform: translateY(-10px) scale(0.92);
+    opacity: 0;
+  }
+  70% {
+    transform: translateY(0) scale(1.03);
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .btn.primary.crowned,
   .tap-hint {
@@ -2475,7 +2772,8 @@
   .ticker-line,
   .best-buy,
   .card.pulse,
-  .tile.pulse {
+  .tile.pulse,
+  .badge-toast {
     animation: fade 200ms ease;
   }
 
@@ -2502,7 +2800,8 @@
 .reduced .ticker-line,
 .reduced .best-buy,
 .reduced .card.pulse,
-.reduced .tile.pulse {
+.reduced .tile.pulse,
+.reduced .badge-toast {
   animation: fade 200ms ease;
 }
 

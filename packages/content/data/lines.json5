@@ -8,9 +8,11 @@
   formula: {
     costBase: 6,
     costRatio: 16,
-    // 0.42, not 02's 1.5: the Workshop earns the rest back from minute two (R2 Feel S6).
-    rateBase: 0.42,
-    rateRatio: 4.75,
+    // 0.34 and 4.5, not 02's 1.5 and 4.75: the Workshop earns the rest back from minute two (R2
+    // Feel S6: 0.42), and Morale, crows and Frenzy the rest for an active player (R2 Feel S7,
+    // D240). The flatter ratio slows the mid-game and leaves the first minutes as they were.
+    rateBase: 0.34,
+    rateRatio: 4.5,
     cycleBase: 0.6,
     cycleRatio: 2,
     cycleFloor: 0.1,

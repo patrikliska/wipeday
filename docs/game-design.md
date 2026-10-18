@@ -153,7 +153,7 @@ names are approved.
 | Supplies | `supplies` | the one run currency |
 | Crater Glass, Glow *(proposal)* | `glass`, `glow` | prestige currency; its multiplier |
 | Morale *(proposal)*, Hustle | `morale`, `hustle` | badge and Logbook multiplier; tap meter |
-| Frenzy *(proposal)* | `frenzy` | the second tap meter and its tripped buff (D196) |
+| Frenzy *(proposal)* | `frenzy` | the second tap meter and its tripped buff, ×6 (D237) |
 | Scrap (kept) | `scrap` | the premium currency, earned in play (R3) |
 | Beachcomber, Scrapyard, Reactor | `beachcomber` ... | lines 1, 13, 14 |
 | Campfire ... Radio Mast (kept) | `campfire` ... `radio_mast` | lines 2-12 |
@@ -166,7 +166,7 @@ names are approved.
 | Workshop; Spare Wicks *(proposal)* | `{line}_mk` | the per-run research tree; its offline item |
 | Sharper Hooks, Dry Kindling, Calloused Thumbs *(proposal)* | | Workshop tier-1 items |
 | Drift Crate, Fuel Drum, Adrenaline Kit, Rally | `crate` ... | flotsam, R1 |
-| gull, elite gull *(proposal)* | | the sky's tap-to-catch sibling of flotsam, R2 |
+| Crow, Magpie (owner, D238) | `gull` | the sky's tap-to-catch sibling of flotsam, R2 |
 | Drowned Drone, Sealed Locker, Message in a Bottle | `drowned_drone` ... | flotsam, R6-R7 |
 | Supply Drop, Album; shards, stars, sets *(proposal)* | | chest; collection; card progress, R3 |
 | Salvaged Hatchet ... Crowbar *(proposal)* | | gear cards, R3 |
@@ -304,7 +304,7 @@ fellBonus = 10 × tapValue (without crit), once every N taps (40, 60, 80, 100, 1
 `G` is the global fold on the flat part (eras, island upgrades, roster, Grit, Glow, Morale); `p`
 is 0.4% per Grip rung; `fullRate` is every owned line as if manned, buffs included; `T` the tap
 nodes and Workshop items (Calloused Hands +50%, Calloused Thumbs); `B` tap buffs (Adrenaline
-×100, Rush ×5, Frenzy ×3, Double Time ×5); `crit` ×10 on a crit (Lucky Swing: 5% of taps, a Grip
+×100, Rush ×5, Frenzy ×6, Double Time ×5); `crit` ×10 on a crit (Lucky Swing: 5% of taps, a Grip
 node). With the whole tree the steady coefficient `c = taps/s × p × T × Hustle × crit` stays at or
 under 0.6 (a content check); `multCeiling` bounds the folded tap multiplier with Frenzy in it
 (D196).
@@ -318,11 +318,13 @@ under 0.6 (a content check); `multCeiling` bounds the folded tap multiplier with
 - **Hustle**, the tap meter: +1 per credited tap, 0-100; the tap multiplier runs from ×1 to ×2
   (×2.25 at most with Grip nodes). It holds 2 s after the last tap, then drains 10 a second. It
   stays the tap's base.
-- **Frenzy (R2, D196)**, a second meter (`run.frenzy`) drawn under the target, filled by credited
-  taps and draining while idle, tuned so the first trip comes near minute 12. At its cap it trips
-  the `frenzy` buff for 15 real seconds: taps `more 3` and lines `speed more 1.5`, so the sky
-  warms, the lines visibly spin faster and a sting plays; then it drains. The trip resolves in
-  closed form inside its taps batch. The simulator may drop the speed part or retune both (D144).
+- **Frenzy (R2, D196, D237, D241)**, a second meter (`run.frenzy`) drawn as a segmented bar over
+  the target, open 40 minutes into a run's clock: +0.25 a credited tap to 100 (about 70 s at six
+  a second), holding 3 s after the last tap, then draining 2 a second. At its cap it trips the
+  `frenzy` buff for 15 real seconds: **taps and lines ×6** (lines as speed ×1.5, so they visibly
+  run faster, and output ×4). The sky warms, the bar burns down beside "FRENZY ×6", a sting plays;
+  the meter waits empty until the buff ends. The taps batch steps it tap by tap: the taps after
+  the trip take the buff.
 - **The token bucket:** up to 15 credited taps a second, bursts of 45. Taps over it still shake
   the target but pay nothing, silently; an autoclicker earns what 15 taps do. Taps travel in
   batches (about 1 s or 30 taps); the counter reacts on the frame.
@@ -353,10 +355,11 @@ crate:** until the first catch, every spawn is a Drift Crate paying a flat 2 min
 exactly every 3:00. Later runs have none. The Lucky Tide boost (R3) brings flotsam every 90 s for
 5 minutes.
 
-**Gulls (R2, D197)** are flotsam's skill-based sibling. A gull crosses the sky while the page is
-open: slot `j` starts every 180 s from the run's first line at a seeded offset in [0, 60 s], so
-gaps fall in 2-4 minutes and none is under 120 s. Tapping one pays 30 s of output. One in 20 is
-**elite** (glowing, faster), seeded too: it pays 180 s of output in R2 and 1 scrap from R3, when
+**Crows (R2, D197, D238; id `gull`)** are flotsam's skill-based sibling. A crow crosses the sky
+while the page is open: slot `j` starts 8:00 into the run's clock and every 180 s after, at a
+seeded offset in [0, 60 s], so gaps fall in 2-4 minutes and none is under 120 s; it crosses in
+8 s. Tapping one pays 30 s of output. One in 20 is a **Magpie** (black and white, a gold glint
+and glow, across in 5 s), seeded too: it pays 180 s of output in R2 and 1 scrap from R3, when
 scrap has a use (D140). `claim_gull {run, k}` checks the slot and its crossing window; nothing
 lives in settle (N24). The odds are printed with the flotsam's.
 
@@ -732,12 +735,16 @@ Scrap is the premium currency (D182): earned in play, spent on drops and boosts.
 
 ### 5.15 Badges, daily quests and the ticker (R2, R3)
 
-- **Badges (R2, D198).** The Logbook's pages in their simplest form: 60 at launch, shown as a wall
-  with locked badges visible with their condition and a toast with the badge on each unlock. Their
-  counters are lifetime stats (taps, fells, crits, flotsam, gulls, Frenzies, hands, units, Workshop
-  levels, eras, supplies made); drops and nukes count once they ship (D140). Each is Morale +1%.
-  They are checked after every successful command, never inside settle (N24); `badge_unlocked` is
-  logged.
+- **Badges (R2, D198, D239).** The Logbook's pages in their simplest form: 64 in
+  `achievements.json5`, ten chapters, no secrets yet, shown as a wall in the Logbook (a dock
+  panel from the first badge) with locked badges visible with what earns them and a bar when they
+  count, and a toast on each unlock ("Badge: Ten Alike · Morale ×1.09 → ×1.10"; within 2 s they
+  merge). Their conditions are lifetime counters (taps, fells, flotsam, crows, Frenzies, hands,
+  units, Workshop levels, eras, Collects), predicates on the state (the era, lines and hands per
+  era, Hustle, made ever, the supplies' leading digits), the command's own events, or buffs at
+  once; drops and nukes count once they ship (D140). Each is Morale +1% (`moralePer`). They are
+  checked after every successful command on its own events, never inside settle (N24);
+  `badge_unlocked` is logged.
 - **Daily quests (R3).** Three a day on the island's clock: "Tap 500 times", "Hire 2 hands",
   "Catch 3 flotsam", "Open a drop", "Fell 20 times". The third completed pays a tier-I drop and 1
   scrap. Never "spend scrap"; no rerolls.
@@ -758,12 +765,15 @@ model's (`10` 4) until their phase re-measures them.
 | 0:00 | Dawn, a twig lean-to, the dead tree. The only text: "Tap the tree." |
 | 0:01 | The drawer slides up with one crowned card: Beachcomber, 6 (Stone Tools waits at 100, D236). |
 | 0:07 | Forty taps fell the tree ("Timber!"); a new one pops up. |
-| 0:52 | Timber era (1.5k): a cabin, the outcrop, three new lines. |
-| 1:13 | Hire Mara (1.8k): the first line runs without taps. Crew joins the dock. |
+| 0:01 | The first badge, Open for Business: its toast, Morale ×1.01; the Logbook joins the dock. |
+| 0:55 | Timber era (1.5k): a cabin, the outcrop, three new lines. |
+| 1:17 | Hire Mara (1.8k): the first line runs without taps. Crew joins the dock. |
 | 2:00 | The Workshop opens: a dock place with a badge, its tab, Sharper Hooks at 40. |
 | 3:00 | The first crate: a flat 2 minutes of output, back every 3 minutes until caught. |
-| 7:03 | Sorting Tables (1M): everything ×2. |
-| 8:22-9:03 | Stone era (3M); the target becomes an ore seam. |
+| 7:43 | Sorting Tables (1M): everything ×2. |
+| 8:13-8:59 | The first crow crosses (30 s of output). |
+| 8:45-9:44 | Stone era (3M); the target becomes an ore seam. |
+| 40:00 | Frenzy opens: the bar over the target; the first trips at 41:09. |
 
 **The first session's target beats** (`12` 10; targets, not yet measured):
 
@@ -773,9 +783,9 @@ model's (`10` 4) until their phase re-measures them.
 | 1:00 | First line, the shop card |
 | 2:00 | The Workshop opens (Sharper Hooks 40) |
 | 4:00 | Fifth fell: first Supply Drop, first survivor reveal, Mara (R3) |
-| 5:00 | First badge |
-| 8:00 | First gull |
-| 12:00 | First Frenzy trips |
+| 5:00 | First badge (measured: 0:01) |
+| 8:00 | First crow (measured: 8:13-8:59) |
+| 12:00 | First Frenzy trips (moved to 41:09: D237) |
 | 15:00 | Timber era |
 | 20:00 | Daily quests reveal, one already complete (R3) |
 | 45:00 | The Big Red; a tier-II drop and the Blast Map (R4) |
@@ -785,10 +795,12 @@ disagree on the early pace (Timber at 0:33 measured, 15:00 targeted); R2 Feel's 
 settles it from `pnpm sim` within N4-N8 (section 10).
 
 **The first hour.** From minute 10 taps are about 15% of income outside bursts (the new N8 band
-is 10-30%). The Workshop's tree is bought out within the first quarter hour; Sheet Metal lands at
-about minute 42-48 (Handcarts, the second island upgrade, at 5e9 on the way), and about seven or
-eight flotsam are caught. **Yield 10, the first nuke's, comes at about 42-48 minutes** (12 seeds);
-an autoclicker cannot bring it under 25 minutes.
+is 10-30%; measured 15.5%). The Workshop's tree is bought out within the first quarter hour;
+about eleven crows and seven or eight flotsam are caught, a badge comes every few minutes (Morale
+about ×1.2 by Sheet Metal); Frenzy opens at 40:00 and Sheet Metal lands at about minute 41-44
+(Handcarts, the second island upgrade, at 5e9 on the way). **Yield 10, the first nuke's, comes at
+about 42-46 minutes** (12 seeds); an autoclicker cannot bring it under 25 minutes. An active hour
+is about 5× an idle online hour mid-game (N9, D240).
 
 **Day 1, casual.** 08:00: the Timber era, Mara, the Workshop's first levels and Spare Wicks. 13:00:
 one Collect of the 4 h window (Spare Wicks bought at 08:00), the Stone era, more hands, the away

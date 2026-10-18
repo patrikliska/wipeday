@@ -12,7 +12,9 @@ import { rng } from "./rng";
 import { type BaseState, newBase } from "./state";
 import { afterglowAt, applyTaps, hustleFactor } from "./taps";
 
-const content = loadContent(contentPaths.data, loadLocale());
+// Badges raise Morale (D198); these tests check other numbers, so badges add nothing here.
+const shipped = loadContent(contentPaths.data, loadLocale());
+const content = { ...shipped, achievements: { ...shipped.achievements, moralePer: 0 } };
 const T0 = 1_700_000_000;
 const { perSecond, burst } = content.tap.bucket;
 

@@ -10,11 +10,12 @@ import { currentBackend, useWorld } from "../state/store";
 import { type Motion, type Panel, useUi } from "../state/ui";
 import { content, crewName, lineName, t, tierName } from "../state/world";
 import { Icon } from "./Icon";
+import { LogbookPanel, logbookSummary } from "./Logbook";
 import { tierVar, vars } from "./util";
 
 /**
- * Panels as sheets over the scene (12-feel.md 4; D187): Crew and Settings open from the dock or
- * the settings pill, full height above the dock on a phone, wide and centred on desktop. Each
+ * Panels as sheets over the scene (12-feel.md 4; D187): Crew, the Logbook and Settings open from
+ * the dock or the settings pill, full height above the dock on a phone, wide and centred on desktop. Each
  * closes by its (x), by Island, by a click outside, by Escape and by Android back, and has one
  * primary: Done. The dock stays live under a panel, so another destination is one tap away.
  */
@@ -22,7 +23,13 @@ export function Panels() {
   const panel = useUi((state) => state.panel);
   const openPanel = useUi((state) => state.openPanel);
   if (!panel) return null;
-  const title = t(panel === "crew" ? "crew_panel.title" : "settings.title");
+  const title = t(
+    panel === "crew"
+      ? "crew_panel.title"
+      : panel === "logbook"
+        ? "logbook.title"
+        : "settings.title",
+  );
   return (
     <div className="sheet-backdrop panel-backdrop">
       <button
@@ -45,7 +52,20 @@ export function Panels() {
 }
 
 export function PanelBody({ panel }: { panel: Panel }) {
-  return panel === "crew" ? <CrewPanel /> : <SettingsPanel />;
+  if (panel === "crew") return <CrewPanel />;
+  if (panel === "logbook") return <LogbookShell />;
+  return <SettingsPanel />;
+}
+
+/** The badge wall (D239), in the panel's shell. */
+function LogbookShell() {
+  const base = useWorld((state) => state.base);
+  if (!base) return null;
+  return (
+    <Shell title={t("logbook.title")} sub={logbookSummary(base)}>
+      <LogbookPanel base={base} />
+    </Shell>
+  );
 }
 
 function Shell({ title, sub, children }: { title: string; sub?: string; children: ReactNode }) {

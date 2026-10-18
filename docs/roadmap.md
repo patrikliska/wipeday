@@ -6,7 +6,7 @@ should think, and what "done" means**. It was rewritten in R0 from the approved 
 (`docs/redesign/11-roadmap.md`, which keeps the reasons); the W-phase roadmap and its results are
 in `docs/archive/roadmap-w.md`.
 
-## Where we are (2026-10-18, R2 Feel S6 done)
+## Where we are (2026-10-19, R2 Feel S7 done)
 
 - **The live game** is W8 on frozen `main` at https://wipeday.patrikliska.dev: season 1 (started
   2026-10-07) sits untouched and nobody plays it now (owner decision 7). It ends quietly at the
@@ -47,9 +47,38 @@ in `docs/archive/roadmap-w.md`.
   Workshop items and the 14 Line Mks (D227-D230), the Night Shift at 2 h starting when the page
   hides (D231, D232), base output ×0.28 so the Workshop earns the run back (D233), `pnpm sim
   window` (D234), the Workshop tab and dock place (D235).
-- **Next: R2 Feel S7, the active layer** (Frenzy, gulls, badges; balance and UI; plan mode). The
-  owner's playtest after S4 is due, now with sound and the Workshop. Retro Diffusion has about
-  4.39 USD left.
+- **R2 Feel S7, the active layer, is done** (2026-10-19; results below): Frenzy ×6 from 0:40 of a
+  run (D237, D241), crows and the Magpie from 8:00 (D238), 64 badges, Morale, the Logbook and its
+  toast (D239), base output 0.34 × 4.5 a rung and N8/N9 in R2's bands, `shipped: "R2"` (D240);
+  the crown on lasting rates (D200) built. S6 was committed first (b7ef8de).
+- **Next: R2 Feel S8, the finish** (`pnpm sim check --full`, the juice checklist on S6-S7, every R2
+  shot in every weather, the report). The owner's playtest is due, now with the whole active
+  layer. Retro Diffusion has about 4.39 USD left (S7 needed none: the crow is drawn in code).
+
+### R2 Feel S7 results: the active layer
+- **Frenzy** (D237, D241): `targets.json5` `tap.frenzy`; the trip stepped tap by tap inside the
+  taps batch, the buff (taps ×6, lines speed ×1.5 and output ×4) through the existing buff
+  machinery, so settle cuts at its end; `frenzyAt` for the HUD. The bar over the target, the warm
+  sky (`palette.warm`), the lines' machinery 1.5× faster, the sting, the buff's pill.
+- **Crows** (D238): `flotsam.json5` `gulls`, `domain/gulls.ts` (the seeded grid), `claim_gull` (API
+  schema, idempotency test); `scene/gulls.ts` draws them in chunky screen pixels with a flying
+  64 px button; the decorative gulls are gone; the Odds sheet lists crows.
+- **Badges** (D239): `achievements.json5` (64, ten chapters), `domain/badges.ts` after every
+  successful command on its own events (the path-independence test caught a settle event),
+  Morale in `effects.ts`, the Logbook panel (`hud/Logbook.tsx`) and its dock place, the toast
+  (`hud/BadgeToast.tsx`), the Multipliers sheet's Morale step; `badge_unlocked` logged. New icons
+  `ui/frenzy`, `ui/gull`; new cues frenzy, crow, catch, badge.
+- **Balance** (D240; `pnpm sim check`, test profile 4.7 s; `--full` 97 s, passes): **N4** 77-105 s;
+  **N5**, **N6** 19 s; **N7** 100%; **N8** 100% / 15.5% (R2 band 10-30%); **N9** 5.10 / 5.63 / 5.16
+  at days 14 / 30 / 60, rain 5.47 / 5.73 / 5.38 (R2 band 4-6; full profile 5.43-5.61); **N23** run 1
+  5.0e10-9.2e11; **N3** (R2, warn row) casual day 1 21:00. Beats: Timber 0:55, Mara 1:17, the
+  Workshop 2:00, the crate 3:00, the first crow 8:13-8:59, Stone 8:45-9:44, Frenzy 41:09, Sheet
+  Metal 41:19-44:09, the nuke 42:34-45:14.
+- **Shots:** 30 new `s7_*` (Frenzy, the Magpie, the badge toast and the dock's badges in day,
+  dusk, night and rain; the meter filling; a crow, its hint and its catch; three badges merged;
+  the Logbook on phone and desktop and its end; Multipliers with Morale; the Odds' crows; Frenzy
+  at 2k). Older shots now earn the badges their runs already meet. Two review rounds in
+  `docs/ui-review.md`.
 
 ### R2 Feel S6 results: the Workshop and the 2 h Night Shift
 - **The Workshop** (D227-D230): `research.json5`, tiers 1-4 (20 items, one effect each, only
@@ -542,7 +571,8 @@ look great on a desktop and a phone (`12-feel.md` 1).
   batch (D196), its meter under the target and the warm sky; gulls on their seeded grid and
   `claim_gull` (D197), their sprites and tap button; about 60 badges in `achievements.json5`,
   Morale +1% each (D198), the Logbook's badge wall and toast; the crown on lasting rates (D200).
-  N8 and N9 switched to their new bands and tuned.
+  N8 and N9 switched to their new bands and tuned. *Done* (D237-D241: Frenzy ×6 from 0:40, its
+  bar over the target, Crow and Magpie, 64 badges).
 - **S8. The finish.** `pnpm sim check --full`; the juice checklist on S6-S7's features; every R2
   Feel shot in every weather; the report.
 

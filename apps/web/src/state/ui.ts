@@ -11,7 +11,7 @@ import { create } from "zustand";
 
 export type Bulk = 1 | 10 | 100 | "max";
 export type Tab = "lines" | "upgrades" | "research";
-export type Panel = "crew" | "settings";
+export type Panel = "crew" | "logbook" | "settings";
 export type Sheet = "multipliers" | "odds" | "credits";
 export type Motion = "device" | "reduced" | "full";
 
@@ -40,6 +40,8 @@ export interface UiState {
   crewSeen: { run: number; hands: number };
   /** The Workshop items open when its tab last showed, per run: the dock's badge counts the rest. */
   workshopSeen: { run: number; items: number };
+  /** Badges earned when the Logbook last showed (they last for good): the dock counts the rest. */
+  badgesSeen: number;
 }
 
 interface UiActions {
@@ -65,6 +67,8 @@ interface UiActions {
   openWorkshop(column: boolean): void;
   /** The Workshop tab showed `items` open items in run `run`. */
   seeWorkshop(run: number, items: number): void;
+  /** The Logbook showed `count` badges earned. */
+  seeBadges(count: number): void;
   /** Closes the top layer (sheet, then panel, then the expanded drawer); false when none. */
   back(): boolean;
 }
@@ -104,6 +108,11 @@ const storedWorkshopSeen = (): { run: number; items: number } => {
     : { run: 0, items: 0 };
 };
 
+const storedBadgesSeen = (): number => {
+  const value = Number(read("wipeday.badges_seen") ?? "0");
+  return Number.isFinite(value) ? value : 0;
+};
+
 const storedMotion = (): Motion => {
   const value = read("wipeday.motion");
   return value === "reduced" || value === "full" ? value : "device";
@@ -141,6 +150,7 @@ export const useUi = create<UiState & UiActions>((set, get) => {
     focusAt: 0,
     crewSeen: storedCrewSeen(),
     workshopSeen: storedWorkshopSeen(),
+    badgesSeen: storedBadgesSeen(),
 
     expand(open) {
       if (open === get().expanded) return;
@@ -220,6 +230,11 @@ export const useUi = create<UiState & UiActions>((set, get) => {
       if (seen.run === run && seen.items === items) return;
       write("wipeday.workshop_seen", `${run}:${items}`);
       set({ workshopSeen: { run, items } });
+    },
+    seeBadges(count) {
+      if (get().badgesSeen === count) return;
+      write("wipeday.badges_seen", String(count));
+      set({ badgesSeen: count });
     },
     back() {
       const state = get();

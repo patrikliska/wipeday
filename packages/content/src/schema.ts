@@ -175,6 +175,22 @@ export const tapSchema = z.strictObject({
     graceSeconds: z.number().finite().nonnegative(),
     drainPerSecond: z.number().finite().nonnegative(),
   }),
+  /**
+   * Frenzy (D196, D237): a second meter, +perTap a credited tap from opensAfterSeconds on the
+   * run's clock; it holds graceSeconds, then drains. At cap it trips the `frenzy` buff for
+   * `seconds`: taps and lines ×mult (lines through speed ×speed and output ×mult/speed).
+   */
+  frenzy: z.strictObject({
+    opensAfterSeconds: z.number().finite().nonnegative(),
+    perTap: factor,
+    cap: factor,
+    graceSeconds: z.number().finite().nonnegative(),
+    drainPerSecond: z.number().finite().nonnegative(),
+    seconds: seconds,
+    mult: factor,
+    speed: factor,
+    multCeiling: factor,
+  }),
   fellBonusTaps: count,
   popSeconds: seconds,
 });
@@ -337,6 +353,22 @@ export const flotsamFileSchema = z.strictObject({
     flatMinutes: factor,
   }),
   kinds: z.array(flotsamKindSchema),
+  /**
+   * Crows (the `gull` id; D197, D238): slot j crosses the sky `firstAfterSeconds + j × every`
+   * after the run's clock starts, plus a seeded offset in [0, jitter]; one in 1/eliteOdds is a
+   * Magpie. A catch pays `seconds` (a Magpie `eliteSeconds`) of output.
+   */
+  gulls: z.strictObject({
+    firstAfterSeconds: seconds,
+    every: seconds,
+    jitter: z.number().finite().nonnegative(),
+    crossSeconds: seconds,
+    eliteCrossSeconds: seconds,
+    graceSeconds: z.number().finite().nonnegative(),
+    eliteOdds: z.number().finite().positive().max(1),
+    seconds: seconds,
+    eliteSeconds: seconds,
+  }),
 });
 export type Flotsam = z.infer<typeof flotsamFileSchema>;
 
@@ -355,6 +387,8 @@ export const islandFileSchema = z.strictObject({
     rain: count,
     fog: count,
   }),
+  /** Night on the island's clock, for "at night" badges: from `from` until `to` (hours). */
+  night: z.strictObject({ from: z.int().min(0).max(23), to: z.int().min(0).max(23) }),
 });
 export type IslandClock = z.infer<typeof islandFileSchema>;
 
@@ -409,6 +443,104 @@ export const pacingSchema = z.strictObject({
 });
 export type Pacing = z.infer<typeof pacingSchema>;
 
+/**
+ * Badges (12-feel.md 9.1; D198, D239): the Logbook's first pages. Each `when` is one condition
+ * from a closed vocabulary the domain evaluates after every successful command (`badges.ts`).
+ */
+export const BADGE_STATS = [
+  "taps",
+  "hands",
+  "felled",
+  "flotsam",
+  "frenzies",
+  "gulls",
+  "units",
+  "research",
+  "eras",
+  "collects",
+] as const;
+export type BadgeStat = (typeof BADGE_STATS)[number];
+/** Domain events a badge may wait for (the domain test holds each to a real event type). */
+export const BADGE_EVENTS = [
+  "era_reached",
+  "hand_hired",
+  "felled",
+  "flotsam_claimed",
+  "gull_caught",
+  "frenzy_tripped",
+  "researched",
+  "night_shift_collected",
+] as const;
+export type BadgeEvent = (typeof BADGE_EVENTS)[number];
+/** Named predicates on the state after a command. */
+export const BADGE_STATES = [
+  "era",
+  "lines_min_owned",
+  "line_max_owned",
+  "hands_working",
+  "hustle",
+  "supplies_digits",
+  "made_ever",
+  "research_maxed",
+  "window_hours",
+] as const;
+export type BadgeState = (typeof BADGE_STATES)[number];
+const scalar = z.union([z.string(), z.number(), z.boolean()]);
+/** Parsed into a tagged shape (`kind`) so the domain can switch on it. */
+export const badgeWhenSchema = z.union([
+  z
+    .strictObject({ stat: z.enum(BADGE_STATS), gte: factor })
+    .transform((when) => ({ kind: "stat" as const, ...when })),
+  z
+    .strictObject({
+      state: z.enum(BADGE_STATES),
+      gte: factor.optional(),
+      eq: z.number().finite().optional(),
+      era: tier.optional(),
+    })
+    .transform((when) => ({ kind: "state" as const, ...when })),
+  z
+    .strictObject({ buffs: z.array(id).min(2) })
+    .transform((when) => ({ kind: "buffs" as const, ...when })),
+  // Field filters on the event (`field: value`, or `fieldLte` / `fieldGte` for numbers); also
+  // `weather` and `night`, read from the island's clock at the command's second.
+  z
+    .object({ event: z.enum(BADGE_EVENTS) })
+    .catchall(scalar)
+    .transform(({ event, ...filters }) => ({
+      kind: "event" as const,
+      event: event as BadgeEvent,
+      filters: filters as Record<string, string | number | boolean>,
+    })),
+]);
+export type BadgeWhen = z.infer<typeof badgeWhenSchema>;
+export const BADGE_CHAPTERS = [
+  "eras",
+  "lines",
+  "hands",
+  "taps",
+  "frenzy",
+  "gulls",
+  "airdrops",
+  "workshop",
+  "night_shift",
+  "supplies",
+] as const;
+export const badgeSchema = z.strictObject({
+  id,
+  chapter: z.enum(BADGE_CHAPTERS),
+  /** `<kind>/<id>`: an existing icon (D141). */
+  icon: z.string().regex(/^[a-z_]+\/[a-z0-9_]+$/),
+  when: badgeWhenSchema,
+});
+export type BadgeDef = z.infer<typeof badgeSchema>;
+export const achievementsFileSchema = z.strictObject({
+  /** Morale = 1 + moralePer × badges earned (D198). */
+  moralePer: z.number().finite().nonnegative().max(0.1),
+  badges: z.array(badgeSchema),
+});
+export type Achievements = z.infer<typeof achievementsFileSchema>;
+
 /** Everything the game's rules read, validated. */
 export interface Content {
   resources: Resource[];
@@ -438,6 +570,8 @@ export interface Content {
   flotsam: Flotsam;
   islandClock: IslandClock;
   pacing: Pacing;
+  /** The Logbook's badges and what each is worth in Morale. */
+  achievements: Achievements;
   /** What each timed buff does while it runs, by buff kind (from `flotsam.json5`). */
   buffs: Record<string, Effect[]>;
 }
@@ -457,6 +591,7 @@ export const DATA_FILES = [
   "flotsam.json5",
   "island.json5",
   "pacing.json5",
+  "achievements.json5",
 ] as const;
 export type DataFile = (typeof DATA_FILES)[number];
 

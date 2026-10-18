@@ -29,6 +29,10 @@ export type GameEvent =
   | { type: "go_tap" }
   /** A claim on flotsam arrival `k` came too late: it drifted off (no toast). */
   | { type: "flotsam_lost"; k: number }
+  /** A crow came into view (its caw); `elite` for a Magpie. */
+  | { type: "gull_arrived"; elite: boolean }
+  /** A claim on crow `k` came too late: it flew on (no toast). */
+  | { type: "gull_lost"; k: number }
   /** The welcome card's Collect: `gain` flies into the counter. */
   | { type: "collected"; gain: number };
 
@@ -49,6 +53,12 @@ export const EVENT_TYPES = Object.keys({
   felled: 1,
   night_shift_over: 1,
   base_reset: 1,
+  frenzy_tripped: 1,
+  gull_caught: 1,
+  badge_unlocked: 1,
+  night_shift_collected: 1,
+  gull_arrived: 1,
+  gull_lost: 1,
   tap_at: 1,
   crit: 1,
   milestone: 1,

@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { loadGame } from "@wipe-day/content/load";
 import { type ManualClock, manualClock } from "@wipe-day/domain/clock";
 import { applyCommand } from "@wipe-day/domain/commands";
+import { crossing } from "@wipe-day/domain/gulls";
 import { nextEventAt, suppliesAt } from "@wipe-day/domain/settle";
 import type { BaseState } from "@wipe-day/domain/state";
 import { and, eq } from "drizzle-orm";
@@ -190,6 +191,15 @@ const playing =
     },
   });
 
+/** As `playing`, with the run started so that its first crow crosses at T0 (D238). */
+const crowing =
+  (supplies: number) =>
+  (base: BaseState): BaseState => {
+    const state = playing(supplies)(base);
+    const offset = crossing(content, state, 0, 0).at;
+    return { ...state, run: { ...state.run, startedAt: Math.floor(T0 - offset) } };
+  };
+
 /** The rows of a player's command records, parsed. */
 const records = (db: ReturnType<typeof setup>["db"], playerId: number) =>
   db
@@ -220,6 +230,7 @@ describe("state and commands", () => {
     { type: "buy_research", item: "sharper_hooks", count: 1 },
     { type: "buy_era", era: "wood" },
     { type: "claim_flotsam", run: 1, k: 0 },
+    { type: "claim_gull", run: 1, k: 0 },
     { type: "collect" },
   ] as const;
 
@@ -228,7 +239,7 @@ describe("state and commands", () => {
       const { login, state, send, patch, clock } = setup();
       const cookie = await login(1);
       await state(cookie);
-      patch(1, playing(1e6));
+      patch(1, command.type === "claim_gull" ? crowing(1e6) : playing(1e6));
       const first = await send(cookie, `key-${command.type}-1`, command);
       expect(first.ok).toBe(true);
       clock.advance(10);
@@ -245,6 +256,8 @@ describe("state and commands", () => {
       expect(replay.state.run.research).toEqual(first.state.run.research);
       expect(replay.state.run.era).toBe(first.state.run.era);
       expect(replay.state.run.flotsam).toEqual(first.state.run.flotsam);
+      expect(replay.state.run.gulls).toEqual(first.state.run.gulls);
+      expect(replay.state.meta.badges).toEqual(first.state.meta.badges);
       expect(replay.state.run.supplies).toBeCloseTo(suppliesAt(content, first.state, T0 + 10), 6);
     });
   }
@@ -524,7 +537,11 @@ describe("the taps transport (N10, N25)", () => {
     expect(game.records(playerId)).toBeLessThanOrEqual(3700);
     expect(server.run.taps).toBe(15 * 3600);
     expect(server.run.supplies).toBe(predicted.run.supplies);
-    expect(db.select().from(eventLog).all()).toHaveLength(0);
+    // Taps write no log rows (D143) but the badges they earn, one row each, once (D198).
+    const rows = db.select().from(eventLog).all();
+    expect(rows.every((row) => row.type === "badge_unlocked")).toBe(true);
+    expect(rows.length).toBe(Object.keys(server.meta.badges).length);
+    expect(rows.length).toBeGreaterThan(0);
   });
 
   it("two tabs together never pass the bucket", () => {

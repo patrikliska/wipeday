@@ -9,6 +9,7 @@ import { deriveLines } from "./lines";
 import type { Locale } from "./locale";
 import { deriveResearch, isScored, levelEffect, levelsCost, tierEra } from "./research";
 import {
+  achievementsFileSchema,
   type Content,
   crewSchema,
   DATA_FILES,
@@ -157,6 +158,7 @@ export function parseContent(
   const flotsam = whole("flotsam.json5", flotsamFileSchema);
   const islandClock = whole("island.json5", islandFileSchema);
   const pacing = whole("pacing.json5", pacingSchema);
+  const achievements = whole("achievements.json5", achievementsFileSchema);
 
   if (
     problems.length > 0 ||
@@ -168,7 +170,8 @@ export function parseContent(
     !milestones ||
     !flotsam ||
     !islandClock ||
-    !pacing
+    !pacing ||
+    !achievements
   ) {
     throw new ContentError(problems);
   }
@@ -178,6 +181,13 @@ export function parseContent(
   for (const kind of flotsam.kinds) {
     if ("buff" in kind.effect) buffs[kind.effect.buff] = kind.effect.effects;
   }
+  // Frenzy's buff: taps ×mult, lines ×mult as a visible speed-up and the rest as output.
+  const frenzy = targets.tap.frenzy;
+  buffs.frenzy = [
+    { stat: "tap", op: "more", value: frenzy.mult },
+    { stat: "speed", op: "more", value: frenzy.speed },
+    { stat: "output", op: "more", value: frenzy.mult / frenzy.speed },
+  ];
   const content: Content = {
     resources,
     crew,
@@ -198,6 +208,7 @@ export function parseContent(
     flotsam,
     islandClock,
     pacing,
+    achievements,
     buffs,
   };
   problems.push(...crossCheck(content, locale));
@@ -249,6 +260,7 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
   problems.push(...checkShelf(content));
   problems.push(...checkResearch(content, locale));
   problems.push(...checkFlotsam(content));
+  problems.push(...checkAchievements(content, locale));
 
   // The tap (N10, N9).
   const { tap } = content;
@@ -256,6 +268,10 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
     add("targets.json5", "", "the bucket's burst must be at least a second's taps");
   if (tap.hustle.peak > tap.hustle.peakCeiling)
     add("targets.json5", "", "Hustle's peak must not pass its ceiling");
+  if (tap.hustle.peakCeiling * tap.frenzy.mult > tap.frenzy.multCeiling)
+    add("targets.json5", "frenzy", "Hustle's ceiling × Frenzy must stay within multCeiling");
+  if (tap.frenzy.speed > tap.frenzy.mult)
+    add("targets.json5", "frenzy", "Frenzy's speed-up must not exceed its multiplier");
   const c = tapCoefficient(content);
   if (c > TAP_COEFFICIENT_MAX)
     add("", "", `the tap's steady coefficient c is ${c.toFixed(3)}, above ${TAP_COEFFICIENT_MAX}`);
@@ -361,6 +377,19 @@ function checkFlotsam(content: Content): Problem[] {
   // Natural spawns never stack two buffs: the shortest rainy gap outlasts the longest buff.
   if (!((shortest * 60) / schedule.rainFactor > longestBuff))
     add("flotsam.json5", "", "the shortest rainy gap must outlast the longest buff");
+  // Crows: never two under 120 s apart, and one slot's crossing ends before the next can start.
+  const gulls = content.flotsam.gulls;
+  if (gulls.every - gulls.jitter < 120)
+    add("flotsam.json5", "gulls", "crows must never cross under 120 s apart (every − jitter)");
+  if (
+    gulls.jitter + Math.max(gulls.crossSeconds, gulls.eliteCrossSeconds) + gulls.graceSeconds >=
+    gulls.every
+  )
+    add("flotsam.json5", "gulls", "a crow's crossing must end before the next slot opens");
+  if (gulls.eliteCrossSeconds > gulls.crossSeconds)
+    add("flotsam.json5", "gulls", "a Magpie flies faster than a crow");
+  if (gulls.eliteSeconds < gulls.seconds)
+    add("flotsam.json5", "gulls", "a Magpie pays more than a crow");
   const clock = content.islandClock;
   if (clock.id !== content.island)
     add("island.json5", clock.id, `the island must be \`${content.island}\` (lines.json5)`);
@@ -368,6 +397,53 @@ function checkFlotsam(content: Content): Problem[] {
     add("island.json5", clock.id, "the island's clock is a whole number of hours from UTC");
   const { clear, rain, fog } = clock.weather;
   if (clear + rain + fog !== 100) add("island.json5", clock.id, "weather shares must sum to 100");
+  return problems;
+}
+
+/** The badges (D198, D239): ids, names, and conditions that name real things. */
+function checkAchievements(content: Content, locale: Locale): Problem[] {
+  const problems: Problem[] = [];
+  const add = (id: string, message: string) =>
+    problems.push({ file: "achievements.json5", id, message });
+  const seen = new Set<string>();
+  const chapters = new Set<string>();
+  for (const badge of content.achievements.badges) {
+    if (seen.has(badge.id)) add(badge.id, "id is used more than once");
+    seen.add(badge.id);
+    chapters.add(badge.chapter);
+    for (const key of [`badge.${badge.id}.name`, `badge.${badge.id}.how`])
+      if (!locale.has(key)) add(badge.id, `missing locale key \`${key}\``);
+    const when = badge.when;
+    if (when.kind === "state") {
+      const exact = when.state === "supplies_digits";
+      if (exact ? when.eq === undefined || when.gte !== undefined : when.gte === undefined)
+        add(badge.id, exact ? "`supplies_digits` takes `eq`" : `\`${when.state}\` takes \`gte\``);
+      if (
+        when.era !== undefined &&
+        when.state !== "lines_min_owned" &&
+        when.state !== "hands_working"
+      )
+        add(badge.id, `\`${when.state}\` takes no \`era\``);
+    } else if (when.kind === "buffs") {
+      for (const kind of when.buffs)
+        if (!(kind in content.buffs)) add(badge.id, `unknown buff \`${kind}\``);
+    } else if (when.kind === "event") {
+      const known: Record<string, readonly string[]> = {
+        kind: content.flotsam.kinds.map((kind) => kind.id),
+        era: content.eras.map((era) => era.id),
+        target: content.targets.map((target) => target.id),
+        item: content.research.map((item) => item.id),
+      };
+      for (const [field, value] of Object.entries(when.filters)) {
+        const ids = known[field];
+        if (ids && !ids.includes(String(value)))
+          add(badge.id, `unknown ${field} \`${String(value)}\``);
+      }
+    }
+  }
+  for (const chapter of chapters)
+    if (!locale.has(`logbook.chapter.${chapter}`))
+      add("", `missing locale key \`logbook.chapter.${chapter}\``);
   return problems;
 }
 

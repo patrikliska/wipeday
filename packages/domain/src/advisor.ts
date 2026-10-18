@@ -323,6 +323,15 @@ export function anythingAffordable(content: Content, state: BaseState, now: numb
   return choices(content, state, now, 1, 0).some((choice) => choice.affordable);
 }
 
+/**
+ * The state the crown scores (D200): its lasting rates, every timed buff (Frenzy, Rally,
+ * Adrenaline) left out, so the crown never jumps to another card while a buff runs. Every number
+ * on screen still shows the buffs.
+ */
+export function lasting(state: BaseState): BaseState {
+  return state.run.buffs.length === 0 ? state : { ...state, run: { ...state.run, buffs: [] } };
+}
+
 /** How the player is playing right now: what the crown weighs purchases by. */
 export interface Player {
   /** Supplies a second, taps included. */

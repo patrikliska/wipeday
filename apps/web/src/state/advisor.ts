@@ -7,6 +7,7 @@ import {
   type Choice,
   choices,
   crown,
+  lasting,
   type Pick,
   type Player,
   sheetPick,
@@ -26,7 +27,7 @@ export interface AdvisorView {
   now: number;
   /** The top bar's `/s`. */
   rate: number;
-  /** Supplies a second with the player's taps: what "in 42s" divides by. */
+  /** Supplies a second with the player's taps, buffs included: what "in 42s" divides by. */
   income: number;
   player: Player;
   /** Every purchase on offer, scored. */
@@ -43,9 +44,15 @@ export function computeAdvisor(base: BaseState, now: number, nowMs: number): Adv
   const { tapRate, tapShare } = pace(nowMs);
   const rate = shownRate(content, base, now);
   const income = rate + tapRate * tapGlance(content, base, now).value;
-  const player: Player = { income, tapShare, tapRate };
-  const offered = choices(content, base, now, income, tapShare, tapRate);
-  const pick = crown(content, base, now, player, offered);
+  // The crown scores lasting rates: a Frenzy or a Rally never moves it (D200).
+  const calm = lasting(base);
+  const calmIncome =
+    calm === base
+      ? income
+      : shownRate(content, calm, now) + tapRate * tapGlance(content, calm, now).value;
+  const player: Player = { income: calmIncome, tapShare, tapRate };
+  const offered = choices(content, calm, now, calmIncome, tapShare, tapRate);
+  const pick = crown(content, calm, now, player, offered);
   return { base, now, rate, income, player, offered, pick, sheet: sheetPick(pick, offered) };
 }
 

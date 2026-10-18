@@ -23,6 +23,8 @@ export const SEED = {
   flight: 0xf119,
   /** The island's weather per block (on the island's seed: the same for every friend). */
   weather: 0x3e47,
+  /** Crow slot j's offset and whether it is a Magpie. */
+  gull: 0x6011,
   /** The Magnet's hauls (on the base's seed: they span runs). */
   magnet: 0x3a6e,
 } as const;

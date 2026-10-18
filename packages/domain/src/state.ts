@@ -113,6 +113,8 @@ export interface Meta {
     research: number;
     /** Eras reached (Twig, the start, not counted). */
     eras: number;
+    /** Welcome-back Collects pressed. */
+    collects: number;
   };
   /** Badges earned (the Logbook's wall), by id: the second each was earned. */
   badges: Record<string, number>;
@@ -164,6 +166,7 @@ export function newMeta(): Meta {
       units: 0,
       research: 0,
       eras: 0,
+      collects: 0,
     },
     badges: {},
     skin: null,

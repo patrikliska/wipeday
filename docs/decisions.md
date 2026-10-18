@@ -2614,3 +2614,81 @@ and the check takes 4.2-4.6 s; `--full` still plays 365 days for everyone. The c
 the Workshop's gates (and skips them all while it is shut). Found in the shots' tests: with base output 0.42 the crown saved for Stone Tools (60)
 before the first Beachcomber (6), so a new player's first card came uncrowned; Stone Tools costs
 100 now and the first Beachcomber is crowned again ("the drawer slides up with one crowned card").
+
+### D237. Frenzy is everything ×6 for 15 s, open from 0:40 of the run (owner, R2 Feel S7)
+D196's Frenzy (taps ×3, lines speed ×1.5) could not reach N9's 4-6: it runs about a sixth of an
+active player's time, so it lifts the active hour by about a quarter, and the simulator read
+2.9×. The owner picked "everything ×7" (Cookie Clicker's Frenzy); the simulator then settled it
+at **×6 on taps and lines** (lines as speed ×1.5, visibly faster, and output ×4, so a line makes
+exactly ×6), with the meter at +0.25 a credited tap to 100 (400 taps, about 70 s at six a
+second), holding 3 s after the last tap and draining 2 a second, and the buff for 15 real
+seconds. The first trip could not stay at 12:00 (`12-feel.md` 10): Morale, crows and an early
+Frenzy together brought Sheet Metal to 0:20 and the first nuke with it, and slowing the economy
+to pay for it pushed the casual's first nuke to day 2. Asked, the owner chose **Frenzy opening
+40 minutes into a run** (a time on the run's clock, like the Workshop's 2:00), so it arrives just
+before Sheet Metal; crows (8:00) and the first badges are the first session's new things. The
+trip is stepped tap by tap inside the batch (the taps spread evenly over its seconds): the tap
+that fills the meter trips it, the taps after it take the buff; the meter stays empty until the
+buff ends. A batch that reaches the server after its Frenzy ended is settled past it first, so
+it is calm on both sides (the client predicts the same). Content checks: Hustle's ceiling ×
+Frenzy within `multCeiling` (20), and the speed part never above the multiplier.
+
+### D238. Crows: the gull id, named Crow and Magpie, from 8:00 (owner, R2 Feel S7)
+The island has no sea since D209, so the sky's tap-to-catch bird is a **Crow**, and the one in
+twenty is a **Magpie** (owner's pick of the recommended names); the id stays `gull` (D197's
+command, state and stats). Slots start 8:00 into the run's clock (the `12-feel.md` beat; D197's
+"from the first line" would put the first beside the Workshop at 2:00 and the crate at 3:00),
+then every 180 s plus a seeded 0-60 s, so gaps are 2-4 minutes and never under 120 s (a content
+check). A crow crosses in 8 s, a Magpie in 5; the claim stays open a second after. A catch pays
+30 s of output, a Magpie 180 s (buffs aside, like the crate). Drawn like the airdrop's parachute,
+in chunky screen pixels (a 15 × 8 bird at 5 CSS px, three flap frames, a Magpie black and white
+with a gold glint) with a glow that reads on any sky; the 64 px button flies with it; every
+other crow flies the other way, each at its own height. The hint ("A crow! Tap it before it flies
+off.") sits fixed under the top bar until two are caught: a line moving with the bird could not
+be read. The three decorative vector gulls went: in the sky, a bird is something you can tap.
+The Odds sheet prints the Magpie's 5% under its new title, "Odds".
+
+### D239. Badges: 64 in `achievements.json5`, the Logbook panel and its toast (R2 Feel S7)
+64 badges in ten chapters (Eras, Lines, Hands, Taps, Frenzy, Crows, Airdrops, Workshop, Night
+Shift, Supplies), drawn from `05b`'s catalog where shipped and renamed for the wasteland where it
+named the sea; none for Armored, crits, nukes, drops or the Blast Map (unreachable or unshipped,
+D140), and **no secrets** in R2 (they come with their hints in the Logbook phase). Each `when` is
+one of four kinds: a lifetime counter, a named predicate on the state after the command (`era`,
+lines and hands per era, Hustle, the supplies' leading digits, made ever, Workshop items maxed,
+the window's hours), an event of the command with field filters (`atLte`, `weather`, `night`
+from the island's clock), or buffs at once. Badges read **the command's own events, never
+settle's**: an earlier settle can swallow a settle event, and the path-independence test caught
+"Slept Through It" earned on one path only; it now comes from Collect after a full window. The
+plain era badges read the era reached, so a run already past an era earns it at its next
+command. Morale = 1 + `moralePer` (0.01, data) × badges earned, on every line and tap. The
+**Logbook** is a dock panel from the first badge (D199), with a count of badges new since it last
+showed: chapters in a fixed order, every badge visible, earned ones lit with their date, locked
+ones with what earns them and a bar when they count. A badge earned shows one toast under the
+top bar (its icon, its name, "Morale ×1.09 → ×1.10"; badges within 2 s merge, "3 badges") whose
+button opens the Logbook, and a chime. `badge_unlocked` is logged to `event_log`, taps batches
+included (D143's one exception). New counter `collects`.
+
+### D240. Base output 0.34 × 4.5 a rung; N8 and N9 in R2's bands (R2 Feel S7)
+With Morale, crows and Frenzy an active first hour ran faster again. A flat ×0.65 on output put
+it back but made Stone Tools outrank the first Beachcomber (the crown saved for the tool) and the
+early waits swing (N5 24-45 s with the tool's price); a flatter ladder does it instead:
+`rateBase` 0.42 → 0.34 and `rateRatio` 4.75 → 4.5, so the first minutes stay as S6 had them and
+the mid-game slows. `pacing.json5` moves to `shipped: "R2"` with N8 (10-30% direct from minute
+10, outside bursts: a buff running or the batch that trips Frenzy) and N9 (4-6, rain warns) in
+their R2 bands, replacing R1's rows. Measured (test profile, 4.7 s): N4 77-105 s, N5 19 s, N7
+100%, N8 100% / 15.5%, **N9 5.10 / 5.63 / 5.16** at days 14 / 30 / 60 (rain 5.47 / 5.73 / 5.38),
+N23 run 1 at 5.0e10-9.2e11, beats Timber 0:55, Mara 1:17, the first crow 8:13-8:59, Stone
+8:45-9:44, Frenzy 41:09, Sheet Metal 41:19-44:09, the nuke 42:34-45:14, the casual's first nuke
+day 1 21:00 (N3). The full profile (365 days × 3 seeds, 97 s) passes too, N9 5.43-5.61. The crown
+scores lasting rates (D200, now built): the advisor sees the state without timed buffs, on the
+client and in the simulator.
+
+### D241. The Frenzy bar sits over the target, not under it (R2 Feel S7)
+`12-feel.md` 3.1 draws the meter under the target. On a phone the drawer starts right under the
+target's foot (Hustle's own label already sits at its edge), and on a 810 px desktop the dock
+does, so a bar there was hidden. It sits just over the Hustle arc instead, like a boss's bar:
+ten chunky segments filling pale to ember, "Keep tapping: Frenzy" beside it for the first two
+Frenzies; tripped, the segments burn down as the buff's timer beside "FRENZY ×6", the sky warms
+toward the dusk palette (night stays night), the lines' machinery runs 1.5× faster, sparks and a
+"FRENZY! ×6" pop at the target, a sting plays, and the buff's pill shows under the counter.
+Reduced motion keeps the colours and the labels and drops the pulse.

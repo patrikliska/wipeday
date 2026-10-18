@@ -40,7 +40,8 @@ describe("simulator v2", () => {
     for (const [name, archetype] of Object.entries(content.pacing.archetypes)) {
       expect(simulate(content, name, archetype, 7)).toEqual(simulate(content, name, archetype, 7));
     }
-  });
+    // Ten weeks of play in all: about 4 s alone, more beside the pacing check.
+  }, 20_000);
 
   it("plays every archetype: taps, purchases and hands, with every number finite", () => {
     for (const [name, archetype] of Object.entries(content.pacing.archetypes)) {

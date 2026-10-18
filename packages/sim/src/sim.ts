@@ -14,15 +14,16 @@
  */
 import type { Archetype, Assertion, Content, Phase } from "@wipe-day/content/schema";
 import { PHASES } from "@wipe-day/content/schema";
-import { choices, crown, type Player } from "@wipe-day/domain/advisor";
+import { choices, crown, lasting, type Player } from "@wipe-day/domain/advisor";
 import { assertFiniteState } from "@wipe-day/domain/amount";
 import { applyCommand, type Command } from "@wipe-day/domain/commands";
 import { fullRate, rates } from "@wipe-day/domain/effects";
 import type { GameEvent } from "@wipe-day/domain/events";
 import { claimUntil, flotsamAt } from "@wipe-day/domain/flotsam";
+import { gullAt } from "@wipe-day/domain/gulls";
 import { glassLevel } from "@wipe-day/domain/prestige";
 import { workshopOpensAt } from "@wipe-day/domain/research";
-import { rng, seedOf } from "@wipe-day/domain/rng";
+import { rng, SEED, seedOf } from "@wipe-day/domain/rng";
 import { mannedRate, settle } from "@wipe-day/domain/settle";
 import { type BaseState, newBase, newRun } from "@wipe-day/domain/state";
 import { tapParts } from "@wipe-day/domain/taps";
@@ -220,6 +221,9 @@ export function simulate(
       if (event.type === "hand_hired") beat("hand", since(now));
       if (event.type === "flotsam_claimed") beat("flotsam", since(now));
       if (event.type === "upgraded") beat(event.upgrade, since(now));
+      if (event.type === "frenzy_tripped") beat("frenzy", since(now));
+      if (event.type === "gull_caught") beat("gull", since(now));
+      if (event.type === "badge_unlocked") beat("badge", since(now));
       if (event.type === "researched") {
         beat("research", since(now));
         beat(event.item, since(now));
@@ -253,23 +257,23 @@ export function simulate(
    * `tapsPerSecond` while they tap, not at all otherwise; income is what runs (unmanned lines
    * too while tapping) plus the taps.
    */
-  const pace = (now: number, tapsPerSecond: number): Player => {
+  const pace = (calm: BaseState, now: number, tapsPerSecond: number): Player => {
     const tapShare = tapsPerSecond > 0 ? 1 : 0;
-    const manned = mannedRate(content, state, now);
-    const running = manned + tapShare * (fullRate(content, state, now, ONLINE) - manned);
-    const income = running + tapsPerSecond * tapParts(content, state, now).base;
+    const manned = mannedRate(content, calm, now);
+    const running = manned + tapShare * (fullRate(content, calm, now, ONLINE) - manned);
+    const income = running + tapsPerSecond * tapParts(content, calm, now).base;
     return { income, tapShare, tapRate: tapsPerSecond };
   };
 
   /**
    * The crown's last pick while it still holds: it saves for a purchase out of reach, and among
    * those the ranking does not depend on the supplies held (the wait shifts every score alike;
-   * what is affordable only falls behind), so the pick changes only when prices, buffs or the
-   * pace change, the supplies reach the next price or the Workshop opens.
+   * what is affordable only falls behind), so the pick changes only when prices or the pace
+   * change, the supplies reach the next price or the Workshop opens. The crown scores lasting
+   * rates, so buffs never move it (D200).
    */
   let waiting: {
     rates: object;
-    buffs: object;
     pace: number;
     next: number;
     until: number;
@@ -281,7 +285,6 @@ export function simulate(
     if (
       waiting &&
       waiting.rates === rates(content, state) &&
-      waiting.buffs === state.run.buffs &&
       waiting.pace === tapsPerSecond &&
       state.run.supplies < waiting.next &&
       now < waiting.until
@@ -289,9 +292,10 @@ export function simulate(
       return waiting.any;
     }
     for (let i = 0; i < 100; i++) {
-      const player = pace(now, tapsPerSecond);
-      const offered = choices(content, state, now, player.income, player.tapShare, player.tapRate);
-      const pick = crown(content, state, now, player, offered);
+      const calm = lasting(state);
+      const player = pace(calm, now, tapsPerSecond);
+      const offered = choices(content, calm, now, player.income, player.tapShare, player.tapRate);
+      const pick = crown(content, calm, now, player, offered);
       if (pick.kind !== "purchase" || !pick.choice.affordable) {
         const supplies = state.run.supplies;
         let next = Number.POSITIVE_INFINITY;
@@ -301,7 +305,6 @@ export function simulate(
         const opens = workshopOpensAt(content, state);
         waiting = {
           rates: rates(content, state),
-          buffs: state.run.buffs,
           pace: tapsPerSecond,
           next,
           until: opens !== null && opens > now ? opens : Number.POSITIVE_INFINITY,
@@ -343,12 +346,14 @@ export function simulate(
         if (count > 0) {
           const result = step({ type: "taps", count, from: t, to }, to);
           const tapped = result.events.find((event) => event.type === "tapped");
+          // A batch that trips a Frenzy is part of the burst too (N8's "outside bursts").
+          const burst = buffed || result.events.some((event) => event.type === "frenzy_tripped");
           if (state.meta.nukes === 0 && tapped?.type === "tapped") {
             const made = state.run.made - before;
             if (runOnline < 60) {
               life.income.firstMinute.tapDriven += Math.max(0, made - manned);
               life.income.firstMinute.made += made;
-            } else if (runOnline >= FINE_SECONDS && !buffed) {
+            } else if (runOnline >= FINE_SECONDS && !burst) {
               life.income.later.direct += tapped.direct;
               life.income.later.made += made;
             }
@@ -357,6 +362,10 @@ export function simulate(
         const k = floating(content, state, to);
         if (k !== null && catches(archetype, baseSeed, state.run.n, k))
           step({ type: "claim_flotsam", run: state.run.n, k }, to);
+        // Crows, by the same share as flotsam on their own stream (D238).
+        const crow = gullAt(content, state, to);
+        if (crow && catches(archetype, seedOf(baseSeed, SEED.gull), state.run.n, crow.k))
+          step({ type: "claim_gull", run: state.run.n, k: crow.k }, to);
         const affordable = buy(to, rate);
         if (state.run.n <= EARLY_RUNS) {
           stuck = affordable ? 0 : stuck + length;
@@ -494,7 +503,7 @@ export function simulateAll(
 
 /**
  * Supplies made in one online hour from `start`: tapping `tapsPerSecond` and catching every
- * flotsam, or idle (a ping every 5 minutes, so the player counts as online). Nothing is bought,
+ * flotsam and crow, or idle (a ping every 5 minutes, so the player counts as online). Nothing is bought,
  * so the hour measures what activity adds, not what it compounds into (N9).
  */
 export function hourMade(
@@ -520,6 +529,14 @@ export function hourMade(
           content,
           state,
           { type: "claim_flotsam", run: state.run.n, k },
+          to,
+        ).state;
+      const crow = gullAt(content, state, to);
+      if (crow)
+        state = applyCommand(
+          content,
+          state,
+          { type: "claim_gull", run: state.run.n, k: crow.k },
           to,
         ).state;
     } else if ((t - start) % 300 === 0) {

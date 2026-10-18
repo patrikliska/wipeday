@@ -5,6 +5,7 @@
  */
 import type { Content, LineDef } from "@wipe-day/content/schema";
 import { TIERS } from "@wipe-day/content/tiers";
+import { badgeCount } from "./badges";
 import {
   buffEffects,
   type Conditions,
@@ -48,7 +49,16 @@ export function hustleAt(content: Content, state: BaseState, t: number): number 
 
 /** One step of the Multipliers sheet: its factor and where it comes from. */
 export interface Step {
-  id: "milestones" | "workshop" | "upgrades" | "eras" | "roster" | "glow" | "buffs" | "other";
+  id:
+    | "milestones"
+    | "workshop"
+    | "upgrades"
+    | "eras"
+    | "roster"
+    | "glow"
+    | "morale"
+    | "buffs"
+    | "other";
   factor: number;
   /** Each source and its own factor: a line, a Workshop item, an upgrade, an era, a tier, a buff. */
   sources: { id: string; factor: number; until?: number }[];
@@ -173,6 +183,13 @@ export function breakdown(content: Content, state: BaseState, t: number): Breakd
     });
 
   steps.push({ id: "glow", factor: r.glow, sources: [] });
+  // Morale (D198): its one source is the badge count.
+  if (r.morale > 1 + 1e-12)
+    steps.push({
+      id: "morale",
+      factor: r.morale,
+      sources: [{ id: String(badgeCount(content, state)), factor: r.morale }],
+    });
   before *= r.glow * r.morale;
   const full = fullRate(content, state, t, ONLINE);
   const withoutBuffs = buffs.length
@@ -182,9 +199,12 @@ export function breakdown(content: Content, state: BaseState, t: number): Breakd
     steps.push({
       id: "buffs",
       factor: withoutBuffs > 0 ? full / withoutBuffs : 1,
+      // What each does to the lines (Frenzy's tap part shows under the tap).
       sources: buffs.map((buff) => ({
         id: buff.kind,
-        factor: productOf(buffEffects(content, [buff], t)),
+        factor: productOf(
+          buffEffects(content, [buff], t).filter((effect) => effect.stat !== "tap"),
+        ),
         until: buff.until,
       })),
     });

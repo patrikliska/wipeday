@@ -34,6 +34,9 @@ const HOUR = 3600;
 const RALLY = 4;
 const DRONE = 12;
 const AWAY = 1.5;
+/** Frenzy (D237): lines ×MULT, as a visible speed-up and the rest as output. */
+const FRENZY_MULT = 7;
+const FRENZY_SPEED = 1.5;
 
 /** R0's content plus buffs and an away-only effect, with a Night Shift of `hours`. */
 function fixture(hours: number): Content {
@@ -43,6 +46,10 @@ function fixture(hours: number): Content {
     buffs: {
       rally: [{ stat: "output", op: "more", value: RALLY }],
       drone: [{ stat: "output", op: "more", value: DRONE }],
+      frenzy: [
+        { stat: "speed", op: "more", value: FRENZY_SPEED },
+        { stat: "output", op: "more", value: FRENZY_MULT / FRENZY_SPEED },
+      ],
       // Holds only while away: settle must cut where the player goes offline.
       lantern: [{ stat: "offline", op: "more", value: AWAY, when: "offline" }],
     },
@@ -73,7 +80,7 @@ function randomCase(random: Rng): Case {
     else if (random.next() < 0.6) readyAt[line.id] = T0 + random.int(1, 3 * HOUR);
   }
   const buffs: Buff[] = [];
-  const kinds = ["rally", "drone", "lantern"];
+  const kinds = ["rally", "drone", "lantern", "frenzy"];
   for (let i = random.int(0, 3); i > 0; i--) {
     const kind = kinds[random.int(0, kinds.length - 1)] ?? "rally";
     const owned = Object.keys(lines);
@@ -322,9 +329,12 @@ function oracle(content: Content, state: BaseState, until: number): number {
       if (buff.kind === "rally") factor *= RALLY;
       if (buff.kind === "drone" && (line === undefined || buff.line === line)) factor *= DRONE;
       if (buff.kind === "lantern" && t >= offlineFrom) factor *= AWAY;
+      if (buff.kind === "frenzy") factor *= FRENZY_MULT / FRENZY_SPEED;
     }
     return t >= offlineFrom ? factor * away : factor;
   };
+  const speedAt = (t: number): number =>
+    run.buffs.some((buff) => buff.kind === "frenzy" && buff.until > t) ? FRENZY_SPEED : 1;
   const drones = run.buffs.filter((buff) => buff.kind === "drone");
   let total = 0;
   for (let t = run.settledAt; t < until; t++) {
@@ -335,6 +345,7 @@ function oracle(content: Content, state: BaseState, until: number): number {
       if (buff.until <= t) continue;
       if (buff.kind === "rally") global *= RALLY;
       if (buff.kind === "lantern" && t >= offlineFrom) global *= AWAY;
+      if (buff.kind === "frenzy") global *= FRENZY_MULT;
     }
     if (t >= offlineFrom) global *= away;
     // Buffs multiply, so two drones on one line make it ×144 there.
@@ -353,8 +364,10 @@ function oracle(content: Content, state: BaseState, until: number): number {
     const line = rates.get(id);
     if (!line) continue;
     const { output, speed } = lineFactors(content, state, id);
-    const cycle = Math.max(content.formula.cycleFloor, line.cycle / speed);
-    const rate = (run.lines[id] ?? 0) * line.rate * output * speed * glow;
+    // A cycle pays its rate × its length, both read at its end (a Frenzy's speed included).
+    const fast = speed * speedAt(ready);
+    const cycle = Math.max(content.formula.cycleFloor, line.cycle / fast);
+    const rate = (run.lines[id] ?? 0) * line.rate * output * fast * glow;
     total += rate * factorAt(ready, id) * cycle;
   }
   return total;

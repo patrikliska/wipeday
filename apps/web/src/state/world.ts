@@ -5,6 +5,7 @@
  *
  * Every data file must be imported here: a missing one is a `ContentError` at load.
  */
+import achievementsFile from "@wipe-day/content/data/achievements.json5";
 import crewFile from "@wipe-day/content/data/crew.json5";
 import erasFile from "@wipe-day/content/data/eras.json5";
 import flotsamFile from "@wipe-day/content/data/flotsam.json5";
@@ -57,6 +58,7 @@ export const content: Content = parseContent(
     "flotsam.json5": flotsamFile,
     "island.json5": islandFile,
     "pacing.json5": pacingFile,
+    "achievements.json5": achievementsFile,
   },
   locale,
 );

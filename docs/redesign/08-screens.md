@@ -1355,16 +1355,16 @@ order (D192): the groups once tagged R2-R7 are R4-R9.
 | `desktop_day` | 1600 × 900, column, recentred camera | R1 |
 | `desktop_night_metal`, `laptop`, `tablet`, `phone_landscape` | layout checks | R1 |
 | `desktop_hero` / `_dusk` / `_night` / `_rain` | 6 taps/s: chips arcing onto the stockpile, the card column in fixed order with the crown lit in place, Best buy chip, the dock centred | R2 |
-| `desktop_frenzy` / `_dusk` / `_night` / `_rain` | Frenzy tripped: ×3 taps, the warmed sky, lines spinning faster, the meter draining | R2 |
+| `desktop_frenzy` / `_dusk` / `_night` / `_rain` | Frenzy tripped: ×6 taps and lines, the warmed sky, lines running faster, the bar over the target burning down (S7: `s7_desktop_frenzy` and its skies, `s7_phone_frenzy`, `s7_phone_frenzy_filling`, `s7_desktop_frenzy_filling`, `s7_desktop_2k_frenzy`) | R2 |
 | `desktop_research` / `_dusk` / `_night` / `_rain` | the column's Workshop tab (D235): tiers 1-4 and the Line Mks as tiles in era groups with level rings, what a level does and adds, a crowned tile, the next era's group locked with its reason (S6: `s6_desktop_research`, `_night`, `s6_desktop_research_stone` in rain) | R2 |
 | `desktop_sheet_crew` / `_dusk` / `_night` / `_rain` | the Crew sheet over the scene from the dock, wide and centred | R2 |
 | `phone_hero` / `_dusk` / `_night` / `_rain` | the target at about 35% of the height, the stockpile, the Frenzy meter under it, the drawer's two cards, the dock | R2 |
 | `phone_drawer_cards` / `_dusk` / `_night` / `_rain` | the drawer dragged open: cards in fixed order, the crowned card lit in place, a locked card with its reason | R2 |
 | `phone_research` / `_dusk` / `_night` / `_rain` | the Workshop tab from the dock's Workshop, Spare Wicks "Night Shift +20m", "2h 20m → 2h 40m" (S6: `s6_phone_research`, `_night`, `s6_phone_workshop_opens`, `s6_phone_research_first`) | R2 |
-| `phone_dock_badges` / `_dusk` / `_night` / `_rain` | Island, Workshop, Crew, Logbook with badge counts; no Album | R2 |
+| `phone_dock_badges` / `_dusk` / `_night` / `_rain` | Island, Workshop, Crew, Logbook with badge counts; no Album (S7: `s7_phone_dock_badges` and its skies; the Logbook itself `s7_phone_logbook`, `_end`, `s7_desktop_logbook`) | R2 |
 | `welcome_back_lamp` / `_dusk` / `_night` / `_rain` | welcome back after a full 2 h window: the lamp burnt down, one Collect (S6: `s6_welcome_lamp_2h`, `s6_welcome_lamp_4h_left`) | R2 |
-| `achievement_toast` / `_dusk` / `_night` / `_rain` | a badge unlocked: its toast, Morale +1% | R2 |
-| `gull_elite` / `_dusk` / `_night` / `_rain` | an elite gull mid-crossing, glowing; its catch pays 3 min of output | R2 |
+| `achievement_toast` / `_dusk` / `_night` / `_rain` | a badge unlocked: its toast, Morale +1% (S7: `s7_achievement_toast` and its skies, `s7_desktop_achievement_toast`, `s7_phone_badges_merged`, `s7_phone_multipliers_morale`) | R2 |
+| `gull_elite` / `_dusk` / `_night` / `_rain` | a Magpie mid-crossing, glowing; its catch pays 3 min of output (S7: `s7_gull_elite` and its skies, `s7_phone_gull`, `s7_phone_gull_elite_night`, `s7_phone_gull_caught`, `s7_phone_odds_crows`) | R2 |
 | `ticker` / `_dusk` / `_night` / `_rain` | the news ticker under the dock (desktop) and in the drawer's handle (phone) | R2 |
 | `phone_kettle_pad` / `phone_kettle_card` | 500M made (errata E2); the locked card at minute 10 | R4 |
 | `phone_bigred_chip` | crowned chip, steam, gulls | R4 |

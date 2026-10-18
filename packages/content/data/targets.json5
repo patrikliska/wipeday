@@ -20,6 +20,22 @@
       graceSeconds: 2,
       drainPerSecond: 10,
     },
+    // Frenzy (D196, D237, D240): +perTap a credited tap once it opens (opensAfterSeconds on the
+    // run's clock: 40 minutes, so run 1's script holds), holding graceSeconds after the last tap,
+    // then draining drainPerSecond. At cap it trips for `seconds` real seconds: taps and lines
+    // ×mult (lines run `speed` times faster and pay mult/speed more a cycle). Hustle's
+    // peakCeiling × mult must stay within multCeiling.
+    frenzy: {
+      opensAfterSeconds: 2400,
+      perTap: 0.25,
+      cap: 100,
+      graceSeconds: 3,
+      drainPerSecond: 2,
+      seconds: 15,
+      mult: 6,
+      speed: 1.5,
+      multCeiling: 20,
+    },
     // Taps a fell pays, and the seconds the target stays down while still counting taps.
     fellBonusTaps: 10,
     popSeconds: 0.3,

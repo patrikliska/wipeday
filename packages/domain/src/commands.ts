@@ -10,16 +10,18 @@
  *
  * R0's commands: `taps` and `ping` (the slim path, D134), `buy_line` and `hire_hand`. R1 adds
  * the shelf (`buy_upgrade`), eras (`buy_era`), flotsam and Collect; R2 the Workshop
- * (`buy_research`); R4 the nuke and the Blast Map.
+ * (`buy_research`) and the crows (`claim_gull`); R4 the nuke and the Blast Map.
  */
 import type { Content } from "@wipe-day/content/schema";
 import { TIERS } from "@wipe-day/content/tiers";
 import type { Amount } from "./amount";
+import { earnBadges } from "./badges";
 import type { GameEvent } from "./events";
 import { arrivalKind, claimUntil, crateValue, flotsamAt, gapBefore } from "./flotsam";
+import { crossing, gullValue } from "./gulls";
 import { costFactor, costOf, eraOpen, handPriceOf, lineOf, maxAffordable } from "./lines";
 import { levelOf, levelsCost, maxResearch, researchGate, researchOf } from "./research";
-import { cyclePayout, settle } from "./settle";
+import { cyclePayout, settle, windowEnd } from "./settle";
 import {
   bought,
   eraCost,
@@ -52,6 +54,8 @@ export type Command =
   | { type: "buy_era"; era: string }
   /** Catch flotsam arrival `k` of run `run` while it floats. */
   | { type: "claim_flotsam"; run: number; k: number }
+  /** Catch crow `k` of run `run` while it crosses the sky (D197, D238). */
+  | { type: "claim_gull"; run: number; k: number }
   /** The welcome-back card's one button: back to work (restarts the Night Shift). */
   | { type: "collect" };
 
@@ -134,10 +138,14 @@ export function applyCommand(
   let run = result.state.run;
   if (isPurchase(command) && run.firstBuyAt === null) run = { ...run, firstBuyAt: now };
   run = { ...run, activeAt: now, madeAtActive: run.made };
+  const events = [...settled.events, ...result.events];
+  // Badges after every successful command, never on a refusal or inside settle (D198). They read
+  // the command's own events only: settle's can be swallowed by an earlier settle (N24).
+  const badges = earnBadges(content, { ...result.state, run }, result.events, now);
   return {
     ok: true,
-    state: { ...result.state, run },
-    events: [...settled.events, ...result.events],
+    state: badges.state,
+    events: [...events, ...badges.events],
     changed: true,
   };
 }
@@ -147,8 +155,16 @@ function step(content: Content, state: BaseState, command: Command, now: number)
     case "taps":
       return { ok: true, ...applyTaps(content, state, command, now) };
     case "ping":
-    case "collect":
       return { ok: true, state, events: [] };
+    case "collect": {
+      const stats = { ...state.meta.stats, collects: state.meta.stats.collects + 1 };
+      const full = windowEnd(content, state) <= now;
+      return {
+        ok: true,
+        state: { ...state, meta: { ...state.meta, stats } },
+        events: [{ type: "night_shift_collected", full }],
+      };
+    }
     case "buy_line":
       return buyLine(content, state, command.line, command.count);
     case "hire_hand":
@@ -161,7 +177,36 @@ function step(content: Content, state: BaseState, command: Command, now: number)
       return buyEra(content, state, command.era, now);
     case "claim_flotsam":
       return claimFlotsam(content, state, command.run, command.k, now);
+    case "claim_gull":
+      return claimGull(content, state, command.run, command.k, now);
   }
+}
+
+function claimGull(content: Content, state: BaseState, n: number, k: number, now: number): Step {
+  const run = state.run;
+  if (n !== run.n) return { ok: false, refusal: { reason: "stale_run" } };
+  if (!Number.isInteger(k) || k < 0)
+    return { ok: false, refusal: { reason: "unknown", what: String(k) } };
+  if (k <= run.gulls.last) return { ok: false, refusal: { reason: "claimed" } };
+  const startedAt = run.startedAt;
+  const slot = startedAt === null ? null : crossing(content, state, startedAt, k);
+  if (!slot || now < slot.at || now > slot.until)
+    return { ok: false, refusal: { reason: "gone", at: slot && now < slot.at ? slot.at : null } };
+  const value = gullValue(content, state, slot.elite, now);
+  return {
+    ok: true,
+    state: {
+      ...state,
+      run: {
+        ...run,
+        supplies: run.supplies + value,
+        made: run.made + value,
+        gulls: { caught: run.gulls.caught + 1, last: k },
+      },
+      meta: { ...state.meta, stats: { ...state.meta.stats, gulls: state.meta.stats.gulls + 1 } },
+    },
+    events: [{ type: "gull_caught", k, elite: slot.elite, value }],
+  };
 }
 
 function claimFlotsam(content: Content, state: BaseState, n: number, k: number, now: number): Step {

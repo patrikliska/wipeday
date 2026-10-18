@@ -201,6 +201,43 @@ const HQM_RUN = {
   made: 1e15,
 };
 
+/** Sheet Metal 45 minutes into the run: Frenzy open (D240), ten hands, the Workshop deep. */
+const FRENZY_RUN = {
+  era: "metal",
+  runAge: 2700,
+  research: STONE_RUN.research,
+  lines: { ...every(40), shipbreaker: 0, reactor: 0 },
+  hands: ALL_LINES.slice(0, 10),
+  upgrades: ["stone_tools", "iron_tools"],
+  supplies: 4.2e10,
+  made: 9.5e10,
+  taps: 14_200,
+  target: { taps: 40, felled: 210 },
+};
+
+/** Lifetime counters of a player that far in: the Logbook's bars. */
+const FRENZY_STATS = {
+  taps: 14_200,
+  hands: 10,
+  felled: 210,
+  flotsam: 9,
+  crits: 0,
+  frenzies: 3,
+  gulls: 11,
+  units: 1_640,
+  research: 236,
+  eras: 3,
+  collects: 4,
+};
+
+/** Each R2 Feel shot's four skies (08-screens.md 8.3): suffix, the island's hour, weather. */
+const SKIES = [
+  ["", 10.5, "clear"],
+  ["_dusk", 17.75, "clear"],
+  ["_night", 22.5, "clear"],
+  ["_rain", 10.5, "rain"],
+];
+
 /**
  * Each shot: `viewport`, `scale` (device pixels), `state`, and optionally `clip`, `taps`, `ff`.
  * In `state`, `time` pins the game clock and `wall` the animation clock (both paused);
@@ -220,6 +257,13 @@ const HQM_RUN = {
  * `flotsamAge` puts an arrival on the water that many seconds old (run 1's crate, or the first
  * of `flotsamKind` once one was caught); `away` moves the game clock on that many seconds after
  * the patch and shows the welcome-back card; `collect` presses its Collect.
+ *
+ * R2 Feel S7, in `state`: `gull: {age, elite}` starts the run so a crow (a Magpie) is that many
+ * seconds into its crossing; `meta` overwrites lifetime fields (`badges`, `stats`) and
+ * `badgesNew` how many of the badges the Logbook has not shown yet (the dock's count);
+ * `badgesFill` (the ids kept back; `false` for none) earns every badge the run already meets, by
+ * default; `frenzy` (the
+ * meter) and `buffs` are run fields like any other. On the shot, `sendGull` catches the crow.
  */
 const PHONE_SHORT = [390, 664];
 
@@ -1714,6 +1758,271 @@ const SHOTS = [
     scroll: ".panel-scroll",
     ff: 2.5,
   },
+  // R2 Feel S7, the active layer (D237-D240): Frenzy, crows, badges and the Logbook, each of
+  // 08-screens.md 8.3's R2 shots in day, dusk, night and rain.
+  ...SKIES.flatMap(([sky, hour, weather]) => [
+    {
+      name: `s7_desktop_frenzy${sky}`,
+      viewport: [1440, 810],
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...FRENZY_RUN,
+        buffs: [{ kind: "frenzy", until: at(1, hour) + 9 }],
+        frenzy: { value: 0, at: at(1, hour) + 9 },
+      },
+      taps: [8, 2],
+      ff: 2.5,
+    },
+    {
+      name: `s7_gull_elite${sky}`,
+      viewport: [1440, 810],
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...FRENZY_RUN,
+        gull: { age: 0.5, elite: true },
+      },
+      ff: 2.5,
+    },
+    {
+      name: `s7_achievement_toast${sky}`,
+      viewport: PHONE,
+      scale: 2,
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...TWIG_HERO,
+        runAge: 300,
+        badgesFill: ["ten_of_a_kind"],
+        meta: { stats: { ...FRENZY_STATS, units: 12, frenzies: 0, gulls: 0, research: 6 } },
+      },
+      ff: 2.5,
+      juice: [{ type: "buy_line", line: "beachcomber", count: 1 }],
+      juiceMs: 420,
+    },
+    {
+      name: `s7_phone_dock_badges${sky}`,
+      viewport: PHONE,
+      scale: 2,
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...STONE_RUN,
+        crewNew: 1,
+        workshopNew: true,
+        badgesNew: 3,
+      },
+      ff: 2.5,
+    },
+  ]),
+  {
+    name: "s7_phone_frenzy",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRENZY_RUN,
+      buffs: [{ kind: "frenzy", until: at(1, 10.5) + 6 }],
+      frenzy: { value: 0, at: at(1, 10.5) + 6 },
+    },
+    taps: [8, 2],
+    ff: 2.5,
+  },
+  {
+    // The bar filling, its name beside it while Frenzy is new (two trips).
+    name: "s7_phone_frenzy_filling",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRENZY_RUN,
+      frenzy: { value: 62, at: at(1, 10.5) },
+      meta: { stats: { ...FRENZY_STATS, frenzies: 0 } },
+    },
+    taps: [6, 2],
+    ff: 1.5,
+  },
+  {
+    name: "s7_desktop_frenzy_filling",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 22.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRENZY_RUN,
+      frenzy: { value: 35, at: at(1, 22.5) },
+      meta: { stats: { ...FRENZY_STATS, frenzies: 0 } },
+    },
+    taps: [6, 2],
+    ff: 1.5,
+  },
+  {
+    // A crow and its hint, new to crows.
+    name: "s7_phone_gull",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      gull: { age: 1.5, elite: false },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s7_phone_gull_elite_night",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 22.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      gull: { age: 0.5, elite: true },
+    },
+    ff: 2.5,
+  },
+  {
+    // Caught: feathers, "+30s of output" and the supplies flying to the counter.
+    name: "s7_phone_gull_caught",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      gull: { age: 4, elite: false },
+    },
+    ff: 0.3,
+    sendGull: true,
+  },
+  {
+    name: "s7_desktop_achievement_toast",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...TWIG_HERO,
+      runAge: 300,
+      badgesFill: ["ten_of_a_kind"],
+      meta: { stats: { ...FRENZY_STATS, units: 12, frenzies: 0, gulls: 0, research: 6 } },
+    },
+    ff: 2.5,
+    juice: [{ type: "buy_line", line: "beachcomber", count: 1 }],
+    juiceMs: 420,
+  },
+  {
+    // Three at once merge: "3 badges".
+    name: "s7_phone_badges_merged",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...TWIG_HERO,
+      runAge: 300,
+      badgesFill: ["ten_of_a_kind", "first_line", "made_1m"],
+      made: 2e6,
+    },
+    ff: 2.5,
+    juice: [{ type: "buy_line", line: "beachcomber", count: 1 }],
+    juiceMs: 420,
+  },
+  {
+    name: "s7_phone_logbook",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      badgesNew: 2,
+      meta: { stats: FRENZY_STATS },
+      ui: { panel: "logbook" },
+    },
+    ff: 2.5,
+  },
+  {
+    // The wall's end: Night Shift and Supplies, a 999Dc counter's progress.
+    name: "s7_phone_logbook_end",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      supplies: 9.99e35,
+      meta: { stats: FRENZY_STATS },
+      ui: { panel: "logbook" },
+    },
+    scroll: ".panel-scroll",
+    ff: 2.5,
+  },
+  {
+    name: "s7_desktop_logbook",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      badgesNew: 2,
+      meta: { stats: FRENZY_STATS },
+      ui: { panel: "logbook" },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s7_phone_multipliers_morale",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRENZY_RUN,
+      buffs: [{ kind: "frenzy", until: at(1, 10.5) + 9 }],
+      ui: { sheet: "multipliers" },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s7_phone_odds_crows",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, ui: { sheet: "odds" } },
+    scroll: ".panel-scroll",
+    ff: 2.5,
+  },
+  {
+    // The big screens (no visible repeats): Frenzy's warm sky and the bar at 2k.
+    name: "s7_desktop_2k_frenzy",
+    viewport: [2560, 1440],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRENZY_RUN,
+      buffs: [{ kind: "frenzy", until: at(1, 10.5) + 9 }],
+      frenzy: { value: 0, at: at(1, 10.5) + 9 },
+    },
+    ff: 2.5,
+  },
 ];
 
 /** Moves `time` by whole days (same hour) until the island has `weather` then. */
@@ -1807,12 +2116,13 @@ async function main() {
     const asked = state.time;
     state.time = await pickTime(page, state.time, weather);
     if (state.hustle) state.hustle = { ...state.hustle, at: state.time };
-    // A weather pick moves whole days: running buffs move with it.
+    // A weather pick moves whole days: running buffs and the Frenzy meter move with it.
     if (state.buffs)
       state.buffs = state.buffs.map((buff) => ({
         ...buff,
         until: buff.until + state.time - asked,
       }));
+    if (state.frenzy) state.frenzy = { ...state.frenzy, at: state.frenzy.at + state.time - asked };
     await page.evaluate(
       ([state, before]) => {
         const { store, clocks, ui: uiStore } = window.__wipeDay;
@@ -1829,9 +2139,21 @@ async function main() {
           collect,
           crewNew,
           workshopNew,
+          gull,
+          meta,
+          badgesNew,
+          badgesFill,
           ...run
         } = state;
         if (runAge !== undefined) run.startedAt = time - runAge;
+        // A crow (or a Magpie) `gull.age` seconds into its crossing at `time` (D238).
+        if (gull)
+          run.startedAt = window.__wipeDay.gullStart(
+            time,
+            gull.age,
+            gull.elite === true,
+            runAge ?? 0,
+          );
         // Present now: the Night Shift runs and manned lines cycle.
         if (time !== undefined) run.activeAt ??= time;
         // ...and nothing made before the patch counts as made while away.
@@ -1848,7 +2170,7 @@ async function main() {
           store.getState().demoPatch(before);
           window.__wipeDay.fastForward?.(0.1);
         }
-        store.getState().demoPatch(run);
+        store.getState().demoPatch(run, meta ?? {});
         if (flotsamAge !== undefined) {
           // An arrival on the water: run 1's guaranteed crate, or the first of a kind after it.
           const k = flotsamKind ? window.__wipeDay.flotsamK(flotsamKind) : 0;
@@ -1856,6 +2178,10 @@ async function main() {
             flotsam: { k, at: time - flotsamAge, caught: flotsamKind ? 1 : 0, last: k - 1 },
           });
         }
+        // Every badge the run already meets, earned a while ago, as a player at this point has
+        // (but those the shot keeps back; `false` earns none).
+        if (badgesFill !== false && time !== undefined)
+          window.__wipeDay.fillBadges(time - 600, Array.isArray(badgesFill) ? badgesFill : []);
         store.setState({ demoOpen: demoOpen === true, toasts: [] });
         // The HUD: collapsed drawer on the Lines tab at ×1, nothing open, unless the shot says.
         uiStore.setState({
@@ -1882,6 +2208,11 @@ async function main() {
           },
           // The Workshop's badge: every open item seen, or none when the shot says it just opened.
           workshopSeen: { run: after.n, items: workshopNew ? 0 : 999 },
+          // The Logbook's: every badge seen, unless the shot says how many are new.
+          badgesSeen: Math.max(
+            0,
+            Object.keys(store.getState().base.meta.badges).length - (badgesNew ?? 0),
+          ),
         });
         if (away) {
           clocks.game.set(time + away);
@@ -1898,6 +2229,16 @@ async function main() {
         hook.fastForward?.(1 / 60);
         const run = hook.store.getState().base.run;
         hook.store.getState().send({ type: "claim_flotsam", run: run.n, k: run.flotsam.k });
+      });
+    }
+    if (shot.sendGull) {
+      // Catches the crow crossing now, as a tap on it would.
+      await page.evaluate(() => {
+        const hook = window.__wipeDay;
+        hook.fastForward?.(1 / 60);
+        const crow = hook.gullNow();
+        if (crow) hook.store.getState().send({ type: "claim_gull", run: crow.run, k: crow.k });
+        hook.fastForward?.(0.12);
       });
     }
     if (shot.send) {
