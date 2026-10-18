@@ -2497,3 +2497,120 @@ every sound pack `sounds.json5` uses with its licence; a pack's whole row is the
 (a 44 px target), and a last line says every other sound is synthesised by the game. The strings
 are under `credits` in `en.json`; a content test fails if a pack the map uses has no credit line.
 `docs/credits.md` keeps the same lines for the repo.
+
+### D227. The Workshop's twenty items: one effect each, only what the crown can score (R2 Feel S6)
+`packages/content/data/research.json5` holds tiers 1-4 (`12-feel.md` 5): Sharper Hooks, Dry
+Kindling, Raised Beds (+5% a level on the three Twig lines, 25 levels), Spare Wicks (Night Shift
++20 min, 6), Calloused Thumbs (taps +1, 10); Camp Routine (Twig lines +4%), Greased Axles (Twig
+lines 1% faster, 20), Banked Coals (+5% while away, 10), Tally Sticks (every line +1%), Steady
+Rhythm (Hustle's peak +0.05, 5, up to its 2.25 ceiling); Tarred Twine, Sharp Chisels, Turf Lids
+(+5% on the Timber lines), Oiled Pulleys (Timber lines 1% faster), Tool Ledger (every line +1%);
+Timber Frames (Timber lines +5%), Camp Kitchen (Twig lines +3%), Hide Mitts (taps +1), Crew
+Rations (every line +1%), Storm Shutters (+5% while away). A level adds the effect once more (add
+and inc sum, more compounds). Every effect must be one the crown scores in closed form
+(`content/src/research.ts` `SCORED`: output inc/more, speed more, tap_flat, hustle_max,
+night_shift, offline); a content check refuses any other. Left out on purpose: `tap`,
+`tap_share`, crits and fells, because the tap's steady coefficient `c ≤ 0.6` is spent by Grip and
+the Blast Map (a new content check, `tapCoefficient`, now holds it); `flotsam_effect`, which pays
+only crates and depends on what the player holds, so it cannot be scored; Frenzy's gain, until S7
+ships Frenzy (D140). Cost cuts have their ×0.6 check for R3. Names are proposals, as the owner
+asked.
+
+### D228. The Line Mks are Workshop items; stored Mk rows migrate (R2 Feel S6)
+D194 as built: `research.json5` `lineMk` derives `{line}_mk` for every line, two levels of
+output ×3 at the line's price × 1e4 (25 owned) and × 1e8 (50 owned), listed under the line's
+era; the level's own name (`research.{line}_mk.mk2` / `mk3`, the old shelf names) is the tile's
+title and the floater. The shelf (`upgrades.json5`) keeps Grip and the island upgrades. A stored
+base with `{line}_mk2/_mk3` in `run.upgrades` becomes that many levels of `{line}_mk`
+(`normalizeState`, tested); unknown Workshop ids drop and levels clamp to the item's. The Rain
+Catcher's levels lost their sea names from before D212: Tarp Funnels and Cistern. R4 note: the
+Scrapyard sector's `start_upgrade` nodes name `{line}_mk2`; they will grant `{line}_mk` level 1.
+
+### D229. The Workshop opens two minutes after the run's clock starts (R2 Feel S6)
+`opensAfterSeconds: 120` from `run.startedAt` (the first tap or purchase), on the game clock: the
+tab, the dock's place and every tile appear then, never before (a `buy_research` sooner is
+refused with the `opens` gate and its time). Tier `k` opens with era `ceil(k/2)`; a Line Mk's
+next level needs its units. `buy_research {item, count: 1 | "max"}` buys one level or as many as
+the supplies reach (closed form for tier items, checked against brute force); it writes a new
+`run.research`, counts `meta.stats.research` and emits `researched` (feedback only, not logged).
+
+### D230. The crown scores a Workshop level in closed form, per stat (R2 Feel S6)
+`advisor.ts` offers each open item one level at a time and scores it like any purchase (`02` 11,
+rule 4). Gains, one function per stat in a `Record` over `SCORED`, so the compiler demands one
+for every stat an item may use: an inc adds `income × Δ ÷ (1 + Σinc)` over the lines it reaches
+(the line's income over the player's day plus the share a tap takes of it); a more or a speed
+adds `income × (m − 1)`; a flat tap adds what Grip's does; Hustle's peak adds until its ceiling;
+a wick adds manned output while away over the extra minutes that fall inside one 12-hour absence
+a day (`advisor.away`); an away factor adds manned output × (m − 1) over the window's part of
+that absence. A test holds each gain to the numeric change in income.
+
+### D231. The Night Shift is 2 h, up to 24 h; the away stat cuts settle (R2 Feel S6)
+D183 as data: `lines.json5` `nightShift` 2 h with a 24 h ceiling, N18's content check rewritten
+(at least 2 h, at most 24 h, the Workshop's hours at most 2 h and under the ceiling with the
+window). The lamp, the welcome card and the Multipliers sheet already read the window from
+`rates()`. Found on the way: `hasOnlineEffects` ignored the `offline` stat, so an away-only item
+without a `when` would not have cut settle where the player goes away; it does now, and the tick
+oracle and path-independence tests run with random Workshop levels, away items included.
+
+### D232. The Night Shift starts when the page is hidden (owner, 2026-10-18)
+Asked how the 2 h window should treat a player who checks in twice a day, the owner answered
+that it should start when they turn the app off, stay 2 h at first and grow by upgrades (Spare
+Wicks) and later by the nuke's currency. The window ran from the last command, and a visible tab
+pings every 5 minutes, so it started up to 5 minutes early. Now a tab going hidden sends one more
+`ping` (with `keepalive`, so a closing page still delivers it): the window starts the moment the
+page goes away. Not over the welcome card, whose Collect restarts it instead.
+
+### D233. Base output ×0.28: the Workshop earns the run back (R2 Feel S6)
+`pnpm sim` showed the Workshop as drafted would end run 1 at 15 minutes instead of 46: in run 1
+the whole tree costs a few billion against the 5e10 a first nuke needs, so it is bought within
+minutes and acts as a flat multiplier, and the Twig and Timber lines it lifts snowball the early
+game (era prices are no brake: the nuke comes at a lifetime, so dearer eras only move it before
+Sheet Metal). Kept readable numbers (+5% a level) and moved the base instead: `rateBase` 1.5 →
+0.42. Without the Workshop the first nuke would take 87-90 minutes; with it, continuous play
+nukes at 41:49-48:19 over 12 seeds (inside N1's 40-60), the Workshop is the run's second engine,
+and the beats move: Timber 0:52, Mara 1:13, the Workshop 2:00, Sorting Tables 7:03, Stone
+8:22-9:03, Sheet Metal and the nuke about 43-48 (`pacing.json5`'s beats retuned). The away items
+went from +3% to +5% a level so day 1 holds under 2 h: the casual (08:00, 13:00, 21:00) still
+nukes at the day-1 21:00 check-in (guardrail 1; N3 is now an R2 warn row and passes) and the
+idler keeps R1's day 2 21:00. The owner, asked whether the casual's day-1 nuke or the active
+player's 40-60 minutes should give, deferred; neither had to. `pnpm sim window` (D234) shows the
+2 h window costing the idler and the casual about half of day 1's output against 12 h, first
+nukes unchanged. N4-N8, N9 (R1 band) and N23 pass; the pacing check takes 4.2-4.6 s of its 10 (D236).
+
+### D234. `pnpm sim window`: what the window costs (R2 Feel S6)
+`12-feel.md` 15 asked whether 2 h is too tight on day 1. `pnpm sim window [days]` plays the
+idler, the casual and the active player under R1 as shipped (12 h, base 1.5, no Workshop), the
+current economy with a 12 h window, and the shipped content (2 h), and prints the lifetime at
+each day-1 check-in, at day 1's end, the loss against 12 h and the first nuke; plus continuous
+play's first nuke. Built in memory, so the shipped content checks do not refuse the 12 h
+variants.
+
+### D235. The Workshop tab: tiles by era, ×1 or Max, icons of what they improve (R2 Feel S6)
+The shop's third tab, **Workshop** (the dock's name, one name for one place, D199), shows from
+2:00. Tiles two to a row in era groups in a fixed order (tier items by tier, then the era's Line
+Mks by rung); the next era's group is shown locked with its reason once, over the group. A tile:
+its icon in a ring the era colour fills as levels are bought, `n/levels`, the name (a Mk's level
+name with a "Mk II" chip), what one level does ("+5% Beachcomber", "Night Shift +20m"), what it
+adds (`+4.25/s`, or the window "2h 20m → 2h 40m"), and one button; a maxed tile says "All 25
+levels" and Done. The bulk control offers ×1 and Max there. No new icon kind: a tile uses the
+icon of what it improves (the line's, the era's, `roster` for every line, `night_shift`,
+`finger`, `hustle`), one icon per thing (D141); the dock's place has its own glyph,
+`nav/workshop`. The dock's Workshop opens the shop on that tab (the drawer expanded on a phone; a
+panel open over the island gives the drawer its history entry); its badge counts items opened
+since the tab last showed. A one-line hint heads the tab until two levels are bought. A purchase
+flashes the tile and pops its level, flashes the lines it reaches on the island and raises its
+name; its sound is the upgrade's.
+
+### D236. The quick profile stops each life when its checks are read; Stone Tools cost 100 (R2 Feel S6)
+The Workshop makes the simulator dearer (hundreds more purchases a run, each re-scored): back to
+back on the same machine the pacing check took 4.8 s at S5 and 7.2 s with the Workshop, and the
+machine's own speed swings by half between runs, so the 10 s budget inside `pnpm test` had no
+margin left. The test profile (`early: true`) now plays each archetype only as long as a due
+assertion reads it: to the day its checks name (the active player to N9's day 60, the casual to
+N7's), past run 1's end and into run 6 (N5, N6, N23's run 1), at most 90 days; with any check
+whose reach is unknown due, every life plays to the end (`earlyStops`, tested). The optimal
+player, the dearest life, stops within days instead of playing 60. Every verdict is identical
+and the check takes 4.2-4.6 s; `--full` still plays 365 days for everyone. The crown also inlines
+the Workshop's gates (and skips them all while it is shut). Found in the shots' tests: with base output 0.42 the crown saved for Stone Tools (60)
+before the first Beachcomber (6), so a new player's first card came uncrowned; Stone Tools costs
+100 now and the first Beachcomber is crowned again ("the drawer slides up with one crowned card").

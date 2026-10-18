@@ -8,7 +8,9 @@
     {
       id: "stone_tools",
       tier: "wood",
-      cost: 60,
+      // 100, not 60: with base output 0.42 the crown would save for it before the first
+      // Beachcomber (6), and the first card would come uncrowned (R2 Feel S6, D233).
+      cost: 100,
       pocket: true,
       effects: [
         { stat: "tap_flat", op: "more", value: 2 },

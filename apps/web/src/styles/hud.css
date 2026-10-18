@@ -992,6 +992,210 @@
   display: none;
 }
 
+/* The Workshop (game-design 5.12; D199): era groups of tiles, two to a row, in a fixed order. */
+.cards.workshop {
+  gap: 14px;
+}
+
+.workshop-hint {
+  margin: 2px 2px 0;
+  font: 500 13px / 1.3 var(--body);
+  color: var(--text-2);
+}
+
+.tile-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tile-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 2px;
+  font: 800 15px / 1 var(--display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tier-color);
+}
+
+.tile-group-note {
+  margin-left: auto;
+  font: 500 12px / 1.2 var(--body);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 9px;
+  border-radius: 12px;
+  background: var(--plate);
+  border: 2px solid var(--edge);
+  box-shadow: var(--lip), var(--shadow-sm);
+}
+
+.tile.crown {
+  border-color: var(--primary);
+  box-shadow:
+    var(--lip),
+    0 0 0 3px rgba(255, 106, 0, 0.25),
+    var(--shadow-sm);
+}
+
+.tile.pulse {
+  animation: card-pulse 900ms var(--ease);
+}
+
+.tile.locked {
+  background: linear-gradient(180deg, #2f281e, #221c14);
+  border-color: var(--edge-soft);
+}
+
+.tile.done {
+  border-color: color-mix(in srgb, var(--tier-color) 45%, var(--edge));
+}
+
+.tile-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+/* The icon in a ring of its levels: the era colour fills it as levels are bought. */
+.ring {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 4px solid transparent;
+  color: var(--text);
+  background:
+    radial-gradient(
+      circle at 50% 35%,
+      color-mix(in srgb, var(--tier-color) 30%, #6b5a3f),
+      #2d251a 75%
+    )
+    padding-box,
+    conic-gradient(var(--tier-color) calc(var(--level, 0) * 360deg), var(--sunk) 0) border-box;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+
+.tile.locked .ring {
+  filter: grayscale(1) brightness(0.6);
+}
+
+.tile-level {
+  position: relative;
+  z-index: 3;
+  font: 900 16px / 1 var(--display);
+  letter-spacing: 0.02em;
+  color: var(--supplies-hi);
+}
+
+.tile.locked .tile-level {
+  color: var(--muted);
+}
+
+.tile-level.pop {
+  animation: badge-pop 300ms var(--ease-back, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+.tile-mk {
+  margin-left: auto;
+  padding: 3px 5px;
+  border-radius: 6px;
+  background: var(--ink);
+  border: 2px solid var(--tier-color);
+  color: var(--tier-color);
+  font: 900 12px / 1 var(--display);
+  white-space: nowrap;
+}
+
+.tile-name {
+  font: 700 17px / 1.05 var(--display);
+  letter-spacing: 0.02em;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tile.locked .tile-name {
+  color: var(--muted);
+}
+
+.tile-effect {
+  min-height: 2.4em;
+  font: 500 13px / 1.2 var(--body);
+  color: var(--text-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tile-gain,
+.tile-note {
+  font: 600 13px / 1.2 var(--body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tile-gain {
+  color: var(--supplies);
+}
+
+.tile-note {
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.tile-prog {
+  position: relative;
+  height: 6px;
+  border-radius: 4px;
+  background: var(--sunk);
+  border: 1px solid var(--edge-soft);
+  overflow: hidden;
+}
+
+.tile-prog-fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #8a6a2a, var(--supplies-hi));
+  transform-origin: left;
+}
+
+/* The tile's one button sits on its foot, its words and price on one line. */
+.tile .btn.buy {
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  margin-top: auto;
+  padding: 6px 10px;
+}
+
 .fold {
   align-self: flex-start;
   color: var(--muted);
@@ -2270,13 +2474,15 @@
   .sheet,
   .ticker-line,
   .best-buy,
-  .card.pulse {
+  .card.pulse,
+  .tile.pulse {
     animation: fade 200ms ease;
   }
 
   .thumb .lvl.pop,
   .thumb .mk.pop,
-  .thumb .face.pop {
+  .thumb .face.pop,
+  .tile-level.pop {
     animation: none;
   }
 }
@@ -2295,14 +2501,16 @@
 .reduced .sheet,
 .reduced .ticker-line,
 .reduced .best-buy,
-.reduced .card.pulse {
+.reduced .card.pulse,
+.reduced .tile.pulse {
   animation: fade 200ms ease;
 }
 
 /* The flash keeps telling (it fades, nothing moves); the pops stay still. */
 .reduced .thumb .lvl.pop,
 .reduced .thumb .mk.pop,
-.reduced .thumb .face.pop {
+.reduced .thumb .face.pop,
+.reduced .tile-level.pop {
   animation: none;
 }
 

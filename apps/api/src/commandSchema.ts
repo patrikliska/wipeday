@@ -31,6 +31,11 @@ export const commandSchema = z.discriminatedUnion("type", [
   }),
   z.strictObject({ type: z.literal("hire_hand"), line: id }),
   z.strictObject({ type: z.literal("buy_upgrade"), upgrade: id }),
+  z.strictObject({
+    type: z.literal("buy_research"),
+    item: id,
+    count: z.union([z.literal(1), z.literal("max")]),
+  }),
   z.strictObject({ type: z.literal("buy_era"), era: id }),
   z.strictObject({
     type: z.literal("claim_flotsam"),

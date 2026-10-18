@@ -40,36 +40,26 @@ describe("the shipped data files", () => {
     expect(first).toMatchObject({
       id: "beachcomber",
       cost: 6,
-      rate: 1.5,
+      rate: 0.42,
       cycle: 0.6,
       growth: 1.15,
     });
     expect(first?.handPrice).toBe(1800);
     expect(loom?.cost).toBe(6 * 16 ** 3);
-    expect(loom?.rate).toBeCloseTo(1.5 * 4.75 ** 3, 9);
+    expect(loom?.rate).toBeCloseTo(0.42 * 4.75 ** 3, 9);
     expect(loom?.growth).toBeCloseTo(1.132, 12);
     const reactor = lines[13];
-    // The plan's table rounds: 27Qa and 940M.
+    // The table rounds: 27Qa and 263M (base output 0.42, D233).
     expect((reactor?.cost ?? 0) / 27e15).toBeCloseTo(1, 2);
-    expect((reactor?.rate ?? 0) / 940e6).toBeCloseTo(1, 2);
+    expect((reactor?.rate ?? 0) / 263e6).toBeCloseTo(1, 2);
   });
 
-  it("build the shelf: 4 Grip rungs, 28 Line Mks and 8 island upgrades (02-the-run.md 5)", () => {
+  it("build the shelf: 4 Grip rungs and 8 island upgrades (02-the-run.md 5; D194)", () => {
     const { upgrades } = loadContent(paths.data, locale);
     const count = (kind: string) => upgrades.filter((upgrade) => upgrade.kind === kind).length;
-    expect([count("grip"), count("mk"), count("island")]).toEqual([4, 28, 8]);
+    expect([count("grip"), count("island")]).toEqual([4, 8]);
+    expect(upgrades).toHaveLength(12);
     const byId = new Map(upgrades.map((upgrade) => [upgrade.id, upgrade]));
-    // 02 5.3's prices: Driftwood Hooks 60k, Beach Sledges 600M, Rope Walk 2.46T.
-    expect(byId.get("beachcomber_mk2")).toMatchObject({
-      cost: 6e4,
-      needOwned: 25,
-      line: "beachcomber",
-    });
-    expect(byId.get("beachcomber_mk3")).toMatchObject({ cost: 6e8, after: "beachcomber_mk2" });
-    expect((byId.get("loom_mk3")?.cost ?? 0) / 2.46e12).toBeCloseTo(1, 2);
-    expect(byId.get("loom_mk2")?.effects).toEqual([
-      { stat: "output", op: "more", value: 3, scope: "loom" },
-    ]);
     expect(byId.get("stone_tools")?.after).toBeUndefined();
     expect(byId.get("iron_tools")).toMatchObject({ cost: 6e3, after: "stone_tools" });
     expect(byId.get("handcarts")).toMatchObject({ cost: 5e9, after: "sorting_tables" });
@@ -146,13 +136,19 @@ describe("validation", () => {
     expect(problems.some((p) => p.includes("keep it under 1e200"))).toBe(true);
   });
 
-  it("holds the Night Shift to 12-48 h (N18)", () => {
+  it("holds the Night Shift to 2-24 h (N18; D183)", () => {
     const dir = dataWith("lines.json5", (text) =>
-      text.replace("windowHours: 12, maxHours: 48", "windowHours: 8, maxHours: 72"),
+      text.replace("windowHours: 2, maxHours: 24", "windowHours: 1, maxHours: 30"),
     );
     const problems = problemsOf(dir);
-    expect(problems).toContain("lines.json5: the Night Shift must start at 12 h or more (N18)");
-    expect(problems).toContain("lines.json5: the Night Shift must never pass 48 h (N18)");
+    expect(problems).toContain("lines.json5: the Night Shift must start at 2 h or more (N18)");
+    expect(problems).toContain("lines.json5: the Night Shift must never pass 24 h (N18)");
+    const tight = dataWith("lines.json5", (text) =>
+      text.replace("windowHours: 2, maxHours: 24", "windowHours: 2, maxHours: 3"),
+    );
+    expect(problemsOf(tight)).toContain(
+      "research.json5: the Night Shift with the Workshop's hours passes its ceiling (N18)",
+    );
   });
 
   it("keeps Hustle's peak under its ceiling", () => {
@@ -177,7 +173,7 @@ describe("validation", () => {
     expect(problemsOf(shelf)).toEqual(
       expect.arrayContaining([
         "upgrades.json5 `loom`: each island upgrade must cost more than the one before",
-        "upgrades.json5 `loom`: an upgrade id must not be used by any other entity",
+        "upgrades.json5 `loom`: this upgrade id must not be used by any other entity",
       ]),
     );
     const milestones = dataWith("milestones.json5", (text) =>

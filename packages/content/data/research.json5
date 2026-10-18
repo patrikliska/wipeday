@@ -1,0 +1,69 @@
+// The Workshop (docs/game-design.md 5.12; 12-feel.md 5; D185, D194, D195): a per-run tree of
+// small, repeatable upgrades priced in Supplies, reset by the nuke. R2 ships tiers 1-4; R3 adds
+// tiers 5-8.
+//
+// - It opens opensAfterSeconds after the run's clock starts (the first tap or purchase).
+// - Tier k (1-based) opens with era ceil(k/2): tiers 1-2 with Twig, 3-4 with Timber.
+// - Level n (0 for the first) of an item in tier k costs base × tierRatio^(k−1) × growth^n.
+// - One effect per item; a level adds it once more (add and inc sum, more compounds). Only stats
+//   the crown can score in closed form are allowed (content/src/research.ts SCORED), and no item
+//   may raise the tap's steady coefficient c (game-design 5.2): no tap, tap_share, crit or fell.
+// - lineMk: one item per line, `{line}_mk`, two levels of output ×3 at line cost × costFactor,
+//   each needing needOwned of the line, listed under the line's era (D194).
+// Names: `research.{id}.name`; a Line Mk also names each level (`mk2`, `mk3`).
+{
+  opensAfterSeconds: 120,
+  price: { base: 40, tierRatio: 20, growth: 1.35 },
+  tiers: [
+    {
+      era: "twig",
+      items: [
+        { id: "sharper_hooks", levels: 25, effect: { stat: "output", op: "inc", value: 0.05, scope: "beachcomber" } },
+        { id: "dry_kindling", levels: 25, effect: { stat: "output", op: "inc", value: 0.05, scope: "campfire" } },
+        { id: "raised_beds", levels: 25, effect: { stat: "output", op: "inc", value: 0.05, scope: "garden" } },
+        // +20 min a level, six levels: the window 2 h → 4 h for this run (D195).
+        { id: "spare_wicks", levels: 6, effect: { stat: "night_shift", op: "add", value: 0.3333333333333333 } },
+        { id: "calloused_thumbs", levels: 10, effect: { stat: "tap_flat", op: "add", value: 1 } },
+      ],
+    },
+    {
+      era: "twig",
+      items: [
+        { id: "camp_routine", levels: 25, effect: { stat: "output", op: "inc", value: 0.04, scope: "twig" } },
+        { id: "greased_axles", levels: 20, effect: { stat: "speed", op: "more", value: 1.01, scope: "twig" } },
+        { id: "banked_coals", levels: 10, effect: { stat: "offline", op: "more", value: 1.05 } },
+        { id: "tally_sticks", levels: 25, effect: { stat: "output", op: "inc", value: 0.01, scope: "all" } },
+        // Up to Hustle's ceiling (×2.25), which c already counts.
+        { id: "steady_rhythm", levels: 5, effect: { stat: "hustle_max", op: "add", value: 0.05 } },
+      ],
+    },
+    {
+      era: "wood",
+      items: [
+        { id: "tarred_twine", levels: 25, effect: { stat: "output", op: "inc", value: 0.05, scope: "loom" } },
+        { id: "sharp_chisels", levels: 25, effect: { stat: "output", op: "inc", value: 0.05, scope: "workbench" } },
+        { id: "turf_lids", levels: 25, effect: { stat: "output", op: "inc", value: 0.05, scope: "kiln" } },
+        { id: "oiled_pulleys", levels: 20, effect: { stat: "speed", op: "more", value: 1.01, scope: "wood" } },
+        { id: "tool_ledger", levels: 25, effect: { stat: "output", op: "inc", value: 0.01, scope: "all" } },
+      ],
+    },
+    {
+      era: "wood",
+      items: [
+        { id: "timber_frames", levels: 25, effect: { stat: "output", op: "inc", value: 0.05, scope: "wood" } },
+        { id: "camp_kitchen", levels: 25, effect: { stat: "output", op: "inc", value: 0.03, scope: "twig" } },
+        { id: "hide_mitts", levels: 10, effect: { stat: "tap_flat", op: "add", value: 1 } },
+        { id: "crew_rations", levels: 25, effect: { stat: "output", op: "inc", value: 0.01, scope: "all" } },
+        { id: "storm_shutters", levels: 10, effect: { stat: "offline", op: "more", value: 1.05 } },
+      ],
+    },
+  ],
+  lineMk: {
+    pocket: true,
+    effect: { stat: "output", op: "more", value: 3 },
+    levels: [
+      { costFactor: 1e4, needOwned: 25 },
+      { costFactor: 1e8, needOwned: 50 },
+    ],
+  },
+}

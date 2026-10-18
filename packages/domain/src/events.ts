@@ -23,6 +23,8 @@ export type GameEvent =
   | { type: "hand_hired"; line: string; hand: string }
   /** A shelf row bought (client feedback only). */
   | { type: "upgraded"; upgrade: string; cost: Amount }
+  /** Workshop levels bought: `count` of `item`, now at `level` (client feedback only). */
+  | { type: "researched"; item: string; level: number; count: number; cost: Amount }
   /** The run reached an era, `at` seconds after its first tap or purchase. */
   | { type: "era_reached"; era: string; at: number }
   /** Flotsam arrival `k` caught; `value` is a crate's supplies (0 for a buff). */

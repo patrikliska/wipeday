@@ -10,7 +10,7 @@
 import { create } from "zustand";
 
 export type Bulk = 1 | 10 | 100 | "max";
-export type Tab = "lines" | "upgrades";
+export type Tab = "lines" | "upgrades" | "research";
 export type Panel = "crew" | "settings";
 export type Sheet = "multipliers" | "odds" | "credits";
 export type Motion = "device" | "reduced" | "full";
@@ -38,6 +38,8 @@ export interface UiState {
   focusAt: number;
   /** The hands the Crew sheet last showed, per run: the dock's Crew badge counts the rest. */
   crewSeen: { run: number; hands: number };
+  /** The Workshop items open when its tab last showed, per run: the dock's badge counts the rest. */
+  workshopSeen: { run: number; items: number };
 }
 
 interface UiActions {
@@ -56,6 +58,13 @@ interface UiActions {
   focusCrown(tab: Tab): void;
   /** The Crew sheet was shown with `hands` on shift in the run started at `run`. */
   seeCrew(run: number, hands: number): void;
+  /**
+   * The dock's Workshop (D199): the shop on its Workshop tab, the drawer expanded on a phone. A
+   * panel open over the island gives its place (and its history entry) to the drawer.
+   */
+  openWorkshop(column: boolean): void;
+  /** The Workshop tab showed `items` open items in run `run`. */
+  seeWorkshop(run: number, items: number): void;
   /** Closes the top layer (sheet, then panel, then the expanded drawer); false when none. */
   back(): boolean;
 }
@@ -86,6 +95,13 @@ const storedCrewSeen = (): { run: number; hands: number } => {
   return Number.isFinite(run) && Number.isFinite(hands)
     ? { run: run ?? 0, hands: hands ?? 0 }
     : { run: 0, hands: 0 };
+};
+
+const storedWorkshopSeen = (): { run: number; items: number } => {
+  const [run, items] = (read("wipeday.workshop_seen") ?? "").split(":").map(Number);
+  return Number.isFinite(run) && Number.isFinite(items)
+    ? { run: run ?? 0, items: items ?? 0 }
+    : { run: 0, items: 0 };
 };
 
 const storedMotion = (): Motion => {
@@ -124,6 +140,7 @@ export const useUi = create<UiState & UiActions>((set, get) => {
     crownInView: true,
     focusAt: 0,
     crewSeen: storedCrewSeen(),
+    workshopSeen: storedWorkshopSeen(),
 
     expand(open) {
       if (open === get().expanded) return;
@@ -187,6 +204,22 @@ export const useUi = create<UiState & UiActions>((set, get) => {
       if (seen.run === run && seen.hands === hands) return;
       write("wipeday.crew_seen", `${run}:${hands}`);
       set({ crewSeen: { run, hands } });
+    },
+    openWorkshop(column) {
+      const state = get();
+      if (state.panel !== null) {
+        // The panel's history entry now stands for the expanded drawer (one layer, one entry).
+        set({ panel: null, tab: "research", expanded: !column || state.expanded });
+        return;
+      }
+      set({ tab: "research" });
+      if (!column) get().expand(true);
+    },
+    seeWorkshop(run, items) {
+      const seen = get().workshopSeen;
+      if (seen.run === run && seen.items === items) return;
+      write("wipeday.workshop_seen", `${run}:${items}`);
+      set({ workshopSeen: { run, items } });
     },
     back() {
       const state = get();

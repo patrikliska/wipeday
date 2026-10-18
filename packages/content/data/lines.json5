@@ -8,7 +8,8 @@
   formula: {
     costBase: 6,
     costRatio: 16,
-    rateBase: 1.5,
+    // 0.42, not 02's 1.5: the Workshop earns the rest back from minute two (R2 Feel S6).
+    rateBase: 0.42,
     rateRatio: 4.75,
     cycleBase: 0.6,
     cycleRatio: 2,
@@ -20,10 +21,11 @@
   // A line is drawn anew at these counts owned.
   stages: [1, 25, 100],
   run: {
-    // The Night Shift (N18): manned lines run at 100% this long after the last command,
-    // never longer than maxHours whatever adds to it. A visible tab pings every pingMinutes.
+    // The Night Shift (N18; D183): manned lines run at 100% this long after the last command,
+    // never longer than maxHours whatever adds to it (Spare Wicks in the Workshop, later the
+    // Blast Map). A visible tab pings every pingMinutes, and once more when it is hidden.
     // Away welcomeAfterMinutes or more: one welcome-back card with one Collect.
-    nightShift: { windowHours: 12, maxHours: 48, pingMinutes: 5, welcomeAfterMinutes: 60 },
+    nightShift: { windowHours: 2, maxHours: 24, pingMinutes: 5, welcomeAfterMinutes: 60 },
     // The ×1/×10/×100/Max toggle appears with the second hand of a run and stays.
     bulkAfterHands: 2,
     // The crown (02 11.1): the next era or a hand is crowned once affordable within 30 s.

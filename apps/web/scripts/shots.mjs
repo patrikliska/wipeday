@@ -40,7 +40,15 @@ const PHONE_LANDSCAPE = [844, 390];
 /** Timber with the yard's kiln and the cabin's loom and workbench, hands on four lines. */
 const TIMBER_YARD = {
   era: "wood",
-  eraAt: { wood: 36 },
+  eraAt: { wood: 52 },
+  runAge: 330,
+  research: {
+    sharper_hooks: 8,
+    dry_kindling: 5,
+    raised_beds: 3,
+    spare_wicks: 2,
+    calloused_thumbs: 3,
+  },
   supplies: 2.4e4,
   made: 9.1e4,
   taps: 900,
@@ -52,6 +60,32 @@ const TIMBER_YARD = {
 
 const STONE_RUN = {
   era: "stone",
+  runAge: 630,
+  research: {
+    sharper_hooks: 25,
+    dry_kindling: 25,
+    raised_beds: 22,
+    spare_wicks: 6,
+    calloused_thumbs: 10,
+    camp_routine: 21,
+    greased_axles: 14,
+    banked_coals: 8,
+    tally_sticks: 17,
+    steady_rhythm: 5,
+    tarred_twine: 14,
+    sharp_chisels: 11,
+    turf_lids: 9,
+    oiled_pulleys: 8,
+    tool_ledger: 9,
+    timber_frames: 6,
+    camp_kitchen: 5,
+    hide_mitts: 4,
+    crew_rations: 5,
+    storm_shutters: 2,
+    beachcomber_mk: 1,
+    campfire_mk: 1,
+    garden_mk: 1,
+  },
   supplies: 31.2e6,
   made: 31.2e6,
   taps: 3200,
@@ -70,6 +104,22 @@ const STONE_RUN = {
   target: { taps: 22, felled: 64 },
 };
 
+/** Timber four minutes in: the Workshop open two minutes, its first levels bought (D199). */
+const WORKSHOP_TIMBER = {
+  ...TIMBER_YARD,
+  runAge: 250,
+  supplies: 3.1e3,
+  research: {
+    sharper_hooks: 9,
+    dry_kindling: 6,
+    raised_beds: 2,
+    spare_wicks: 1,
+    calloused_thumbs: 4,
+    camp_routine: 2,
+    tally_sticks: 1,
+  },
+};
+
 /** Later in the Stone era, saving for Loom Mk II (246M) at about 2.8M/s. */
 const SAVING_RUN = {
   ...STONE_RUN,
@@ -86,15 +136,7 @@ const SAVING_RUN = {
     furnace: 2,
   },
   hands: ["beachcomber", "campfire", "garden", "loom"],
-  upgrades: [
-    "stone_tools",
-    "sorting_tables",
-    "iron_tools",
-    "salvaged_tools",
-    "beachcomber_mk2",
-    "campfire_mk2",
-    "garden_mk2",
-  ],
+  upgrades: ["stone_tools", "sorting_tables", "iron_tools", "salvaged_tools"],
 };
 
 const ALL_LINES = [
@@ -123,6 +165,16 @@ const TWIG_HERO = {
   target: { taps: 10, felled: 3 },
   lines: { beachcomber: 9, campfire: 2, garden: 1 },
   hands: [],
+};
+
+/** Twig, the Workshop just open (2:10): Mara on the Beachcombers, the tree half worn. */
+const WORKSHOP_OPENS = {
+  ...TWIG_HERO,
+  runAge: 130,
+  supplies: 95,
+  made: 2600,
+  lines: { beachcomber: 14, campfire: 4, garden: 1 },
+  hands: ["beachcomber"],
 };
 
 /** Sheet Metal with every line to its Rain Catcher, radio mast and generator; ten hands. */
@@ -703,7 +755,7 @@ const SHOTS = [
       wall: WALL,
       weather: "clear",
       ...STONE_RUN,
-      away: 7 * 3600 + 12 * 60,
+      away: 90 * 60,
     },
     ff: 0.5,
   },
@@ -1365,7 +1417,7 @@ const SHOTS = [
     name: "s4_welcome_back_lamp_left",
     viewport: PHONE,
     scale: 2,
-    state: { time: at(1, 15), wall: WALL, weather: "clear", ...STONE_RUN, away: 5 * 3600 },
+    state: { time: at(1, 15), wall: WALL, weather: "clear", ...STONE_RUN, away: 90 * 60 },
     ff: 2.5,
   },
   {
@@ -1395,7 +1447,173 @@ const SHOTS = [
     scale: 2,
     state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
     ff: 2.5,
-  }, // R2 Feel S5, sound and juice (12-feel.md 3.2): a purchase caught mid-flash (the card's gold
+  },
+  // R2 Feel S6, the Workshop and the 2 h Night Shift (08-screens.md 8.3): the column's and the
+  // drawer's Workshop tab, the dock's place when it opens, the hint, a level caught mid-flash,
+  // three levels bought in a row with the tiles in place, the welcome card at 2 h and 4 h.
+  ...["day", "night"].flatMap((sky) => [
+    {
+      name: `s6_desktop_research${sky === "night" ? "_night" : ""}`,
+      viewport: [1440, 810],
+      state: {
+        time: at(1, sky === "night" ? 22.5 : 10.5),
+        wall: WALL,
+        weather: "clear",
+        ...WORKSHOP_TIMBER,
+        ui: { tab: "research" },
+      },
+      ff: 2.5,
+    },
+    {
+      name: `s6_phone_research${sky === "night" ? "_night" : ""}`,
+      viewport: PHONE,
+      scale: 2,
+      state: {
+        time: at(1, sky === "night" ? 22.5 : 10.5),
+        wall: WALL,
+        weather: "clear",
+        ...WORKSHOP_TIMBER,
+        ui: { expanded: true, tab: "research" },
+      },
+      ff: 2.5,
+    },
+  ]),
+  {
+    name: "s6_phone_workshop_opens",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...WORKSHOP_OPENS,
+      workshopNew: true,
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s6_desktop_workshop_opens",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...WORKSHOP_OPENS,
+      workshopNew: true,
+      ui: { tab: "research" },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s6_phone_research_first",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...WORKSHOP_OPENS,
+      ui: { expanded: true, tab: "research" },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s6_desktop_research_stone",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "rain",
+      ...STONE_RUN,
+      ui: { tab: "research" },
+    },
+    scrollRows: "end",
+    ff: 2.5,
+  },
+  {
+    name: "s6_phone_research_big",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...HQM_RUN,
+      runAge: 5400,
+      supplies: 9.99e35,
+      made: 9.99e35,
+      ui: { expanded: true, tab: "research" },
+    },
+    scrollRows: "end",
+    ff: 2.5,
+  },
+  {
+    name: "s6_desktop_research_flash",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...WORKSHOP_TIMBER,
+      ui: { tab: "research" },
+    },
+    juice: [{ type: "buy_research", item: "sharper_hooks", count: 1 }],
+    ff: 2.5,
+  },
+  {
+    name: "s6_phone_research_flash",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...WORKSHOP_TIMBER,
+      ui: { expanded: true, tab: "research" },
+    },
+    juice: [{ type: "buy_research", item: "spare_wicks", count: 1 }],
+    ff: 2.5,
+  },
+  {
+    name: "s6_desktop_research_order",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...WORKSHOP_TIMBER,
+      supplies: 5e5,
+      ui: { tab: "research" },
+    },
+    orderSends: [
+      { type: "buy_research", item: "dry_kindling", count: "max" },
+      { type: "buy_research", item: "spare_wicks", count: 1 },
+      { type: "buy_research", item: "tarred_twine", count: 1 },
+    ],
+    ff: 2.5,
+  },
+  {
+    name: "s6_welcome_lamp_2h",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 13),
+      wall: WALL,
+      weather: "clear",
+      ...TIMBER_YARD,
+      research: {},
+      away: 3 * 3600,
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s6_welcome_lamp_4h_left",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 13), wall: WALL, weather: "clear", ...STONE_RUN, away: 90 * 60 },
+    ff: 2.5,
+  },
+  // R2 Feel S5, sound and juice (12-feel.md 3.2): a purchase caught mid-flash (the card's gold
   // flash and level pop, the line's flash and pop), Collect's coins in the air, the tap's gain
   // with its icon, the credits sheet.
   {
@@ -1430,10 +1648,10 @@ const SHOTS = [
       wall: WALL,
       weather: "clear",
       ...STONE_RUN,
-      supplies: 4e8,
-      ui: { tab: "upgrades" },
+      supplies: 7e8,
+      ui: { tab: "research" },
     },
-    juice: [{ type: "buy_upgrade", upgrade: "beachcomber_mk2" }],
+    juice: [{ type: "buy_research", item: "beachcomber_mk", count: 1 }],
     ff: 2.5,
   },
   {
@@ -1610,6 +1828,7 @@ async function main() {
           away,
           collect,
           crewNew,
+          workshopNew,
           ...run
         } = state;
         if (runAge !== undefined) run.startedAt = time - runAge;
@@ -1661,6 +1880,8 @@ async function main() {
             run: after.n,
             hands: Math.max(0, after.hands.length - (crewNew ?? 0)),
           },
+          // The Workshop's badge: every open item seen, or none when the shot says it just opened.
+          workshopSeen: { run: after.n, items: workshopNew ? 0 : 999 },
         });
         if (away) {
           clocks.game.set(time + away);
@@ -1692,7 +1913,7 @@ async function main() {
       // Purchases one after another: the shop's cards must keep their order (D186).
       const order = () =>
         page.evaluate(() =>
-          [...document.querySelectorAll(".card")].map((card) => card.dataset.key).join(" "),
+          [...document.querySelectorAll(".card, .tile")].map((card) => card.dataset.key).join(" "),
         );
       await page.waitForTimeout(150);
       const before = await order();

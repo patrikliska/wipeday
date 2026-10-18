@@ -136,10 +136,14 @@ describe("the crown (02 11.1)", () => {
   });
 
   it("saves for the best score instead of crowning a cheaper row (D177)", () => {
-    // Stone era, Grip bought: the Beachcomber's Mk II (60k) scores best but is out of reach.
+    // Stone era, Grip bought, the Workshop's tiers done: the Beachcomber's Mk II (60k) scores
+    // best but is out of reach.
+    const done = content.research.filter((def) => def.kind === "tier");
     const state = fresh({
       era: "stone",
       supplies: 1e4,
+      startedAt: T0 - 3600,
+      research: Object.fromEntries(done.map((def) => [def.id, def.levels])),
       upgrades: ["stone_tools", "iron_tools", "salvaged_tools"],
       lines: { beachcomber: 40, campfire: 30, garden: 20, loom: 10 },
       hands: ["beachcomber", "campfire", "garden", "loom"],
@@ -202,6 +206,11 @@ describe("the Multipliers sheet (08 2.16)", () => {
         lines,
         roster: Math.floor(random.next() * 4),
         upgrades: upgrades.filter(() => random.next() < 0.2),
+        research: Object.fromEntries(
+          content.research
+            .filter(() => random.next() < 0.3)
+            .map((def) => [def.id, 1 + Math.floor(random.next() * def.levels)]),
+        ),
         buffs: random.next() < 0.3 ? [{ kind: "rally", until: T0 + 30 }] : [],
       });
       const sheet = breakdown(content, state, T0);
@@ -225,6 +234,15 @@ describe("the Multipliers sheet (08 2.16)", () => {
     expect(step("eras")?.sources).toEqual([{ id: "wood", factor: 2 }]);
     expect(step("buffs")?.sources[0]).toMatchObject({ id: "rally", until: T0 + 30 });
     expect(sheet.units).toBe(10);
+    const hooks = breakdown(
+      content,
+      { ...state, run: { ...state.run, research: { sharper_hooks: 4, spare_wicks: 2 } } },
+      T0,
+    );
+    // The wicks change no line, so only the hooks show.
+    expect(hooks.steps.find((row) => row.id === "workshop")?.sources).toEqual([
+      { id: "sharper_hooks", factor: expect.closeTo(1.2, 12) },
+    ]);
   });
 
   it("takes a tap apart: Grip's flat part, the share of /s, Hustle", () => {

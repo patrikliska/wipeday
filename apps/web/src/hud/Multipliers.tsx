@@ -14,6 +14,7 @@ import {
   fmtFactor,
   fmtRate,
   lineName,
+  researchName,
   t,
   tierName,
   upgradeName,
@@ -104,6 +105,7 @@ export function Multipliers() {
 
 const STEP_TITLE: Record<Step["id"], string> = {
   milestones: "mult.milestones",
+  workshop: "mult.workshop",
   upgrades: "mult.upgrades",
   eras: "mult.eras",
   roster: "mult.roster_title",
@@ -116,6 +118,8 @@ function sourceName(step: Step, id: string): string {
   switch (step.id) {
     case "milestones":
       return lineName(id);
+    case "workshop":
+      return researchName(id);
     case "upgrades":
       return upgradeName(id);
     case "eras":

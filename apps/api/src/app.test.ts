@@ -19,6 +19,8 @@ import { openDb } from "./store/db";
 import { bases, commands, eventLog, players } from "./store/schema";
 
 const { content, locale } = loadGame();
+/** A Beachcomber's output a second (lines.json5 `rateBase`). */
+const BEACHCOMBER = content.lines[0]?.rate ?? 0;
 const T0 = 1_700_000_000;
 
 const config: Config = {
@@ -215,6 +217,7 @@ describe("state and commands", () => {
     { type: "buy_line", line: "beachcomber", count: 1 },
     { type: "hire_hand", line: "campfire" },
     { type: "buy_upgrade", upgrade: "stone_tools" },
+    { type: "buy_research", item: "sharper_hooks", count: 1 },
     { type: "buy_era", era: "wood" },
     { type: "claim_flotsam", run: 1, k: 0 },
     { type: "collect" },
@@ -239,6 +242,7 @@ describe("state and commands", () => {
       expect(replay.state.run.hands).toEqual(first.state.run.hands);
       expect(replay.state.run.taps).toBe(first.state.run.taps);
       expect(replay.state.run.upgrades).toEqual(first.state.run.upgrades);
+      expect(replay.state.run.research).toEqual(first.state.run.research);
       expect(replay.state.run.era).toBe(first.state.run.era);
       expect(replay.state.run.flotsam).toEqual(first.state.run.flotsam);
       expect(replay.state.run.supplies).toBeCloseTo(suppliesAt(content, first.state, T0 + 10), 6);
@@ -254,13 +258,13 @@ describe("state and commands", () => {
     expect((await state(cookie)).welcomeBack).toBeNull();
     clock.advance(16 * 3600);
     const back = await state(cookie);
-    // 3 Beachcombers manned, 12 h of Night Shift: nothing more after the window (N18).
+    // 3 Beachcombers manned, 2 h of Night Shift: nothing more after the window (N18; D183).
     expect(back.welcomeBack).toMatchObject({
       awaySeconds: 59 * 60 + 16 * 3600,
       hands: 1,
-      nightShift: { worked: 12 * 3600, window: 12 * 3600, full: true },
+      nightShift: { worked: 2 * 3600, window: 2 * 3600, full: true },
     });
-    expect(back.welcomeBack?.gain).toBeCloseTo(3 * 1.5 * 12 * 3600, 3);
+    expect(back.welcomeBack?.gain).toBeCloseTo(3 * BEACHCOMBER * 2 * 3600, 3);
     await send(cookie, "key-collect", { type: "collect" });
     expect((await state(cookie)).welcomeBack).toBeNull();
   });
@@ -448,16 +452,19 @@ describe("time", () => {
     const second = setup(file, clock);
     const after = (await second.state(cookie)).state;
     expect(after.run.supplies).toBeCloseTo(suppliesAt(content, start, T0 + 4 * 3600), 6);
-    expect(after.run.supplies).toBeCloseTo(3 * 1.5 * 4 * 3600, 6);
+    // Four hours away, two of them inside the Night Shift (D183).
+    expect(after.run.supplies).toBeCloseTo(3 * BEACHCOMBER * 2 * 3600, 6);
   });
 
   it("ends the Night Shift on the scheduler, logs it once, and pings the device", async () => {
     const { login, state, patch, game, clock, json, sent, logged } = setup();
     const cookie = await login(1);
     await state(cookie);
-    expect((await json(cookie, "/api/push/subscribe", "POST", DEVICE)).status).toBe(200);
+    // UTC+10: the 2 h window ends at 00:13 UTC, 10:13 for the player, outside quiet hours.
+    const device = { ...DEVICE, tzOffsetMinutes: 600 };
+    expect((await json(cookie, "/api/push/subscribe", "POST", device)).status).toBe(200);
     patch(1, playing(0));
-    clock.advance(12 * 3600 - 1);
+    clock.advance(2 * 3600 - 1);
     expect(game.tick()).toEqual([]);
     clock.advance(2);
     expect(game.tick()).toEqual([1]);
@@ -468,7 +475,7 @@ describe("time", () => {
     expect(game.tick()).toEqual([]);
     // A full window destroys nothing and makes nothing more (N18).
     const full = (await state(cookie)).state;
-    expect(full.run.supplies).toBeCloseTo(3 * 1.5 * 12 * 3600, 3);
+    expect(full.run.supplies).toBeCloseTo(3 * BEACHCOMBER * 2 * 3600, 3);
   });
 
   it("pushes a standard command's state to other tabs, and only the version for taps", async () => {
@@ -591,10 +598,10 @@ describe("notifications", () => {
     const { login, state, patch, game, clock, json, sent, notifier } = setup();
     const cookie = await login(1);
     await state(cookie);
-    // UTC−3: the window ends at 10:13 UTC, 07:13 for the player.
-    await json(cookie, "/api/push/subscribe", "POST", { ...DEVICE, tzOffsetMinutes: -180 });
+    // UTC+7: the 2 h window ends at 00:13 UTC, 07:13 for the player.
+    await json(cookie, "/api/push/subscribe", "POST", { ...DEVICE, tzOffsetMinutes: 420 });
     patch(1, playing(0));
-    clock.advance(12 * 3600 + 1);
+    clock.advance(2 * 3600 + 1);
     expect(game.tick()).toEqual([1]);
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(sent).toHaveLength(0);

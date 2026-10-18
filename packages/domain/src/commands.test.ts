@@ -96,11 +96,12 @@ describe("hire_hand", () => {
       }),
     );
     const later = ok(run(state, { type: "ping" }, T0 + 100));
-    // 2 units × 1.5 a second × 100 s; Glow is 1 with no glass.
-    expect(later.run.supplies - state.run.supplies).toBeCloseTo(300, 9);
+    // 2 units × the Beachcomber's rate × 100 s; Glow is 1 with no glass.
+    const rate = content.lines[0]?.rate ?? 0;
+    expect(later.run.supplies - state.run.supplies).toBeCloseTo(2 * rate * 100, 9);
     const window = content.run.nightShift.windowHours * 3600;
     const end = applyCommand(content, later, { type: "ping" }, T0 + 100 + window + 5000);
-    expect(end.state.run.supplies - later.run.supplies).toBeCloseTo(3 * window, 6);
+    expect(end.state.run.supplies - later.run.supplies).toBeCloseTo(2 * rate * window, 6);
     expect(end.events.some((event) => event.type === "night_shift_over")).toBe(true);
   });
 });
@@ -162,6 +163,22 @@ describe("normalizeState (D133)", () => {
       felled: 3,
       flotsam: 1,
     });
+  });
+
+  it("moves stored Line Mk rows into the Workshop and keeps levels within each item (D194)", () => {
+    const base = newBase(content, T0, 7);
+    const stored = JSON.parse(JSON.stringify(base));
+    stored.run.upgrades = ["stone_tools", "beachcomber_mk2", "beachcomber_mk3", "loom_mk2"];
+    stored.run.research = { sharper_hooks: 40, gone: 3, spare_wicks: 2 };
+    const once = normalizeState(content, stored);
+    expect(once?.run.upgrades).toEqual(["stone_tools"]);
+    expect(once?.run.research).toEqual({
+      beachcomber_mk: 2,
+      loom_mk: 1,
+      sharper_hooks: 25,
+      spare_wicks: 2,
+    });
+    expect(normalizeState(content, once)).toEqual(once);
   });
 });
 

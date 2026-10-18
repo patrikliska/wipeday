@@ -10,14 +10,15 @@
  * evaluated per settle segment, never cached.
  *
  * Sources from R1: the eras bought, each line's milestones (from its owned count), the roster
- * tiers reached, and the shelf (Grip rungs, Line Mks, island upgrades); Glow from glass ever;
- * and timed buffs from flotsam (`content.buffs`). Nodes, ranks and the Logbook join in their
- * phases through `activeEffects`.
+ * tiers reached, and the shelf (Grip rungs, island upgrades); Glow from glass ever; and timed
+ * buffs from flotsam (`content.buffs`). From R2 the Workshop's levels (Line Mks among them).
+ * Nodes, ranks and the Logbook join in their phases through `activeEffects`.
  */
 import { type Effect, STATS, type StatId } from "@wipe-day/content/effects";
 import type { Content, LineDef } from "@wipe-day/content/schema";
 import { TIERS } from "@wipe-day/content/tiers";
 import { glow } from "./prestige";
+import { researchEffects } from "./research";
 import type { BaseState, Buff } from "./state";
 
 export type { Effect, StatId };
@@ -25,7 +26,7 @@ export type { Effect, StatId };
 /**
  * The effects that multiply the flat part of a tap as well as the lines (errata E23): eras,
  * island upgrades and roster tiers. Glow and Morale join them in `rates`; nothing else does, so a
- * Rally or a Line Mk never inflates the flat tap.
+ * Rally, a Line Mk or a Workshop item never inflates the flat tap.
  */
 export function globalEffects(content: Content, state: BaseState): Effect[] {
   const out: Effect[] = [];
@@ -81,6 +82,7 @@ export function activeEffects(content: Content, state: BaseState): Effect[] {
     if (upgrade.kind !== "island" && state.run.upgrades.includes(upgrade.id))
       out.push(...upgrade.effects);
   }
+  out.push(...researchEffects(content, state));
   return out;
 }
 
@@ -138,6 +140,14 @@ function strength(effect: Effect, counts: Counts): number {
   return Math.min(max, effect.value * n);
 }
 
+/** A stat's fold in its parts: the best `set` (or null), Σadd, Σinc and Πmore. */
+export interface FoldParts {
+  best: number | null;
+  add: number;
+  inc: number;
+  more: number;
+}
+
 /**
  * Folds `stat` over `effects` from `base`: set, then add, then inc, then more. Effects of
  * other stats, other scopes or unmet conditions are skipped.
@@ -150,8 +160,38 @@ export function foldStat(
   when: Conditions = ALWAYS,
   counts: Counts = {},
 ): number {
+  // The same loop as `foldParts`, kept apart so the hottest fold allocates nothing.
   const def = STATS[stat];
-  let value = base;
+  let best: number | null = null;
+  let add = 0;
+  let inc = 0;
+  let more = 1;
+  for (const effect of effects) {
+    if (effect.stat !== stat || !scopeMatches(effect, query) || !holds(effect, when)) continue;
+    const amount = strength(effect, counts);
+    if (effect.op === "add") add += amount;
+    else if (effect.op === "inc") inc += amount;
+    else if (effect.op === "more") more *= amount;
+    else if (effect.op === "set")
+      best =
+        best === null
+          ? amount
+          : def.better === "lower"
+            ? Math.min(best, amount)
+            : Math.max(best, amount);
+  }
+  return ((best ?? base) + add) * (1 + inc) * more;
+}
+
+/** `foldStat`'s parts, for what one more source would add (the advisor's gains). */
+export function foldParts(
+  stat: StatId,
+  effects: readonly Effect[],
+  query: Query = {},
+  when: Conditions = ALWAYS,
+  counts: Counts = {},
+): FoldParts {
+  const def = STATS[stat];
   let best: number | null = null;
   let add = 0;
   let inc = 0;
@@ -181,8 +221,7 @@ export function foldStat(
         break;
     }
   }
-  if (best !== null) value = best;
-  return (value + add) * (1 + inc) * more;
+  return { best, add, inc, more };
 }
 
 /** The effects of the buffs running at a moment, for `line` (a drone boosts one line only). */
@@ -406,9 +445,14 @@ export function rates(content: Content, state: BaseState): Rates {
   return result;
 }
 
-/** Whether any effect in force depends on being online or away (settle then splits there). */
+/**
+ * Whether any effect in force depends on being online or away (settle then splits there): a
+ * `when` of either, or the `offline` stat, which applies only while the player is away.
+ */
 export function hasOnlineEffects(effects: readonly Effect[]): boolean {
-  return effects.some((effect) => effect.when === "online" || effect.when === "offline");
+  return effects.some(
+    (effect) => effect.when === "online" || effect.when === "offline" || effect.stat === "offline",
+  );
 }
 
 /**

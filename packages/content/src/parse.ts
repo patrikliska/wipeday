@@ -7,6 +7,7 @@
 import type { z } from "zod";
 import { deriveLines } from "./lines";
 import type { Locale } from "./locale";
+import { deriveResearch, isScored, levelEffect, levelsCost, tierEra } from "./research";
 import {
   type Content,
   crewSchema,
@@ -21,6 +22,7 @@ import {
   milestonesFileSchema,
   pacingSchema,
   prestigeSchema,
+  researchFileSchema,
   resourceSchema,
   targetsFileSchema,
   toolSchema,
@@ -67,6 +69,11 @@ export function identities(content: Content): Identity[] {
     ...content.upgrades
       .filter((upgrade) => upgrade.kind !== "grip")
       .map((upgrade) => ({ file: "upgrades.json5", kind: "upgrade" as const, id: upgrade.id })),
+    ...content.research.map((def) => ({
+      file: "research.json5",
+      kind: "research" as const,
+      id: def.id,
+    })),
     ...content.flotsam.kinds.map((kind) => ({
       file: "flotsam.json5",
       kind: "flotsam" as const,
@@ -145,6 +152,7 @@ export function parseContent(
   const prestige = whole("prestige.json5", prestigeSchema);
   const targets = whole("targets.json5", targetsFileSchema);
   const upgrades = whole("upgrades.json5", upgradesFileSchema);
+  const research = whole("research.json5", researchFileSchema);
   const milestones = whole("milestones.json5", milestonesFileSchema);
   const flotsam = whole("flotsam.json5", flotsamFileSchema);
   const islandClock = whole("island.json5", islandFileSchema);
@@ -156,6 +164,7 @@ export function parseContent(
     !prestige ||
     !targets ||
     !upgrades ||
+    !research ||
     !milestones ||
     !flotsam ||
     !islandClock ||
@@ -182,7 +191,9 @@ export function parseContent(
     tap: targets.tap,
     targets: targets.targets,
     eras,
-    upgrades: deriveUpgrades(tools, lines, upgrades),
+    upgrades: deriveUpgrades(tools, upgrades),
+    research: deriveResearch(lines, research),
+    workshop: { opensAfterSeconds: research.opensAfterSeconds },
     milestones,
     flotsam,
     islandClock,
@@ -208,11 +219,11 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
     const key = `${kind}.${id}.name`;
     if (!locale.has(key)) add(file, id, `missing locale key \`${key}\``);
   }
-  // A shelf row's id names nothing else (its icon and locale key stay unambiguous).
+  // A shelf row's or a Workshop item's id names nothing else (its locale key stays unambiguous).
   for (const { file, kind, id } of all) {
-    if (kind !== "upgrade") continue;
-    if (all.some((other) => other.kind !== "upgrade" && other.id === id))
-      add(file, id, "an upgrade id must not be used by any other entity");
+    if (kind !== "upgrade" && kind !== "research") continue;
+    if (all.some((other) => other.kind !== kind && other.id === id))
+      add(file, id, `this ${kind} id must not be used by any other entity`);
   }
   if (!locale.has(`island.${content.island}.name`))
     add("lines.json5", "", `missing locale key \`island.${content.island}.name\``);
@@ -236,6 +247,7 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
   problems.push(...checkLines(content));
   problems.push(...checkEras(content));
   problems.push(...checkShelf(content));
+  problems.push(...checkResearch(content, locale));
   problems.push(...checkFlotsam(content));
 
   // The tap (N10, N9).
@@ -244,6 +256,9 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
     add("targets.json5", "", "the bucket's burst must be at least a second's taps");
   if (tap.hustle.peak > tap.hustle.peakCeiling)
     add("targets.json5", "", "Hustle's peak must not pass its ceiling");
+  const c = tapCoefficient(content);
+  if (c > TAP_COEFFICIENT_MAX)
+    add("", "", `the tap's steady coefficient c is ${c.toFixed(3)}, above ${TAP_COEFFICIENT_MAX}`);
 
   // The simulator's archetypes.
   for (const [name, archetype] of Object.entries({
@@ -396,10 +411,10 @@ function checkLines(content: Content): Problem[] {
   for (const resource of unused)
     problems.push({ file: "resources.json5", id: resource.id, message: "no line makes it" });
 
-  // N18: the Night Shift starts at 12 h at least and never passes 48 h.
+  // N18: the Night Shift starts at 2 h at least and never passes 24 h (D183).
   const { windowHours, maxHours } = run.nightShift;
-  if (windowHours < 12) add("", "the Night Shift must start at 12 h or more (N18)");
-  if (maxHours > 48) add("", "the Night Shift must never pass 48 h (N18)");
+  if (windowHours < 2) add("", "the Night Shift must start at 2 h or more (N18)");
+  if (maxHours > 24) add("", "the Night Shift must never pass 24 h (N18)");
   if (windowHours > maxHours) add("", "the Night Shift's window is longer than its ceiling");
   for (const [index, stage] of content.stages.entries()) {
     const before = content.stages[index - 1];
@@ -408,3 +423,92 @@ function checkLines(content: Content): Problem[] {
   }
   return problems;
 }
+
+/** The tap's steady coefficient may not pass this (game-design 5.2; 02-the-run.md 7.5). */
+export const TAP_COEFFICIENT_MAX = 0.6;
+
+/**
+ * The tap's steady coefficient `c = taps/s × p × T × Hustle × crit` (game-design 5.2) at 6 taps a
+ * second, with every shipped source at its top (Grip and the whole Workshop; the Blast Map's tap
+ * nodes join in R4), and fells as their gain over the base fell: what a tap takes of the full
+ * rate stays a share of it, never the game.
+ */
+export function tapCoefficient(content: Content): number {
+  const top = content.research.map((def) => levelEffect(def.effect, def.levels));
+  const grip = content.tools.flatMap((tool) => tool.effects);
+  const sum = (stat: string, op: string, effects = top) =>
+    effects.filter((e) => e.stat === stat && e.op === op).reduce((a, e) => a + e.value, 0);
+  const product = (stat: string, op: string) =>
+    top.filter((e) => e.stat === stat && e.op === op).reduce((a, e) => a * e.value, 1);
+  const p = content.tap.share + sum("tap_share", "add", grip) + sum("tap_share", "add");
+  const t = (1 + sum("tap", "inc")) * product("tap", "more");
+  const crit = 1 + sum("crit_chance", "add") * sum("crit_mult", "add");
+  const fellTaps = Math.min(...content.targets.map((target) => target.fellTaps));
+  const fell = (bonus: number) => 1 + bonus / fellTaps;
+  const fells =
+    fell(content.tap.fellBonusTaps + sum("fell_bonus", "add")) / fell(content.tap.fellBonusTaps);
+  return 6 * p * t * content.tap.hustle.peakCeiling * crit * fells;
+}
+
+/** The Workshop's tier items may cost at most this in all (12-feel.md 5): bought beside lines. */
+export const RESEARCH_TREE_MAX = 1e18;
+
+/** The Workshop (game-design 5.12; D185, D194, D195). */
+function checkResearch(content: Content, locale: Locale): Problem[] {
+  const problems: Problem[] = [];
+  const add = (id: string, message: string) =>
+    problems.push({ file: "research.json5", id, message });
+  const lines = new Set(content.lines.map((line) => line.id));
+  const eras = new Set<string>(TIERS);
+  let tree = 0;
+  let hours = 0;
+  for (const def of content.research) {
+    const { effect } = def;
+    if (!isScored(effect))
+      add(def.id, `the crown cannot score \`${effect.stat} ${effect.op}\` (research.ts SCORED)`);
+    const scoped = effect.stat === "output" || effect.stat === "speed";
+    const known =
+      effect.scope === "all" ||
+      (effect.scope !== undefined && (lines.has(effect.scope) || eras.has(effect.scope)));
+    if (scoped && !known)
+      add(def.id, `\`${effect.stat}\` needs a scope: a line, an era or \`all\``);
+    if (!scoped && effect.scope !== undefined) add(def.id, `\`${effect.stat}\` takes no scope`);
+    // A cost cut, when one ships, stops at ×0.6 at its top level (12-feel.md 5).
+    if (effect.stat.endsWith("_cost") && levelEffect(effect, def.levels).value < 0.6)
+      add(def.id, "a cost cut must stop at ×0.6");
+    if (effect.stat === "night_shift") hours += levelEffect(effect, def.levels).value;
+    if (def.kind === "tier") {
+      if (def.era !== tierEra(def.tier))
+        add(def.id, `tier ${def.tier} opens with the ${tierEra(def.tier)} era, not ${def.era}`);
+      tree += levelsCost(def, 0, def.levels);
+      continue;
+    }
+    for (const [i, cost] of def.costs.entries()) {
+      const before = def.costs[i - 1];
+      if (before !== undefined && !(cost > before)) add(def.id, "each Mk level must cost more");
+      if (!(cost < MAX_REACHABLE_COST)) add(def.id, "its price must stay under 1e200");
+    }
+    for (const [i, need] of def.needOwned.entries()) {
+      const before = def.needOwned[i - 1];
+      if (before !== undefined && !(need > before))
+        add(def.id, "each Mk level must need more units");
+    }
+    for (const level of MK_LEVELS.slice(0, def.levels)) {
+      const key = `research.${def.id}.${level}`;
+      if (!locale.has(key)) add(def.id, `missing locale key \`${key}\``);
+    }
+    if (def.levels > MK_LEVELS.length)
+      add(def.id, `a Line Mk has at most ${MK_LEVELS.length} levels`);
+  }
+  if (!(tree < RESEARCH_TREE_MAX))
+    add("", `the tier items cost ${tree.toExponential(2)} in all: keep the tree under 1e18`);
+  // N18 with the Workshop: its hours fit under the ceiling and add at most 2 h a run (D195).
+  const { windowHours, maxHours } = content.run.nightShift;
+  if (hours > 2 + 1e-9) add("", "the Workshop may add at most 2 h to the Night Shift (D195)");
+  if (windowHours + hours > maxHours + 1e-9)
+    add("", "the Night Shift with the Workshop's hours passes its ceiling (N18)");
+  return problems;
+}
+
+/** A Line Mk's levels by name (`research.{line}_mk.mk2`, ...). */
+export const MK_LEVELS = ["mk2", "mk3", "mk4", "mk5", "mk6"] as const;

@@ -21,6 +21,7 @@ import { fullRate, rates } from "@wipe-day/domain/effects";
 import type { GameEvent } from "@wipe-day/domain/events";
 import { claimUntil, flotsamAt } from "@wipe-day/domain/flotsam";
 import { glassLevel } from "@wipe-day/domain/prestige";
+import { workshopOpensAt } from "@wipe-day/domain/research";
 import { rng, seedOf } from "@wipe-day/domain/rng";
 import { mannedRate, settle } from "@wipe-day/domain/settle";
 import { type BaseState, newBase, newRun } from "@wipe-day/domain/state";
@@ -89,13 +90,17 @@ export interface Life {
   firstHandSeconds: number | null;
   /**
    * Run 1's moments, in seconds after its first tap: `era_<tier>`, `hand` (the first),
-   * `flotsam` (the first caught), each shelf row by id the first time, and `nuke`.
+   * `flotsam` (the first caught), each shelf row by id the first time, `research` (the first
+   * Workshop level) and each Workshop item by id, and `nuke`.
    */
   beats: Record<string, number>;
   /** Runs 1-5: the longest online stretch with nothing affordable, early (first 10 online minutes) and at all. */
   stuck: { early: number; online: number };
-  /** Every check-in: its day and whether it bought anything. */
-  checkIns: { day: number; bought: boolean }[];
+  /**
+   * Every check-in: its day, when it started (seconds after DAY0), the lifetime made when it
+   * started (glass's measure) and whether it bought anything.
+   */
+  checkIns: { day: number; at: number; made: number; bought: boolean }[];
   /**
    * Run 1's income: minute 0-1 (what taps drove, taps and the unmanned cycles they ran, against
    * all made), and from minute 10 outside buffs (the taps and fells alone, against all made).
@@ -141,7 +146,13 @@ function stubNuke(content: Content, state: BaseState, now: number, rule: Archety
 const largestOf = (state: BaseState): number =>
   Math.max(state.run.supplies, state.run.made, state.meta.lifetime, state.meta.glass.ever);
 
-const PURCHASES = new Set<Command["type"]>(["buy_line", "hire_hand", "buy_upgrade", "buy_era"]);
+const PURCHASES = new Set<Command["type"]>([
+  "buy_line",
+  "hire_hand",
+  "buy_upgrade",
+  "buy_research",
+  "buy_era",
+]);
 const ONLINE = { online: true } as const;
 
 /** Whether `archetype` catches flotsam arrival `k` of its run (a seeded share of them). */
@@ -157,6 +168,15 @@ function floating(content: Content, state: BaseState, t: number): number | null 
   return cursor.k;
 }
 
+/**
+ * When a life may stop before its last day: once calendar day `day` is played, run 1 has ended
+ * and run `runs` has started (the quick profile, D236).
+ */
+export interface Stop {
+  day: number;
+  runs: number;
+}
+
 /** One archetype's life up to calendar day `days`, from its `startDay` (a late joiner: day 30). */
 export function simulate(
   content: Content,
@@ -165,6 +185,7 @@ export function simulate(
   days: number,
   seed = 11,
   snapshotDays: readonly number[] = [],
+  stop: Stop | null = null,
 ): Life {
   const sessions = sessionsOf(archetype);
   const startDay = archetype.startDay ?? 1;
@@ -199,6 +220,10 @@ export function simulate(
       if (event.type === "hand_hired") beat("hand", since(now));
       if (event.type === "flotsam_claimed") beat("flotsam", since(now));
       if (event.type === "upgraded") beat(event.upgrade, since(now));
+      if (event.type === "researched") {
+        beat("research", since(now));
+        beat(event.item, since(now));
+      }
     }
   };
 
@@ -240,10 +265,16 @@ export function simulate(
    * The crown's last pick while it still holds: it saves for a purchase out of reach, and among
    * those the ranking does not depend on the supplies held (the wait shifts every score alike;
    * what is affordable only falls behind), so the pick changes only when prices, buffs or the
-   * pace change or the supplies reach the next price.
+   * pace change, the supplies reach the next price or the Workshop opens.
    */
-  let waiting: { rates: object; buffs: object; pace: number; next: number; any: boolean } | null =
-    null;
+  let waiting: {
+    rates: object;
+    buffs: object;
+    pace: number;
+    next: number;
+    until: number;
+    any: boolean;
+  } | null = null;
 
   /** Buys the crown's pick while it is affordable; says whether anything at all was. */
   const buy = (now: number, tapsPerSecond: number): boolean => {
@@ -252,7 +283,8 @@ export function simulate(
       waiting.rates === rates(content, state) &&
       waiting.buffs === state.run.buffs &&
       waiting.pace === tapsPerSecond &&
-      state.run.supplies < waiting.next
+      state.run.supplies < waiting.next &&
+      now < waiting.until
     ) {
       return waiting.any;
     }
@@ -266,11 +298,13 @@ export function simulate(
         for (const choice of offered)
           if (choice.cost > supplies) next = Math.min(next, choice.cost);
         const any = offered.some((choice) => choice.affordable);
+        const opens = workshopOpensAt(content, state);
         waiting = {
           rates: rates(content, state),
           buffs: state.run.buffs,
           pace: tapsPerSecond,
           next,
+          until: opens !== null && opens > now ? opens : Number.POSITIVE_INFINITY,
           any,
         };
         return any;
@@ -288,6 +322,7 @@ export function simulate(
       let t = midnight + session.start;
       const end = t + session.seconds;
       bought = false;
+      const checkIn = { at: t - DAY0, made: settle(content, state, t).state };
       step({ type: "ping" }, t);
       while (t < end) {
         const idle = state.run.hands.length === 0;
@@ -350,7 +385,12 @@ export function simulate(
       assertFiniteState(state);
       // A stretch with nothing affordable ends with the session.
       stuck = 0;
-      life.checkIns.push({ day, bought });
+      life.checkIns.push({
+        day,
+        at: checkIn.at,
+        made: checkIn.made.meta.lifetime + checkIn.made.run.made,
+        bought,
+      });
     }
     // The day's end, settled in closed form.
     state = settle(content, state, midnight + DAY - 1).state;
@@ -367,21 +407,69 @@ export function simulate(
       nukes: state.meta.nukes,
       taps: state.meta.stats.taps,
     });
+    if (stop && day >= stop.day && life.runs.length > 0 && state.run.n > stop.runs) break;
   }
   life.runs.push({ n: state.run.n, start: runStart, end: null, made: state.run.made, glass: 0 });
   return life;
 }
 
-/** Every archetype of the pacing file, alone. */
+/** Every archetype of the pacing file, alone (`stops`: each one's early stop, if any). */
 export function simulateArchetypes(
   content: Content,
   days: number,
   seed = 11,
   snapshotDays: readonly number[] = [],
+  stops: Readonly<Record<string, Stop>> = {},
 ): Life[] {
   return Object.entries(content.pacing.archetypes).map(([name, a]) =>
-    simulate(content, name, a, days, seed, snapshotDays),
+    simulate(content, name, a, days, seed, snapshotDays, stops[name] ?? null),
   );
+}
+
+/**
+ * The checks whose reach is known: what they read from each archetype is named by their `days`
+ * (or `day`) and `archetype`, run 1's end, or runs 1-5. With any other check due, every life
+ * plays to the profile's last day.
+ */
+const SHORT_CHECKS: ReadonlySet<string> = new Set([
+  "prestigeShape",
+  "magnitude",
+  "firstHandSeconds",
+  "nothingAffordableEarly",
+  "nothingAffordableOnline",
+  "casualCheckInsWithPurchase",
+  "tapShare",
+  "activeHour",
+  "run1Made",
+  "firstHourBeats",
+  "casualFirstNuke",
+]);
+
+/** Each archetype's early stop for the due assertions, or null when one reaches further. */
+export function earlyStops(
+  content: Content,
+  due: readonly Assertion[],
+): Record<string, Stop> | null {
+  if (due.some((assertion) => !SHORT_CHECKS.has(assertion.check))) return null;
+  const stops: Record<string, Stop> = {};
+  for (const [name, archetype] of Object.entries(content.pacing.archetypes)) {
+    let day = archetype.startDay ?? 1;
+    for (const assertion of due) {
+      const reads =
+        assertion.check === "activeHour"
+          ? str(assertion.archetype, "active")
+          : assertion.check.startsWith("casual")
+            ? str(assertion.archetype, "casual")
+            : null;
+      if (reads !== name) continue;
+      const days = Array.isArray(assertion.days)
+        ? assertion.days.map((d) => num(d, 1))
+        : [num(assertion.days ?? assertion.day, 1)];
+      day = Math.max(day, ...days);
+    }
+    stops[name] = { day, runs: EARLY_RUNS };
+  }
+  return stops;
 }
 
 /** Every scenario of the pacing file: one long session, so a single day covers it. */
@@ -511,6 +599,14 @@ const pair = (value: unknown, fallback: [number, number]): [number, number] =>
 const clock = (seconds: number): string =>
   `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, "0")}`;
 const pct = (value: number): string => `${(value * 100).toFixed(1)}%`;
+/** Seconds after DAY0 as "day 2 08:03". */
+export const dayClock = (seconds: number): string => {
+  const day = Math.floor(seconds / DAY) + 1;
+  const inDay = seconds - (day - 1) * DAY;
+  const hh = String(Math.floor(inDay / 3600)).padStart(2, "0");
+  const mm = String(Math.floor((inDay % 3600) / 60)).padStart(2, "0");
+  return `day ${day} ${hh}:${mm}`;
+};
 
 /** The lives of an archetype or scenario by name (one per seed). */
 const named = (lives: Life[], name: string): Life[] => lives.filter((life) => life.name === name);
@@ -652,6 +748,21 @@ export const CHECKS: Record<string, Check> = {
       detail: `${made.length} run 1s, ${low.toExponential(2)} to ${high.toExponential(2)}`,
     };
   },
+  // N3 (guardrail 1): the casual's first nuke lands by the end of the check-in starting at `by`
+  // on day `day`.
+  casualFirstNuke: (assertion, { content, lives }) => {
+    const name = str(assertion.archetype, "casual");
+    const archetype = content.pacing.archetypes[name];
+    const [h = "21", m = "0"] = str(assertion.by, "21:00").split(":");
+    const start = Number(h) * 3600 + Number(m) * 60;
+    const session = archetype
+      ? sessionsOf(archetype).find((row) => row.start === start)
+      : undefined;
+    const by = (num(assertion.day, 1) - 1) * DAY + start + (session?.seconds ?? 0);
+    const ends = named(lives, name).map((life) => life.runs[0]?.end ?? undefined);
+    const ok = ends.length > 0 && ends.every((end) => end !== undefined && end <= by);
+    return { ok, detail: `first nuke ${range(ends, dayClock)} (want by ${dayClock(by)})` };
+  },
   // 10-balance.md 4.2 (errata E1): run 1's beats, each in its band.
   firstHourBeats: (assertion, { lives }) => {
     const scenario = named(lives, str(assertion.scenario, "firstHour"));
@@ -682,7 +793,7 @@ export function checkPacing(
   profile: "test" | "full" = "test",
   upTo: Phase = content.pacing.shipped,
 ): Verdict[] {
-  const { days, seeds, scenarioSeeds } = content.pacing.profiles[profile] ?? {
+  const { days, seeds, scenarioSeeds, early } = content.pacing.profiles[profile] ?? {
     days: 90,
     seeds: [11],
   };
@@ -694,8 +805,9 @@ export function checkPacing(
       ? assertion.days.map((day) => num(day, 0))
       : [],
   );
+  const stops = early ? earlyStops(content, due) : null;
   const lives = [
-    ...seeds.flatMap((seed) => simulateArchetypes(content, days, seed, snapshotDays)),
+    ...seeds.flatMap((seed) => simulateArchetypes(content, days, seed, snapshotDays, stops ?? {})),
     ...(scenarioSeeds ?? seeds).flatMap((seed) => simulateScenarios(content, seed)),
   ];
   return content.pacing.assertions.map((assertion): Verdict => {
@@ -706,4 +818,81 @@ export function checkPacing(
     const { ok, detail } = check(assertion, { content, lives });
     return { ...base, status: ok ? "pass" : assertion.warn ? "warn" : "fail", detail };
   });
+}
+
+// --- what the Night Shift's window costs (12-feel.md 15) ------------------------------------
+
+/** One configuration of the window report: a name and the content it plays. */
+export interface WindowVariant {
+  name: string;
+  content: Content;
+}
+
+/** R1's base output (`lines.json5` before R2 Feel S6 lowered it for the Workshop). */
+const R1_RATE_BASE = 1.5;
+
+/**
+ * The variants `pnpm sim window` compares: R1 as it shipped (12 h, its base output, no Workshop
+ * tiers), the shipped economy with a 12 h window, and the shipped content (2 h). Built in
+ * memory, so the content checks of the shipped data do not refuse the 12 h windows.
+ */
+export function windowVariants(content: Content): WindowVariant[] {
+  const window = (c: Content, windowHours: number, maxHours: number): Content => ({
+    ...c,
+    run: { ...c.run, nightShift: { ...c.run.nightShift, windowHours, maxHours } },
+  });
+  const scale = R1_RATE_BASE / content.formula.rateBase;
+  const r1: Content = {
+    ...content,
+    formula: { ...content.formula, rateBase: R1_RATE_BASE },
+    lines: content.lines.map((line) => ({ ...line, rate: line.rate * scale })),
+    research: content.research.filter((def) => def.kind === "mk"),
+  };
+  return [
+    { name: "R1: 12 h, no Workshop", content: window(r1, 12, 48) },
+    { name: "12 h + Workshop", content: window(content, 12, 48) },
+    { name: "2 h + Workshop", content },
+  ];
+}
+
+export interface WindowRow {
+  variant: string;
+  archetype: string;
+  /** Lifetime made at the start of each day-1 check-in, then at the end of day 1. */
+  checkIns: { at: number; made: number }[];
+  dayEnd: number;
+  /** Seconds after DAY0, if run 1 ended inside the days played. */
+  firstNuke: number | null;
+}
+
+/** Day 1 and the first nuke for each archetype under each variant (`days` played, one seed). */
+export function windowReport(content: Content, days = 3, seed = 11): WindowRow[] {
+  const rows: WindowRow[] = [];
+  for (const variant of windowVariants(content)) {
+    for (const name of ["idler", "casual", "active"]) {
+      const archetype = variant.content.pacing.archetypes[name];
+      if (!archetype) continue;
+      const life = simulate(variant.content, name, archetype, days, seed);
+      rows.push({
+        variant: variant.name,
+        archetype: name,
+        checkIns: life.checkIns.filter((c) => c.day === 1).map(({ at, made }) => ({ at, made })),
+        dayEnd: life.days[0]?.lifetime ?? 0,
+        firstNuke: life.runs[0]?.end ?? null,
+      });
+    }
+    for (const name of Object.keys(variant.content.pacing.scenarios)) {
+      const archetype = variant.content.pacing.scenarios[name];
+      if (!archetype || name !== "firstHour") continue;
+      const life = simulate(variant.content, name, archetype, 1, seed);
+      rows.push({
+        variant: variant.name,
+        archetype: name,
+        checkIns: [],
+        dayEnd: life.days[0]?.lifetime ?? 0,
+        firstNuke: life.beats.nuke ?? null,
+      });
+    }
+  }
+  return rows;
 }

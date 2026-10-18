@@ -43,6 +43,7 @@ export const EVENT_TYPES = Object.keys({
   bought: 1,
   hand_hired: 1,
   upgraded: 1,
+  researched: 1,
   era_reached: 1,
   flotsam_claimed: 1,
   felled: 1,

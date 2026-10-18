@@ -34,6 +34,8 @@ import {
   fmt,
   fmtFactor,
   lineName,
+  researchLevelName,
+  researchName,
   resourceColor,
   type Tier,
   t,
@@ -1009,11 +1011,7 @@ export class Scene {
         const upgrade = content.upgrades.find((row) => row.id === event.upgrade);
         if (!upgrade) break;
         let top: { x: number; y: number } | null = null;
-        if (upgrade.kind === "mk" && upgrade.line) {
-          this.lines.flashLine(upgrade.line);
-          this.roomLines.flashLine(upgrade.line);
-          top = this.lines.topOf(upgrade.line) ?? { x: HOUSE.x, y: HOUSE.y - 40 * ART };
-        } else if (upgrade.kind === "grip") {
+        if (upgrade.kind === "grip") {
           this.target.pulse();
           const point = this.target.floatPoint;
           top = { x: point.x, y: point.y - 50 };
@@ -1021,6 +1019,39 @@ export class Scene {
           top = { x: HOUSE.x, y: HOUSE.y - 90 };
         }
         this.floaters.add("event", top.x, top.y - 10, upgradeName(upgrade.id), nowMs, {
+          size: this.floatSize(0.95),
+          color: 0xffffff,
+        });
+        break;
+      }
+      case "researched": {
+        // A Workshop level: the lines it reaches flash, a tap item pulses the target, and the
+        // item's name (a Line Mk's level by its own name) rises from the first of them.
+        const def = content.research.find((row) => row.id === event.item);
+        if (!def) break;
+        const { effect } = def;
+        const reached = content.lines.filter(
+          (line) =>
+            event.level > 0 &&
+            (effect.stat === "output" || effect.stat === "speed") &&
+            (effect.scope === "all" || effect.scope === line.id || effect.scope === line.era) &&
+            (useWorld.getState().base?.run.lines[line.id] ?? 0) > 0,
+        );
+        for (const line of reached) {
+          this.lines.flashLine(line.id);
+          this.roomLines.flashLine(line.id);
+        }
+        let top: { x: number; y: number };
+        const first = reached[0];
+        if (first) top = this.lines.topOf(first.id) ?? { x: HOUSE.x, y: HOUSE.y - 40 * ART };
+        else if (effect.stat === "tap_flat" || effect.stat === "hustle_max") {
+          this.target.pulse();
+          const point = this.target.floatPoint;
+          top = { x: point.x, y: point.y - 50 };
+        } else top = { x: HOUSE.x, y: HOUSE.y - 90 };
+        const name =
+          def.kind === "mk" ? researchLevelName(def.id, event.level) : researchName(def.id);
+        this.floaters.add("event", top.x, top.y - 10, name, nowMs, {
           size: this.floatSize(0.95),
           color: 0xffffff,
         });

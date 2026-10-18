@@ -5,6 +5,8 @@
  *                              exit 1 when a switched-on assertion fails or has no check.
  *                              `--phase` also judges a later phase's assertions, to see them
  *                              before it ships (only the shipped ones set the exit code)
+ * `pnpm sim window [days]`     what the Night Shift's 2 h window costs on day 1 against R1's 12 h,
+ *                              with and without the Workshop (12-feel.md 15)
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -12,7 +14,15 @@ import { fileURLToPath } from "node:url";
 import { loadContent, loadLocale } from "@wipe-day/content/load";
 import { contentPaths } from "@wipe-day/content/paths";
 import { PHASES, type Phase } from "@wipe-day/content/schema";
-import { checkPacing, type Life, phaseIndex, simulateAll } from "./sim";
+import {
+  checkPacing,
+  dayClock,
+  type Life,
+  phaseIndex,
+  simulateAll,
+  type WindowRow,
+  windowReport,
+} from "./sim";
 
 /** CSV output goes to `var/sim/` at the repo root, next to the other local runtime state. */
 const repoRoot = resolve(fileURLToPath(new URL(".", import.meta.url)), "../../..");
@@ -42,7 +52,45 @@ function table(life: Life): string {
   return lines.join("\n");
 }
 
-if (args[0] === "check") {
+/** The window report: one block per archetype, a row per variant, against the 12 h one. */
+function windowTable(rows: WindowRow[]): string {
+  const out: string[] = [];
+  const names = [...new Set(rows.map((row) => row.archetype))];
+  for (const name of names) {
+    const mine = rows.filter((row) => row.archetype === name);
+    const base = mine.find((row) => row.variant.startsWith("12 h")) ?? mine[0];
+    if (name === "firstHour") {
+      out.push("firstHour (continuous play): the first nuke");
+      for (const row of mine) {
+        const at = row.firstNuke === null ? "never" : clockOf(row.firstNuke);
+        out.push(`  ${row.variant.padEnd(22)} ${at}`);
+      }
+      continue;
+    }
+    const times = (base?.checkIns ?? []).map((c) => dayClock(c.at).slice(6));
+    out.push(`${name}: lifetime made at each day-1 check-in, at day 1's end, and the first nuke`);
+    out.push(
+      `  ${"".padEnd(22)} ${times.map((t) => t.padStart(9)).join(" ")}   day end   vs 12 h   first nuke`,
+    );
+    for (const row of mine) {
+      const loss = base && base.dayEnd > 0 ? row.dayEnd / base.dayEnd - 1 : 0;
+      out.push(
+        `  ${row.variant.padEnd(22)} ${row.checkIns.map((c) => sci(c.made).padStart(9)).join(" ")} ` +
+          `${sci(row.dayEnd).padStart(9)} ${`${(loss * 100).toFixed(0)}%`.padStart(9)}   ` +
+          `${row.firstNuke === null ? "not yet" : dayClock(row.firstNuke)}`,
+      );
+    }
+  }
+  return out.join("\n");
+}
+
+const clockOf = (seconds: number): string =>
+  `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, "0")}`;
+
+if (args[0] === "window") {
+  const days = Number(args[1] ?? 3);
+  console.log(windowTable(windowReport(content, days)));
+} else if (args[0] === "check") {
   const profile = args.includes("--full") ? "full" : "test";
   const asked = args[args.indexOf("--phase") + 1];
   const upTo: Phase =

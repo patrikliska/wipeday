@@ -118,7 +118,8 @@ function manned(base: BaseState, at: number): BaseState {
   };
 }
 
-const NIGHT_SHIFT = 12 * 3600;
+/** The Night Shift's base window (lines.json5; D183). */
+const NIGHT_SHIFT = 2 * 3600;
 
 /** Reads a server-sent event stream: the next event of a kind, then close. */
 function sse(response: Response) {

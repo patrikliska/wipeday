@@ -13,6 +13,7 @@ import linesFile from "@wipe-day/content/data/lines.json5";
 import milestonesFile from "@wipe-day/content/data/milestones.json5";
 import pacingFile from "@wipe-day/content/data/pacing.json5";
 import prestigeFile from "@wipe-day/content/data/prestige.json5";
+import researchFile from "@wipe-day/content/data/research.json5";
 import resourcesFile from "@wipe-day/content/data/resources.json5";
 import targetsFile from "@wipe-day/content/data/targets.json5";
 import toolsFile from "@wipe-day/content/data/tools.json5";
@@ -51,6 +52,7 @@ export const content: Content = parseContent(
     "targets.json5": targetsFile,
     "eras.json5": erasFile,
     "upgrades.json5": upgradesFile,
+    "research.json5": researchFile,
     "milestones.json5": milestonesFile,
     "flotsam.json5": flotsamFile,
     "island.json5": islandFile,
@@ -64,8 +66,17 @@ export const t = (key: string, args?: LocaleArgs): string => locale.t(key, args)
 
 /** Names and numbers, shared with the Discord bot (W8). */
 export const words = makeWords(locale, content);
-export const { resourceName, crewName, lineName, tierName, upgradeName, targetName, buffName } =
-  words;
+export const {
+  resourceName,
+  crewName,
+  lineName,
+  tierName,
+  upgradeName,
+  researchName,
+  researchLevelName,
+  targetName,
+  buffName,
+} = words;
 
 /** The number format in force: the Numbers setting switches it to scientific from 1e6. */
 let numbers: NumberFormat = numberFormat(suffixesOf(locale), useUi.getState().scientific);

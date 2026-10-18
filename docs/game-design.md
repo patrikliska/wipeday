@@ -229,7 +229,7 @@ the floater and the scene, using the owner's resource icons. Products are never 
 **The 14 lines.** For rung `i` from 1 to 14:
 
 ```
-cost   c_i = 6 × 16^(i−1)      output r_i = 1.5 × 4.75^(i−1) supplies/s per unit
+cost   c_i = 6 × 16^(i−1)      output r_i = 0.42 × 4.75^(i−1) supplies/s per unit
 cycle  t_i = 0.6 × 2^(i−1) s    growth g_i = 1.15 − 0.006 × (i − 1)
 hand   h_i = 300 × c_i          next unit, owning n: c_i × g_i^n
 cycle used = max(0.1 s, t_i / speed); speed past the floor becomes payout
@@ -237,22 +237,24 @@ cycle used = max(0.1 s, t_i / speed); speed past the floor becomes payout
 
 | # | Line | Era | Cost | Base /s | Cycle | Hand | Hand price |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Beachcomber | Twig | 6 | 1.5 | 0.6 s | Mara | 1.8k |
-| 2 | Campfire | Twig | 96 | 7.13 | 1.2 s | Dax | 28.8k |
-| 3 | Garden | Twig | 1.54k | 33.8 | 2.4 s | Ivo | 461k |
-| 4 | Loom | Timber | 24.6k | 161 | 4.8 s | Rook | 7.37M |
-| 5 | Workbench | Timber | 393k | 764 | 9.6 s | Sela | 118M |
-| 6 | Charcoal Kiln | Timber | 6.29M | 3.63k | 19 s | Bram | 1.89B |
-| 7 | Furnace | Stone | 101M | 17.2k | 38 s | Wren | 30.2B |
-| 8 | Tannery | Stone | 1.61B | 81.8k | 77 s | Otto | 483B |
-| 9 | Oil Press | Stone | 25.8B | 389k | 2.6 min | Juno | 7.73T |
-| 10 | Dock | Sheet Metal | 412B | 1.85M | 5.1 min | Pike | 124T |
-| 11 | Generator | Sheet Metal | 6.6T | 8.77M | 10 min | Hale | 1.98Qa |
-| 12 | Radio Mast | Sheet Metal | 106T | 41.7M | 20 min | Tamsin | 31.7Qa |
-| 13 | Scrapyard | Armored | 1.69Qa | 198M | 41 min | Gus | 507Qa |
-| 14 | Reactor | Armored | 27Qa | 940M | 82 min | Vera | 8.11Qi |
+| 1 | Beachcomber | Twig | 6 | 0.42 | 0.6 s | Mara | 1.8k |
+| 2 | Campfire | Twig | 96 | 1.99 | 1.2 s | Dax | 28.8k |
+| 3 | Garden | Twig | 1.54k | 9.48 | 2.4 s | Ivo | 461k |
+| 4 | Loom | Timber | 24.6k | 45 | 4.8 s | Rook | 7.37M |
+| 5 | Workbench | Timber | 393k | 214 | 9.6 s | Sela | 118M |
+| 6 | Charcoal Kiln | Timber | 6.29M | 1.02k | 19 s | Bram | 1.89B |
+| 7 | Furnace | Stone | 101M | 4.82k | 38 s | Wren | 30.2B |
+| 8 | Tannery | Stone | 1.61B | 22.9k | 77 s | Otto | 483B |
+| 9 | Oil Press | Stone | 25.8B | 109k | 2.6 min | Juno | 7.73T |
+| 10 | Dock | Sheet Metal | 412B | 517k | 5.1 min | Pike | 124T |
+| 11 | Generator | Sheet Metal | 6.6T | 2.46M | 10 min | Hale | 1.98Qa |
+| 12 | Radio Mast | Sheet Metal | 106T | 11.7M | 20 min | Tamsin | 31.7Qa |
+| 13 | Scrapyard | Armored | 1.69Qa | 55.4M | 41 min | Gus | 507Qa |
+| 14 | Reactor | Armored | 27Qa | 263M | 82 min | Vera | 8.11Qi |
 
 Costs rise ×16 per rung and output ×4.75, so the cheapest output keeps moving between lines.
+The base output is 0.42, not R1's 1.5: the Workshop (5.12) earns the rest back from minute two,
+so a run without it would take twice as long (D233).
 Buy ×1 / ×10 / ×100 / Max (closed form) from the second hand of run 1. Multipliers fold in one
 fixed order: base, add, milestones, `(1 + Σinc)` (Workshop items, survivor stars), `Πmore` (Line
 Mk, island upgrades, eras, Grit, nodes), Glow, Morale, buffs (Rally, Frenzy, boosts).
@@ -274,7 +276,7 @@ the next one ("38/50 → speed ×2"). Buildings redraw at 1, 25 and 100 owned.
 **The shelf** (16 one-off upgrades a run from R2, when the Line Mks move into the Workshop; with
 14 hands, 30 purchases):
 
-- **Grip** (4 rungs after Rock): Stone Tools 60, Iron Tools 6k, Salvaged Tools 6M, Power Tools 6B.
+- **Grip** (4 rungs after Rock): Stone Tools 100 (D236), Iron Tools 6k, Salvaged Tools 6M, Power Tools 6B.
   Each doubles the flat tap and adds 0.4% of the full rate to every tap.
 - **Island upgrades** (8): all lines ×2 each, from Sorting Tables (1M) to Steam Hammer (1e34); the
   shelf shows one at a time, and each adds a prop to the island.
@@ -376,7 +378,8 @@ Flare from #15, and the nuke itself with Dead Hand from #25, opt-in and online o
 - Manned lines produce at **100%** while you are away, every lasting multiplier included, for
   **2 h** from your last command (taps, buys or pings) (D183, from R2; R1 shipped 12 h). Per
   run, Spare Wicks in the Workshop adds 20 min a level for six levels, **4 h** (`night_shift add
-  1/3`, bought again each run, cheap; D195). Permanently, five Bunker-sector nodes add 2 h each
+  1/3`, bought again each run, cheap; D195). The window starts when the page is hidden: a tab
+  going away sends one last ping (D232). Permanently, five Bunker-sector nodes add 2 h each
   (Deep Cellars, 1 glass, is the first), **14 h**; Wipe Days #10, #20 and #40 add 2 h each,
   **20 h**; the Long Night Dare's reward and one ring-7 node reach the ceiling of **24 h**. The
   fold caps the sum at the ceiling; the Wipe Day Rush keystone halves the window.
@@ -647,12 +650,21 @@ instead.
 - **Effects** in the one vocabulary (`09` 5.1): `inc` on one line's output or on all lines of an
   era, `more` on taps, `add` on the Night Shift (Spare Wicks, D195), `add` on flotsam odds, `inc` on
   milestone thresholds (never below 10), `add` on Frenzy gain, price cuts capped at ×0.6.
-- **Tier 1:** Sharper Hooks (Beachcomber +5% a level, 25 levels; 40 at 2:00), Dry Kindling
-  (Campfire +5%, 25), Spare Wicks (Night Shift +20 min, 6), Calloused Thumbs (tap +1, 10). Quick
-  Count (buy ×10) is dropped: it duplicates bulk buying from the second hand and adds no income the
-  crown could score (D194).
-- **Shown** as a grid of tiles with an icon, a level ring, the next level's cost and gain, on the
-  shop's Research tab; the crown may land on a tile (rule 4 scores it like any purchase).
+- **Tiers 1-4 (R2, D227):** tier 1 Sharper Hooks, Dry Kindling, Raised Beds (+5% a level on the
+  three Twig lines, 25 levels; 40 at 2:00), Spare Wicks (Night Shift +20 min, 6), Calloused Thumbs
+  (taps +1, 10); tier 2 Camp Routine (Twig lines +4%), Greased Axles (Twig lines 1% faster),
+  Banked Coals (+5% while away, 10), Tally Sticks (every line +1%), Steady Rhythm (Hustle's peak
+  +0.05, 5); tier 3 Tarred Twine, Sharp Chisels, Turf Lids (+5% on the Timber lines), Oiled
+  Pulleys (Timber lines 1% faster), Tool Ledger (every line +1%); tier 4 Timber Frames (Timber
+  lines +5%), Camp Kitchen (Twig lines +3%), Hide Mitts (taps +1), Crew Rations (every line +1%),
+  Storm Shutters (+5% while away). Only stats the crown scores in closed form; nothing that raises
+  the tap's `c` (5.2). Quick Count (buy ×10) is dropped (D194).
+- **Opens** two minutes after the run's clock starts (D229); tier `k` with era `ceil(k/2)`.
+- **Shown** on the shop's Workshop tab as tiles two to a row in era groups (D235): the icon of what
+  it improves in a ring of its levels, `n/levels`, what a level does and adds, one button (×1 or
+  Max); the next era's group locked with its reason. The crown may land on a tile (rule 4 scores
+  it like any purchase, D230). Run 1 buys the whole tree within minutes, so the line formula's
+  base output is lowered to match (D233).
 - **Simulator:** the crown buys research by the same payback rule as lines; N5-N7 measure it and
   N31 asserts it.
 
@@ -735,25 +747,23 @@ Scrap is the premium currency (D182): earned in play, spent on drops and boosts.
 
 ## 6. Progression
 
-Run 1's measured times are the simulator's (R1, a player following the crown, 12 flotsam seeds;
-D179), under R1's rules (12 h Night Shift, no Workshop, Hustle only); the rest are the P1 model's
-(`10` 4) until their phase re-measures them. R2 Feel retunes day 1 around the 2 h window and
-re-measures all of it.
+Run 1's measured times are the simulator's (a player following the crown, 12 flotsam seeds),
+re-measured in R2 Feel S6 with the Workshop and the 2 h window (D233); the rest are the P1
+model's (`10` 4) until their phase re-measures them.
 
-**The first ten minutes** (R1, phone, continuous play at 6 taps a second):
+**The first ten minutes** (R2 Feel S6, continuous play at 6 taps a second):
 
 | Time | What happens |
 | --- | --- |
-| 0:00 | Dawn, a twig lean-to, a glowing pine. The only text: "Tap the tree." |
-| 0:01 | The drawer slides up with one crowned card: Beachcomber, 6. |
+| 0:00 | Dawn, a twig lean-to, the dead tree. The only text: "Tap the tree." |
+| 0:01 | The drawer slides up with one crowned card: Beachcomber, 6 (Stone Tools waits at 100, D236). |
 | 0:07 | Forty taps fell the tree ("Timber!"); a new one pops up. |
-| 0:09 | Stone Tools (60): taps ×2 and +0.4% of supplies per second. |
-| 0:33 | Timber era (1.5k): a cabin, the outcrop, three new lines. |
-| 0:47 | Hire Mara (1.8k): the first line runs without taps. Crew joins the dock. |
+| 0:52 | Timber era (1.5k): a cabin, the outcrop, three new lines. |
+| 1:13 | Hire Mara (1.8k): the first line runs without taps. Crew joins the dock. |
+| 2:00 | The Workshop opens: a dock place with a badge, its tab, Sharper Hooks at 40. |
 | 3:00 | The first crate: a flat 2 minutes of output, back every 3 minutes until caught. |
-| 3:59 | Sorting Tables (1M): everything ×2. |
-| 5:44 | Stone era (3M); the target becomes an ore seam. |
-| 9-10 min | At 5e8 made the Kettle's taped "DO NOT" pad rises, with its locked card (R4). |
+| 7:03 | Sorting Tables (1M): everything ×2. |
+| 8:22-9:03 | Stone era (3M); the target becomes an ore seam. |
 
 **The first session's target beats** (`12` 10; targets, not yet measured):
 
@@ -774,19 +784,18 @@ A new kind of thing every few minutes until minute 20, then the known rhythm. Th
 disagree on the early pace (Timber at 0:33 measured, 15:00 targeted); R2 Feel's balance session
 settles it from `pnpm sim` within N4-N8 (section 10).
 
-**The first hour.** From minute 10 taps were about 14% of income outside bursts in R1 (the new N8
-band is 10-30%). The Kettle's frame goes up at a yield of 5 (about minute 12-13), Sheet Metal
-lands at about minute 40-48 (Handcarts, the second island upgrade, at 5e9 on the way), and about
-seven or eight flotsam are caught. **Yield 10, the first nuke's, comes at about 43-49 minutes**; an
-autoclicker cannot bring it under 25 minutes.
+**The first hour.** From minute 10 taps are about 15% of income outside bursts (the new N8 band
+is 10-30%). The Workshop's tree is bought out within the first quarter hour; Sheet Metal lands at
+about minute 42-48 (Handcarts, the second island upgrade, at 5e9 on the way), and about seven or
+eight flotsam are caught. **Yield 10, the first nuke's, comes at about 42-48 minutes** (12 seeds);
+an autoclicker cannot bring it under 25 minutes.
 
-**Day 1, casual.** 08:00: about 40 purchases, the Timber era and Mara. 13:00: one Collect, now of
-the 2 h window (4 h with Spare Wicks) rather than R1's five hours, the Stone era, four hands and
-Sorting Tables. 21:00: the pad and the Kettle's frame up; a minute of tapping takes the yield to
-10, and **the first nuke lands at the day-1 21:00 check-in** (guardrail 1). R1 measured about 40B
-made by 21:00 under the 12 h window; the 2 h window lowers the afternoon's gain, and R2 Feel
-retunes the curve so the nuke still lands (the simulator reports what the casual loses at 2 h
-against 12 h). The night to 08:00 is no longer covered on day 1.
+**Day 1, casual.** 08:00: the Timber era, Mara, the Workshop's first levels and Spare Wicks. 13:00:
+one Collect of the 4 h window (Spare Wicks bought at 08:00), the Stone era, more hands, the away
+items. 21:00: **the first nuke lands at the day-1 21:00 check-in** (guardrail 1): about 6.5e10
+made by then. Against a 12 h window the casual makes about half as much on day 1 and the idler
+too, but both first nukes keep their times (casual day 1 21:00, idler day 2 21:00; `pnpm sim
+window`, D234). The night to 08:00 is no longer covered on day 1.
 
 **Run 2.** Go Bag units and Mara are already working, taps carry Glow ×1.79, Calloused Hands
 and Afterglow ×3, and run 1's whole gain is passed in under half its time. Each postcard names the
@@ -892,14 +901,15 @@ old, so if the nuke counts the next crown is the Big Red. Nothing was lost, only
   a small blast never out-pays a Wipe Day.)
 - **The 2 h window and the idler at day 1:** too tight? The simulator answers before R2 Feel's
   S1 closes.
-- **The early pace:** `12` 10's target beats (first line 1:00, Timber 15:00, first gull 8:00) do
-  not match R1's measured run (Timber 0:33) or D197's gull grid (the first slot inside about 4
-  minutes of the first line); R2 Feel's balance session decides from the simulator.
+- **The early pace** was settled in R2 Feel S6 from `pnpm sim` (D233): Timber at 0:52, the
+  Workshop at 2:00, Stone at about 9:00, the first nuke at 42-48 minutes. `12` 10's 15:00 Timber
+  and D197's gull grid (the first slot inside about 4 minutes of the first line) are S7's to
+  revisit with Frenzy and the gulls.
 - **Five stars against five ranks:** `12` 7.2 calls ×2 "the old rank-5 value", but five ranks of
   ×2 were ×32 a line; the simulator must show what dropping ranks costs the months-long curve.
-- **The Workshop's count:** whether the 14 Line Mk items sit inside the 40 tier items or beside
-  them, what replaces Quick Count in tier 1, and whether the Mk items are Pocket-eligible as the
-  Line Mk rows were.
+- **The Workshop's count:** the 14 Line Mk items sit beside the 40 tier items (D194, D228) and
+  Quick Count is dropped; whether the Mk items are Pocket-eligible (as the Line Mk rows were;
+  `pocket: true` in data) is R7's call.
 - **Scrap in R3:** N19 (4-6 a day) switches on in R3, but the Magnet (about 1 a day) ships in R7
   and the nuke's scrap in R4; R3's sources (badges, elite gulls, quests) must carry the band or
   the band's phase moves.
@@ -908,7 +918,7 @@ old, so if the nuke counts the next crown is the Big Red. Nothing was lost, only
 - **The Scrapyard sector** loses its rank nodes; `04b` needs replacements.
 - **Badges and the Logbook's 120 pages:** whether R2's 60 badges count among them.
 - **Names:** the passes in R1, R4 and R6 and a later pass for the Feel names. The Workshop's
-  offline item is Spare Wicks (D201: "Spare Wicks" is the Oil Press's product); Calloused Thumbs sits next to the
+  offline item is Spare Wicks (D201: "Lamp Oil" is the Oil Press's product); Calloused Thumbs sits next to the
   Calloused Hands node; Salvaged Hatchet and Hazmat Coat are to be checked against D43.
 - **The late wall** (decision 21): option 1 is the working plan; option 2 is designed and
   simulated alongside, and the final option is chosen before R9 from R8's simulations and

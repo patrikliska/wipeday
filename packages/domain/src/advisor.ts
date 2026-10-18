@@ -9,15 +9,21 @@
  * the rest. Shelf rows and eras are scored by what they add, in closed form: a Line Mk ×3 adds
  * twice its line's income; an island upgrade doubles every line and the flat tap; an era does too
  * and opens three lines, which count as much again (02 6.2 crowns the era before the hand); a
- * Grip rung doubles the flat tap and adds its share of the full rate.
+ * Grip rung doubles the flat tap and adds its share of the full rate. A Workshop level is scored
+ * by what its one effect adds, in closed form per stat (`RESEARCH_GAINS`): every stat a Workshop
+ * item may use has a gain, so every item can be crowned (game-design 5.12).
  * Rows still shut by a gate other than the price are not offered.
  */
-import type { Content } from "@wipe-day/content/schema";
+import type { ScoredStat } from "@wipe-day/content/research";
+import { isScored } from "@wipe-day/content/research";
+import type { Content, LineDef, ResearchDef } from "@wipe-day/content/schema";
+import { TIERS } from "@wipe-day/content/tiers";
 import type { Amount } from "./amount";
 import type { Command } from "./commands";
-import type { Conditions } from "./effects";
-import { unitRate } from "./effects";
+import type { Conditions, Effect } from "./effects";
+import { foldParts, rates, unitRate } from "./effects";
 import { costFactor, costOf, eraOpen, handPriceOf, lineOf } from "./lines";
+import { levelOf, levelsCost, workshopOpen } from "./research";
 import { bought, eraCost, eraGate, nextEra, upgradeCost, upgradeGate } from "./shelf";
 import type { BaseState } from "./state";
 import { tapParts } from "./taps";
@@ -33,6 +39,12 @@ export interface Choice {
 }
 
 const ONLINE: Conditions = { online: true };
+/** Each era's place on the ladder. */
+const ERA_RANK: Readonly<Record<string, number>> = Object.fromEntries(
+  TIERS.map((tier, i) => [tier, i]),
+);
+const AWAY: Conditions = { online: false };
+const DAY = 86_400;
 
 /**
  * Every purchase on offer with its score. `income` is the player's supplies a second now (taps
@@ -63,6 +75,8 @@ export function choices(
     out.push({ command, cost, gain, score: score(cost, gain), affordable: cost <= supplies });
   /** Each line's income over the player's day: a manned line always, an unmanned one while tapping. */
   const lineIncome = new Map<string, number>();
+  /** Each owned line as if manned, a second (what a tap takes its share of). */
+  const lineFull = new Map<string, number>();
   let lines = 0;
   for (const line of content.lines) {
     if (!eraOpen(state, line)) continue;
@@ -71,6 +85,7 @@ export function choices(
     const unit = unitRate(content, state, line, now, ONLINE);
     const earns = n * unit * (manned ? 1 : tapShare);
     lineIncome.set(line.id, earns);
+    lineFull.set(line.id, n * unit);
     lines += earns;
     if (n < line.maxOwned) {
       const cost = costOf(line, n, 1, costFactor(content, state, line));
@@ -115,10 +130,41 @@ export function choices(
     const gain =
       upgrade.kind === "grip"
         ? tapRate * (tap.flatValue * (more - 1) + share * tap.fullValue)
-        : upgrade.kind === "mk"
-          ? (lineIncome.get(upgrade.line ?? "") ?? 0) * (more - 1)
-          : (lines + flatIncome) * (more - 1);
+        : (lines + flatIncome) * (more - 1);
     offer(command, upgradeCost(content, state, upgrade), gain);
+  }
+  let fullNow = 0;
+  for (const value of lineFull.values()) fullNow += value;
+  const workshop: WorkshopContext = {
+    content,
+    state,
+    now,
+    lineIncome,
+    lineFull,
+    tapRate,
+    tap,
+    // The share of the full rate a tap takes, before Hustle (Grip's convention).
+    tapShareOfFull: fullNow > 0 ? (tap.base - tap.flatValue) / fullNow : 0,
+    open: [],
+    inc: new Map(),
+    away: null,
+  };
+  for (const line of content.lines) {
+    if (eraOpen(state, line)) workshop.open.push({ line, weight: weightOf(workshop, line) });
+  }
+  // The gates of `researchGate`, inlined: this runs for every item on every call.
+  const open = workshopOpen(content, state, now);
+  const reached = ERA_RANK[state.run.era] ?? 0;
+  for (const def of open ? content.research : []) {
+    const n = levelOf(state, def.id);
+    if (n >= def.levels || (ERA_RANK[def.era] ?? 0) > reached) continue;
+    if (def.line !== undefined && (state.run.lines[def.line] ?? 0) < (def.needOwned[n] ?? 0))
+      continue;
+    offer(
+      { type: "buy_research", item: def.id, count: 1 },
+      levelsCost(def, n, 1),
+      researchGain(workshop, def),
+    );
   }
   const era = nextEra(content, state);
   if (era && !eraGate(state, era)) {
@@ -132,6 +178,128 @@ export function choices(
     );
   }
   return out;
+}
+
+/** What a Workshop level's gain is weighed against. */
+interface WorkshopContext {
+  content: Content;
+  state: BaseState;
+  now: number;
+  lineIncome: ReadonlyMap<string, number>;
+  lineFull: ReadonlyMap<string, number>;
+  tapRate: number;
+  tap: ReturnType<typeof tapParts>;
+  tapShareOfFull: number;
+  /** The open lines with their weight (`weightOf`), once per `choices` call. */
+  open: { line: LineDef; weight: number }[];
+  /** Memos for one `choices` call: each line's Σinc on output, and manned output while away. */
+  inc: Map<string, number>;
+  away: number | null;
+}
+
+/** Whether `effect`'s scope reaches `line`. */
+const reaches = (effect: Effect, line: LineDef): boolean =>
+  effect.scope === undefined ||
+  effect.scope === "all" ||
+  effect.scope === line.id ||
+  effect.scope === line.era;
+
+/** A line's income over the player's day, with the share a tap takes of it. */
+function weightOf(ctx: WorkshopContext, line: LineDef): number {
+  const own = ctx.lineIncome.get(line.id) ?? 0;
+  const full = ctx.lineFull.get(line.id) ?? 0;
+  return own + ctx.tapRate * ctx.tapShareOfFull * full;
+}
+
+/** Manned lines' production a second while the player is away. */
+function mannedAway(ctx: WorkshopContext): number {
+  if (ctx.away !== null) return ctx.away;
+  let total = 0;
+  for (const id of ctx.state.run.hands) {
+    const line = lineOf(ctx.content, id);
+    const n = ctx.state.run.lines[id] ?? 0;
+    if (line && n > 0) total += n * unitRate(ctx.content, ctx.state, line, ctx.now, AWAY);
+  }
+  ctx.away = total;
+  return total;
+}
+
+/** A line's Σinc on output now (what one more inc is shared with). */
+function incOf(ctx: WorkshopContext, line: LineDef): number {
+  const known = ctx.inc.get(line.id);
+  if (known !== undefined) return known;
+  const r = rates(ctx.content, ctx.state);
+  const inc = foldParts("output", r.byStat.get("output") ?? [], { line }).inc;
+  ctx.inc.set(line.id, inc);
+  return inc;
+}
+
+/**
+ * Supplies a second one more level adds, on average over the player's day, by stat. A `Record`
+ * over every stat a Workshop item may use (`SCORED`), so a new one cannot ship without its gain.
+ */
+const RESEARCH_GAINS: Record<ScoredStat, (ctx: WorkshopContext, effect: Effect) => number> = {
+  output(ctx, effect) {
+    let gain = 0;
+    for (const { line, weight } of ctx.open) {
+      if (weight <= 0 || !reaches(effect, line)) continue;
+      if (effect.op === "more") {
+        gain += weight * (effect.value - 1);
+        continue;
+      }
+      // An inc adds to the line's (1 + Σinc), shared with every other inc on it.
+      gain += (weight * effect.value) / (1 + incOf(ctx, line));
+    }
+    return gain;
+  },
+  speed(ctx, effect) {
+    let gain = 0;
+    for (const { line, weight } of ctx.open) {
+      if (reaches(effect, line)) gain += weight * (effect.value - 1);
+    }
+    return gain;
+  },
+  tap_flat(ctx, effect) {
+    const { tap, tapRate } = ctx;
+    if (effect.op === "more") return tapRate * tap.flatValue * (effect.value - 1);
+    const r = rates(ctx.content, ctx.state);
+    const parts = foldParts("tap_flat", r.byStat.get("tap_flat") ?? []);
+    const base = (parts.best ?? ctx.content.tap.flat) + parts.add;
+    return base > 0 ? (tapRate * tap.flatValue * effect.value) / base : 0;
+  },
+  hustle_max(ctx, effect) {
+    const { hustle } = ctx.content.tap;
+    const r = rates(ctx.content, ctx.state);
+    const parts = foldParts("hustle_max", r.byStat.get("hustle_max") ?? []);
+    const raw = ((parts.best ?? hustle.peak) + parts.add) * (1 + parts.inc) * parts.more;
+    const lift =
+      Math.min(hustle.peakCeiling, raw + effect.value) - Math.min(hustle.peakCeiling, raw);
+    return (ctx.tapRate * ctx.tap.base * lift) / Math.max(1, ctx.tap.hustlePeak);
+  },
+  night_shift(ctx, effect) {
+    const { content } = ctx;
+    const { windowHours, maxHours } = content.run.nightShift;
+    const r = rates(content, ctx.state);
+    const parts = foldParts("night_shift", r.byStat.get("night_shift") ?? []);
+    const hours = (add: number) =>
+      Math.min(maxHours, ((parts.best ?? windowHours) + add) * (1 + parts.inc) * parts.more);
+    // The player is away one stretch a day; a longer window pays only inside it.
+    const stretch = content.run.advisor.away * DAY;
+    const before = Math.min(hours(parts.add) * 3600, stretch);
+    const after = Math.min(hours(parts.add + effect.value) * 3600, stretch);
+    return (mannedAway(ctx) * (after - before)) / DAY;
+  },
+  offline(ctx, effect) {
+    const r = rates(ctx.content, ctx.state);
+    const stretch = ctx.content.run.advisor.away * DAY;
+    return (mannedAway(ctx) * (effect.value - 1) * Math.min(r.nightShift, stretch)) / DAY;
+  },
+};
+
+/** What the next level of `def` adds a second (0 for a stat the crown cannot score). */
+function researchGain(ctx: WorkshopContext, def: ResearchDef): number {
+  const effect = def.effect;
+  return isScored(effect) ? RESEARCH_GAINS[effect.stat](ctx, effect) : 0;
 }
 
 /** The best purchase by score, affordable or not; null when nothing is on offer. */
@@ -248,6 +416,8 @@ export function sameRow(a: Command, b: Command): boolean {
       return "line" in b && a.line === b.line;
     case "buy_upgrade":
       return b.type === "buy_upgrade" && a.upgrade === b.upgrade;
+    case "buy_research":
+      return b.type === "buy_research" && a.item === b.item;
     case "buy_era":
       return b.type === "buy_era" && a.era === b.era;
     default:

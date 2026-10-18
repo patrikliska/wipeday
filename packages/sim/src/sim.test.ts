@@ -1,7 +1,7 @@
 import { loadContent, loadLocale } from "@wipe-day/content/load";
 import { contentPaths } from "@wipe-day/content/paths";
 import { describe, expect, it } from "vitest";
-import { CHECKS, checkPacing, phaseIndex, simulate } from "./sim";
+import { CHECKS, checkPacing, earlyStops, phaseIndex, simulate } from "./sim";
 
 const content = loadContent(contentPaths.data, loadLocale());
 
@@ -17,6 +17,17 @@ describe("simulator v2", () => {
     expect(seconds).toBeLessThan(10);
     // vitest's own limit sits above the budget, so a slow run fails on the budget, by name.
   }, 30_000);
+
+  it("plays each archetype in the quick profile only as long as a due assertion reads it (D236)", () => {
+    const shipped = phaseIndex(content.pacing.shipped);
+    const due = content.pacing.assertions.filter((a) => phaseIndex(a.on) <= shipped);
+    const stops = earlyStops(content, due);
+    expect(stops?.active).toEqual({ day: 60, runs: 5 });
+    expect(stops?.optimal).toEqual({ day: 1, runs: 5 });
+    expect(stops?.lateJoiner?.day).toBe(30);
+    // A check whose reach is unknown plays every life to the profile's last day.
+    expect(earlyStops(content, [...due, { n: "N99", on: "R1", check: "gaps" }])).toBeNull();
+  });
 
   it("has a check for every assertion a shipped phase switched on", () => {
     const shipped = phaseIndex(content.pacing.shipped);

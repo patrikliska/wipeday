@@ -109,6 +109,9 @@ export interface Words extends NumberFormat {
   targetName: (id: string) => string;
   /** A shelf row's name: a Grip rung is its tool. */
   upgradeName: (id: string) => string;
+  /** A Workshop item's name; a Line Mk's level by its own name (`mk2`, `mk3`). */
+  researchName: (id: string) => string;
+  researchLevelName: (id: string, level: number) => string;
   flotsamName: (id: string) => string;
   buffName: (id: string) => string;
   /** One line of the feed, about `who` (a player's name, or "You"). */
@@ -138,6 +141,11 @@ export function words(
     targetName: (id) => t(`target.${id}.name`),
     upgradeName: (id) =>
       content.tools.some((tool) => tool.id === id) ? t(`tool.${id}.name`) : t(`upgrade.${id}.name`),
+    researchName: (id) => t(`research.${id}.name`),
+    researchLevelName: (id, level) =>
+      locale.has(`research.${id}.mk${level + 1}`)
+        ? t(`research.${id}.mk${level + 1}`)
+        : t(`research.${id}.name`),
     flotsamName: (id) => t(`flotsam.${id}.name`),
     buffName: (id) => t(`buff.${id}.name`),
     // The feed has no event types until R4: every line is `feed.<type>`.

@@ -65,8 +65,8 @@ describe("milestones (02 4.1)", () => {
   it("halve a line's cycle at 25 and 50 owned, never under the floor", () => {
     const at = (n: number) =>
       mannedRate(content, fresh({ lines: { beachcomber: n }, hands: ["beachcomber"] }), T0);
-    // 50 owned: ×2 (10) and speed ×4 (25, 50): 50 × 1.5 × 2 × 4 a second.
-    expect(at(50)).toBeCloseTo(50 * 1.5 * 2 * 4, 9);
+    // 50 owned: ×2 (10) and speed ×4 (25, 50): 50 × the Beachcomber's rate × 2 × 4 a second.
+    expect(at(50)).toBeCloseTo(50 * line("beachcomber").rate * 2 * 4, 9);
   });
 
   it("reach roster tiers when every open line has the count, and keep them for the run", () => {
@@ -103,42 +103,19 @@ describe("buy_upgrade (02 5.2-5.4)", () => {
     });
     expect(tapParts(content, state, T0).base).toBe(1);
     state = ok(run(state, { type: "buy_upgrade", upgrade: "stone_tools" }));
-    expect(state.run.supplies).toBe(1e5 - 60);
+    expect(state.run.supplies).toBe(1e5 - 100);
     expect(tapParts(content, state, T0 + 1).base).toBe(2);
     expect(run(state, { type: "buy_upgrade", upgrade: "stone_tools" })).toMatchObject({
       ok: false,
       refusal: { reason: "owned" },
     });
-    // With 10 Beachcombers (×2 at 10): the full rate is 10 × 1.5 × 2 = 30, 0.4% of it 0.12.
+    // With 10 Beachcombers (×2 at 10): the full rate is 10 × its rate × 2, 0.4% of it per tap.
     state = ok(run(state, { type: "buy_line", line: "beachcomber", count: 10 }));
-    expect(tapParts(content, state, T0 + 2).base).toBeCloseTo(2 + 0.004 * 30, 12);
+    const full = 10 * line("beachcomber").rate * 2;
+    expect(tapParts(content, state, T0 + 2).base).toBeCloseTo(2 + 0.004 * full, 12);
   });
 
-  it("needs 25 of a line for its Mk II, then Mk II for its Mk III, each ×3", () => {
-    let state = fresh({ supplies: 1e12, lines: { beachcomber: 24 }, hands: ["beachcomber"] });
-    expect(run(state, { type: "buy_upgrade", upgrade: "beachcomber_mk2" })).toMatchObject({
-      ok: false,
-      refusal: {
-        reason: "locked",
-        gate: { kind: "owned", value: 25, line: "beachcomber", have: 24 },
-      },
-    });
-    state = { ...state, run: { ...state.run, lines: { beachcomber: 60 } } };
-    expect(run(state, { type: "buy_upgrade", upgrade: "beachcomber_mk3" })).toMatchObject({
-      ok: false,
-      refusal: { reason: "locked", gate: { kind: "previous", value: "beachcomber_mk2" } },
-    });
-    const before = mannedRate(content, state, T0);
-    state = ok(run(state, { type: "buy_upgrade", upgrade: "beachcomber_mk2" }, T0));
-    expect(state.run.supplies).toBe(1e12 - 6e4);
-    expect(mannedRate(content, state, T0)).toBeCloseTo(before * 3, 6);
-    expect(run(state, { type: "buy_upgrade", upgrade: "loom_mk2" })).toMatchObject({
-      ok: false,
-      refusal: { reason: "locked", gate: { kind: "era", value: "wood" } },
-    });
-  });
-
-  it("keeps a Line Mk to its era, and refuses unknown rows and short supplies", () => {
+  it("refuses unknown rows and short supplies", () => {
     const state = fresh({ supplies: 10 });
     expect(run(state, { type: "buy_upgrade", upgrade: "nope" })).toMatchObject({
       refusal: { reason: "unknown", what: "nope" },
@@ -152,7 +129,7 @@ describe("buy_upgrade (02 5.2-5.4)", () => {
     const state = fresh({ supplies: 2e6, lines: { beachcomber: 5 } });
     const tables = ok(run(state, { type: "buy_upgrade", upgrade: "sorting_tables" }));
     expect(rates(content, tables).tapGlobal).toBe(2);
-    const mk = { ...state, run: { ...state.run, upgrades: ["beachcomber_mk2"] } };
+    const mk = { ...state, run: { ...state.run, research: { beachcomber_mk: 1 } } };
     expect(rates(content, mk).tapGlobal).toBe(1);
   });
 });

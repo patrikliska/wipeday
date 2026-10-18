@@ -80,6 +80,8 @@ export class HttpBackend implements Backend {
     const response = await this.request<CommandResponse>("/api/commands", {
       method: "POST",
       body: JSON.stringify({ key, command }),
+      // A command sent as the page hides (the leaving ping) still reaches the server.
+      keepalive: true,
     });
     this.clock.sync(response.serverNow);
     return response;

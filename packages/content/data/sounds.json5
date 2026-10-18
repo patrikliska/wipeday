@@ -188,6 +188,7 @@
     // The domain's events, as the client predicts them or the server pushes them.
     bought: { cue: "buy" },
     upgraded: { cue: "upgrade" },
+    researched: { cue: "upgrade" },
     hand_hired: { cue: "hand" },
     era_reached: { cue: "era", buzz: [30, 50, 30] },
     flotsam_claimed: { cue: "claim_{kind}", buzz: [15] },

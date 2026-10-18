@@ -5,14 +5,16 @@
  * order is fixed (D186): the crown lights a card where it stands and never moves one.
  *
  * Words come from the locale, numbers from the one formatter, rules from the domain: a row's
- * reason and the server's refusal never disagree (both read `shelf.ts`).
+ * reason and the server's refusal never disagree (both read `shelf.ts` or `research.ts`).
  */
+
+import type { Effect } from "@wipe-day/content/effects";
 import type { IconKind } from "@wipe-day/content/icons";
-import type { LineDef, UpgradeDef } from "@wipe-day/content/schema";
-import type { Tier } from "@wipe-day/content/tiers";
+import type { LineDef, ResearchDef, UpgradeDef } from "@wipe-day/content/schema";
+import { TIERS, type Tier } from "@wipe-day/content/tiers";
 import { type Choice, sameRow } from "@wipe-day/domain/advisor";
 import type { Command } from "@wipe-day/domain/commands";
-import { cycleOf, unitRate } from "@wipe-day/domain/effects";
+import { cycleOf, foldParts, rates, unitRate } from "@wipe-day/domain/effects";
 import {
   costFactor,
   costOf,
@@ -22,9 +24,17 @@ import {
   maxAffordable,
 } from "@wipe-day/domain/lines";
 import {
+  levelOf,
+  levelsCost,
+  maxResearch,
+  researchGate,
+  workshopOpen,
+} from "@wipe-day/domain/research";
+import {
   bought,
   eraCost,
   eraGate,
+  type Gate,
   nextEra,
   upgradeCost,
   upgradeGate,
@@ -41,13 +51,15 @@ import {
   fmtFactor,
   fmtRate,
   lineName,
+  researchLevelName,
+  researchName,
   resourceName,
   t,
   tierName,
   upgradeName,
 } from "../state/world";
 
-export type RowKind = "line" | "era" | "upgrade";
+export type RowKind = "line" | "era" | "upgrade" | "research";
 
 /** A button on a card: its two lines, whether it can be pressed, its spoken label. */
 export interface Button {
@@ -58,7 +70,7 @@ export interface Button {
 }
 
 export interface Row {
-  /** Stable across renders: `line:loom`, `era:stone`, `upgrade:loom_mk2`. */
+  /** Stable across renders: `line:loom`, `era:stone`, `upgrade:handcarts`, `research:loom_mk`. */
   key: string;
   kind: RowKind;
   /** What the button sends; null while locked. */
@@ -72,15 +84,19 @@ export interface Row {
   owned?: number;
   /** A line card: its hand's id when manned, null when not (the finger glyph). */
   hand?: string | null;
-  /** A Line Mk card: II or III, a chevron on the line's art. */
-  mk?: number;
+  /** A Workshop tile: levels bought of how many (its ring). */
+  level?: { n: number; of: number };
+  /** A Line Mk tile: the level it buys next ("Mk II"). */
+  mk?: string;
   name: string;
   /** A line card's rate line: its product badge, cycle bar and rate. */
   product?: string;
   bar?: Bar;
   rate?: string;
-  /** Under the name on the other cards. */
+  /** Under the name on the other cards; a Workshop tile's next level's effect. */
   sub?: string;
+  /** A Workshop tile: what the next level adds ("+214/s", "2h → 2h 20m"). */
+  gain?: string;
   /** The last line: the next milestone, a hint or the real reason it is locked. */
   note?: string;
   /** The bar under the name (0..1): a line toward its next milestone, an era toward its price. */
@@ -337,21 +353,17 @@ export function upgradeEffect(upgrade: UpgradeDef): string {
       factor: fmtFactor(more),
       share: `${Number((share * 100).toPrecision(3))}%`,
     });
-  if (upgrade.kind === "mk")
-    return t("row.mk_effect", { line: lineName(upgrade.line ?? ""), factor: fmtFactor(more) });
   return t("row.island_effect", { factor: fmtFactor(more) });
 }
 
 function upgradeIcon(upgrade: UpgradeDef): Row["icon"] {
   if (upgrade.kind === "grip") return { kind: "tool", id: upgrade.id };
-  if (upgrade.kind === "mk") return { kind: "line", id: upgrade.line ?? "" };
   return { kind: "ui", id: "upgrade" };
 }
 
 function upgradeTier(upgrade: UpgradeDef): Tier {
   if (upgrade.kind === "grip")
     return content.tools.find((tool) => tool.id === upgrade.id)?.tier ?? "twig";
-  if (upgrade.kind === "mk") return lineOf(content, upgrade.line ?? "")?.era ?? "twig";
   return "twig";
 }
 
@@ -360,28 +372,17 @@ function upgradeRow(view: AdvisorView, upgrade: UpgradeDef): Row {
   const cost = upgradeCost(content, base, upgrade);
   const gate = upgradeGate(content, base, upgrade);
   const name = upgradeName(upgrade.id);
-  const reason =
-    gate?.kind === "owned"
-      ? t("row.needs_owned", {
-          need: fmtCount(gate.value),
-          lines: t(`line.${gate.line}.plural`),
-          have: fmtCount(gate.have),
-        })
-      : undefined;
+  const reason = gate ? gateReason(gate) : undefined;
   const command: Command | null = gate ? null : { type: "buy_upgrade", upgrade: upgrade.id };
-  const line = upgrade.kind === "mk" ? (upgrade.line ?? "") : "";
   return {
     key: `upgrade:${upgrade.id}`,
     kind: "upgrade",
     command,
     icon: upgradeIcon(upgrade),
-    ...(line ? { art: `line/${line}_${artStage(base.run.lines[line] ?? 0)}` } : {}),
     tier: upgradeTier(upgrade),
-    ...(upgrade.kind === "mk" ? { mk: upgrade.after ? 3 : 2 } : {}),
     name,
     sub: upgradeEffect(upgrade),
     ...(reason ? { note: reason } : {}),
-    ...(gate?.kind === "owned" ? { progress: Math.min(1, gate.have / gate.value) } : {}),
     button: gate
       ? {
           top: t("row.locked"),
@@ -466,15 +467,31 @@ export function linesTab(view: AdvisorView, bulk: Bulk): Row[] {
   return rows;
 }
 
-/** Shelf rows on show: the next step of each ladder, a Line Mk once its line is owned. */
+/** Shelf rows on show: the next step of each ladder (Grip, the island upgrades). */
 function shelfOnShow(base: BaseState): UpgradeDef[] {
-  return content.upgrades.filter((upgrade) => {
-    if (bought(base, upgrade.id)) return false;
-    const gate = upgradeGate(content, base, upgrade);
-    if (!gate) return true;
-    // A Mk II short of units shows its reason; later steps and other eras stay hidden.
-    return gate.kind === "owned" && (base.run.lines[gate.line] ?? 0) > 0;
-  });
+  return content.upgrades.filter(
+    (upgrade) => !bought(base, upgrade.id) && !upgradeGate(content, base, upgrade),
+  );
+}
+
+/** A gate's real reason, in words (CLAUDE.md 6.3 rule 3). */
+function gateReason(gate: Gate): string {
+  switch (gate.kind) {
+    case "owned":
+      return t("row.needs_owned", {
+        need: fmtCount(gate.value),
+        lines: t(`line.${gate.line}.plural`),
+        have: fmtCount(gate.have),
+      });
+    case "era":
+      return t("workshop.opens_in", { era: tierName(gate.value) });
+    case "previous":
+      return t("refusal.locked_previous", { name: upgradeName(gate.value) });
+    case "wipe_day":
+      return t("refusal.locked_wipe_day", { count: gate.value });
+    case "opens":
+      return t("refusal.locked_opens");
+  }
 }
 
 /** The Shelf tab: what is on show by price (prices never move, so neither do the cards). */
@@ -540,6 +557,191 @@ export function crownTab(rows: Row[], view: AdvisorView): Row[] {
   return rows;
 }
 
+// --- the Workshop (game-design 5.12; 08-screens.md 8.3 desktop_research, phone_research) -------
+
+const pct = (value: number): string => `${Number((value * 100).toPrecision(3))}%`;
+
+/** What one level of a Workshop item does, in one line ("+5% Beachcomber"). */
+export function researchEffect(effect: Effect): string {
+  const scope = effect.scope;
+  const where =
+    scope === undefined || scope === "all" ? "all" : lineOf(content, scope) ? "line" : "era";
+  const named = { line: scope ? lineName(scope) : "", era: scope ? tierName(scope as Tier) : "" };
+  switch (effect.stat) {
+    case "output":
+      if (effect.op === "more")
+        return t("research_effect.output_more", { ...named, factor: fmtFactor(effect.value) });
+      return t(`research_effect.output_${where}`, { ...named, pct: pct(effect.value) });
+    case "speed":
+      return t(`research_effect.speed_${where}`, { ...named, pct: pct(effect.value - 1) });
+    case "tap_flat":
+      return effect.op === "more"
+        ? t("research_effect.tap_flat_more", { factor: fmtFactor(effect.value) })
+        : t("research_effect.tap_flat", { value: Number(effect.value.toPrecision(3)) });
+    case "hustle_max":
+      return t("research_effect.hustle_max", { value: Number(effect.value.toPrecision(3)) });
+    case "night_shift":
+      return t("research_effect.night_shift", { time: duration(Math.round(effect.value * 3600)) });
+    case "offline":
+      return t("research_effect.offline", { pct: pct(effect.value - 1) });
+    default:
+      return "";
+  }
+}
+
+/** A tile's icon: the thing it makes better (a line, an era, every line, the night, the tap). */
+function researchIcon(def: ResearchDef): Row["icon"] {
+  const { effect } = def;
+  const scope = effect.scope;
+  if (def.line) return { kind: "line", id: def.line };
+  if (effect.stat === "output" || effect.stat === "speed") {
+    if (scope && lineOf(content, scope)) return { kind: "line", id: scope };
+    if (scope && (TIERS as readonly string[]).includes(scope)) return { kind: "tier", id: scope };
+    return { kind: "ui", id: "roster" };
+  }
+  if (effect.stat === "night_shift" || effect.stat === "offline")
+    return { kind: "ui", id: "night_shift" };
+  if (effect.stat === "hustle_max") return { kind: "ui", id: "hustle" };
+  return { kind: "ui", id: "finger" };
+}
+
+const ROMAN = ["I", "II", "III", "IV", "V", "VI"];
+
+/** What the next level adds: the window it opens to, or supplies a second over the day. */
+function researchGain(view: AdvisorView, def: ResearchDef, command: Command | null): string {
+  if (def.effect.stat === "night_shift") {
+    const base = view.base;
+    const { windowHours, maxHours } = content.run.nightShift;
+    const r = rates(content, base);
+    const parts = foldParts("night_shift", r.byStat.get("night_shift") ?? []);
+    const hours =
+      ((parts.best ?? windowHours) + parts.add + def.effect.value) * (1 + parts.inc) * parts.more;
+    const next = Math.round(Math.min(maxHours, hours) * 3600);
+    if (next <= r.nightShift) return "";
+    return t("workshop.window", { from: duration(r.nightShift), to: duration(next) });
+  }
+  if (!command) return "";
+  const choice = view.offered.find((offer) => sameRow(offer.command, command));
+  if (!choice || choice.gain <= 0) return "";
+  return t("workshop.gain", { rate: fmtRate(choice.gain) });
+}
+
+function researchRow(view: AdvisorView, def: ResearchDef, bulk: Bulk): Row {
+  const base = view.base;
+  const n = levelOf(base, def.id);
+  const done = n >= def.levels;
+  const gate = done ? null : researchGate(content, base, def, view.now);
+  const owned = def.line ? (base.run.lines[def.line] ?? 0) : 0;
+  const k =
+    !done && bulk === "max" ? Math.max(1, maxResearch(def, n, base.run.supplies, owned)) : 1;
+  const cost = done ? 0 : levelsCost(def, n, k);
+  const name =
+    def.kind === "mk"
+      ? researchLevelName(def.id, Math.min(n + 1, def.levels))
+      : researchName(def.id);
+  const effect = researchEffect(def.effect);
+  const reason = gate ? gateReason(gate) : undefined;
+  const command: Command | null =
+    done || gate ? null : { type: "buy_research", item: def.id, count: bulk === "max" ? "max" : 1 };
+  const of = def.levels;
+  const button: Button = done
+    ? {
+        top: t("workshop.done"),
+        cost: "",
+        enabled: false,
+        label: t("workshop.aria_done", { name, of }),
+      }
+    : gate
+      ? {
+          top: t("row.locked"),
+          cost: fmt(cost, "cost"),
+          enabled: false,
+          label: t("row.aria_wait", { name, reason: reason ?? "" }),
+        }
+      : buyButton(
+          cost,
+          view,
+          k > 1 ? t("row.buy_n", { count: k }) : t("row.buy"),
+          t("workshop.aria", { name, n, of, effect, cost: fmt(cost, "cost") }),
+        );
+  const gain = done
+    ? ""
+    : researchGain(view, def, command ?? { type: "buy_research", item: def.id, count: 1 });
+  return {
+    key: `research:${def.id}`,
+    kind: "research",
+    command,
+    icon: researchIcon(def),
+    tier: def.era,
+    level: { n, of },
+    ...(def.kind === "mk"
+      ? { mk: t("workshop.mk_level", { roman: ROMAN[Math.min(n, of - 1) + 1] ?? "" }) }
+      : {}),
+    name,
+    sub: effect,
+    ...(gain && !gate ? { gain } : {}),
+    // A later era's reason stands once, over its group, not on every tile.
+    ...(done
+      ? { note: t("workshop.maxed", { of }) }
+      : reason && gate?.kind !== "era"
+        ? { note: reason }
+        : {}),
+    ...(gate?.kind === "owned" ? { progress: Math.min(1, gate.have / gate.value) } : {}),
+    button,
+    locked: gate !== null,
+    crowned: false,
+    score: command ? scoreOfCommand(view, command) : Number.POSITIVE_INFINITY,
+  };
+}
+
+/** A group of Workshop tiles: one era's tiers, then its Line Mks; a later era's with its reason. */
+export interface ResearchGroup {
+  era: Tier;
+  title: string;
+  /** Why the whole group waits (the next era), shown under its title. */
+  locked?: string;
+  rows: Row[];
+}
+
+/** The Workshop's open items: what the dock's badge counts (tiles not waiting on an era). */
+export function workshopOpenItems(groups: ResearchGroup[] | undefined): number {
+  return (groups ?? []).filter((group) => !group.locked).reduce((n, g) => n + g.rows.length, 0);
+}
+
+/** Whether the Workshop is open at the view's moment (the tab and the dock's place show then). */
+export const workshopShown = (view: AdvisorView): boolean =>
+  workshopOpen(content, view.base, view.now);
+
+/**
+ * The Workshop tab, in its fixed order (D186): the eras reached, each its tier items in tier
+ * order and then its Line Mks by rung, and the next era's group locked with its reason. Levels
+ * change prices, never places.
+ */
+export function researchTab(
+  view: AdvisorView,
+  bulk: Bulk,
+): { groups: ResearchGroup[]; rows: Row[] } {
+  const base = view.base;
+  const reached = TIERS.indexOf(base.run.era);
+  const next = nextEra(content, base);
+  const groups: ResearchGroup[] = [];
+  for (const [index, era] of TIERS.entries()) {
+    if (index > reached + 1) break;
+    if (index > reached && (!next || next.id !== era || eraGate(base, next))) break;
+    const defs = content.research.filter((def) => def.era === era);
+    if (defs.length === 0) continue;
+    const tiers = defs.filter((def) => def.kind === "tier");
+    const mks = defs.filter((def) => def.kind === "mk");
+    groups.push({
+      era,
+      title: tierName(era),
+      ...(index > reached ? { locked: t("workshop.opens_in", { era: tierName(era) }) } : {}),
+      rows: [...tiers, ...mks].map((def) => researchRow(view, def, bulk)),
+    });
+  }
+  return { groups, rows: groups.flatMap((group) => group.rows) };
+}
+
 /** Where the island's pick lives: its tab and its card's key; null while the crown is elsewhere. */
 export function pickPlace(view: AdvisorView): { tab: Tab; key: string } | null {
   if (view.pick.kind !== "purchase") return null;
@@ -552,6 +754,8 @@ export function pickPlace(view: AdvisorView): { tab: Tab; key: string } | null {
       return { tab: "lines", key: `era:${command.era}` };
     case "buy_upgrade":
       return { tab: "upgrades", key: `upgrade:${command.upgrade}` };
+    case "buy_research":
+      return { tab: "research", key: `research:${command.item}` };
     default:
       return null;
   }

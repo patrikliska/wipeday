@@ -1587,3 +1587,46 @@ before the first tap, all 52 Ogg files after it, no console errors.
   ride above the flash now, so "63" pops through the gold.
 - *Fine:* the 28 S4 shots are unchanged apart from the cards' new press and tick (audit clean,
   one crown per view); the credits sheet fits a phone without scrolling past Done.
+
+## R2 Feel S6: the Workshop and the 2 h Night Shift (D227-D235)
+
+Shots: `s6_desktop_research`, `s6_desktop_research_night`, `s6_phone_research`,
+`s6_phone_research_night` (Timber four minutes in, the Workshop's first levels), `s6_phone_workshop_opens`
+and `s6_desktop_workshop_opens` (2:10, the dock's new place with its badge), `s6_phone_research_first`
+(the hint, every price 40), `s6_desktop_research_stone` (the list's end in rain: Stone's Mks and
+the locked Sheet Metal group), `s6_phone_research_big` (Armored at 999Dc), `s6_desktop_research_flash`
+and `s6_phone_research_flash` (a level mid-flash), `s6_desktop_research_order` (three levels bought,
+the harness fails if a tile moves), `s6_welcome_lamp_2h`, `s6_welcome_lamp_4h_left`.
+
+### Iteration 1
+- **The dock's Workshop showed a lettered "WO" tile**: the running dev server had not re-read the
+  icon glob after `nav/workshop.svg` was added. Touching `Icon.tsx` re-reads it; the glyph (a
+  hammer and a wrench over a bench) reads at 26 and 30 px. Owner note: after pulling, restart
+  `pnpm web` or hard-refresh if a new icon shows letters.
+- **×10 and ×100 meant nothing on a tile** (a Workshop level is one, or Max): on the Workshop tab
+  the bulk control is ×1 · Max, and the handle's cycle button alternates the two.
+- **A locked era's reason showed on every tile** under a header that already said it ("Opens in
+  the Sheet Metal era" four times): it stands once, over the group; a Mk's own reason ("Needs 25
+  Oil Presses (0 now)") stays on its tile.
+- *Fine:* the crown lights Spare Wicks in place with "2h 20m → 2h 40m" and the lamp says "of 2h
+  20m"; tiles two to a row fit the 400 px column and the 390 px drawer; "999Dc"-era prices
+  ("1.06Qi", "270Qi") and gains ("+13.5T/s") fit the button and the gain line; the Mk chip takes
+  the era colour; locked rings go grey; the Workshop tab carries the small crown mark when the
+  island's crown is on a tile and the drawer is on Lines.
+
+### Iteration 2
+- *Fine:* the dock shows its glyph and "Workshop" sits between Island and Crew; a maxed item
+  reads "25/25", a full ring, "All 25 levels" and a disabled Done; three purchases in a row
+  (Dry Kindling ×max, Spare Wicks, Tarred Twine) left every tile where it was; the gold flash
+  and the level pop read on a phone tile ("2/6"); the welcome card after 3 h says the hands
+  worked the whole 2 h and the lamp burnt out, one Collect.
+- Left for S8 (the finish): the dusk and rain variants of the two Workshop shots, and the juice
+  checklist pass over S6 and S7 together.
+
+### Iteration 3 (the whole suite, 132 shots, audit clean)
+- **The first card came uncrowned** in a domain test before any shot showed it: with base output
+  0.42 the crown saved for Stone Tools (60) ahead of the first Beachcomber (6). Stone Tools costs
+  100 now (D236); `phone_first_buy` shows the Beachcomber crowned at 7 and no Workshop tab yet.
+- *Fine:* the S4-S5 shots now carry Workshop levels, so their drawers show three tabs and the ×1
+  button in one row at 390 px, and the dock reads Island, Workshop, Crew; one crown per view
+  throughout.

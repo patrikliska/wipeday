@@ -1356,13 +1356,13 @@ order (D192): the groups once tagged R2-R7 are R4-R9.
 | `desktop_night_metal`, `laptop`, `tablet`, `phone_landscape` | layout checks | R1 |
 | `desktop_hero` / `_dusk` / `_night` / `_rain` | 6 taps/s: chips arcing onto the stockpile, the card column in fixed order with the crown lit in place, Best buy chip, the dock centred | R2 |
 | `desktop_frenzy` / `_dusk` / `_night` / `_rain` | Frenzy tripped: ×3 taps, the warmed sky, lines spinning faster, the meter draining | R2 |
-| `desktop_research` / `_dusk` / `_night` / `_rain` | the column's Research tab: tiers 1-4 as tiles with level rings, next cost and gain, a crowned tile, a locked tier with its era | R2 |
+| `desktop_research` / `_dusk` / `_night` / `_rain` | the column's Workshop tab (D235): tiers 1-4 and the Line Mks as tiles in era groups with level rings, what a level does and adds, a crowned tile, the next era's group locked with its reason (S6: `s6_desktop_research`, `_night`, `s6_desktop_research_stone` in rain) | R2 |
 | `desktop_sheet_crew` / `_dusk` / `_night` / `_rain` | the Crew sheet over the scene from the dock, wide and centred | R2 |
 | `phone_hero` / `_dusk` / `_night` / `_rain` | the target at about 35% of the height, the stockpile, the Frenzy meter under it, the drawer's two cards, the dock | R2 |
 | `phone_drawer_cards` / `_dusk` / `_night` / `_rain` | the drawer dragged open: cards in fixed order, the crowned card lit in place, a locked card with its reason | R2 |
-| `phone_research` / `_dusk` / `_night` / `_rain` | the Research tab from the Workshop dock tab, "Spare Wicks: +20 min, 1.2k" | R2 |
+| `phone_research` / `_dusk` / `_night` / `_rain` | the Workshop tab from the dock's Workshop, Spare Wicks "Night Shift +20m", "2h 20m → 2h 40m" (S6: `s6_phone_research`, `_night`, `s6_phone_workshop_opens`, `s6_phone_research_first`) | R2 |
 | `phone_dock_badges` / `_dusk` / `_night` / `_rain` | Island, Workshop, Crew, Logbook with badge counts; no Album | R2 |
-| `welcome_back_lamp` / `_dusk` / `_night` / `_rain` | welcome back after a full 2 h window: the lamp burnt down, one Collect | R2 |
+| `welcome_back_lamp` / `_dusk` / `_night` / `_rain` | welcome back after a full 2 h window: the lamp burnt down, one Collect (S6: `s6_welcome_lamp_2h`, `s6_welcome_lamp_4h_left`) | R2 |
 | `achievement_toast` / `_dusk` / `_night` / `_rain` | a badge unlocked: its toast, Morale +1% | R2 |
 | `gull_elite` / `_dusk` / `_night` / `_rain` | an elite gull mid-crossing, glowing; its catch pays 3 min of output | R2 |
 | `ticker` / `_dusk` / `_night` / `_rain` | the news ticker under the dock (desktop) and in the drawer's handle (phone) | R2 |

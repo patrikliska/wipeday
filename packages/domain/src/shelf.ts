@@ -7,15 +7,17 @@ import type { Content, EraDef, UpgradeDef } from "@wipe-day/content/schema";
 import { TIERS } from "@wipe-day/content/tiers";
 import type { Amount } from "./amount";
 import { statOf } from "./effects";
-import { eraOpen, lineOf } from "./lines";
+import { eraOpen } from "./lines";
 import type { BaseState } from "./state";
 
 /** What keeps a row shut, before the price (CLAUDE.md 6.3 rule 3: a real, reachable reason). */
 export type Gate =
   /** The line's era is not reached yet. */
   | { kind: "era"; value: string }
-  /** A Line Mk needs `value` of `line`; the run owns `have`. */
+  /** A Line Mk's next level needs `value` of `line`; the run owns `have`. */
   | { kind: "owned"; value: number; line: string; have: number }
+  /** The Workshop opens at `value` (unix seconds), two minutes into the run. */
+  | { kind: "opens"; value: number }
   /** The row before it on its ladder (D152). */
   | { kind: "previous"; value: string }
   /** Armored: opens after Wipe Day #`value`. */
@@ -33,16 +35,9 @@ export function upgradeCost(content: Content, state: BaseState, upgrade: Upgrade
 }
 
 /** Why `upgrade` cannot be bought yet, the price aside; null when only the price is left. */
-export function upgradeGate(content: Content, state: BaseState, upgrade: UpgradeDef): Gate | null {
+export function upgradeGate(_content: Content, state: BaseState, upgrade: UpgradeDef): Gate | null {
   if (upgrade.after !== undefined && !bought(state, upgrade.after))
     return { kind: "previous", value: upgrade.after };
-  if (upgrade.line !== undefined) {
-    const line = lineOf(content, upgrade.line);
-    if (line && !eraOpen(state, line)) return { kind: "era", value: line.era };
-    const have = state.run.lines[upgrade.line] ?? 0;
-    const need = upgrade.needOwned ?? 0;
-    if (have < need) return { kind: "owned", value: need, line: upgrade.line, have };
-  }
   return null;
 }
 

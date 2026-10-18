@@ -3,13 +3,14 @@
  * like W6's property tests, so a failure names its seed and replays.
  *
  * 1. A generator of random states: up to 1,200 owned per line (every milestone kind), a random
- *    era, roster tiers and shelf rows, a random manned subset, cycles in flight on unmanned
- *    lines, up to three buffs, the last command up to 20 h back, a Night Shift of 12-48 h,
- *    glass for Glow. The fixture content adds buffs (a global ×4, a one-line ×12) and an effect
+ *    era, roster tiers, shelf rows and Workshop levels (away-only ones among them), a random
+ *    manned subset, cycles in flight on unmanned lines, up to three buffs, the last command up
+ *    to 20 h back, a Night Shift of 2-24 h, glass for Glow. The fixture content adds buffs (a global ×4, a one-line ×12) and an effect
  *    that holds only while the player is away.
  * 2. Path independence: settling to t1 and then t2 equals settling to t2, within 1e-9, over
  *    10,000 states, with t1 placed around the window's end, buff ends and payouts; the same
- *    over 10,000 random command sequences (buys, hires, shelf rows, eras, flotsam claims, taps, pings) with extra settles between.
+ *    over 10,000 random command sequences (buys, hires, shelf rows, Workshop levels, eras,
+ *    flotsam claims, taps, pings) with extra settles between.
  * 3. A tick oracle: an independent loop over whole seconds (manned production that second, each
  *    unmanned cycle at its end second) agrees with settle within 1e-6 over 1,000 states × 48 h.
  * 4. `suppliesAt` equals the settled supplies at random times.
@@ -58,7 +59,7 @@ interface Case {
 
 /** A random state, settled up to `now` = T0 (09-architecture.md 4.8's generator). */
 function randomCase(random: Rng): Case {
-  const hours = 12 + random.int(0, 36);
+  const hours = 2 + random.int(0, 22);
   const content = fixture(hours);
   const base = newBase(content, T0 - 30 * HOUR, random.int(1, 1e9));
   const lines: Record<string, number> = {};
@@ -86,6 +87,10 @@ function randomCase(random: Rng): Case {
   const upgrades = content.upgrades
     .filter((upgrade) => upgrade.kind !== "grip" && random.next() < 0.3)
     .map((upgrade) => upgrade.id);
+  const research: Record<string, number> = {};
+  for (const def of content.research) {
+    if (random.next() < 0.3) research[def.id] = random.int(1, def.levels);
+  }
   const state: BaseState = {
     ...base,
     run: {
@@ -93,6 +98,7 @@ function randomCase(random: Rng): Case {
       era: TIERS[random.int(0, TIERS.length - 1)] ?? "hqm",
       roster: random.int(0, content.milestones.roster.length),
       upgrades,
+      research,
       lines,
       hands,
       readyAt,
@@ -112,7 +118,7 @@ function randomCase(random: Rng): Case {
 
 /** Seconds worth testing around: the window's end, buff ends, payouts, going offline. */
 function edges(content: Content, state: BaseState): number[] {
-  const window = state.run.activeAt + content.run.nightShift.windowHours * HOUR;
+  const window = state.run.activeAt + Math.round(windowHoursOf(content, state) * HOUR);
   return [
     window,
     state.run.activeAt + 330,
@@ -175,6 +181,7 @@ describe("settle's path independence (N24)", () => {
         const line = ids[random.int(0, ids.length - 1)] ?? "beachcomber";
         const roll = random.next();
         const upgrade = content.upgrades[random.int(0, content.upgrades.length - 1)]?.id ?? "";
+        const item = content.research[random.int(0, content.research.length - 1)]?.id ?? "";
         const era = TIERS[random.int(0, TIERS.length - 1)] ?? "wood";
         const command: Command = floating
           ? { type: "claim_flotsam", run: a.run.n, k: cursor.k }
@@ -185,10 +192,17 @@ describe("settle's path independence (N24)", () => {
               : roll < 0.5
                 ? { type: "buy_upgrade", upgrade }
                 : roll < 0.55
-                  ? { type: "buy_era", era }
-                  : roll < 0.85
-                    ? { type: "taps", count: random.int(1, 30), from: t - random.int(0, 2), to: t }
-                    : { type: "ping" };
+                  ? { type: "buy_research", item, count: random.next() < 0.5 ? 1 : "max" }
+                  : roll < 0.6
+                    ? { type: "buy_era", era }
+                    : roll < 0.85
+                      ? {
+                          type: "taps",
+                          count: random.int(1, 30),
+                          from: t - random.int(0, 2),
+                          to: t,
+                        }
+                      : { type: "ping" };
         // B settles somewhere in between first; A does not.
         const between = t - random.int(1, Math.max(1, t - b.run.settledAt));
         if (between > b.run.settledAt) b = settle(content, b, between).state;
@@ -206,10 +220,41 @@ describe("settle's path independence (N24)", () => {
   }, 20_000);
 });
 
+/** The Workshop's levels as plain effects: `value` per level, `more` compounding. */
+function researchLevels(
+  content: Content,
+  state: BaseState,
+): { stat: string; op: string; scope: string | undefined; value: number; n: number }[] {
+  const out = [];
+  for (const def of content.research) {
+    const n = state.run.research[def.id] ?? 0;
+    if (n > 0) out.push({ ...def.effect, scope: def.effect.scope, n });
+  }
+  return out;
+}
+
+/** The Night Shift's hours: the base plus the Workshop's, under the ceiling. */
+function windowHoursOf(content: Content, state: BaseState): number {
+  const { windowHours, maxHours } = content.run.nightShift;
+  let hours = windowHours;
+  for (const effect of researchLevels(content, state))
+    if (effect.stat === "night_shift") hours += effect.value * effect.n;
+  return Math.min(maxHours, hours);
+}
+
+/** The Workshop's away-only factor (Banked Coals, Storm Shutters). */
+function awayFactorOf(content: Content, state: BaseState): number {
+  let factor = 1;
+  for (const effect of researchLevels(content, state))
+    if (effect.stat === "offline") factor *= effect.value ** effect.n;
+  return factor;
+}
+
 /**
  * A line's steady multiplier and speed from first principles, sharing no code with the
- * evaluator: the eras reached, the island upgrades and Line Mks bought, the roster tiers, and
- * the milestone table walked one step at a time.
+ * evaluator: the eras reached, the island upgrades bought, the Workshop's levels (incs summed,
+ * Line Mks and speeds compounded), the roster tiers, and the milestone table walked one step at
+ * a time.
  */
 function lineFactors(
   content: Content,
@@ -222,12 +267,21 @@ function lineFactors(
     for (const effect of era.effects) output *= effect.value;
   for (const upgrade of content.upgrades) {
     if (!run.upgrades.includes(upgrade.id)) continue;
-    if (upgrade.kind === "island" || upgrade.line === id)
-      for (const effect of upgrade.effects) output *= effect.value;
+    if (upgrade.kind === "island") for (const effect of upgrade.effects) output *= effect.value;
   }
+  const era = content.lines.find((line) => line.id === id)?.era;
+  let inc = 0;
+  let speed = 1;
+  for (const effect of researchLevels(content, state)) {
+    const reaches = effect.scope === "all" || effect.scope === id || effect.scope === era;
+    if (!reaches) continue;
+    if (effect.stat === "output" && effect.op === "inc") inc += effect.value * effect.n;
+    if (effect.stat === "output" && effect.op === "more") output *= effect.value ** effect.n;
+    if (effect.stat === "speed") speed *= effect.value ** effect.n;
+  }
+  output *= 1 + inc;
   for (const tier of content.milestones.roster.slice(0, run.roster)) output *= tier.payout;
   const n = run.lines[id] ?? 0;
-  let speed = 1;
   for (const step of content.milestones.line) {
     if (n < step.at) continue;
     output *= step.payout ?? 1;
@@ -248,7 +302,8 @@ function lineFactors(
 function oracle(content: Content, state: BaseState, until: number): number {
   const { run } = state;
   const glow = 1 + content.prestige.glowK * Math.sqrt(state.meta.glass.ever);
-  const windowEnd = run.activeAt + content.run.nightShift.windowHours * HOUR;
+  const windowEnd = run.activeAt + Math.round(windowHoursOf(content, state) * HOUR);
+  const away = awayFactorOf(content, state);
   const offlineFrom = run.activeAt + content.run.nightShift.pingMinutes * 60 + 30;
   const rates = new Map(content.lines.map((line) => [line.id, line]));
   let manned = 0;
@@ -268,7 +323,7 @@ function oracle(content: Content, state: BaseState, until: number): number {
       if (buff.kind === "drone" && (line === undefined || buff.line === line)) factor *= DRONE;
       if (buff.kind === "lantern" && t >= offlineFrom) factor *= AWAY;
     }
-    return factor;
+    return t >= offlineFrom ? factor * away : factor;
   };
   const drones = run.buffs.filter((buff) => buff.kind === "drone");
   let total = 0;
@@ -281,6 +336,7 @@ function oracle(content: Content, state: BaseState, until: number): number {
       if (buff.kind === "rally") global *= RALLY;
       if (buff.kind === "lantern" && t >= offlineFrom) global *= AWAY;
     }
+    if (t >= offlineFrom) global *= away;
     // Buffs multiply, so two drones on one line make it ×144 there.
     let second = manned * global;
     const boosted = new Map<string, number>();

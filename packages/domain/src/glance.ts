@@ -16,6 +16,7 @@ import {
   unitRate,
 } from "./effects";
 import { lineOf } from "./lines";
+import { levelEffect, researchEffects } from "./research";
 import { conditionsAt, mannedRate } from "./settle";
 import type { BaseState } from "./state";
 import { hustleFactor, tapParts } from "./taps";
@@ -47,9 +48,9 @@ export function hustleAt(content: Content, state: BaseState, t: number): number 
 
 /** One step of the Multipliers sheet: its factor and where it comes from. */
 export interface Step {
-  id: "milestones" | "upgrades" | "eras" | "roster" | "glow" | "buffs" | "other";
+  id: "milestones" | "workshop" | "upgrades" | "eras" | "roster" | "glow" | "buffs" | "other";
   factor: number;
-  /** Each source and its own factor: a line, an upgrade, an era, a roster tier, a buff. */
+  /** Each source and its own factor: a line, a Workshop item, an upgrade, an era, a tier, a buff. */
   sources: { id: string; factor: number; until?: number }[];
 }
 
@@ -72,8 +73,8 @@ const productOf = (effects: readonly Effect[]): number => {
 };
 
 /**
- * The full rate at `t` taken apart: lines' base output, then milestones, the shelf (Line Mks
- * and island upgrades), eras, roster tiers, Glow and buffs. Each step's factor is the ratio of
+ * The full rate at `t` taken apart: lines' base output, then milestones, the Workshop (its
+ * items and Line Mks), the shelf's island upgrades, eras, roster tiers, Glow and buffs. Each step's factor is the ratio of
  * the total with and without it, so the steps multiply out to `fullRate` exactly; an effect no
  * step names (a later phase's source) lands in `other`.
  */
@@ -93,6 +94,9 @@ export function breakdown(content: Content, state: BaseState, t: number): Breakd
     if (speed > 1) list.push({ stat: "speed", op: "more", value: speed, scope: line.id });
     milestone.set(line.id, list);
   }
+  const workshop = researchEffects(content, state).filter(
+    (effect) => effect.stat === "output" || effect.stat === "speed",
+  );
   const shelf = content.upgrades.filter(
     (upgrade) => upgrade.kind !== "grip" && state.run.upgrades.includes(upgrade.id),
   );
@@ -118,6 +122,7 @@ export function breakdown(content: Content, state: BaseState, t: number): Breakd
   };
   const layers: Array<{ id: Step["id"]; effects: (line: LineDef) => Effect[] }> = [
     { id: "milestones", effects: (line) => milestone.get(line.id) ?? [] },
+    { id: "workshop", effects: () => workshop },
     { id: "upgrades", effects: () => shelf.flatMap((upgrade) => upgrade.effects) },
     { id: "eras", effects: () => eras.flatMap((era) => era.effects ?? []) },
     {
@@ -144,6 +149,18 @@ export function breakdown(content: Content, state: BaseState, t: number): Breakd
   for (const { line } of owned) {
     const factor = productOf(milestone.get(line.id) ?? []);
     if (factor > 1) sources("milestones").push({ id: line.id, factor });
+  }
+  // Each Workshop item's own factor: the lines with it over the lines without (after milestones).
+  const milestoned = total((line) => milestone.get(line.id) ?? []);
+  for (const def of content.research) {
+    const n = state.run.research[def.id] ?? 0;
+    const effect = n > 0 ? levelEffect(def.effect, n) : null;
+    if (!effect || (effect.stat !== "output" && effect.stat !== "speed")) continue;
+    const factor =
+      milestoned > 0
+        ? total((line) => [...(milestone.get(line.id) ?? []), effect]) / milestoned
+        : 1;
+    if (factor > 1 + 1e-12) sources("workshop").push({ id: def.id, factor });
   }
   for (const upgrade of shelf)
     sources("upgrades").push({ id: upgrade.id, factor: productOf(upgrade.effects) });

@@ -8,9 +8,11 @@
 {
   shipped: "R1",
   // The scenarios play 12 flotsam draws in full (R1's "Done when"; 10-balance.md 8.1 step 1), 4
-  // inside `pnpm test`'s 10 s.
+  // inside `pnpm test`'s 10 s. The test profile plays each archetype only as long as a due
+  // assertion reads it (`early`: to N9's day 60 for the active player, past run 5 and run 1's end
+  // for everyone), up to 90 days; R2 Feel S6's Workshop made each day dearer (D236).
   profiles: {
-    test: { days: 90, seeds: [11], scenarioSeeds: [1, 2, 3, 4] },
+    test: { days: 90, early: true, seeds: [11], scenarioSeeds: [1, 2, 3, 4] },
     full: { days: 365, seeds: [7, 11, 23], scenarioSeeds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
   },
   // Sessions: "HH:MM+Nm" every day (UTC), or "hourly+Nm". Taps a second while a session runs;
@@ -47,24 +49,28 @@
     { n: "N9", on: "R1", check: "activeHour", days: [14, 30, 60], min: 1.5, max: 3 },
     { n: "N9", on: "R1", check: "activeHour", days: [14, 30, 60], rain: true, min: 1.5, max: 3, warn: true },
     { n: "N23", on: "R1", check: "run1Made", min: 1e10, max: 1e12 },
-    // Run 1's script (10-balance.md 4.2, errata E1's column), seconds after the first tap: Timber
-    // 0:36, Mara 0:41, the crate 3:00, Sorting Tables 3:01, Stone 4:30, Sheet Metal 42:38, the
-    // first nuke about 46-48 minutes (N1's 40-60 is R4's).
+    // Run 1's script (10-balance.md 4.2, errata E1's column), seconds after the first tap. R2 Feel
+    // S6 retuned it around the Workshop (base output ×0.28, earned back from 2:00): Timber about
+    // 0:52, Mara 1:13, the Workshop 2:00, the crate 3:00, Sorting Tables about 7:00, Stone about
+    // 9:00, Sheet Metal and the first nuke about 42-48 minutes (N1's 40-60 is R4's).
     {
       n: "4.2",
       on: "R1",
       check: "firstHourBeats",
       scenario: "firstHour",
       beats: {
-        era_wood: [25, 60],
+        era_wood: [30, 90],
         hand: [30, 120],
+        research: [120, 150],
         flotsam: [180, 185],
-        sorting_tables: [150, 300],
-        era_stone: [210, 420],
+        sorting_tables: [240, 600],
+        era_stone: [360, 720],
         era_metal: [1800, 3000],
         nuke: [2400, 3600],
       },
     },
+    // R2 Feel: guardrail 1 under the 2 h Night Shift, watched until R4 asserts it.
+    { n: "N3", on: "R2", check: "casualFirstNuke", day: 1, by: "21:00", warn: true },
     // R3 Cards: scrap as the premium currency (12-feel.md 8, 11; D182) and the Supply Drops.
     { n: "N19", on: "R3", check: "scrap", casualMean: [4, 6], casualByDay30: 100, anyMeanMax: 8 },
     { n: "N30", on: "R3", check: "casualDropsPerDay", min: 1, days: 30 },

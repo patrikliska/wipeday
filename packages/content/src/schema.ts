@@ -199,15 +199,6 @@ export type EraDef = z.infer<typeof eraSchema>;
 
 export const erasFileSchema = z.strictObject({ eras: z.array(eraSchema) });
 
-/** Line Mk II/III (02 5.3): one rule, generated for every line as `{line}_{id}`. */
-const lineMkSchema = z.strictObject({
-  id,
-  costFactor: factor,
-  needOwned: z.int().min(1),
-  pocket: z.boolean().default(false),
-  effects,
-});
-
 const islandUpgradeSchema = z.strictObject({
   id,
   cost: amount,
@@ -217,23 +208,72 @@ const islandUpgradeSchema = z.strictObject({
 });
 
 export const upgradesFileSchema = z.strictObject({
-  lineMk: z.array(lineMkSchema),
   island: z.array(islandUpgradeSchema),
 });
 
-/** A row of the shelf (02 5): a Grip rung, a Line Mk or an island upgrade. */
+/** A row of the shelf (02 5): a Grip rung or an island upgrade (the Line Mks are research, D194). */
 export interface UpgradeDef {
   id: string;
-  kind: "grip" | "mk" | "island";
+  kind: "grip" | "island";
   cost: number;
-  /** Line-scoped for Mk rows. */
   effects: Effect[];
   pocket: boolean;
-  /** Mk rows: the line, and how many of it must be owned. */
-  line?: string;
-  needOwned?: number;
   /** Shown and buyable only once this one is bought (02 5.1; D152). */
   after?: string;
+}
+
+/** A Workshop item's one effect: no `per`, no `when`, and a level adds it once more. */
+const researchEffectSchema = effectSchema.refine(
+  (effect) =>
+    effect.per === undefined &&
+    effect.when === undefined &&
+    (effect.op === "add" || effect.op === "inc" || effect.op === "more"),
+  { message: "a Workshop effect is add, inc or more, with no `per` and no `when`" },
+);
+
+const researchItemSchema = z.strictObject({
+  id,
+  levels: z.int().min(1).max(25),
+  effect: researchEffectSchema,
+});
+
+/** The Workshop (game-design 5.12; D185, D194): tiers of items, and one Line Mk per line. */
+export const researchFileSchema = z.strictObject({
+  /** Seconds after the run's clock starts. */
+  opensAfterSeconds: z.number().finite().nonnegative(),
+  /** Level n (0 first) of an item in tier k costs base × tierRatio^(k−1) × growth^n. */
+  price: z.strictObject({ base: amount, tierRatio: factor, growth: factor }),
+  tiers: z.array(z.strictObject({ era: tier, items: z.array(researchItemSchema).min(1).max(5) })),
+  lineMk: z.strictObject({
+    pocket: z.boolean().default(false),
+    effect: researchEffectSchema,
+    levels: z
+      .array(z.strictObject({ costFactor: factor, needOwned: z.int().min(1) }))
+      .min(1)
+      .max(5),
+  }),
+});
+
+/** A Workshop item with its prices derived (`deriveResearch`). */
+export interface ResearchDef {
+  id: string;
+  /** A tier item, or a line's Mk. */
+  kind: "tier" | "mk";
+  /** Tier 1, 2, ...; 0 for a Line Mk. */
+  tier: number;
+  /** It opens with this era (a Line Mk: its line's). */
+  era: Tier;
+  levels: number;
+  /** One level's effect (a Line Mk's is scoped to its line). */
+  effect: Effect;
+  /** Tier items: level n costs base × growth^n. */
+  base: number;
+  growth: number;
+  /** Line Mks: each level's price and the units of the line it needs. */
+  costs: number[];
+  needOwned: number[];
+  line?: string;
+  pocket: boolean;
 }
 
 const multiplier = z.number().finite().min(1);
@@ -356,6 +396,11 @@ export const pacingSchema = z.strictObject({
       seeds: z.array(z.int()).min(1),
       /** The scenarios' seeds, when they differ from the archetypes' (a scenario is one day). */
       scenarioSeeds: z.array(z.int()).min(1).optional(),
+      /**
+       * Each archetype plays only as long as a due assertion reads it (`days` stays the cap):
+       * `pnpm test`'s quick profile (D236).
+       */
+      early: z.boolean().optional(),
     }),
   ),
   archetypes: z.record(z.string(), archetypeSchema),
@@ -384,8 +429,11 @@ export interface Content {
   targets: TargetDef[];
   /** In tier order; Twig costs nothing. */
   eras: EraDef[];
-  /** The shelf: Grip rungs after Rock, then Mk II/III per line, then the island upgrades. */
+  /** The shelf: Grip rungs after Rock, then the island upgrades. */
   upgrades: UpgradeDef[];
+  /** The Workshop: tier items in tier order, then one Line Mk per line in rung order. */
+  research: ResearchDef[];
+  workshop: { opensAfterSeconds: number };
   milestones: Milestones;
   flotsam: Flotsam;
   islandClock: IslandClock;
@@ -404,6 +452,7 @@ export const DATA_FILES = [
   "targets.json5",
   "eras.json5",
   "upgrades.json5",
+  "research.json5",
   "milestones.json5",
   "flotsam.json5",
   "island.json5",
@@ -420,6 +469,7 @@ export type EntityKind =
   | "base_tier"
   | "target"
   | "upgrade"
+  | "research"
   | "flotsam";
 
 /** The named entities: their file, where `Content` keeps them and their locale namespace. */

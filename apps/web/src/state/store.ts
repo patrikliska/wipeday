@@ -464,6 +464,11 @@ export const useWorld = create<Store>((set, get) => {
     setHidden(next) {
       hidden = next;
       if (next) {
+        // Leaving: the Night Shift starts now, not at the last ping up to 5 minutes ago (owner,
+        // R2 Feel S6). Not over the welcome card, whose Collect restarts it instead.
+        const state = get();
+        if (state.phase === "playing" && !state.welcome && nowSecond() > lastCommandAt)
+          state.send({ type: "ping" });
         set({ queue: closeDue(get().queue, wall.nowMs(), true) });
         void flush();
         return;

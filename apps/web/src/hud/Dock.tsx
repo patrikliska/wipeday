@@ -1,18 +1,21 @@
+import { useAdvisor } from "../state/advisor";
 import { useColumn } from "../state/layout";
 import { useWorld } from "../state/store";
 import { type Panel, useUi } from "../state/ui";
 import { t } from "../state/world";
 import { Icon } from "./Icon";
+import { researchTab, workshopOpenItems, workshopShown } from "./rows";
 import { Ticker } from "./Ticker";
 
 /**
  * The dock (D187, D199; 12-feel.md 4): one bottom bar on every device, centred on desktop with
  * larger icons. Island from 0:00; each destination joins when it unlocks, and only once its phase
- * has shipped (D140): in R2 Feel S4 that is Crew, at the first hand. A badge counts new things
- * (Crew: hands hired since the Crew sheet last showed this run). Island closes any sheet. On
- * desktop the news ticker runs under it.
+ * has shipped (D140): the Workshop two minutes into the run (it opens the shop on its tab), Crew
+ * at the first hand. A badge counts new things (the Workshop: items opened since its tab last
+ * showed; Crew: hands hired since the Crew sheet last showed this run). Island closes any sheet.
+ * On desktop the news ticker runs under it.
  */
-type Place = "island" | Panel;
+type Place = "island" | "workshop" | Panel;
 
 export function Dock() {
   const column = useColumn();
@@ -25,15 +28,39 @@ export function Dock() {
   const seen = useUi((state) => state.crewSeen);
   const panel = useUi((state) => state.panel);
   const openPanel = useUi((state) => state.openPanel);
+  const tab = useUi((state) => state.tab);
+  const expanded = useUi((state) => state.expanded);
+  const workshopSeen = useUi((state) => state.workshopSeen);
+  const view = useAdvisor((state) => state.view);
   const playing = useWorld((state) => state.phase === "playing");
   if (!playing) return null;
 
-  const current: Place = panel === "crew" ? "crew" : "island";
+  const workshop = view !== null && workshopShown(view);
+  const openItems = workshop && view ? workshopOpenItems(researchTab(view, 1).groups) : 0;
+  const newItems = Math.max(0, openItems - (workshopSeen.run === run ? workshopSeen.items : 0));
+  const onWorkshop = workshop && tab === "research" && (column || expanded);
+  const current: Place = panel === "crew" ? "crew" : onWorkshop ? "workshop" : "island";
   const newHands = Math.max(0, hands - (seen.run === run ? seen.hands : 0));
   const items: Array<{ id: Place; icon: string; badge: number }> = [
     { id: "island", icon: "island", badge: 0 },
+    ...(workshop ? [{ id: "workshop" as const, icon: "workshop", badge: newItems }] : []),
     ...(crew ? [{ id: "crew" as const, icon: "crew", badge: newHands }] : []),
   ];
+  const go = (place: Place) => {
+    const ui = useUi.getState();
+    if (place === "workshop") {
+      ui.openWorkshop(column);
+      return;
+    }
+    if (place === "island") {
+      // Back to the island: the panel closes, the shop returns to its lines.
+      if (panel !== null) openPanel(null);
+      else if (expanded) ui.expand(false);
+      if (tab === "research") ui.setTab("lines");
+      return;
+    }
+    openPanel(place);
+  };
 
   return (
     <div className="dock-wrap">
@@ -51,7 +78,7 @@ export function Dock() {
             }
             onClick={() => {
               if (current === item.id) return;
-              openPanel(item.id === "island" ? null : item.id);
+              go(item.id);
             }}
           >
             <Icon kind="nav" id={item.icon} size={column ? 30 : 26} />

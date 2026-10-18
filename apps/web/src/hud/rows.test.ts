@@ -13,7 +13,9 @@ import {
   milestoneSpan,
   pickPlace,
   type Row,
+  researchTab,
   upgradesTab,
+  workshopShown,
 } from "./rows";
 
 const T0 = 1_700_000_000;
@@ -176,14 +178,81 @@ describe("cards", () => {
     expect(linesTab(view, 1).some((row) => row.key === "line:reactor")).toBe(false);
   });
 
-  it("shows a Line Mk short of units with its real reason and how far along it is", () => {
-    const view = viewOf(STONE);
-    const mk = upgradesTab(view).rows.find((row) => row.key === "upgrade:furnace_mk2");
+  it("shows a Line Mk short of units in the Workshop, with its real reason and how far along", () => {
+    const view = viewOf({ ...STONE, startedAt: T0 - 600 });
+    const mk = researchTab(view, 1).rows.find((row) => row.key === "research:furnace_mk");
     expect(mk?.locked).toBe(true);
+    expect(mk?.name).toBe("Bellows");
+    expect(mk?.mk).toBe("Mk II");
     expect(mk?.note).toBe("Needs 25 Furnaces (12 now)");
     expect(mk?.progress).toBeCloseTo(12 / 25);
     expect(mk?.button.enabled).toBe(false);
-    expect(mk?.art).toBe("line/furnace_1");
+    // The shelf keeps Grip, the eras and the island upgrades (D194).
+    expect(upgradesTab(view).rows.some((row) => row.key.endsWith("_mk2"))).toBe(false);
+  });
+
+  it("lays the Workshop out by era in a fixed order, the next era locked with its reason", () => {
+    const view = viewOf({
+      era: "wood",
+      supplies: 5e4,
+      startedAt: T0 - 600,
+      lines: { beachcomber: 30 },
+    });
+    const { groups } = researchTab(view, 1);
+    expect(groups.map((group) => [group.era, group.locked ?? null])).toEqual([
+      ["twig", null],
+      ["wood", null],
+      ["stone", "Opens in the Stone era"],
+    ]);
+    const twig = groups[0]?.rows ?? [];
+    expect(twig.map((row) => row.key).slice(0, 5)).toEqual([
+      "research:sharper_hooks",
+      "research:dry_kindling",
+      "research:raised_beds",
+      "research:spare_wicks",
+      "research:calloused_thumbs",
+    ]);
+    const hooks = twig[0];
+    expect(hooks?.sub).toBe("+5% Beachcomber");
+    expect(hooks?.level).toEqual({ n: 0, of: 25 });
+    expect(hooks?.gain).toMatch(/^\+/);
+    expect(twig.find((row) => row.key === "research:spare_wicks")?.gain).toBe("2h → 2h 20m");
+    expect(twig.find((row) => row.key === "research:camp_routine")?.sub).toBe("Twig lines +4%");
+    expect(twig.find((row) => row.key === "research:tally_sticks")?.sub).toBe("Every line +1%");
+    // Buying levels changes prices, never places.
+    const after = viewOf({
+      era: "wood",
+      supplies: 5e4,
+      startedAt: T0 - 600,
+      lines: { beachcomber: 30 },
+      research: { sharper_hooks: 25, raised_beds: 3 },
+    });
+    const again = researchTab(after, 1);
+    expect(again.rows.map((row) => row.key)).toEqual(
+      researchTab(view, 1).rows.map((row) => row.key),
+    );
+    expect(again.rows[0]?.button).toMatchObject({ top: "Done", enabled: false });
+    expect(
+      pickPlace({
+        ...after,
+        pick: {
+          kind: "purchase",
+          rule: "best",
+          choice: {
+            command: { type: "buy_research", item: "dry_kindling", count: 1 },
+            cost: 40,
+            gain: 1,
+            score: 1,
+            affordable: true,
+          },
+        },
+      }),
+    ).toEqual({ tab: "research", key: "research:dry_kindling" });
+  });
+
+  it("keeps the Workshop shut for the first two minutes", () => {
+    expect(workshopShown(viewOf({ startedAt: T0 - 60 }))).toBe(false);
+    expect(workshopShown(viewOf({ startedAt: T0 - 120 }))).toBe(true);
   });
 
   it("draws a line at the stage the island shows", () => {

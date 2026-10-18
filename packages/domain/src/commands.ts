@@ -9,8 +9,8 @@
  * window restarts (`activeAt`).
  *
  * R0's commands: `taps` and `ping` (the slim path, D134), `buy_line` and `hire_hand`. R1 adds
- * the shelf (`buy_upgrade`), eras (`buy_era`), flotsam and Collect; R4 the nuke and the Blast
- * Map.
+ * the shelf (`buy_upgrade`), eras (`buy_era`), flotsam and Collect; R2 the Workshop
+ * (`buy_research`); R4 the nuke and the Blast Map.
  */
 import type { Content } from "@wipe-day/content/schema";
 import { TIERS } from "@wipe-day/content/tiers";
@@ -18,6 +18,7 @@ import type { Amount } from "./amount";
 import type { GameEvent } from "./events";
 import { arrivalKind, claimUntil, crateValue, flotsamAt, gapBefore } from "./flotsam";
 import { costFactor, costOf, eraOpen, handPriceOf, lineOf, maxAffordable } from "./lines";
+import { levelOf, levelsCost, maxResearch, researchGate, researchOf } from "./research";
 import { cyclePayout, settle } from "./settle";
 import {
   bought,
@@ -43,8 +44,10 @@ export type Command =
   | { type: "ping" }
   | { type: "buy_line"; line: string; count: BuyCount }
   | { type: "hire_hand"; line: string }
-  /** A shelf row: a Grip rung, a Line Mk or an island upgrade. */
+  /** A shelf row: a Grip rung or an island upgrade. */
   | { type: "buy_upgrade"; upgrade: string }
+  /** The next level of a Workshop item, or as many as the supplies buy ("max"). */
+  | { type: "buy_research"; item: string; count: 1 | "max" }
   /** The next era. */
   | { type: "buy_era"; era: string }
   /** Catch flotsam arrival `k` of run `run` while it floats. */
@@ -91,7 +94,13 @@ export type CommandResult =
 
 type Step = { ok: true; state: BaseState; events: GameEvent[] } | { ok: false; refusal: Refusal };
 
-const PURCHASES: readonly CommandType[] = ["buy_line", "hire_hand", "buy_upgrade", "buy_era"];
+const PURCHASES: readonly CommandType[] = [
+  "buy_line",
+  "hire_hand",
+  "buy_upgrade",
+  "buy_research",
+  "buy_era",
+];
 const isPurchase = (command: Command): boolean => PURCHASES.includes(command.type);
 
 /**
@@ -146,6 +155,8 @@ function step(content: Content, state: BaseState, command: Command, now: number)
       return hireHand(content, state, command.line, now);
     case "buy_upgrade":
       return buyUpgrade(content, state, command.upgrade);
+    case "buy_research":
+      return buyResearch(content, state, command.item, command.count, now);
     case "buy_era":
       return buyEra(content, state, command.era, now);
     case "claim_flotsam":
@@ -258,6 +269,42 @@ function buyUpgrade(content: Content, state: BaseState, id: string): Step {
       },
     },
     events: [{ type: "upgraded", upgrade: id, cost }],
+  };
+}
+
+function buyResearch(
+  content: Content,
+  state: BaseState,
+  id: string,
+  count: 1 | "max",
+  now: number,
+): Step {
+  const def = researchOf(content, id);
+  if (!def) return { ok: false, refusal: { reason: "unknown", what: id } };
+  const n = levelOf(state, id);
+  if (n >= def.levels) return { ok: false, refusal: { reason: "max_owned", have: n } };
+  const gate = researchGate(content, state, def, now);
+  if (gate) return { ok: false, refusal: { reason: "locked", gate } };
+  const supplies = state.run.supplies;
+  const owned = def.line === undefined ? 0 : (state.run.lines[def.line] ?? 0);
+  const k = count === "max" ? maxResearch(def, n, supplies, owned) : 1;
+  const cost = levelsCost(def, n, Math.max(1, k));
+  if (k === 0 || cost > supplies)
+    return { ok: false, refusal: { reason: "supplies", need: cost, have: supplies } };
+  const stats = state.meta.stats;
+  return {
+    ok: true,
+    state: {
+      ...state,
+      run: {
+        ...state.run,
+        supplies: Math.max(0, supplies - cost),
+        // A new object: the effects cache keys on it (effects.ts).
+        research: { ...state.run.research, [id]: n + k },
+      },
+      meta: { ...state.meta, stats: { ...stats, research: stats.research + k } },
+    },
+    events: [{ type: "researched", item: id, level: n + k, count: k, cost }],
   };
 }
 

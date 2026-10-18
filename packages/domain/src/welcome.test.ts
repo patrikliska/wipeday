@@ -35,9 +35,10 @@ describe("welcome back", () => {
 
   it("counts the gain and a window not used up", () => {
     const state = manned();
-    const card = away(state, 3 * 3600);
-    expect(card).toMatchObject({ awaySeconds: 3 * 3600, hands: 1, stoppedAt: null });
-    expect(card?.nightShift).toMatchObject({ worked: 3 * 3600, full: false });
+    // 90 minutes of a 2 h window (D183).
+    const card = away(state, 90 * 60);
+    expect(card).toMatchObject({ awaySeconds: 90 * 60, hands: 1, stoppedAt: null });
+    expect(card?.nightShift).toMatchObject({ worked: 90 * 60, window: 2 * 3600, full: false });
     expect(card?.gain).toBeGreaterThan(0);
   });
 

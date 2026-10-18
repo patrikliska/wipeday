@@ -6,7 +6,7 @@ should think, and what "done" means**. It was rewritten in R0 from the approved 
 (`docs/redesign/11-roadmap.md`, which keeps the reasons); the W-phase roadmap and its results are
 in `docs/archive/roadmap-w.md`.
 
-## Where we are (2026-10-18, R2 Feel S5 done)
+## Where we are (2026-10-18, R2 Feel S6 done)
 
 - **The live game** is W8 on frozen `main` at https://wipeday.patrikliska.dev: season 1 (started
   2026-10-07) sits untouched and nobody plays it now (owner decision 7). It ends quietly at the
@@ -43,8 +43,40 @@ in `docs/archive/roadmap-w.md`.
 - **R2 Feel S5, sound and juice, is done** (2026-10-18; results below): `sounds.json5` with
   Kenney's CC0 packs and the procedural voices as fallback, every cue through the bus, sound from
   the first tap (D224); the juice checklist on everything so far (D225); the Credits sheet (D226).
-- **Next: R2 Feel S6, the Workshop and the 2 h Night Shift** (balance; plan mode). The owner's
-  playtest after S4 is due, now with sound. Retro Diffusion has about 4.39 USD left.
+- **R2 Feel S6, the Workshop and the 2 h Night Shift, is done** (2026-10-18; results below): 20
+  Workshop items and the 14 Line Mks (D227-D230), the Night Shift at 2 h starting when the page
+  hides (D231, D232), base output ×0.28 so the Workshop earns the run back (D233), `pnpm sim
+  window` (D234), the Workshop tab and dock place (D235).
+- **Next: R2 Feel S7, the active layer** (Frenzy, gulls, badges; balance and UI; plan mode). The
+  owner's playtest after S4 is due, now with sound and the Workshop. Retro Diffusion has about
+  4.39 USD left.
+
+### R2 Feel S6 results: the Workshop and the 2 h Night Shift
+- **The Workshop** (D227-D230): `research.json5`, tiers 1-4 (20 items, one effect each, only
+  stats the crown scores in closed form) and one `{line}_mk` per line (the shelf's Mk rows moved
+  in, stored ones migrate); `buy_research {item, count: 1 | "max"}`; open two minutes after the
+  run's clock starts. New content checks: every effect scorable, the tree under 1e18, cost cuts
+  stop at ×0.6, the tap's `c ≤ 0.6` (implemented for the first time), the Workshop's hours.
+- **The Night Shift** (D231, D232): 2 h, up to 24 h; Spare Wicks +20 min × 6. The window starts
+  when the page hides. `hasOnlineEffects` now counts the away stat (a latent settle bug).
+- **Balance** (D233, D236; `pnpm sim check`, test profile, 4.2-4.6 s): base output 1.5 → 0.42, the
+  away items +5% a level. **N4** first hand 73-95 s; **N5**, **N6** 25 s at most with nothing
+  affordable; **N7** 100% of the casual's day-1 check-ins; **N8** 100% tap-driven in minute 0-1,
+  15.5% direct from minute 10; **N9** 2.32 / 2.35 / 2.37 at days 14 / 30 / 60 (R1's 1.5-3 band;
+  S7 moves it to 4-6); **N23** run 1 ends at 5.0e10-2.6e11, the largest number 6.9e22 (shorter
+  lives in the quick profile, D236); **N3**
+  (R2, warn row) the casual nukes at day 1 21:00. Beats: Timber 0:52, Mara 1:13, the Workshop
+  2:00, the crate 3:00, Sorting Tables 7:03, Stone 8:22-9:03, Sheet Metal 42:29-47:49, the nuke
+  43:14-48:19 (41:49-48:19 over 12 seeds).
+- **What 2 h costs** (`pnpm sim window`, D234): against a 12 h window the idler and the casual
+  make about half as much on day 1; first nukes keep their times (casual day 1 21:00, idler day 2
+  21:00). Without the Workshop, the 2 h window would have moved the casual's first nuke to day 2.
+- **The Workshop tab** (D235): tiles by era, ×1 or Max, the dock's Workshop place with a badge.
+- **Shots:** 14 new `s6_*` (the column's and the drawer's tab at day and night, the moment it
+  opens with its badge, the hint, the Stone list's end in rain, 999Dc numbers, a level mid-flash on
+  both, three levels bought with the tiles in place, the welcome card at 2 h and with 4 h left);
+  the presets now carry Workshop levels, so the S4-S5 shots show the third tab and the dock's
+  place. Two review rounds in `docs/ui-review.md`.
 
 ### R2 Feel S5 results: sound and juice
 - **Sound** (D224): one map, `packages/content/data/sounds.json5`: every event on the bus to a cue
@@ -538,7 +570,7 @@ before S5; picks from the contact sheets in S5 and S6; names in each report; pla
 and S7.
 
 **Shots:** `08-screens.md` 8.3's R2 Feel group: `desktop_hero`, `desktop_frenzy`,
-`desktop_research`, `desktop_sheet_crew`, `phone_hero`, `phone_drawer_cards`, `phone_research`,
+`desktop_research` (S6), `desktop_sheet_crew`, `phone_hero`, `phone_drawer_cards`, `phone_research` (S6),
 `phone_dock_badges`, `welcome_back_lamp`, `achievement_toast`, `gull_elite`, `ticker`, at day,
 dusk, night and rain.
 

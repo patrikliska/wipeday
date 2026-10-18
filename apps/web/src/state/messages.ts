@@ -19,6 +19,8 @@ function gateMessage(gate: Gate): string {
       return t("refusal.locked_previous", { name: upgradeName(gate.value) });
     case "wipe_day":
       return t("refusal.locked_wipe_day", { count: gate.value });
+    case "opens":
+      return t("refusal.locked_opens");
   }
 }
 
