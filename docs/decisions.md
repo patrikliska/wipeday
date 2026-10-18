@@ -2301,3 +2301,10 @@ every background layer: its props are drawn smaller than the front row's (D209's
 not). After replacing art with the same file name, a running dev server can keep showing the old
 image: hard-refresh the page or restart `pnpm web`. `apps/web/src/scene/landscape.ts`.
 
+### D211. The far city is the smallest, palest layer, standing on a hazy plain (owner, 2026-10-18)
+The owner saw an empty band of sky between the far city and the ground, and the city reading as
+the nearest layer. It was the largest thing behind the camp (downscaled only by 2). It is now
+downscaled by 4 (about 20-24 art px tall), seated on the horizon, and a three-row strip of hazy
+desert lies in front of its foot down to the ground's far edge, so no sky shows under it and the
+size order is far city < water towers and poles < the camp. `apps/web/src/scene/landscape.ts`.
+

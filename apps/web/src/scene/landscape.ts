@@ -10,7 +10,7 @@
  * shows no repeat. The haze is baked into each layer once (a wash of the haze colour over its
  * own pixels); night, rain and fog reach it through the scene's ambient tint, like every sprite.
  */
-import { Container, Sprite, Texture } from "pixi.js";
+import { Container, Graphics, Sprite, Texture } from "pixi.js";
 import { paintGround } from "./ground";
 import { GROUND_BACK, ROWS } from "./island";
 import type { Palette } from "./palette";
@@ -20,13 +20,17 @@ import { ART, art } from "./pixel";
 // The owner prefers an open wasteland with only a few buildings (D210): the dense city is a faint
 // far silhouette; the mid and near layers are sparse (a lone house, a water tower, poles, wrecks).
 const LAYERS = [
-  { name: "far", variants: 2, bottom: GROUND_BACK - 4, haze: 0.84, drift: 1 },
+  { name: "far", variants: 2, bottom: GROUND_BACK - 1, haze: 0.86, drift: 1 },
   { name: "mid", variants: 2, bottom: GROUND_BACK + 1, haze: 0.42, drift: 2 },
   { name: "near", variants: 2, bottom: GROUND_BACK + 2, haze: 0.18, drift: 3 },
 ] as const;
 
 /** The dusty air: what the far layers fade toward (the comparison page's pale orange). */
 const HAZE = "#efc39a";
+/** The far plain under the city: its rows and its hazy sand (the ground's colour in the haze). */
+const PLAIN_ROWS = 3;
+const PLAIN = 0xd9ab84;
+const PLAIN_LIGHT = 0xe6bf98;
 /** Rows below the ground's lip over which the earth darkens to bedrock. */
 const DARKEN = 70;
 /** Layers overlap their neighbours by this many art px, so no gap shows at a seam. */
@@ -108,6 +112,15 @@ export class Landscape {
       }
       this.back.addChild(container);
       this.layers.push({ container, drift: layer.drift });
+      // The far plain: a strip of hazy desert in front of the city's foot, down to the ground's
+      // far edge, so the city stands on land in the distance with no sky showing under it.
+      if (layer.name === "far") {
+        const plain = new Graphics();
+        const top = GROUND_BACK - PLAIN_ROWS;
+        plain.rect(left * ART, top * ART, (right - left) * ART, (PLAIN_ROWS + 2) * ART).fill(PLAIN);
+        plain.rect(left * ART, top * ART, (right - left) * ART, ART).fill(PLAIN_LIGHT);
+        this.back.addChild(plain);
+      }
     }
 
     // The ground: one painted piece from its far edge down past the bottom of every screen.

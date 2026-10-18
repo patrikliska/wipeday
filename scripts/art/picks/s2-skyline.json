@@ -1,5 +1,5 @@
 {
-  "//": "R2 Feel S2, the wasteland skyline (D209, D210): far 0 and 2 (the dense city, very faint), downscaled by 2; mid = the sparse house and water tower (desert floor cropped) and a lone water tower, by 3; near = sparse poles, fence and wrecks, by 4 (scripts/art/downscale.mjs, alpha rebuilt from each original)",
+  "//": "R2 Feel S2, the wasteland skyline (D209, D210): far 0 and 2 (the dense city, very faint), downscaled by 4 (D211); mid = the sparse house and water tower (desert floor cropped) and a lone water tower, by 3; near = sparse poles, fence and wrecks, by 4 (scripts/art/downscale.mjs, alpha rebuilt from each original)",
   "skyline/far_0": {
     "from": "preview/art/skyline-small/far_0_a.png",
     "sheet": true
