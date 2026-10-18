@@ -2272,3 +2272,21 @@ tiles are gone from the art folder. The zoom cap rises from 5 to 7 CSS px per ar
 large screen shows the island larger instead of more dirt and sky. New shots
 `desktop_tall_rain` (1700×1340) and `desktop_2k` (2560×1440). `docs/ui-review.md`.
 
+### D209. The wasteland: one ground, two rows, a ruined skyline, airdrops instead of the sea (owner, 2026-10-18)
+The terraces (D203) put half the screen into ground. The owner preferred the comparison page's
+chunky look A (a hazy ruined skyline over one strip of ground, no water) and noted that no sea is
+less work. Asked, the owner chose one ground with two rows, airdrops now, and generated skyline
+layers. The scene is now one flat stretch: the front row on the ground's edge (the target, the
+beachcomber, campfire and garden, the house), a back row nine art px behind (the kiln, then the
+dock, generator, radio mast, ship breaker and reactor); the ground is about a fifth of the screen
+(the desktop ground line at 80-84% of the height). The skyline is three layers of
+`rd_plus__environment` art (far, mid, near; 0.06 a take, cleaner and cheaper than the pro
+style here), downscaled by 2 and 3 with Retro Diffusion's free k-centroid tool (alpha rebuilt
+from the originals, since the tool flattens onto white), laid in a seeded order of variants and
+mirrors so a 2k screen shows no repeat (D208), each with the dusty haze baked in by distance; the
+day sky is warmed to match. Flotsam keeps every rule and odd but comes down from the sky under a
+striped parachute, sinks slowly over the left of the scene during its float, and the wind takes
+it if missed; its strings say "drops in" and "the wind took it". Still to re-theme: the dock and
+the ship breaker (sea lines) and Armored's Wreck, in their art and in the names pass; the crate's
+icon still shows waves. `apps/web/src/scene/island.ts`, `landscape.ts`, `flotsam.ts`.
+

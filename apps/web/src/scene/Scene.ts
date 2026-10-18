@@ -66,8 +66,6 @@ const EXTEND = 800;
 const VIEW_W = (VIEW.right - VIEW.left) * ART;
 const VIEW_H = (VIEW.bottom - VIEW.top) * ART;
 const FOCUS_X = ((VIEW.left + VIEW.right) / 2) * ART;
-/** Art px of sea a wide screen keeps left of the island (flotsam floats in it). */
-const SEA_STRIP = 30;
 /** The most CSS px per art pixel: big screens show more sky and sea, not bigger pixels. */
 const MAX_ZOOM = 7;
 const TARGET = { x: stageSpot(TARGET_SPOT).x, y: GROUND + stageSpot(TARGET_SPOT).y };
@@ -414,14 +412,11 @@ export class Scene {
     const fit = Math.min((freeW * res * ART) / VIEW_W, (vh * res * ART) / VIEW_H);
     const zoom = clamp(Math.floor(fit), 1, Math.round(MAX_ZOOM * res));
     this.scale = zoom / (res * ART);
-    const visibleW = freeW / this.scale;
     const visibleH = vh / this.scale;
-    // Centred on the island; on wide screens the view keeps only a strip of sea on the left
-    // (where flotsam drifts in) and gives the rest of the width to the hill on the right.
-    const left = Math.max(FOCUS_X - visibleW / 2, (VIEW.left - SEA_STRIP) * ART);
-    this.centerX = left + visibleW / 2;
+    // Centred on the island; the skyline and the ground run on past every screen's edges.
+    this.centerX = FOCUS_X;
     const aspect = freeW / vh;
-    const groundFraction = aspect < 1 ? PHONE_GROUND : lerp(0.68, 0.74, clamp(aspect - 1, 0, 1));
+    const groundFraction = aspect < 1 ? PHONE_GROUND : lerp(0.8, 0.84, clamp(aspect - 1, 0, 1));
     this.top = clamp(GROUND - groundFraction * visibleH, -EXTEND + 40, H + EXTEND - visibleH - 40);
     this.world.scale.set(this.scale);
     this.ambient.clear().rect(0, 0, vw, vh).fill(0xffffff);

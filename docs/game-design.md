@@ -204,9 +204,11 @@ stays crisp CSS on the Feel Board's tokens: salvaged plywood and steel panels, B
 Display and Barlow, signal orange primary, no pixel font. Desktop 1440 is designed first, 390 px
 right after. The pixel scene came first after all, at the owner's request (D202).
 
-**The island and the house** (D203, D206). Saltmarsh is a terraced side view: the beach with the
-target in the middle, the Twig lines either side and the sea lines in the shallows; the yard
-above with the kiln and the house; the hill on top with the Sheet Metal and Armored structures.
+**The wasteland and the house** (D206, D209; D203's terraces retired). Saltmarsh is one flat
+stretch of wasteland under a ruined city skyline (three hazy parallax layers), no sea: the front
+row on the ground's edge holds the target, the Twig lines and the house; a back row a few pixels
+behind holds the kiln and the Sheet Metal and Armored structures. The ground takes about a fifth
+of the screen. Flotsam comes down as airdrops under a parachute instead of drifting in.
 The crafting lines (loom, workbench, furnace, tannery, press) work inside the house: tapping it
 opens its room, a cut-away interior at the island's zoom over the dimmed island, with those lines
 and their hands. The room grows with the house (tent, cabin, stone house, shed, bunker); the

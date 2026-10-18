@@ -42,15 +42,16 @@ const NIGHT: Omit<Keyframe, "at"> = {
   stars: 1,
 };
 
+// The wasteland's day (D209): a dusty blue overhead fading through tan to the skyline's peach.
 const DAY: Omit<Keyframe, "at"> = {
-  skyTop: 0x4c93d6,
-  skyMid: 0x8dc3ea,
-  skyHorizon: 0xd6ebf5,
+  skyTop: 0x7fa6bf,
+  skyMid: 0xc9bca6,
+  skyHorizon: 0xf0c9a0,
   ambient: 0xffffff,
-  haze: 0xa9cde3,
-  sun: 0xfff3d0,
-  sunGlow: 0xffe2a0,
-  cloud: 0xffffff,
+  haze: 0xe9c6a2,
+  sun: 0xfff1d6,
+  sunGlow: 0xffd09a,
+  cloud: 0xf7e6d2,
   seaDeep: 0x1e5c86,
   seaShallow: 0x5faccf,
   light: 1,
@@ -90,7 +91,7 @@ const KEYFRAMES: Keyframe[] = [
     stars: 0.1,
   },
   { at: 0.4, ...DAY },
-  { at: 0.6, ...DAY, skyTop: 0x4a8fd0, skyMid: 0x8cbfe8, skyHorizon: 0xd9e9f2 },
+  { at: 0.6, ...DAY, skyTop: 0x7aa0bb, skyMid: 0xccb9a0, skyHorizon: 0xf2c49a },
   {
     at: 0.74,
     skyTop: 0x3a4f8a,

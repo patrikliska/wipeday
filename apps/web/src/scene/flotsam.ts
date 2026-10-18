@@ -1,7 +1,8 @@
 /**
- * Flotsam on the water (docs/redesign/02-the-run.md 8; 08-screens.md 1.3): the arrival afloat
- * drifts in from the open sea on the left, bobs off the beach with a ring draining its float,
- * then sinks. It is drawn in screen space at a fixed size above the night tint, so it glows in
+ * Flotsam as an airdrop (docs/redesign/02-the-run.md 8; 08-screens.md 1.3; D209): the wasteland
+ * has no sea, so the arrival comes down from the sky under a parachute, falling fast into view,
+ * then sinking slowly over the island's left side while a ring drains its float, and drifts off
+ * if nobody catches it. It is drawn in screen space at a fixed size above the night tint, so it glows in
  * the dark and in fog, and it is caught through a 64 px button kept over it (D48), like the
  * target. What is afloat is the domain's `afloat()` of the base: the schedule is the state's,
  * never the page's, so a reload or a second tab shows the same crate.
@@ -18,11 +19,13 @@ import { FLOTSAM_GLOW, FLOTSAM_TINT } from "./palette";
 import { glowTexture } from "./textures";
 import { clamp, easeOutCubic, lerp, reducedMotion } from "./util";
 
-/** Where it comes to rest: just off the beach, a little toward the viewer (world units). */
-export const REST = { x: 540, y: 576 };
-/** Seconds it takes to drift in from the screen's left edge. */
+/** Where it hangs at its float's end: over the left of the island, above the rows (world units). */
+export const REST = { x: 128 * 5, y: 66 * 5 };
+/** Where its slow descent starts once it has dropped into view (world units, above REST). */
+const DROP_TOP = 34 * 5;
+/** Seconds it takes to fall from above the screen to the start of its slow descent. */
 const DRIFT_S = 2.5;
-/** Seconds it takes to sink once its float is over (it can still be caught meanwhile). */
+/** Seconds it takes to drift off and fade once its float is over (it can still be caught). */
 const SINK_S = 1.2;
 /** On screen (CSS px): the button, the icon, the ring. */
 const HIT = 64;
@@ -32,6 +35,9 @@ const RING_R = 33;
 const HINT_CATCHES = 2;
 /** A caught one pops for this long (ms). */
 const POP_MS = 380;
+/** The parachute's chunky pixel (CSS px) and its colours (the palette's). */
+const CANOPY_PX = 4;
+const CANOPY = { light: 0xd6a26a, dark: 0xa35f4d, hem: 0x502f30, cord: 0x2f1822 };
 
 export interface FlotsamCamera {
   x: number;
@@ -51,6 +57,8 @@ export class Flotsam {
   private readonly halo = new Sprite(glowTexture());
   private readonly icon = new Sprite();
   private readonly ring = new Graphics();
+  /** The parachute over it, drawn in chunky screen pixels like the scene's art. */
+  private readonly canopy = new Graphics();
   private readonly ghost = new Sprite();
   /** The arrival on screen, and where it was drawn last (CSS px). */
   private shown: Afloat | null = null;
@@ -86,7 +94,7 @@ export class Flotsam {
     this.halo.blendMode = "add";
     this.icon.anchor.set(0.5);
     this.ghost.anchor.set(0.5);
-    this.overlay.addChild(this.halo, this.ring, this.icon, this.ghost);
+    this.overlay.addChild(this.halo, this.canopy, this.ring, this.icon, this.ghost);
     this.overlay.visible = false;
     this.ghost.visible = false;
 
@@ -229,11 +237,17 @@ export class Flotsam {
       const age = now - shown.at;
       if (age >= 0 && age < shown.float + SINK_S) {
         visible = true;
-        const drift = reduced ? 1 : easeOutCubic(age / DRIFT_S);
+        // It falls into view, then sinks slowly under its canopy until its float runs out,
+        // swaying; once it is over the wind takes it off to the right, fading.
+        const topY = camera.y + DROP_TOP * camera.scale;
+        const fall = reduced ? 1 : easeOutCubic(clamp(age / DRIFT_S, 0, 1));
+        const descend = clamp((age - DRIFT_S) / Math.max(1, shown.float - DRIFT_S), 0, 1);
         const sink = clamp((age - shown.float) / SINK_S, 0, 1);
-        const bob = reduced ? 0 : Math.sin(this.time * 2.1) * 3;
-        const x = Math.round(lerp(-ICON, restX, drift));
-        const y = Math.round(restY + bob + sink * 16);
+        const sway = reduced ? 0 : Math.sin(this.time * 1.3) * 6;
+        const x = Math.round(restX + sway + sink * 40);
+        const y = Math.round(
+          age < DRIFT_S ? lerp(-ICON * 2, topY, fall) : lerp(topY, restY, descend) - sink * 20,
+        );
         this.point = { x, y };
         const texture = flotsamTexture(shown.kind.id);
         this.icon.visible = texture !== null;
@@ -250,12 +264,14 @@ export class Flotsam {
         this.halo.height = ICON * 2.4 * pulse;
         this.halo.alpha = (0.25 + glow * 0.3) * (1 - sink);
         this.drawRing(x, y, sink > 0 ? 0 : 1 - clamp(age / shown.float, 0, 1), 1 - sink);
+        this.drawCanopy(x, y, 1 - sink, reduced);
         this.place(x, y, base);
       }
     }
     this.icon.visible &&= visible;
     this.halo.visible = visible;
     this.ring.visible = visible;
+    this.canopy.visible = visible;
     if (!visible) {
       this.button.hidden = true;
       this.hint.hidden = true;
@@ -263,6 +279,33 @@ export class Flotsam {
     }
     this.drawLeaving(nowMs, reduced);
     this.overlay.visible = visible || this.ghost.visible;
+  }
+
+  /**
+   * The parachute: a stepped dome of canvas stripes on chunky pixels (CANOPY_PX CSS px each),
+   * with its cords down to the drop, tilting a little with the sway.
+   */
+  private drawCanopy(x: number, y: number, alpha: number, reduced: boolean): void {
+    const g = this.canopy;
+    g.clear();
+    const px = CANOPY_PX;
+    const top = y - RING_R - 30;
+    const lean = reduced ? 0 : Math.round(Math.sin(this.time * 1.3) * 1.5);
+    // Half-widths of the dome's rows, top to bottom, in canopy pixels.
+    const rows = [3, 5, 6, 7, 7];
+    for (const [i, half] of rows.entries()) {
+      for (let c = -half; c < half; c++) {
+        const stripe = Math.floor((c + 7) / 2) % 2 === 0;
+        const colour = i === rows.length - 1 ? CANOPY.hem : stripe ? CANOPY.light : CANOPY.dark;
+        g.rect(x + (c + lean) * px, top + i * px, px, px).fill({ color: colour, alpha });
+      }
+    }
+    const hemY = top + rows.length * px;
+    for (const end of [-6.5, 0, 6.5]) {
+      g.moveTo(x + (end + lean) * px, hemY)
+        .lineTo(x, y - ICON / 2 + 4)
+        .stroke({ width: 2, color: CANOPY.cord, alpha: alpha * 0.9 });
+    }
   }
 
   /** The pie ring: a dark track and the time left in white, warm in its last 4 s. */
@@ -290,9 +333,11 @@ export class Flotsam {
       this.boxKey = key;
       this.button.style.left = `${box.x}px`;
       this.button.style.top = `${box.y}px`;
-      // Above it, over the sea and the sky, where it hides none of the island's lines.
-      this.hint.style.left = `${Math.max(16, box.x)}px`;
-      this.hint.style.top = `${box.y - 8}px`;
+      // Beside it in the sky (right of it, level with it), clear of its parachute and of
+      // every line below.
+      this.hint.style.left = `${box.x + box.width + 8}px`;
+      this.hint.style.top = `${box.y + box.height / 2}px`;
+      this.hint.style.transform = "translateY(-50%)";
     }
     const name = this.shown ? t(`flotsam.${this.shown.kind.id}.name`) : "";
     const label = t("sea.catch", { name });
@@ -324,6 +369,8 @@ export class Flotsam {
     this.ghost.width = size;
     this.ghost.height = size;
     this.ghost.alpha = 1 - p;
-    this.ghost.position.set(leaving.x, leaving.y + (leaving.kind === "sank" ? p * 18 : 0));
+    // A missed one drifts off up and to the right on the wind.
+    const off = leaving.kind === "sank" ? p : 0;
+    this.ghost.position.set(leaving.x + off * 30, leaving.y - off * 18);
   }
 }

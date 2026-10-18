@@ -1,18 +1,22 @@
 /**
- * The island's ground, painted once per piece (D208): a terrace, the beach and the earth below,
- * in the Scene Mock's own colours and layers, from seeded noise that never repeats. A tile
- * repeated across a 2k screen showed the same wave and the same pebbles every 176 px (the
- * owner's screenshots); painting each piece whole keeps the mock's look with no visible period.
+ * The wasteland's ground, painted once (D208, D209): one flat stretch seen from slightly above,
+ * from seeded noise that never repeats (a tile repeated across a 2k screen showed its period).
  *
- * Layers, from the crest down (sampled from the mock's ground tile): a sand edge, the pale sand
- * with specks and the odd grey pebble, its shadow rows, a reddish wet edge, a near-black lip, the
- * dark shadow under it, then dirt that darkens with depth, dithered (no hard bands), with
- * scattered pebbles and a few embedded stones.
+ * From the far edge down: the walkable surface (dusty ochre with streaks, specks and the odd
+ * stone, paler at its far edge where it meets the skyline), its sunlit front edge, a reddish
+ * rim, a near-black lip, the shadow under it, then dirt that darkens with depth, dithered (no
+ * hard bands), with scattered pebbles and a few embedded stones, in the Scene Mock's colours.
  */
 import { Texture } from "pixi.js";
 
 /** The mock tile's colours, top to bottom. */
 const C = {
+  far: "#d6a26a",
+  dust: "#ab7e5a",
+  streak: "#a35f4d",
+  speck: "#816252",
+  glint: "#d6a26a",
+  debris: "#502f30",
   edge: "#d6a26a",
   shine: "#f5cf81",
   sand: "#fddba4",
@@ -63,17 +67,14 @@ export interface GroundPiece {
   /** Art pixels across and down. */
   width: number;
   height: number;
-  /** Where the sand's crest averages (rows from the top) and how far it waves. */
-  crest: number;
-  wave: number;
+  /** Rows of walkable surface above the front edge (the far edge is row 0). */
+  surface: number;
   seed: number;
-  /** A cliff on the left end: the crest rounds down over the first few columns. */
-  cliff?: boolean;
-  /** Rows below the lip over which the dirt darkens to bedrock (0: it stays dirt). */
-  darken?: number;
+  /** Rows below the lip over which the dirt darkens to bedrock. */
+  darken: number;
 }
 
-/** One ground piece as a nearest-neighbour texture (1 texel = 1 art pixel). */
+/** The ground as a nearest-neighbour texture (1 texel = 1 art pixel). */
 export function paintGround(piece: GroundPiece): Texture {
   const { width: w, height: h, seed } = piece;
   const canvas = document.createElement("canvas");
@@ -103,36 +104,33 @@ export function paintGround(piece: GroundPiece): Texture {
   };
 
   for (let x = 0; x < w; x++) {
-    const round = piece.cliff ? Math.max(0, 5 - x) ** 2 / 3 : 0;
-    // The crest swells in long dunes with small ripples on them, like the mock's tile.
-    const dune = noise(x, seed, 46) * piece.wave + noise(x, seed + 5, 9) * 0.8;
-    const crest = Math.round(piece.crest + dune + round);
-    // The sand's lower edge waves on its own, so the sand thickens and thins (7-13 rows).
-    const sandRows = 7 + Math.round((noise(x, seed + 7, 18) + 1) * 3);
-    const sandEnd = crest + 1 + sandRows;
-    const lipAt = sandEnd + 3;
-    for (let y = crest; y < h; y++) {
+    // The front edge waves a pixel or two; the far edge is straight (the skyline sits on it).
+    const edge = piece.surface + Math.round(noise(x, seed, 30) * 1.4);
+    const lipAt = edge + 3;
+    for (let y = 0; y < h; y++) {
       const r = hash(x, y, seed);
       let colour: string;
-      if (y === crest) colour = r < 0.25 ? C.shine : C.edge;
-      else if (y < sandEnd) {
-        // Brighter near the top, specked throughout, warmer toward its lower edge.
-        const low = (y - crest) / sandRows;
+      if (y < edge) {
+        // The surface: paler toward the far edge, long streaks, specks and glints.
+        const far = 1 - y / edge;
+        const streak = noise(x * 0.25 + y * 9, seed + 2, 6) > 0.45;
         colour =
-          r < 0.05 + low * 0.1
-            ? C.sandSpeck
-            : r < 0.09 && low < 0.4
-              ? C.shine
-              : low > 0.8 && r < 0.35
-                ? C.sandShade
-                : C.sand;
-      } else if (y < sandEnd + 2) colour = C.sandShade;
-      else if (y < lipAt) colour = C.wet;
+          r < far * 0.55
+            ? C.far
+            : streak && r < 0.6
+              ? C.streak
+              : r < 0.07
+                ? C.speck
+                : r < 0.1
+                  ? C.glint
+                  : C.dust;
+      } else if (y === edge) colour = r < 0.3 ? C.shine : C.edge;
+      else if (y < lipAt) colour = r < 0.5 ? C.sandShade : C.wet;
       else if (y < lipAt + 2) colour = C.lip;
       else if (y < lipAt + 4) colour = r < 0.3 ? C.dirtSpeck : C.under;
       else {
         // Dirt, darkening with depth by dithering toward the deeper colours.
-        const depth = piece.darken ? (y - lipAt - 4) / piece.darken : 0;
+        const depth = (y - lipAt - 4) / piece.darken;
         const d = depth + (hash(x, y, seed + 3) - 0.5) * 0.35;
         colour =
           d > 1
@@ -153,13 +151,13 @@ export function paintGround(piece: GroundPiece): Texture {
       }
       set(x, y, colour);
     }
-    // The left cliff's dark edge.
-    if (piece.cliff && x === 0) for (let y = crest; y < h; y++) set(0, y, C.lip);
-    // A grey pebble in the sand, now and then.
-    if (hash(x, 1, seed + 11) < 0.035) {
-      const y = crest + 2 + Math.floor(hash(x, 2, seed) * (sandRows - 3));
-      set(x, y, C.pebble);
+    // Debris on the surface: a stone or a scrap of metal now and then, with its shadow.
+    if (hash(x, 1, seed + 11) < 0.03) {
+      const y = 2 + Math.floor(hash(x, 2, seed) * Math.max(1, edge - 4));
+      set(x, y, hash(x, 7, seed) < 0.5 ? C.pebble : C.stoneLight);
       set(x + 1, y, C.pebbleDark);
+      set(x, y + 1, C.debris);
+      set(x + 1, y + 1, C.debris);
     }
     // Pebbles and stones in the dirt, scattered (seeded, never in a grid).
     if (hash(x, 3, seed + 13) < 0.02) {

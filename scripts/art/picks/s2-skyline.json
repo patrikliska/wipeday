@@ -1,0 +1,31 @@
+{
+  "//": "R2 Feel S2, the wasteland skyline (D209): far 0 (its water band cropped) and 2, mid 0-2, near 0 and 2; far and mid downscaled by 2, near by 3 (scripts/art/downscale.mjs, k-centroid); alpha rebuilt from each original (the tool flattens onto white)",
+  "skyline/far_0": {
+    "from": "preview/art/skyline-small/far_0_a.png",
+    "sheet": true
+  },
+  "skyline/far_1": {
+    "from": "preview/art/skyline-small/far_1_a.png",
+    "sheet": true
+  },
+  "skyline/mid_0": {
+    "from": "preview/art/skyline-small/mid_0_a.png",
+    "sheet": true
+  },
+  "skyline/mid_1": {
+    "from": "preview/art/skyline-small/mid_1_a.png",
+    "sheet": true
+  },
+  "skyline/mid_2": {
+    "from": "preview/art/skyline-small/mid_2_a.png",
+    "sheet": true
+  },
+  "skyline/near_0": {
+    "from": "preview/art/skyline-small/near_0_a.png",
+    "sheet": true
+  },
+  "skyline/near_1": {
+    "from": "preview/art/skyline-small/near_1_a.png",
+    "sheet": true
+  }
+}

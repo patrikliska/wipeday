@@ -178,24 +178,24 @@
   },
   "sea": {
     "catch": "Catch the {name}",
-    "hint": "Something's drifting in. Tap it before it floats off.",
+    "hint": "Something's dropping in. Tap it before the wind takes it.",
     "crate_paid": "+{minutes} min of supplies",
     "buff_output": "{name}! All lines ×{factor} · {time}",
     "buff_tap": "{name}! Taps ×{factor} · {time}",
-    "sank": "It sank. More drifts in every few minutes.",
-    "sank_first": "It sank. Another one drifts in within 3 minutes.",
-    "drifted": "It drifted off."
+    "sank": "The wind took it. More drop in every few minutes.",
+    "sank_first": "The wind took it. Another one drops within 3 minutes.",
+    "drifted": "The wind took it."
   },
   "odds": {
     "open": "Odds",
-    "title": "Flotsam odds",
-    "sub": "What drifts in, and how often",
+    "title": "Airdrop odds",
+    "sub": "What drops in, and how often",
     "crate": "Supplies at once: {share} of what you hold, between {floor} and {cap} min of output",
     "buff_output": "{name}: all lines ×{factor} for {time}",
     "buff_tap": "{name}: taps ×{factor} for {time}",
-    "schedule": "Something drifts in every {min}-{max} minutes while the page is open; {rain}× as often in rain. You have {float} s to catch it.",
+    "schedule": "Something drops in every {min}-{max} minutes while the page is open; {rain}× as often in rain. You have {float} s to catch it.",
     "first": "On a new island every catch until the first is a Drift Crate: one every {every} minutes, worth {flat} minutes of output.",
-    "hidden": "While the page is hidden, flotsam floats by unseen. Missing one costs nothing."
+    "hidden": "While the page is hidden, airdrops come down unseen. Missing one costs nothing."
   },
   "welcome": {
     "title": "Welcome back",

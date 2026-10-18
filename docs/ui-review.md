@@ -1422,3 +1422,24 @@ same tile wave, the dirt a visible grid of pebbles, half the screen underground 
 - Still open: the sand is a little paler and flatter than the mock's tile; a few dune-grass tufts
   placed by hand (not tiled) could bring back its life.
 
+## R2 Feel S2d: the wasteland
+
+The owner found the ground taking half the screen and preferred the comparison page's look A
+(D209). Shots: `desktop_2k`, `desktop_tall_rain`, `phone_timber_yard`, `phone_flotsam`,
+`phone_first_tap`.
+
+### Iteration 1
+- `desktop_2k`: the skyline drawn at full size: the near layer's car was bigger than the house
+  and the towers dwarfed the camp. The layers were downscaled (far and mid by 2, near by 3).
+- `desktop_2k`, `phone_timber_yard`: after the downscale every layer sat in a pale box: the tool
+  flattens onto white. Alpha rebuilt from each original.
+- `desktop_2k`: a clear blue sky fought the dusty skyline; the day sky is warmed to its haze.
+
+### Iteration 2
+- `phone_flotsam`: the hint covered the parachute; it now sits beside the drop, level with it.
+- *Fine:* the ground is a fifth of the screen; the camp reads in front of a hazy city; no repeat
+  at 2560 px; dusk and rain keep the mood.
+- Still open: the back row hides behind the front where they overlap (the kiln behind the
+  campfire): placed again when the back-row lines get their art; the crate icon's waves; the
+  sea lines' re-theme.
+

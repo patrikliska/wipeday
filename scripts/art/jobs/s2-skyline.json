@@ -1,0 +1,35 @@
+[
+  {
+    "id": "sky_far",
+    "prompt_style": "rd_plus__environment",
+    "width": 512,
+    "height": 96,
+    "num_images": 3,
+    "remove_bg": true,
+    "seed": 600,
+    "palette": true,
+    "prompt": "a far away ruined city skyline on the horizon: simple flat silhouettes of broken skyscrapers, a snapped tower and a leaning crane, very little detail, strict side view, no sun, no moon, no clouds, no sky, on a plain white background"
+  },
+  {
+    "id": "sky_mid",
+    "prompt_style": "rd_plus__environment",
+    "width": 512,
+    "height": 128,
+    "num_images": 3,
+    "remove_bg": true,
+    "seed": 601,
+    "palette": true,
+    "prompt": "a ruined city skyline: broken skyscrapers with missing floors and empty windows, a snapped radio tower, a leaning construction crane, rubble at their feet, strict side view, no sun, no moon, no clouds, no sky, on a plain white background"
+  },
+  {
+    "id": "sky_near",
+    "prompt_style": "rd_plus__environment",
+    "width": 512,
+    "height": 80,
+    "num_images": 3,
+    "remove_bg": true,
+    "seed": 602,
+    "palette": true,
+    "prompt": "the dead edge of a wasteland town: collapsed brick walls, rusted car wrecks, a broken billboard, leaning power poles with sagging wires, wire fences and rubble piles standing on flat ground, strict side view, no sun, no moon, no clouds, no sky, on a plain white background"
+  }
+]
