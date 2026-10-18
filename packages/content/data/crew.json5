@@ -1,5 +1,5 @@
 // The hands: one per line, in rung order (lines.json5 names each line's hand). Names live in
-// locale/en.json (`crew.{id}.name`); portraits in icons/crew/. Ranks and traits come in R5.
+// locale/en.json (`crew.{id}.name`); portraits in icons/crew/. Ranks and traits come in R7.
 {
   crew: [
     { id: "mara" },

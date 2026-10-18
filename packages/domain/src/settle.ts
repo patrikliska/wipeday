@@ -46,7 +46,7 @@ export function mannedRate(content: Content, state: BaseState, t: number): numbe
   const when = conditionsAt(content, state, t);
   // Without a buff running the rate depends only on the state and the conditions.
   const key = state.run.buffs.some((buff) => buff.until > t) ? null : `m|${conditionCode(when)}`;
-  const known = key === null ? undefined : r.memo.get(key);
+  const known = key === null ? undefined : r.totals.get(key);
   if (known !== undefined) return known;
   let total = 0;
   for (const id of state.run.hands) {
@@ -54,7 +54,7 @@ export function mannedRate(content: Content, state: BaseState, t: number): numbe
     const n = state.run.lines[id] ?? 0;
     if (line && n > 0) total += n * unitRate(content, state, line, t, when);
   }
-  if (key !== null) r.memo.set(key, total);
+  if (key !== null) r.totals.set(key, total);
   return total;
 }
 

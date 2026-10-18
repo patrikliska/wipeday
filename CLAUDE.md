@@ -4,17 +4,23 @@ This is the only spec. What the game becomes is in `docs/game-design.md`; what t
 the acceptance criteria per phase, are in `docs/roadmap.md`; why things are the way they are is in
 `docs/decisions.md`. The approved redesign plan behind all three is `docs/redesign/` (its
 `README.md` first); `docs/redesign/09-architecture.md` is the engineering spec, and the numbers
-come from `docs/redesign/10-balance.md`. The W-phase design is archived in `docs/archive/`.
+come from `docs/redesign/10-balance.md`. Where `docs/redesign/12-feel.md` (the owner's Feel
+brainstorm, D181-D200) disagrees with the earlier plan files, it wins. The W-phase design is
+archived in `docs/archive/`.
 
 ## 1. What this is
 
 Wipe Day (working title) is an incremental idle game played in the browser, on a wrecked island
-called Saltmarsh *(proposal)*. You tap for **Supplies**, buy 14 production lines, hire a hand for
-each so it runs by itself (also while you are away, inside the Night Shift window), climb five
-eras, and when you choose, press **the Big Red** and nuke your own island for **Crater Glass**.
-Glass you ever earned boosts everything (Glow); glass you hold buys nodes on the **Blast Map**, a
-permanent 361-node tree. Every run is faster than the last. There are no seasons (D128). Discord
-is a thin companion: status, Collect, DMs and the feed channel.
+called Saltmarsh *(proposal)*. You tap the era's target for **Supplies** (every tap chips
+something onto a stockpile, and a full meter trips **Frenzy**), buy 14 production lines, hire a
+hand for each so it runs by itself (also while you are away, inside the Night Shift window, 2 h
+at the start), buy small upgrades in the **Workshop**, climb five eras, and when you choose, press
+**the Big Red** and nuke your own island for **Crater Glass**. Glass you ever earned boosts
+everything (Glow); glass you hold buys nodes on the **Blast Map**, a permanent 361-node tree.
+Survivors and their gear are **cards** from **Supply Drops**, with printed odds and pity, kept in
+the **Album**; **scrap** is the premium currency, earned in play. Every run is faster than the
+last. There are no seasons (D128). Discord is a thin companion: status, Collect, DMs and the feed
+channel.
 
 - Private use: a handful of friends on one server. Own world and names: nothing in `apps/web`
   or new content references another game's items, sites or icons (D43).
@@ -30,18 +36,20 @@ is a thin companion: status, Collect, DMs and the feed channel.
 
 ### Non-goals
 
-No real-money anything. No casino, no PvP, no trading or gifting between players. No public
-launch, no multi-tenant or multi-server support, no sharding. No per-second server simulation:
+No real money before the last phase: buying scrap for money is R9's store and nothing is wired
+before it (D182). No wagering: a Supply Drop is printed odds with visible pity and never a blank
+pull (D181). No PvP, no trading or gifting between players. No public launch, no multi-tenant or
+multi-server support, no sharding. No per-second server simulation:
 the server settles lazily, in closed form. No native apps: the web client is mobile-first.
 
 ## 2. Working rules for the agent
 
 - Work phase by phase (section 12). One phase per session or a few; plan mode first for phases
   marked architecture or balance in the roadmap. Stop and report at the end of every phase.
-- **Branches (D145):** until the cut-over at the end of R2 the redesign is built on `redesign`.
+- **Branches (D145):** until the cut-over at the end of R4 the redesign is built on `redesign`.
   `main` is the frozen old game (season 1, live): nothing lands there except an emergency fix if
   the live server or the backup breaks, merged into `redesign` at once. Everything deleted is
-  reachable at the `pre-redesign` tag. From R3 each phase gets its own branch again.
+  reachable at the `pre-redesign` tag. From R5 each phase gets its own branch again.
 - A phase is done when `pnpm check` (typecheck + lint + test) passes, `pnpm sim check` passes
   every N-assertion switched on so far, every visual change has been reviewed with
   `pnpm web:shots` and noted in `docs/ui-review.md`, decisions are logged, and the docs are
@@ -53,7 +61,9 @@ the server settles lazily, in closed form. No native apps: the web client is mob
   (next free `D` number, newest last) and continue. Argue balance from `pnpm sim` output.
 - Never claim a constraint (pinned version, toolchain, file) you cannot show in the repo. When a
   dependency is added, check npm for the latest stable release first.
-- Never commit tokens, `.env`, the database, backups' passwords or third-party game assets.
+- Never commit tokens, `.env`, the database, backups' passwords or assets ripped from other
+  games (D43). Licensed packs and fonts are committed with their licence beside them and a line in
+  the credits (D188); never send a pack's files to an image model.
 - Owner screenshots (phone and desktop) are bugs with priority over new features.
 - Stay inside the phase; nothing visible teases a later phase (D140).
 - Where the project stands and the next phase's scope: `docs/roadmap.md` ("Where we are").
@@ -129,13 +139,19 @@ Dependency rules:
 
 ### 6.1 Rendering
 
-- **Scene** in PixiJS: procedural flat-vector art from `apps/web/src/scene/palette.ts` (D41),
-  layered so an illustrator can replace one layer at a time. **Panels** in React (HTML/CSS): the
+- **Scene** in PixiJS, in **pixel art** on one grid (D188, D189): 1 art pixel = 5 stage units,
+  an integer zoom per viewport (2 on a 390 px phone, 4 on a 1440 desktop, clamped 2-5),
+  nearest-neighbour everywhere, no sub-pixel movement. One palette of at most 48 colours in
+  `apps/web/src/scene/palette.ts`, extracted from the approved Scene Mock plus the era colours
+  (D191). Sprites are generated with Retro Diffusion and snapped to the grid and palette by a
+  script (`docs/redesign/art/`, D190); the bands (sky, sea, ground) come from the palette
+  gradient. Until R2 Feel S5-S6 replace it, the scene is procedural flat-vector art (D41), layered
+  so one layer can be replaced at a time. **Panels** in React (HTML/CSS): the
   top bar, the shop drawer, sheets, the Blast Map (React DOM and SVG, D139), toasts.
 - **Camera** (D42, D75): design stage 1600×900, ground line at y=560, sea left of x≈480. Wide
   screens fill the height; tall screens never show fewer than 880 units across. Sky and ground
-  extend 800 units past the stage so no aspect ratio shows an edge. R1 reframes the phone view
-  so the tap target stands on the rise at about 40% of the height, at least 120 CSS px (N27).
+  extend 800 units past the stage so no aspect ratio shows an edge. The tap target stands at
+  about 35% of the height (centre-left on desktop, centre on a phone), at least 120 CSS px (N27).
 - **Text in the scene lives in screen space** (D46): anchor in the world, draw on the screen at
   the display resolution, sizes in CSS px. Never text inside the zoomed world.
 - **Fire, glows and the fireball** draw on the `lights` layer above the night tint (D47).
@@ -147,23 +163,35 @@ Dependency rules:
 ### 6.2 Visual language
 
 - Colours are defined once: scene colours in `scene/palette.ts`, HUD tokens in
-  `styles/tokens.css`. Each era (Twig, Timber, Stone, Sheet Metal, Armored) has one fixed colour
+  `styles/tokens.css` (the Feel Board's salvaged-materials tokens from R2 Feel S4: plywood and
+  steel plates, D187). Each era (Twig, Timber, Stone, Sheet Metal, Armored) has one fixed colour
   used everywhere. The primary is signal orange (D138); the Big Red is never primary-styled.
-- Font: Roboto Condensed (regular, bold). Numbers always go through one formatter
+- Fonts: Big Shoulders Display for numbers and titles, Barlow for text (D187), self-hosted; Roboto
+  Condensed until R2 Feel S4 swaps them. No pixel font: text stays crisp CSS. Numbers always go
+  through one formatter
   (`@wipe-day/domain/words`): `12.4k`, `1.50Qa`, suffixes up to `999Dc`, then `1.23e36`; held
   amounts floor, costs and rates round; a scientific toggle in settings.
 - Every currency, product, line, era, tool, target, flotsam kind, hand, node and action has
   exactly one icon (`packages/content/icons/<kind>/<id>.svg`, D141), used identically in the
-  scene, panels, buttons and the bot; a missing icon falls back to the lettered tile.
+  scene, panels, buttons and the bot; a missing icon falls back to the lettered tile. Item icons
+  (products, gear, flotsam kinds, targets) become 16×16 pixel PNGs at `<kind>/<id>.png` with the
+  pixel scene; UI glyphs (dock, actions, currencies, settings) stay currentColor SVG; one format
+  per kind (D188).
 - Progress bars for anything with a cycle, a cap or a duration: line cycles, milestones, the
-  Night Shift window, the Kettle, the Magnet, cooldowns.
+  Night Shift window (the lamp), the Frenzy meter, Workshop levels, the Kettle, the Magnet,
+  cooldowns.
+- **Juice on everything** (`12-feel.md` 3.2): every purchase a sound, a flash on what it changed
+  and a number pop; every bar a tick at its end; buttons with depth and a press state; cards flip,
+  drops creak then burst. Every sound is mapped to its event in one data file; nothing plays from
+  a component. Reduced motion gets the same information without the motion.
 - The island tells the story: everything the player owns is visible in the scene.
 
 ### 6.3 Zero-tutorial UX rules (hard requirements, check them on every screen)
 
 1. **One crowned thing per view** (D138). Exactly one primary-styled (signal orange) action per
    view: the most useful thing to do now (the advisor picks it). Other affordable rows stay
-   enabled and secondary. While the crown is on the Big Red, flotsam, a Toolbelt skill or the tap
+   enabled and secondary. **The shop never reorders** (D186): rows stay in a fixed order by rung,
+   the crown lights its card in place, and a Best buy chip in the counter plate scrolls to it. While the crown is on the Big Red, flotsam, a Toolbelt skill or the tap
    hint, the collapsed drawer has no orange row; the expanded drawer always crowns one. The Big
    Red is never primary-styled; danger style only for destructive actions.
 2. **Never a dead end.** Every panel closes or goes back; every result offers the natural
@@ -180,13 +208,16 @@ Dependency rules:
    after two uses. No walls of text; help exists but is never needed.
 7. **Feedback on everything.** Every tap changes something visible within a second, gains shown
    as deltas (`+214`) floating from where they came from, with the product's icon.
-8. **Mobile first.** Designed at 390 px wide first. The shop drawer plus five nav items (Island,
-   Blast Map, Crew, Logbook, Friends); the nav row is hidden at 0:00 and appears when its first
-   destination unlocks. Labels never wrap over their buttons, touch targets at least 44 CSS px,
+8. **Every device, one dock.** Desktop 1440 is designed first and 390 px right after (D187). One
+   bottom dock on every device (centred on desktop): Island, Workshop, Crew, Album, Logbook,
+   shown as each destination unlocks (Island from 0:00; D199), with badges counting new things.
+   Panels open as sheets over the scene; the shop is a right column of cards on desktop and the
+   drawer on a phone. Labels never wrap over their buttons, touch targets at least 44 CSS px,
    the tap target at least 120 px tall (N27), legible text at arm's length.
 9. **Respect the clock.** Production cycles may be seconds. Idle timers (the Night Shift, the
    Magnet, Toolbelt cooldowns, the Freighter) run on the game clock; active timers (Hustle,
-   flotsam, buffs, felling, the cinematic) are real seconds and never speed up. The demo clock
+   Frenzy, flotsam, gulls, buffs and boosts, felling, the cinematic) are real seconds and never
+   speed up. The demo clock
    runs at 1× with time jumps.
 10. **Welcome back.** Returning after hours shows what happened as one summary with one Collect,
     which is the primary; never the nuke.
@@ -229,24 +260,28 @@ The agent cannot see the browser, but it can see PNGs.
 - `packages/content/locale/en.json` holds every player-visible string, keyed; number suffixes
   are `format.suffixes`.
 - The glossary of names is in `docs/game-design.md`; names marked *(proposal)* wait for the
-  owner's passes (R1, R2, R4). A rename is a locale edit: ids and icons stay.
+  owner's passes (R1, R4, R6). A rename is a locale edit: ids and icons stay.
 
 ## 8. Guardrails
 
-Eleven guardrails (D129), each asserted by the canon numbers N1-N27 (bands as amended in
-`docs/redesign/10-balance.md` 4.9):
+Eleven guardrails (D129), each asserted by the canon numbers N1-N31 (bands as amended in
+`docs/redesign/10-balance.md` 4.9 and then `12-feel.md` 11):
 
 1. **The first nuke comes on day 1** (N1-N3).
-2. **Active play is a bonus**, never a different game (N8-N10).
+2. **Active play pays and is visible:** an active hour is 4-6× an idle online hour, never a
+   different game (N8-N10; D184).
 3. **Friends stay in one race**, and late joiners catch up (N16, N17).
-4. **There is always something to buy** (N4-N7).
+4. **There is always something to buy** (N4-N7, N31: the Workshop keeps it true).
 5. **Every nuke feels faster** (N11-N13).
 6. **The tree lasts for months** (N14, N15).
-7. **Absence never hurts:** 100% offline inside a Night Shift of 12 h rising to 48 h; a full
-   window stops accrual and destroys nothing (N18).
-8. **Precious things are never at risk:** glass and scrap are never traded, gifted, wagered,
-   stolen or sold; no casino; scrap stays rare (N19).
-9. **Randomness is visible:** odds printed in the game, no hidden catch-up (N20).
+7. **Absence never hurts:** 100% offline inside a Night Shift of 2 h rising to 24 h (Spare Wicks
+   per run, Bunker nodes and Wipe Days for good); a full window stops accrual and destroys
+   nothing (N18; D183).
+8. **Precious things are never at risk; randomness is paid for in play and always printed:**
+   glass and scrap are never traded, gifted, wagered, stolen or sold for Supplies; scrap comes 4-6
+   a day for a casual (N19); no Supply Drop card is ever blank (N28) and pity is as printed (N29).
+9. **Randomness is visible:** odds printed in the game, pity counters on screen, no hidden
+   catch-up (N20).
 10. **Numbers stay meaningful:** the fifth-root prestige shape, always finite (N21-N23).
 11. **Respect the clock:** active timers real seconds, idle timers on the game clock (6.3.9).
 
@@ -254,10 +289,10 @@ Eleven guardrails (D129), each asserted by the canon numbers N1-N27 (bands as am
 
 `pnpm sim [days]` plays lifetimes of runs through the real domain (no second economy) and prints
 per-run and per-day tables per archetype, with CSV into `var/sim/`; `pnpm sim check` asserts
-`data/pacing.json5` v2, and `pnpm sim check --full` runs 365 days over three seeds (before R2, R3
-and R7 ship). The `test` profile runs inside `pnpm test` (`packages/sim`) in under 10 s, so a
+`data/pacing.json5` v2, and `pnpm sim check --full` runs 365 days over three seeds (before R2, R4, R5
+and R9 ship). The `test` profile runs inside `pnpm test` (`packages/sim`) in under 10 s, so a
 balance change that breaks pacing fails the build. Archetypes: idler, casual, active, optimal,
-late joiner, plus the first-hour and autoclicker scenarios; from R6 a lockstep group of five.
+late joiner, plus the first-hour and autoclicker scenarios; from R8 a lockstep group of five.
 `pacing.json5` marks each assertion with the phase that switches it on; warn-only ones print
 WARN. Argue balance from simulator output (D144).
 
@@ -269,7 +304,7 @@ WARN. Argue balance from simulator output (D144).
   record holds state.
 - Property and invariant tests where money-like state moves: settle path independence (1e-9)
   and the tick oracle (1e-6, N24); the bucket never over-credits (N10); a nuke keeps exactly
-  `meta` and grants exactly the formula's glass (R2); effects are monotonic and bounded per stat;
+  `meta` and grants exactly the formula's glass (R4); effects are monotonic and bounded per stat;
   glass and scrap fall only by the owner's own spend; no command writes another player's base.
 - Tests live next to the code (`*.test.ts`), run per package with vitest.
 
@@ -283,8 +318,8 @@ thing.
 
 - Surfaces: `/base` (ephemeral), DMs (the web push's notifications, opted into by using the
   bot), and the feed channel (feed items from the API's stream, acked so nothing is lost or
-  posted twice). Until R2, `/base` only says "Open the game"; card v2 (rate, Night Shift fill,
-  the Big Red's yield, Collect) comes in R2, and the bot's only command is then `collect` (no
+  posted twice). Until R4, `/base` only says "Open the game"; card v2 (rate, Night Shift fill,
+  the Big Red's yield, Collect) comes in R4, and the bot's only command is then `collect` (no
   taps, no nuke from Discord, D142).
 - Components V2 only; screens are plain data (`ui/screen.ts`) with one lint for the 6.3 rules;
   one router for the `idle:v2:{screen}:{action}:{owner}` customIds. Cards are rendered with
@@ -296,20 +331,23 @@ thing.
 
 ## 12. Phases
 
-Acceptance criteria per phase are in `docs/roadmap.md` (detail: `docs/redesign/11-roadmap.md`).
-W0-W8 built the old game (history in `docs/archive/roadmap-w.md`); W9's items are folded into
-R0, R2 and R7.
+Acceptance criteria per phase are in `docs/roadmap.md` (detail: `docs/redesign/11-roadmap.md`;
+R2 Feel and R3 Cards from `docs/redesign/12-feel.md`). W0-W8 built the old game (history in
+`docs/archive/roadmap-w.md`); W9's items are folded into R0, R4 and R9. The order changed after
+the owner's Feel brainstorm (D181-D192): the old R2-R7 are now R4-R9.
 
 | Phase | Goal |
 | --- | --- |
 | R0 Foundations | backup, branch, docs, the cut, state v2, effects, settle, taps, simulator v2 (done) |
 | R1 The run | from the first tap to Sheet Metal; looks great on a phone (done) |
-| R2 The Big Red | the full loop; cut-over, friends play |
-| R3 Blast Map wave 2 | rings 4-6; months of goals |
-| R4 Logbook | collection as power |
-| R5 Scrap and the check-in | the Magnet, ranks, Pockets, Toolbelt, Foreman, Dead Hand |
-| R6 Friends | Blowback, Late Tide, the Freighter, boards |
-| R7 Dares, wave 3, live ops | Dares, rings 7-9, admin page, export |
+| R2 Feel | the Feel Board's HUD, the dock, the card shop in fixed order, the hero tap, Frenzy, juice and sound, Workshop tiers 1-4, the 2 h Night Shift, badges, gulls, the ticker; the pixel scene |
+| R3 Cards | survivors and gear, Supply Drops, the Album, scrap as premium with boosts, daily quests, Workshop tiers 5-8 |
+| R4 The Big Red | the full loop; cut-over, friends play |
+| R5 Blast Map wave 2 | rings 4-6; months of goals |
+| R6 Logbook | collection as power |
+| R7 Scrap and the check-in | the Magnet, Pockets, Toolbelt, Foreman, Dead Hand |
+| R8 Friends | Blowback, Late Tide, the Freighter, boards |
+| R9 Dares, wave 3, live ops | Dares, rings 7-9, admin page, export; the scrap store (D182) |
 | Later, gated | the Crossing; creeds; a sea layer, each when its trigger fires |
 
 At the end of each phase report: what was built, decisions added, the N-assertions switched on
@@ -329,7 +367,7 @@ and their measured values (warnings too), screenshot paths (`preview/web/index.h
 | `pnpm web:perf [--throttle n]` | 30 s at 15 taps a second on the GPU: fps and live floaters (needs `pnpm web` running) |
 | `pnpm web:build` | production bundle into `apps/web/dist` |
 | `pnpm api` / `pnpm api:dev` | the API process / with restart on change (if `pnpm dev`'s API part hangs, run `pnpm api` + `pnpm web`) |
-| `pnpm sim [days]` / `pnpm sim check [--full]` | simulator v2 / pacing assertion |
+| `pnpm sim [days]` / `pnpm sim check [--full] [--phase Rn]` | simulator v2 / pacing assertion (`--phase` also judges a later phase's) |
 | `pnpm start` / `pnpm bot:dev` | the Discord bot (reads `.env` at the repo root; needs the API) |
 | `pnpm preview` | every bot message drawn at phone and desktop width into `preview/discord/` |
 | `pnpm icons` | lint every icon against D141 and draw the review sheet into `preview/icons/` |

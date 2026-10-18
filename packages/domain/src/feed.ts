@@ -2,8 +2,8 @@
  * The social layer's two outlets for what happens, decided here so the web feed, push
  * notifications and the Discord channel agree:
  *
- * - the feed: the happenings worth telling the other players. R2 adds Wipe Days and the first
- *   Armored era, R4 shared first finds, R6 the Freighter's tiers
+ * - the feed: the happenings worth telling the other players. R4 adds Wipe Days and the first
+ *   Armored era, R6 shared first finds, R8 the Freighter's tiers
  *   (docs/redesign/09-architecture.md 7.2); until then the feed is empty;
  * - notifications: which happenings may ping a player's phone, by kind, each opt-in per kind
  *   (CLAUDE.md 6.3 rule 11). On by default: only "Night Shift over" (D138). Quiet hours

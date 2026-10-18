@@ -179,7 +179,7 @@ export function byScore(a: Choice, b: Choice): number {
 
 /**
  * The crown inside a run (02-the-run.md 11.1; canon 12.5; first match wins). R1 has rules 2-4
- * and 7; the Big Red (R2), Blowback crates (R6) and the Toolbelt (R5) join with their phases.
+ * and 7; the Big Red (R4), Blowback crates (R8) and the Toolbelt (R7) join with their phases.
  *
  * 2. The next era, when it is affordable within `saveSeconds` at the current income: it comes
  *    before the hand (Timber at 1.5k is crowned before Mara at 1.8k).

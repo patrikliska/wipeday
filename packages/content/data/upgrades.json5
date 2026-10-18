@@ -2,7 +2,7 @@
 // Line Mk: one rule each, generated for every line as `{line}_mk2` and `{line}_mk3`, price the
 // line's first unit × costFactor, needing needOwned of the line; Mk III comes after Mk II
 // (D152). Island upgrades: each after the one before, so the shelf shows at most one.
-// Names: `upgrade.{id}.name`. Pocket-eligible from R5.
+// Names: `upgrade.{id}.name`. Pocket-eligible from R7.
 {
   lineMk: [
     {

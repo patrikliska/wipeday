@@ -1,5 +1,12 @@
 # The Wipe Day redesign: start here
 
+> **Phase numbers changed on 2026-10-17/18 (D192).** After the owner's Feel brainstorm,
+> `12-feel.md` inserted **R2 Feel** and **R3 Cards** before the nuke, and every later phase moved
+> by two: this file's (and `01`-`10`'s) R2 The Big Red is now **R4**, R3 → R5, R4 → R6, R5 → R7,
+> R6 → R8, R7 → R9. These plan files keep the numbers they were approved with; `docs/roadmap.md`
+> is the live copy with the new numbers and the R2 Feel and R3 Cards entries, and where
+> `12-feel.md` disagrees with a plan file, it wins.
+
 **Status:** approved. The plan is dated 2026-10-08; the owner made every decision in section 3
 on 2026-10-10 (all defaults except season 1, decision 7), and R0 committed it on the `redesign`
 branch, rewrote `CLAUDE.md`, `docs/game-design.md` and `docs/roadmap.md` from it and logged

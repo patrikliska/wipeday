@@ -36,7 +36,7 @@ and log in on the phone as test player 1. State then lives in `var/` and survive
 | about 4:00 | Sorting Tables (1M): every line ×2. |
 | about 5:45 | The Stone era (3M): the ore seam. |
 | about 40-48 min | The Sheet Metal era (20B): the sulfur vent. |
-| about 43-49 min | 50B made: yield 10. The Big Red is R2, so nothing happens yet; note the time. |
+| about 43-49 min | 50B made: yield 10. The Big Red comes in R4, so nothing happens yet; note the time. |
 
 ## What to try, and what to tell me
 

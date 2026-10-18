@@ -201,27 +201,53 @@ export function buffEffects(
   return out;
 }
 
-/** The parts of a state's fold that hold between commands: cached per state. */
+/**
+ * The parts of a state's fold that hold between commands. Two layers: what depends only on the
+ * effects in force (shared by every state with the same effects, so buying a unit that crosses no
+ * milestone keeps it), and the totals that also depend on how many units and hands there are
+ * (`totals`, one per `run.lines` and `run.hands`).
+ */
 export interface Rates {
   effects: Effect[];
   /** What multiplies a tap's flat part (E23): eras × island upgrades × roster × Glow × Morale. */
   tapGlobal: number;
   glow: number;
-  /** Morale (R4): 1 for now. */
+  /** Morale: 1 until the badges give it (R2 Feel S3). */
   morale: number;
   /** Seconds the Night Shift lasts (N18: never past its ceiling). */
   nightShift: number;
   /**
-   * Memo of each line's buff-free unit rate and speed, by line and conditions: settle, the tap
-   * and the advisor ask for the same lines many times between commands.
+   * Memo of folds that depend only on the effects in force (prices, cycles), by stat, base and
+   * line: settle, the tap and the advisor ask for the same ones many times between commands.
    */
   memo: Map<string, number>;
+  /** The same memo for folds scoped to a line, by line id (a short key per line). */
+  perLine: Map<string, Map<string, number>>;
   /** Memo of each line's buff-free unit rate, by line and conditions (`conditionCode`). */
   units: Map<string, number[]>;
+  /** Memo of the totals over the lines owned and manned (`fullRate`, `mannedRate`). */
+  totals: Map<string, number>;
   /** The effects in force by stat, so a fold scans only its own. */
   byStat: Map<StatId, Effect[]>;
   /** Memo of the production effects (output, speed, offline) that reach each line. */
   scoped: Map<string, Effect[]>;
+}
+
+/** The effects layer of `Rates`, and what it was built from. */
+interface Layer {
+  content: Content;
+  glass: BaseState["meta"]["glass"];
+  nodes: BaseState["meta"]["nodes"];
+  era: BaseState["run"]["era"];
+  roster: number;
+  upgrades: BaseState["run"]["upgrades"];
+  research: BaseState["run"]["research"];
+  badges: BaseState["meta"]["badges"];
+  /** Each line's milestone payout and speed, in content order: the only way counts reach effects. */
+  milestones: number[];
+  /** Some effect counts units or hands (`per`): unit rates then depend on the counts too. */
+  counted: boolean;
+  rates: Omit<Rates, "totals">;
 }
 
 const PRODUCTION: ReadonlySet<StatId> = new Set(["output", "speed", "offline"]);
@@ -250,36 +276,59 @@ export function statOf(
   line?: LineDef,
 ): number {
   const r = rates(content, state);
-  const key = line ? `${stat}|${base}|${line.id}` : base === 1 ? stat : `${stat}|${base}`;
-  const known = r.memo.get(key);
+  let memo = r.memo;
+  if (line) {
+    const own = r.perLine.get(line.id);
+    if (own) memo = own;
+    else {
+      memo = new Map();
+      r.perLine.set(line.id, memo);
+    }
+  }
+  const key = base === 1 ? stat : `${stat}|${base}`;
+  const known = memo.get(key);
   if (known !== undefined) return known;
   const value = foldStat(stat, r.byStat.get(stat) ?? [], base, line ? { line } : {});
-  r.memo.set(key, value);
+  memo.set(key, value);
   return value;
 }
 
-const cache = new WeakMap<object, { content: Content; state: BaseState; rates: Rates }>();
+/** Each line's milestone factors in content order: the signature of `activeEffects`' milestones. */
+function milestoneSignature(content: Content, state: BaseState): number[] {
+  const out: number[] = [];
+  for (const line of content.lines) {
+    const n = state.run.lines[line.id] ?? 0;
+    if (n <= 0) {
+      out.push(1, 1);
+      continue;
+    }
+    const { payout, speed } = milestoneFactors(content, n);
+    out.push(payout, speed);
+  }
+  return out;
+}
 
-/**
- * The cached fold. Keyed on `run.lines` and checked against every other input by identity:
- * updates keep untouched sub-objects by reference, so a taps batch (a new `run`, the same
- * `run.lines`) hits the cache.
- */
-export function rates(content: Content, state: BaseState): Rates {
-  const hit = cache.get(state.run.lines);
-  const old = hit?.state;
+const sameNumbers = (a: readonly number[], b: readonly number[]): boolean =>
+  a.length === b.length && a.every((value, i) => value === b[i]);
+
+/** The effects layer per run, keyed on `run.upgrades` (a run keeps it until it buys one). */
+const layers = new WeakMap<object, Layer>();
+
+function layerOf(content: Content, state: BaseState): Layer {
+  const milestones = milestoneSignature(content, state);
+  const known = layers.get(state.run.upgrades);
   if (
-    hit &&
-    old &&
-    hit.content === content &&
-    old.meta.glass === state.meta.glass &&
-    old.meta.nodes === state.meta.nodes &&
-    old.run.hands === state.run.hands &&
-    old.run.era === state.run.era &&
-    old.run.roster === state.run.roster &&
-    old.run.upgrades === state.run.upgrades
+    known &&
+    known.content === content &&
+    known.glass === state.meta.glass &&
+    known.nodes === state.meta.nodes &&
+    known.era === state.run.era &&
+    known.roster === state.run.roster &&
+    known.research === state.run.research &&
+    known.badges === state.meta.badges &&
+    sameNumbers(known.milestones, milestones)
   ) {
-    return hit.rates;
+    return known;
   }
   const effects = activeEffects(content, state);
   const k = foldStat("glow_k", effects, content.prestige.glowK);
@@ -287,23 +336,73 @@ export function rates(content: Content, state: BaseState): Rates {
   const hours = Math.min(maxHours, foldStat("night_shift", effects, windowHours));
   const glowNow = glow(content, state.meta.glass.ever, k);
   const morale = 1;
-  const result: Rates = {
-    effects,
-    tapGlobal: foldStat("output", globalEffects(content, state), 1) * glowNow * morale,
-    glow: glowNow,
-    morale,
-    nightShift: Math.round(hours * 3600),
-    memo: new Map(),
-    units: new Map(),
-    byStat: new Map(),
-    scoped: new Map(),
-  };
+  const byStat = new Map<StatId, Effect[]>();
   for (const effect of effects) {
-    const list = result.byStat.get(effect.stat);
+    const list = byStat.get(effect.stat);
     if (list) list.push(effect);
-    else result.byStat.set(effect.stat, [effect]);
+    else byStat.set(effect.stat, [effect]);
   }
-  cache.set(state.run.lines, { content, state, rates: result });
+  const layer: Layer = {
+    content,
+    glass: state.meta.glass,
+    nodes: state.meta.nodes,
+    era: state.run.era,
+    roster: state.run.roster,
+    upgrades: state.run.upgrades,
+    research: state.run.research,
+    badges: state.meta.badges,
+    milestones,
+    counted: effects.some((effect) => effect.per !== undefined),
+    rates: {
+      effects,
+      tapGlobal: foldStat("output", globalEffects(content, state), 1) * glowNow * morale,
+      glow: glowNow,
+      morale,
+      nightShift: Math.round(hours * 3600),
+      memo: new Map(),
+      perLine: new Map(),
+      units: new Map(),
+      byStat,
+      scoped: new Map(),
+    },
+  };
+  layers.set(state.run.upgrades, layer);
+  return layer;
+}
+
+const cache = new WeakMap<object, { state: BaseState; layer: Layer; rates: Rates }>();
+
+/**
+ * The cached fold. Keyed on `run.lines` and checked against every other input by identity:
+ * updates keep untouched sub-objects by reference, so a taps batch (a new `run`, the same
+ * `run.lines`) hits the cache. A new `run.lines` (a unit bought) keeps the effects layer when
+ * no milestone was crossed and builds only fresh totals.
+ */
+export function rates(content: Content, state: BaseState): Rates {
+  const hit = cache.get(state.run.lines);
+  const old = hit?.state;
+  if (
+    hit &&
+    old &&
+    hit.layer.content === content &&
+    old.meta.glass === state.meta.glass &&
+    old.meta.nodes === state.meta.nodes &&
+    old.run.hands === state.run.hands &&
+    old.run.era === state.run.era &&
+    old.run.roster === state.run.roster &&
+    old.run.upgrades === state.run.upgrades &&
+    old.run.research === state.run.research &&
+    old.meta.badges === state.meta.badges
+  ) {
+    return hit.rates;
+  }
+  const layer = layerOf(content, state);
+  const result: Rates = {
+    ...layer.rates,
+    units: layer.counted ? new Map() : layer.rates.units,
+    totals: new Map(),
+  };
+  cache.set(state.run.lines, { state, layer, rates: result });
   return result;
 }
 
@@ -361,14 +460,14 @@ export function fullRate(
 ): number {
   const r = rates(content, state);
   const key = state.run.buffs.some((buff) => buff.until > at) ? null : `f|${conditionCode(when)}`;
-  const known = key === null ? undefined : r.memo.get(key);
+  const known = key === null ? undefined : r.totals.get(key);
   if (known !== undefined) return known;
   let total = 0;
   for (const line of content.lines) {
     const n = state.run.lines[line.id] ?? 0;
     if (n > 0) total += n * unitRate(content, state, line, at, when);
   }
-  if (key !== null) r.memo.set(key, total);
+  if (key !== null) r.totals.set(key, total);
   return total;
 }
 

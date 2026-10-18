@@ -18,7 +18,7 @@ export type GameEvent =
       crits: number;
       cycles: number;
     }
-  /** Units bought (client feedback only; the run summary counts them from R2). */
+  /** Units bought (client feedback only; the run summary counts them from R4). */
   | { type: "bought"; line: string; count: number; cost: Amount }
   | { type: "hand_hired"; line: string; hand: string }
   /** A shelf row bought (client feedback only). */

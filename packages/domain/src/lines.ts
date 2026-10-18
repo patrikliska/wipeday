@@ -12,6 +12,11 @@ import type { BaseState } from "./state";
 
 const byId = new WeakMap<Content, Map<string, LineDef>>();
 
+/** Each era's place on the ladder (TIERS order). */
+const ERA_INDEX: Readonly<Record<string, number>> = Object.fromEntries(
+  TIERS.map((tier, i) => [tier, i]),
+);
+
 export function lineOf(content: Content, id: string): LineDef | undefined {
   let lines = byId.get(content);
   if (!lines) {
@@ -23,7 +28,7 @@ export function lineOf(content: Content, id: string): LineDef | undefined {
 
 /** Whether the run's era has opened `line`. */
 export function eraOpen(state: BaseState, line: LineDef): boolean {
-  return TIERS.indexOf(line.era) <= TIERS.indexOf(state.run.era);
+  return (ERA_INDEX[line.era] ?? 0) <= (ERA_INDEX[state.run.era] ?? 0);
 }
 
 /** The line_cost discount `d` (1 without nodes). */

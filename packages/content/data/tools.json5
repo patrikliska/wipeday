@@ -1,6 +1,6 @@
 // Grip, the tool ladder (docs/redesign/02-the-run.md 5.2): Rock is owned from the start; each
 // rung after it doubles the flat tap and adds 0.4% of the full rate to every tap. The effects
-// are per rung, so a pocketed rung (R5) works out of order. `tier` is the era colour a tool
+// are per rung, so a pocketed rung (R7) works out of order. `tier` is the era colour a tool
 // wears, not a gate. Names: `tool.{id}.name`.
 {
   tools: [

@@ -2097,3 +2097,95 @@ palette gradient plus small pieces or tiles, never from landscape renders; the 4
 and one light direction in every real prompt; characters animated from their finished sprite
 with the advanced-animation styles (0.14 USD a cycle), PixelLab only if those disappoint. The
 scripts stay in `docs/redesign/art/` until R2 Feel folds them into `pnpm art`. `12-feel.md` 2.2.
+
+### D191. R2 Feel's plan: seven sessions, the pixel scene in the middle, the palette from the mock (owner, 2026-10-18)
+The owner approved R2 Feel's plan in plan mode. S1 groundwork (docs, the phases renumbered, the
+simulator's time, the new state fields; no balance change), S2 the Workshop and the 2 h Night
+Shift, S3 Frenzy, gulls and badges, S4 the HUD (tokens, the dock, the card shop in fixed order),
+S5 and S6 the pixel scene and the hero tap, S7 sound, juice and the finish. Asked where the pixel
+scene goes, the owner chose the middle of the phase: after the rules and the HUD, before the
+tap's juice, so nothing in the scene is drawn twice. Asked where the 48 colours come from, the
+owner chose the approved Saltmarsh Scene Mock plus the five era colours, not 0-mem0ry's pack:
+nothing to download, and D188's pack stays the inspiration only (no file of it is used). The art
+pass needs about 25 USD more credit before S5. `docs/roadmap.md` R2 Feel.
+
+### D192. The phases renumbered R0-R9 (agent, 2026-10-18)
+`12-feel.md` 12's order is now the code's: `PHASES` runs R0-R9 and `pacing.json5` moved every
+later tag (old R2→R4, R3→R5, R4→R6, R5→R7, R6→R8, R7→R9), as did the comments that name a phase. N19
+moves to R3 Cards, where scrap becomes the premium currency, in `12-feel.md` 11's band (a casual
+4-6 a day, 100 by day 30, nobody above 8); N30 (a casual opens a drop a day, days 1-30) joins it.
+N16's friends' gaps keep their mechanical R5 tag until R8 Friends' plan revisits them. The plan
+files `01`-`11` keep the numbers they were approved with, under a note at the top of
+`11-roadmap.md` and the redesign README; `docs/roadmap.md` is the live copy. `12-feel.md` 12.
+
+### D193. The simulator buys back time with two cache layers (agent, 2026-10-18)
+`pnpm test`'s pacing check took 9.4-9.6 s of its 10 s. A profile showed every unit bought threw
+away the whole effects cache, and the memo keys were built as strings on every hit. `rates()`
+now has two layers: the effects in force (keyed per run on `run.upgrades`, checked against the
+milestone factors, glass, nodes, era, roster, Workshop levels and badges), shared by every state
+with the same effects, and the totals over units and hands (`totals`), one per `run.lines`.
+Line-scoped folds have their own small memo per line; `eraOpen` reads a table; the simulator
+checks finiteness once a session instead of after every command. Every verdict of
+`pnpm sim check --phase R7` is identical before and after; the check takes 5.4-5.9 s.
+`09-architecture.md` 5.
+
+### D194. The Line Mks move into the Workshop, one item per line; Quick Count is dropped (agent, 2026-10-18)
+`12-feel.md` 5 moves the shelf's Mk rows into research tier items, but tiers 1-4 open with Twig
+and Timber only, so Stone, Sheet Metal and Armored lines would lose their ×9 until R3. Instead
+each line gets one Workshop item `{line}_mk` of two levels (each `output more 3`, priced ×1e4 and
+×1e8 of the line's cost, opened at 25 and 50 owned), listed under the line's era: real and
+reachable, so nothing teases (D140). The shelf keeps Grip, the eras and the island upgrades.
+Quick Count (buy ×10 unlocked) is dropped: it duplicates `bulkAfterHands`, and an unlock adds no
+income the advisor could score, so it would never be crowned. `12-feel.md` 5.
+
+### D195. The Workshop's offline item adds hours (agent, 2026-10-18)
+`12-feel.md` 5 lists "`set` on offline hours" among research effects. A `set` would not stack with
+the Bunker nodes (R4) and the Wipe Day steps that also lengthen the window, so the item (Spare
+Wicks, D201) is `night_shift add 1/3` a level (six levels, +2 h, the window 2 h → 4 h per run).
+`rates()` already caps the sum at the 24 h ceiling. `12-feel.md` 6.
+
+### D196. Frenzy has its own meter; a trip is taps ×3 and lines ×1.5 for 15 real seconds (agent, 2026-10-18)
+Hustle (×1 to ×2, capped at 2.25 by N9's guard) stays the tap's base. Frenzy is a second meter,
+`run.frenzy`, filled by credited taps and draining while idle (it would trip in 17 s on Hustle's
+gain; the first trip belongs near 12:00). At its cap it trips a `frenzy` buff for 15 real
+seconds: taps `more 3` and lines `speed more 1.5`, so "the lines spin faster" on screen is true.
+The trip is resolved in closed form inside its taps batch (the taps after the trip take the
+buff); a content check `multCeiling` bounds the folded tap multiplier as `peakCeiling` bounds
+Hustle. The simulator may drop the speed part or retune both in S3 (D144). `12-feel.md` 3.1.
+
+### D197. Gulls fly on a seeded grid; an elite pays minutes of output until scrap has a use (agent, 2026-10-18)
+A gull's slot `j` starts every 180 s from the run's first line, at a seeded offset in [0, 60 s],
+so gaps fall in 2-4 minutes and none is under 120 s; whether it is elite (1 in 20) is seeded too.
+No cursor, nothing in settle (N24 untouched): `claim_gull {run, k}` checks the slot and its
+crossing window, and pays 30 s of output, 180 s for an elite. `12-feel.md` 9.3 pays an elite 1
+scrap; scrap has no use until R3 Cards, and a currency that buys nothing would tease (D140), so
+the elite pays output in R2 and gains its scrap in R3. The odds are printed with the flotsam's.
+`12-feel.md` 9.3.
+
+### D198. Badges are earned by commands, count only shipped things, and each is Morale +1% (agent, 2026-10-18)
+The achievements wall's badges (`12-feel.md` 9.1) are checked after every successful command and
+never inside settle: a badge raises Morale, and a rate that changed mid-interval would break
+settle's path independence (N24). Their counters are the lifetime stats (taps, fells, crits,
+flotsam, gulls, Frenzies, hands, units, Workshop levels, eras, supplies made); nothing counts
+nukes or drops until those ship (D140). Each badge is Morale +1% (`05` 1's formula at 0.01 until
+the Logbook phase raises it); `badge_unlocked` is logged. `12-feel.md` 9.1.
+
+### D199. The dock in R2 Feel: Island, Workshop, Crew, Logbook (agent, 2026-10-18)
+The dock (D187) shows what is shipped: Island from 0:00, Workshop when research opens (2:00),
+Crew at the first hand, Logbook at the first badge. Album waits for R3 Cards, hidden, not
+locked (D140). Workshop is one surface with two doors: the dock tab opens the shop on its
+Research tab (the drawer expanded on a phone, the column's tab on desktop), so research is never
+in two places. `12-feel.md` 4.
+
+### D200. The crown ignores timed buffs (agent, 2026-10-18)
+With Frenzy, Rally and the drone running much of an active player's time, a crown that weighed
+the buffs would jump to another card every 15 s, which is D186's complaint in another form. The
+advisor scores purchases on the state's lasting rates (from S3, with Frenzy); buffs still show in every number on
+screen. `02` 11; D186.
+
+### D201. The Workshop's offline item is Spare Wicks, not Lamp Oil (agent, 2026-10-18)
+D188 named the Night Shift's research "Lamp Oil", but Lamp Oil is already the Oil Press's
+product (`resource.fuel`), and one name for two things breaks the one-icon, one-name rule
+(CLAUDE.md 6.2). Recommended: **Spare Wicks** (a spare wick keeps the lamp burning longer, the
+Night Shift's lamp bar; no clash in the locale). The owner may veto it in the next report; a
+rename is a locale edit. `12-feel.md` 5, 6.

@@ -9,7 +9,7 @@
  * and is away in between, where settle runs in closed form. Deterministic: seeds only, no clock
  * reads.
  *
- * Until R2's real `nuke`, a stub nuke folds the run into `meta` by the prestige formula
+ * Until R4's real `nuke`, a stub nuke folds the run into `meta` by the prestige formula
  * (`prestige.ts`) and starts a fresh run, so the loop already plays lifetimes.
  */
 import type { Archetype, Assertion, Content, Phase } from "@wipe-day/content/schema";
@@ -206,7 +206,6 @@ export function simulate(
     const result = applyCommand(content, state, command, now);
     state = result.state;
     life.steps += 1;
-    assertFiniteState(state);
     life.largest = Math.max(life.largest, largestOf(state));
     if (result.ok) {
       record(result.events, now);
@@ -347,6 +346,8 @@ export function simulate(
         runOnline += length;
         t += length;
       }
+      // Every number still finite (D130), checked once a session: `finite()` guards each gain.
+      assertFiniteState(state);
       // A stretch with nothing affordable ends with the session.
       stuck = 0;
       life.checkIns.push({ day, bought });

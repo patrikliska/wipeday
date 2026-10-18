@@ -1,7 +1,7 @@
 /**
  * The procedural voices (docs/redesign/08-screens.md 5.2): small functions of oscillators,
  * noise and envelopes, each returning how long it sounds. R1 ships tap, buy, milestone, fell,
- * flotsam (in, claimed, Rally) and the UI ticks; R2's cues join this table with their features.
+ * flotsam (in, claimed, Rally) and the UI ticks; R4's cues join this table with their features.
  */
 
 export type Cue =

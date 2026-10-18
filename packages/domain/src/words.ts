@@ -140,7 +140,7 @@ export function words(
       content.tools.some((tool) => tool.id === id) ? t(`tool.${id}.name`) : t(`upgrade.${id}.name`),
     flotsamName: (id) => t(`flotsam.${id}.name`),
     buffName: (id) => t(`buff.${id}.name`),
-    // The feed has no event types until R2: every line is `feed.<type>`.
+    // The feed has no event types until R4: every line is `feed.<type>`.
     feedLine: (event, who) => t(`feed.${(event as { type: string }).type}`, { who }),
   };
 }

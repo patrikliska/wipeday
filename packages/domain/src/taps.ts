@@ -25,7 +25,6 @@ import {
   cycleOf,
   foldStat,
   fullRate,
-  type Rates,
   rates,
   type StatId,
 } from "./effects";
@@ -71,14 +70,14 @@ interface TapFolds {
   critMult: number;
 }
 
-/** Buff-free folds per state (keyed on its `rates`), which taps and the advisor ask for often. */
-const foldsMemo = new WeakMap<Rates, TapFolds>();
+/** Buff-free folds per effects layer (keyed on its memo), which taps and the advisor ask for often. */
+const foldsMemo = new WeakMap<object, TapFolds>();
 
 function tapFolds(content: Content, state: BaseState, t: number): TapFolds {
   const r = rates(content, state);
   // Tap buffs (Adrenaline, Rush) count while they run at `t`.
   const buffs = state.run.buffs.length ? buffEffects(content, state.run.buffs, t) : [];
-  const known = buffs.length === 0 ? foldsMemo.get(r) : undefined;
+  const known = buffs.length === 0 ? foldsMemo.get(r.memo) : undefined;
   if (known) return known;
   const when: Conditions = { online: true };
   const fold = (stat: StatId, base: number): number =>
@@ -101,7 +100,7 @@ function tapFolds(content: Content, state: BaseState, t: number): TapFolds {
     critChance: fold("crit_chance", 0),
     critMult: fold("crit_mult", 1),
   };
-  if (buffs.length === 0) foldsMemo.set(r, folds);
+  if (buffs.length === 0) foldsMemo.set(r.memo, folds);
   return folds;
 }
 
@@ -242,6 +241,7 @@ export function applyTaps(
         ...state.meta.stats,
         taps: state.meta.stats.taps + credited,
         felled: state.meta.stats.felled + fells,
+        crits: state.meta.stats.crits + crits,
       },
     },
   };

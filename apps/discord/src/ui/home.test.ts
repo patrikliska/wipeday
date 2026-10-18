@@ -18,7 +18,7 @@ const buttons = (screen: Screen): Button[] =>
   screen.rows.flatMap((row) => (row.kind === "buttons" ? row.buttons : []));
 const primary = (screen: Screen) => buttons(screen).find((button) => button.style === "primary");
 
-describe("the /base message until R2", () => {
+describe("the /base message until R4", () => {
   it("passes the zero-tutorial lint in every state, with no missing string", () => {
     for (const fixture of fixtures) {
       const screen = homeScreen(lexicon, fixture.home, fixture.last);
@@ -37,7 +37,7 @@ describe("the /base message until R2", () => {
     expect(buttons(screen).filter((button) => button.style === "primary")).toHaveLength(1);
   });
 
-  it("offers no Collect or Gather: the bot changes nothing until R2", () => {
+  it("offers no Collect or Gather: the bot changes nothing until R4", () => {
     for (const fixture of fixtures) {
       const labels = buttons(homeScreen(lexicon, fixture.home, fixture.last)).map((b) => b.label);
       expect(labels.some((label) => /Collect|Gather/.test(label))).toBe(false);

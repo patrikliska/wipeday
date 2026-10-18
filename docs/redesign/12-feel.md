@@ -1,7 +1,10 @@
 # 12. Feel: the addictive layer (owner brainstorm, 2026-10-17)
 
 **Status:** owner decisions taken in chat on 2026-10-17 (D181-D187); the detail here is a
-proposal for the next plan-mode session. Where this file disagrees with `02`, `05`, `10` or
+proposal for the next plan-mode session. R2 Feel's approved plan (2026-10-18) refines it in
+D191-D201, which win where they differ: the palette comes from the Scene Mock and the pixel scene
+lands inside R2 Feel (D191), the Line Mks become one Workshop item per line (D194), the offline
+item is Spare Wicks (D201). Where this file disagrees with `02`, `05`, `10` or
 `11`, this file wins; where it is silent, they stand. Every number is a P1 starting value that
 the simulator owns and may retune. The visual direction, the two HUD mocks, the card reveal and
 the asset catalogue are on the Saltmarsh Feel Board (private artifact, link in `docs/roadmap.md`

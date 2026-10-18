@@ -3,7 +3,7 @@
  * sheet (`index.html`):
  *
  * - `msg__{state}@phone.png` / `@desktop.png`: the `/base` message as Discord lays it out,
- *   drawn from the exact payload the bot sends (`preview/mock.tsx`); no card until R2;
+ *   drawn from the exact payload the bot sends (`preview/mock.tsx`); no card until R4;
  * - DMs and feed posts the same way;
  * - `{name}.txt`: each screen's outline with its lint (CLAUDE.md 6.3).
  *
@@ -99,7 +99,7 @@ for (const note of NOTES) {
   });
 }
 
-// The feed has no event types until R2's Wipe Days: nothing to draw yet.
+// The feed has no event types until R4's Wipe Days: nothing to draw yet.
 const feed: FeedItem[] = [];
 for (const [index, content] of feedMessages(lexicon.words, feed, NOW).entries()) {
   shots.push({

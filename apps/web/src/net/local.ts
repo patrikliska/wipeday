@@ -2,7 +2,7 @@
  * Demo mode: the whole game in the browser, on the demo's game clock (1× with jumps, D138).
  * It runs the same `applyCommand` the server runs and keeps outcome-only records by key like
  * the API (D134), so the client behaves exactly as against a server. Friends (Hollis, the
- * group) arrive with R2's Wipe Days and R6.
+ * group) arrive with R4's Wipe Days and R8.
  */
 import { applyCommand, type Command, isSlim } from "@wipe-day/domain/commands";
 import { DEFAULT_NOTIFY, type NotifyPrefs } from "@wipe-day/domain/feed";

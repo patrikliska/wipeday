@@ -2,9 +2,9 @@
  * `/base`: the API's answer turned into the message. Pure: the base and what the last click did
  * go in, plain data comes out, so tests and `pnpm preview` see exactly what Discord gets.
  *
- * Until R2 the island is being rebuilt (the redesign, D127): `/base` says so and links into the
+ * Until R4 the island is being rebuilt (the redesign, D127): `/base` says so and links into the
  * game, which is the one obvious action (CLAUDE.md 6.3 rule 1). Card v2, with the rate, the
- * Night Shift and Collect, comes in R2 (docs/redesign/06-friends.md 10). The bot has no rules of
+ * Night Shift and Collect, comes in R4 (docs/redesign/06-friends.md 10). The bot has no rules of
  * its own (W8).
  */
 import type { Content } from "@wipe-day/content/schema";

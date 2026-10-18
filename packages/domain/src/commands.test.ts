@@ -143,6 +143,38 @@ describe("normalizeState (D133)", () => {
     expect(once?.run.hands).toEqual(["beachcomber"]);
     expect(normalizeState(content, once)).toEqual(once);
   });
+
+  it("gives an R1 base R2 Feel's fields with their defaults, keeping its counters", () => {
+    const base = newBase(content, T0, 7);
+    const stored = JSON.parse(JSON.stringify(base));
+    for (const key of ["research", "frenzy", "gulls"]) delete stored.run[key];
+    delete stored.meta.badges;
+    stored.meta.stats = { taps: 120, hands: 2, felled: 3, flotsam: 1 };
+    const once = normalizeState(content, stored);
+    expect(once?.run.research).toEqual({});
+    expect(once?.run.frenzy).toEqual(base.run.frenzy);
+    expect(once?.run.gulls).toEqual({ caught: 0, last: -1 });
+    expect(once?.meta.badges).toEqual({});
+    expect(once?.meta.stats).toEqual({
+      ...base.meta.stats,
+      taps: 120,
+      hands: 2,
+      felled: 3,
+      flotsam: 1,
+    });
+  });
+});
+
+describe("lifetime counters (the badges' inputs)", () => {
+  it("count units bought and eras reached", () => {
+    const rich = fresh({ supplies: 1e9 });
+    const bought = ok(run(rich, { type: "buy_line", line: "beachcomber", count: 10 }));
+    expect(bought.meta.stats.units).toBe(10);
+    const era = content.eras[1];
+    if (!era) throw new Error("no second era");
+    const reached = ok(run(bought, { type: "buy_era", era: era.id }));
+    expect(reached.meta.stats.eras).toBe(1);
+  });
 });
 
 describe("numbers (D130)", () => {

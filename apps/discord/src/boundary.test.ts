@@ -1,7 +1,7 @@
 /**
  * W8's contract, checked mechanically: the bot has no game logic and no store of its own.
  * It may read bases with the shared domain's helpers and describe them; every change goes
- * through the API's commands. R2 turns this blocklist into an allowlist (glance, advisor,
+ * through the API's commands. R4 turns this blocklist into an allowlist (glance, advisor,
  * words, clock; docs/redesign/09-architecture.md 11).
  */
 import { readdirSync, readFileSync } from "node:fs";

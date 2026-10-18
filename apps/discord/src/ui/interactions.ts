@@ -1,6 +1,6 @@
 /**
  * The only module that talks to discord.js: the `/base` command, the button router, DMs and
- * the feed channel. Screens stay plain data (`ui/screen`). Until R2 the bot changes no base:
+ * the feed channel. Screens stay plain data (`ui/screen`). Until R4 the bot changes no base:
  * `/base` links into the game (the API refuses its commands, `not_on_discord`).
  *
  * `/base` answers privately (ephemeral), updated in place by its buttons. A DM's "Show my
@@ -75,7 +75,7 @@ export async function baseMessage(
   last?: Last,
 ): Promise<InteractionEditReplyOptions> {
   const home = await bot.api.home(user);
-  // No card until R2's card v2: drop any picture an older message carried.
+  // No card until R4's card v2: drop any picture an older message carried.
   return { ...toMessage(homeScreen(bot.lexicon, home, last)), attachments: [] };
 }
 

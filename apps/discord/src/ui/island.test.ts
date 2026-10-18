@@ -9,7 +9,7 @@ import { lintScreen } from "./screen";
 const { content, locale } = loadGame();
 const w = words(locale, content);
 
-// The feed has no event types until R2: a stand-in event exercises the channel's formatting.
+// The feed has no event types until R4: a stand-in event exercises the channel's formatting.
 const built = (id: number, name: string, at = NOW): FeedItem => ({
   id,
   at,

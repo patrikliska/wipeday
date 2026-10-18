@@ -210,7 +210,7 @@ describe("acting for a player (W8)", () => {
     expect(cookieOf(late)).toBe("");
   });
 
-  it("refuses commands until R2 lets the bot Collect (not_on_discord), without marking seen", async () => {
+  it("refuses commands until R4 lets the bot Collect (not_on_discord), without marking seen", async () => {
     const { bot, home, db, clock } = setup();
     const before = await home();
     const seenAt = () =>
@@ -288,7 +288,7 @@ describe("the bot's stream (W8)", () => {
     const stream = sse(await bot("/stream", { user: null }));
     expect(typeof (await stream.next("ready"))).toBe("number");
     await stream.close();
-    // The feed is empty until R2's Wipe Days, so there is nothing to catch up on.
+    // The feed is empty until R4's Wipe Days, so there is nothing to catch up on.
     expect(game.feedMissed()).toEqual([]);
     expect((await bot("/feed/ack", { method: "POST", body: { id: 5 }, user: null })).status).toBe(
       200,

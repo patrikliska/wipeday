@@ -165,7 +165,7 @@ at the cut-over, to end season 1 quietly. The W7 "Starting over" recipe must **n
 again: it deletes `event_log` and resets a sequence. The cut-over has its own runbook and wipe
 recipe, which keep players, sessions, push subscriptions, settings, the season archive, the Hall
 of fame, legacy rows and `event_log` with its sequence: `docs/redesign/09-architecture.md`
-section 13, rehearsed on a copy of the live database first (R2).
+section 13, rehearsed on a copy of the live database first (R4).
 
 ## Useful commands on the server
 
@@ -199,7 +199,7 @@ mistake on it) never loses the game.
   last 30 days. The script only copies, never syncs, so an emptied folder on the box cannot
   empty the remote.
 - **Did it run:** `~/wipeday/var/offsite.json` is `{"ok":true,"at":<unix>,"files":<n on the
-  remote>}` after every run (the API's status page reads it from R2); the log says why a run
+  remote>}` after every run (the API's status page reads it from R4); the log says why a run
   failed.
 - **By hand:** `~/wipeday/offsite.sh` any time (it skips if a run is still going), e.g. right
   after a `wipeday-pre-<phase>.db` copy.

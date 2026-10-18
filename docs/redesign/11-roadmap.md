@@ -1,5 +1,12 @@
 # 11. Roadmap: building the redesign
 
+> **Phase numbers changed on 2026-10-17/18 (D192).** After the owner's Feel brainstorm,
+> `12-feel.md` inserted **R2 Feel** and **R3 Cards** before the nuke, and every later phase moved
+> by two: this file's (and `01`-`10`'s) R2 The Big Red is now **R4**, R3 → R5, R4 → R6, R5 → R7,
+> R6 → R8, R7 → R9. These plan files keep the numbers they were approved with; `docs/roadmap.md`
+> is the live copy with the new numbers and the R2 Feel and R3 Cards entries, and where
+> `12-feel.md` disagrees with a plan file, it wins.
+
 Status: a proposal for the owner, 2026-10-07. It expands `canon.md` section 16 as amended and
 never contradicts it. Nothing in the repository changes until the owner approves; R0's first job
 is that rewrite. The design is in `01`-`05`, the screens in `08-screens.md`, the engineering in

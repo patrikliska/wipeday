@@ -65,7 +65,7 @@ export const toolSchema = z.strictObject({
   id,
   tier,
   cost: amount,
-  /** May be kept in a Pocket (R5). */
+  /** May be kept in a Pocket (R7). */
   pocket: z.boolean().default(false),
   effects,
 });
@@ -318,7 +318,8 @@ export const islandFileSchema = z.strictObject({
 });
 export type IslandClock = z.infer<typeof islandFileSchema>;
 
-export const PHASES = ["R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7"] as const;
+/** The phases in order (12-feel.md 12: R2 Feel, R3 Cards, R4 The Big Red, … R9 Dares and live ops). */
+export const PHASES = ["R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9"] as const;
 export type Phase = (typeof PHASES)[number];
 
 /** "08:00+5m" (daily, UTC) or "hourly+5m". */

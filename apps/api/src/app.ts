@@ -14,7 +14,7 @@
  *                              10 a second (burst 30) per player
  * GET  /api/events             server-sent events: the base changed (other tab, timers; a
  *                              taps batch sends only its version) and `feed` items
- * GET  /api/feed?before=id     the feed, newest first (empty until R2's Wipe Days)
+ * GET  /api/feed?before=id     the feed, newest first (empty until R4's Wipe Days)
  * GET  /api/notify             notification kinds on/off, the push key, devices on
  * PUT  /api/notify             {kind: bool, ...}: turn kinds on or off
  * POST /api/push/subscribe     {endpoint, keys}: this device wants notifications
@@ -31,7 +31,7 @@
  * GET  /api/bot/stream         server-sent events: `feed` items (the ones missed first) and
  *                              `dm` notifications
  * POST /api/bot/commands       refused (`not_on_discord`): the bot only links into the game
- *                              until R2 lets it Collect
+ *                              until R4 lets it Collect
  * POST /api/bot/feed/ack       {id}: the channel has the feed up to here
  */
 import { existsSync, readFileSync } from "node:fs";

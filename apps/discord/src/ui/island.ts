@@ -5,7 +5,7 @@
  *   follow-ups: the base right here, the game at the right place, and DMs off;
  * - the feed channel: the island feed's items, in the very sentences the web's feed shows
  *   (`@wipe-day/domain/words`), from the same events. Seasons no longer end (D128), so there
- *   is no season news; R2's Wipe Days are the next news.
+ *   is no season news; R4's Wipe Days are the next news.
  */
 import type { FeedItem } from "@wipe-day/domain/feed";
 import type { DmNote } from "@wipe-day/domain/wire";

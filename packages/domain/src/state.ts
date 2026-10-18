@@ -6,7 +6,8 @@
  *
  * Times are whole unix seconds; amounts are finite doubles (`Amount`, D130); counts are
  * integers. Each phase adds the fields its rules use, with defaults, which `normalizeState`
- * fills in for stored bases (R1: eras, the shelf, the roster, the target and the flotsam).
+ * fills in for stored bases (R1: eras, the shelf, the roster, the target and the flotsam;
+ * R2 Feel: the Workshop's levels, the Frenzy meter, the gulls and the badges).
  */
 import type { Content } from "@wipe-day/content/schema";
 import type { Tier } from "@wipe-day/content/tiers";
@@ -53,6 +54,8 @@ export interface RunState {
   roster: number;
   /** Shelf rows bought this run, in order: Grip rungs, Line Mks, island upgrades. */
   upgrades: string[];
+  /** Workshop levels bought this run, by item (12-feel.md 5; reset by the nuke). */
+  research: Record<string, number>;
   /** The era's target: credited taps toward the next fell, and fells this run. */
   target: { taps: number; felled: number };
   /**
@@ -69,6 +72,10 @@ export interface RunState {
   readyAt: Record<string, number>;
   /** The tap meter, 0..cap, and the second of the last credited tap. */
   hustle: { value: number; at: number };
+  /** The Frenzy meter (12-feel.md 3.1), 0..cap, and the second it was last moved. */
+  frenzy: { value: number; at: number };
+  /** Gulls caught this run, and the slot of the latest (−1: none), as for flotsam. */
+  gulls: { caught: number; last: number };
   /** The tap credit (D134): whole tokens, refilled up to the second `at`. */
   bucket: { tokens: number; at: number };
   /** Taps credited this run: the crit seed's index. */
@@ -89,8 +96,26 @@ export interface Meta {
   nodes: string[];
   /** Uses per hint; a hint retires after two. */
   hints: Record<string, number>;
-  /** Lifetime counters. */
-  stats: { taps: number; hands: number; felled: number; flotsam: number };
+  /** Lifetime counters: what the badges count (12-feel.md 9.1). */
+  stats: {
+    taps: number;
+    hands: number;
+    felled: number;
+    flotsam: number;
+    /** Critical taps. */
+    crits: number;
+    /** Frenzies tripped. */
+    frenzies: number;
+    gulls: number;
+    /** Units of every line bought. */
+    units: number;
+    /** Workshop levels bought. */
+    research: number;
+    /** Eras reached (Twig, the start, not counted). */
+    eras: number;
+  };
+  /** Badges earned (the Logbook's wall), by id: the second each was earned. */
+  badges: Record<string, number>;
   /** The chosen cosmetic; owned ones live in the `legacy` row. */
   skin: string | null;
 }
@@ -116,6 +141,7 @@ export const KEEP_ON_CROSSING: Record<keyof Meta, boolean> = {
   nodes: false,
   hints: true,
   stats: true,
+  badges: true,
   skin: true,
 };
 
@@ -127,7 +153,19 @@ export function newMeta(): Meta {
     glass: { ever: 0, held: 0, level: 0, spent: 0 },
     nodes: [],
     hints: {},
-    stats: { taps: 0, hands: 0, felled: 0, flotsam: 0 },
+    stats: {
+      taps: 0,
+      hands: 0,
+      felled: 0,
+      flotsam: 0,
+      crits: 0,
+      frenzies: 0,
+      gulls: 0,
+      units: 0,
+      research: 0,
+      eras: 0,
+    },
+    badges: {},
     skin: null,
   };
 }
@@ -151,12 +189,15 @@ export function newRun(content: Content, meta: Meta, baseSeed: number, now: numb
     eraAt: {},
     roster: 0,
     upgrades: [],
+    research: {},
     target: { taps: 0, felled: 0 },
     flotsam: { k: 0, at: null, caught: 0, last: -1 },
     lines: {},
     hands: [],
     readyAt: {},
     hustle: { value: 0, at: now },
+    frenzy: { value: 0, at: now },
+    gulls: { caught: 0, last: -1 },
     bucket: { tokens: content.tap.bucket.burst, at: now },
     taps: 0,
     buffs: [],

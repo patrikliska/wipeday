@@ -27,13 +27,16 @@ export const STATS = {
   milestone_x2: higher("set"),
   roster_x2: higher("set"),
   mk_mult: higher("set"),
-  tap_flat: higher("more"),
+  tap_flat: higher("add", "more"),
   tap: higher("inc", "more"),
   tap_share: higher("add"),
   hustle_max: higher("add", "set"),
   hustle_hold: higher("add"),
   hustle_drain: lower("more"),
   hustle_gain: higher("add"),
+  /** Frenzy meter gained per tap, and seconds a tripped Frenzy lasts (12-feel.md 3.1). */
+  frenzy_gain: higher("add"),
+  frenzy_seconds: higher("add"),
   crit_chance: higher("add", "set"),
   crit_mult: higher("add", "set"),
   fell_taps: lower("more"),
@@ -76,7 +79,7 @@ export const STAT_IDS = Object.keys(STATS) as StatId[];
 export const PERS = ["owned", "hands", "nukes", "entries"] as const;
 export type Per = (typeof PERS)[number];
 
-/** When a conditional effect applies. `dare:<id>` arrives with Dares (R7). */
+/** When a conditional effect applies. `dare:<id>` arrives with Dares (R9). */
 export const WHENS = ["online", "offline", "afterglow", "rain", "night", "hustle_full"] as const;
 export type When = (typeof WHENS)[number];
 

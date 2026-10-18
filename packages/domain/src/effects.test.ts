@@ -1,7 +1,7 @@
 /**
  * The effects evaluator (D135; docs/redesign/09-architecture.md 5.5): one test per op in the
  * fold order, scope and conditions, monotonicity over 10,000 seeded random effect sets, and a
- * per-stat bound. The bounds against the Blast Map's real ceilings arrive with its data (R2).
+ * per-stat bound. The bounds against the Blast Map's real ceilings arrive with its data (R4).
  */
 import { type Effect, STAT_IDS, STATS, type StatId } from "@wipe-day/content/effects";
 import { loadContent, loadLocale } from "@wipe-day/content/load";
@@ -155,7 +155,7 @@ describe("a per-stat bound", () => {
         .reduce((product, x) => product * x.value, 1);
       const bound = (1 + add) * (1 + inc) * more;
       expect(foldStat(stat, effects, 1)).toBeLessThanOrEqual(bound * (1 + 1e-12));
-      // A ceiling in data would bound the same product: the content check uses this fold (R2).
+      // A ceiling in data would bound the same product: the content check uses this fold (R4).
       expect(Number.isFinite(foldStat(stat, effects, 1))).toBe(true);
     }
   });

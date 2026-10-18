@@ -10,7 +10,7 @@
  *   stored outcome with the base as it is now.
  * - `tick`: settle every base whose next timed event is due (the Night Shift's end), so it is
  *   logged and the player's phone gets the notification they turned on; prune old records.
- * - `feed`: the happenings worth telling everyone, newest first; empty until R2's Wipe Days.
+ * - `feed`: the happenings worth telling everyone, newest first; empty until R4's Wipe Days.
  *
  * A stored base of an older shape (every W-phase base) is replaced by a fresh v2 base, saved in
  * place with the version raised, and `base_reset` is logged (D133): the cut-over's safety net.

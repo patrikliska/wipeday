@@ -9,7 +9,7 @@
  * window restarts (`activeAt`).
  *
  * R0's commands: `taps` and `ping` (the slim path, D134), `buy_line` and `hire_hand`. R1 adds
- * the shelf (`buy_upgrade`), eras (`buy_era`), flotsam and Collect; R2 the nuke and the Blast
+ * the shelf (`buy_upgrade`), eras (`buy_era`), flotsam and Collect; R4 the nuke and the Blast
  * Map.
  */
 import type { Content } from "@wipe-day/content/schema";
@@ -96,7 +96,7 @@ const isPurchase = (command: Command): boolean => PURCHASES.includes(command.typ
 
 /**
  * Settles `state` to `now`, then applies `command`. Pure; the caller owns the clock.
- * `world`: what only the server knows (unused until R6's friends).
+ * `world`: what only the server knows (unused until R8's friends).
  */
 export function applyCommand(
   content: Content,
@@ -226,6 +226,7 @@ function buyLine(content: Content, state: BaseState, id: string, count: BuyCount
       supplies: Math.max(0, supplies - cost),
       lines: { ...state.run.lines, [id]: n + k },
     },
+    meta: { ...state.meta, stats: { ...state.meta.stats, units: state.meta.stats.units + k } },
   };
   // A roster tier, once every open line reaches it, stays for the run.
   const roster = rosterReached(content, next);
@@ -287,6 +288,7 @@ function buyEra(content: Content, state: BaseState, id: string, now: number): St
         // The new target starts fresh; the old one's last fall is the scene's (D153).
         target: { ...state.run.target, taps: 0 },
       },
+      meta: { ...state.meta, stats: { ...state.meta.stats, eras: state.meta.stats.eras + 1 } },
     },
     events: [{ type: "era_reached", era: era.id, at }],
   };

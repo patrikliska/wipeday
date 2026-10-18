@@ -1325,7 +1325,9 @@ phase.
 ### 8.3 The new SHOTS list
 
 Phone shots are 390 × 844 @3x unless noted. `__zoom` means a 1:1 crop is saved too. Times are the
-P1 script's (resolution 3.29).
+P1 script's (resolution 3.29). R2 Feel's shots (`12-feel.md` 13) each come in four weathers:
+the bare name is day, then `_dusk`, `_night` and `_rain`. The phases follow `12-feel.md` 12's
+order (D192): the groups once tagged R2-R7 are R4-R9.
 
 | Shot | Pins | Phase |
 | --- | --- | --- |
@@ -1351,25 +1353,37 @@ P1 script's (resolution 3.29).
 | `phone_settings` | settings with quiet hours and Odds | R1 |
 | `desktop_day` | 1600 × 900, column, recentred camera | R1 |
 | `desktop_night_metal`, `laptop`, `tablet`, `phone_landscape` | layout checks | R1 |
-| `phone_kettle_pad` / `phone_kettle_card` | 500M made (errata E2); the locked card at minute 10 | R2 |
-| `phone_bigred_chip` | crowned chip, steam, gulls | R2 |
-| `phone_cover_first` / `phone_cover_small` | first launch; a small blast's note | R2 |
-| `phone_hold` | lid open, ring at 60%, one-liner | R2 |
-| `cine_scramble`, `cine_ignite`, `cine_liftoff`, `cine_flight_u_turn`, `cine_flight_loop_the_loop`, `cine_flight_sputter_drop`, `cine_fizzle`, `cine_flash`, `cine_fireball`, `cine_cloud`, `cine_settle` | each phase and R2 variant, phone | R2 |
-| `cine_flash_night`, `cine_cloud_night`, `cine_flash_rain`, `cine_cloud_rain` | 03-the-big-red.md 7.5's weather minimum | R2 |
-| `desktop_cine_fireball`, `desktop_cine_cloud`, `cine_reduced` | desktop; the reduced-motion midpoint | R2 |
-| `phone_postcard_front` / `_back` / `_small` | Wipe Day #1; a small blast's puddle | R2 |
-| `phone_rebuild_plain`, `phone_afterglow`, `desktop_afterglow` | the landing; the green sky with ash, pill frozen at ×3 | R2 |
-| `phone_crater_27` | the deepened crater, "WIPE DAY #27" | R2 |
-| `phone_armored_locked` | run 2, "Opens after Wipe Day #2" | R2 |
-| `phone_map_first` | after nuke 1, pick pulsing, "< Rebuild" | R2 |
-| `phone_sector_grip`, `phone_node_sheet`, `phone_node_far`, `phone_node_path_partial`, `phone_node_locked`, `phone_map_respec` | ladder, sheets, the respec card (04-blast-map.md 8.6) | R2 |
-| `phone_friends_feed` | nuke news | R2 |
-| `phone_map_mid`, `phone_map_filter`, `phone_ladder_wrap`, `phone_node_keystone`, `phone_rebuild_loadout`, `desktop_map` | rings 4-6 | R3 |
-| `phone_logbook`, `phone_logbook_secret`, `phone_multipliers_morale` | Logbook | R4 |
-| `phone_toolbelt`, `phone_flare_pick`, `phone_crew_ranks`, `phone_pockets`, `phone_rebuild_pockets`, `phone_magnet`, `phone_dead_hand` | slow layer; a blocked rank with its reason | R5 |
-| `phone_blowback_shore`, `phone_boards`, `phone_freighter`, `phone_visit`, `phone_island_count`, `phone_late_tide` | friends (the Discord postcard is reviewed with `pnpm preview`) | R6 |
-| `phone_map_full`, `phone_ladder_long`, `phone_rebuild_dare`, `desktop_map_full` | all 361 lit; ring 9's longest names; Dares | R7 |
+| `desktop_hero` / `_dusk` / `_night` / `_rain` | 6 taps/s: chips arcing onto the stockpile, the card column in fixed order with the crown lit in place, Best buy chip, the dock centred | R2 |
+| `desktop_frenzy` / `_dusk` / `_night` / `_rain` | Frenzy tripped: ×3 taps, the warmed sky, lines spinning faster, the meter draining | R2 |
+| `desktop_research` / `_dusk` / `_night` / `_rain` | the column's Research tab: tiers 1-4 as tiles with level rings, next cost and gain, a crowned tile, a locked tier with its era | R2 |
+| `desktop_sheet_crew` / `_dusk` / `_night` / `_rain` | the Crew sheet over the scene from the dock, wide and centred | R2 |
+| `phone_hero` / `_dusk` / `_night` / `_rain` | the target at about 35% of the height, the stockpile, the Frenzy meter under it, the drawer's two cards, the dock | R2 |
+| `phone_drawer_cards` / `_dusk` / `_night` / `_rain` | the drawer dragged open: cards in fixed order, the crowned card lit in place, a locked card with its reason | R2 |
+| `phone_research` / `_dusk` / `_night` / `_rain` | the Research tab from the Workshop dock tab, "Spare Wicks: +20 min, 1.2k" | R2 |
+| `phone_dock_badges` / `_dusk` / `_night` / `_rain` | Island, Workshop, Crew, Logbook with badge counts; no Album | R2 |
+| `welcome_back_lamp` / `_dusk` / `_night` / `_rain` | welcome back after a full 2 h window: the lamp burnt down, one Collect | R2 |
+| `achievement_toast` / `_dusk` / `_night` / `_rain` | a badge unlocked: its toast, Morale +1% | R2 |
+| `gull_elite` / `_dusk` / `_night` / `_rain` | an elite gull mid-crossing, glowing; its catch pays 3 min of output | R2 |
+| `ticker` / `_dusk` / `_night` / `_rain` | the news ticker under the dock (desktop) and in the drawer's handle (phone) | R2 |
+| `phone_kettle_pad` / `phone_kettle_card` | 500M made (errata E2); the locked card at minute 10 | R4 |
+| `phone_bigred_chip` | crowned chip, steam, gulls | R4 |
+| `phone_cover_first` / `phone_cover_small` | first launch; a small blast's note | R4 |
+| `phone_hold` | lid open, ring at 60%, one-liner | R4 |
+| `cine_scramble`, `cine_ignite`, `cine_liftoff`, `cine_flight_u_turn`, `cine_flight_loop_the_loop`, `cine_flight_sputter_drop`, `cine_fizzle`, `cine_flash`, `cine_fireball`, `cine_cloud`, `cine_settle` | each phase and R4 variant, phone | R4 |
+| `cine_flash_night`, `cine_cloud_night`, `cine_flash_rain`, `cine_cloud_rain` | 03-the-big-red.md 7.5's weather minimum | R4 |
+| `desktop_cine_fireball`, `desktop_cine_cloud`, `cine_reduced` | desktop; the reduced-motion midpoint | R4 |
+| `phone_postcard_front` / `_back` / `_small` | Wipe Day #1; a small blast's puddle | R4 |
+| `phone_rebuild_plain`, `phone_afterglow`, `desktop_afterglow` | the landing; the green sky with ash, pill frozen at ×3 | R4 |
+| `phone_crater_27` | the deepened crater, "WIPE DAY #27" | R4 |
+| `phone_armored_locked` | run 2, "Opens after Wipe Day #2" | R4 |
+| `phone_map_first` | after nuke 1, pick pulsing, "< Rebuild" | R4 |
+| `phone_sector_grip`, `phone_node_sheet`, `phone_node_far`, `phone_node_path_partial`, `phone_node_locked`, `phone_map_respec` | ladder, sheets, the respec card (04-blast-map.md 8.6) | R4 |
+| `phone_friends_feed` | nuke news | R4 |
+| `phone_map_mid`, `phone_map_filter`, `phone_ladder_wrap`, `phone_node_keystone`, `phone_rebuild_loadout`, `desktop_map` | rings 4-6 | R5 |
+| `phone_logbook`, `phone_logbook_secret`, `phone_multipliers_morale` | Logbook | R6 |
+| `phone_toolbelt`, `phone_flare_pick`, `phone_pockets`, `phone_rebuild_pockets`, `phone_magnet`, `phone_dead_hand` | slow layer; a Pocket blocked with its reason (crew ranks are gone: survivor stars, R3) | R7 |
+| `phone_blowback_shore`, `phone_boards`, `phone_freighter`, `phone_visit`, `phone_island_count`, `phone_late_tide` | friends (the Discord postcard is reviewed with `pnpm preview`) | R8 |
+| `phone_map_full`, `phone_ladder_long`, `phone_rebuild_dare`, `desktop_map_full` | all 361 lit; ring 9's longest names; Dares | R9 |
 
 ### 8.4 The `docs/ui-review.md` checklist, adapted
 

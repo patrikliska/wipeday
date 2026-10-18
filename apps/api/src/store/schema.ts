@@ -228,7 +228,7 @@ export const pushSubscriptions = sqliteTable(
   (table) => [index("push_subscriptions_player").on(table.playerId)],
 );
 
-// --- the Den (W5): dormant since the redesign (D137); emptied at the cut-over, dropped in R7 ---
+// --- the Den (W5): dormant since the redesign (D137); emptied at the cut-over, dropped in R9 ---
 
 /**
  * The market's board: every player listing, open or closed. The goods themselves are
