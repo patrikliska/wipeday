@@ -2260,3 +2260,15 @@ tile the earth is a seeded dirt texture in the tile's own colours, darkening in 
 tile's dirt rows lose the grass blades. The tap hint follows the target's x, since the island is
 no longer centred on wide screens. `apps/web/src/scene/Scene.ts`, `landscape.ts`.
 
+### D208. The ground is painted whole, never tiled; big screens zoom in (owner, 2026-10-18)
+On the owner's 2k monitor the island's ground showed its repeat: one 176-px tile of sand and dirt
+on every terrace (three identical waves stacked) and a 48-px dirt square whose five pebbles formed
+a grid, under a screen that was half dirt. The ground is now painted once per piece
+(`apps/web/src/scene/ground.ts`): each terrace, and the beach with the earth below it, from seeded
+noise in the mock tile's own colours and layers (a sand edge, pale specked sand that thickens and
+thins, its shadow, a reddish wet edge, a near-black lip, dirt darkening to bedrock by dithering,
+scattered pebbles and a few embedded stones), so nothing has a period at any width. The ground
+tiles are gone from the art folder. The zoom cap rises from 5 to 7 CSS px per art pixel, so a
+large screen shows the island larger instead of more dirt and sky. New shots
+`desktop_tall_rain` (1700×1340) and `desktop_2k` (2560×1440). `docs/ui-review.md`.
+

@@ -1403,3 +1403,22 @@ lines inside the house (D206, D207). New shots: `phone_timber_yard`, `phone_hous
 8. Still open: the Stone and later rooms (stand-in until their art), the furnace, tannery and
    press sprites (S3), the shop does not yet say which lines are inside.
 
+## R2 Feel S2c: the ground on a 2k monitor
+
+The owner's screenshots at about 1700×1340, with and without the shop column: every terrace the
+same tile wave, the dirt a visible grid of pebbles, half the screen underground (D208).
+
+### Iteration 1
+- `desktop_tall_rain`: repeats gone (each piece painted from noise), but the sand was flat
+  ribbons with almost no wave: duller than the mock.
+- `desktop_2k`: at zoom 5 the island sat small in a sea of sky and dirt; the cap is now 7.
+
+### Iteration 2
+- `desktop_tall_rain` (zoom crop): the crest swells in long dunes with small ripples, the sand
+  thickens and thins between 7 and 13 rows, brighter at the top and warmer at its lower edge;
+  the lip and the dirt below follow the wave. No period at 1700 or 2560 px.
+- `phone_timber_yard`: the beach, yard and hill read as three distinct sand ledges; the lines and
+  the cabin sit on them as before.
+- Still open: the sand is a little paler and flatter than the mock's tile; a few dune-grass tufts
+  placed by hand (not tiled) could bring back its life.
+

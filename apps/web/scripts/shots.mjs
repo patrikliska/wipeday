@@ -792,6 +792,19 @@ const SHOTS = [
     state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
     ff: 3,
   },
+  // Big screens (the owner's 2k monitor, D208): the ground must never show a repeat.
+  {
+    name: "desktop_tall_rain",
+    viewport: [1700, 1340],
+    state: { time: at(1, 9), wall: WALL, weather: "rain" },
+    ff: 0.5,
+  },
+  {
+    name: "desktop_2k",
+    viewport: [2560, 1440],
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...TIMBER_YARD },
+    ff: 1.5,
+  },
   // The house (D206): Timber's yard with the cabin and its hint, then the cabin open.
   {
     name: "phone_timber_yard",

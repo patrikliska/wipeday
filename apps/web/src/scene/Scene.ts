@@ -69,7 +69,7 @@ const FOCUS_X = ((VIEW.left + VIEW.right) / 2) * ART;
 /** Art px of sea a wide screen keeps left of the island (flotsam floats in it). */
 const SEA_STRIP = 30;
 /** The most CSS px per art pixel: big screens show more sky and sea, not bigger pixels. */
-const MAX_ZOOM = 5;
+const MAX_ZOOM = 7;
 const TARGET = { x: stageSpot(TARGET_SPOT).x, y: GROUND + stageSpot(TARGET_SPOT).y };
 const HOUSE = { x: stageSpot(HOUSE_SPOT).x, y: GROUND + stageSpot(HOUSE_SPOT).y, scale: 1 };
 /** Phones: the ground line at this fraction of the height. */

@@ -58,8 +58,7 @@ prompt gives near-identical takes, so vary the seed, not only the count.
 | Step | Does |
 | --- | --- |
 | `palette` | The 48 colours: every opaque pixel of the Scene Mock's sprites reduced by median cut (near-duplicates merged), plus the fixed ones (the five era colours, fire, the warning red, the sea depths, the far ridge). Writes `packages/content/art/palette.json` (the source of truth), `palette.png` (one pixel per colour: Retro Diffusion's `input_palette`) and a swatch in `preview/art/`. |
-| `seed` | The mock's approved pieces (the pine, the ground, earth, sea and far tiles, the props, the crate) cleaned into `packages/content/art/scene/`. |
-| `plain` | The ground tile without its grass ends (`terrain/ground_plain`): its middle and its mirror, seamless. |
+| `seed` | The mock's approved pieces (the pine, the sea and far tiles, the props, the crate) cleaned into `packages/content/art/scene/`. The ground is not a tile any more: `apps/web/src/scene/ground.ts` paints each terrace, the beach and the earth whole in the mock's colours (D208). |
 | `gen <jobs.json> <out> [--estimate] [--only=a,b] [--collect]` | Submits every job (`--estimate` prints the total price instead), polls the task list and writes `<id>_<n>.png` plus `manifest.json`. A job may carry `palette: true` (the palette as `input_palette`), `refs: [paths]` (reference images, pro styles only) and `input: path` (the starting frame of an animation). `--collect` harvests finished tasks; only it guesses a task by image size, and only for a job with no task of its own. |
 | `sheet <dir> <out.png> [zoom]` | Every PNG in a folder on one checkerboard contact sheet, nearest neighbour, with name and size: what the owner picks from. |
 | `clean <in> <out> [--keep-size]` | Onto the grid: background knock-out (not for tiles and sheets), pitch detection and downsample, alpha snapped, the palette's nearest colours, lone pixels removed, the border trimmed. |

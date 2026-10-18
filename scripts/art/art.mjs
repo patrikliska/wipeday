@@ -2,7 +2,6 @@
 //
 //   palette                     the 48 colours from the Scene Mock -> packages/content/art/palette.*
 //   seed                        the mock's approved sprites into the game's art folder
-//   plain                       the grass-free ground tile (terrain/ground_plain)
 //   gen <jobs.json> <out> [--estimate] [--only=a,b] [--collect]   generate on Retro Diffusion
 //   sheet <dir> <out.png> [zoom]                                 a contact sheet to pick from
 //   clean <in> <out> [--keep-size]                               one file or folder onto the grid
@@ -14,7 +13,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const PYTHON = { palette: "palette.py", seed: "seed.py", plain: "plain.py", sheet: "sheet.py" };
+const PYTHON = { palette: "palette.py", seed: "seed.py", sheet: "sheet.py" };
 const MORE_PYTHON = { clean: "clean.py", install: "install.py" };
 const [step, ...rest] = process.argv.slice(2);
 const script = PYTHON[step] ?? MORE_PYTHON[step];
@@ -24,9 +23,7 @@ const run = script
     ? spawnSync(process.execPath, [path.join(here, "gen.mjs"), ...rest], { stdio: "inherit" })
     : null;
 if (!run) {
-  console.log(
-    "pnpm art <palette|seed|plain|gen|sheet|clean|install> [args] (see scripts/art/art.mjs)",
-  );
+  console.log("pnpm art <palette|seed|gen|sheet|clean|install> [args] (see scripts/art/art.mjs)");
   process.exit(step ? 1 : 0);
 }
 process.exit(run.status ?? 1);

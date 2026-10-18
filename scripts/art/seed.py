@@ -2,7 +2,8 @@
 
 The mock (docs/redesign/art/mock-scene/img) was approved on 2026-10-18; these of its pieces are
 used as they are, cleaned onto the palette by clean.py. Re-run after the palette changes. (The
-shelter and the survivor were replaced by smaller generated ones in S2: picks/s2.json.)
+shelter and the survivor were replaced by smaller generated ones in S2: picks/s2.json; the ground
+and earth tiles by the painted ground, scene/ground.ts, D208.)
 """
 import os
 import sys
@@ -16,8 +17,6 @@ ART = os.path.join(ROOT, "packages", "content", "art", "scene")
 # mock file -> game key, keep the canvas (tiles and sheets)
 SEED = [
     ("pine.png", "target/tree", False),
-    ("ground.png", "terrain/ground", True),
-    ("earth.png", "terrain/earth", True),
     ("sea.png", "terrain/sea", True),
     ("far.png", "terrain/far", True),
     ("clouds.png", "terrain/clouds", True),

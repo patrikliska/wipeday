@@ -8,7 +8,8 @@
  *
  * Night, dusk, rain and fog reach it through the scene's ambient tint, like every sprite.
  */
-import { Container, Graphics, Texture, TilingSprite } from "pixi.js";
+import { Container, Graphics, Sprite, type Texture, TilingSprite } from "pixi.js";
+import { paintGround } from "./ground";
 import { ROWS, SHORE, TERRACES } from "./island";
 import type { Palette } from "./palette";
 import { ART, art, artSprite } from "./pixel";
@@ -25,55 +26,10 @@ const COLOURS = {
 
 /** Each terrace's tint, lowest first: higher terraces sit further back, a little hazier. */
 const HAZE = [0xf2ece6, 0xe2dbd6, 0xd0cac8];
-/** The dirt's bands below the beach tile (art rows each), darker with depth. */
-const EARTH_BAND = 24;
-const EARTH_BANDS = [0xffffff, 0xc8c0c0, 0x968e94, 0x6a646e];
-
-/** The tile's own dirt colours: the base, two darker specks, a pebble and its shadow. */
-const DIRT = {
-  base: 0x502f30,
-  dark: 0x2f1822,
-  purple: 0x402437,
-  pebble: 0x6e5640,
-  shade: 0x150c19,
-};
-
-let soil: Texture | null = null;
-
-/** A 48-px seamless square of the tile's dirt, seeded: specks and a few pebbles. */
-function dirtTexture(): Texture {
-  if (soil) return soil;
-  const size = 48;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  const hex = (c: number) => `#${c.toString(16).padStart(6, "0")}`;
-  if (ctx) {
-    ctx.fillStyle = hex(DIRT.base);
-    ctx.fillRect(0, 0, size, size);
-    for (let i = 0; i < 140; i++) {
-      const x = Math.floor(hash(i * 1.37) * size);
-      const y = Math.floor(hash(i * 2.91 + 7) * size);
-      ctx.fillStyle = hex(hash(i * 5.3) > 0.7 ? DIRT.purple : DIRT.dark);
-      ctx.fillRect(x, y, hash(i * 3.1) > 0.8 ? 2 : 1, 1);
-    }
-    for (let i = 0; i < 5; i++) {
-      const x = Math.floor(hash(i * 9.7 + 3) * (size - 4));
-      const y = Math.floor(hash(i * 4.4 + 1) * (size - 3));
-      ctx.fillStyle = hex(DIRT.shade);
-      ctx.fillRect(x, y + 1, 4, 2);
-      ctx.fillStyle = hex(DIRT.pebble);
-      ctx.fillRect(x + 1, y, 2, 2);
-    }
-  }
-  soil = Texture.from(canvas);
-  soil.source.scaleMode = "nearest";
-  return soil;
-}
-
-/** Art rows of the plain ground tile: where its sand crest averages, where the dirt starts. */
-const GROUND_TILE = { crest: 22, dirt: 34, height: 64 };
+/** Rows of crest wave and headroom a painted ground piece keeps above its feet line. */
+const CREST = 4;
+/** Rows below the beach's lip over which the earth darkens to bedrock. */
+const DARKEN = 140;
 
 export interface LandscapeLayout {
   /** The stage, in stage units, and how far the land runs past it. */
@@ -148,54 +104,45 @@ export class Landscape {
     this.sea = seaTile ? tiles(seaTile, left, beach - 4, seaRight - left, 26) : null;
     if (this.sea) this.ground.addChild(this.sea);
 
-    // The terraces, back to front: the ground tile (sand crest, dirt below) with its crest on
-    // the row's feet line, each a little hazier than the one below it; the next terrace down
-    // covers the rest of its dirt.
-    const ground = art("terrain/ground_plain");
+    // The terraces, back to front, each painted whole (no tile repeats, D208) with its crest on
+    // the row's feet line, a little hazier than the one below it; the next terrace down covers
+    // the rest of its dirt.
     const terraces = [...TERRACES].reverse();
     for (const [i, terrace] of terraces.entries()) {
-      if (!ground) break;
-      const y = ROWS[terrace.row] - GROUND_TILE.crest;
-      const w = terrace.right - terrace.left;
-      const layer = new Container();
-      layer.addChild(tiles(ground, terrace.left, y, w, GROUND_TILE.height));
-      // A darker lip on the face's left edge reads as the terrace's corner.
-      block(
-        layer.addChild(new Graphics()),
-        terrace.left,
-        y + GROUND_TILE.crest + 4,
-        1,
-        GROUND_TILE.height - GROUND_TILE.crest - 4,
-        COLOURS.dirt,
-      );
-      layer.tint = HAZE[terraces.length - 1 - i] ?? 0xffffff;
-      this.ground.addChild(layer);
+      const width = terrace.right - terrace.left;
+      const texture = paintGround({
+        width,
+        height: beach - ROWS[terrace.row] + CREST + 24,
+        crest: CREST,
+        wave: 3,
+        seed: 101 + i * 37,
+        cliff: true,
+      });
+      const piece = new Sprite(texture);
+      piece.scale.set(ART);
+      piece.position.set(terrace.left * ART, (ROWS[terrace.row] - CREST) * ART);
+      piece.tint = HAZE[terraces.length - 1 - i] ?? 0xffffff;
+      this.ground.addChild(piece);
     }
 
-    // The beach strip and the earth below it; its left end slopes into the sea.
-    if (ground) {
+    // The beach and the earth below it, one painted piece; its left end slopes into the sea.
+    {
       const from = SHORE - 34;
-      const top = beach - GROUND_TILE.crest;
+      const top = beach - CREST;
       const land = new Container();
-      land.addChild(tiles(ground, from, top, right - from, GROUND_TILE.height));
-      // Below the tile, plain dirt (no sand or grass to repeat) darkening in bands, then the
-      // bedrock's near-black.
-      let depth = top + GROUND_TILE.height;
-      const soil = dirtTexture();
-      for (const tint of EARTH_BANDS) {
-        const band = tiles(soil, from, depth, right - from, EARTH_BAND);
-        band.tint = tint;
-        land.addChild(band);
-        depth += EARTH_BAND;
-      }
-      block(
-        land.addChild(new Graphics()),
-        from,
-        depth,
-        right - from,
-        bottom - depth,
-        COLOURS.earthDark,
+      const earth = new Sprite(
+        paintGround({
+          width: right - from,
+          height: bottom - top,
+          crest: CREST,
+          wave: 3,
+          seed: 7,
+          darken: DARKEN,
+        }),
       );
+      earth.scale.set(ART);
+      earth.position.set(from * ART, top * ART);
+      land.addChild(earth);
       // The slope: a stepped edge from the waterline down and to the left.
       const mask = new Graphics();
       mask.moveTo((SHORE + 2) * ART, top * ART);
