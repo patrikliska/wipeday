@@ -25,9 +25,10 @@ in `docs/archive/roadmap-w.md`.
   is the Saltmarsh Feel Board (private, https://claude.ai/artifact/VarETEGfAs1nf37PcTW9mB), approved;
   the look is chunky pixel art generated with Retro Diffusion, and the first generated island
   scene, the Saltmarsh Scene Mock, was approved on 2026-10-18 (D189, D190; `docs/redesign/art/`).
-- **R2 Feel's plan was approved on 2026-10-18** (D191): seven sessions, the pixel scene in the
-  middle (S5-S6), the palette from the Scene Mock. **S1 groundwork is done** (results below).
-- **Next: R2 Feel S2, the Workshop and the 2 h Night Shift** (balance; see R2 Feel below).
+- **R2 Feel's plan was approved on 2026-10-18** (D191, reordered in D202): eight sessions, the look
+  first (the pixel scene S2-S3, the HUD S4, sound S5), the palette from the Scene Mock. **S1 groundwork is done** (results below).
+- **Next: R2 Feel S2, the pixel scene** (the look moved first on 2026-10-18 at the owner's
+  request, D202; see R2 Feel below).
 
 ### R2 Feel S1 results (groundwork)
 - **Docs:** `CLAUDE.md` 1, 2, 6, 8, 11 and 12, `docs/game-design.md`, this file and
@@ -385,43 +386,44 @@ look great on a desktop and a phone (`12-feel.md` 1).
 
 | Kind | Plan mode | Model and effort | Sessions | Lands on |
 | --- | --- | --- | --- | --- |
-| architecture, balance, UI, art | yes, full (approved 2026-10-18, D191) | Opus, high for S1-S3; medium for S4-S7 with many shot rounds | 7 (9-15) | `redesign`, played locally |
+| architecture, balance, UI, art | yes, full (approved 2026-10-18, D191) | Opus, medium for S2-S5 with many shot rounds; high for S6-S7 | 8 (9-16) | `redesign`, played locally |
 
 **Build** (from `12-feel.md`; decisions D181-D200)
 
 - **S1. Groundwork** (no balance change). The docs rewritten from `12-feel.md`; the phases
   renumbered R0-R9 in code and `pacing.json5` (D192); the simulator's time bought back with
   identical verdicts (D193); the state's new fields and counters; the new effect stats. *Done.*
-- **S2. The Workshop and the 2 h Night Shift** (balance). `research.json5`: tiers 1-4 (20 items,
+- **S2. The pixel scene: the grid and the first two eras** (art; D202 moved the look first).
+  `pnpm art` (the scripts of `docs/redesign/art/` plus the clean-up: pitch detection,
+  nearest-neighbour downsample, palette quantise, background knock-out, a numbered contact
+  sheet); the 48-colour palette from the Scene Mock (D191); the integer-zoom camera,
+  nearest-neighbour, the sprite loader with today's drawing as fallback; Twig and Timber targets
+  with wear, their lines at three stages, the house tiers, two hands with idle and walk cycles;
+  bands from the palette gradient.
+- **S3. The pixel scene: the rest, and the hero tap** (art, UI). Stone to Armored targets and
+  lines, the other hands, flotsam, the stockpile and the chips; every tap chips a sprite onto the
+  stockpile, squash and stretch on the step grid, the fell's shake.
+- **S4. The HUD** (UI). The Feel Board's tokens and fonts (D187); the dock (D199); panels as
+  sheets; the shop as cards in fixed order with the crown in place and the Best buy chip (D186);
+  the lamp in the counter plate and on the welcome card; the ticker (30 lines).
+- **S5. Sound and juice.** `sounds.json5` with CC0 sources (Kenney) and the procedural voices as
+  fallback, every cue through the event bus, sound off until the first tap; the juice checklist
+  (`12-feel.md` 3.2) on everything built so far; a credits panel.
+- **S6. The Workshop and the 2 h Night Shift** (balance). `research.json5`: tiers 1-4 (20 items,
   one effect each, level `n` of tier `k` at `40 × 20^(k−1) × 1.35^n`) and one `{line}_mk` item per
   line (D194); `buy_research {item, count: 1 | "max"}`; the advisor's gain for every research
   stat in closed form; the shelf keeps Grip, eras and island upgrades. The window at 2 h with a
   24 h ceiling, Spare Wicks +20 min × 6 (D195). Content checks: every research stat has an advisor
   gain; cost cuts at ×0.6 at most; the whole tree under 1e18. The simulator answers `12-feel.md`
   15: what the idler and the casual lose on day 1 at 2 h against 12 h; N4-N7 and the first-hour
-  beats retuned, Research open at 2:00.
-- **S3. The active layer** (balance). Frenzy's meter and trip in closed form inside the taps
-  batch (D196); gulls on their seeded grid and `claim_gull` (D197); about 60 badges in
-  `achievements.json5`, Morale +1% each (D198); the crown on lasting rates (D200). N8 and N9
-  switched to their new bands and tuned.
-- **S4. The HUD** (UI). The Feel Board's tokens and fonts (D187); the dock (D199); panels as
-  sheets; the shop as cards in fixed order with the crown in place and the Best buy chip (D186);
-  the Workshop tab's tiles; the Logbook's badge wall and toast; the lamp in the counter plate and
-  on the welcome card; the ticker (30 lines).
-- **S5. The pixel scene: the grid and the first two eras** (art). `pnpm art` (the scripts of
-  `docs/redesign/art/` plus the clean-up: pitch detection, nearest-neighbour downsample, palette
-  quantise, background knock-out, a numbered contact sheet); the 48-colour palette from the Scene
-  Mock (D191); the integer-zoom camera, nearest-neighbour, the sprite loader with today's drawing
-  as fallback; Twig and Timber targets with wear, their lines at three stages, the house tiers,
-  two hands with idle and walk cycles; bands from the palette gradient.
-- **S6. The pixel scene: the rest, and the hero tap** (art, UI). Stone to Armored targets and
-  lines, the other hands, flotsam, gulls and the elite, the stockpile and the chips; every tap
-  chips a sprite onto the stockpile, squash and stretch on the step grid, the fell's shake; the
-  Frenzy meter and its warm sky; the gull's tap button.
-- **S7. Sound, juice and the finish.** `sounds.json5` with CC0 sources (Kenney) and the
-  procedural voices as fallback, every cue through the event bus, sound off until the first tap;
-  the juice checklist (`12-feel.md` 3.2) on every feature; a credits panel; `pnpm sim check
-  --full`; every R2 Feel shot in every weather.
+  beats retuned, Research open at 2:00. The Workshop tab's tiles and the dock's Workshop place.
+- **S7. The active layer** (balance, UI). Frenzy's meter and trip in closed form inside the taps
+  batch (D196), its meter under the target and the warm sky; gulls on their seeded grid and
+  `claim_gull` (D197), their sprites and tap button; about 60 badges in `achievements.json5`,
+  Morale +1% each (D198), the Logbook's badge wall and toast; the crown on lasting rates (D200).
+  N8 and N9 switched to their new bands and tuned.
+- **S8. The finish.** `pnpm sim check --full`; the juice checklist on S6-S7's features; every R2
+  Feel shot in every weather; the report.
 
 **Done when**
 
@@ -458,7 +460,7 @@ and scrap as the premium currency earned in play (`12-feel.md` 7, 8, 9.2).
 
 | Kind | Plan mode | Model and effort | Sessions | Lands on |
 | --- | --- | --- | --- | --- |
-| domain, balance, UI | yes, full | Opus, high for drops, pity and scrap; medium for the Album | 4 (16-19) | `redesign`, played locally |
+| domain, balance, UI | yes, full | Opus, high for drops, pity and scrap; medium for the Album | 4 (17-20) | `redesign`, played locally |
 
 **Build** (from `12-feel.md` 7-9; the open questions of its 15 answered first)
 
@@ -784,7 +786,7 @@ many screenshot rounds; transcription and chores get **low** or a smaller model.
 | --- | --- | --- | --- | --- | --- |
 | R0 Foundations | architecture | Opus | high | full | 3 |
 | R1 The run | balance + UI | Opus; Sonnet ok for the UI grind | high (S1, S5), medium (S2-S4) | yes | 5 |
-| R2 Feel | balance + UI + art | Opus | high (S1-S3), medium (S4-S7, many shot rounds) | full | 7 |
+| R2 Feel | balance + UI + art | Opus | medium (S2-S5, many shot rounds), high (S1, S6-S7) | full | 8 |
 | R3 Cards | domain + balance + UI | Opus | high (drops, pity, scrap), medium (Album) | full | 4 |
 | R4 The Big Red | architecture + UI | Opus | high; medium for cinematic rounds | full | 4 |
 | R5 Blast Map wave 2 | balance | Opus | high | full | 3 |
@@ -877,13 +879,13 @@ cinematic. Waves 2 and 3 may slip but not be cut (guardrail 6).
 
 - [x] Approve the plan; pick where the pixel scene goes (the middle) and where the palette comes
       from (the Scene Mock) (2026-10-18, D191).
-- [ ] Before S5: top up Retro Diffusion by about 25 USD (balance about 8 USD; the whole art pass
-      is estimated at 25-35 USD).
-- [ ] S5 and S6: pick the takes by number from the contact sheets in `preview/art/`.
+- [ ] During S2: top up Retro Diffusion by about 25 USD (balance about 8 USD covers the first
+      era; the whole art pass is estimated at 25-35 USD).
+- [ ] S2 and S3: pick the takes by number from the contact sheets in `preview/art/`.
 - [ ] Names, to approve or veto in each session's report (Workshop, Supply Drop, Album, Frenzy and
       Spare Wicks are fixed for now, D188); the Workshop's items and the badges' names.
 - [ ] Optional: a donation to 0-mem0ry (the look's inspiration; none of its files are used).
-- [ ] Playtest on the phone and desktop after S4 and after S7; send screenshots.
+- [ ] Playtest on the phone and desktop after S4 and after S8; send screenshots.
 
 **R3 Cards**
 

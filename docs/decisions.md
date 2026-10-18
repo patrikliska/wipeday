@@ -2189,3 +2189,14 @@ product (`resource.fuel`), and one name for two things breaks the one-icon, one-
 (CLAUDE.md 6.2). Recommended: **Spare Wicks** (a spare wick keeps the lamp burning longer, the
 Night Shift's lamp bar; no clash in the locale). The owner may veto it in the next report; a
 rename is a locale edit. `12-feel.md` 5, 6.
+
+### D202. The look first: R2 Feel's sessions reordered (owner, 2026-10-18)
+After S1 the owner asked to see the game look like a real game first, to start showing it
+around. The pixel scene (old S5-S6) becomes S2-S3, the HUD stays S4, sound and juice become S5,
+then the Workshop and the 2 h window (S6), the active layer with Frenzy, gulls and badges (S7) and
+the finish (S8). Nothing is drawn twice: the scene's grid, palette, targets, lines, house and
+hands depend on no new rule, and the Frenzy meter, gulls, the Workshop tab and the badge wall are
+drawn in the sessions that ship their rules. Advertising implies a public launch, which CLAUDE.md
+1 lists as a non-goal; that change waits for the owner's explicit decision and its own plan.
+`docs/roadmap.md` R2 Feel.
+
