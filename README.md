@@ -43,7 +43,8 @@ The rules for working on it (for you and for Claude Code): [CLAUDE.md](CLAUDE.md
    listening, D89), use two terminals instead: `pnpm api` (plain, restart it by hand after
    rule changes) and `pnpm web`. `http://localhost:5173/?demo` needs no API at all.
    No `.env` is needed for local play; copy `.env.example` to `.env` only for Discord login or
-   the bot.
+   the bot. Generating art needs `RETRO_DIFFUSION_API_KEY` in `.env` (copied by hand, never
+   through git); the pipeline and its setup are in `docs/redesign/art/README.md`.
 5. Deploying needs SSH access to the VPS from this computer: see
    [docs/deploy.md, "From a new computer"](docs/deploy.md). The old computer's key stays there.
    Working on one computer and deploying from the other: work on a branch per phase and merge

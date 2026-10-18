@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Saltmarsh Scene Mock</title>
+</head>
+<body style="margin:0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;900&family=Barlow:wght@400;600;700&display=swap">
+<style>
+:root{
+  --bg:#17150f; --bg2:#201c14; --panel:#2a241a; --line:#4a3f2e; --line2:#6b5a3f;
+  --fg:#efe4cc; --fg2:#bfae8c; --fg3:#8c7b5c;
+  --orange:#ff6a00; --gold:#f2b134; --scrap:#4fd1c5; --glass:#9ee6a0; --danger:#e03a2f;
+  --display:"Big Shoulders Display","Barlow Condensed","Arial Narrow",sans-serif;
+  --body:"Barlow","Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.5 var(--body);margin:0;padding-inline:16px;padding-block:0 80px}
+.wrap{max-width:1280px;margin:0 auto}
+header{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font:600 12px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--fg3)}
+h1{font:900 clamp(44px,7vw,84px)/.95 var(--display);margin:10px 0 12px;text-wrap:balance;letter-spacing:.01em}
+h1 span{color:var(--orange)}
+header p{max-width:66ch;color:var(--fg2);margin:0}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:20px;font-size:14px}
+nav.toc a{color:var(--gold);text-decoration:none;border-bottom:1px solid transparent}
+nav.toc a:hover,nav.toc a:focus-visible{border-bottom-color:var(--gold);outline:none}
+section{padding-block:44px 8px;border-bottom:1px solid var(--line)}
+h2{font:700 clamp(30px,4vw,44px)/1 var(--display);margin:0 0 6px;text-wrap:balance}
+h3{font:700 24px/1.1 var(--display);margin:34px 0 8px;letter-spacing:.02em}
+.lede{color:var(--fg2);max-width:70ch;margin:0 0 20px}
+p{max-width:70ch}
+a{color:var(--gold)}
+.cap{font-size:13px;color:var(--fg3);margin:0 0 6px;max-width:none}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:14px 0 0}
+.note{font-size:14px;color:var(--fg2);background:var(--bg2);border-left:3px solid var(--orange);padding:10px 12px}
+.note b{color:var(--fg)}
+table{border-collapse:collapse;font-size:14px;margin-top:12px;min-width:520px}
+th,td{text-align:left;padding:7px 12px;border-bottom:1px solid var(--line)}
+th{font:600 12px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--fg3)}
+td.n{font-variant-numeric:tabular-nums;text-align:right}
+.scroll{overflow-x:auto}
+.sheet{width:100%;max-width:1400px;border:1px solid var(--line2);image-rendering:pixelated;margin-top:12px}
+
+/* frames */
+.frame-wrap{position:relative;width:100%;margin:12px 0 8px;border:1px solid var(--line2);background:#000;overflow:hidden}
+.frame{position:absolute;left:0;top:0;transform-origin:0 0;overflow:hidden;font-family:var(--body);color:#f4ead3}
+.scene{position:absolute;inset:0;overflow:hidden;background:#2a6a70}
+.scene *{image-rendering:pixelated}
+
+/* the island: 320 x 180 art px, scaled by --z. Ground line at art y 112 (bottom: 68). */
+.art{position:absolute;left:0;top:0;width:320px;height:180px;transform:scale(var(--z));transform-origin:0 0;overflow:visible}
+.art>*{position:absolute}
+.art img{display:block}
+.skyg{left:-400px;top:-400px;width:1120px;height:1000px;background:linear-gradient(180deg,#2a6a70 0,#2a6a70 400px,#3f8a86 420px,#9fcfb4 468px,#f0c98a 500px,#f2a06a 514px,#d47a6a 520px,#3a2a1f 520px)}
+.sun{left:30px;top:70px;width:14px;height:14px;background:#fff3c4;box-shadow:0 0 0 2px #ffd79a,0 0 0 4px rgba(255,200,120,.35);clip-path:polygon(27% 0,73% 0,100% 27%,100% 73%,73% 100%,27% 100%,0 73%,0 27%)}
+.clouds{left:56px;top:50px;animation:drift 120s steps(60) infinite alternate}
+@keyframes drift{from{transform:translateX(0)}to{transform:translateX(-30px)}}
+.far{left:0;top:72px}
+.sea{left:0;top:106px;width:100px;height:74px;clip-path:polygon(0 0,100% 0,100% 35%,0 100%);background:url(img/sea.png) repeat-x 0 0/128px 26px,#1b4f58}
+.sea::after{content:"";position:absolute;left:0;right:0;top:26px;bottom:0;background:linear-gradient(180deg,#1d565e,#163f47 50%,#10303a)}
+.earth{left:0;top:162px;width:320px;height:300px;background:url(img/earth.png) repeat 0 0/160px 30px}
+.earth::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,12,8,.25),rgba(20,12,8,.7) 60px,#1a100a 140px)}
+.ground{left:0;top:98px;width:320px;height:64px;clip-path:polygon(86px 0,100% 0,100% 100%,0 100%,0 26px);background:url(img/ground.png) repeat-x 0 0/160px 64px}
+.bob{animation:bob 2.4s steps(1) infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-1px)}}
+.anim{width:32px;height:48px;background:url(img/survivor_idle.png) 0 0/128px 96px no-repeat;animation:cyc 1.6s infinite}
+.anim.walk{background-image:url(img/survivor_walk.png);animation-duration:.9s}
+@keyframes cyc{0%{background-position:0 0;animation-timing-function:steps(4,end)}50%{background-position:-128px 0}50.001%{background-position:0 -48px;animation-timing-function:steps(4,end)}100%{background-position:-128px -48px}}
+.glow{width:40px;height:40px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,196,96,.55),rgba(255,160,60,.18) 55%,transparent);mix-blend-mode:screen;animation:flick 3s steps(3) infinite}
+@keyframes flick{0%,100%{opacity:.85}40%{opacity:1}70%{opacity:.7}}
+.night .glow{background:radial-gradient(closest-side,rgba(255,196,96,.95),rgba(255,150,50,.35) 55%,transparent)}
+.tint{left:-400px;top:-400px;width:1120px;height:1000px;background:rgba(14,22,48,.58);mix-blend-mode:multiply;display:none}
+.night .tint{display:block}
+.night .skyg{background:linear-gradient(180deg,#0a1226 0,#0a1226 400px,#14264a 440px,#2a3f66 500px,#4a4a6a 518px,#3a2a1f 520px)}
+.night .sun{display:none}
+.night .clouds{opacity:.35}
+.stars{left:0;top:0;width:320px;height:100px;display:none;background:
+  radial-gradient(1px 1px at 20px 12px,#fff 50%,transparent 51%),radial-gradient(1px 1px at 68px 30px,#fff 50%,transparent 51%),
+  radial-gradient(1px 1px at 120px 8px,#fff 50%,transparent 51%),radial-gradient(1px 1px at 160px 40px,#fff 50%,transparent 51%),
+  radial-gradient(1px 1px at 210px 18px,#fff 50%,transparent 51%),radial-gradient(1px 1px at 250px 44px,#fff 50%,transparent 51%),
+  radial-gradient(1px 1px at 290px 10px,#fff 50%,transparent 51%),radial-gradient(1px 1px at 300px 60px,#fff 50%,transparent 51%),
+  radial-gradient(1px 1px at 40px 56px,#fff 50%,transparent 51%),radial-gradient(1px 1px at 180px 66px,#fff 50%,transparent 51%)}
+.night .stars{display:block}
+.moon{left:262px;top:24px;width:10px;height:10px;background:#f6f1dc;clip-path:polygon(27% 0,73% 0,100% 27%,100% 73%,73% 100%,27% 100%,0 73%,0 27%);display:none;box-shadow:0 0 0 3px rgba(246,241,220,.15)}
+.night .moon{display:block}
+.ring{width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,214,102,.9);box-shadow:0 0 0 2px rgba(255,160,60,.25),0 0 18px rgba(255,170,60,.35);animation:ring 1.6s ease-out infinite;mix-blend-mode:screen}
+@keyframes ring{0%{transform:scale(.6);opacity:.95}100%{transform:scale(1.25);opacity:0}}
+
+/* hud (the approved direction, from the Feel Board) */
+.hud{position:absolute;inset:0}
+.ic svg{width:100%;height:100%;display:block}
+.plate{background:linear-gradient(180deg,#3a3126,#2a2319);border:2px solid #5a4a36;box-shadow:inset 0 1px 0 rgba(255,230,180,.18),0 8px 24px rgba(0,0,0,.45);border-radius:10px}
+.counter{position:absolute;left:8px;top:6px;min-width:340px;padding:12px 22px 14px 18px;display:flex;align-items:center;gap:14px}
+.counter .ic{width:54px;height:54px;color:var(--gold)}
+.counter .n{font:900 64px/1 var(--display);font-variant-numeric:tabular-nums;color:#fff;text-shadow:0 2px 0 #7a4a00}
+.counter .r{font:600 18px/1.1 var(--body);color:var(--gold)}
+.counter .best{margin-left:12px;font:700 13px/1 var(--body);letter-spacing:.06em;text-transform:uppercase;color:#1a1208;background:var(--gold);padding:8px 12px;border-radius:999px;box-shadow:0 2px 0 #9a6a00}
+.pills{position:absolute;right:16px;top:12px;display:flex;gap:10px}
+.pill{padding:8px 14px 8px 10px;display:flex;gap:8px;align-items:center;font:700 20px/1 var(--display);border-radius:999px}
+.pill .ic{width:24px;height:24px}
+.pill.scrap{color:var(--scrap)}.pill.glass{color:var(--glass)}
+.pill.set{width:68px;justify-content:center;color:var(--fg2);font-size:18px}
+.shift{position:absolute;left:372px;top:22px;padding:8px 14px;display:flex;align-items:center;gap:10px;font:600 14px/1 var(--body);color:var(--fg2)}
+.shift .bar{width:140px;height:8px;background:#1a140c;border-radius:4px;overflow:hidden}
+.shift .bar i{display:block;height:100%;width:72%;background:linear-gradient(90deg,#ffb347,#ff6a00)}
+.frenzy{position:absolute;left:90px;top:380px;width:260px;text-align:center}
+.frenzy .meter{height:14px;background:rgba(0,0,0,.55);border:2px solid #5a4a36;border-radius:8px;overflow:hidden}
+.frenzy .meter i{display:block;height:100%;width:64%;background:linear-gradient(90deg,#ff6a00,#ffd166);box-shadow:0 0 12px #ff9a3c}
+.frenzy small{display:block;font:700 13px/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:#ffd166;margin-top:6px;text-shadow:0 1px 2px #000}
+.float{position:absolute;font:900 34px/1 var(--display);color:#fff;text-shadow:0 2px 0 #7a4a00,0 0 14px rgba(255,160,60,.6);display:flex;align-items:center;gap:6px;animation:rise 1.8s ease-out infinite}
+.float .ic{width:26px;height:26px;color:var(--gold)}
+.float.s{font-size:26px;animation-delay:.6s}
+.float.t{font-size:22px;animation-delay:1.2s}
+@keyframes rise{0%{transform:translateY(0);opacity:0}12%{opacity:1}100%{transform:translateY(-70px);opacity:0}}
+.hint{position:absolute;font:700 20px/1 var(--body);color:#fff;background:rgba(20,12,4,.72);padding:10px 16px;border-radius:999px;border:1px solid rgba(255,200,120,.35);white-space:nowrap}
+.drop{position:absolute;right:24px;bottom:118px;width:150px;padding:10px 12px 12px;display:flex;flex-direction:column;align-items:center;gap:4px;border-color:#8a6a2a}
+.drop .ic{width:56px;height:56px;color:var(--gold);filter:drop-shadow(0 0 10px rgba(255,180,60,.7))}
+.drop b{font:700 15px/1.1 var(--display);letter-spacing:.04em;text-transform:uppercase;color:#ffd166}
+.drop small{font-size:12px;color:var(--fg2)}
+.dock{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:6px;padding:8px;border-radius:16px}
+.dock a{position:relative;width:104px;padding:8px 6px 7px;display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:10px;color:#cdbc98;text-decoration:none;font:600 13px/1 var(--body);letter-spacing:.04em}
+.dock a .ic{width:30px;height:30px}
+.dock a.on{background:linear-gradient(180deg,#5a4a36,#3f3324);color:#fff;box-shadow:inset 0 1px 0 rgba(255,230,180,.25)}
+.dock a .badge{position:absolute;right:14px;top:2px;background:var(--danger);color:#fff;font:700 11px/1 var(--body);padding:3px 6px;border-radius:999px;border:2px solid #2a2319}
+/* phone hud */
+.ph .counter{left:10px;right:10px;top:12px;min-width:0;padding:10px 14px;gap:10px}
+.ph .counter .ic{width:40px;height:40px}
+.ph .counter .n{font-size:44px}
+.ph .counter .r{font-size:15px}
+.ph .counter .best{margin-left:auto;font-size:11px;padding:7px 9px}
+.ph .pills{left:10px;right:auto;top:96px}
+.ph .pill{padding:6px 10px 6px 8px;font-size:17px}
+.ph .pill .ic{width:20px;height:20px}
+.ph .shift{left:auto;right:10px;top:96px;padding:6px 10px;font-size:12px}
+.ph .shift .bar{width:70px}
+.ph .hint{font-size:17px;padding:9px 14px}
+.ph .frenzy{left:50%;transform:translateX(-50%);width:220px;top:150px}
+.ph .drop{right:10px;bottom:118px;width:118px;padding:8px}
+.ph .drop .ic{width:40px;height:40px}
+.ph .drop b{font-size:13px}
+.ph .dock{bottom:12px;gap:2px;padding:6px;width:370px;justify-content:space-between}
+.ph .dock a{width:70px;padding:7px 2px 6px;font-size:11px}
+.ph .dock a .ic{width:26px;height:26px}
+.ph .dock a .badge{right:8px}
+.ph .float{font-size:28px}
+.phones{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;align-items:start}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Wipe Day · redesign · 2026-10-18</div>
+  <h1>Saltmarsh, <span>first light</span></h1>
+  <p>One island scene built only from sprites generated this morning with Retro Diffusion, laid on the chunky grid of D188 (one art pixel is four screen pixels on desktop, three on a phone) under the approved HUD. Nothing here is from a bought pack. It is a mood mock, not the game: the real scene is drawn by PixiJS from the same kind of sprites.</p>
+  <nav class="toc"><a href="#day">Day</a><a href="#night">Night</a><a href="#phone">Phone</a><a href="#sprites">The sprites</a><a href="#notes">What this cost and what is next</a></nav>
+</header>
+
+<section id="day">
+  <h2>Day, 1280 × 720</h2>
+  <p class="lede">A new player's island a few minutes in: the first pine still crowned as the tap target, the Workshop bought, one survivor hired, the car wreck on the shore and a supply crate washed up. The ruined coast across the water is the far layer.</p>
+  <div class="frame-wrap" data-w="1280" data-h="720">
+    <div class="frame" style="width:1280px;height:720px">
+      <div class="scene">
+        <div class="art" style="--z:4">
+          <div class="skyg"></div><div class="stars"></div><div class="sun"></div><div class="moon"></div>
+          <img class="clouds" src="img/clouds.png" alt="">
+          <img class="far" src="img/far.png" alt="">
+          <div class="sea"></div>
+          <img class="bob" src="img/flotsam.png" alt="" style="left:34px;top:101px">
+          <div class="ground"></div><div class="earth"></div>
+          <img src="img/rock.png" alt="" style="left:80px;top:104px">
+          <img src="img/shelter.png" alt="" style="left:262px;top:72px">
+          
+          <img src="img/car.png" alt="" style="left:92px;top:95px">
+          <img src="img/drop.png" alt="" style="left:104px;top:90px">
+          <img src="img/pine.png" alt="" style="left:124px;top:52px">
+          <img src="img/lamp.png" alt="" style="left:170px;top:76px">
+          <div class="glow" style="left:155px;top:60px"></div>
+          <div class="anim" style="left:180px;top:64px"></div>
+          <img src="img/bench.png" alt="" style="left:208px;top:65px">
+          <div class="glow" style="left:197px;top:58px"></div>
+          <img src="img/barrel.png" alt="" style="left:276px;top:90px">
+          <img src="img/bigred.png" alt="" style="left:296px;top:88px">
+          <div class="ring" style="left:118px;top:56px"></div>
+        </div>
+      </div>
+      <div class="hud">
+        <div class="plate counter"><span class="ic" data-svg="wd/supplies.svg"></span><div><div class="n">1,284</div><div class="r">+9.6 /s</div></div><span class="best">Best buy ↓</span></div>
+        <div class="plate shift"><span>Night Shift</span><span class="bar"><i></i></span><span>1 h 42 min of 2 h</span></div>
+        <div class="pills"><div class="plate pill scrap"><span class="ic" data-svg="wd/scrap.svg"></span>2</div><div class="plate pill glass"><span class="ic" data-svg="wd/glass.svg"></span>0</div><div class="plate pill set">≡</div></div>
+        <div class="hint" style="left:470px;top:160px">Tap the tree</div>
+        <div class="float" style="left:540px;top:300px"><span class="ic" data-svg="wd/supplies.svg"></span>+12</div>
+        <div class="float s" style="left:600px;top:340px"><span class="ic" data-svg="wd/supplies.svg"></span>+12</div>
+        <div class="float t" style="left:520px;top:360px"><span class="ic" data-svg="wd/supplies.svg"></span>+12</div>
+        <div class="frenzy"><div class="meter"><i></i></div><small>Frenzy 64 / 100</small></div>
+        <div class="plate drop"><span class="ic"><img src="gi/locked-chest.svg" alt=""></span><b>Supply Drop</b><small>Open · 1 waiting</small></div>
+        <div class="plate dock">
+          <a class="on" href="#day"><span class="ic"><img src="gi/lighthouse.svg" alt=""></span>Island</a>
+          <a href="#day"><span class="ic"><img src="gi/gear-hammer.svg" alt=""></span>Workshop<span class="badge">3</span></a>
+          <a href="#day"><span class="ic"><img src="gi/hood.svg" alt=""></span>Crew</a>
+          <a href="#day"><span class="ic"><img src="gi/open-treasure-chest.svg" alt=""></span>Album<span class="badge">1</span></a>
+          <a href="#day"><span class="ic"><img src="gi/treasure-map.svg" alt=""></span>Logbook</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="cap">Everything in the scene is a Retro Diffusion output: the props and the survivor from the pro model, the bands cropped out of its environment renders. The sky gradient, the sun, the sea depth and the glows are CSS, which is what the game's palette layer would do.</p>
+</section>
+
+<section id="night">
+  <h2>Night, the same island</h2>
+  <p class="lede">Night is a tint and three lights. The lamp post, the bench lantern and the shelter stay lit, the pine keeps its tap ring, and the HUD does not change. Night tint and glows sit on separate layers, as CLAUDE.md 6.1 already asks.</p>
+  <div class="frame-wrap" data-w="1280" data-h="720">
+    <div class="frame" style="width:1280px;height:720px">
+      <div class="scene">
+        <div class="art night" style="--z:4" data-n="1">
+          <div class="skyg"></div><div class="sun"></div>
+          <img class="clouds" src="img/clouds.png" alt="">
+          <img class="far" src="img/far.png" alt="">
+          <div class="sea"></div>
+          <img class="bob" src="img/flotsam.png" alt="" style="left:34px;top:101px">
+          <div class="ground"></div><div class="earth"></div>
+          <img src="img/rock.png" alt="" style="left:80px;top:104px">
+          <img src="img/shelter.png" alt="" style="left:262px;top:72px">
+          <img src="img/car.png" alt="" style="left:92px;top:95px">
+          <img src="img/drop.png" alt="" style="left:104px;top:90px">
+          <img src="img/pine.png" alt="" style="left:124px;top:52px">
+          <img src="img/lamp.png" alt="" style="left:170px;top:76px">
+          <div class="anim walk" style="left:150px;top:64px"></div>
+          <img src="img/bench.png" alt="" style="left:208px;top:65px">
+          <img src="img/barrel.png" alt="" style="left:276px;top:90px">
+          <img src="img/bigred.png" alt="" style="left:296px;top:88px">
+          <div class="tint"></div><div class="stars"></div><div class="moon"></div>
+          <div class="glow" style="left:155px;top:60px"></div>
+          <div class="glow" style="left:197px;top:58px"></div>
+          <div class="glow" style="left:280px;top:70px;width:30px;height:30px"></div>
+          <div class="ring" style="left:118px;top:56px"></div>
+        </div>
+      </div>
+      <div class="hud">
+        <div class="plate counter"><span class="ic" data-svg="wd/supplies.svg"></span><div><div class="n">31.8k</div><div class="r">+118 /s</div></div><span class="best">Best buy ↓</span></div>
+        <div class="plate shift"><span>Night Shift</span><span class="bar"><i style="width:30%"></i></span><span>36 min of 2 h</span></div>
+        <div class="pills"><div class="plate pill scrap"><span class="ic" data-svg="wd/scrap.svg"></span>5</div><div class="plate pill glass"><span class="ic" data-svg="wd/glass.svg"></span>0</div><div class="plate pill set">≡</div></div>
+        <div class="float" style="left:900px;top:250px"><span class="ic" data-svg="wd/supplies.svg"></span>+214</div>
+        <div class="float s" style="left:960px;top:290px"><span class="ic" data-svg="wd/supplies.svg"></span>+214</div>
+        <div class="frenzy"><div class="meter"><i style="width:91%"></i></div><small>Frenzy 91 / 100</small></div>
+        <div class="plate drop"><span class="ic"><img src="gi/locked-chest.svg" alt=""></span><b>Supply Drop</b><small>Open · 2 waiting</small></div>
+        <div class="plate dock">
+          <a class="on" href="#night"><span class="ic"><img src="gi/lighthouse.svg" alt=""></span>Island</a>
+          <a href="#night"><span class="ic"><img src="gi/gear-hammer.svg" alt=""></span>Workshop<span class="badge">1</span></a>
+          <a href="#night"><span class="ic"><img src="gi/hood.svg" alt=""></span>Crew</a>
+          <a href="#night"><span class="ic"><img src="gi/open-treasure-chest.svg" alt=""></span>Album</a>
+          <a href="#night"><span class="ic"><img src="gi/treasure-map.svg" alt=""></span>Logbook</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="cap">Later the same day: the Workshop runs, a Frenzy is nearly full, two drops wait. The lit windows and the lantern pools are CSS on the lights layer.</p>
+</section>
+
+<section id="phone">
+  <h2>On a phone, 390 × 844</h2>
+  <p class="lede">Zoom 3. The camera is framed on the pine, which stands 180 CSS px tall, well over the 120 px the spec asks for (N27). The bench is one thumb to the right.</p>
+  <div class="phones">
+    <div>
+      <div class="frame-wrap" data-w="390" data-h="844">
+        <div class="frame ph" style="width:390px;height:844px">
+          <div class="scene">
+            <div class="art" style="--z:3;left:-318px;top:126px">
+              <div class="skyg"></div><div class="sun" style="left:56px"></div>
+              <img class="clouds" src="img/clouds.png" alt="">
+              <img class="far" src="img/far.png" alt="">
+              <div class="sea"></div>
+              <img class="bob" src="img/flotsam.png" alt="" style="left:34px;top:101px">
+              <div class="ground"></div><div class="earth"></div>
+              <img src="img/rock.png" alt="" style="left:80px;top:104px">
+              <img src="img/shelter.png" alt="" style="left:262px;top:72px">
+              <img src="img/car.png" alt="" style="left:92px;top:95px">
+              <img src="img/drop.png" alt="" style="left:104px;top:90px">
+              <img src="img/pine.png" alt="" style="left:124px;top:52px">
+              <img src="img/lamp.png" alt="" style="left:170px;top:76px">
+              <div class="glow" style="left:155px;top:60px"></div>
+              <div class="anim" style="left:180px;top:64px"></div>
+              <img src="img/bench.png" alt="" style="left:208px;top:65px">
+              <div class="glow" style="left:197px;top:58px"></div>
+              <img src="img/barrel.png" alt="" style="left:276px;top:90px">
+              <img src="img/bigred.png" alt="" style="left:296px;top:88px">
+              <div class="ring" style="left:118px;top:56px"></div>
+            </div>
+          </div>
+          <div class="hud">
+            <div class="plate counter"><span class="ic" data-svg="wd/supplies.svg"></span><div><div class="n">1,284</div><div class="r">+9.6 /s</div></div><span class="best">Best buy</span></div>
+            <div class="pills"><div class="plate pill scrap"><span class="ic" data-svg="wd/scrap.svg"></span>2</div><div class="plate pill glass"><span class="ic" data-svg="wd/glass.svg"></span>0</div></div>
+            <div class="plate shift"><span class="bar"><i></i></span><span>1 h 42 min</span></div>
+            <div class="hint" style="left:62px;top:240px">Tap the tree</div>
+            <div class="float" style="left:90px;top:360px"><span class="ic" data-svg="wd/supplies.svg"></span>+12</div>
+            <div class="float s" style="left:130px;top:400px"><span class="ic" data-svg="wd/supplies.svg"></span>+12</div>
+            <div class="frenzy"><div class="meter"><i></i></div><small>Frenzy 64 / 100</small></div>
+            <div class="plate dock">
+              <a class="on" href="#phone"><span class="ic"><img src="gi/lighthouse.svg" alt=""></span>Island</a>
+              <a href="#phone"><span class="ic"><img src="gi/gear-hammer.svg" alt=""></span>Workshop<span class="badge">3</span></a>
+              <a href="#phone"><span class="ic"><img src="gi/hood.svg" alt=""></span>Crew</a>
+              <a href="#phone"><span class="ic"><img src="gi/open-treasure-chest.svg" alt=""></span>Album<span class="badge">1</span></a>
+              <a href="#phone"><span class="ic"><img src="gi/treasure-map.svg" alt=""></span>Logbook</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="cap">Phone, day. The island scrolls sideways; this is the opening frame.</p>
+    </div>
+    <div>
+      <div class="frame-wrap" data-w="390" data-h="844">
+        <div class="frame ph" style="width:390px;height:844px">
+          <div class="scene" style="background:#0a1226">
+            <div class="art night" style="--z:3;left:-318px;top:126px">
+              <div class="skyg"></div>
+              <img class="clouds" src="img/clouds.png" alt="">
+              <img class="far" src="img/far.png" alt="">
+              <div class="sea"></div>
+              <img class="bob" src="img/flotsam.png" alt="" style="left:34px;top:101px">
+              <div class="ground"></div><div class="earth"></div>
+              <img src="img/rock.png" alt="" style="left:80px;top:104px">
+              <img src="img/shelter.png" alt="" style="left:262px;top:72px">
+              <img src="img/car.png" alt="" style="left:92px;top:95px">
+              <img src="img/drop.png" alt="" style="left:104px;top:90px">
+              <img src="img/pine.png" alt="" style="left:124px;top:52px">
+              <img src="img/lamp.png" alt="" style="left:170px;top:76px">
+              <div class="anim walk" style="left:150px;top:64px"></div>
+              <img src="img/bench.png" alt="" style="left:208px;top:65px">
+              <img src="img/barrel.png" alt="" style="left:276px;top:90px">
+              <img src="img/bigred.png" alt="" style="left:296px;top:88px">
+              <div class="tint"></div><div class="stars"></div><div class="moon" style="left:200px"></div>
+              <div class="glow" style="left:155px;top:60px"></div>
+              <div class="glow" style="left:197px;top:58px"></div>
+              <div class="ring" style="left:118px;top:56px"></div>
+            </div>
+          </div>
+          <div class="hud">
+            <div class="plate counter"><span class="ic" data-svg="wd/supplies.svg"></span><div><div class="n">31.8k</div><div class="r">+118 /s</div></div><span class="best">Best buy</span></div>
+            <div class="pills"><div class="plate pill scrap"><span class="ic" data-svg="wd/scrap.svg"></span>5</div><div class="plate pill glass"><span class="ic" data-svg="wd/glass.svg"></span>0</div></div>
+            <div class="plate shift"><span class="bar"><i style="width:30%"></i></span><span>36 min</span></div>
+            <div class="float" style="left:200px;top:380px"><span class="ic" data-svg="wd/supplies.svg"></span>+214</div>
+            <div class="frenzy"><div class="meter"><i style="width:91%"></i></div><small>Frenzy 91 / 100</small></div>
+            <div class="plate drop"><span class="ic"><img src="gi/locked-chest.svg" alt=""></span><b>Supply Drop</b><small>2 waiting</small></div>
+            <div class="plate dock">
+              <a class="on" href="#phone"><span class="ic"><img src="gi/lighthouse.svg" alt=""></span>Island</a>
+              <a href="#phone"><span class="ic"><img src="gi/gear-hammer.svg" alt=""></span>Workshop<span class="badge">1</span></a>
+              <a href="#phone"><span class="ic"><img src="gi/hood.svg" alt=""></span>Crew</a>
+              <a href="#phone"><span class="ic"><img src="gi/open-treasure-chest.svg" alt=""></span>Album</a>
+              <a href="#phone"><span class="ic"><img src="gi/treasure-map.svg" alt=""></span>Logbook</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="cap">Phone, night.</p>
+    </div>
+  </div>
+</section>
+
+<section id="sprites">
+  <h2>The sprites, as they came back</h2>
+  <p class="lede">Every output at four times its size, untouched except for the four crops. Two takes each for the bench, the pine and the survivor; the scene uses the second bench, the upright pine and the first survivor.</p>
+  <img class="sheet" src="img/sheet.png" alt="Contact sheet of the generated sprites">
+  <h3>Animated from the finished sprite</h3>
+  <p class="lede">The survivor above, padded to 32 × 48 and sent back in as the input image. Eight frames each, idle and walking, 0.14 USD a cycle. The day frames use the idle cycle at the bench; at night the hand walks in from the shore.</p>
+  <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start"><div><img src="img/survivor_idle.png" alt="Idle sheet" style="width:512px;max-width:100%;image-rendering:pixelated;border:1px solid var(--line2)"><p class="cap">Idle, 4 × 2 frames.</p></div><div><img src="img/survivor_walk.png" alt="Walking sheet" style="width:512px;max-width:100%;image-rendering:pixelated;border:1px solid var(--line2)"><p class="cap">Walking, 4 × 2 frames.</p></div></div>
+  <div class="scroll"><table>
+    <tr><th>Asset</th><th>Model</th><th>Size (art px)</th><th class="n">Cost</th><th>Verdict</th></tr>
+    <tr><td>Workbench, two takes</td><td>pro, platformer</td><td>64 × 48</td><td class="n">0.36</td><td>Both usable. Side view held, the lamp and the tarp roof came through.</td></tr>
+    <tr><td>Pine, two takes</td><td>pro, platformer</td><td>48 × 72</td><td class="n">0.36</td><td>Both good. The leaning one is the better tap target later.</td></tr>
+    <tr><td>Survivor, two takes</td><td>pro, platformer</td><td>24 × 40</td><td class="n">0.36</td><td>Near-identical takes from one seed. Readable at 24 px, wrench and pack present.</td></tr>
+    <tr><td>Shelter, supply crate, Big Red</td><td>pro, platformer</td><td>56 × 40 and smaller</td><td class="n">0.54</td><td>All three usable as drawn.</td></tr>
+    <tr><td>Car wreck, barrel, lamp post, flotsam, rock</td><td>plus, low res</td><td>40 × 24 and smaller</td><td class="n">0.30</td><td>The cheap model is fine for props this small. The flotsam came back as a sack, not a crate.</td></tr>
+    <tr><td>Sky, far coast, sea, ground</td><td>plus, environment</td><td>320 × 112 down to 160 × 64</td><td class="n">0.24</td><td>The style paints whole landscapes and ignores "no ground, no sky". Cropped: clouds, the ruin line, a water tile, the beach cross-section.</td></tr>
+    <tr><td>Survivor idle and walk cycles</td><td>advanced animation</td><td>32 × 48, 8 frames</td><td class="n">0.28</td><td>Both coherent; the outline came back a touch heavier than the source.</td></tr>
+    <tr><td><b>Total</b></td><td></td><td></td><td class="n"><b>2.44</b></td><td>USD, from the 10 loaded. Balance after: 7.97.</td></tr>
+  </table></div>
+</section>
+
+<section id="notes">
+  <h2>What this tells us</h2>
+  <div class="notes">
+    <div class="note"><b>The pro model is the one.</b> Side view, transparent, one grid, no fringe, first try. 0.18 USD a sprite means the whole scene, four eras of targets, hands and busts land well inside the budget.</div>
+    <div class="note"><b>Bands need a different route.</b> The environment style paints postcards. For the sky, sea and ground the game will use the palette gradient plus small generated pieces (clouds, a water tile, a ground tile), or the tileset styles, which exist for exactly this.</div>
+    <div class="note"><b>Palette drift is visible.</b> The bench is grey-brown, the shelter cooler, the car warmer. The 48-colour palette and the palette-constrain option fix that in the real pass; this mock skipped it on purpose.</div>
+    <div class="note"><b>Animation works.</b> The idle and walking styles took the finished survivor as input and returned coherent 8-frame cycles for 0.14 USD each. Hands, flotsam bobbing and lamp sway all go this way.</div>
+    <div class="note"><b>Not a reference yet.</b> Nothing here goes into the repo. R2 Feel's art sprint regenerates with the palette and a consistent light direction, and the owner picks by number from contact sheets like the one above.</div>
+  </div>
+</section>
+</div>
+
+<script>
+(function(){
+  var wraps=document.querySelectorAll('.frame-wrap');
+  function fit(){
+    wraps.forEach(function(w){
+      var W=+w.dataset.w,H=+w.dataset.h,cw=w.clientWidth,s=Math.min(1,cw/W);
+      var f=w.querySelector('.frame');f.style.transform='scale('+s+')';w.style.height=(H*s)+'px';
+      if(s<1){f.style.left='0'}else{f.style.left=((cw-W)/2)+'px'}
+    });
+  }
+  fit();window.addEventListener('resize',fit);
+  var cache={};
+  document.querySelectorAll('[data-svg]').forEach(function(el){
+    var src=el.getAttribute('data-svg');
+    (cache[src]=cache[src]||fetch(src).then(function(r){return r.text()})).then(function(t){el.innerHTML=t}).catch(function(){});
+  });
+})();
+</script>
+</body>
+</html>

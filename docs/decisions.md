@@ -2023,3 +2023,77 @@ Shift 12-48 h) and the API's welcome-back tests; N20 by `flotsam.test.ts` (gaps 
 13 s afloat) and a new `taps.test.ts` case (a tap ×1 on an empty Hustle meter, ×2 on a full one;
 the ceiling is a content check). R2's N7 over 30 days already reads 99.6%; its other rows have no
 checks until R2 builds them.
+
+### D181. Cards, Supply Drops and the Album (owner, 2026-10-17)
+Survivor and gear cards collected from Supply Drops (chests) earned in play and bought with
+scrap; an Album with sets, odds and pity printed; no pull is blank (duplicates pay shards). Crew
+ranks go; stars from shards take their job. The run is never gated by a card: hands hire with
+Supplies as before. Guardrail 8's blanket "no casino" is reworded to "randomness is paid for in
+play and always printed". Detail: `docs/redesign/12-feel.md` 7.
+
+### D182. Scrap is the premium currency; the purchase switch is the last phase (owner, 2026-10-17)
+Scrap is earned in play (4-6 a day for a casual) and spent on drops, boosts and Pockets. A store
+that sells scrap for money ships only in the last phase, with a payment provider and a legal
+check on loot boxes first; nothing else changes when it flips. CLAUDE.md 1's "no real-money
+anything" is deferred to that phase, not deleted now. `12-feel.md` 8.
+
+### D183. The Night Shift starts at 2 h and grows to 24 h (owner, 2026-10-17)
+2 h from the last command; Lamp Oil research +20 min × 6 per run; Bunker nodes, Wipe Days #10,
+#20, #40 and Long Night to a ceiling of 24 h. The 48 h ceiling goes. N18 is rewritten; guardrail 1
+(first nuke on day 1) is retuned around it. `12-feel.md` 6.
+
+### D184. Taps stay relevant: active 4-6× idle, physical taps, Frenzy (owner, 2026-10-17)
+Every tap chips a thing onto a visible stockpile; Hustle's meter becomes Frenzy with a visible
+tripped state (×3 taps for 15 s at 100). N9's band becomes 4-6×, N8's from-minute-10 band 10-30%;
+the bucket does not move. `12-feel.md` 3.
+
+### D185. Research (the Workshop) from minute two (owner, 2026-10-17)
+A per-run tree of 40 items in 8 tiers, 5-25 levels each, priced in Supplies (`b_k × 1.35^n`,
+`b_k = 40 × 20^(k−1)`), reset by the nuke. The shelf's Mk II/III rows move into it. Hosts the
+offline research. `12-feel.md` 5.
+
+### D186. The shop never reorders (owner, 2026-10-17)
+The owner hates the crowned purchase jumping to the top. Fixed order by rung forever; the crown
+highlights its card in place; a Best buy chip scrolls to it. The advisor's rules are unchanged;
+D165-D170's "the row leads the drawer" is withdrawn. `12-feel.md` 4.
+
+### D187. One bottom dock on every device; painted 2D; salvaged HUD (owner, 2026-10-17)
+Island, Research, Crew, Album, Logbook as one dock component on phone, tablet and desktop
+(centred on desktop); panels open as sheets over the scene; the shop stays a right column on
+desktop. The scene becomes painted 2D layers with procedural life (not pixel art, not 3D); the HUD
+uses the Feel Board's tokens (plywood and steel panels, Big Shoulders Display and Barlow, signal
+orange primary). Desktop 1440 designed first, 390 px right after. Paid assets allowed up to 100
+USD total. The phases are reordered: R2 Feel, R3 Cards, R4 The Big Red (`12-feel.md` 12).
+
+### D188. Pixel art, the HUD approved, the names fixed, the image model behind an API key (owner, 2026-10-17)
+The owner approved the Feel Board's HUD direction and chose pixel art over D187's painted 2D,
+anchored on 0-mem0ry's *Post Apocalyptic Workshop Set* (free, commercial use allowed, no
+redistribution, no AI use). Side view stays; one grid (1 art px = 5 stage units, integer zoom 2-5
+in device pixels, nearest-neighbour); one palette of at most 48 colours in `scene/palette.ts`;
+text and HUD stay crisp CSS. D141 amended: item icons are 16×16 pixel PNGs, UI glyphs stay
+currentColor SVG, one format per kind. Licensed packs are committed under
+`packages/content/art/<pack>/` with their licence; CLAUDE.md 2's "third-party game assets" means
+ripped assets (D43). Names fixed as recommended: Workshop, Supply Drop, Album, Frenzy, Lamp Oil.
+The scene art is generated through a pay-per-image API (Gemini first) whose key lives in `.env`
+and which the agent runs from a repo script; the owner only supplies the key. Figma's Weave is
+not the path (no AI flag on the org, no linked Weave account). `12-feel.md` 2.1, 2.2, 14.
+
+### D189. Chunky pixel confirmed; Retro Diffusion first, OpenAI as backup, Gemini dropped (owner, 2026-10-17)
+Shown three looks under one HUD (chunky pixel, dense pixel, painted; the Pixel or Painted page,
+private), the owner chose chunky pixel: D188's grid stands (1 art px = 5 stage units, zoom 2-5).
+The image tooling in D188 changes: Retro Diffusion (pixel-specific, true grid, alpha, palettes,
+animations, pay per image, hosted MCP server) generates sprites, props, tiles, targets, hands and
+busts; OpenAI gpt-image-2.5 with `background: "transparent"` covers the large parallax layers;
+Gemini is dropped (no alpha channel, poor past results). The owner supplies two keys in `.env`;
+the agent runs everything through `pnpm art`. `12-feel.md` 2.2.
+
+### D190. The art pipeline's shape, after the scene mock (owner, 2026-10-18)
+The owner loaded 10 USD on Retro Diffusion, the key went into `.env` and the MCP server into
+Claude Code, and the agent generated fifteen assets (2.16 USD) into one island scene under the
+approved HUD, day, night and phone (the Saltmarsh Scene Mock, private; everything in
+`docs/redesign/art/`). The owner approved the look. Fixed by it: `rd_pro__platformer` for every
+sprite (targets, props, hands, busts), `rd_plus__low_res` for props under 40 px; bands from the
+palette gradient plus small pieces or tiles, never from landscape renders; the 48-colour palette
+and one light direction in every real prompt; characters animated from their finished sprite
+with the advanced-animation styles (0.14 USD a cycle), PixelLab only if those disappoint. The
+scripts stay in `docs/redesign/art/` until R2 Feel folds them into `pnpm art`. `12-feel.md` 2.2.

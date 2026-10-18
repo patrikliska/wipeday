@@ -37,9 +37,17 @@ in `docs/archive/roadmap-w.md`.
   `shipped: "R1"`. Playtest 1 is the owner's (`docs/playtest-1.md`).
 - **Next: R2 The Big Red** (plan mode first; `docs/redesign/11-roadmap.md`), on `redesign`
   until the cut-over at its end.
+- **2026-10-17, the owner's feel brainstorm (D181-D188):** the next phase is now **R2 Feel**, then
+  R3 Cards, then the Big Red; the proposal is `docs/redesign/12-feel.md`, the visual direction
+  and HUD mocks are the Saltmarsh Feel Board (https://claude.ai/artifact/VarETEGfAs1nf37PcTW9mB,
+  private). R2 Feel starts in plan mode and rewrites `CLAUDE.md` 1, 8 and 12, `docs/game-design.md`
+  and `docs/roadmap.md` from it. Later that day the owner approved the HUD, fixed the names and chose
+  pixel art anchored on 0-mem0ry's workshop set, with the scene generated through an image API
+  the agent runs (D188). On 2026-10-18 chunky pixel was confirmed against a side-by-side, Retro
+  Diffusion became the tool, and a first generated island scene was approved (D189, D190;
+  `docs/redesign/art/`).
 
 ### R1 results (acceptance)
-
 - **Pacing** (`pnpm sim check --full`, 365 days × seeds 7, 11, 23; the scenarios on 12 seeds;
   `shipped: "R1"`): **N4** first hand 47-54 s (≤ 120); **N5**, **N6** 20 s at most with nothing
   affordable (≤ 30, ≤ 120); **N7** a purchase at 100% of the casual's day-1 check-ins (R2's 30-day
