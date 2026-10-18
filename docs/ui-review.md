@@ -1443,3 +1443,11 @@ The owner found the ground taking half the screen and preferred the comparison p
   campfire): placed again when the back-row lines get their art; the crate icon's waves; the
   sea lines' re-theme.
 
+## R2 Feel S2e: an open wasteland (D210)
+- Owner's screenshot: a wrecked car in the background bigger than the tent, and a city too busy
+  for the open wasteland the owner chose. The screenshot showed the first, full-size layers (a
+  stale browser); the dense city went regardless.
+- `desktop_tall_rain`, `desktop_2k`: the far city is a faint pale silhouette; the middle distance
+  holds a lone house and water towers on empty ground, the near distance a few poles, a fence
+  and small wrecks, all smaller than the tent. The ground and the sky are as before.
+

@@ -2290,3 +2290,14 @@ it if missed; its strings say "drops in" and "the wind took it". Still to re-the
 the ship breaker (sea lines) and Armored's Wreck, in their art and in the names pass; the crate's
 icon still shows waves. `apps/web/src/scene/island.ts`, `landscape.ts`, `flotsam.ts`.
 
+### D210. An open wasteland with a few buildings; nothing in the background outsizes the camp (owner, 2026-10-18)
+The owner still preferred the comparison page's open wasteland with only a few buildings, and
+caught a wrecked car in the background bigger than the tent (a browser still showing the first,
+full-size layers, but the dense city was too busy all the same). The mid and near layers are now
+sparse generated pieces (a lone house and a water tower on empty desert, a water tower alone;
+power poles, a fence, small wrecks), downscaled by 3 and 4 so the background props sit well
+under the camp's size; the dense city stays only as a faint far silhouette (haze 0.84). Rule for
+every background layer: its props are drawn smaller than the front row's (D209's layers were
+not). After replacing art with the same file name, a running dev server can keep showing the old
+image: hard-refresh the page or restart `pnpm web`. `apps/web/src/scene/landscape.ts`.
+

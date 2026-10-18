@@ -17,10 +17,12 @@ import type { Palette } from "./palette";
 import { ART, art } from "./pixel";
 
 /** The skyline's layers, far to near: variants, where they stand, how hazy, how much they drift. */
+// The owner prefers an open wasteland with only a few buildings (D210): the dense city is a faint
+// far silhouette; the mid and near layers are sparse (a lone house, a water tower, poles, wrecks).
 const LAYERS = [
-  { name: "far", variants: 2, bottom: GROUND_BACK - 6, haze: 0.72, drift: 1 },
-  { name: "mid", variants: 3, bottom: GROUND_BACK + 1, haze: 0.5, drift: 2 },
-  { name: "near", variants: 2, bottom: GROUND_BACK + 3, haze: 0.24, drift: 3 },
+  { name: "far", variants: 2, bottom: GROUND_BACK - 4, haze: 0.84, drift: 1 },
+  { name: "mid", variants: 2, bottom: GROUND_BACK + 1, haze: 0.42, drift: 2 },
+  { name: "near", variants: 2, bottom: GROUND_BACK + 2, haze: 0.18, drift: 3 },
 ] as const;
 
 /** The dusty air: what the far layers fade toward (the comparison page's pale orange). */

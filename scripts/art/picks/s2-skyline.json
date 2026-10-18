@@ -1,5 +1,5 @@
 {
-  "//": "R2 Feel S2, the wasteland skyline (D209): far 0 (its water band cropped) and 2, mid 0-2, near 0 and 2; far and mid downscaled by 2, near by 3 (scripts/art/downscale.mjs, k-centroid); alpha rebuilt from each original (the tool flattens onto white)",
+  "//": "R2 Feel S2, the wasteland skyline (D209, D210): far 0 and 2 (the dense city, very faint), downscaled by 2; mid = the sparse house and water tower (desert floor cropped) and a lone water tower, by 3; near = sparse poles, fence and wrecks, by 4 (scripts/art/downscale.mjs, alpha rebuilt from each original)",
   "skyline/far_0": {
     "from": "preview/art/skyline-small/far_0_a.png",
     "sheet": true
@@ -9,23 +9,19 @@
     "sheet": true
   },
   "skyline/mid_0": {
-    "from": "preview/art/skyline-small/mid_0_a.png",
+    "from": "preview/art/sparse-small/mid_0_a.png",
     "sheet": true
   },
   "skyline/mid_1": {
-    "from": "preview/art/skyline-small/mid_1_a.png",
-    "sheet": true
-  },
-  "skyline/mid_2": {
-    "from": "preview/art/skyline-small/mid_2_a.png",
+    "from": "preview/art/sparse-small/mid_1_a.png",
     "sheet": true
   },
   "skyline/near_0": {
-    "from": "preview/art/skyline-small/near_0_a.png",
+    "from": "preview/art/sparse-small/near_0_a.png",
     "sheet": true
   },
   "skyline/near_1": {
-    "from": "preview/art/skyline-small/near_1_a.png",
+    "from": "preview/art/sparse-small/near_1_a.png",
     "sheet": true
   }
 }
