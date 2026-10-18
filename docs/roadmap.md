@@ -8,10 +8,12 @@ in `docs/archive/roadmap-w.md`.
 
 ## Where we are (2026-10-19, R2 Feel S7 done)
 
-- **The live game** is W8 on frozen `main` at https://wipeday.patrikliska.dev: season 1 (started
-  2026-10-07) sits untouched and nobody plays it now (owner decision 7). It ends quietly at the
-  cut-over at the end of R4 The Big Red. Nothing lands on `main` but emergency fixes (D145). Its
-  database is copied off the server every night (D143).
+- **The live game is the redesign** since 2026-10-19 (D242): the owner had R2 Feel S7 (`redesign`
+  at fdc5010) deployed to https://wipeday.patrikliska.dev, bringing the cut-over forward from R4.
+  Every old island was replaced by a fresh one on first look (`base_reset`); season 1 ended
+  without the quiet ending R4 planned. The old game's last database is `wipeday-pre-r2s7.db`
+  (on the server and in the off-server `pre/` copies); `main` stays the old game's code. Deploys
+  now ship `redesign` (`scripts/deploy.sh` ships the checked-out HEAD).
 - **The redesign** was approved on 2026-10-10 (every owner decision in
   `docs/redesign/README.md` section 3). It is built on the `redesign` branch, which starts at the
   `pre-redesign` tag; everything R0 deleted stays reachable there.

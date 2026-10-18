@@ -2692,3 +2692,14 @@ Frenzies; tripped, the segments burn down as the buff's timer beside "FRENZY ×6
 toward the dusk palette (night stays night), the lines' machinery runs 1.5× faster, sparks and a
 "FRENZY! ×6" pop at the target, a sting plays, and the buff's pill shows under the counter.
 Reduced motion keeps the colours and the labels and drops the pulse.
+
+### D242. The redesign goes live after R2 Feel S7 (owner, 2026-10-19)
+The owner asked for S7 on the VPS. Told that it replaces the live season-1 game (every stored
+island the old shape, so each player starts fresh, and season 1 without its planned quiet ending),
+with a preview site beside it as the alternative, the owner chose to replace it now. Before the
+deploy the live database was copied to `wipeday-pre-r2s7.db` and sent off the server with the
+others (`offsite.json`: 32 files); then `redesign` at fdc5010 was deployed: health ok, the four
+sites 200, the API on Discord login with dev login off, the bot started. The old islands give way
+on each player's first look (`base_reset` logged, D133's safety net). From here deploys ship
+`redesign`, `main` keeps the old code, and R4's cut-over runbook shrinks to what is left (the
+legacy rows and the hall of fame from the saved database, if wanted).
