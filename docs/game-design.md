@@ -194,7 +194,7 @@ category).
 
 **The look** (D187-D191). The scene is chunky side-view pixel art: one grid (1 art pixel = 5
 stage units, so the stage is 320×180 art pixels and the hero target at least 60 tall), integer
-zoom 2-5 in device pixels (2 on a 390 px phone, 4 on a 1440 desktop), nearest-neighbour, no
+zoom a whole number of device pixels per art pixel that shows the whole island (D204), nearest-neighbour, no
 sub-pixel movement. One palette of at most 48 colours in `scene/palette.ts`, taken from the
 approved Saltmarsh Scene Mock plus the five era colours (D191; 0-mem0ry's workshop set stays the
 inspiration, no file of it is used). Sprites come from Retro Diffusion (`rd_pro__platformer`,
@@ -202,7 +202,17 @@ inspiration, no file of it is used). Sprites come from Retro Diffusion (`rd_pro_
 D190). Item icons become 16×16 pixel PNGs, UI glyphs stay currentColor SVG (D141 amended). The HUD
 stays crisp CSS on the Feel Board's tokens: salvaged plywood and steel panels, Big Shoulders
 Display and Barlow, signal orange primary, no pixel font. Desktop 1440 is designed first, 390 px
-right after. The pixel scene lands in R2 Feel's S5-S6, after the rules and the HUD (D191).
+right after. The pixel scene came first after all, at the owner's request (D202).
+
+**The island and the house** (D203, D206). Saltmarsh is a terraced side view: the beach with the
+target in the middle, the Twig lines either side and the sea lines in the shallows; the yard
+above with the kiln and the house; the hill on top with the Sheet Metal and Armored structures.
+The crafting lines (loom, workbench, furnace, tannery, press) work inside the house: tapping it
+opens its room, a cut-away interior at the island's zoom over the dimmed island, with those lines
+and their hands. The room grows with the house (tent, cabin, stone house, shed, bunker); the
+Twig tent has none (its era has no crafting line), so the house becomes a door at Timber, with a
+one-line hint until it has been opened twice. A wide screen keeps a strip of sea on the left for
+the flotsam and gives the rest to the hill.
 
 ## 5. Systems
 

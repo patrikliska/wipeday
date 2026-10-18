@@ -96,7 +96,9 @@ are what is kept.
 - The pro style at 32×24 drew both Twig shelters as blobs; "a small tent of a patched tarp over
   two poles" worked. Concrete, simple shapes for small sprites.
 - Spend for S2: 0.42 test, 2.70 the eras, 0.76 retakes and the first cycles, 0.64 the small hand
-  and its cycles: 4.52 USD. Balance after: about 3.45 USD.
+  and its cycles, 0.36 the cabin's room: 4.88 USD. Balance after: about 3.09 USD.
+- A room (132×72, pro, with the cabin and two line sprites as references) came out right first
+  time on both takes: wider scenes suit the pro style.
 
 ## 5. Animation
 

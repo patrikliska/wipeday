@@ -8,10 +8,10 @@
  *
  * Night, dusk, rain and fog reach it through the scene's ambient tint, like every sprite.
  */
-import { Container, Graphics, type Texture, TilingSprite } from "pixi.js";
+import { Container, Graphics, Texture, TilingSprite } from "pixi.js";
 import { ROWS, SHORE, TERRACES } from "./island";
 import type { Palette } from "./palette";
-import { ART, art, artSprite, strip } from "./pixel";
+import { ART, art, artSprite } from "./pixel";
 import { hash, lerpColor } from "./util";
 
 /** The palette colours the land draws itself (packages/content/art/palette.json). */
@@ -25,8 +25,52 @@ const COLOURS = {
 
 /** Each terrace's tint, lowest first: higher terraces sit further back, a little hazier. */
 const HAZE = [0xf2ece6, 0xe2dbd6, 0xd0cac8];
-/** The dirt's bands below the earth tile, darker with depth. */
-const EARTH_BANDS = [0xb8b0b0, 0x8a8288, 0x5e5862];
+/** The dirt's bands below the beach tile (art rows each), darker with depth. */
+const EARTH_BAND = 24;
+const EARTH_BANDS = [0xffffff, 0xc8c0c0, 0x968e94, 0x6a646e];
+
+/** The tile's own dirt colours: the base, two darker specks, a pebble and its shadow. */
+const DIRT = {
+  base: 0x502f30,
+  dark: 0x2f1822,
+  purple: 0x402437,
+  pebble: 0x6e5640,
+  shade: 0x150c19,
+};
+
+let soil: Texture | null = null;
+
+/** A 48-px seamless square of the tile's dirt, seeded: specks and a few pebbles. */
+function dirtTexture(): Texture {
+  if (soil) return soil;
+  const size = 48;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  const hex = (c: number) => `#${c.toString(16).padStart(6, "0")}`;
+  if (ctx) {
+    ctx.fillStyle = hex(DIRT.base);
+    ctx.fillRect(0, 0, size, size);
+    for (let i = 0; i < 140; i++) {
+      const x = Math.floor(hash(i * 1.37) * size);
+      const y = Math.floor(hash(i * 2.91 + 7) * size);
+      ctx.fillStyle = hex(hash(i * 5.3) > 0.7 ? DIRT.purple : DIRT.dark);
+      ctx.fillRect(x, y, hash(i * 3.1) > 0.8 ? 2 : 1, 1);
+    }
+    for (let i = 0; i < 5; i++) {
+      const x = Math.floor(hash(i * 9.7 + 3) * (size - 4));
+      const y = Math.floor(hash(i * 4.4 + 1) * (size - 3));
+      ctx.fillStyle = hex(DIRT.shade);
+      ctx.fillRect(x, y + 1, 4, 2);
+      ctx.fillStyle = hex(DIRT.pebble);
+      ctx.fillRect(x + 1, y, 2, 2);
+    }
+  }
+  soil = Texture.from(canvas);
+  soil.source.scaleMode = "nearest";
+  return soil;
+}
 
 /** Art rows of the plain ground tile: where its sand crest averages, where the dirt starts. */
 const GROUND_TILE = { crest: 22, dirt: 34, height: 64 };
@@ -108,11 +152,6 @@ export class Landscape {
     // the row's feet line, each a little hazier than the one below it; the next terrace down
     // covers the rest of its dirt.
     const ground = art("terrain/ground_plain");
-    const dirt = strip(
-      "terrain/ground_plain",
-      GROUND_TILE.dirt,
-      GROUND_TILE.height - GROUND_TILE.dirt,
-    );
     const terraces = [...TERRACES].reverse();
     for (const [i, terrace] of terraces.entries()) {
       if (!ground) break;
@@ -139,19 +178,15 @@ export class Landscape {
       const top = beach - GROUND_TILE.crest;
       const land = new Container();
       land.addChild(tiles(ground, from, top, right - from, GROUND_TILE.height));
-      // Deeper down the dirt darkens in bands, then the bedrock's near-black.
+      // Below the tile, plain dirt (no sand or grass to repeat) darkening in bands, then the
+      // bedrock's near-black.
       let depth = top + GROUND_TILE.height;
-      const earth = art("terrain/earth");
-      if (earth) {
-        land.addChild(tiles(earth, from, depth, right - from, earth.height));
-        depth += earth.height;
-      }
+      const soil = dirtTexture();
       for (const tint of EARTH_BANDS) {
-        if (!dirt) break;
-        const band = tiles(dirt, from, depth, right - from, dirt.height);
+        const band = tiles(soil, from, depth, right - from, EARTH_BAND);
         band.tint = tint;
         land.addChild(band);
-        depth += dirt.height;
+        depth += EARTH_BAND;
       }
       block(
         land.addChild(new Graphics()),

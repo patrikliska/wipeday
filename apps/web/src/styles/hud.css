@@ -305,7 +305,8 @@
 
 .tap-hint {
   position: absolute;
-  left: calc((100% - var(--column-w)) / 2);
+  /* Under the target, wherever the camera put it (the island is not centred on wide screens). */
+  left: var(--target-x, calc((100% - var(--column-w)) / 2));
   top: min(
     calc(var(--target-bottom, 55%) + 8px),
     calc(100% - var(--nav-offset, var(--safe-bottom)) - var(--drawer-h) - 52px)
@@ -1594,6 +1595,76 @@
   line-height: 1.3;
   color: var(--text);
   pointer-events: none;
+}
+
+/* --- the house (D206): its button over the scene, the hint, and the bar over its room --- */
+
+.house-hit {
+  position: absolute;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.house-hit:focus {
+  outline: none;
+}
+
+.house-hit:focus-visible,
+.house-hit:hover {
+  outline: 2px dashed rgba(236, 232, 223, 0.6);
+  outline-offset: 2px;
+}
+
+.house-hint {
+  position: absolute;
+  z-index: 1;
+  transform: translate(-50%, -100%);
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--text);
+  pointer-events: none;
+}
+
+.room-bar {
+  position: absolute;
+  top: calc(var(--top-h) + var(--safe-top) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 14px 6px 6px;
+  border-radius: 14px;
+  pointer-events: auto;
+}
+
+.app.has-column .room-bar {
+  left: calc((100% - var(--column-w)) / 2);
+}
+
+.room-back {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.room-title {
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--text);
 }
 
 /* --- reduced motion (08-screens.md 6.2): pulses become steady glows, nothing slides --- */

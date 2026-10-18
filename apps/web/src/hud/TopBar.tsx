@@ -142,7 +142,8 @@ export function TapHint() {
   const panel = useUi((state) => state.panel);
   const sheet = useUi((state) => state.sheet);
   const expanded = useUi((state) => state.expanded);
-  if (!tap || !era || panel || sheet || expanded) return null;
+  const house = useUi((state) => state.house);
+  if (!tap || !era || panel || sheet || expanded || house) return null;
   const target = content.targets.find((row) => row.era === era)?.id ?? "tree";
   return (
     <div className="glass tap-hint" data-crown="" role="status">

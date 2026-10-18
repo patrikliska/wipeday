@@ -2236,3 +2236,27 @@ dwarfed the 20-px lines) with 8-frame idle and walk cycles. Each session's choic
 may swap any take by number from the contact sheet. S2 spent 4.52 USD; 3.45 is left.
 `docs/redesign/art/README.md` 4.
 
+### D206. The crafting lines work inside the house, which opens as a room (owner, 2026-10-18)
+After the first pixel island the owner asked for less outside and the furnace and the workbench
+inside the house, opened by tapping it. Asked, the owner chose all five crafting lines inside
+(loom, workbench, furnace, tannery, press; outside stay the beachcomber, campfire, garden, kiln,
+dock, generator, radio mast, ship breaker and reactor) and a pixel room cut-away over a panel.
+The island loses a terrace (the beach, the yard with the kiln and the house, the hill). Tapping
+the house opens its room (`scene/room.ts`) at the island's zoom over the dimmed island, its floor
+on the island's ground line: the crafting lines on five floor slots in era order, their hands
+working there (a second `Lines` and `Hands` inside the room). Back, Escape and a tap on the
+dimmed island close it; it is a history layer like a panel (`useUi.house`). Closed, the room's
+lines float their gains from the house and their milestones rise from it. The house is a door
+from Timber on (the Twig tent has no crafting line) with the one-line hint "Tap the cabin to go
+inside" until it has been opened twice (6.3 rule 6). The room's art per house tier is
+`room/<tier>` (the cabin's generated in S2; a plank stand-in otherwise). A "smelt" action, if the
+game gets one, opens the same room. `docs/game-design.md` 4.
+
+### D207. A wide screen keeps a strip of sea and plain dirt below the beach (owner, 2026-10-18)
+The owner's desktop screenshot showed the sea taking 40% of the width and the earth repeating the
+tile's sand and grass in bands. The camera now centres the island but never shows more than 30
+art px of sea left of it; the rest of a wide screen goes to the hill on the right. Below the beach
+tile the earth is a seeded dirt texture in the tile's own colours, darkening in bands; the plain
+tile's dirt rows lose the grass blades. The tap hint follows the target's x, since the island is
+no longer centred on wide screens. `apps/web/src/scene/Scene.ts`, `landscape.ts`.
+

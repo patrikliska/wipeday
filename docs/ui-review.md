@@ -1365,3 +1365,41 @@ and the Timber cabin, Timber's outcrop, small hands with idle and walk cycles. S
 8. Still open: pixel wear on the targets (S3), pixel clouds (the soft procedural ones clash),
    the mirrored tile's faint seam every 88 px, the house tiers from Stone on, sparse empty
    terraces at the start (by design: they fill as eras open).
+
+## R2 Feel S2b: the owner's screenshot, and the house
+
+The owner's desktop screenshot (rain, 1680 wide, nothing bought) showed the ground below the
+beach broken and the sea far too wide; the owner also asked for less outside and the crafting
+lines inside the house (D206, D207). New shots: `phone_timber_yard`, `phone_house_open`,
+`desktop_house_open`; re-checked `desktop_first_tap`.
+
+### Iteration 1
+- Owner's screenshot: below the beach the earth tile and two dirt strips repeated sand crests
+  and grass blades in bands. Replaced by a seeded dirt texture in the tile's colours, darkening in
+  four bands; the plain tile's dirt rows cleaned of blades.
+- Owner's screenshot: the sea took the left 40% of a wide window. The camera keeps at most 30 art
+  px of sea; the island moves left and the hill fills the right.
+- `desktop_first_tap`: "Tap the tree." sat under the tent, centred on the screen while the tree
+  no longer is. The hint now follows the target's x (`--target-x`).
+- `phone_timber_yard`: "Tap the cabin to go inside" ran off the right edge. It clamps inside the
+  island's part of the screen.
+- `phone_house_open`: the stand-in room (plain planks) worked but was empty and flat. The cabin's
+  inside was generated (window on the sea, lamp, tools and rope on the wall).
+
+### Iteration 2
+- *Fine:* the yard is calm with five lines moved indoors; the room reads as a place, the loom's
+  hand works at it, the back button and the title are clear, the dimmed island says "you can go
+  back". The audit passes in every shot (one crown, 44 px).
+
+### Checklist
+1. Hierarchy: open, the room is the one thing lit; closed, the target leads.
+2. Legibility at 390 px: the room is 330 CSS px wide; its stage-1 lines are small on its floor.
+3. Spacing: five floor slots 24 px apart; stage-3 sprites (24 px) will touch.
+4. Overflow: the room fits a 390 px phone with 30 px to spare; the bar's title fits.
+5. Consistency: the room is drawn at the island's zoom, so its pixels match.
+6. Contrast: day checked; the room ignores the night tint (it is lit indoors), by design.
+7. Rules: Back, Escape and a tap outside close it (never a dead end); the hint retires after two
+   openings.
+8. Still open: the Stone and later rooms (stand-in until their art), the furnace, tannery and
+   press sprites (S3), the shop does not yet say which lines are inside.
+

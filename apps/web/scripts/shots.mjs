@@ -37,6 +37,19 @@ const PHONE = [390, 844];
 const PHONE_LANDSCAPE = [844, 390];
 
 /** Lines owned at about 10:30 of run 1 in the Stone era, with six hands (the P1 script). */
+/** Timber with the yard's kiln and the cabin's loom and workbench, hands on four lines. */
+const TIMBER_YARD = {
+  era: "wood",
+  eraAt: { wood: 36 },
+  supplies: 2.4e4,
+  made: 9.1e4,
+  taps: 900,
+  lines: { beachcomber: 25, campfire: 14, garden: 8, kiln: 1, loom: 6, workbench: 2 },
+  hands: ["beachcomber", "campfire", "garden", "loom"],
+  upgrades: ["stone_tools"],
+  target: { taps: 10, felled: 20 },
+};
+
 const STONE_RUN = {
   era: "stone",
   supplies: 31.2e6,
@@ -779,6 +792,27 @@ const SHOTS = [
     state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
     ff: 3,
   },
+  // The house (D206): Timber's yard with the cabin and its hint, then the cabin open.
+  {
+    name: "phone_timber_yard",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 9), wall: WALL, weather: "clear", ...TIMBER_YARD },
+    ff: 1.5,
+  },
+  {
+    name: "phone_house_open",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 9), wall: WALL, weather: "clear", ...TIMBER_YARD, ui: { house: true } },
+    ff: 1.5,
+  },
+  {
+    name: "desktop_house_open",
+    viewport: DESKTOP,
+    state: { time: at(1, 9), wall: WALL, weather: "clear", ...TIMBER_YARD, ui: { house: true } },
+    ff: 1.5,
+  },
   {
     name: "desktop_flotsam",
     viewport: DESKTOP,
@@ -1039,6 +1073,7 @@ async function main() {
           panel: null,
           sheet: null,
           boughtOpen: false,
+          house: false,
           scientific: false,
           motion: "device",
           ...ui,

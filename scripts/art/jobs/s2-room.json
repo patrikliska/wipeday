@@ -1,0 +1,17 @@
+[
+  {
+    "id": "room_wood",
+    "prompt_style": "rd_pro__platformer",
+    "width": 132,
+    "height": 72,
+    "num_images": 2,
+    "seed": 401,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/house/wood.png",
+      "packages/content/art/scene/line/workbench_3.png",
+      "packages/content/art/scene/line/loom_3.png"
+    ],
+    "prompt": "the inside of a small rough timber cabin seen as a cut-away side view, filling the whole picture: a back wall of brown planks with a small window showing the sea, a plank floor across the bottom, a hanging oil lamp glowing warm, a few shelves with jars, rope coils and hand tools on the walls, the floor in front left empty, strict side view, light from the upper left"
+  }
+]

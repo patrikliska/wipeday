@@ -83,5 +83,9 @@
   "hand/survivor_walk": {
     "from": "preview/art/s2c/small_walk_0_clean.png",
     "sheet": true
+  },
+  "room/wood": {
+    "from": "preview/art/s2d/room_wood_0.png",
+    "sheet": true
   }
 }

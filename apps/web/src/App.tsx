@@ -5,6 +5,7 @@ import { Multipliers } from "./hud/Multipliers";
 import { Nav, useNavShown } from "./hud/Nav";
 import { Odds } from "./hud/Odds";
 import { Panels } from "./hud/Panels";
+import { RoomBar } from "./hud/RoomBar";
 import { Shop, shopOpen } from "./hud/Shop";
 import { Toasts } from "./hud/Toasts";
 import { TapHint, TopBar } from "./hud/TopBar";
@@ -62,6 +63,7 @@ export function App() {
             <div className={`hud-main${nav ? " with-nav" : ""}`} inert={sheet !== null || welcome}>
               <TopBar />
               <TapHint />
+              <RoomBar />
               <Shop />
               <Panels />
               {column ? null : <Nav />}

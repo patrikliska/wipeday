@@ -30,9 +30,11 @@ in `docs/archive/roadmap-w.md`.
 - **R2 Feel S2, the pixel island's first two eras, is done** (2026-10-18; results below): the
   terraced island (D203), the pixel camera (D204), `pnpm art` and the first generated art
   (D205).
+- **The owner's first review (2026-10-18)**: the ground and the sea were fixed (D207) and the
+  crafting lines moved inside the house, which opens as a room (D206).
 - **Next: R2 Feel S3, the rest of the pixel scene and the hero tap** (Stone to Armored art, the
-  stockpile, pixel wear and clouds). It needs credit: about 3.45 USD is left of the 25-35 the
-  art pass needs.
+  rooms from Stone on, the stockpile, pixel wear and clouds). It needs credit: about 3.09 USD is
+  left of the 25-35 the art pass needs.
 
 ### R2 Feel S2 results (the pixel island, Twig and Timber)
 - **The scene** is pixel art on one grid: `scene/pixel.ts` loads `packages/content/art/scene/`,

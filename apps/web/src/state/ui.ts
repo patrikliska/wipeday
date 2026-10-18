@@ -3,7 +3,7 @@
  * sheet, and the player's display settings (numbers, motion). Settings live in localStorage
  * (per device), like sound (D162); nothing here reaches the server.
  *
- * Back (08-screens.md 1.8): opening the expanded drawer, a panel or a sheet pushes a history
+ * Back (08-screens.md 1.8): opening the expanded drawer, the house, a panel or a sheet pushes a history
  * entry, so Android's back button closes the top layer; Escape does the same. A layer opened by
  * the shots harness (a plain `setState`) pushes nothing and closes without touching history.
  */
@@ -28,6 +28,8 @@ interface UiState {
   sheet: Sheet | null;
   /** "Bought this run" unfolded on the Upgrades tab. */
   boughtOpen: boolean;
+  /** The house is open: its room, with the crafting lines inside (D206), over the island. */
+  house: boolean;
   scientific: boolean;
   motion: Motion;
 }
@@ -39,6 +41,8 @@ interface UiActions {
   /** Opens a nav destination; null goes back to the island. */
   openPanel(panel: Panel | null): void;
   openSheet(sheet: Sheet | null): void;
+  /** Opens or closes the house's room. */
+  openHouse(open: boolean): void;
   toggleBought(): void;
   setScientific(on: boolean): void;
   setMotion(motion: Motion): void;
@@ -97,6 +101,7 @@ export const useUi = create<UiState & UiActions>((set, get) => {
     panel: null,
     sheet: null,
     boughtOpen: false,
+    house: false,
     scientific: read("wipeday.scientific") === "1",
     motion: storedMotion(),
 
@@ -136,6 +141,13 @@ export const useUi = create<UiState & UiActions>((set, get) => {
       if (current === null) pushLayer();
       set({ sheet });
     },
+    openHouse(open) {
+      if (open === get().house) return;
+      if (open) {
+        pushLayer();
+        set({ house: true });
+      } else close(() => set({ house: false }));
+    },
     toggleBought() {
       set({ boughtOpen: !get().boughtOpen });
     },
@@ -152,6 +164,7 @@ export const useUi = create<UiState & UiActions>((set, get) => {
       if (state.sheet) set({ sheet: null });
       else if (state.panel) set({ panel: null });
       else if (state.expanded) set({ expanded: false });
+      else if (state.house) set({ house: false });
       else return false;
       return true;
     },
@@ -174,13 +187,14 @@ export function closeTop(): boolean {
   if (state.sheet) state.openSheet(null);
   else if (state.panel) state.openPanel(null);
   else if (state.expanded) state.expand(false);
+  else if (state.house) state.openHouse(false);
   else return false;
   return true;
 }
 
 /** Back to the island at once: every layer closes (a refusal's "Tap the ore seam"). */
 export function closeAll(): void {
-  useUi.setState({ sheet: null, panel: null, expanded: false });
+  useUi.setState({ sheet: null, panel: null, expanded: false, house: false });
 }
 
 const deviceReduced =

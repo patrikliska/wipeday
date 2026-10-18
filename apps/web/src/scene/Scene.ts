@@ -26,7 +26,7 @@ import { type GameEvent, on } from "../state/events";
 import { insets } from "../state/layout";
 import { gameSeconds, useWorld } from "../state/store";
 import { heldTaps } from "../state/taps";
-import { closeAll } from "../state/ui";
+import { closeAll, useUi } from "../state/ui";
 import {
   buffName,
   content,
@@ -44,12 +44,13 @@ import { House } from "./base";
 import { Floaters, Particles, Weather } from "./effects";
 import { Flotsam } from "./flotsam";
 import { loadProductIcons } from "./icons";
-import { HOUSE_SPOT, stageSpot, TARGET_SPOT, VIEW } from "./island";
+import { HOUSE_SPOT, INSIDE, ROOM, stageSpot, TARGET_SPOT, VIEW } from "./island";
 import { Landscape } from "./landscape";
-import { LAYOUT, Lines } from "./lines";
+import { LAYOUT, Lines, ROOM_LAYOUT } from "./lines";
 import { gloom, paletteAt } from "./palette";
 import { ART, loadArt } from "./pixel";
 import { milestoneCrossed } from "./reveal";
+import { Room } from "./room";
 import { Sky } from "./sky";
 import { Target, type TargetKind } from "./target";
 import { clamp, lerp } from "./util";
@@ -65,6 +66,8 @@ const EXTEND = 800;
 const VIEW_W = (VIEW.right - VIEW.left) * ART;
 const VIEW_H = (VIEW.bottom - VIEW.top) * ART;
 const FOCUS_X = ((VIEW.left + VIEW.right) / 2) * ART;
+/** Art px of sea a wide screen keeps left of the island (flotsam floats in it). */
+const SEA_STRIP = 30;
 /** The most CSS px per art pixel: big screens show more sky and sea, not bigger pixels. */
 const MAX_ZOOM = 5;
 const TARGET = { x: stageSpot(TARGET_SPOT).x, y: GROUND + stageSpot(TARGET_SPOT).y };
@@ -78,6 +81,31 @@ const HIT_MIN = { width: 140, height: 160 };
 const HOLD_SLOP = 12;
 /** The counter bumps at most this often when line floaters land (ms). */
 const BUMP_EVERY_MS = 250;
+
+/** The house's hint ("Tap the cabin to go inside") retires after this many openings. */
+const HOUSE_HINT_OPENS = 2;
+
+function readHint(): string | null {
+  try {
+    return window.localStorage.getItem("wipeday.hint.house");
+  } catch {
+    return null;
+  }
+}
+
+function writeHint(value: string): void {
+  try {
+    window.localStorage.setItem("wipeday.hint.house", value);
+  } catch {
+    // Private mode: the hint shows again next time.
+  }
+}
+
+/** Whether the run's era has reached `era`. */
+function eraReached(base: BaseState, era: Tier): boolean {
+  const order = content.eras.map((row) => row.id);
+  return order.indexOf(era) <= order.indexOf(base.run.era);
+}
 
 function targetOf(era: Tier): TargetKind {
   return (content.targets.find((target) => target.era === era)?.id ?? "tree") as TargetKind;
@@ -108,6 +136,17 @@ export class Scene {
   private readonly house = new House(this.particles);
   private readonly lines: Lines;
   private readonly hands: Hands;
+  /** The house's room (D206): the crafting lines and their hands, shown when it is open. */
+  private readonly room = new Room();
+  private readonly roomLines: Lines;
+  private readonly roomHands: Hands;
+  /** Dims the island while the room is open; a tap on it closes the room. Screen space. */
+  private readonly dim = new Graphics();
+  /** The house is a button too: it opens the room once any crafting line's era has opened. */
+  private readonly houseButton: HTMLButtonElement;
+  private readonly houseHint: HTMLDivElement;
+  private roomOpen = false;
+  private houseKey = "";
   /** The tap area: a transparent button over the target, sized on screen. */
   private readonly button: HTMLButtonElement;
   /** Hold to work: a ring round the finger while a held press counts taps (screen space). */
@@ -165,6 +204,27 @@ export class Scene {
       float: (line, x, y, amount) => this.lineFloater(line.product, x, y, amount),
     });
     this.hands = new Hands(this.props);
+    this.roomLines = new Lines(
+      this.room.props,
+      ROOM.floor * ART,
+      this.room.particles,
+      { float: (line, x, y, amount) => this.roomFloater(line.product, x, y, amount) },
+      ROOM_LAYOUT,
+      (ROOM.width * ART) / 2,
+    );
+    this.roomHands = new Hands(this.room.props);
+    this.room.lights.addChild(this.roomLines.lights);
+    this.dim.eventMode = "static";
+    this.dim.on("pointertap", () => useUi.getState().openHouse(false));
+    this.houseButton = document.createElement("button");
+    this.houseButton.type = "button";
+    this.houseButton.className = "house-hit";
+    this.houseButton.hidden = true;
+    this.houseButton.addEventListener("click", () => this.openHouse());
+    this.houseHint = document.createElement("div");
+    this.houseHint.className = "glass house-hint";
+    this.houseHint.setAttribute("role", "status");
+    this.houseHint.hidden = true;
     this.target.container.position.set(TARGET.x, TARGET.y);
     this.target.container.zIndex = TARGET.y;
     this.house.container.position.set(HOUSE.x, HOUSE.y);
@@ -208,12 +268,17 @@ export class Scene {
     this.host.appendChild(this.button);
     this.host.appendChild(this.flotsam.button);
     this.host.appendChild(this.flotsam.hint);
+    this.host.appendChild(this.houseButton);
+    this.host.appendChild(this.houseHint);
     this.app.stage.addChild(
       this.world,
       this.ambient,
       this.lights,
       this.weather.container,
+      this.dim,
+      this.room.container,
       this.lines.overlay,
+      this.roomLines.overlay,
       this.flotsam.overlay,
       this.target.overlay,
       this.holdRing,
@@ -242,6 +307,8 @@ export class Scene {
     this.unsubscribe?.();
     this.unsubscribe = null;
     this.button.remove();
+    this.houseButton.remove();
+    this.houseHint.remove();
     this.flotsam.button.remove();
     this.flotsam.hint.remove();
     if (!this.ready) return;
@@ -349,12 +416,16 @@ export class Scene {
     this.scale = zoom / (res * ART);
     const visibleW = freeW / this.scale;
     const visibleH = vh / this.scale;
-    this.centerX = visibleW >= W ? W / 2 : clamp(FOCUS_X, visibleW / 2, W - visibleW / 2);
+    // Centred on the island; on wide screens the view keeps only a strip of sea on the left
+    // (where flotsam drifts in) and gives the rest of the width to the hill on the right.
+    const left = Math.max(FOCUS_X - visibleW / 2, (VIEW.left - SEA_STRIP) * ART);
+    this.centerX = left + visibleW / 2;
     const aspect = freeW / vh;
     const groundFraction = aspect < 1 ? PHONE_GROUND : lerp(0.68, 0.74, clamp(aspect - 1, 0, 1));
     this.top = clamp(GROUND - groundFraction * visibleH, -EXTEND + 40, H + EXTEND - visibleH - 40);
     this.world.scale.set(this.scale);
     this.ambient.clear().rect(0, 0, vw, vh).fill(0xffffff);
+    this.dim.clear().rect(0, 0, vw, vh).fill({ color: 0x0b0a0d, alpha: 0.62 });
     this.weather.resize(vw, vh);
   }
 
@@ -394,6 +465,10 @@ export class Scene {
     style.height = `${box.height}px`;
     // The tap hint sits just under the box.
     document.documentElement.style.setProperty("--target-bottom", `${box.y + box.height}px`);
+    document.documentElement.style.setProperty(
+      "--target-x",
+      `${Math.round(box.x + box.width / 2)}px`,
+    );
   }
 
   // --- the frame -----------------------------------------------------------------------------
@@ -477,6 +552,7 @@ export class Scene {
       this.lines.place(base, this.world.position.x, this.world.position.y, this.scale);
       this.drawHustle(base, now);
       this.flotsam.update(base, now, nowMs, dt, this.camera(), Math.max(darkness, fog), jump > 5);
+      this.updateRoom(base, now, nowMs, dt);
     }
     this.placeButton();
     this.drawHoldRing(nowMs);
@@ -504,17 +580,24 @@ export class Scene {
     const fell = content.targets.find((target) => target.era === era)?.fellTaps ?? 40;
     this.target.setProgress(base.run.target.taps / fell);
 
-    // Hands: one per manned line, at their line's work point.
+    // Hands: one per manned line, at their line's work point; the crafting lines' hands work
+    // inside the house, in its room.
     const posts = new Map<string, { hand: string; post: Post }>();
+    const inside = new Map<string, { hand: string; post: Post }>();
     for (const id of base.run.hands) {
       const line = lineOf(content, id);
-      const point = this.lines.workPoint(id);
-      const spot = LAYOUT[id];
+      const indoors = INSIDE.has(id);
+      const point = (indoors ? this.roomLines : this.lines).workPoint(id);
+      const spot = (indoors ? ROOM_LAYOUT : LAYOUT)[id];
       if (line && point && spot)
-        posts.set(id, { hand: line.hand, post: { ...point, faceX: spot.x } });
+        (indoors ? inside : posts).set(id, { hand: line.hand, post: { ...point, faceX: spot.x } });
     }
     const door = { x: HOUSE.x, y: HOUSE.y + 2, scale: HOUSE.scale, faceX: HOUSE.x };
-    const walking = this.hands.sync(posts, door, !fresh);
+    const roomDoor = { x: ROOM.door * ART, y: ROOM.floor * ART + 2, scale: 1, faceX: 0 };
+    const walking = [
+      ...this.hands.sync(posts, door, !fresh),
+      ...this.roomHands.sync(inside, roomDoor, !fresh),
+    ];
     // A hire is one hand at a time; several at once are a load or a demo patch (D161).
     for (const id of walking.length === 1 ? walking : []) {
       const line = lineOf(content, id);
@@ -544,7 +627,10 @@ export class Scene {
         const milestone = milestoneCrossed(content, before, after);
         if (milestone && shown < 2) {
           shown += 1;
-          const top = this.lines.topOf(line.id);
+          // A crafting line's milestone rises from the house.
+          const top =
+            this.lines.topOf(line.id) ??
+            (INSIDE.has(line.id) ? { x: HOUSE.x, y: HOUSE.y - 40 * ART } : null);
           const key = milestone.speed ? "scene.milestone_speed" : "scene.milestone";
           if (top) {
             this.floaters.add(
@@ -583,6 +669,109 @@ export class Scene {
       }
     }
     this.roster = base.run.roster;
+  }
+
+  // --- the house's room (D206) -----------------------------------------------------------------
+
+  /** Whether the house has a room to open: some crafting line's era has opened. */
+  private houseOpens(base: BaseState): boolean {
+    for (const id of INSIDE) {
+      const line = lineOf(content, id);
+      if (line && eraReached(base, line.era)) return true;
+    }
+    return false;
+  }
+
+  private openHouse(): void {
+    sound.play("ui_open");
+    useUi.getState().openHouse(true);
+    const seen = Number(readHint() ?? 0);
+    writeHint(String(seen + 1));
+  }
+
+  /**
+   * The room, the house button and its hint, each frame. Open, the room sits over the dimmed
+   * island at the island's zoom, its floor on the island's ground line; the target, flotsam and
+   * the island's badges step back until it closes.
+   */
+  private updateRoom(base: BaseState, now: number, nowMs: number, dt: number): void {
+    const opens = this.houseOpens(base);
+    const open = opens && useUi.getState().house;
+    if (!opens && useUi.getState().house) useUi.setState({ house: false });
+    this.roomOpen = open;
+    this.room.setTier(base.run.era);
+    this.room.container.visible = open;
+    this.dim.visible = open;
+    this.lines.overlay.visible = !open;
+    this.roomLines.overlay.visible = open;
+    this.target.overlay.visible = !open;
+    this.flotsam.overlay.visible = !open;
+    this.button.style.visibility = open ? "hidden" : "";
+    this.flotsam.button.style.visibility = open ? "hidden" : "";
+    const res = this.app.renderer.resolution;
+    const px = (value: number) => Math.round(value * res) / res;
+    const size = this.room.size(this.scale);
+    const freeW = this.viewW - this.insetRight;
+    const groundY = this.world.position.y + GROUND * this.scale;
+    const x = px((freeW - size.width) / 2);
+    const y = px(Math.max(8, groundY - ROOM.floor * ART * this.scale));
+    this.room.place(x, y, this.scale);
+    this.room.update(dt, this.wind);
+    this.roomLines.update(base, now, nowMs, dt, 0);
+    this.roomLines.syncLights();
+    this.roomLines.place(base, x, y, this.scale);
+    this.roomHands.update(dt, this.wind);
+    this.placeHouse(base, opens && !open);
+  }
+
+  /** The house button over the house's drawing, and its one-line hint until opened twice. */
+  private placeHouse(base: BaseState, shown: boolean): void {
+    this.houseButton.hidden = !shown;
+    const name = t(`house.${base.run.era}`);
+    this.houseButton.setAttribute("aria-label", t("house.open", { house: name }));
+    const hint = shown && Number(readHint() ?? 0) < HOUSE_HINT_OPENS;
+    this.houseHint.hidden = !hint;
+    if (!shown) return;
+    const b = this.house.container.getBounds();
+    const pad = 6;
+    const width = Math.max(48, b.width + pad * 2);
+    const height = Math.max(48, b.height + pad * 2);
+    const box = {
+      x: Math.round(b.x + b.width / 2 - width / 2),
+      y: Math.round(b.y + b.height / 2 - height / 2),
+      width: Math.round(width),
+      height: Math.round(height),
+    };
+    const key = `${box.x},${box.y},${box.width},${box.height},${name},${hint}`;
+    if (key === this.houseKey) return;
+    this.houseKey = key;
+    Object.assign(this.houseButton.style, {
+      left: `${box.x}px`,
+      top: `${box.y}px`,
+      width: `${box.width}px`,
+      height: `${box.height}px`,
+    });
+    if (hint) {
+      // Centred over the house, but never past the edge of the island's part of the screen.
+      this.houseHint.textContent = t("house.hint", { house: name });
+      const half = this.houseHint.offsetWidth / 2 || 90;
+      const freeW = this.viewW - this.insetRight;
+      const centre = clamp(box.x + box.width / 2, half + 8, freeW - half - 8);
+      this.houseHint.style.left = `${Math.round(centre)}px`;
+      this.houseHint.style.top = `${box.y - 6}px`;
+    }
+  }
+
+  /** A crafting line's floater: from its station while the room is open, from the house if not. */
+  private roomFloater(product: string, x: number, y: number, amount: number): void {
+    if (!this.roomOpen) {
+      this.lineFloater(product, HOUSE.x, HOUSE.y - 24 * ART, amount);
+      return;
+    }
+    const screenX = this.room.container.x + x * this.scale;
+    const screenY = this.room.container.y + y * this.scale;
+    const at = this.toWorld(screenX, screenY);
+    this.lineFloater(product, at.x, at.y, amount);
   }
 
   private drawHustle(base: BaseState, now: number): void {

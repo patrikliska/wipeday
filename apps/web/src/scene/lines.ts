@@ -19,7 +19,7 @@ import { content, fmt, fmtCount, resourceColor } from "../state/world";
 import { drawLine, type Station } from "./buildings";
 import type { Particles } from "./effects";
 import { productTexture } from "./icons";
-import { SPOTS, stageSpot, TARGET_SPOT } from "./island";
+import { ROOM, SPOTS, stageSpot, TARGET_SPOT } from "./island";
 import { ART, artSprite } from "./pixel";
 import { plotShown } from "./reveal";
 import { clamp, easeOutBack } from "./util";
@@ -52,7 +52,7 @@ const FALLBACK_SCALE: Record<string, number> = {
   reactor: 0.36,
 };
 
-/** The island's layout (`island.ts`, D203) in world units. */
+/** The island's layout (`island.ts`, D203) in world units: the lines outside the house. */
 export const LAYOUT: Record<string, Spot> = Object.fromEntries(
   Object.entries(SPOTS).map(([id, spot]) => [
     id,
@@ -60,14 +60,28 @@ export const LAYOUT: Record<string, Spot> = Object.fromEntries(
   ]),
 );
 
+/** The house room's layout (D206): each crafting line on the room's floor (`ROOM.floor`). */
+export const ROOM_LAYOUT: Record<string, Spot> = Object.fromEntries(
+  Object.entries(ROOM.slots).map(([id, x]) => [
+    id,
+    { x: x * ART, y: 0, scale: FALLBACK_SCALE[id] ?? 0.45 },
+  ]),
+);
+
 /** The target's x (stage units): hands work on the far side of their line from it. */
-const TARGET_X = stageSpot(TARGET_SPOT).x;
+export const TARGET_X = stageSpot(TARGET_SPOT).x;
 
 /**
  * A line's pixel art at `stage` (`line/<id>_<stage>`), as a station; null without art. Its
  * hand works at its outer edge, away from the target, so no hand stands on the target.
  */
-function artStation(id: string, stage: number, unit: number, x: number): Station | null {
+function artStation(
+  id: string,
+  stage: number,
+  unit: number,
+  x: number,
+  centre: number,
+): Station | null {
   const sprite = artSprite(`line/${id}_${stage}`);
   if (!sprite) return null;
   // The container is scaled by the spot's fallback scale: undo it, so one art px is ART units.
@@ -75,7 +89,7 @@ function artStation(id: string, stage: number, unit: number, x: number): Station
   const container = new Container();
   container.addChild(sprite);
   const half = (sprite.texture.frame.width * ART) / unit / 2;
-  const side = x < TARGET_X ? -1 : 1;
+  const side = x < centre ? -1 : 1;
   return {
     id,
     container,
@@ -171,16 +185,22 @@ export class Lines {
   private floating = new Set<string>();
   private rankedAt = -1;
 
+  /**
+   * `layout` says which lines this instance draws and where (the island's or the house room's);
+   * `centre` is the x their hands work away from (the target, or the room's middle).
+   */
   constructor(
     layer: Container,
     ground: number,
     private readonly particles: Particles,
     private readonly events: LineEvents,
+    private readonly layout: Record<string, Spot> = LAYOUT,
+    private readonly centre: number = TARGET_X,
   ) {
     this.layer = layer;
     this.ground = ground;
     for (const def of content.lines) {
-      const spot = LAYOUT[def.id];
+      const spot = layout[def.id];
       if (!spot) continue;
       const container = new Container();
       container.position.set(spot.x, ground + spot.y);
@@ -316,7 +336,8 @@ export class Lines {
       return;
     }
     const station =
-      artStation(view.def.id, stage, view.spot.scale, view.spot.x) ?? drawLine(view.def.id, stage);
+      artStation(view.def.id, stage, view.spot.scale, view.spot.x, this.centre) ??
+      drawLine(view.def.id, stage);
     if (!station) return;
     view.station = station;
     view.container.addChild(station.container);
@@ -344,7 +365,7 @@ export class Lines {
   private rank(state: BaseState, now: number): void {
     const payouts: [string, number][] = [];
     for (const def of content.lines) {
-      if ((state.run.lines[def.id] ?? 0) > 0)
+      if (this.layout[def.id] && (state.run.lines[def.id] ?? 0) > 0)
         payouts.push([def.id, cyclePayout(content, state, def.id, now)]);
     }
     payouts.sort((a, b) => b[1] - a[1]);

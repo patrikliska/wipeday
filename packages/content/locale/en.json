@@ -209,6 +209,17 @@
     "collect": "Collect",
     "back_to_work": "Back to work"
   },
+  "house": {
+    "twig": "tent",
+    "wood": "cabin",
+    "stone": "stone house",
+    "metal": "shed",
+    "hqm": "bunker",
+    "open": "Go inside the {house}",
+    "hint": "Tap the {house} to go inside",
+    "title": "Inside the {house}",
+    "back": "Island"
+  },
   "scene": {
     "tap_target": "Tap the {target}",
     "hired": "{name}'s on it",
