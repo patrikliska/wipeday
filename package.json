@@ -27,7 +27,8 @@
     "web:shots": "pnpm --filter @wipe-day/web shots",
     "web:perf": "pnpm --filter @wipe-day/web perf",
     "api:dev": "pnpm --filter @wipe-day/api dev",
-    "icons": "pnpm --filter @wipe-day/discord icons"
+    "icons": "pnpm --filter @wipe-day/discord icons",
+    "art": "node scripts/art/art.mjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

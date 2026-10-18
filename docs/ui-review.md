@@ -1319,3 +1319,49 @@ of reach) and `phone_saving_drawer` (the same state, Upgrades expanded).
 8. Still open: `pnpm web:perf` was not re-run at the end. A game was running on the PC; the
    baseline at the session's start, on an idle machine, was 60 fps (5th percentile 59) with 4
    floaters and 114 particles at most.
+
+## R2 Feel S2: the pixel island, the first two eras
+
+The scene became pixel art on the terraced island (D203-D205): the integer-zoom camera, the
+landscape from the Scene Mock's tiles, the Twig and Timber lines at three stages, the Twig tent
+and the Timber cabin, Timber's outcrop, small hands with idle and walk cycles. Shots reviewed:
+`phone_first_tap`, `phone_first_buy`, `phone_timber_era`, `phone_hand_hired`, `phone_lines_25`,
+`phone_lines_100`, `desktop_first_tap`, `desktop_day` (`preview/web/index.html`); the art in
+`preview/art/s2-sheet.png`, `s2b-sheet.png`, `s2c-sheet.png`.
+
+### Iteration 1: the grid on the old layout
+- `phone_lines_25`: the island was one wide strip of tiny lines (about 20 px) under a half-empty
+  sky. Asked the owner; the island became terraces, one per era (D203).
+- `desktop_day`: the mock's survivor (23×40) was twice the height of a line and buried the island
+  in hands. A 12×18 survivor was generated and animated.
+- Every view: the mock's ground tile repeats tall grass every 160 px; on the terraces it stood
+  behind every line like noise. A seamless grass-free tile was made from the tile's middle and its
+  mirror (`terrain/ground_plain`).
+- `phone_first_tap`: below the earth tile the bedrock was a flat near-black slab. It now darkens
+  in three dirt bands first.
+- The 55-px shelter ran off the phone's right edge; the house is now a generated 31-px tent.
+
+### Iteration 2: the art in place
+- `phone_timber_era`: the low-res line sprites have no outline and vanished on the sand. Every
+  line sprite gets a 1-px dark outline at install (D205).
+- `phone_hand_hired`: the drawer's top edge cut across the beach row. The phone's ground line
+  moved from 58% to 53% of the height.
+- `desktop_day`: zoom 4 left the island small in the middle of a 1600 px view; back to 5. The
+  terraces stopped in a cliff at the right; they now run off past every screen.
+- A hand worked standing on the outcrop: hands now work on the side of their line away from the
+  target. (The figure on the outcrop in `phone_hand_hired` is Mara walking out from the house.)
+- *Fine:* the sea's surface steps one art pixel at a time; the far ruins and ridge read as the
+  coast across the bay; the outcrop and cabin are sharp at every zoom.
+
+### Checklist
+1. Hierarchy: the target is the largest thing on the beach, centred; the counter still leads.
+2. Legibility at 390 px: stage-1 lines are 16 px (40 CSS px): readable with the outline, small.
+3. Spacing: beach row slots are 20-26 px apart; the target's column stays clear on the terraces.
+4. Overflow: the house and the right lines fit inside a 390 px phone's 156 art px.
+5. Consistency: one palette (48), one grid; the Stone and later eras are still the stand-in
+   drawing until S3, and look it.
+6. Contrast: day and dusk checked; night, rain and fog through the ambient tint, not re-checked.
+7. Rules: one crown per view and the 44 px audit pass in every shot.
+8. Still open: pixel wear on the targets (S3), pixel clouds (the soft procedural ones clash),
+   the mirrored tile's faint seam every 88 px, the house tiers from Stone on, sparse empty
+   terraces at the start (by design: they fill as eras open).

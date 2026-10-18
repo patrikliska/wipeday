@@ -6,7 +6,7 @@ should think, and what "done" means**. It was rewritten in R0 from the approved 
 (`docs/redesign/11-roadmap.md`, which keeps the reasons); the W-phase roadmap and its results are
 in `docs/archive/roadmap-w.md`.
 
-## Where we are (2026-10-18, R2 Feel S1 done)
+## Where we are (2026-10-18, R2 Feel S2 done)
 
 - **The live game** is W8 on frozen `main` at https://wipeday.patrikliska.dev: season 1 (started
   2026-10-07) sits untouched and nobody plays it now (owner decision 7). It ends quietly at the
@@ -27,8 +27,25 @@ in `docs/archive/roadmap-w.md`.
   scene, the Saltmarsh Scene Mock, was approved on 2026-10-18 (D189, D190; `docs/redesign/art/`).
 - **R2 Feel's plan was approved on 2026-10-18** (D191, reordered in D202): eight sessions, the look
   first (the pixel scene S2-S3, the HUD S4, sound S5), the palette from the Scene Mock. **S1 groundwork is done** (results below).
-- **Next: R2 Feel S2, the pixel scene** (the look moved first on 2026-10-18 at the owner's
-  request, D202; see R2 Feel below).
+- **R2 Feel S2, the pixel island's first two eras, is done** (2026-10-18; results below): the
+  terraced island (D203), the pixel camera (D204), `pnpm art` and the first generated art
+  (D205).
+- **Next: R2 Feel S3, the rest of the pixel scene and the hero tap** (Stone to Armored art, the
+  stockpile, pixel wear and clouds). It needs credit: about 3.45 USD is left of the 25-35 the
+  art pass needs.
+
+### R2 Feel S2 results (the pixel island, Twig and Timber)
+- **The scene** is pixel art on one grid: `scene/pixel.ts` loads `packages/content/art/scene/`,
+  `scene/island.ts` holds the terraced layout, `scene/landscape.ts` the far coast, sea, terraces,
+  beach and earth (the old `terrain.ts` is gone). The target, the house, the lines and the hands
+  draw their art when it exists and the stand-in drawing when not (the Stone and later eras).
+- **The art:** the palette (48, from the Scene Mock), the mock's pine, tiles and props; generated
+  in S2: Twig and Timber lines at three stages (low-res, outlined), the Twig tent, the Timber
+  cabin, Timber's outcrop, a 12×18 survivor with idle and walk cycles. 4.52 USD.
+- **Checks:** `pnpm check` green; the shots audit (one crown, 44 px, the target at least 120 px)
+  passes. No rule changed, so the N-values read as at S1.
+- **Still open, into S3:** pixel wear on the targets, pixel clouds, the house tiers from Stone,
+  the Stone to Armored lines and targets, the stockpile and the chips.
 
 ### R2 Feel S1 results (groundwork)
 - **Docs:** `CLAUDE.md` 1, 2, 6, 8, 11 and 12, `docs/game-design.md`, this file and

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "small_idle",
+    "prompt_style": "rd_advanced_animation__idle",
+    "width": 32,
+    "height": 32,
+    "num_images": 1,
+    "remove_bg": true,
+    "input": "preview/art/s2c/hand_small_32.png",
+    "frames_duration": 8,
+    "return_spritesheet": true,
+    "prompt": "a tiny island survivor in a worn olive jacket with a small backpack, breathing calmly and shifting weight"
+  },
+  {
+    "id": "small_walk",
+    "prompt_style": "rd_advanced_animation__walking",
+    "width": 32,
+    "height": 32,
+    "num_images": 1,
+    "remove_bg": true,
+    "input": "preview/art/s2c/hand_small_32.png",
+    "frames_duration": 8,
+    "return_spritesheet": true,
+    "prompt": "a tiny island survivor in a worn olive jacket with a small backpack, walking to the right"
+  }
+]

@@ -19,6 +19,8 @@ import { content, fmt, fmtCount, resourceColor } from "../state/world";
 import { drawLine, type Station } from "./buildings";
 import type { Particles } from "./effects";
 import { productTexture } from "./icons";
+import { SPOTS, stageSpot, TARGET_SPOT } from "./island";
+import { ART, artSprite } from "./pixel";
 import { plotShown } from "./reveal";
 import { clamp, easeOutBack } from "./util";
 
@@ -30,29 +32,57 @@ export interface Spot {
 }
 
 /**
- * The island's layout (world units; the phone sees x 430-1310). Front row on the ground line,
- * a back row up the slope, a far row peeking over it; things further back are smaller.
+ * The scale each line's stand-in drawing is shown at (the procedural buildings, until a line has
+ * its pixel art); a line with art is drawn at the grid's scale whatever this says.
  */
-export const LAYOUT: Record<string, Spot> = {
-  // The shore: the jetty over the water, a hull beached at the waterline, the tideline.
-  dock: { x: 604, y: 16, scale: 0.7 },
-  shipbreaker: { x: 548, y: -24, scale: 0.5 },
-  beachcomber: { x: 660, y: 24, scale: 0.75 },
-  // Left of the rise.
-  campfire: { x: 742, y: 10, scale: 0.75 },
-  kiln: { x: 706, y: -36, scale: 0.55 },
-  furnace: { x: 652, y: -58, scale: 0.44 },
-  // Right of the rise, around the house.
-  tannery: { x: 1022, y: -36, scale: 0.55 },
-  garden: { x: 1078, y: 12, scale: 0.62 },
-  workbench: { x: 1214, y: 10, scale: 0.64 },
-  loom: { x: 1262, y: -38, scale: 0.55 },
-  // Up the hill behind.
-  press: { x: 1060, y: -80, scale: 0.44 },
-  radio_mast: { x: 1104, y: -96, scale: 0.5 },
-  generator: { x: 1206, y: -84, scale: 0.44 },
-  reactor: { x: 1262, y: -96, scale: 0.42 },
+const FALLBACK_SCALE: Record<string, number> = {
+  dock: 0.5,
+  shipbreaker: 0.4,
+  beachcomber: 0.5,
+  campfire: 0.5,
+  kiln: 0.45,
+  furnace: 0.4,
+  tannery: 0.45,
+  garden: 0.5,
+  workbench: 0.45,
+  loom: 0.45,
+  press: 0.4,
+  radio_mast: 0.45,
+  generator: 0.4,
+  reactor: 0.36,
 };
+
+/** The island's layout (`island.ts`, D203) in world units. */
+export const LAYOUT: Record<string, Spot> = Object.fromEntries(
+  Object.entries(SPOTS).map(([id, spot]) => [
+    id,
+    { ...stageSpot(spot), scale: FALLBACK_SCALE[id] ?? 0.45 },
+  ]),
+);
+
+/** The target's x (stage units): hands work on the far side of their line from it. */
+const TARGET_X = stageSpot(TARGET_SPOT).x;
+
+/**
+ * A line's pixel art at `stage` (`line/<id>_<stage>`), as a station; null without art. Its
+ * hand works at its outer edge, away from the target, so no hand stands on the target.
+ */
+function artStation(id: string, stage: number, unit: number, x: number): Station | null {
+  const sprite = artSprite(`line/${id}_${stage}`);
+  if (!sprite) return null;
+  // The container is scaled by the spot's fallback scale: undo it, so one art px is ART units.
+  sprite.scale.set(ART / unit);
+  const container = new Container();
+  container.addChild(sprite);
+  const half = (sprite.texture.frame.width * ART) / unit / 2;
+  const side = x < TARGET_X ? -1 : 1;
+  return {
+    id,
+    container,
+    pile: { x: -side * (half + (3 * ART) / unit), y: 0 },
+    work: side * (half - (2 * ART) / unit),
+  };
+}
 
 /** The plot's width (world units at the spot's scale 1): a stage-1 drawing's footprint. */
 const PLOT_WIDTH: Record<string, number> = {
@@ -285,7 +315,8 @@ export class Lines {
       view.grow = 0;
       return;
     }
-    const station = drawLine(view.def.id, stage);
+    const station =
+      artStation(view.def.id, stage, view.spot.scale, view.spot.x) ?? drawLine(view.def.id, stage);
     if (!station) return;
     view.station = station;
     view.container.addChild(station.container);

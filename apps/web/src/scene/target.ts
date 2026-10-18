@@ -24,6 +24,7 @@ import {
   SULFUR_VEIN,
   TREE_TRUNK,
 } from "./palette";
+import { artSprite } from "./pixel";
 import { glowTexture } from "./textures";
 import { clamp, easeOutBack, hash, lerpColor, reducedMotion, shade } from "./util";
 
@@ -438,13 +439,21 @@ function drawWear(g: Graphics, kind: TargetKind, level: number): void {
 interface Body {
   container: Container;
   wear: Graphics;
+  /** Drawn from pixel art (`target/<kind>`): its wear is drawn on the grid, not as vectors. */
+  pixel: boolean;
 }
 
 function makeBody(kind: TargetKind): Body {
   const container = new Container();
   const art = new Container();
-  const g = new Graphics();
   const wear = new Graphics();
+  const sprite = artSprite(`target/${kind}`);
+  if (sprite) {
+    art.addChild(sprite, wear);
+    container.addChild(art);
+    return { container, wear, pixel: true };
+  }
+  const g = new Graphics();
   if (kind === "tree") drawPine(g);
   else if (kind === "wreck") {
     drawWreck(g);
@@ -455,7 +464,7 @@ function makeBody(kind: TargetKind): Body {
   }
   art.addChild(g, wear);
   container.addChild(art);
-  return { container, wear };
+  return { container, wear, pixel: false };
 }
 
 /** Per kind: what a fell sheds, how long the ghost takes, and how it goes. */
@@ -550,7 +559,7 @@ export class Target {
     this.halo.width = b.width * 1.6;
     this.halo.height = b.height * 1.3;
     this.halo.position.set(b.x + b.width / 2, b.y + b.height * 0.55);
-    drawWear(this.body.wear, kind, this.level);
+    if (!this.body.pixel) drawWear(this.body.wear, kind, this.level);
     if (old && oldKind && animate) this.startGhost(old, oldKind);
     else old?.container.destroy({ children: true });
     this.pop = animate ? 0 : 1;
@@ -561,7 +570,7 @@ export class Target {
     const level = clamp(Math.floor(fraction * 5), 0, 4);
     if (level === this.level || !this.body || !this.kind) return;
     this.level = level;
-    drawWear(this.body.wear, this.kind, level);
+    if (!this.body.pixel) drawWear(this.body.wear, this.kind, level);
   }
 
   /** A tap landed: squash and shed a few chips at world (x, y). */

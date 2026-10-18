@@ -1,0 +1,87 @@
+{
+  "//": "R2 Feel S2, the first two eras (agent's first pass, 2026-10-18; the owner may swap any)",
+  "line/beachcomber_1": {
+    "from": "preview/art/s2/beachcomber_1_0.png",
+    "outline": true
+  },
+  "line/beachcomber_2": {
+    "from": "preview/art/s2/beachcomber_2_1.png",
+    "outline": true
+  },
+  "line/beachcomber_3": {
+    "from": "preview/art/s2/beachcomber_3_1.png",
+    "outline": true
+  },
+  "line/campfire_1": {
+    "from": "preview/art/s2/campfire_1_0.png",
+    "outline": true
+  },
+  "line/campfire_2": {
+    "from": "preview/art/s2/campfire_2_0.png",
+    "outline": true
+  },
+  "line/campfire_3": {
+    "from": "preview/art/s2/campfire_3_0.png",
+    "outline": true
+  },
+  "line/garden_1": {
+    "from": "preview/art/s2/garden_1_1.png",
+    "outline": true
+  },
+  "line/garden_2": {
+    "from": "preview/art/s2/garden_2_1.png",
+    "outline": true
+  },
+  "line/garden_3": {
+    "from": "preview/art/s2/garden_3_0.png",
+    "outline": true
+  },
+  "line/loom_1": {
+    "from": "preview/art/s2/loom_1_0.png",
+    "outline": true
+  },
+  "line/loom_2": {
+    "from": "preview/art/s2b/loom_2b_1.png",
+    "outline": true
+  },
+  "line/loom_3": {
+    "from": "preview/art/s2/loom_3_0.png",
+    "outline": true
+  },
+  "line/workbench_1": {
+    "from": "preview/art/s2/workbench_1_0.png",
+    "outline": true
+  },
+  "line/workbench_2": {
+    "from": "preview/art/s2/workbench_2_0.png",
+    "outline": true
+  },
+  "line/workbench_3": {
+    "from": "preview/art/s2/workbench_3_0.png",
+    "outline": true
+  },
+  "line/kiln_1": {
+    "from": "preview/art/s2/kiln_1_0.png",
+    "outline": true
+  },
+  "line/kiln_2": {
+    "from": "preview/art/s2/kiln_2_0.png",
+    "outline": true
+  },
+  "line/kiln_3": {
+    "from": "preview/art/s2/kiln_3_0.png",
+    "outline": true
+  },
+  "house/twig": "preview/art/s2b/house_twig_b_0.png",
+  "house/wood": "preview/art/s2/house_wood_0.png",
+  "target/stone": "preview/art/s2/target_stone_1.png",
+  "hand/survivor": "preview/art/s2c/hand_small_0.png",
+  "hand/survivor_idle": {
+    "from": "preview/art/s2c/small_idle_0_clean.png",
+    "sheet": true
+  },
+  "hand/survivor_walk": {
+    "from": "preview/art/s2c/small_walk_0_clean.png",
+    "sheet": true
+  }
+}

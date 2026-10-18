@@ -1,0 +1,153 @@
+[
+  {
+    "id": "sky",
+    "prompt_style": "rd_plus__environment",
+    "width": 320,
+    "height": 112,
+    "num_images": 1,
+    "tile_x": true,
+    "seed": 11,
+    "prompt": "a wide evening sky seen from a beach, soft orange and rose haze low on the horizon fading up into dusty teal, a few thin high clouds, a faint pale sun low on the left, nothing but sky, no ground, no sea"
+  },
+  {
+    "id": "far",
+    "prompt_style": "rd_plus__environment",
+    "width": 320,
+    "height": 64,
+    "num_images": 1,
+    "tile_x": true,
+    "remove_bg": true,
+    "seed": 12,
+    "prompt": "a distant ruined coastline silhouette seen across water, broken concrete towers, a collapsed crane, a leaning radio mast, all in one flat muted blue-grey haze tone, side view, on a plain white background"
+  },
+  {
+    "id": "sea",
+    "prompt_style": "rd_plus__environment",
+    "width": 160,
+    "height": 64,
+    "num_images": 1,
+    "tile_x": true,
+    "seed": 13,
+    "prompt": "calm dark teal sea water surface seen from the shore, side view, small pale wave crests, flat horizontal bands of colour, no sky, no land"
+  },
+  {
+    "id": "ground",
+    "prompt_style": "rd_plus__environment",
+    "width": 160,
+    "height": 64,
+    "num_images": 1,
+    "tile_x": true,
+    "seed": 14,
+    "prompt": "a side-view cross-section of a beach: a thin strip of pale sand on top with a few grass tufts and pebbles, dark brown packed earth below with small stones, flat top edge, no sky, no water"
+  },
+  {
+    "id": "bench",
+    "prompt_style": "rd_pro__platformer",
+    "width": 64,
+    "height": 48,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 21,
+    "prompt": "a scavenger's workbench built from rusted sheet metal and salvaged planks, strict side view, a hanging oil lamp with a warm glow, a vice, a hammer and tin cans on top, a tarp roof on two poles, on a plain white background"
+  },
+  {
+    "id": "pine",
+    "prompt_style": "rd_pro__platformer",
+    "width": 48,
+    "height": 72,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 22,
+    "prompt": "a single windswept coastal pine tree, tall thin dark trunk, sparse dark green needle clusters leaning to the right, side view, on a plain white background"
+  },
+  {
+    "id": "survivor",
+    "prompt_style": "rd_pro__platformer",
+    "width": 24,
+    "height": 40,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 23,
+    "prompt": "a lone island survivor standing, facing right, worn green jacket, rolled sleeves, a small backpack, a cloth wrap around the head, holding a rusty wrench, side view, full body, on a plain white background"
+  },
+  {
+    "id": "scrap",
+    "prompt_style": "rd_plus__low_res",
+    "width": 40,
+    "height": 24,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 24,
+    "prompt": "a low heap of scrap metal: rusted pipes, a bent car door, a tyre, bolts, side view, on a plain white background"
+  },
+  {
+    "id": "barrel",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 24,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 25,
+    "prompt": "a dented rusty red oil barrel standing upright, side view, on a plain white background"
+  },
+  {
+    "id": "shelter",
+    "prompt_style": "rd_pro__platformer",
+    "width": 56,
+    "height": 40,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 26,
+    "prompt": "a makeshift shelter: a sheet of corrugated metal leaning on driftwood posts over a sandbag wall, a hanging lantern, a sleeping mat inside, side view, on a plain white background"
+  },
+  {
+    "id": "lamp",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 36,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 27,
+    "prompt": "a tall thin driftwood post with a glowing oil lantern hung from a hook at the top, side view, on a plain white background"
+  },
+  {
+    "id": "drop",
+    "prompt_style": "rd_pro__platformer",
+    "width": 28,
+    "height": 24,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 28,
+    "prompt": "a closed olive-green military supply crate with orange stencil marks and a metal clasp, slightly open lid with light leaking out, side view, on a plain white background"
+  },
+  {
+    "id": "bigred",
+    "prompt_style": "rd_pro__platformer",
+    "width": 24,
+    "height": 28,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 29,
+    "prompt": "a large red mushroom button under a lifted glass cover on a grey steel pedestal with warning stripes, side view, on a plain white background"
+  },
+  {
+    "id": "flotsam",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 30,
+    "prompt": "a small wooden crate half sunk in water, floating, wet dark planks, side view, on a plain white background"
+  },
+  {
+    "id": "rock",
+    "prompt_style": "rd_plus__low_res",
+    "width": 32,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 31,
+    "prompt": "a low grey beach boulder with a bleached driftwood log leaning on it, side view, on a plain white background"
+  }
+]

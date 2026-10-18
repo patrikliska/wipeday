@@ -3,15 +3,16 @@
 What we know about generating Wipe Day's pixel art, written down so any computer (and any
 session) can continue. The decisions behind it: D188 (chunky pixel, the grid), D189 (Retro
 Diffusion first, OpenAI as backup, Gemini dropped), D190 (the pipeline's shape after the scene
-mock). The plan: `12-feel.md` 2.1 and 2.2. These scripts are the seed of `pnpm art` (R2 Feel);
-until then they run from here.
+mock), D203-D205 (the terraced island, the camera, the pipeline in the game). The plan:
+`12-feel.md` 2.1 and 2.2. Since R2 Feel S2 the scripts live in `scripts/art/` behind `pnpm art`;
+the game's art is `packages/content/art/` (the palette, and `scene/<kind>/<id>.png`).
 
 ## 1. Setup on a new computer
 
 1. `.env` at the repo root (gitignored, copy it by hand, never through git):
    `RETRO_DIFFUSION_API_KEY=rdpk-…` (the key page is https://www.retrodiffusion.ai/app/devtools).
    `OPENAI_API_KEY` only when the parallax layers come up.
-2. Python 3 with Pillow (`pip install pillow`) for `prep.py` and `sheet.py`; Node 24 for the
+2. Python 3 with Pillow (`pip install pillow`) for the Python steps; Node 24 for the
    `.mjs` scripts (no dependencies).
 3. Optional, for driving Retro Diffusion from Claude Code directly: register its hosted MCP
    server once per machine, reading the key from `.env` so it is never typed into a transcript:
@@ -52,26 +53,50 @@ white background" and set `remove_bg:true` for anything standalone; never write 
 Two takes (`num_images:2`) of the important sprites, one of the rest. The same seed with the same
 prompt gives near-identical takes, so vary the seed, not only the count.
 
-## 4. The scripts
+## 4. The scripts (`pnpm art <step>`)
 
-| Script | Does |
+| Step | Does |
 | --- | --- |
-| `gen.mjs <jobs.json> <out> [--estimate] [--only=a,b] [--collect]` | Submits every job in the file (`--estimate` prints the total price instead), then polls the task list and writes `<id>_<n>.png` plus `manifest.json` with prompts, sizes and costs. `--collect` only harvests finished tasks, matched to jobs by image size. Reads the key from `.env` three levels up. |
-| `prep.py <in> <out>` | Cuts usable layers out of the environment renders (flood-fills the sky out of the ground tile from the top edge, mirrors a water crop into a seamless tile, knocks the teal out of the cloud band) and trims the props' transparent borders. Pure Pillow. |
-| `sheet.py <dir> <out.png> [zoom]` | Every PNG in a folder on one checkerboard contact sheet at integer zoom, nearest neighbour, with name and size. This is what the owner picks from. |
-| `anim.mjs estimate | submit <style…> | collect` | Pads the survivor to 32×48, prices the animation styles, submits idle and walking, harvests frames. |
-| `jobs/scene-mock.json` | The fifteen jobs behind the scene mock, with the working prompts. |
+| `palette` | The 48 colours: every opaque pixel of the Scene Mock's sprites reduced by median cut (near-duplicates merged), plus the fixed ones (the five era colours, fire, the warning red, the sea depths, the far ridge). Writes `packages/content/art/palette.json` (the source of truth), `palette.png` (one pixel per colour: Retro Diffusion's `input_palette`) and a swatch in `preview/art/`. |
+| `seed` | The mock's approved pieces (the pine, the ground, earth, sea and far tiles, the props, the crate) cleaned into `packages/content/art/scene/`. |
+| `plain` | The ground tile without its grass ends (`terrain/ground_plain`): its middle and its mirror, seamless. |
+| `gen <jobs.json> <out> [--estimate] [--only=a,b] [--collect]` | Submits every job (`--estimate` prints the total price instead), polls the task list and writes `<id>_<n>.png` plus `manifest.json`. A job may carry `palette: true` (the palette as `input_palette`), `refs: [paths]` (reference images, pro styles only) and `input: path` (the starting frame of an animation). `--collect` harvests finished tasks; only it guesses a task by image size, and only for a job with no task of its own. |
+| `sheet <dir> <out.png> [zoom]` | Every PNG in a folder on one checkerboard contact sheet, nearest neighbour, with name and size: what the owner picks from. |
+| `clean <in> <out> [--keep-size]` | Onto the grid: background knock-out (not for tiles and sheets), pitch detection and downsample, alpha snapped, the palette's nearest colours, lone pixels removed, the border trimmed. |
+| `install <picks.json>` | The chosen takes, cleaned, into `packages/content/art/scene/<key>.png`. `scripts/art/picks/*.json` records every choice (`"outline": true` adds a 1-px dark outline; `"sheet": true` keeps a sprite sheet's canvas). |
+
+`prep.py` and `anim.mjs` are the mock's one-off helpers, kept for the record; `gen` now does
+animations from a job (`input`). The job files are in `scripts/art/jobs/`: `scene-mock.json`
+(the mock's fifteen), `s2-*.json` (the first two eras, the hands, the retakes).
 
 Run from the repo root, for example:
 
 ```sh
-node docs/redesign/art/gen.mjs docs/redesign/art/jobs/scene-mock.json preview/art/scene --estimate
-node docs/redesign/art/gen.mjs docs/redesign/art/jobs/scene-mock.json preview/art/scene
-python -I docs/redesign/art/prep.py preview/art/scene preview/art/scene-prep
-python -I docs/redesign/art/sheet.py preview/art/scene preview/art/scene-sheet.png 4
+pnpm art gen scripts/art/jobs/s2-eras.json preview/art/s2 --estimate
+pnpm art gen scripts/art/jobs/s2-eras.json preview/art/s2
+pnpm art sheet preview/art/s2 preview/art/s2-sheet.png 6
+pnpm art install scripts/art/picks/s2.json
 ```
 
-`preview/` is gitignored; outputs worth keeping move into the repo by hand.
+`preview/` is gitignored: the installed art in `packages/content/art/scene/` and the picks file
+are what is kept.
+
+### What S2 learned (2026-10-18)
+
+- **Small lines: `rd_plus__low_res` beats the pro style.** At 16-24 px the pro platformer's take
+  of the beachcomber rack was a smear; low-res's was clear and colourful, at a third of the price
+  (0.06). It takes no reference images, so the clean-up's palette and outline hold it to the set.
+- **Heroes and characters: `rd_pro__platformer` with references** (the mock's pine, shelter and
+  survivor): the cabin and the outcrop came out right first time. Two takes each.
+- **Low-res sprites need an outline** on sand: `install` adds one.
+- **Animations' background removal leaves white crumbs** around the figure: knock out
+  near-white before installing (the survivor has none of its own).
+- **A fresh run must never match an old task by size**: the hand came back as yesterday's barrel
+  until `gen` stopped guessing outside `--collect`.
+- The pro style at 32×24 drew both Twig shelters as blobs; "a small tent of a patched tarp over
+  two poles" worked. Concrete, simple shapes for small sprites.
+- Spend for S2: 0.42 test, 2.70 the eras, 0.76 retakes and the first cycles, 0.64 the small hand
+  and its cycles: 4.52 USD. Balance after: about 3.45 USD.
 
 ## 5. Animation
 

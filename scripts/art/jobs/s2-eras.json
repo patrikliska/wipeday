@@ -1,0 +1,247 @@
+[
+  {
+    "id": "beachcomber_1",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 101,
+    "palette": true,
+    "prompt": "a small pile of grey driftwood sticks and a wooden bucket on the sand, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "beachcomber_2",
+    "prompt_style": "rd_plus__low_res",
+    "width": 20,
+    "height": 20,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 102,
+    "palette": true,
+    "prompt": "a beachcomber's driftwood drying rack with a fishing net and a bucket, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "beachcomber_3",
+    "prompt_style": "rd_plus__low_res",
+    "width": 24,
+    "height": 24,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 103,
+    "palette": true,
+    "prompt": "a beachcomber's driftwood rack with nets, orange buoys and a handcart full of driftwood, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "campfire_1",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 111,
+    "palette": true,
+    "prompt": "a small campfire ringed with stones, a cooking pot over it, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "campfire_2",
+    "prompt_style": "rd_plus__low_res",
+    "width": 20,
+    "height": 20,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 112,
+    "palette": true,
+    "prompt": "a stone fire pit with a fish roasting on a spit and a log to sit on, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "campfire_3",
+    "prompt_style": "rd_plus__low_res",
+    "width": 24,
+    "height": 24,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 113,
+    "palette": true,
+    "prompt": "a cookfire under a little corrugated tin roof, a big pot on a spit and smoked fish hanging, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "garden_1",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 121,
+    "palette": true,
+    "prompt": "a tiny garden patch of dark soil with a few green sprouts and a stick fence, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "garden_2",
+    "prompt_style": "rd_plus__low_res",
+    "width": 20,
+    "height": 20,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 122,
+    "palette": true,
+    "prompt": "a vegetable garden bed with tall green plants, a watering can and a low fence, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "garden_3",
+    "prompt_style": "rd_plus__low_res",
+    "width": 24,
+    "height": 24,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 123,
+    "palette": true,
+    "prompt": "a garden of raised wooden beds with tall green plants, a scarecrow and a rain barrel, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "loom_1",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 131,
+    "palette": true,
+    "prompt": "a simple rope-twisting frame of sticks with a small coil of rope, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "loom_2",
+    "prompt_style": "rd_plus__low_res",
+    "width": 20,
+    "height": 20,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 132,
+    "palette": true,
+    "prompt": "a wooden rope frame with twisted rope stretched across and two coils of rope, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "loom_3",
+    "prompt_style": "rd_plus__low_res",
+    "width": 24,
+    "height": 24,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 133,
+    "palette": true,
+    "prompt": "a big wooden rope-making frame with spools, heavy twisted ropes and stacked coils, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "workbench_1",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 141,
+    "palette": true,
+    "prompt": "a sawhorse with a plank and a hand saw on it, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "workbench_2",
+    "prompt_style": "rd_plus__low_res",
+    "width": 20,
+    "height": 20,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 142,
+    "palette": true,
+    "prompt": "a wooden workbench with a vice, a saw and a small stack of planks, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "workbench_3",
+    "prompt_style": "rd_plus__low_res",
+    "width": 24,
+    "height": 24,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 143,
+    "palette": true,
+    "prompt": "a carpenter's workbench under a tarp roof, tools hanging, a tall stack of planks, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "kiln_1",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 151,
+    "palette": true,
+    "prompt": "a small smoking earth-mound kiln with a few sticks beside it, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "kiln_2",
+    "prompt_style": "rd_plus__low_res",
+    "width": 20,
+    "height": 20,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 152,
+    "palette": true,
+    "prompt": "a clay charcoal kiln with a short chimney and a pile of black charcoal, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "kiln_3",
+    "prompt_style": "rd_plus__low_res",
+    "width": 24,
+    "height": 24,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 153,
+    "palette": true,
+    "prompt": "a big brick charcoal kiln with two chimneys and sacks of charcoal, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "house_twig",
+    "prompt_style": "rd_pro__platformer",
+    "width": 32,
+    "height": 24,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 201,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/target/tree.png",
+      "packages/content/art/scene/house/twig.png",
+      "docs/redesign/art/mock-scene/img/bench.png"
+    ],
+    "prompt": "a tiny survivor's lean-to shelter of driftwood poles and a grey tarp sheet, sandbags along its base, a lantern hanging at the front, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "house_wood",
+    "prompt_style": "rd_pro__platformer",
+    "width": 32,
+    "height": 28,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 202,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/target/tree.png",
+      "packages/content/art/scene/house/twig.png",
+      "docs/redesign/art/mock-scene/img/bench.png"
+    ],
+    "prompt": "a small timber cabin of rough brown planks with a slanted plank roof, a plank door, a small window with warm light and a short stone chimney, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "target_stone",
+    "prompt_style": "rd_pro__platformer",
+    "width": 40,
+    "height": 32,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 203,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/target/tree.png",
+      "packages/content/art/scene/prop/rock.png"
+    ],
+    "prompt": "a large grey granite boulder outcrop with moss on its top, a few cracks and loose stones around its base, strict side view, light from the upper left, on a plain white background"
+  }
+]

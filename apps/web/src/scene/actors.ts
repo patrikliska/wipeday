@@ -5,9 +5,10 @@
  * island loads stand at work. Reduced motion: they fade in at the plot. Simple figures with a
  * hat colour each; a portrait pipeline can replace them without touching the behaviour.
  */
-import { Container, Graphics } from "pixi.js";
+import { Container, Graphics, Sprite, type Texture } from "pixi.js";
 import { type SurvivorLook, survivorLook } from "../state/world";
 import { CLOTHES, SKIN } from "./palette";
+import { ART, frames } from "./pixel";
 import { easeInOutSine, hash, rand, reducedMotion, shade } from "./util";
 
 interface Figure {
@@ -73,6 +74,12 @@ function drawHat(g: Graphics, style: number, color: number): void {
     g.rect(-7, -70, 16, 3).fill(band);
     g.roundRect(-14, -68, 30, 3.5, 1.75).fill(shade(color, -0.12));
   }
+}
+
+/** A Figure shell around a pixel hand's container (its limbs are never moved). */
+function stubFigure(container: Container): Figure {
+  const limb = () => new Graphics();
+  return { container, legs: [limb(), limb()], arms: [limb(), limb()], body: new Container() };
 }
 
 function drawFigure(survivor: SurvivorLook): Figure {
@@ -179,9 +186,37 @@ export interface Post {
   faceX: number;
 }
 
+/** A hand in pixel art: one sprite whose frame steps through the idle or walk cycle. */
+interface PixelFigure {
+  sprite: Sprite;
+  idle: Texture[];
+  walk: Texture[];
+}
+
+/** Frames a second of the pixel cycles (8 frames each: idle over 1.6 s, a walk over 0.9 s). */
+const IDLE_FPS = 5;
+const WALK_FPS = 9;
+
+/** The survivor sheets (`hand/survivor_idle`, `hand/survivor_walk`, 4 × 2 cells), once loaded. */
+function pixelFigure(): { container: Container; pixel: PixelFigure } | null {
+  const idle = frames("hand/survivor_idle", 4, 2);
+  const walk = frames("hand/survivor_walk", 4, 2);
+  const first = idle[0];
+  if (!first || walk.length === 0) return null;
+  const sprite = new Sprite(first);
+  const w = first.frame.width;
+  sprite.anchor.set(Math.floor(w / 2) / w, 1);
+  sprite.scale.set(ART);
+  const container = new Container();
+  container.addChild(sprite);
+  return { container, pixel: { sprite, idle, walk } };
+}
+
 interface Hand {
   line: string;
   figure: Figure;
+  /** Set when the hand is drawn in pixel art; `figure` then holds only its container. */
+  pixel: PixelFigure | null;
   from: Post;
   to: Post;
   /** 0..1 along the walk; 1 at work. */
@@ -241,12 +276,14 @@ export class Hands {
         existing.to = post;
         continue;
       }
-      const figure = drawFigure(survivorLook(crew));
+      const art = pixelFigure();
+      const figure = art ? stubFigure(art.container) : drawFigure(survivorLook(crew));
       this.layer.addChild(figure.container);
       const walking = animate && !reducedMotion();
       this.hands.set(line, {
         line,
         figure,
+        pixel: art?.pixel ?? null,
         from: walking ? door : post,
         to: post,
         walk: walking ? 0 : 1,
@@ -263,7 +300,8 @@ export class Hands {
     const hand = this.hands.get(line);
     if (!hand) return null;
     const c = hand.figure.container;
-    return { x: c.x, y: c.y - 90 * c.scale.y };
+    // A pixel hand is about 24 art px tall; the stand-in figure 90 units at its scale.
+    return { x: c.x, y: c.y - (hand.pixel ? 26 * ART : 90 * c.scale.y) };
   }
 
   setNight(night: boolean): void {
@@ -288,10 +326,20 @@ export class Hands {
         : hand.to.faceX >= hand.to.x
           ? 1
           : -1;
-      figure.container.position.set(x, y);
-      figure.container.scale.set(scale * facing, scale);
       figure.container.zIndex = y + 0.5;
       figure.container.alpha = hand.fade;
+      if (hand.pixel) {
+        // On the grid: whole art pixels, never scaled, mirrored to face the work.
+        figure.container.position.set(Math.round(x / ART) * ART, Math.round(y / ART) * ART);
+        figure.container.scale.set(facing, 1);
+        const cycle = walking ? hand.pixel.walk : hand.pixel.idle;
+        const fps = walking ? WALK_FPS : IDLE_FPS;
+        const frame = cycle[Math.floor((this.time + hand.phase) * fps) % cycle.length];
+        if (frame) hand.pixel.sprite.texture = frame;
+        continue;
+      }
+      figure.container.position.set(x, y);
+      figure.container.scale.set(scale * facing, scale);
       const clock = this.time * 11 + hand.phase;
       if (walking) {
         const step = Math.sin(clock);

@@ -3,8 +3,10 @@
  * into motion. Game state only ever changes through store actions; the scene reads it once per
  * frame (docs/redesign/09-architecture.md 10.3).
  *
- * The island: the sea on the left, the era's target on a rise in the middle, the lines around
- * it and the house behind, every hand at their line. Taps go through a DOM button held over the
+ * The island (D203): a pixel-art side view on one grid (D188), the sea on the left, the era's
+ * target on the beach in the middle, the Twig lines beside it and each later era's lines on the
+ * terrace above, the house at the end of the first terrace, every hand at their line. The camera
+ * keeps a whole number of device pixels per art pixel. Taps go through a DOM button held over the
  * target at a fixed screen size (D48, N27), so keyboards and screen readers reach it too; a
  * press held still for a moment counts 4 taps a second (hold to work). Flotsam drifts in on
  * the waterline and is caught through a button of its own (`flotsam.ts`). Animation runs on the
@@ -42,12 +44,14 @@ import { House } from "./base";
 import { Floaters, Particles, Weather } from "./effects";
 import { Flotsam } from "./flotsam";
 import { loadProductIcons } from "./icons";
+import { HOUSE_SPOT, stageSpot, TARGET_SPOT, VIEW } from "./island";
+import { Landscape } from "./landscape";
 import { LAYOUT, Lines } from "./lines";
 import { gloom, paletteAt } from "./palette";
+import { ART, loadArt } from "./pixel";
 import { milestoneCrossed } from "./reveal";
 import { Sky } from "./sky";
 import { Target, type TargetKind } from "./target";
-import { Terrain } from "./terrain";
 import { clamp, lerp } from "./util";
 
 /** Design space: a 16:9 stage, the ground line a little below centre. */
@@ -55,19 +59,18 @@ const W = 1600;
 const H = 900;
 const HORIZON = 520;
 const GROUND = 560;
-/** The waterline at the ground line sits 60 units left of this. */
-const SHORE_X = 660;
 /** Sky and ground continue this far past the stage so no screen shape shows an edge. */
 const EXTEND = 800;
-/** Narrow screens always see at least this many world units across (D75)... */
-const MIN_VISIBLE_W = 880;
-/** ...centred here: the sea on the left, every line, the rise in the middle. */
-const FOCUS_X = 870;
-/** The rise the target stands on. */
-const RISE = { x: 870, top: GROUND - 58, half: 165 };
-const HOUSE = { x: 1150, y: GROUND - 44, scale: 0.4 };
-/** Phones: the ground line at this fraction of the height, the target's centre near 40%. */
-const PHONE_GROUND = 0.52;
+/** Every screen shows at least the island (`VIEW`, art px), centred on it. */
+const VIEW_W = (VIEW.right - VIEW.left) * ART;
+const VIEW_H = (VIEW.bottom - VIEW.top) * ART;
+const FOCUS_X = ((VIEW.left + VIEW.right) / 2) * ART;
+/** The most CSS px per art pixel: big screens show more sky and sea, not bigger pixels. */
+const MAX_ZOOM = 5;
+const TARGET = { x: stageSpot(TARGET_SPOT).x, y: GROUND + stageSpot(TARGET_SPOT).y };
+const HOUSE = { x: stageSpot(HOUSE_SPOT).x, y: GROUND + stageSpot(HOUSE_SPOT).y, scale: 1 };
+/** Phones: the ground line at this fraction of the height. */
+const PHONE_GROUND = 0.53;
 /** The tap box: the drawn target padded by this, never smaller than the minimum (CSS px). */
 const HIT_PAD = 12;
 const HIT_MIN = { width: 140, height: 160 };
@@ -95,16 +98,7 @@ export class Scene {
   private readonly floaters = new Floaters((amount) => fmt(amount, "cost"));
   private readonly weather = new Weather(1200, 800);
   private readonly sky = new Sky(W, HORIZON, EXTEND);
-  private readonly terrain = new Terrain({
-    width: W,
-    height: H,
-    horizon: HORIZON,
-    ground: GROUND,
-    shoreX: SHORE_X,
-    baseX: HOUSE.x,
-    rise: RISE,
-    extend: EXTEND,
-  });
+  private readonly terrain = new Landscape({ width: W, height: H, extend: EXTEND });
   private readonly target = new Target(this.particles);
   private readonly flotsam = new Flotsam({
     claim: (run, k) => useWorld.getState().send({ type: "claim_flotsam", run, k }),
@@ -171,10 +165,9 @@ export class Scene {
       float: (line, x, y, amount) => this.lineFloater(line.product, x, y, amount),
     });
     this.hands = new Hands(this.props);
-    this.target.container.position.set(RISE.x, RISE.top + 4);
-    this.target.container.zIndex = GROUND;
+    this.target.container.position.set(TARGET.x, TARGET.y);
+    this.target.container.zIndex = TARGET.y;
     this.house.container.position.set(HOUSE.x, HOUSE.y);
-    this.house.container.scale.set(HOUSE.scale);
     this.house.container.zIndex = HOUSE.y;
     this.props.addChild(this.house.container, this.target.container);
     this.world.addChild(
@@ -204,7 +197,8 @@ export class Scene {
       resolution: Math.min(2, window.devicePixelRatio || 1),
       backgroundAlpha: 0,
     });
-    await loadProductIcons();
+    await Promise.all([loadProductIcons(), loadArt()]);
+    this.terrain.build();
     if (this.destroyed) {
       this.app.destroy(true, { children: true });
       return;
@@ -334,8 +328,10 @@ export class Scene {
   // --- camera --------------------------------------------------------------------------------
 
   /**
-   * Phones keep at least MIN_VISIBLE_W across with the ground line at about half the height,
-   * so the target stands at about 40% (N27); wide screens fill the height with more sky.
+   * The zoom is the largest whole number of device pixels per art pixel that still shows the
+   * whole island (`VIEW`), at most MAX_ZOOM CSS px: a phone sees the island edge to edge, a
+   * desktop more sky and sea around it. The ground line sits at about half the height on a
+   * phone and lower on wide screens.
    */
   private layout(): void {
     const vw = this.app.screen.width;
@@ -347,7 +343,10 @@ export class Scene {
     this.viewH = vh;
     this.insetRight = right;
     const freeW = vw - right;
-    this.scale = Math.min(vh / (H - 100), freeW / MIN_VISIBLE_W);
+    const res = this.app.renderer.resolution;
+    const fit = Math.min((freeW * res * ART) / VIEW_W, (vh * res * ART) / VIEW_H);
+    const zoom = clamp(Math.floor(fit), 1, Math.round(MAX_ZOOM * res));
+    this.scale = zoom / (res * ART);
     const visibleW = freeW / this.scale;
     const visibleH = vh / this.scale;
     this.centerX = visibleW >= W ? W / 2 : clamp(FOCUS_X, visibleW / 2, W - visibleW / 2);
@@ -449,7 +448,10 @@ export class Scene {
 
     const visibleW = (this.viewW - this.insetRight) / this.scale;
     const left = this.centerX - visibleW / 2;
-    this.world.position.set(-left * this.scale - this.parallax * 6, -this.top * this.scale);
+    // Whole device pixels only, so the art grid stays sharp (D188).
+    const res = this.app.renderer.resolution;
+    const px = (value: number) => Math.round(value * res) / res;
+    this.world.position.set(px(-left * this.scale - this.parallax * 6), px(-this.top * this.scale));
     this.floaters.setCamera(
       this.world.position.x,
       this.world.position.y,

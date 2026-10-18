@@ -2200,3 +2200,39 @@ drawn in the sessions that ship their rules. Advertising implies a public launch
 1 lists as a non-goal; that change waits for the owner's explicit decision and its own plan.
 `docs/roadmap.md` R2 Feel.
 
+### D203. The terraced island (owner, 2026-10-18)
+The pixel scene cannot keep the R1 island's wide strip: on a phone fourteen lines, the target
+and the house on one ground line come out about 20 px tall, and the approved mock's props need
+a row each. Asked, the owner chose a terraced island over a wide strip to swipe: a side view of
+Saltmarsh rising from the beach in terraces, one per era. The Twig lines (beachcomber, campfire,
+garden) stand on the beach either side of the target, with the sea lines (dock, shipbreaker) in
+the shallows; Timber, Stone and Sheet Metal/Armored each build on the terrace above, and the
+house stands at the right end of the first terrace. Everything owned is on screen at once (rule
+6.2), and the island visibly grows up the hill as the run climbs. The layout is one table in
+`apps/web/src/scene/island.ts` (art pixels, rows at 112, 94, 76 and 58). `docs/roadmap.md` R2
+Feel S2.
+
+### D204. The pixel camera: whole device pixels per art pixel, the island always in view (agent, 2026-10-18)
+The camera picks the largest whole number of device pixels per art pixel that still shows the
+island's 156 × 126 art px (`VIEW`), at most 5 CSS px (a 1440 desktop shows sky and sea around the
+island, not bigger pixels); the world's position is rounded to whole device pixels, sprites stand
+on whole art pixels (an odd width's anchor leans left), nearest-neighbour throughout. A 390 px
+phone at DPR 2 gets exactly 5 device px (2.5 CSS px) per art pixel; the ground line sits at 53% of
+a phone's height so the collapsed drawer never covers the beach row. The procedural stand-ins
+stay as fallbacks for whatever has no art yet (the Stone and later eras until S3), so the island
+never breaks while the art arrives. D188's "zoom 2 on a phone, 4 on a desktop" becomes this rule.
+`apps/web/src/scene/Scene.ts`.
+
+### D205. The art pipeline in the game: `pnpm art`, low-res lines, outlines, the picks on record (agent, 2026-10-18)
+The scripts moved to `scripts/art/` behind `pnpm art` (palette, seed, plain, gen, sheet, clean,
+install); the game's art is `packages/content/art/` (the 48-colour palette, extracted from the
+Scene Mock with the era, fire, red, sea and ridge colours pinned, D191; and
+`scene/<kind>/<id>.png`, loaded by `scene/pixel.ts`). Measured in S2: at 16-24 px the cheap
+`rd_plus__low_res` draws clearer lines than the pro style, so the lines use it (0.06 a take)
+with a 1-px dark outline added at install; heroes, houses and hands use `rd_pro__platformer`
+with the mock's sprites as references. The hands are a 12×18 survivor (the mock's 23×40 one
+dwarfed the 20-px lines) with 8-frame idle and walk cycles. Each session's choices live in
+`scripts/art/picks/*.json`; the agent makes a first pass so the work never waits, and the owner
+may swap any take by number from the contact sheet. S2 spent 4.52 USD; 3.45 is left.
+`docs/redesign/art/README.md` 4.
+

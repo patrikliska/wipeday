@@ -1,0 +1,14 @@
+[
+  {
+    "id": "hand_small",
+    "prompt_style": "rd_pro__platformer",
+    "width": 12,
+    "height": 18,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 17,
+    "palette": true,
+    "refs": ["packages/content/art/scene/hand/survivor.png"],
+    "prompt": "a tiny island survivor in a worn olive green jacket with a small backpack and a pale bandana, standing, strict side view facing right, light from the upper left, on a plain white background"
+  }
+]

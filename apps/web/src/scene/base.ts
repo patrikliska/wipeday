@@ -7,6 +7,7 @@ import { Container, Graphics } from "pixi.js";
 import type { Tier } from "../state/world";
 import { Glow, type Particles } from "./effects";
 import { MATERIALS, type Material, SKINS } from "./palette";
+import { artSprite } from "./pixel";
 import { easeOutBack, rand, shade } from "./util";
 
 interface WindowRect {
@@ -185,6 +186,9 @@ const FOOTPRINT: Record<Tier, [number, number]> = {
   hqm: [370, 250],
 };
 
+/** The stand-in drawing is made large and shown at this scale (the old scene's 0.4). */
+const PROCEDURAL_SCALE = 0.4;
+
 export class House {
   readonly container = new Container();
   /** Window glows, drawn above the night tint (D47); the scene stacks it on `lights`. */
@@ -196,6 +200,9 @@ export class House {
   private skin: string | null = null;
   private buildAnim = 0;
   private time = 0;
+  /** The structure's drawing units: 1 for pixel art, PROCEDURAL_SCALE for the stand-in. */
+  private unit = 1;
+  private width = 180 * PROCEDURAL_SCALE;
   private smokeTimer = 0;
 
   constructor(private readonly particles: Particles) {}
@@ -210,21 +217,31 @@ export class House {
     this.windowGlows = [];
     this.floodGlow?.sprite.destroy();
     this.floodGlow = null;
-    const g = new Graphics();
-    const windows = drawStructure(tier, g, skin);
     this.structure = new Container();
-    this.structure.addChild(g);
     this.container.addChild(this.structure);
-    for (const w of windows) {
-      const glow = new Glow(0xffc46b, Math.max(w.w, w.h) * 3.2, 0.9);
-      glow.sprite.position.set(w.x, w.y);
-      this.lights.addChild(glow.sprite);
-      this.windowGlows.push(glow);
-    }
-    if (tier === "hqm") {
-      this.floodGlow = new Glow(0xdff6ff, 360, 0.8);
-      this.floodGlow.sprite.position.set(-120, -160);
-      this.lights.addChild(this.floodGlow.sprite);
+    // Pixel art when the tier has it (`house/<tier>`); the stand-in drawing at its scale if not.
+    const sprite = skin ? null : artSprite(`house/${tier}`);
+    this.unit = sprite ? 1 : PROCEDURAL_SCALE;
+    if (sprite) {
+      this.structure.addChild(sprite);
+      this.width = sprite.texture.frame.width * sprite.scale.x;
+    } else {
+      const g = new Graphics();
+      const windows = drawStructure(tier, g, skin);
+      g.scale.set(PROCEDURAL_SCALE);
+      this.structure.addChild(g);
+      this.width = FOOTPRINT[tier][0] * PROCEDURAL_SCALE;
+      for (const w of windows) {
+        const glow = new Glow(0xffc46b, Math.max(w.w, w.h) * 3.2 * PROCEDURAL_SCALE, 0.9);
+        glow.sprite.position.set(w.x * PROCEDURAL_SCALE, w.y * PROCEDURAL_SCALE);
+        this.lights.addChild(glow.sprite);
+        this.windowGlows.push(glow);
+      }
+      if (tier === "hqm") {
+        this.floodGlow = new Glow(0xdff6ff, 360 * PROCEDURAL_SCALE, 0.8);
+        this.floodGlow.sprite.position.set(-120 * PROCEDURAL_SCALE, -160 * PROCEDURAL_SCALE);
+        this.lights.addChild(this.floodGlow.sprite);
+      }
     }
     this.buildAnim = animate ? 1 : 0;
     if (animate)
@@ -238,7 +255,7 @@ export class House {
 
   /** Half the house's width in world units, for spacing what stands beside it. */
   get halfWidth(): number {
-    return ((this.tier ? FOOTPRINT[this.tier][0] : 180) / 2) * this.container.scale.x;
+    return (this.width / 2) * this.container.scale.x;
   }
 
   update(dt: number, darkness: number): void {
@@ -268,9 +285,10 @@ export class House {
     this.smokeTimer -= dt;
     if (this.smokeTimer <= 0) {
       this.smokeTimer = 0.4;
-      const spot = this.tier ? CHIMNEY[this.tier] : null;
+      // The stand-in drawing's chimneys; pixel houses smoke from their art (S3).
+      const spot = this.tier && this.unit !== 1 ? CHIMNEY[this.tier] : null;
       if (spot && Math.random() < 0.5) {
-        const scale = this.container.scale.x;
+        const scale = this.container.scale.x * this.unit;
         this.particles.spawn(
           "smoke",
           this.container.x + spot.x * scale,
