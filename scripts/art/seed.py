@@ -16,7 +16,6 @@ ART = os.path.join(ROOT, "packages", "content", "art", "scene")
 
 # mock file -> game key, keep the canvas (tiles and sheets)
 SEED = [
-    ("pine.png", "target/tree", False),
     ("sea.png", "terrain/sea", True),
     ("far.png", "terrain/far", True),
     ("clouds.png", "terrain/clouds", True),

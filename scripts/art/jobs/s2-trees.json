@@ -1,0 +1,62 @@
+[
+  {
+    "id": "tree_pine",
+    "prompt_style": "rd_pro__platformer",
+    "width": 40,
+    "height": 60,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 800,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/target/tree.png",
+      "packages/content/art/scene/house/wood.png"
+    ],
+    "prompt": "a scraggly lone pine tree with a crooked trunk and sparse wind-bent branches of dark green needles, a single tree standing on the ground, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "tree_dead",
+    "prompt_style": "rd_pro__platformer",
+    "width": 40,
+    "height": 60,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 801,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/target/tree.png",
+      "packages/content/art/scene/house/wood.png"
+    ],
+    "prompt": "a dead gnarled tree with a thick twisted grey trunk and bare broken branches, a few last dry leaves, a single tree standing on the ground, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "tree_desert",
+    "prompt_style": "rd_pro__platformer",
+    "width": 40,
+    "height": 60,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 802,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/target/tree.png",
+      "packages/content/art/scene/house/wood.png"
+    ],
+    "prompt": "a hardy desert tree with a split twisted trunk and one flat wide crown of olive leaves, a single tree standing on the ground, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "tree_burnt",
+    "prompt_style": "rd_pro__platformer",
+    "width": 40,
+    "height": 60,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 803,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/target/tree.png",
+      "packages/content/art/scene/house/wood.png"
+    ],
+    "prompt": "a half-burnt pine tree, one side of the trunk charred black and bare, green needles still on the other side, a single tree standing on the ground, strict side view, light from the upper left, on a plain white background"
+  }
+]

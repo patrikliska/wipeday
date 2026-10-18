@@ -2308,3 +2308,11 @@ downscaled by 4 (about 20-24 art px tall), seated on the horizon, and a three-ro
 desert lies in front of its foot down to the ground's far edge, so no sky shows under it and the
 size order is far city < water towers and poles < the camp. `apps/web/src/scene/landscape.ts`.
 
+### D212. The dead gnarled tree, and the sea lines renamed for land (owner, 2026-10-18)
+Shown eight trees in the scene beside the tent (a wind-bent pine, a dead gnarled tree, a desert
+tree, a half-burnt pine; two takes each), the owner picked the dead gnarled tree (take 0) as
+Twig's target; the mock's pine leaves the seed list. The owner approved the land names for the
+three sea-themed things: the Dock becomes the **Rain Catcher**, the Ship Breaker the
+**Scrapyard**, Armored's Wreck **The Crashed Plane** (a rename is a locale edit; ids, icons and
+data stay). Their art comes with their eras. `scripts/art/picks/s2.json`.
+

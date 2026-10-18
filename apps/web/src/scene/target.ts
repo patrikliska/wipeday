@@ -472,7 +472,8 @@ const FELL: Record<
   TargetKind,
   { seconds: number; burst: Emit; color: number; second?: Emit; secondColor?: number }
 > = {
-  tree: { seconds: 1.1, burst: "leaves", color: 0x447f43 },
+  // The dead tree (D212) sheds bark, not leaves.
+  tree: { seconds: 1.1, burst: "flakes", color: 0x8a7a62 },
   stone: { seconds: 0.45, burst: "stone", color: 0x9aa0a6, second: "dust", secondColor: 0xb9b0a0 },
   ore: { seconds: 0.5, burst: "flakes", color: ORE_VEIN, second: "sparks", secondColor: 0xffc46b },
   sulfur: {
@@ -493,7 +494,7 @@ const FELL: Record<
 
 /** What a tap knocks off. */
 const CHIPS: Record<TargetKind, { kind: Emit; color: number }> = {
-  tree: { kind: "leaves", color: 0x447f43 },
+  tree: { kind: "flakes", color: 0x8a7a62 },
   stone: { kind: "stone", color: 0x9aa0a6 },
   ore: { kind: "flakes", color: ORE_VEIN },
   sulfur: { kind: "flakes", color: SULFUR_VEIN },
@@ -648,7 +649,7 @@ export class Target {
         if (t >= 1) {
           const reach = this.bounds.height * 0.75;
           const x = this.container.x + FALL_DIRECTION * reach;
-          this.particles.spawn("leaves", x, this.container.y - 20, 24, PINE[2]);
+          this.particles.spawn("flakes", x, this.container.y - 20, 24, 0x8a7a62);
           this.particles.spawn("dust", x, this.container.y - 4, 8, 0xb9a98a);
         }
       } else if (ghost.kind === "sulfur") {

@@ -155,13 +155,13 @@ names are approved.
 | Morale *(proposal)*, Hustle | `morale`, `hustle` | badge and Logbook multiplier; tap meter |
 | Frenzy *(proposal)* | `frenzy` | the second tap meter and its tripped buff (D196) |
 | Scrap (kept) | `scrap` | the premium currency, earned in play (R3) |
-| Beachcomber, Ship Breaker, Reactor | `beachcomber` ... | lines 1, 13, 14 |
+| Beachcomber, Scrapyard, Reactor | `beachcomber` ... | lines 1, 13, 14 |
 | Campfire ... Radio Mast (kept) | `campfire` ... `radio_mast` | lines 2-12 |
 | Driftwood ... Power Cells | `timber` ... `cell` | the 14 product badges |
 | Mara ... Tamsin (kept); Gus, Vera | crew ids | the 14 hands; survivor cards from R3 |
 | Twig, Timber, Stone, Sheet Metal, Armored (kept) | `twig` ... `hqm` | eras |
 | Rock ... Power Tools (kept) | tool ids | Grip rungs |
-| Lone Pine, Outcrop, Ore Seam, Sulfur Vent, The Wreck | `tree` ... `wreck` | tap targets |
+| Lone Pine, Outcrop, Ore Seam, Sulfur Vent, The Crashed Plane | `tree` ... `wreck` | tap targets |
 | the stockpile *(proposal)* | | the prop the tap's chips land on |
 | Workshop; Spare Wicks *(proposal)* | `{line}_mk` | the per-run research tree; its offline item |
 | Sharper Hooks, Dry Kindling, Calloused Thumbs *(proposal)* | | Workshop tier-1 items |
@@ -249,7 +249,7 @@ cycle used = max(0.1 s, t_i / speed); speed past the floor becomes payout
 | 10 | Dock | Sheet Metal | 412B | 1.85M | 5.1 min | Pike | 124T |
 | 11 | Generator | Sheet Metal | 6.6T | 8.77M | 10 min | Hale | 1.98Qa |
 | 12 | Radio Mast | Sheet Metal | 106T | 41.7M | 20 min | Tamsin | 31.7Qa |
-| 13 | Ship Breaker | Armored | 1.69Qa | 198M | 41 min | Gus | 507Qa |
+| 13 | Scrapyard | Armored | 1.69Qa | 198M | 41 min | Gus | 507Qa |
 | 14 | Reactor | Armored | 27Qa | 940M | 82 min | Vera | 8.11Qi |
 
 Costs rise ×16 per rung and output ×4.75, so the cheapest output keeps moving between lines.
@@ -821,7 +821,7 @@ old, so if the nuke counts the next crown is the Big Red. Nothing was lost, only
 
 - **Lines** 14, **hands** 14 (R1); lines 13-14 are reached from R4, when the Armored era opens
   after Wipe Day #2. **Shelf** 44 upgrades in R1, 16 from R2 (4 Grip, 8 island upgrades, 4 eras).
-- **Eras** 5 and **targets** 5 (R1; Armored and the Wreck reachable from R4).
+- **Eras** 5 and **targets** 5 (R1; Armored and the Crashed Plane reachable from R4).
 - **Workshop** tiers 1-4 and the 14 Line Mk items in R2; tiers 5-8 in R3 (40 tier items).
 - **Flotsam kinds** 3 in R1 (crate, drum, kit), 5 in R6 (drone, bottle), 6 in R7 (locker);
   gulls in R2.

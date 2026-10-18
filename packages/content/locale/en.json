@@ -35,10 +35,10 @@
     "furnace": { "name": "Furnace", "plural": "Furnaces" },
     "tannery": { "name": "Tannery", "plural": "Tanneries" },
     "press": { "name": "Oil Press", "plural": "Oil Presses" },
-    "dock": { "name": "Dock", "plural": "Docks" },
+    "dock": { "name": "Rain Catcher", "plural": "Rain Catchers" },
     "generator": { "name": "Generator", "plural": "Generators" },
     "radio_mast": { "name": "Radio Mast", "plural": "Radio Masts" },
-    "shipbreaker": { "name": "Ship Breaker", "plural": "Ship Breakers" },
+    "shipbreaker": { "name": "Scrapyard", "plural": "Scrapyards" },
     "reactor": { "name": "Reactor", "plural": "Reactors" }
   },
   "crew": {
@@ -97,10 +97,10 @@
       "tap": "Tap the vent"
     },
     "wreck": {
-      "name": "The Wreck",
+      "name": "The Crashed Plane",
       "cry": "Cracked open!",
-      "hint": "Tap the wreck.",
-      "tap": "Tap the wreck"
+      "hint": "Tap the plane.",
+      "tap": "Tap the plane"
     }
   },
   "upgrade": {

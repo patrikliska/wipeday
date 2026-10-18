@@ -87,5 +87,6 @@
   "room/wood": {
     "from": "preview/art/s2d/room_wood_0.png",
     "sheet": true
-  }
+  },
+  "target/tree": "preview/art/trees/tree_dead_0.png"
 }
