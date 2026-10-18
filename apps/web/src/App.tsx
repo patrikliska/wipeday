@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Credits } from "./hud/Credits";
 import { DemoDrawer } from "./hud/DemoDrawer";
 import { Dock } from "./hud/Dock";
 import { Login } from "./hud/Login";
@@ -11,10 +12,12 @@ import { Toasts } from "./hud/Toasts";
 import { TapHint, TopBar } from "./hud/TopBar";
 import { Welcome } from "./hud/Welcome";
 import { Scene } from "./scene/Scene";
+import { startSound } from "./sound/director";
 import { startAdvisor, useAdvisor } from "./state/advisor";
 import { useColumn } from "./state/layout";
 import { useWorld } from "./state/store";
 import { closeTop, installBack, useUi } from "./state/ui";
+import { startUiEvents } from "./state/uiEvents";
 
 export function App() {
   const host = useRef<HTMLDivElement>(null);
@@ -31,11 +34,15 @@ export function App() {
     const onVisibility = () => useWorld.getState().setHidden(document.hidden);
     document.addEventListener("visibilitychange", onVisibility);
     const stopAdvisor = startAdvisor();
+    const stopSound = startSound();
+    const stopUiEvents = startUiEvents();
     const removeBack = installBack();
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("visibilitychange", onVisibility);
       stopAdvisor();
+      stopSound();
+      stopUiEvents();
       removeBack();
       document.removeEventListener("keydown", onKey);
     };
@@ -75,6 +82,7 @@ export function App() {
             </div>
             <Multipliers />
             <Odds />
+            <Credits />
             <Toasts />
             <Welcome />
             <DemoDrawer />

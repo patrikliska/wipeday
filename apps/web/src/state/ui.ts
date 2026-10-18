@@ -12,12 +12,12 @@ import { create } from "zustand";
 export type Bulk = 1 | 10 | 100 | "max";
 export type Tab = "lines" | "upgrades";
 export type Panel = "crew" | "settings";
-export type Sheet = "multipliers" | "odds";
+export type Sheet = "multipliers" | "odds" | "credits";
 export type Motion = "device" | "reduced" | "full";
 
 export const BULKS: readonly Bulk[] = [1, 10, 100, "max"];
 
-interface UiState {
+export interface UiState {
   /** The phone drawer: three rows, or the whole shop. */
   expanded: boolean;
   tab: Tab;

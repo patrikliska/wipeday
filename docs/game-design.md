@@ -434,7 +434,10 @@ from, with its icon (6.3.7). Buttons have depth and a press state; cards flip; c
 burst; one sting per rarity. Reduced-motion players get the same information without the motion.
 Sound is off on the web until the first tap, then on, with one switch; the sources are Kenney's
 Interface and Impact Sounds (CC0), Freesound filtered to CC0 and the Sonniss GDC bundles; one
-`sounds.json5` maps events to files and nothing plays from a component.
+`sounds.json5` maps events to files and nothing plays from a component. The first packs are
+Kenney's Impact, Interface and RPG sounds (D224); the procedural voices stand in until a file
+loads and voice the cues that have none. A Credits sheet in Settings lists the fonts, the art and
+every sound pack with its licence (D226).
 
 ### 5.7 The Big Red (R4)
 

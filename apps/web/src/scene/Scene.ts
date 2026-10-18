@@ -19,10 +19,9 @@ import { hustleFactor, tapParts } from "@wipe-day/domain/taps";
 import { islandHour, weatherAt } from "@wipe-day/domain/weather";
 import { Application, Container, Graphics } from "pixi.js";
 import { countFrame, isFrozen, registerScene } from "../debug";
-import { BUZZ, haptics, sound } from "../sound/audio";
 import { useAdvisor } from "../state/advisor";
 import { wall } from "../state/clocks";
-import { type GameEvent, on } from "../state/events";
+import { emit, type GameEvent, on } from "../state/events";
 import { insets } from "../state/layout";
 import { gameSeconds, useWorld } from "../state/store";
 import { heldTaps } from "../state/taps";
@@ -38,6 +37,7 @@ import {
   resourceColor,
   type Tier,
   t,
+  upgradeName,
 } from "../state/world";
 import { Hands, type Post } from "./actors";
 import { House } from "./base";
@@ -106,6 +106,10 @@ const HIT_MIN = { width: 140, height: 160 };
 const HOLD_SLOP = 12;
 /** The counter bumps at most this often when line floaters land (ms). */
 const BUMP_EVERY_MS = 250;
+/** Gains that are not a product's carry the supplies icon (6.3.7). */
+const SUPPLIES_ICON = { icon: "supplies", iconColor: 0xffd25a } as const;
+/** Coins that arc into the counter after Welcome back's Collect (12-feel.md 3.2). */
+const COLLECT_COINS = 7;
 
 /** The house's hint ("Tap the cabin to go inside") retires after this many openings. */
 const HOUSE_HINT_OPENS = 2;
@@ -156,7 +160,7 @@ export class Scene {
   private readonly stockpile = new Stockpile(this.particles);
   private readonly flotsam = new Flotsam({
     claim: (run, k) => useWorld.getState().send({ type: "claim_flotsam", run, k }),
-    arrived: () => sound.play("flotsam_in"),
+    arrived: () => emit({ type: "flotsam_arrived" }),
     sank: (x, y, firstRun, nowMs) => this.sank(x, y, firstRun, nowMs),
   });
   private readonly house = new House(this.particles);
@@ -319,7 +323,6 @@ export class Scene {
     window.addEventListener("pointermove", this.onPointerMove);
     window.addEventListener("pointerup", this.onRelease);
     window.addEventListener("pointercancel", this.onRelease);
-    window.addEventListener("pointerdown", this.onAnyPress, { capture: true });
     registerScene({
       target: () => ({ ...this.box }),
       hitBoxes: () => {
@@ -347,17 +350,11 @@ export class Scene {
     window.removeEventListener("pointermove", this.onPointerMove);
     window.removeEventListener("pointerup", this.onRelease);
     window.removeEventListener("pointercancel", this.onRelease);
-    window.removeEventListener("pointerdown", this.onAnyPress, { capture: true });
     this.app.ticker.remove(this.frame);
     this.app.destroy(true, { children: true });
   }
 
   // --- input ---------------------------------------------------------------------------------
-
-  /** The first touch anywhere starts the sound (iOS needs a gesture). */
-  private readonly onAnyPress = (): void => {
-    sound.unlock();
-  };
 
   private local(event: { clientX: number; clientY: number }): { x: number; y: number } {
     const rect = this.host.getBoundingClientRect();
@@ -367,7 +364,6 @@ export class Scene {
   private readonly onPress = (event: PointerEvent): void => {
     if (event.button !== 0 && event.pointerType === "mouse") return;
     event.preventDefault();
-    sound.unlock();
     const { x, y } = this.local(event);
     this.button.setPointerCapture?.(event.pointerId);
     this.held = { x, y, startX: x, startY: y, since: wall.nowMs(), counted: 0, still: true };
@@ -395,7 +391,6 @@ export class Scene {
     if (event.key !== " " && event.key !== "Enter") return;
     event.preventDefault();
     if (event.repeat) return;
-    sound.unlock();
     const x = this.box.x + this.box.width / 2;
     const y = this.box.y + this.box.height / 2;
     this.tapAt(1, x, y);
@@ -625,7 +620,6 @@ export class Scene {
         "aria-label",
         t("scene.tap_target", { target: t(`target.${targetOf(era)}.name`) }),
       );
-      if (animate) haptics.buzz([...BUZZ.era]);
     }
     const fell = content.targets.find((target) => target.era === era)?.fellTaps ?? 40;
     this.target.setProgress(base.run.target.taps / fell);
@@ -695,8 +689,7 @@ export class Scene {
               },
             );
           }
-          sound.play("milestone");
-          haptics.buzz([...BUZZ.milestone]);
+          emit({ type: "milestone", line: line.id });
         }
       }
       if (base.run.roster > this.roster) {
@@ -715,7 +708,7 @@ export class Scene {
             },
           );
         }
-        sound.play("milestone");
+        emit({ type: "roster" });
       }
     }
     this.roster = base.run.roster;
@@ -733,7 +726,6 @@ export class Scene {
   }
 
   private openHouse(): void {
-    sound.play("ui_open");
     useUi.getState().openHouse(true);
     const seen = Number(readHint() ?? 0);
     writeHint(String(seen + 1));
@@ -914,8 +906,6 @@ export class Scene {
     const at = this.toWorld(screen.x, screen.y);
     this.particles.spawn("splash", at.x, at.y + 6, 10);
     this.particles.spawn("coins", at.x, at.y - 10, 16);
-    sound.play("flotsam_claim");
-    haptics.buzz(BUZZ.flotsam);
     const row = content.flotsam.kinds.find((item) => item.id === kind);
     if (!row) return;
     const effect = row.effect;
@@ -933,6 +923,7 @@ export class Scene {
       const counter = this.counterPoint();
       this.floaters.add("flotsam", at.x, at.y - 30, `+${fmt(value, "cost")}`, nowMs, {
         size: this.floatSize(1.1),
+        ...SUPPLIES_ICON,
         ...(counter ? { fly: { ...counter, arrive: () => this.bumpCounter() } } : {}),
       });
       return;
@@ -940,7 +931,6 @@ export class Scene {
     let factor = 1;
     for (const item of effect.effects) if (item.op === "more") factor *= item.value;
     const output = effect.effects.some((item) => item.stat === "output");
-    if (output) sound.play("rally");
     this.floaters.add(
       "event",
       at.x,
@@ -990,10 +980,7 @@ export class Scene {
         this.stockpile.chip(from.x, from.y, Math.min(event.count, FELL_CHIPS));
         const point = this.target.floatPoint;
         if (event.gain > 0)
-          this.floaters.tap(point.x, point.y, event.gain, nowMs, this.floatSize());
-        const base = useWorld.getState().base;
-        const fill = base ? clamp(base.run.hustle.value / content.tap.hustle.cap, 0, 1) : 0;
-        sound.play("tap", { target: this.target.current ?? "tree", hustle: fill });
+          this.floaters.tap(point.x, point.y, event.gain, nowMs, this.floatSize(), SUPPLIES_ICON);
         break;
       }
       case "felled": {
@@ -1012,18 +999,31 @@ export class Scene {
           {
             size: this.floatSize(1.15),
             color: 0xffd25a,
+            ...SUPPLIES_ICON,
           },
         );
-        sound.play("fell", { target: event.target });
-        haptics.buzz(BUZZ.fell);
-        break;
-      }
-      case "bought": {
-        sound.play("buy", { bulk: event.count > 1 });
         break;
       }
       case "upgraded": {
-        sound.play("buy");
+        // The thing it changed flashes, and its name rises from it.
+        const upgrade = content.upgrades.find((row) => row.id === event.upgrade);
+        if (!upgrade) break;
+        let top: { x: number; y: number } | null = null;
+        if (upgrade.kind === "mk" && upgrade.line) {
+          this.lines.flashLine(upgrade.line);
+          this.roomLines.flashLine(upgrade.line);
+          top = this.lines.topOf(upgrade.line) ?? { x: HOUSE.x, y: HOUSE.y - 40 * ART };
+        } else if (upgrade.kind === "grip") {
+          this.target.pulse();
+          const point = this.target.floatPoint;
+          top = { x: point.x, y: point.y - 50 };
+        } else {
+          top = { x: HOUSE.x, y: HOUSE.y - 90 };
+        }
+        this.floaters.add("event", top.x, top.y - 10, upgradeName(upgrade.id), nowMs, {
+          size: this.floatSize(0.95),
+          color: 0xffffff,
+        });
         break;
       }
       case "era_reached": {
@@ -1041,11 +1041,6 @@ export class Scene {
             color: 0xffd25a,
           },
         );
-        sound.play("milestone");
-        break;
-      }
-      case "refused": {
-        sound.play("refuse");
         break;
       }
       case "flotsam_claimed": {
@@ -1065,15 +1060,31 @@ export class Scene {
         break;
       }
       case "collected": {
-        // Welcome back: the gain flies from the house into the counter.
+        // Welcome back: the gain flies from the house into the counter, coins arcing after it.
         if (event.gain <= 0) break;
         const counter = this.counterPoint();
         this.floaters.add("event", HOUSE.x, HOUSE.y - 90, `+${fmt(event.gain, "cost")}`, nowMs, {
           size: this.floatSize(1.25),
           color: 0xffd25a,
+          ...SUPPLIES_ICON,
           ...(counter ? { fly: { ...counter, arrive: () => this.bumpCounter() } } : {}),
         });
-        sound.play("milestone");
+        if (!counter || reducedMotion()) break;
+        for (let i = 0; i < COLLECT_COINS; i++) {
+          this.floaters.add(
+            "flotsam",
+            HOUSE.x + (i - (COLLECT_COINS - 1) / 2) * 14,
+            HOUSE.y - 60 - (i % 2) * 12,
+            "",
+            nowMs,
+            {
+              size: this.floatSize(0.8),
+              ...SUPPLIES_ICON,
+              delayMs: 90 + i * 70,
+              fly: { ...counter, arrive: () => this.bumpCounter() },
+            },
+          );
+        }
         break;
       }
       case "go_tap": {

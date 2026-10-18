@@ -1,21 +1,9 @@
 /**
  * The procedural voices (docs/redesign/08-screens.md 5.2): small functions of oscillators,
- * noise and envelopes, each returning how long it sounds. R1 ships tap, buy, milestone, fell,
- * flotsam (in, claimed, Rally) and the UI ticks; R4's cues join this table with their features.
+ * noise and envelopes, each returning how long it sounds. A cue in `data/sounds.json5` names
+ * one as its `voice`: it plays until the cue's files have decoded, or alone for a cue with none
+ * (the hire's whistle, the era's rise). Later phases add theirs with their features.
  */
-
-export type Cue =
-  | "tap"
-  | "buy"
-  | "milestone"
-  | "fell"
-  | "flotsam_in"
-  | "flotsam_claim"
-  | "rally"
-  | "ui_open"
-  | "ui_close"
-  | "ui_toggle"
-  | "refuse";
 
 export interface CueOptions {
   /** The era's target id (tree, stone, ore, sulfur, wreck): tap and fell sound like it. */
@@ -24,6 +12,8 @@ export interface CueOptions {
   hustle?: number;
   /** A bulk purchase adds a third note. */
   bulk?: boolean;
+  /** Semitones up (files only: a voice pitches itself from `hustle`). */
+  pitch?: number;
 }
 
 export interface Voice {
@@ -257,7 +247,37 @@ const refuse: Play = (voice) => {
   return 0.11;
 };
 
-export const VOICES: Record<Cue, Play> = {
+/** A crit: the tap, then a bright 2.6 kHz ping. */
+const crit: Play = (voice, options) => {
+  tap(voice, options);
+  tone(voice, "sine", 2637, 2637, voice.at + 0.01, 0.12, 0.16);
+  return 0.14;
+};
+
+/** A hire: a two-note whistle, a sine gliding 1,200 → 1,500 Hz, twice. */
+const hand: Play = (voice) => {
+  const { at } = voice;
+  tone(voice, "sine", 1200, 1500, at, 0.16, 0.14);
+  tone(voice, "sine", 1200, 1500, at + 0.2, 0.18, 0.14);
+  return 0.4;
+};
+
+/** An era: two detuned saws G4 → C5 under a lowpass opening 400 Hz → 3 kHz, then a thump. */
+const era: Play = (voice) => {
+  const { ctx, at } = voice;
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(400, at);
+  filter.frequency.exponentialRampToValueAtTime(3000, at + 0.6);
+  for (const detune of [0.997, 1.003]) {
+    tone(voice, "sawtooth", 392 * detune, 392 * detune, at, 0.3, 0.08, filter);
+    tone(voice, "sawtooth", 523 * detune, 523 * detune, at + 0.3, 0.5, 0.09, filter);
+  }
+  tone(voice, "sine", 70, 45, at + 0.3, 0.35, 0.5);
+  return 0.85;
+};
+
+export const VOICES = {
   tap,
   buy,
   milestone,
@@ -269,4 +289,9 @@ export const VOICES: Record<Cue, Play> = {
   ui_close: sweep(false),
   ui_toggle: toggle,
   refuse,
-};
+  crit,
+  hand,
+  era,
+} satisfies Record<string, Play>;
+
+export type VoiceId = keyof typeof VOICES;

@@ -12,6 +12,11 @@ const sources = import.meta.glob<string>("../../../../packages/content/icons/pro
   import: "default",
   eager: true,
 });
+/** Supplies, glass and scrap ride on the gains that are not a product's (taps, fells, crates). */
+const currencySources = import.meta.glob<string>(
+  "../../../../packages/content/icons/currency/*.svg",
+  { query: "?raw", import: "default", eager: true },
+);
 const flotsamSources = import.meta.glob<string>(
   "../../../../packages/content/icons/flotsam/*.svg",
   { query: "?raw", import: "default", eager: true },
@@ -63,6 +68,7 @@ export async function loadProductIcons(): Promise<void> {
     };
   await Promise.all([
     ...Object.entries(sources).map(load(textures, SIZE)),
+    ...Object.entries(currencySources).map(load(textures, SIZE)),
     ...Object.entries(flotsamSources).map(load(flotsamTextures, FLOTSAM_SIZE)),
   ]);
 }
@@ -72,7 +78,7 @@ export function flotsamTexture(id: string): Texture | null {
   return flotsamTextures.get(id) ?? null;
 }
 
-/** The product's icon, white (tint it), or null while it loads or when there is none. */
+/** A product's or a currency's icon, white (tint it), or null while it loads or without one. */
 export function productTexture(id: string): Texture | null {
   return textures.get(id) ?? null;
 }

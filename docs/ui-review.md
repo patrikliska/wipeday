@@ -1560,3 +1560,30 @@ half full; the ticker; 999Dc; the short phone), against the Feel Board's two moc
   new plates without other changes.
 - The stylesheet's rule order was tidied so the lint has no specificity warnings left (three were
   there before this session).
+
+## R2 Feel S5: sound and juice (D224-D226)
+
+Shots: `s5_desktop_buy_flash`, `s5_phone_buy_flash` (two purchases caught 60 ms in),
+`s5_desktop_mk_flash`, `s5_desktop_tap_gain`, `s5_phone_collect_coins` (0.42 s after Collect),
+`s5_desktop_credits`, `s5_phone_credits`, `s5_phone_settings_end`; the 28 `s4_*` again for
+regressions. A headless check (not a shot) clicked the island, then the target: no sound file
+before the first tap, all 52 Ogg files after it, no console errors.
+
+### Iteration 1
+- **The card's flash barely read**: a 2 px gold border and a faint glow over 420 ms were mostly
+  gone by the time the eye got there. It is a 3 px border, a gold wash from the art side and an
+  outer glow, held for a third of 520 ms before it fades.
+- **The credits' links were 53×16 px** (the phone audit failed three times). Each pack's whole
+  row is the link now, 44 px tall, with its site and a chevron on the right.
+- **"Type"** as the fonts' heading is a designer's word: "Fonts".
+- The last credits line sat on the divider above it: 12 px more room.
+- *Fine:* the line's flash and stepped pop read on the island at desktop (the campfire and the
+  beachcomber bright in the same frame); "Driftwood Hooks" rises from the beachcomber when its Mk
+  lands; the tap's +740 carries the sack icon like the line floaters carry theirs; Collect's seven
+  tokens arc from the house toward the counter behind "+11.2B".
+
+### Iteration 2
+- **The flash dimmed the level badge** it should be showing off: the badges (level, Mk, hand)
+  ride above the flash now, so "63" pops through the gold.
+- *Fine:* the 28 S4 shots are unchanged apart from the cards' new press and tick (audit clean,
+  one crown per view); the credits sheet fits a phone without scrolling past Done.

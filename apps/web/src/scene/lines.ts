@@ -14,7 +14,7 @@ import { cycleOf } from "@wipe-day/domain/effects";
 import { costFactor } from "@wipe-day/domain/lines";
 import { cyclePayout, windowEnd } from "@wipe-day/domain/settle";
 import type { BaseState } from "@wipe-day/domain/state";
-import { BitmapText, Container, Graphics, Sprite } from "pixi.js";
+import { BitmapText, ColorMatrixFilter, Container, Graphics, Sprite } from "pixi.js";
 import { content, fmt, fmtCount, resourceColor } from "../state/world";
 import { drawLine, type Station } from "./buildings";
 import type { Particles } from "./effects";
@@ -22,7 +22,7 @@ import { productTexture } from "./icons";
 import { ROOM, spotsFor, stageSpot, TARGET_SPOT } from "./island";
 import { ART, artSprite } from "./pixel";
 import { plotShown } from "./reveal";
-import { clamp, easeOutBack } from "./util";
+import { clamp, easeOutBack, reducedMotion } from "./util";
 
 /** Where a line stands: world x, y below (+) or above (−) the ground line, and its scale. */
 export interface Spot {
@@ -130,6 +130,20 @@ const PRODUCT_CAP = 40;
 const POP_EVERY = 0.5;
 const FLOAT_EVERY_MS = 2000;
 const FLOATING_LINES = 4;
+/** How long a cycle's end shows on its bar. */
+const TICK_MS = 140;
+
+/**
+ * A purchase's pop on the step grid (D225): `[width, height]` in art px for its progress `t`,
+ * a pixel narrower and two taller, then one taller, then a pixel of settle, then rest.
+ */
+export function popStep(t: number): readonly [number, number] {
+  if (t >= 1) return [0, 0];
+  if (t < 0.25) return [-1, 2];
+  if (t < 0.5) return [0, 1];
+  if (t < 0.75) return [1, -1];
+  return [0, 0];
+}
 
 interface View {
   def: LineDef;
@@ -159,8 +173,16 @@ interface View {
   /** Payout gathered for the next floater, and when the last one went. */
   pending: number;
   lastFloatMs: number;
-  /** 0..1 after a purchase: the building pops. */
+  /** 0..1 after a purchase: the building pops on the step grid and its badge swells. */
   bump: number;
+  /** 1..0 after a purchase or an upgrade: the building flashes bright. */
+  flash: number;
+  flashFilter: ColorMatrixFilter | null;
+  /** The drawing's size in art px, for popping it by whole pixels. */
+  artW: number;
+  artH: number;
+  /** When the last cycle ended (wall ms): its bar ticks bright. */
+  tickMs: number;
   /** 0..1 after a redraw: the new stage springs up. */
   grow: number;
   time: number;
@@ -251,6 +273,11 @@ export class Lines {
         pending: 0,
         lastFloatMs: 0,
         bump: 1,
+        flash: 0,
+        flashFilter: null,
+        artW: 0,
+        artH: 0,
+        tickMs: -1e9,
         grow: 1,
         time: Math.random() * 10,
       });
@@ -312,16 +339,21 @@ export class Lines {
       if (stage !== view.stage) this.restage(view, stage, view.stage >= 0 && stage > view.stage);
       if (owned > view.owned && view.owned > 0) {
         view.bump = 0;
+        view.flash = 1;
         this.particles.spawn("dust", view.spot.x, this.ground + view.spot.y, 8, 0xc9b78a);
       }
       view.owned = owned;
       view.time += dt;
       // A purchase pops the building; a new stage or a fresh plot springs up out of the ground.
-      view.bump = Math.min(1, view.bump + dt / 0.35);
+      view.bump = Math.min(1, view.bump + dt / 0.3);
       view.grow = Math.min(1, view.grow + dt / 0.45);
-      const pop = 1 + Math.sin(view.bump * Math.PI) * 0.08;
+      const [dw, dh] = reducedMotion() || view.artW === 0 ? [0, 0] : popStep(view.bump);
       const rise = view.grow < 1 ? easeOutBack(view.grow) : 1;
-      view.container.scale.set(view.spot.scale * pop, view.spot.scale * pop * rise);
+      view.container.scale.set(
+        view.spot.scale * (view.artW > 0 ? (view.artW + dw) / view.artW : 1),
+        view.spot.scale * (view.artH > 0 ? (view.artH + dh) / view.artH : 1) * rise,
+      );
+      this.flashStep(view, dt);
       if (view.station) {
         view.station.animate?.(view.time);
         view.station.glow?.update(darkness, Math.sin(view.time * 13) * 0.06);
@@ -370,9 +402,33 @@ export class Lines {
       ...(station.glows ?? []).map((glow) => glow.sprite),
     ].filter((item) => item !== undefined);
     if (emissive.length > 0) view.light.addChild(...emissive);
-    view.top = station.container.getLocalBounds().y;
+    const bounds = station.container.getLocalBounds();
+    view.top = bounds.y;
+    view.artW = Math.max(1, Math.round(bounds.width / ART));
+    view.artH = Math.max(1, Math.round(bounds.height / ART));
     view.grow = 0;
     if (grew) this.particles.spawn("dust", view.spot.x, this.ground + view.spot.y, 16, 0xc9b78a);
+  }
+
+  /** An upgrade landed on `line` (a Mk): it flashes as a purchase does. */
+  flashLine(line: string): void {
+    const view = this.views.get(line);
+    if (view && view.stage > 0) view.flash = 1;
+  }
+
+  /** The flash, in three steps (bright, half, off), as a brightness filter while it lasts. */
+  private flashStep(view: View, dt: number): void {
+    if (view.flash <= 0) return;
+    view.flash = Math.max(0, view.flash - dt / 0.24);
+    const step = Math.ceil(view.flash * 3) / 3;
+    if (step <= 0) {
+      view.container.filters = [];
+      return;
+    }
+    view.flashFilter ??= new ColorMatrixFilter();
+    view.flashFilter.brightness(1 + 0.7 * step, false);
+    if (view.container.filters?.[0] !== view.flashFilter)
+      view.container.filters = [view.flashFilter];
   }
 
   private smoke(view: View, dt: number): void {
@@ -428,7 +484,7 @@ export class Lines {
         this.completed(view, state, now, nowMs, 1);
       }
     }
-    this.drawBar(view, fill, manned, length);
+    this.drawBar(view, fill, manned, length, nowMs - view.tickMs < TICK_MS);
   }
 
   private completed(
@@ -440,6 +496,7 @@ export class Lines {
   ): void {
     const payout = cyclePayout(content, state, view.def.id, Math.floor(now)) * cycles;
     view.pending += payout;
+    view.tickMs = nowMs;
     if (now - view.lastPopAt >= POP_EVERY) {
       view.lastPopAt = now;
       this.pop(view);
@@ -483,13 +540,16 @@ export class Lines {
   }
 
   /** The cycle bar under the badge: a manned line's under a second shows steady and full. */
-  private drawBar(view: View, fill: number, manned: boolean, length: number): void {
+  private drawBar(view: View, fill: number, manned: boolean, length: number, tick: boolean): void {
     view.bar.clear();
     const w = Math.max(16, view.badgeW - 6);
     const y = BADGE_H / 2 + 2;
     view.bar.roundRect(-w / 2, y, w, 3, 1.5).fill({ color: 0x1b1a18, alpha: 0.7 });
-    const shown = manned && length < 1 ? 1 : fill;
-    if (shown > 0)
+    const steady = manned && length < 1;
+    const shown = steady ? 1 : fill;
+    // A cycle's end ticks: the bar shows full and bright for a moment (12-feel.md 3.2).
+    if (tick && !steady) view.bar.roundRect(-w / 2 - 1, y - 1, w + 2, 5, 2.5).fill(0xffe9a8);
+    else if (shown > 0)
       view.bar.roundRect(-w / 2, y, w * shown, 3, 1.5).fill(manned ? 0xe8d9a8 : 0xffffff);
   }
 
@@ -525,6 +585,9 @@ export class Lines {
       }
       placed.push({ x, y, w: view.badgeW });
       view.badge.position.set(x, y);
+      // The count pops with its purchase: one step bigger, then back (reduced motion: none).
+      const swell = view.bump < 0.5 && view.stage > 0 && !reducedMotion() ? 1.25 : 1;
+      view.badge.scale.set(swell);
       view.bar.visible = view.stage > 0;
     }
   }

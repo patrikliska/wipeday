@@ -413,9 +413,11 @@ export const useWorld = create<Store>((set, get) => {
           hustleFactor(base.run.hustle.value, cap, parts.hustlePeak);
         fellValue = Math.min(gain, fellValue);
       }
-      emit({ type: "tap_at", x, y, gain: gain - fellValue, count });
-      const target = targetOf(base);
-      if (fells > 0 && target) emit({ type: "felled", target, count: fells, value: fellValue });
+      const target = targetOf(base) ?? "tree";
+      emit({ type: "tap_at", x, y, gain: gain - fellValue, count, target });
+      const crits = base.meta.stats.crits - state.base.meta.stats.crits;
+      if (crits > 0) emit({ type: "crit", count: crits });
+      if (fells > 0) emit({ type: "felled", target, count: fells, value: fellValue });
       return gain;
     },
 

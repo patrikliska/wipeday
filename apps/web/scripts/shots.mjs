@@ -1395,6 +1395,106 @@ const SHOTS = [
     scale: 2,
     state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
     ff: 2.5,
+  }, // R2 Feel S5, sound and juice (12-feel.md 3.2): a purchase caught mid-flash (the card's gold
+  // flash and level pop, the line's flash and pop), Collect's coins in the air, the tap's gain
+  // with its icon, the credits sheet.
+  {
+    name: "s5_desktop_buy_flash",
+    viewport: [1440, 810],
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    juice: [
+      { type: "buy_line", line: "campfire", count: 1 },
+      { type: "buy_line", line: "beachcomber", count: 1 },
+    ],
+    ff: 2.5,
+  },
+  {
+    name: "s5_phone_buy_flash",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { expanded: true },
+    },
+    juice: [{ type: "buy_line", line: "beachcomber", count: 1 }],
+    ff: 2.5,
+  },
+  {
+    name: "s5_desktop_mk_flash",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      supplies: 4e8,
+      ui: { tab: "upgrades" },
+    },
+    juice: [{ type: "buy_upgrade", upgrade: "beachcomber_mk2" }],
+    ff: 2.5,
+  },
+  {
+    name: "s5_desktop_tap_gain",
+    viewport: [1440, 810],
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...TIMBER_YARD },
+    taps: [6, 2],
+    ff: 0.15,
+  },
+  {
+    name: "s5_phone_collect_coins",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 13),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      away: 5 * 3600,
+      collect: true,
+    },
+    ff: 0.42,
+  },
+  {
+    name: "s5_desktop_credits",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { sheet: "credits" },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s5_phone_credits",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { sheet: "credits" },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s5_phone_settings_end",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { panel: "settings" },
+    },
+    scroll: ".panel-scroll",
+    ff: 2.5,
   },
 ];
 
@@ -1650,6 +1750,16 @@ async function main() {
       await page.waitForTimeout(250);
       await page.click(shot.click);
       await page.waitForTimeout(900);
+    }
+    if (shot.juice) {
+      // Purchases on the settled view, caught mid-flash: the scene steps 60 ms, the cards' CSS
+      // runs in real time for about as long.
+      await page.evaluate((commands) => {
+        const hook = window.__wipeDay;
+        for (const command of commands) hook.store.getState().send(command);
+        hook.fastForward?.(0.06);
+      }, shot.juice);
+      await page.waitForTimeout(shot.juiceMs ?? 60);
     }
     if (shot.clip) {
       const [x, y, clipWidth, clipHeight] = shot.clip;

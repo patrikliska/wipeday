@@ -8,7 +8,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { sound } from "../sound/audio";
 import { type AdvisorView, useAdvisor } from "../state/advisor";
 import { insets, useColumn } from "../state/layout";
 import { useWorld } from "../state/store";
@@ -118,7 +117,6 @@ function Drawer({ view }: { view: AdvisorView }) {
     if (expanded && dy > DRAG_PX) open(false);
   };
   const open = (next: boolean) => {
-    sound.play(next ? "ui_open" : "ui_close");
     expand(next);
   };
 
@@ -273,7 +271,6 @@ function Tabs({ view }: { view: AdvisorView }) {
   const elsewhere = pickPlace(view)?.tab;
   const select = (next: Tab) => {
     if (next === tab) return;
-    sound.play("ui_toggle");
     setTab(next);
   };
   const tabs: Array<{ id: Tab; label: string; count: number }> = [
@@ -354,10 +351,7 @@ function BulkCycle() {
       type="button"
       className="btn bulk-cycle num"
       aria-label={`${t("drawer.bulk")}: ${t(BULK_LABEL[String(bulk)] ?? "")}`}
-      onClick={() => {
-        sound.play("ui_toggle");
-        setBulk(next);
-      }}
+      onClick={() => setBulk(next)}
     >
       {t(BULK_LABEL[String(bulk)] ?? "")}
     </button>
@@ -379,7 +373,6 @@ function BulkSegments() {
           className={`segment num${bulk === size ? " on" : ""}`}
           onClick={() => {
             if (bulk === size) return;
-            sound.play("ui_toggle");
             setBulk(size);
           }}
         >
@@ -399,6 +392,9 @@ export const Card = memo(function Card({ row }: { row: Row }) {
   const column = useColumn();
   const owned = row.owned ?? 0;
   const lineCard = row.kind === "line";
+  // A purchase flashes its card and pops its level; a hire pops the hand's face (3.2).
+  const bought = useRise(owned + (row.mk ?? 0));
+  const hired = useRise(row.hand ? 1 : 0);
   const icon = (
     <Icon kind={row.icon.kind} id={row.icon.id} size={column ? 44 : 38} className="thumb-icon" />
   );
@@ -408,12 +404,19 @@ export const Card = memo(function Card({ row }: { row: Row }) {
       data-key={row.key}
       style={vars({ "--tier-color": tierVar(row.tier) })}
     >
+      {bought + hired > 0 ? (
+        <span key={`flash-${bought + hired}`} className="card-flash" aria-hidden="true" />
+      ) : null}
       <div className="thumb">
         {row.art ? <PixelArt id={row.art} box={column ? 64 : 52} fallback={icon} /> : icon}
-        {lineCard && owned > 0 ? <span className="lvl num">{owned}</span> : null}
+        {lineCard && owned > 0 ? (
+          <span key={`lvl-${bought}`} className={`lvl num${bought > 0 ? " pop" : ""}`}>
+            {owned}
+          </span>
+        ) : null}
         {lineCard && owned > 0 ? (
           row.hand ? (
-            <span className="face">
+            <span key={`face-${hired}`} className={`face${hired > 0 ? " pop" : ""}`}>
               <Icon kind="crew" id={row.hand} size={16} />
             </span>
           ) : (
@@ -422,7 +425,11 @@ export const Card = memo(function Card({ row }: { row: Row }) {
             </span>
           )
         ) : null}
-        {row.mk ? <span className="mk num">{row.mk === 2 ? "II" : "III"}</span> : null}
+        {row.mk ? (
+          <span key={`mk-${bought}`} className={`mk num${bought > 0 ? " pop" : ""}`}>
+            {row.mk === 2 ? "II" : "III"}
+          </span>
+        ) : null}
         {row.locked ? (
           <span className="lock">
             <Icon kind="ui" id="lock" size={13} />
@@ -460,6 +467,20 @@ export const Card = memo(function Card({ row }: { row: Row }) {
     </div>
   );
 }, sameCard);
+
+/**
+ * How many times `value` has risen since the card mounted (0 at first): a new count restarts
+ * the card's flash and pop, and a card that mounts with its count shows none.
+ */
+function useRise(value: number): number {
+  const last = useRef(value);
+  const [rises, setRises] = useState(0);
+  useEffect(() => {
+    if (value > last.current) setRises((n) => n + 1);
+    last.current = value;
+  }, [value]);
+  return rises;
+}
 
 /** Cards are rebuilt each second: re-render only when something shown changed. */
 function sameCard(a: { row: Row }, b: { row: Row }): boolean {

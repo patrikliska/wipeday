@@ -283,6 +283,8 @@ export interface FloatOptions {
   fly?: { x: number; y: number; arrive: () => void };
   /** How long an event stays before it fades (ms); a sentence needs longer than a number. */
   holdMs?: number;
+  /** A flyer waits this long where it starts before it flies (coins leave one by one). */
+  delayMs?: number;
 }
 
 let fontInstalled = false;
@@ -378,7 +380,14 @@ export class Floaters {
   }
 
   /** A tap's gain at world (x, y): merges into the running number while taps keep coming. */
-  tap(x: number, y: number, gain: number, nowMs: number, size: number): void {
+  tap(
+    x: number,
+    y: number,
+    gain: number,
+    nowMs: number,
+    size: number,
+    icon?: { icon: string; iconColor: number },
+  ): void {
     const running = this.running;
     if (running?.live && running.kind === "tap" && nowMs - running.touched < MERGE_MS) {
       running.amount += gain;
@@ -387,7 +396,7 @@ export class Floaters {
       this.setText(running, `+${this.format(running.amount)}`);
       return;
     }
-    const float = this.add("tap", x, y, `+${this.format(gain)}`, nowMs, { size });
+    const float = this.add("tap", x, y, `+${this.format(gain)}`, nowMs, { size, ...icon });
     if (!float) return;
     float.amount = gain;
     float.fadeAt = nowMs + HOLD_MS;
@@ -411,7 +420,7 @@ export class Floaters {
     float.x = x;
     float.y = y;
     float.dx = kind === "tap" ? 0 : Math.round(rand(-6, 6));
-    float.born = nowMs;
+    float.born = nowMs + (options.fly ? (options.delayMs ?? 0) : 0);
     float.touched = nowMs;
     float.fadeAt = nowMs + (options.holdMs ?? (kind === "event" ? 1100 : 700));
     float.fly = options.fly ?? null;

@@ -1,0 +1,209 @@
+// The game's sounds (12-feel.md 3.3; CLAUDE.md 6.2; D224). One map, read only by the web client:
+// `events` says what plays on each event the client hears of (`null` is a chosen silence), and
+// `cues` says what a cue is: its files (one picked at random per play), the procedural voice
+// that plays until a file has decoded (or alone, when it has no files), and its mix.
+//
+// Files live under apps/web/public/sound/<source>/<name>.ogg and .mp3, built by `pnpm sounds`
+// from the packs below (trimmed of leading silence, levelled, cut to `trim`). Swap a sound by
+// changing a cue's files and running `pnpm sounds` again; the credits panel lists the sources.
+{
+  sources: [
+    { id: "kenney_impact", url: "https://kenney.nl/assets/impact-sounds", licence: "CC0-1.0" },
+    { id: "kenney_interface", url: "https://kenney.nl/assets/interface-sounds", licence: "CC0-1.0" },
+    { id: "kenney_rpg", url: "https://kenney.nl/assets/rpg-audio", licence: "CC0-1.0" },
+  ],
+
+  cues: {
+    // Taps, one per era's target, at most 15 a second (the token bucket's rate).
+    tap_tree: {
+      voice: "tap",
+      files: [
+        "kenney_impact/impactWood_light_000",
+        "kenney_impact/impactWood_light_001",
+        "kenney_impact/impactWood_light_002",
+        "kenney_impact/impactWood_light_003",
+        "kenney_impact/impactWood_light_004",
+      ],
+      gain: 0.55,
+      detune: 60,
+      trim: 0.22,
+      perSecond: 15,
+    },
+    tap_stone: {
+      voice: "tap",
+      files: [
+        "kenney_impact/impactMining_000",
+        "kenney_impact/impactMining_001",
+        "kenney_impact/impactMining_002",
+        "kenney_impact/impactMining_003",
+        "kenney_impact/impactMining_004",
+      ],
+      gain: 0.5,
+      detune: 60,
+      trim: 0.28,
+      perSecond: 15,
+    },
+    tap_ore: {
+      voice: "tap",
+      files: [
+        "kenney_impact/impactMetal_light_000",
+        "kenney_impact/impactMetal_light_001",
+        "kenney_impact/impactMetal_light_002",
+        "kenney_impact/impactMetal_light_003",
+        "kenney_impact/impactMetal_light_004",
+      ],
+      gain: 0.45,
+      detune: 50,
+      trim: 0.28,
+      perSecond: 15,
+    },
+    tap_sulfur: {
+      voice: "tap",
+      files: [
+        "kenney_impact/impactSoft_medium_000",
+        "kenney_impact/impactSoft_medium_001",
+        "kenney_impact/impactSoft_medium_002",
+        "kenney_impact/impactSoft_medium_003",
+        "kenney_impact/impactSoft_medium_004",
+      ],
+      gain: 0.6,
+      detune: 80,
+      trim: 0.2,
+      perSecond: 15,
+    },
+    tap_wreck: {
+      voice: "tap",
+      files: [
+        "kenney_impact/impactPlate_medium_000",
+        "kenney_impact/impactPlate_medium_001",
+        "kenney_impact/impactPlate_medium_002",
+        "kenney_impact/impactPlate_medium_003",
+        "kenney_impact/impactPlate_medium_004",
+      ],
+      gain: 0.42,
+      detune: 50,
+      trim: 0.3,
+      perSecond: 15,
+    },
+    // A crit rides on its tap: a bright ping.
+    crit: {
+      voice: "crit",
+      files: ["kenney_impact/impactGlass_light_000", "kenney_impact/impactGlass_light_001"],
+      gain: 0.55,
+      detune: 40,
+      perSecond: 6,
+    },
+
+    // The target falls: one per target.
+    fell_tree: {
+      voice: "fell",
+      files: [
+        "kenney_impact/impactWood_heavy_000",
+        "kenney_impact/impactWood_heavy_001",
+        "kenney_impact/impactWood_heavy_002",
+      ],
+      gain: 0.9,
+      detune: 30,
+    },
+    fell_stone: {
+      voice: "fell",
+      files: [
+        "kenney_impact/impactPunch_heavy_000",
+        "kenney_impact/impactPunch_heavy_001",
+        "kenney_impact/impactPunch_heavy_002",
+      ],
+      gain: 0.9,
+      detune: 30,
+    },
+    fell_ore: {
+      voice: "fell",
+      files: ["kenney_impact/impactBell_heavy_000", "kenney_impact/impactBell_heavy_001"],
+      gain: 0.6,
+      detune: 20,
+      trim: 1.2,
+    },
+    fell_sulfur: {
+      voice: "fell",
+      files: ["kenney_impact/impactSoft_heavy_000", "kenney_impact/impactSoft_heavy_001"],
+      gain: 0.9,
+      detune: 30,
+    },
+    fell_wreck: {
+      voice: "fell",
+      files: [
+        "kenney_impact/impactMetal_heavy_000",
+        "kenney_impact/impactMetal_heavy_001",
+        "kenney_impact/impactMetal_heavy_002",
+      ],
+      gain: 0.8,
+      detune: 30,
+    },
+
+    // Spending: coins for a unit, a latch for a tool or an upgrade, a whistle for a hire.
+    buy: {
+      voice: "buy",
+      files: ["kenney_rpg/handleCoins2"],
+      gain: 0.6,
+      detune: 80,
+      trim: 0.4,
+      perSecond: 10,
+    },
+    upgrade: { voice: "buy", files: ["kenney_rpg/metalLatch"], gain: 0.7, detune: 40 },
+    hand: { voice: "hand", gain: 0.9 },
+    era: { voice: "era", gain: 0.9 },
+    milestone: { voice: "milestone", files: ["kenney_interface/confirmation_001"], gain: 0.6 },
+    roster: { voice: "milestone", files: ["kenney_interface/confirmation_003"], gain: 0.6 },
+
+    // Airdrops: one comes down, and what each kind sounds like when caught.
+    flotsam_in: { voice: "flotsam_in", files: ["kenney_interface/bong_001"], gain: 0.5 },
+    claim_crate: {
+      voice: "flotsam_claim",
+      files: ["kenney_rpg/handleCoins"],
+      gain: 0.65,
+      trim: 0.7,
+    },
+    claim_fuel_drum: { voice: "rally", gain: 0.9 },
+    claim_adrenaline: { voice: "rally", files: ["kenney_interface/maximize_006"], gain: 0.6 },
+
+    // Welcome back's Collect: the coins pour into the counter.
+    collect: { voice: "milestone", files: ["kenney_rpg/handleCoins"], gain: 0.75 },
+
+    // Sheets, switches and refusals.
+    ui_open: { voice: "ui_open", files: ["kenney_interface/open_001"], gain: 0.35 },
+    ui_close: { voice: "ui_close", files: ["kenney_interface/close_001"], gain: 0.35 },
+    ui_switch: {
+      voice: "ui_toggle",
+      files: ["kenney_interface/toggle_001", "kenney_interface/toggle_002"],
+      gain: 0.4,
+      perSecond: 12,
+    },
+    refuse: { voice: "refuse", files: ["kenney_interface/error_004"], gain: 0.5, perSecond: 4 },
+  },
+
+  events: {
+    // Predicted on the client, inside the tap's own gesture.
+    tap_at: { cue: "tap_{target}" },
+    crit: { cue: "crit" },
+    felled: { cue: "fell_{target}", buzz: [20] },
+    // The domain's events, as the client predicts them or the server pushes them.
+    bought: { cue: "buy" },
+    upgraded: { cue: "upgrade" },
+    hand_hired: { cue: "hand" },
+    era_reached: { cue: "era", buzz: [30, 50, 30] },
+    flotsam_claimed: { cue: "claim_{kind}", buzz: [15] },
+    // The server's echo of taps already heard.
+    tapped: null,
+    // Seen on the welcome card instead.
+    night_shift_over: null,
+    base_reset: null,
+    // What the scene and the panels notice.
+    milestone: { cue: "milestone", buzz: [15, 40, 15] },
+    roster: { cue: "roster" },
+    flotsam_arrived: { cue: "flotsam_in" },
+    flotsam_lost: null,
+    collected: { cue: "collect" },
+    refused: { cue: "refuse" },
+    go_tap: null,
+    ui: { cue: "ui_{action}" },
+  },
+}

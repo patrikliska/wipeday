@@ -1,6 +1,4 @@
 import { floatSeconds, guaranteedCrate, odds } from "@wipe-day/domain/flotsam";
-import { useEffect } from "react";
-import { sound } from "../sound/audio";
 import { useWorld } from "../state/store";
 import { useUi } from "../state/ui";
 import { buffName, content, duration, fmtFactor, t } from "../state/world";
@@ -16,14 +14,8 @@ export function Odds() {
   const sheet = useUi((state) => state.sheet);
   const openSheet = useUi((state) => state.openSheet);
   const base = useWorld((state) => state.base);
-  useEffect(() => {
-    if (sheet === "odds") sound.play("ui_open");
-  }, [sheet]);
   if (sheet !== "odds") return null;
-  const close = () => {
-    sound.play("ui_close");
-    openSheet(null);
-  };
+  const close = () => openSheet(null);
   const { schedule, firstRun } = content.flotsam;
   const float = base ? floatSeconds(content, base) : schedule.floatSeconds;
   const [shortest, longest] = schedule.gapMinutes;

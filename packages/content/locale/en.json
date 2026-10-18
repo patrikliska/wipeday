@@ -400,7 +400,28 @@
     "how_6": "Tap the supplies counter to see every multiplier.",
     "odds": "Odds",
     "done": "Done",
-    "close": "Close"
+    "close": "Close",
+    "credits": "Credits"
+  },
+  "credits": {
+    "title": "Credits",
+    "sub": "Who made what you see and hear",
+    "fonts": "Fonts",
+    "art": "Art",
+    "sound": "Sound",
+    "font_big_shoulders": "Big Shoulders Display by the Big Shoulders Project Authors",
+    "font_barlow": "Barlow by the Barlow Project Authors",
+    "font_licence": "SIL Open Font License 1.1",
+    "art_scene": "The island's pixel art was generated for Wipe Day with Retro Diffusion and finished by hand",
+    "source": {
+      "kenney_impact": "Impact Sounds by Kenney",
+      "kenney_interface": "Interface Sounds by Kenney",
+      "kenney_rpg": "RPG Audio by Kenney"
+    },
+    "licence": {
+      "CC0-1.0": "Public domain (CC0)"
+    },
+    "voices": "Every other sound is played by the game itself, from oscillators and noise"
   },
   "mult": {
     "title": "Supplies per second",

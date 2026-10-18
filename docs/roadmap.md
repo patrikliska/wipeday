@@ -6,7 +6,7 @@ should think, and what "done" means**. It was rewritten in R0 from the approved 
 (`docs/redesign/11-roadmap.md`, which keeps the reasons); the W-phase roadmap and its results are
 in `docs/archive/roadmap-w.md`.
 
-## Where we are (2026-10-18, R2 Feel S4 done)
+## Where we are (2026-10-18, R2 Feel S5 done)
 
 - **The live game** is W8 on frozen `main` at https://wipeday.patrikliska.dev: season 1 (started
   2026-10-07) sits untouched and nobody plays it now (owner decision 7). It ends quietly at the
@@ -40,9 +40,28 @@ in `docs/archive/roadmap-w.md`.
 - **R2 Feel S4, the HUD, is done** (2026-10-18; results below): the Feel Board's tokens and
   fonts, the dock, panels as sheets, the shop as cards in a fixed order with the hire on its
   line's card and the Best buy chip, the lamp, the ticker (D219-D223).
-- **Next: R2 Feel S5, sound and juice** (`sounds.json5`, the juice checklist on everything so
-  far, a credits panel; `docs/credits.md` holds its lines). The owner's playtest after S4 is due.
-  Retro Diffusion has about 4.39 USD left.
+- **R2 Feel S5, sound and juice, is done** (2026-10-18; results below): `sounds.json5` with
+  Kenney's CC0 packs and the procedural voices as fallback, every cue through the bus, sound from
+  the first tap (D224); the juice checklist on everything so far (D225); the Credits sheet (D226).
+- **Next: R2 Feel S6, the Workshop and the 2 h Night Shift** (balance; plan mode). The owner's
+  playtest after S4 is due, now with sound. Retro Diffusion has about 4.39 USD left.
+
+### R2 Feel S5 results: sound and juice
+- **Sound** (D224): one map, `packages/content/data/sounds.json5`: every event on the bus to a cue
+  or a stated silence, each cue's files, voice, gain, detune and rate. 52 files from Kenney's
+  Impact Sounds, Interface Sounds and RPG Audio (CC0), built by `pnpm sounds` as Ogg and MP3 with
+  each licence beside them (700 KB). `sound/director.ts` is the only thing that plays; panels'
+  openings come from the stores. No AudioContext and no file before the first tap; after it, all
+  52 load (checked headless). New voices: crit, the hire's whistle, the era's rise.
+- **Juice** (D225): purchases flash and pop the line on the step grid and the card in gold with
+  its level popping; Mk and Grip flash what they changed; cycle bars tick at their end; taps,
+  fells, crates and Collect carry the supplies icon; Collect's tokens arc into the counter;
+  presses on tabs, sizes, dock and switches. Reduced motion keeps the flashes, drops the motion.
+- **Credits** (D226): a sheet from Settings; a test fails if a used pack has no credit line.
+- **Shots:** 8 new `s5_*` (a purchase caught mid-flash on desktop and phone, an Mk, a tap's gain,
+  Collect's coins, the credits on both, Settings' end); the 28 `s4_*` re-run clean. Two review
+  rounds in `docs/ui-review.md`.
+- **Checks:** `pnpm check` green; `pnpm sim check` as at S4 (no rule changed).
 
 ### R2 Feel S4 results: the HUD
 - **Look** (D219): plywood and steel plates, signal orange as the only primary, gold Supplies;
@@ -478,7 +497,7 @@ look great on a desktop and a phone (`12-feel.md` 1).
   the lamp in the counter plate and on the welcome card; the ticker (30 lines).
 - **S5. Sound and juice.** `sounds.json5` with CC0 sources (Kenney) and the procedural voices as
   fallback, every cue through the event bus, sound off until the first tap; the juice checklist
-  (`12-feel.md` 3.2) on everything built so far; a credits panel.
+  (`12-feel.md` 3.2) on everything built so far; a credits panel. *Done.*
 - **S6. The Workshop and the 2 h Night Shift** (balance). `research.json5`: tiers 1-4 (20 items,
   one effect each, level `n` of tier `k` at `40 × 20^(k−1) × 1.35^n`) and one `{line}_mk` item per
   line (D194); `buy_research {item, count: 1 | "max"}`; the advisor's gain for every research

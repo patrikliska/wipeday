@@ -1,8 +1,6 @@
 import { rates } from "@wipe-day/domain/effects";
 import { breakdown, type Step, tapGlance } from "@wipe-day/domain/glance";
 import { windowEnd } from "@wipe-day/domain/settle";
-import { useEffect } from "react";
-import { sound } from "../sound/audio";
 import { useAdvisor } from "../state/advisor";
 import { localSeconds, useWorld } from "../state/store";
 import { useUi } from "../state/ui";
@@ -33,14 +31,8 @@ export function Multipliers() {
   const openSheet = useUi((state) => state.openSheet);
   const view = useAdvisor((state) => state.view);
   const second = useWorld((state) => state.second);
-  useEffect(() => {
-    if (sheet === "multipliers") sound.play("ui_open");
-  }, [sheet]);
   if (sheet !== "multipliers" || !view) return null;
-  const close = () => {
-    sound.play("ui_close");
-    openSheet(null);
-  };
+  const close = () => openSheet(null);
   const { base, now } = view;
   const sheetData = breakdown(content, base, now);
   const tap = tapGlance(content, base, now);
@@ -102,14 +94,7 @@ export function Multipliers() {
           : t("mult.no_hands")}
       </p>
       <p className="mult-note">{t("mult.unmanned")}</p>
-      <button
-        type="button"
-        className="btn ghost fold"
-        onClick={() => {
-          sound.play("ui_open");
-          openSheet("odds");
-        }}
-      >
+      <button type="button" className="btn ghost fold" onClick={() => openSheet("odds")}>
         {t("mult.odds")}
         <Icon kind="ui" id="chevron" size={16} />
       </button>

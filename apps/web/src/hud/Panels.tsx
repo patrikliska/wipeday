@@ -5,6 +5,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import type { NotifyView } from "../net/backend";
 import { currentSubscription, disablePush, enablePush, pushSupport } from "../net/push";
 import { haptics, sound } from "../sound/audio";
+import { uiEvent } from "../state/events";
 import { currentBackend, useWorld } from "../state/store";
 import { type Motion, type Panel, useUi } from "../state/ui";
 import { content, crewName, lineName, t, tierName } from "../state/world";
@@ -29,10 +30,7 @@ export function Panels() {
         className="backdrop-hit"
         tabIndex={-1}
         aria-label={t("settings.close")}
-        onClick={() => {
-          sound.play("ui_close");
-          openPanel(null);
-        }}
+        onClick={() => openPanel(null)}
       />
       <section
         className={`plate sheet panel-sheet panel-${panel}`}
@@ -52,10 +50,7 @@ export function PanelBody({ panel }: { panel: Panel }) {
 
 function Shell({ title, sub, children }: { title: string; sub?: string; children: ReactNode }) {
   const openPanel = useUi((state) => state.openPanel);
-  const close = () => {
-    sound.play("ui_close");
-    openPanel(null);
-  };
+  const close = () => openPanel(null);
   return (
     <div className="panel-body">
       <header className="panel-head">
@@ -155,8 +150,8 @@ function Toggle({
       disabled={disabled}
       className={`switch${on ? " on" : ""}`}
       onClick={() => {
-        sound.play("ui_toggle");
         onChange(!on);
+        uiEvent("switch");
       }}
     >
       <span className="knob" />
@@ -187,7 +182,6 @@ function Choice<T extends string>({
           className={`segment${value === option.id ? " on" : ""}`}
           onClick={() => {
             if (value === option.id) return;
-            sound.play("ui_toggle");
             onChange(option.id);
           }}
         >
@@ -312,15 +306,12 @@ function SettingsPanel() {
             ))}
           </ol>
         ) : null}
-        <button
-          type="button"
-          className="btn ghost fold"
-          onClick={() => {
-            sound.play("ui_open");
-            openSheet("odds");
-          }}
-        >
+        <button type="button" className="btn ghost fold" onClick={() => openSheet("odds")}>
           {t("settings.odds")}
+          <Icon kind="ui" id="chevron" size={16} />
+        </button>
+        <button type="button" className="btn ghost fold" onClick={() => openSheet("credits")}>
+          {t("settings.credits")}
           <Icon kind="ui" id="chevron" size={16} />
         </button>
       </div>

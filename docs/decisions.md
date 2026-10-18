@@ -2447,3 +2447,53 @@ player has not reached (D140); friends' Wipe Days join when there is a feed to r
 line every 9 s of real time (the wall clock: an active timer, rule 6.3.9), a seeded shuffle per
 pass so nothing repeats before the rest have shown. Under the dock on desktop, in the drawer's
 handle on a phone. `hud/tickerLines.ts` (pure, tested), `hud/Ticker.tsx`.
+
+### D224. Sound: one map, the event bus, the first tap, Kenney's CC0 packs (R2 Feel S5)
+`packages/content/data/sounds.json5` is the one map (`12-feel.md` 3.3): `events` names every
+event on the client's bus with its cue and vibration, or `null` for a chosen silence; `cues` give
+each cue its files (one picked at random per play), the procedural voice that plays until a file
+has decoded (or alone: the hire's whistle, the era's rise, the fuel drum's rev), a gain, a random
+detune and a rate cap (taps 15 a second, the bucket's rate; faster taps make the next one louder).
+A cue template is filled from its event (`tap_{target}`, `fell_{target}`, `claim_{kind}`,
+`ui_{action}`), and a test fills every template with every target, airdrop kind and UI action.
+The game rules never read it, so it is not part of `Content`; the web client validates it on
+start (`sound/map.ts`) and a web test holds it to the bus's full event list (`EVENT_TYPES`, kept
+complete by the compiler), every voice and every file on disk. **Nothing plays from a
+component**: `sound/director.ts` is the only caller of the engine; the panels' openings and
+closings are read from the stores (`state/uiEvents.ts`), so Escape, back and a click outside
+sound like the (x); a switch emits `ui switch`; the scene emits `milestone`, `roster` and
+`flotsam_arrived`, the store `crit` (from the predicted crit counter). The vibration patterns
+moved from `audio.ts` into the map. **Sound starts with the first tap** (inside its gesture, so
+iOS allows it); before it no AudioContext exists and no file loads. A flag remembers the first
+tap, so on a later visit any press starts it. Turning the switch on starts it too. **Files:**
+Kenney's Impact Sounds, Interface Sounds and RPG Audio (CC0), 52 of them, built by `pnpm sounds`
+(`scripts/sounds/build.mjs`: downloads each pack once into `var/sound-packs/`, trims leading
+silence, levels to −18 dB mean under a −1 dB peak, cuts to the cue's `trim` with a 40 ms fade,
+mono) into `apps/web/public/sound/<pack>/` as Ogg Vorbis and MP3 (Safari before 17 has no
+Vorbis), with each pack's licence beside its files (700 KB in all). The owner's
+`public/sound/<cue>.ogg` override (owner decision 15) is replaced by editing a cue's files. The
+picks are by name and length, not by ear: the owner's ears are the review (swap any line and run
+`pnpm sounds`).
+
+### D225. The juice checklist on everything so far (R2 Feel S5)
+`12-feel.md` 3.2 applied to R1-S4's features. **A purchase:** its sound; on the island the line
+flashes bright for 240 ms in three steps (bright, half, off: a brightness filter only while it
+lasts) and pops on the step grid (a pixel narrower and two taller, one taller, a pixel of settle,
+rest; `popStep`, replacing R1's smooth 8% swell), its count badge swells a step; on the card a
+gold flash (held for a third, then fading over 520 ms) and the level badge pops. A Mk flashes its
+line, a Grip rung its target, and the upgrade's name rises from it; a hire pops the hand's face
+on the card. **A bar's end ticks:** a line's cycle bar on the island shows full and bright for
+140 ms when the cycle pays; the cards' cycle strips flare at their end. **Gains** that are not a
+product's (taps, fells, crates, Collect) carry the supplies icon on their floater, as line gains
+carry their product's. **Collect:** seven supplies tokens arc from the house into the counter one
+after another, each bumping it, behind the big number. **Presses:** tabs, bulk sizes, dock
+places and switches move and brighten under a finger, as buttons did. **Reduced motion** keeps
+the flashes and the bar ticks (they fade, nothing moves) and drops the pops and the coins.
+Cards flipping, drops creaking and the stings per rarity come with R3's cards.
+
+### D226. The Credits sheet (R2 Feel S5)
+A sheet from Settings ("Credits", under Odds): fonts with their licence, the art's origin, and
+every sound pack `sounds.json5` uses with its licence; a pack's whole row is the link to its page
+(a 44 px target), and a last line says every other sound is synthesised by the game. The strings
+are under `credits` in `en.json`; a content test fails if a pack the map uses has no credit line.
+`docs/credits.md` keeps the same lines for the repo.

@@ -1,32 +1,25 @@
 /**
- * The game's sound (docs/redesign/08-screens.md 5; 09-architecture.md 10.6): one AudioContext,
- * made on the first touch (iOS needs a gesture), cue → master gain → compressor → out. At most
- * 8 voices at once; `tap` at most 15 a second, faster taps raising its gain instead of stacking
- * voices. Every cue is procedural (`voices.ts`); a file at `public/sound/<cue>.ogg` replaces its
- * cue (owner decision 15). Muted means no audio work at all. Settings (S3) call `setEnabled`
- * and `setVolume`; both are kept in localStorage, on at 70% by default.
+ * The sound engine (08-screens.md 5; 09-architecture.md 10.6; D224): one AudioContext, cue →
+ * gain → master → compressor → out, at most 8 voices at once. A cue is a row of
+ * `data/sounds.json5`: its files (Ogg, or MP3 where Ogg does not play), one picked at random,
+ * and the procedural voice (`voices.ts`) that plays until a file has decoded, or alone. A cue
+ * with `perSecond` drops plays past its rate and makes the next one louder instead.
+ *
+ * Sound starts with the first tap (12-feel.md 3.3): before it, no AudioContext exists. Once the
+ * player has tapped, any later gesture (a new page load) wakes it. Nothing here knows an event:
+ * `director.ts` turns the bus into cues. Muted means no audio work at all; the switch and the
+ * volume are kept in localStorage, on at 70% by default.
  */
-import { type Cue, type CueOptions, VOICES } from "./voices";
+import type { Cue as CueDef } from "@wipe-day/content/sounds";
+import { sounds } from "./map";
+import { type CueOptions, VOICES } from "./voices";
 
 const ENABLED_KEY = "wipeday.sound";
 const VOLUME_KEY = "wipeday.volume";
+const STARTED_KEY = "wipeday.sound_started";
 const MAX_VOICES = 8;
-/** The token bucket's rate: no more tap sounds than taps the server credits. */
-const TAP_MIN_GAP_MS = 1000 / 15;
-/** Cues an owner file may replace (R1's set). */
-const FILE_CUES: readonly Cue[] = [
-  "tap",
-  "buy",
-  "milestone",
-  "fell",
-  "flotsam_in",
-  "flotsam_claim",
-  "rally",
-  "ui_open",
-  "ui_close",
-  "ui_toggle",
-  "refuse",
-];
+/** Fast cues (taps) leave room for the rest. */
+const MAX_FAST_VOICES = 5;
 
 function read(key: string, fallback: string): string {
   try {
@@ -44,21 +37,45 @@ function write(key: string, value: string): void {
   }
 }
 
+/** The file format this browser decodes: Ogg Vorbis, else MP3. */
+function extension(): "ogg" | "mp3" {
+  try {
+    return new Audio().canPlayType('audio/ogg; codecs="vorbis"') ? "ogg" : "mp3";
+  } catch {
+    return "mp3";
+  }
+}
+
+interface Throttle {
+  lastMs: number;
+  swallowed: number;
+}
+
 class Sound {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private noise: AudioBuffer | null = null;
-  private files = new Map<Cue, AudioBuffer>();
+  private files = new Map<string, AudioBuffer>();
   private live = 0;
-  private lastTapMs = -1e9;
-  /** Taps swallowed by the throttle since the last tap sound: they make the next one louder. */
-  private swallowed = 0;
+  private fast = 0;
+  private throttles = new Map<string, Throttle>();
   enabled = read(ENABLED_KEY, "1") === "1";
   volume = Number(read(VOLUME_KEY, "0.7"));
+  /** The player has tapped once (on any page load): later gestures may start the sound. */
+  started = read(STARTED_KEY, "0") === "1";
 
-  /** Creates the context on a user gesture; later calls resume it. Muted: does nothing. */
+  /** The first tap: from now on the sound is on (inside the tap's gesture). */
+  start(): void {
+    if (!this.started) {
+      this.started = true;
+      write(STARTED_KEY, "1");
+    }
+    this.unlock();
+  }
+
+  /** Creates the context on a user gesture; later calls resume it. Muted or unstarted: nothing. */
   unlock(): void {
-    if (!this.enabled) return;
+    if (!this.enabled || !this.started) return;
     if (this.ctx) {
       if (this.ctx.state === "suspended" && !document.hidden) void this.ctx.resume();
       return;
@@ -94,52 +111,80 @@ class Sound {
     else if (this.enabled) void this.ctx.resume();
   };
 
-  /** Owner sound files: a cue whose `.ogg` decodes replaces the procedural voice. */
+  /** Every cue's files, the most frequent first; one that fails leaves its voice playing. */
   private async loadFiles(ctx: AudioContext): Promise<void> {
-    for (const cue of FILE_CUES) {
-      try {
-        const response = await fetch(`/sound/${cue}.ogg`);
-        if (!response.ok || !response.headers.get("content-type")?.startsWith("audio")) continue;
-        this.files.set(cue, await ctx.decodeAudioData(await response.arrayBuffer()));
-      } catch {
-        // No file, or one that does not decode: the procedural voice stays.
-      }
-    }
+    const ext = extension();
+    const all = new Set<string>();
+    const cues = Object.values(sounds.cues).sort((a, b) => (b.perSecond ?? 0) - (a.perSecond ?? 0));
+    for (const cue of cues) for (const file of cue.files) all.add(file);
+    await Promise.all(
+      [...all].map(async (file) => {
+        try {
+          const response = await fetch(`/sound/${file}.${ext}`);
+          if (!response.ok || !response.headers.get("content-type")?.startsWith("audio")) return;
+          this.files.set(file, await ctx.decodeAudioData(await response.arrayBuffer()));
+        } catch {
+          // No file, or one that does not decode: the procedural voice stays.
+        }
+      }),
+    );
   }
 
-  play(cue: Cue, options: CueOptions = {}): void {
+  /** Whether `cue` may play now; past its rate it is swallowed and boosts the next one. */
+  private admit(id: string, cue: CueDef): number | null {
+    if (!cue.perSecond) return 1;
+    const nowMs = performance.now();
+    const throttle = this.throttles.get(id) ?? { lastMs: -1e9, swallowed: 0 };
+    this.throttles.set(id, throttle);
+    if (nowMs - throttle.lastMs < 1000 / cue.perSecond) {
+      throttle.swallowed += 1;
+      return null;
+    }
+    const boost = Math.min(1.6, 1 + throttle.swallowed * 0.15);
+    throttle.swallowed = 0;
+    throttle.lastMs = nowMs;
+    return boost;
+  }
+
+  play(id: string, options: CueOptions = {}): void {
     const { ctx, master, noise } = this;
     if (!this.enabled || !ctx || !master || !noise || ctx.state !== "running") return;
-    let gain = 1;
-    if (cue === "tap") {
-      const nowMs = performance.now();
-      if (nowMs - this.lastTapMs < TAP_MIN_GAP_MS) {
-        this.swallowed += 1;
-        return;
-      }
-      gain = Math.min(1.6, 1 + this.swallowed * 0.15);
-      this.swallowed = 0;
-      this.lastTapMs = nowMs;
-    }
-    if (this.live >= MAX_VOICES) return;
+    const cue = sounds.cues[id];
+    if (!cue) return;
+    const isFast = (cue.perSecond ?? 0) >= 10;
+    if (this.live >= MAX_VOICES || (isFast && this.fast >= MAX_FAST_VOICES)) return;
+    const boost = this.admit(id, cue);
+    if (boost === null) return;
     const out = ctx.createGain();
-    out.gain.value = gain;
+    out.gain.value = cue.gain * boost;
     out.connect(master);
-    const file = this.files.get(cue);
+    const loaded = cue.files.filter((file) => this.files.has(file));
+    const file = loaded[Math.floor(Math.random() * loaded.length)];
+    const buffer = file ? this.files.get(file) : undefined;
     let seconds: number;
-    if (file) {
+    if (buffer) {
       const source = ctx.createBufferSource();
-      source.buffer = file;
+      source.buffer = buffer;
+      const cents = (Math.random() * 2 - 1) * cue.detune + (options.pitch ?? 0) * 100;
+      const rate = 2 ** (cents / 1200);
+      source.playbackRate.value = rate;
       source.connect(out);
       source.start();
-      seconds = file.duration;
+      seconds = buffer.duration / rate;
     } else {
-      seconds = VOICES[cue]({ ctx, out, noise, at: ctx.currentTime }, options);
+      const voice = VOICES[cue.voice as keyof typeof VOICES];
+      if (!voice) {
+        out.disconnect();
+        return;
+      }
+      seconds = voice({ ctx, out, noise, at: ctx.currentTime }, options);
     }
     this.live += 1;
+    if (isFast) this.fast += 1;
     window.setTimeout(
       () => {
         this.live -= 1;
+        if (isFast) this.fast -= 1;
         out.disconnect();
       },
       seconds * 1000 + 50,
@@ -149,9 +194,12 @@ class Sound {
   setEnabled(enabled: boolean): void {
     this.enabled = enabled;
     write(ENABLED_KEY, enabled ? "1" : "0");
-    if (!this.ctx) return;
-    if (enabled) void this.ctx.resume();
-    else void this.ctx.suspend();
+    if (enabled) {
+      // Turning it on is a gesture of its own: the sound may start now.
+      this.start();
+      return;
+    }
+    if (this.ctx) void this.ctx.suspend();
   }
 
   setVolume(volume: number): void {
@@ -169,10 +217,10 @@ const HAPTICS_KEY = "wipeday.haptics";
 export const haptics = {
   enabled: read(HAPTICS_KEY, "1") === "1",
   supported: typeof navigator !== "undefined" && typeof navigator.vibrate === "function",
-  buzz(pattern: number | number[]): void {
+  buzz(pattern: number | readonly number[]): void {
     if (!this.enabled || !this.supported) return;
     try {
-      navigator.vibrate(pattern);
+      navigator.vibrate(typeof pattern === "number" ? pattern : [...pattern]);
     } catch {
       // Some browsers throw before the first user gesture: nothing to do.
     }
@@ -182,11 +230,3 @@ export const haptics = {
     write(HAPTICS_KEY, enabled ? "1" : "0");
   },
 };
-
-/** The vibration patterns (08-screens.md 5.4), in ms. */
-export const BUZZ = {
-  fell: 20,
-  milestone: [15, 40, 15],
-  era: [30, 50, 30],
-  flotsam: 15,
-} as const;

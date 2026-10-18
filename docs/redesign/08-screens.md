@@ -1101,7 +1101,8 @@ halves the particle cap. The owner's phone check is the acceptance (8.4).
   instead of stacking voices.
 - Each cue is a small function of oscillators, noise and envelopes. If
   `apps/web/public/sound/<cue>.ogg` exists it is used instead, so the owner can replace sounds one
-  at a time (owner decision 15).
+  at a time (owner decision 15). *Superseded by D224 (R2 Feel S5): `data/sounds.json5` maps every
+  event to a cue, its files and this voice as the fallback; sound starts with the first tap.*
 
 ### 5.2 Cue list
 

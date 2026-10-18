@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { sound } from "../sound/audio";
 import { gameSeconds, localSeconds, useWorld } from "../state/store";
 import { closeAll } from "../state/ui";
 import { clockLabel, duration, fmt, t } from "../state/world";
@@ -21,7 +20,6 @@ export function Welcome() {
     if (card && !shown.current) {
       // One card on top: a sheet or panel left open while away closes under it.
       closeAll();
-      sound.play("ui_open");
     }
     shown.current = card !== null;
   }, [card]);

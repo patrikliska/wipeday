@@ -288,6 +288,13 @@
   animation: chip-in 240ms var(--ease);
 }
 
+.tab:active,
+.segment:active,
+.dock-item:active {
+  transform: translateY(1px);
+  filter: brightness(1.15);
+}
+
 .best-buy:active {
   transform: translateY(1px);
   box-shadow: 0 1px 0 #9a6a00;
@@ -629,6 +636,60 @@
   }
 }
 
+/* A purchase lands (12-feel.md 3.2): the card flashes gold and its level pops. */
+.card-flash {
+  position: absolute;
+  inset: -2px;
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 2;
+  border: 3px solid var(--supplies-hi);
+  background: linear-gradient(90deg, rgba(255, 220, 120, 0.5), rgba(255, 210, 90, 0.12) 70%);
+  box-shadow: 0 0 18px rgba(255, 200, 80, 0.55);
+  animation: card-flash 520ms var(--ease) forwards;
+}
+
+/* Held bright for a beat, then gone: the eye catches it even mid-scroll. */
+@keyframes card-flash {
+  0%,
+  35% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* The badges ride above the flash, so the new number reads through it. */
+.thumb .lvl,
+.thumb .mk,
+.thumb .face {
+  z-index: 3;
+}
+
+.thumb .lvl.pop,
+.thumb .mk.pop,
+.thumb .face.pop {
+  animation: badge-pop 300ms var(--ease-back, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+.thumb .lvl.pop {
+  color: #fff;
+  border-color: var(--supplies-hi);
+  transition:
+    color 400ms ease,
+    border-color 400ms ease;
+}
+
+@keyframes badge-pop {
+  from {
+    transform: scale(1.5);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
 .card.locked {
   background: linear-gradient(180deg, #2f281e, #221c14);
   border-color: var(--edge-soft);
@@ -765,15 +826,24 @@
   background: rgba(0, 0, 0, 0.4);
 }
 
+/* Each cycle's end ticks: the strip flares bright as it fills (12-feel.md 3.2). */
 @keyframes cycle-fill {
+  90% {
+    filter: none;
+  }
   to {
     transform: scaleX(1);
+    filter: brightness(1.9);
   }
 }
 
 @keyframes cycle-once {
+  92% {
+    filter: none;
+  }
   99.9% {
     transform: scaleX(1);
+    filter: brightness(1.9);
   }
   to {
     transform: scaleX(0);
@@ -1609,6 +1679,14 @@
   background: var(--text);
 }
 
+.switch:active .knob {
+  transform: scale(0.85);
+}
+
+.switch.on:active .knob {
+  transform: translateX(20px) scale(0.85);
+}
+
 .switch-text {
   font-size: 12px;
   font-weight: 700;
@@ -1675,6 +1753,81 @@
 }
 
 /* --- the Odds sheet (02-the-run.md 8.5) --- */
+
+.credits-head {
+  margin: 14px 0 2px;
+  font: 700 13px / 1 var(--body);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.credits-head:first-child {
+  margin-top: 4px;
+}
+
+.credits-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.credits-row {
+  padding: 9px 0;
+  border-bottom: 1px solid var(--edge-soft);
+}
+
+.credits-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.credits-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  margin: -4px -8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.credits-link:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.credits-link:active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.credits-site {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 13px;
+  color: var(--supplies-hi);
+}
+
+.credits-voices {
+  margin-top: 12px;
+}
+
+.credits-name {
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.credits-note {
+  font-size: 13px;
+  color: var(--muted);
+}
 
 .odds-list {
   list-style: none;
@@ -2120,6 +2273,12 @@
   .card.pulse {
     animation: fade 200ms ease;
   }
+
+  .thumb .lvl.pop,
+  .thumb .mk.pop,
+  .thumb .face.pop {
+    animation: none;
+  }
 }
 
 .reduced .btn.primary.crowned,
@@ -2138,6 +2297,13 @@
 .reduced .best-buy,
 .reduced .card.pulse {
   animation: fade 200ms ease;
+}
+
+/* The flash keeps telling (it fades, nothing moves); the pops stay still. */
+.reduced .thumb .lvl.pop,
+.reduced .thumb .mk.pop,
+.reduced .thumb .face.pop {
+  animation: none;
 }
 
 /* Under a panel, a sheet or the welcome card the HUD is inert and its crown goes quiet: the

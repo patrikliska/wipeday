@@ -2,7 +2,6 @@ import { buffEffects, rates } from "@wipe-day/domain/effects";
 import { shownRate } from "@wipe-day/domain/glance";
 import { suppliesAt } from "@wipe-day/domain/settle";
 import { useEffect, useRef } from "react";
-import { sound } from "../sound/audio";
 import { useAdvisor } from "../state/advisor";
 import { wall } from "../state/clocks";
 import { useColumn } from "../state/layout";
@@ -132,7 +131,6 @@ function BestBuy() {
       type="button"
       className="best-buy"
       onClick={() => {
-        sound.play("ui_toggle");
         useUi.getState().focusCrown(tab);
       }}
     >

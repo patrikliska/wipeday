@@ -1,4 +1,3 @@
-import { sound } from "../sound/audio";
 import { useColumn } from "../state/layout";
 import { useWorld } from "../state/store";
 import { type Panel, useUi } from "../state/ui";
@@ -52,7 +51,6 @@ export function Dock() {
             }
             onClick={() => {
               if (current === item.id) return;
-              sound.play(item.id === "island" ? "ui_close" : "ui_open");
               openPanel(item.id === "island" ? null : item.id);
             }}
           >
