@@ -44,9 +44,19 @@ import { House } from "./base";
 import { Floaters, Particles, Weather } from "./effects";
 import { Flotsam } from "./flotsam";
 import { loadProductIcons } from "./icons";
-import { HOUSE_SPOT, INSIDE, ROOM, stageSpot, TARGET_SPOT, VIEW } from "./island";
+import {
+  HOUSE_SPOT,
+  houseSpotFor,
+  INSIDE,
+  ROOM,
+  stageSpot,
+  TARGET_SPOT,
+  VIEW,
+  type View,
+  viewFor,
+} from "./island";
 import { Landscape } from "./landscape";
-import { LAYOUT, Lines, ROOM_LAYOUT } from "./lines";
+import { Lines, layoutFor, ROOM_LAYOUT } from "./lines";
 import { gloom, paletteAt } from "./palette";
 import { ART, loadArt } from "./pixel";
 import { milestoneCrossed } from "./reveal";
@@ -62,13 +72,16 @@ const HORIZON = 520;
 const GROUND = 560;
 /** Sky and ground continue this far past the stage so no screen shape shows an edge. */
 const EXTEND = 800;
-/** Every screen shows at least the island (`VIEW`, art px), centred on it. */
-const VIEW_W = (VIEW.right - VIEW.left) * ART;
-const VIEW_H = (VIEW.bottom - VIEW.top) * ART;
-const FOCUS_X = ((VIEW.left + VIEW.right) / 2) * ART;
+/** Every screen shows at least the camp (`viewFor(era)`, art px), centred on it. */
+const viewSize = (view: View) => ({
+  width: (view.right - view.left) * ART,
+  height: (view.bottom - view.top) * ART,
+  focus: ((view.left + view.right) / 2) * ART,
+});
 /** The most CSS px per art pixel: big screens show more sky and sea, not bigger pixels. */
 const MAX_ZOOM = 7;
 const TARGET = { x: stageSpot(TARGET_SPOT).x, y: GROUND + stageSpot(TARGET_SPOT).y };
+/** The house's place; Armored's wider camp moves it right (`houseSpotFor`). */
 const HOUSE = { x: stageSpot(HOUSE_SPOT).x, y: GROUND + stageSpot(HOUSE_SPOT).y, scale: 1 };
 /** Phones: the ground line at this fraction of the height. */
 const PHONE_GROUND = 0.53;
@@ -158,6 +171,8 @@ export class Scene {
   private insetRight = 0;
   private scale = 1;
   private centerX = W / 2;
+  /** What the camera must show for the run's era (`island.ts`). */
+  private view: View = VIEW;
   private top = 0;
   private time = 0;
   private wind = 1;
@@ -409,12 +424,13 @@ export class Scene {
     this.insetRight = right;
     const freeW = vw - right;
     const res = this.app.renderer.resolution;
-    const fit = Math.min((freeW * res * ART) / VIEW_W, (vh * res * ART) / VIEW_H);
+    const view = viewSize(this.view);
+    const fit = Math.min((freeW * res * ART) / view.width, (vh * res * ART) / view.height);
     const zoom = clamp(Math.floor(fit), 1, Math.round(MAX_ZOOM * res));
     this.scale = zoom / (res * ART);
     const visibleH = vh / this.scale;
     // Centred on the island; the skyline and the ground run on past every screen's edges.
-    this.centerX = FOCUS_X;
+    this.centerX = view.focus;
     const aspect = freeW / vh;
     const groundFraction = aspect < 1 ? PHONE_GROUND : lerp(0.8, 0.84, clamp(aspect - 1, 0, 1));
     this.top = clamp(GROUND - groundFraction * visibleH, -EXTEND + 40, H + EXTEND - visibleH - 40);
@@ -566,6 +582,14 @@ export class Scene {
       this.target.set(targetOf(era), animate);
       this.house.setTier(era, animate);
       this.era = era;
+      if (viewFor(era) !== this.view) {
+        // Armored's wider camp: the camera pulls back and the lines and the house re-place.
+        this.view = viewFor(era);
+        this.viewW = 0; // the camera lays out again next frame
+        this.lines.relayout(layoutFor(era));
+        HOUSE.x = stageSpot(houseSpotFor(era)).x;
+        this.house.container.position.set(HOUSE.x, HOUSE.y);
+      }
       this.button.setAttribute(
         "aria-label",
         t("scene.tap_target", { target: t(`target.${targetOf(era)}.name`) }),
@@ -583,7 +607,7 @@ export class Scene {
       const line = lineOf(content, id);
       const indoors = INSIDE.has(id);
       const point = (indoors ? this.roomLines : this.lines).workPoint(id);
-      const spot = (indoors ? ROOM_LAYOUT : LAYOUT)[id];
+      const spot = indoors ? ROOM_LAYOUT[id] : this.lines.spotOf(id);
       if (line && point && spot)
         (indoors ? inside : posts).set(id, { hand: line.hand, post: { ...point, faceX: spot.x } });
     }

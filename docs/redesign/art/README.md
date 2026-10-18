@@ -99,6 +99,19 @@ are what is kept.
 - A room (132×72, pro, with the cabin and two line sprites as references) came out right first
   time on both takes: wider scenes suit the pro style.
 
+### What S3 learned (2026-10-18)
+
+- **Back-row structures a size up** (20, 24, 32 px; the radio mast 16×24 to 24×44) read well in
+  `rd_plus__low_res`; two takes each, at least one usable for every one of 24 sprites.
+- **Rooms:** the pro style with the cabin's room as reference drew the stone hut, the shack and
+  the bunker right first time (132×72), as in S2.
+- **Houses:** "a small survivor's hut of stacked stones" came back as a narrow wooden shed; "a
+  small square hut with thick walls of rough grey stone blocks ... seen straight from the front"
+  worked. Say the material twice and the view once.
+- **Targets:** the Crashed Plane at 64×36 is the widest thing in the camp (60 px after clean-up);
+  plan the layout round a target's size before generating it.
+- Spend for S3: 5.76 the batch, 0.36 the hut's retake: 6.12 USD. Balance after: about 4.39 USD.
+
 ## 5. Animation
 
 Retro Diffusion animates an existing sprite: `rd_advanced_animation__idle` and `__walking` take

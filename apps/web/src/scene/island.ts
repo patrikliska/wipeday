@@ -11,16 +11,29 @@
  */
 import { ART } from "./pixel";
 
-/** The feet line of each row (art px): the ground's front edge, and a row behind it. */
-export const ROWS = { front: 112, back: 103 } as const;
+/**
+ * The feet line of each row (art px): the ground's front edge, and a row far enough behind it
+ * that the front row's lines (at most 24 px tall) never cover the back row's (S3): only the
+ * target and the house are tall enough to reach it, and the back row's spots keep clear of them.
+ */
+export const ROWS = { front: 112, back: 90 } as const;
 export type Row = keyof typeof ROWS;
 
 /** The ground's far edge (art px): where the skyline's nearest layer meets it. */
-export const GROUND_BACK = 99;
+export const GROUND_BACK = 86;
 
 /** What the camera must always show, phone to desktop (art px): the ground, the rows, the sky. */
 // 156 wide: a 390 px phone at DPR 2 shows it at exactly 5 device px per art pixel.
 export const VIEW = { left: 101, right: 257, top: 40, bottom: 124 } as const;
+/**
+ * Armored's camp is wider (the Scrapyard on the left, the reactor on the right): the camera
+ * pulls back to this. 194 wide: the 390 px phone shows it at 4 device px per art pixel.
+ */
+export const VIEW_WIDE = { left: 83, right: 277, top: 40, bottom: 124 } as const;
+export type View = typeof VIEW | typeof VIEW_WIDE;
+
+/** The view an era needs: everything the camp can own then is on screen (CLAUDE.md 6.2). */
+export const viewFor = (era: string): View => (era === "hqm" ? VIEW_WIDE : VIEW);
 
 /** Each outside line's spot: centre x and row (art px). */
 export const SPOTS: Readonly<Record<string, { x: number; row: Row }>> = {
@@ -28,18 +41,51 @@ export const SPOTS: Readonly<Record<string, { x: number; row: Row }>> = {
   beachcomber: { x: 120, row: "front" },
   campfire: { x: 142, row: "front" },
   garden: { x: 200, row: "front" },
-  // The back row, in the gaps of the front: the kiln, then Sheet Metal and Armored.
-  shipbreaker: { x: 108, row: "back" },
-  dock: { x: 131, row: "back" },
-  kiln: { x: 150, row: "back" },
-  generator: { x: 196, row: "back" },
-  radio_mast: { x: 214, row: "back" },
-  reactor: { x: 249, row: "back" },
+  // The back row, left to right, clear of the target's and the house's tops: the Scrapyard and
+  // the Rain Catcher left (the Scrapyard only in Armored's wider view), the kiln just left of
+  // the target, then the generator, the radio mast (tall: it shows over the house) and the reactor.
+  shipbreaker: { x: 107, row: "back" },
+  dock: { x: 128, row: "back" },
+  kiln: { x: 153, row: "back" },
+  generator: { x: 206, row: "back" },
+  radio_mast: { x: 230, row: "back" },
+  reactor: { x: 256, row: "back" },
 };
 
 /** The target in the middle of the front row; the house at its right end. */
 export const TARGET_SPOT = { x: 172, row: "front" as Row };
 export const HOUSE_SPOT = { x: 232, row: "front" as Row };
+
+/**
+ * Armored's camp in its wider view (S3): the front row spreads round the Crashed Plane (60 px,
+ * the widest target), the bunker moves right, the kiln stands behind the plane's low middle and
+ * the generator clear of its tail.
+ */
+const WIDE_SPOTS: Readonly<Record<string, number>> = {
+  beachcomber: 100,
+  campfire: 124,
+  dock: 133,
+  garden: 218,
+  kiln: 172,
+  generator: 210,
+};
+const WIDE_HOUSE = 252;
+
+/** Each outside line's spot in `era`. */
+export function spotsFor(era: string): Record<string, { x: number; row: Row }> {
+  const wide = viewFor(era) === VIEW_WIDE;
+  return Object.fromEntries(
+    Object.entries(SPOTS).map(([id, spot]) => [
+      id,
+      { x: (wide ? WIDE_SPOTS[id] : undefined) ?? spot.x, row: spot.row },
+    ]),
+  );
+}
+
+/** The house's spot in `era`. */
+export function houseSpotFor(era: string): { x: number; row: Row } {
+  return viewFor(era) === VIEW_WIDE ? { ...HOUSE_SPOT, x: WIDE_HOUSE } : HOUSE_SPOT;
+}
 
 /**
  * The house's room (art px): the cut-away interior drawn when the house is open, its floor line

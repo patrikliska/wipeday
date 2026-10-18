@@ -2321,3 +2321,40 @@ The owner approved two names that follow D212: Twig's target is the **Dead Oak**
 Pine), and the Rain Catcher's product is **Clean Water** (it was Tinned Fish, D157). Locale edits;
 the product's icon still shows a fish and is redrawn with the Rain Catcher's art.
 
+
+### D214. Stone to Armored in pixel art (R2 Feel S3, 2026-10-18)
+Generated with `scripts/art/jobs/s3-eras.json` and one retake (`s3-retake.json`), picked by the
+agent in `scripts/art/picks/s3.json` (the owner may swap any take from `preview/art/s3-sheet.png`):
+the furnace, tannery and oil press at three stages (16-24 px, `rd_plus__low_res`, outlined, the
+loom's sizes); the back-row lines a size up (20-36 px, the radio mast 24×44) so they read over the
+front row: the Rain Catcher (a tarp funnel over blue barrels, then a tank on legs), the generator,
+the radio mast, the Scrapyard (scrap heaps, then a yellow crane with a magnet) and the reactor;
+the targets Ore (rusty veins), Sulfur (yellow crystals) and The Crashed Plane (a rusty propeller
+plane nose-down, 60×34); the stone hut, the sheet-metal shack and the armoured bunker; the rooms
+of the stone hut (hearth and window), the shack and the bunker (`room/<tier>`, 132×72, pro style
+with the cabin's room as reference: right first time, as in S2). 6.12 USD; 4.39 left. The icons
+that still showed the sea follow the land names (D212, D213): Clean Water is a bottle with a drop,
+the Rain Catcher a funnel over a barrel under rain, the Scrapyard a crane over a heap, The Crashed
+Plane a plane nosed into the ground; the airdrop crate hangs under a parachute and the other
+flotsam kinds lose their waves. The dock's Island icon keeps its waves until the S4 dock.
+
+### D215. The back row stands deeper; Armored's camp is wider (R2 Feel S3, 2026-10-18)
+The back row stood 9 art px behind the front, so the front row's 22-24 px lines, the target and
+the house covered it (the kiln vanished behind Timber's boulder). It now stands 22 px behind
+(`ROWS.back` 90, the ground's far edge at 86, ten rows more ground): the front row's lines never
+reach it, and each back-row spot keeps clear of the target's and the house's tops (the radio mast
+stands behind the house and shows over it). The back row's six structures are 168 px across and
+the phone's view 156: they cannot all fit beside the front row. So Armored, when the Scrapyard and
+the reactor arrive, gets a wider view (`VIEW_WIDE`, 194 art px: a 390 px phone at 4 device px per
+art px instead of 5) and its own spots: the front row spreads round the 60 px Crashed Plane, the
+bunker moves right, the kiln stands behind the plane's low middle (21 px tall there). The camera,
+the lines and the hands re-place when the era changes (`viewFor`, `spotsFor`, `Lines.relayout`).
+Twig to Sheet Metal keep the close 156 px view. `apps/web/src/scene/island.ts`.
+
+### D216. Wear on the pixel targets is drawn on the grid from the art's own pixels (R2 Feel S3)
+The pixel targets showed no wear (the vector cracks were for the stand-ins). `scene/wear.ts` now
+draws up to four steps on the art grid, in palette colours shaded from the pixel underneath:
+rocks crack (a seeded seam 3-5 px down with a pale lip, one more per step), the plane's plates
+tear (a dark hole under a bright bent edge), the dead tree takes a notch on its fall side, up to
+60% through the trunk. Marks land only on interior pixels of the sprite, so they never leave the
+silhouette, and a target always wears the same way. Tested in `wear.test.ts`.

@@ -115,6 +115,30 @@ const ALL_LINES = [
 ];
 const every = (n) => Object.fromEntries(ALL_LINES.map((id) => [id, n]));
 
+/** Sheet Metal with every line to its Rain Catcher, radio mast and generator; ten hands. */
+const METAL_RUN = {
+  time: at(1, 11),
+  wall: WALL,
+  weather: "clear",
+  era: "metal",
+  lines: { ...every(30), shipbreaker: 0, reactor: 0 },
+  hands: ALL_LINES.slice(0, 10),
+  supplies: 1e12,
+  made: 1e12,
+};
+
+/** Armored, every line at 100 and every hand. */
+const HQM_RUN = {
+  time: at(1, 11),
+  wall: WALL,
+  weather: "clear",
+  era: "hqm",
+  lines: every(100),
+  hands: ALL_LINES,
+  supplies: 1e15,
+  made: 1e15,
+};
+
 /**
  * Each shot: `viewport`, `scale` (device pixels), `state`, and optionally `clip`, `taps`, `ff`.
  * In `state`, `time` pins the game clock and `wall` the animation clock (both paused);
@@ -935,6 +959,103 @@ const SHOTS = [
     viewport: PHONE_LANDSCAPE,
     scale: 2,
     state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 3,
+  },
+  // R2 Feel S3: Stone to Armored in pixel art, the back row clear of the front, wear on the grid.
+  {
+    name: "s3_tree_wear",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10), wall: WALL, weather: "clear", target: { taps: 36, felled: 2 } },
+    ff: 0.5,
+    clip: [70, 260, 250, 260],
+  },
+  {
+    name: "s3_stone_wear",
+    viewport: DESKTOP,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...TIMBER_YARD,
+      target: { taps: 46, felled: 20 },
+    },
+    ff: 1.5,
+  },
+  {
+    name: "s3_ore",
+    viewport: DESKTOP,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      target: { taps: 70, felled: 64 },
+    },
+    ff: 3,
+  },
+  {
+    name: "s3_metal",
+    viewport: DESKTOP,
+    state: { ...METAL_RUN, time: at(1, 10.5), target: { taps: 85, felled: 40 } },
+    ff: 3,
+  },
+  {
+    name: "s3_metal_phone",
+    viewport: PHONE,
+    scale: 2,
+    state: { ...METAL_RUN, time: at(1, 10.5), target: { taps: 85, felled: 40 } },
+    ff: 3,
+  },
+  {
+    name: "s3_hqm",
+    viewport: DESKTOP,
+    state: { ...HQM_RUN, target: { taps: 100, felled: 12 } },
+    ff: 3,
+  },
+  {
+    name: "s3_hqm_phone",
+    viewport: PHONE,
+    scale: 2,
+    state: { ...HQM_RUN, target: { taps: 100, felled: 12 } },
+    ff: 3,
+  },
+  {
+    name: "s3_hqm_2k",
+    viewport: [2560, 1440],
+    state: { ...HQM_RUN, weather: "rain" },
+    ff: 3,
+  },
+  {
+    name: "s3_hqm_night",
+    viewport: DESKTOP,
+    state: { ...HQM_RUN, time: at(1, 23) },
+    ff: 3,
+  },
+  {
+    name: "s3_house_stone",
+    viewport: DESKTOP,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, ui: { house: true } },
+    ff: 3,
+  },
+  {
+    name: "s3_house_stone_phone",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, ui: { house: true } },
+    ff: 3,
+  },
+  {
+    name: "s3_house_metal",
+    viewport: DESKTOP,
+    state: { ...METAL_RUN, time: at(1, 10.5), ui: { house: true } },
+    ff: 3,
+  },
+  {
+    name: "s3_house_hqm_phone",
+    viewport: PHONE,
+    scale: 2,
+    state: { ...HQM_RUN, ui: { house: true } },
     ff: 3,
   },
 ];

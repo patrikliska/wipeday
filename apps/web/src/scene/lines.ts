@@ -19,7 +19,7 @@ import { content, fmt, fmtCount, resourceColor } from "../state/world";
 import { drawLine, type Station } from "./buildings";
 import type { Particles } from "./effects";
 import { productTexture } from "./icons";
-import { ROOM, SPOTS, stageSpot, TARGET_SPOT } from "./island";
+import { ROOM, spotsFor, stageSpot, TARGET_SPOT } from "./island";
 import { ART, artSprite } from "./pixel";
 import { plotShown } from "./reveal";
 import { clamp, easeOutBack } from "./util";
@@ -52,13 +52,18 @@ const FALLBACK_SCALE: Record<string, number> = {
   reactor: 0.36,
 };
 
-/** The island's layout (`island.ts`, D203) in world units: the lines outside the house. */
-export const LAYOUT: Record<string, Spot> = Object.fromEntries(
-  Object.entries(SPOTS).map(([id, spot]) => [
-    id,
-    { ...stageSpot(spot), scale: FALLBACK_SCALE[id] ?? 0.45 },
-  ]),
-);
+/** The island's layout (`island.ts`) in world units in `era`: the lines outside the house. */
+export function layoutFor(era: string): Record<string, Spot> {
+  return Object.fromEntries(
+    Object.entries(spotsFor(era)).map(([id, spot]) => [
+      id,
+      { ...stageSpot(spot), scale: FALLBACK_SCALE[id] ?? 0.45 },
+    ]),
+  );
+}
+
+/** The layout before any era is known (Twig's). */
+export const LAYOUT: Record<string, Spot> = layoutFor("twig");
 
 /** The house room's layout (D206): each crafting line on the room's floor (`ROOM.floor`). */
 export const ROOM_LAYOUT: Record<string, Spot> = Object.fromEntries(
@@ -250,6 +255,23 @@ export class Lines {
         time: Math.random() * 10,
       });
     }
+  }
+
+  /** Moves every line to its spot in `layout` (the camp re-laid for a new era). */
+  relayout(layout: Record<string, Spot>): void {
+    for (const view of this.views.values()) {
+      const spot = layout[view.def.id];
+      if (!spot) continue;
+      Object.assign(view.spot, spot);
+      view.container.position.set(spot.x, this.ground + spot.y);
+      view.container.zIndex = this.ground + spot.y;
+      view.light.position.copyFrom(view.container.position);
+    }
+  }
+
+  /** Where `line` stands (world units, y from the ground line). */
+  spotOf(line: string): Spot | null {
+    return this.views.get(line)?.spot ?? null;
   }
 
   /** Where `line`'s hand stands to work (world units), and the scale they are drawn at. */

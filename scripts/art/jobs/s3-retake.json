@@ -1,0 +1,17 @@
+[
+  {
+    "id": "house_stone_b",
+    "prompt_style": "rd_pro__platformer",
+    "width": 36,
+    "height": 30,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1010,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/house/wood.png",
+      "packages/content/art/scene/target/stone.png"
+    ],
+    "prompt": "a small square survivor's hut with thick walls of rough grey stone blocks, a low slanted plank roof weighed down with stones, a wooden door in the middle of the wall, a small lit window beside it, a short stone chimney, the whole hut seen straight from the front, strict side view, light from the upper left, on a plain white background"
+  }
+]

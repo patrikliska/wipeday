@@ -10,7 +10,7 @@
  * (D48, N27); this class only draws. The Hustle arc and its multiplier live in screen space
  * (D46) on `overlay`.
  */
-import { BitmapText, Container, Graphics, Sprite } from "pixi.js";
+import { BitmapText, Container, Graphics, Sprite, type Texture } from "pixi.js";
 import type { Emit, Particles } from "./effects";
 import {
   GROUND,
@@ -27,6 +27,7 @@ import {
 import { artSprite } from "./pixel";
 import { glowTexture } from "./textures";
 import { clamp, easeOutBack, hash, lerpColor, reducedMotion, shade } from "./util";
+import { drawPixelWear } from "./wear";
 
 export type TargetKind = "tree" | "stone" | "ore" | "sulfur" | "wreck";
 
@@ -439,8 +440,8 @@ function drawWear(g: Graphics, kind: TargetKind, level: number): void {
 interface Body {
   container: Container;
   wear: Graphics;
-  /** Drawn from pixel art (`target/<kind>`): its wear is drawn on the grid, not as vectors. */
-  pixel: boolean;
+  /** Drawn from pixel art (`target/<kind>`): its wear is drawn on the grid (`wear.ts`). */
+  pixel: Texture | null;
 }
 
 function makeBody(kind: TargetKind): Body {
@@ -451,7 +452,7 @@ function makeBody(kind: TargetKind): Body {
   if (sprite) {
     art.addChild(sprite, wear);
     container.addChild(art);
-    return { container, wear, pixel: true };
+    return { container, wear, pixel: sprite.texture };
   }
   const g = new Graphics();
   if (kind === "tree") drawPine(g);
@@ -464,7 +465,7 @@ function makeBody(kind: TargetKind): Body {
   }
   art.addChild(g, wear);
   container.addChild(art);
-  return { container, wear, pixel: false };
+  return { container, wear, pixel: null };
 }
 
 /** Per kind: what a fell sheds, how long the ghost takes, and how it goes. */
@@ -560,7 +561,7 @@ export class Target {
     this.halo.width = b.width * 1.6;
     this.halo.height = b.height * 1.3;
     this.halo.position.set(b.x + b.width / 2, b.y + b.height * 0.55);
-    if (!this.body.pixel) drawWear(this.body.wear, kind, this.level);
+    this.drawWear();
     if (old && oldKind && animate) this.startGhost(old, oldKind);
     else old?.container.destroy({ children: true });
     this.pop = animate ? 0 : 1;
@@ -571,7 +572,14 @@ export class Target {
     const level = clamp(Math.floor(fraction * 5), 0, 4);
     if (level === this.level || !this.body || !this.kind) return;
     this.level = level;
-    if (!this.body.pixel) drawWear(this.body.wear, this.kind, level);
+    this.drawWear();
+  }
+
+  /** The body's wear at the current level: on the grid for pixel art, as vectors if not. */
+  private drawWear(): void {
+    if (!this.body || !this.kind) return;
+    if (this.body.pixel) drawPixelWear(this.body.wear, this.body.pixel, this.kind, this.level);
+    else drawWear(this.body.wear, this.kind, this.level);
   }
 
   /** A tap landed: squash and shed a few chips at world (x, y). */

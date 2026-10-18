@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="currentColor">
-  <path fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" d="M24 25 19.5 10"/>
-  <path d="M17 11 18 5 21 8 23 4 22.5 11Z"/>
-  <path fill-rule="evenodd" d="M4 17 42 29 37 37H11ZM16 24.5 21 26 19 28.5 23 30.5 17.5 31 18.5 28Z"/>
-  <path fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" d="M4 41.5Q9 37.5 14 41.5T24 41.5 34 41.5 44 41.5"/>
+  <path fill-rule="evenodd" d="M9.8 36.0 9.2 33.1 11.6 29.5 31.3 18.1 31.2 8.3 34.5 6.4 41.9 23.0 16.3 37.8 12.1 38.0ZM14.2 30.2 19.1 27.4 20.5 29.9 14.8 33.2Z"/>
+  <path d="M23.3 32.7 33.1 27.0 33.7 35.5 29.5 37.8Z"/>
+  <path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" d="M4.4 31.5 11.1 43.0"/>
+  <rect x="3" y="42" width="42" height="3" rx="1.5"/>
 </svg>

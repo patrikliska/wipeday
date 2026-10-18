@@ -6,7 +6,7 @@ should think, and what "done" means**. It was rewritten in R0 from the approved 
 (`docs/redesign/11-roadmap.md`, which keeps the reasons); the W-phase roadmap and its results are
 in `docs/archive/roadmap-w.md`.
 
-## Where we are (2026-10-18, R2 Feel S2 done)
+## Where we are (2026-10-18, R2 Feel S3 art done)
 
 - **The live game** is W8 on frozen `main` at https://wipeday.patrikliska.dev: season 1 (started
   2026-10-07) sits untouched and nobody plays it now (owner decision 7). It ends quietly at the
@@ -33,9 +33,24 @@ in `docs/archive/roadmap-w.md`.
 - **The owner's reviews (2026-10-18)**: the crafting lines moved inside the house, which opens as
   a room (D206); the ground is painted, never tiled (D208); the terraces gave way to one ground
   with two rows under a ruined skyline, and flotsam to airdrops (D209).
-- **Next: R2 Feel S3, the rest of the pixel scene and the hero tap** (Stone to Armored art, the
-  rooms from Stone on, the stockpile, pixel wear and clouds). It needs credit: about 3.09 USD is
-  left of the 25-35 the art pass needs.
+- **R2 Feel S3's art is done** (2026-10-18; results below): Stone to Armored in pixel art, the
+  rooms, the back row placed deeper, Armored's wider camp, pixel wear (D214-D216).
+- **Next: the rest of S3, the hero tap**: the stockpile and the chips (every tap chips a sprite
+  onto it), squash and stretch on the step grid, the fell's shake; pixel clouds. Retro Diffusion
+  has about 4.39 USD left.
+
+### R2 Feel S3 results so far (the art)
+- **Art** (`scripts/art/picks/s3.json`, 6.12 USD): the furnace, tannery and oil press; the Rain
+  Catcher, generator, radio mast, Scrapyard and reactor at three stages; Ore, Sulfur and The
+  Crashed Plane; the stone hut, the shack and the bunker with their rooms. Every line, target,
+  house tier and room now has pixel art; the stand-in drawings remain only as fallbacks.
+- **Layout** (D215): the back row 22 px behind the front, clear of the target and the house;
+  Armored's camp in a wider view (194 art px) with its own spots, re-placed on the era change.
+- **Wear** (D216): cracks, torn plates and the tree's notch on the art grid (`scene/wear.ts`).
+- **Icons**: Clean Water, the Rain Catcher, the Scrapyard, The Crashed Plane; the airdrop crate
+  under a parachute; no flotsam icon shows waves.
+- **Checks:** `pnpm check` green; the shots audit passes on the new `s3_*` shots. No rule changed,
+  so the N-values read as at S1.
 
 ### R2 Feel S2 results (the pixel island, Twig and Timber)
 - **The scene** is pixel art on one grid: `scene/pixel.ts` loads `packages/content/art/scene/`,

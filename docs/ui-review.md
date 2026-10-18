@@ -1451,3 +1451,30 @@ The owner found the ground taking half the screen and preferred the comparison p
   holds a lone house and water towers on empty ground, the near distance a few poles, a fence
   and small wrecks, all smaller than the tent. The ground and the sky are as before.
 
+
+## R2 Feel S3: Stone to Armored in pixel art (D214-D216)
+New shots `s3_*` (the tree's wear, Timber's boulder, Stone's ore, Sheet Metal on desktop and
+phone, Armored on desktop, phone, 2k in rain and at night, the stone, shack and bunker rooms).
+
+### Iteration 1
+- `s3_metal`, `desktop_lines_100`: the back row 9 px behind the front: the kiln hidden behind the
+  boulder, the generator behind the garden, the radio mast's foot behind the house. Rows moved
+  22 px apart (D215).
+- `s3_hqm`: the Crashed Plane (60 px) overlapped the campfire and the garden, and the six
+  back-row structures did not fit the 156 px view. Armored gets a wider view and its own spots.
+- `s3_hqm`, `s3_hqm_phone`: the Scrapyard's and the reactor's hands were cut by the screen's
+  edges; both lines moved inward 3-4 px.
+- Icons: the first plane icon read as an X at 16 px; redrawn side-on, nosed into the ground.
+
+### Iteration 2
+- `s3_hqm_phone`: all 14 lines and their hands visible at 4 device px per art px; the camp reads
+  as built round the wreck; the kiln shows over the plane's low middle.
+- `s3_metal_phone`: the Rain Catcher, kiln and generator stand over the front row, the radio
+  mast over the shack's roof.
+- `desktop_2k`: Timber's kiln now visible behind the boulder; the deeper ground shows no repeat.
+- `s3_ore`, `s3_stone_wear`, `s3_tree_wear__zoom`: cracks read on the ore and the boulder; the
+  tree's notch is a pale wedge at the trunk's foot. On the pale sulfur the cracks are faint.
+- `s3_house_stone`: the stone hut's room (hearth, window, lamp) at the island's zoom; the furnace
+  stands in front of the hearth and blends into it a little.
+- Still open: hands are as tall as the lines and crowd a full camp; the stockpile, chips and
+  squash of the hero tap; pixel clouds.

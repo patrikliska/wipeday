@@ -1,6 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="currentColor">
-  <path d="M11 20 12 13 7 7Q12.5 7.5 14.5 10.5 16.5 7 21 6L17 13 18 20Z"/>
-  <path d="M28 20 29.5 11 25.5 4.5Q30.5 5.5 32 9 34.5 5.5 39 5L35 11 35.5 20Z"/>
-  <rect x="5" y="22" width="38" height="9" rx="1.5"/>
-  <rect x="5" y="34" width="38" height="10" rx="1.5"/>
+  <rect x="19" y="3" width="10" height="6" rx="1"/>
+  <path fill-rule="evenodd" d="M18 10H30L34 16V42A3 3 0 0 1 31 45H17A3 3 0 0 1 14 42V16ZM18 21V40H30V21Z"/>
+  <path fill="#5faccf" d="M24 23C21 28 20 30 20 32.5A4 4 0 0 0 28 32.5C28 30 27 28 24 23Z"/>
 </svg>
