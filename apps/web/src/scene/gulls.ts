@@ -15,8 +15,10 @@ import type { BaseState } from "@wipe-day/domain/state";
 import { Container, Graphics, Sprite } from "pixi.js";
 import { content, t } from "../state/world";
 import { CROW, CROW_GLOW } from "./palette";
+import { ART } from "./pixel";
 import { glowTexture } from "./textures";
 import { clamp, easeOutCubic, lerp, reducedMotion } from "./util";
+import { yard } from "./yards";
 
 /** One crow pixel on screen (CSS px). */
 const CROW_PX = 5;
@@ -67,6 +69,8 @@ const FRAMES: readonly string[][] = [
 ];
 const COLS = 15;
 const ROWS = 8;
+/** The crows' lanes (world units): the upper sky, over the skyline behind the yard. */
+const SKY_LANE = [(yard.back - 56) * ART, (yard.back - 28) * ART] as const;
 
 export interface GullCamera {
   x: number;
@@ -212,7 +216,7 @@ export class Gulls {
       const x0 = rightward ? -span : width + span;
       const x1 = rightward ? width + span : -span;
       const lane = ((shown.k * 37) % 5) / 4;
-      const skyY = camera.y + lerp(150, 290, lane) * camera.scale;
+      const skyY = camera.y + lerp(SKY_LANE[0], SKY_LANE[1], lane) * camera.scale;
       const bob = reduced ? 0 : Math.sin(now * (shown.elite ? 9 : 6)) * 5;
       const x = Math.round(lerp(x0, x1, p));
       const y = Math.round(Math.max(96, skyY) + bob);

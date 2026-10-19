@@ -113,6 +113,23 @@ are what is kept.
   plan the layout round a target's size before generating it.
 - Spend for S3: 5.76 the batch, 0.36 the hut's retake: 6.12 USD. Balance after: about 4.39 USD.
 
+### What P3 learned (2026-10-19)
+
+- **Takes for the owner to pick** (`scripts/art/jobs/p3-takes.json`, `p3-garden.json`): each
+  sprite as two `rd_plus__low_res` takes plus one `rd_pro__platformer` take with set references
+  (the barrel prop, the Twig tent), cleaned and outlined as `install` would and numbered on one
+  sheet (`preview/art/p3-takes-sheet.png`). Nothing installs until the owner picks numbers.
+- **The palette has no bright green** (only olives `#454e35` to `#888464`): `palette: true`
+  drained the garden's sprouts to beige. Without `input_palette` the low-res takes kept leaf
+  shapes, and the clean-up's palette mapping still held them to the set.
+- **Concrete objects read at 16 px:** "one rusty red oil barrel with a crowbar leaning against
+  it" and "a pot hanging over a fire in a ring of stones" (the pro take) read first time; the
+  campfire's flames read only where the fire is drawn big and bright.
+- A low-res job failed once with a 502 (`inference_failed`) and was not charged; rerun with
+  `--only=<id>`.
+- Spend for P3: 1.50 the takes, 0.30 the garden retake (its low-res half rerun after the failed, uncharged try): 1.80 USD. Balance
+  after: about 2.59 USD.
+
 ## 5. Animation
 
 Retro Diffusion animates an existing sprite: `rd_advanced_animation__idle` and `__walking` take

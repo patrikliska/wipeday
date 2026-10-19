@@ -33,7 +33,12 @@ const C = {
   pebbleDark: "#6e4d4c",
   stone: "#584d44",
   stoneLight: "#717061",
+  tuft: "#72774a",
+  tuftDark: "#454e35",
 } as const;
+
+/** Rows of a terrace's riser: its sunlit lip, its face, and the shadow it throws. */
+const RISER = 6;
 
 /** A deterministic hash of two integers and a seed, in [0, 1). */
 function hash(x: number, y: number, seed: number): number {
@@ -63,6 +68,23 @@ function noise(x: number, seed: number, scale: number): number {
   return total / sum;
 }
 
+/** Smooth 2-D value noise in [-1, 1] (bilinear over hashed cells; no period). */
+function noise2(x: number, y: number, seed: number, sx: number, sy: number): number {
+  const fx = x / sx;
+  const fy = y / sy;
+  const ix = Math.floor(fx);
+  const iy = Math.floor(fy);
+  const tx = fx - ix;
+  const ty = fy - iy;
+  const ux = tx * tx * (3 - 2 * tx);
+  const uy = ty * ty * (3 - 2 * ty);
+  const a = hash(ix, iy, seed);
+  const b = hash(ix + 1, iy, seed);
+  const c = hash(ix, iy + 1, seed);
+  const d = hash(ix + 1, iy + 1, seed);
+  return (a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy) * 2 - 1;
+}
+
 export interface GroundPiece {
   /** Art pixels across and down. */
   width: number;
@@ -72,6 +94,13 @@ export interface GroundPiece {
   seed: number;
   /** Rows below the lip over which the dirt darkens to bedrock. */
   darken: number;
+  /**
+   * A deep yard (P3): the haze fades over the far half only, the surface has broad patches of
+   * trodden and pale earth (finer toward the back) and dry tufts, and `steps` raise terraces.
+   */
+  deep?: boolean;
+  /** Terrace steps: the row (from the far edge) each raised band's things stand on. */
+  steps?: readonly number[];
 }
 
 /** The ground as a nearest-neighbour texture (1 texel = 1 art pixel). */
@@ -103,27 +132,86 @@ export function paintGround(piece: GroundPiece): Texture {
     data[i + 3] = 255;
   };
 
+  const deep = piece.deep === true;
   for (let x = 0; x < w; x++) {
     // The front edge waves a pixel or two; the far edge is straight (the skyline sits on it).
     const edge = piece.surface + Math.round(noise(x, seed, 30) * 1.4);
     const lipAt = edge + 3;
+    // Each terrace's riser: a sunlit lip two rows in front of its band's feet, a darker face
+    // under it, and a row of shadow on the band below; it waves like the front edge.
+    const risers = (piece.steps ?? []).map(
+      (step, i) => step + 2 + Math.round(noise(x, seed + 40 + i, 24) * 1.2),
+    );
     for (let y = 0; y < h; y++) {
       const r = hash(x, y, seed);
       let colour: string;
-      if (y < edge) {
+      const riser = risers.find((at) => y >= at && y < at + RISER);
+      if (riser !== undefined && y < edge) {
+        const row = y - riser;
+        colour =
+          row === 0
+            ? r < 0.4
+              ? C.shine
+              : C.edge
+            : row === 1
+              ? r < 0.5
+                ? C.sandShade
+                : C.edge
+              : row === 2
+                ? C.wet
+                : row < 5
+                  ? r < 0.2
+                    ? C.dirt
+                    : C.under
+                  : r < 0.5
+                    ? C.debris
+                    : C.speck;
+      } else if (y < edge) {
         // The surface: paler toward the far edge, long streaks, specks and glints.
-        const far = 1 - y / edge;
+        const far = deep ? Math.max(0, 1 - (y / edge) * 1.8) ** 1.4 : 1 - y / edge;
         const streak = noise(x * 0.25 + y * 9, seed + 2, 6) > 0.45;
+        // A deep yard's broad patches: trodden earth and pale drifts, finer toward the back.
+        const depth = y / edge;
+        const patch = deep ? noise2(x, y, seed + 21, 10 + depth * 16, 4 + depth * 5) : 0;
         colour =
           r < far * 0.55
             ? C.far
-            : streak && r < 0.6
-              ? C.streak
-              : r < 0.07
+            : patch > 0.42 && r < 0.55
+              ? r < 0.2
+                ? C.debris
+                : C.speck
+              : patch < -0.5 && r < 0.6
+                ? C.far
+                : streak && r < 0.6
+                  ? C.streak
+                  : r < 0.07
+                    ? C.speck
+                    : r < 0.1
+                      ? C.glint
+                      : C.dust;
+      } else if (deep) {
+        // A deep yard has no cliff: the camera looks down, so the ground runs on toward the
+        // viewer and darkens into the foreground's shade, dithered.
+        const near = (y - edge) / 70 + (hash(x, y, seed + 5) - 0.5) * 0.3;
+        const patch = noise2(x, y, seed + 21, 30, 12);
+        colour =
+          near > 0.75
+            ? r < 0.5
+              ? C.debris
+              : C.dirt
+            : near > 0.4
+              ? r < 0.35
+                ? C.debris
+                : r < 0.7
+                  ? C.speck
+                  : C.streak
+              : patch > 0.4 && r < 0.5
                 ? C.speck
-                : r < 0.1
-                  ? C.glint
-                  : C.dust;
+                : r < 0.25 + near
+                  ? C.streak
+                  : r < 0.32 + near
+                    ? C.speck
+                    : C.dust;
       } else if (y === edge) colour = r < 0.3 ? C.shine : C.edge;
       else if (y < lipAt) colour = r < 0.5 ? C.sandShade : C.wet;
       else if (y < lipAt + 2) colour = C.lip;
@@ -159,15 +247,30 @@ export function paintGround(piece: GroundPiece): Texture {
       set(x, y + 1, C.debris);
       set(x + 1, y + 1, C.debris);
     }
+    // A deep yard's dry tufts: a few pixels of olive, bigger and more of them in front.
+    if (deep && hash(x, 8, seed + 23) < 0.05) {
+      const y = 3 + Math.floor(hash(x, 9, seed) ** 0.6 * Math.max(1, edge - 5));
+      if (!risers.some((at) => y >= at - 2 && y < at + RISER + 1)) {
+        const big = y / edge > 0.5;
+        set(x, y, C.tuft);
+        set(x, y - 1, hash(x, 10, seed) < 0.5 ? C.tuft : C.tuftDark);
+        if (big) {
+          set(x + 1, y, C.tuftDark);
+          set(x - 1, y - 1, C.tuft);
+          set(x + 1, y - 2, C.tuft);
+        }
+        set(x, y + 1, C.debris);
+      }
+    }
     // Pebbles and stones in the dirt, scattered (seeded, never in a grid).
-    if (hash(x, 3, seed + 13) < 0.02) {
+    if (!deep && hash(x, 3, seed + 13) < 0.02) {
       const y = lipAt + 6 + Math.floor(hash(x, 4, seed) * Math.max(1, h - lipAt - 10));
       set(x, y, C.pebble);
       set(x + 1, y, C.pebble);
       set(x, y + 1, C.lip);
       set(x + 1, y + 1, C.lip);
     }
-    if (hash(x, 5, seed + 17) < 0.006) {
+    if (!deep && hash(x, 5, seed + 17) < 0.006) {
       const y = lipAt + 8 + Math.floor(hash(x, 6, seed) * Math.max(1, h - lipAt - 16));
       for (let dy = -2; dy <= 2; dy++) {
         for (let dx = -2; dx <= 2; dx++) {

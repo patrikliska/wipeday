@@ -12,9 +12,10 @@
  */
 import { Container, Graphics, Sprite, Texture } from "pixi.js";
 import { paintGround } from "./ground";
-import { GROUND_BACK, ROWS } from "./island";
+import { GROUND_BACK } from "./island";
 import type { Palette } from "./palette";
 import { ART, art } from "./pixel";
+import { FRONT, yard } from "./yards";
 
 /** The skyline's layers, far to near: variants, where they stand, how hazy, how much they drift. */
 // The owner prefers an open wasteland with only a few buildings (D210): the dense city is a faint
@@ -128,9 +129,11 @@ export class Landscape {
       paintGround({
         width: right - left,
         height: bottom - GROUND_BACK,
-        surface: ROWS.front - GROUND_BACK,
+        surface: FRONT - GROUND_BACK,
         seed: 7,
         darken: DARKEN,
+        ...(yard.camera ? { deep: true } : {}),
+        ...(yard.steps.length ? { steps: yard.steps.map((step) => step - GROUND_BACK) } : {}),
       }),
     );
     piece.scale.set(ART);

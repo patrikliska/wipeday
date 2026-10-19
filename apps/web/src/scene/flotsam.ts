@@ -16,13 +16,15 @@ import { Container, Graphics, Sprite } from "pixi.js";
 import { content, t } from "../state/world";
 import { flotsamTexture } from "./icons";
 import { FLOTSAM_GLOW, FLOTSAM_TINT } from "./palette";
+import { ART } from "./pixel";
 import { glowTexture } from "./textures";
 import { clamp, easeOutCubic, lerp, reducedMotion } from "./util";
+import { yard } from "./yards";
 
-/** Where it hangs at its float's end: over the left of the island, above the rows (world units). */
-export const REST = { x: 128 * 5, y: 66 * 5 };
+/** Where it hangs at its float's end: over the left of the camp, above the yard (world units). */
+export const REST = { x: yard.dropX * ART, y: (yard.back - 20) * ART };
 /** Where its slow descent starts once it has dropped into view (world units, above REST). */
-const DROP_TOP = 34 * 5;
+const DROP_TOP = (yard.back - 52) * ART;
 /** Seconds it takes to fall from above the screen to the start of its slow descent. */
 const DRIFT_S = 2.5;
 /** Seconds it takes to drift off and fade once its float is over (it can still be caught). */

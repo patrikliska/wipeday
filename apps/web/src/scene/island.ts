@@ -7,94 +7,52 @@
  * opens when the house is tapped. Everything owned is on screen or one tap away (CLAUDE.md 6.2).
  *
  * Coordinates are art pixels (1 art px = `ART` stage units): x across the stage's 320, y the
- * feet line of a row (the front at 112, the stage's ground line 560).
+ * feet line (the front edge at 112, the stage's ground line 560). Where things stand comes from
+ * the yard (`yards.ts`): R2's flat camp, or a deep-yard mock picked in dev (P3).
  */
 import { ART } from "./pixel";
+import { FRONT, type View, type YardSpot, yard } from "./yards";
 
-/**
- * The feet line of each row (art px): the ground's front edge, and a row far enough behind it
- * that the front row's lines (at most 24 px tall) never cover the back row's (S3): only the
- * target and the house are tall enough to reach it, and the back row's spots keep clear of them.
- */
-export const ROWS = { front: 112, back: 90 } as const;
-export type Row = keyof typeof ROWS;
+export type { View } from "./yards";
 
 /** The ground's far edge (art px): where the skyline's nearest layer meets it. */
-export const GROUND_BACK = 86;
-
-/** What the camera must always show, phone to desktop (art px): the ground, the rows, the sky. */
-// 156 wide: a 390 px phone at DPR 2 shows it at exactly 5 device px per art pixel.
-export const VIEW = { left: 101, right: 257, top: 40, bottom: 124 } as const;
-/**
- * Armored's camp is wider (the Scrapyard on the left, the reactor on the right): the camera
- * pulls back to this. 194 wide: the 390 px phone shows it at 4 device px per art pixel.
- */
-export const VIEW_WIDE = { left: 83, right: 277, top: 40, bottom: 124 } as const;
-export type View = typeof VIEW | typeof VIEW_WIDE;
+export const GROUND_BACK = yard.back;
 
 /** The view an era needs: everything the camp can own then is on screen (CLAUDE.md 6.2). */
-export const viewFor = (era: string): View => (era === "hqm" ? VIEW_WIDE : VIEW);
+export const viewFor = (era: string): View => (era === "hqm" ? yard.wide : yard.view);
 
-/** Each outside line's spot: centre x and row (art px). */
-export const SPOTS: Readonly<Record<string, { x: number; row: Row }>> = {
-  // The front row: the Twig lines either side of the target and its stockpile (D217).
-  beachcomber: { x: 112, row: "front" },
-  campfire: { x: 134, row: "front" },
-  garden: { x: 211, row: "front" },
-  // The back row, left to right, clear of the target's and the house's tops: the Scrapyard and
-  // the Rain Catcher left (the Scrapyard only in Armored's wider view), the kiln just left of
-  // the target, then the generator, the radio mast (tall: it shows over the house) and the reactor.
-  shipbreaker: { x: 107, row: "back" },
-  dock: { x: 128, row: "back" },
-  kiln: { x: 153, row: "back" },
-  generator: { x: 206, row: "back" },
-  radio_mast: { x: 230, row: "back" },
-  reactor: { x: 256, row: "back" },
-};
+/** The view before any era is known. */
+export const VIEW: View = yard.view;
 
 /**
- * The target a little left of the middle of the front row, its stockpile at its right foot
- * (D217), the house at the row's right end.
+ * The target a little left of the middle of the front edge, its stockpile at its right foot
+ * (D217); the house at the camp's right.
  */
-export const TARGET_SPOT = { x: 166, row: "front" as Row };
-export const STOCKPILE_SPOT = { x: 190, row: "front" as Row };
-export const HOUSE_SPOT = { x: 238, row: "front" as Row };
+export const TARGET_SPOT: YardSpot = yard.target;
+export const STOCKPILE_SPOT: YardSpot = yard.stockpile;
+export const HOUSE_SPOT: YardSpot = yard.house;
 
-/**
- * Armored's camp in its wider view (S3): the front row spreads round the Crashed Plane (60 px,
- * the widest target) with the stockpile clear of its tail, the bunker moves right, the kiln
- * stands behind the plane's low middle and the generator clear of its tail.
- */
-const WIDE_SPOTS: Readonly<Record<string, number>> = {
-  beachcomber: 100,
-  campfire: 123,
-  dock: 133,
-  garden: 222,
-  kiln: 166,
-  generator: 210,
-};
-const WIDE_HOUSE = 254;
-const WIDE_STOCKPILE = 203;
+/** `spot` in `era`: Armored's wider camp moves some things round the Crashed Plane (S3). */
+function inEra(id: string, spot: YardSpot, era: string): YardSpot {
+  const x = viewFor(era) === yard.wide ? yard.wideX[id] : undefined;
+  return x === undefined ? spot : { ...spot, x };
+}
 
 /** Each outside line's spot in `era`. */
-export function spotsFor(era: string): Record<string, { x: number; row: Row }> {
-  const wide = viewFor(era) === VIEW_WIDE;
+export function spotsFor(era: string): Record<string, YardSpot> {
   return Object.fromEntries(
-    Object.entries(SPOTS).map(([id, spot]) => [
-      id,
-      { x: (wide ? WIDE_SPOTS[id] : undefined) ?? spot.x, row: spot.row },
-    ]),
+    Object.entries(yard.spots).map(([id, spot]) => [id, inEra(id, spot, era)]),
   );
 }
 
 /** The stockpile's spot in `era`: clear of the Crashed Plane's tail in Armored's wider camp. */
-export function stockpileSpotFor(era: string): { x: number; row: Row } {
-  return viewFor(era) === VIEW_WIDE ? { ...STOCKPILE_SPOT, x: WIDE_STOCKPILE } : STOCKPILE_SPOT;
+export function stockpileSpotFor(era: string): YardSpot {
+  return inEra("stockpile", STOCKPILE_SPOT, era);
 }
 
 /** The house's spot in `era`. */
-export function houseSpotFor(era: string): { x: number; row: Row } {
-  return viewFor(era) === VIEW_WIDE ? { ...HOUSE_SPOT, x: WIDE_HOUSE } : HOUSE_SPOT;
+export function houseSpotFor(era: string): YardSpot {
+  return inEra("house", HOUSE_SPOT, era);
 }
 
 /**
@@ -119,7 +77,7 @@ export const ROOM = {
 /** The lines that work inside the house (D206). */
 export const INSIDE: ReadonlySet<string> = new Set(Object.keys(ROOM.slots));
 
-/** A spot in stage units: x, and y as an offset from the ground line (the front row). */
-export function stageSpot(spot: { x: number; row: Row }): { x: number; y: number } {
-  return { x: spot.x * ART, y: (ROWS[spot.row] - ROWS.front) * ART };
+/** A spot in stage units: x, and y as an offset from the ground line (the front edge). */
+export function stageSpot(spot: YardSpot): { x: number; y: number } {
+  return { x: spot.x * ART, y: (spot.y - FRONT) * ART };
 }

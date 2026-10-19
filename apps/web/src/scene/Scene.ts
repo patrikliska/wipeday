@@ -65,12 +65,14 @@ import { Landscape } from "./landscape";
 import { Lines, layoutFor, ROOM_LAYOUT } from "./lines";
 import { gloom, paletteAt, warm } from "./palette";
 import { ART, loadArt } from "./pixel";
+import { placeProps } from "./props";
 import { milestoneCrossed } from "./reveal";
 import { Room } from "./room";
 import { Sky } from "./sky";
 import { Stockpile } from "./stockpile";
 import { Target, type TargetKind } from "./target";
 import { clamp, lerp, reducedMotion } from "./util";
+import { devMaxZoom, yard } from "./yards";
 
 /** Design space: a 16:9 stage, the ground line a little below centre. */
 const W = 1600;
@@ -90,6 +92,8 @@ const MAX_ZOOM = 7;
 const TARGET = { x: stageSpot(TARGET_SPOT).x, y: GROUND + stageSpot(TARGET_SPOT).y };
 /** The house's place; Armored's wider camp moves it right (`houseSpotFor`). */
 const HOUSE = { x: stageSpot(HOUSE_SPOT).x, y: GROUND + stageSpot(HOUSE_SPOT).y, scale: 1 };
+/** A deep yard's phone camera puts this point at its fraction of the height: the target's middle. */
+const TARGET_MIDDLE = TARGET.y - 15 * ART;
 /** The stockpile at the target's foot (D217); Armored's wider camp moves it (`stockpileSpotFor`). */
 const PILE = { x: stageSpot(STOCKPILE_SPOT).x, y: GROUND + stageSpot(STOCKPILE_SPOT).y };
 /** A fell shakes the camera for this long, a whole art pixel at a time (12-feel.md 3.1). */
@@ -317,6 +321,7 @@ export class Scene {
     });
     await Promise.all([loadProductIcons(), loadArt()]);
     this.terrain.build();
+    placeProps(this.props, GROUND, yard.props);
     if (this.destroyed) {
       this.app.destroy(true, { children: true });
       return;
@@ -471,14 +476,21 @@ export class Scene {
     const res = this.app.renderer.resolution;
     const view = viewSize(this.view);
     const fit = Math.min((freeW * res * ART) / view.width, (vh * res * ART) / view.height);
-    const zoom = clamp(Math.floor(fit), 1, Math.round(MAX_ZOOM * res));
+    const zoom = clamp(Math.floor(fit), 1, Math.round((devMaxZoom() ?? MAX_ZOOM) * res));
     this.scale = zoom / (res * ART);
     const visibleH = vh / this.scale;
     // Centred on the island; the skyline and the ground run on past every screen's edges.
     this.centerX = view.focus;
     const aspect = freeW / vh;
     const groundFraction = aspect < 1 ? PHONE_GROUND : lerp(0.8, 0.84, clamp(aspect - 1, 0, 1));
-    this.top = clamp(GROUND - groundFraction * visibleH, -EXTEND + 40, H + EXTEND - visibleH - 40);
+    // A deep yard (P3): the front edge low on a desktop, the target's middle high on a phone.
+    const frame = yard.camera;
+    const top = !frame
+      ? GROUND - groundFraction * visibleH
+      : aspect < 1
+        ? TARGET_MIDDLE - frame.phone * visibleH
+        : GROUND - frame.desktop * visibleH;
+    this.top = clamp(top, -EXTEND + 40, H + EXTEND - visibleH - 40);
     this.world.scale.set(this.scale);
     this.ambient.clear().rect(0, 0, vw, vh).fill(0xffffff);
     this.dim.clear().rect(0, 0, vw, vh).fill({ color: 0x0b0a0d, alpha: 0.62 });

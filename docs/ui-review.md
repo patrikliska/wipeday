@@ -1804,3 +1804,38 @@ with cost, result and Build. New shots `p2_*`.
   160 shots, when the browser crashed for lack of memory; the last change before it (the plate's
   CSS moved later in `hud.css` for the lint, the fill renamed `.era-fill`) is not yet re-shot.
 
+## P3: the deep yard mocks and the art takes (2026-10-19)
+
+The owner: the scene feels flat, everything on one or two rows. Two mocks behind a dev switch
+(`?yard=terrace`, `?yard=camp`; `scene/yards.ts`), same sprites, plus the unused props. New shots
+`p3_{flat,terrace,camp}_*` (Twig, Sheet Metal and Armored on phone and desktop, 1440, 2k at zoom
+7 and 10, tall rain, night on a phone); side by side in `preview/p3/index.html`.
+
+### Iteration 1
+- **Phone: a slab of dark dirt under the yard.** With the target's middle at 35% of the height,
+  the cliff's cross-section filled the rest down to the drawer (about a fifth of the screen,
+  near-black). A camera looking down sees no cliff: in a deep yard the ground now runs on toward
+  the viewer and darkens into the foreground's shade, dithered, with no lip. Desktop's bottom
+  15% (under the dock) reads as near ground too.
+- **The barrel stood taller than the car** (22 px against 19) in Camp's back band, so the back
+  looked nearer than the front. Props now go big to small, front to back: the barrel in band 1,
+  the lamp and the car in band 3, the rock at the far edge.
+- **Terrace risers read as thin stripes,** not steps: four rows, the same light as the ground.
+  Six rows now: a sunlit lip, its edge, a dark face two rows deep and a row of shadow on the band
+  below; they read as ledges on desktop.
+- *Fine:* Camp's four bands read as a lived-in yard on desktop (1600 and 1440: ground about half
+  the height); badges stay legible; the house hint sits clear of the house.
+
+### Iteration 2
+- **The barrel hid behind the garden** and its hand by the house (Sheet Metal). Moved beside the
+  campfire, between it and the target, where it shows in every era.
+- **`flat` is R2's camp to the pixel:** `p3_flat_metal_desktop` rendered on the code before and
+  after the change compares equal (no differing pixel).
+- Checked: 2k at zoom 7 shows Camp's ground at about a third of the height; at zoom 10 (`?zoom=10`)
+  about half, with the sprites at the size a 1600 desktop shows them. Night on a phone keeps the
+  badges and the house hint legible.
+- *Noted for P4:* the lamp prop gives no light at night (it needs a glow on the `lights` layer
+  like the house's window); Armored on a phone is dense in both deep yards (fourteen lines and
+  the plane in 194 art px); Terrace's front row is R2's as before (the step adds depth behind,
+  not room in front).
+

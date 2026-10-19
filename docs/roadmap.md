@@ -80,9 +80,30 @@ in `docs/archive/roadmap-w.md`.
   rewritten (the owner's OK asked in the report).
 - **P2 is done** (2026-10-19; D245): the era plate in the top bar and the era sheet (results
   below).
-- **Next: P3, mocks and takes** (the deep yard variants A and B; Retro Diffusion takes for Barrel
-  Smasher and the Campfire and Garden). Retro Diffusion has about 4.39 USD (P3 needs about 1.5);
-  R3 S3's busts and gear need about 15 USD more.
+- **P3 is done** (2026-10-19): the deep yard mocks behind a dev switch and the art takes, for
+  the owner to pick (results below).
+- **Next: P4, build the yard, install the art, rename**, once the owner has picked a yard (A
+  Terrace or B Camp), the 2k zoom (7 or 10) and the takes by number. Retro Diffusion has about
+  2.59 USD; R3 S3's busts and gear need about 15 USD more.
+
+### P3 results: the deep yard mocks and the art takes
+- **Built:** `scene/yards.ts` (a yard is data: the ground's far edge, terrace steps, the view,
+  the camera fractions, every outside spot, Armored's wider x, props, the airdrop's x);
+  `island.ts` reads the yard; `ground.ts` paints a deep yard (haze over the far half, broad
+  trodden and pale patches finer toward the back, dry tufts, terrace risers, no cliff: the ground
+  runs on to the screen's foot); `scene/props.ts` places the unused barrel, car, lamp and rock;
+  the camera puts a deep yard's front edge at 85% of a desktop and the target's middle at 35% of
+  a phone; airdrops and crows follow the yard's far edge. In dev, `?yard=terrace|camp` and
+  `?zoom=n` (the 2k question); the build shows `flat`, which is R2's camp to the pixel.
+- **Art takes:** Barrel Smasher stages 1-3, Campfire 1 and Garden 1, two low-res takes and one
+  pro take each, plus a garden retake without the palette lock (the palette has no bright green):
+  18 numbered takes in `preview/art/p3-takes-sheet.png` (jobs `scripts/art/jobs/p3-*.json`).
+  Agent's picks: barrel 03, 05, 09; campfire 12; garden 16. 1.80 USD.
+- **Tests:** `scene/yards.test.ts` (flat is R2's numbers; every spot inside its view and on the
+  ground; no two lines within 12 px in one band). `pnpm check` passes. No domain or data change.
+- **Shots:** 33 `p3_*` (three yards × Twig, Sheet Metal and Armored, phone to 2k, rain, night),
+  compared in `preview/p3/index.html`; the harness takes a `query` key. Notes in
+  `docs/ui-review.md` (P3).
 
 ### P2 results: the era plate
 - **Built:** the Lines tab without the era card; `eraPlate()` (rows.ts) and `hud/Era.tsx` (the
