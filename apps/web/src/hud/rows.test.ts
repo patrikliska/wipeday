@@ -236,7 +236,7 @@ describe("cards", () => {
       "research:calloused_thumbs",
     ]);
     const hooks = twig[0];
-    expect(hooks?.sub).toBe("+5% Beachcomber");
+    expect(hooks?.sub).toBe("+5% Barrel Smasher");
     expect(hooks?.level).toEqual({ n: 0, of: 25 });
     expect(hooks?.gain).toMatch(/^\+/);
     expect(twig.find((row) => row.key === "research:spare_wicks")?.gain).toBe("2h → 2h 20m");

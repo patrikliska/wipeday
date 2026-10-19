@@ -15,7 +15,7 @@ the owner's naming passes.
 
 You wash up on Saltmarsh with nothing. One tree stands on the rise. Tap it, and every tap knocks
 something loose onto a stockpile beside it. Spend the supplies up a 14-rung ladder of production
-lines, from beachcombers to a pre-war reactor, and in a Workshop of small upgrades between them. A
+lines, from barrel smashers to a pre-war reactor, and in a Workshop of small upgrades between them. A
 line without a hand only works while you tap; hire one and it runs by itself, also while you are
 away. The crew are survivors you collect as cards from Supply Drops, star up and kit out. On the
 slope someone is bolting together a boiler on stilts with a traffic-cone nose, the Kettle, and
@@ -155,16 +155,16 @@ names are approved.
 | Morale *(proposal)*, Hustle | `morale`, `hustle` | badge and Logbook multiplier; tap meter |
 | Frenzy *(proposal)* | `frenzy` | the second tap meter and its tripped buff, ×6 (D237) |
 | Scrap (kept) | `scrap` | the premium currency, earned in play (R3) |
-| Beachcomber, Scrapyard, Reactor | `beachcomber` ... | lines 1, 13, 14 |
+| Barrel Smasher (owner, D247), Scrapyard, Reactor | `beachcomber` ... | lines 1, 13, 14 |
 | Campfire ... Radio Mast (kept) | `campfire` ... `radio_mast` | lines 2-12 |
-| Driftwood ... Power Cells | `timber` ... `cell` | the 14 product badges |
+| Salvage (owner, D247), Jerky (owner, D247) ... Power Cells | `timber` ... `cell` | the 14 product badges |
 | Mara ... Tamsin (kept); Gus, Vera | crew ids | the 14 hands; survivor cards from R3 |
 | Twig, Timber, Stone, Sheet Metal, Armored (kept) | `twig` ... `hqm` | eras |
 | Rock ... Power Tools (kept) | tool ids | Grip rungs |
 | Dead Oak, Outcrop, Ore Seam, Sulfur Vent, The Crashed Plane | `tree` ... `wreck` | tap targets |
 | the stockpile *(proposal)* | | the prop the tap's chips land on |
 | Workshop; Spare Wicks *(proposal)* | `{line}_mk` | the per-run research tree; its offline item |
-| Sharper Hooks, Dry Kindling, Calloused Thumbs *(proposal)* | | Workshop tier-1 items |
+| Heavier Crowbars (owner, D247), Dry Kindling, Calloused Thumbs *(proposal)* | | Workshop tier-1 items |
 | Drift Crate, Fuel Drum, Adrenaline Kit, Rally | `crate` ... | flotsam, R1 |
 | Crow, Magpie (owner, D238) | `gull` | the sky's tap-to-catch sibling of flotsam, R2 |
 | Drowned Drone, Sealed Locker, Message in a Bottle | `drowned_drone` ... | flotsam, R6-R7 |
@@ -222,7 +222,7 @@ the flotsam and gives the rest to the hill.
 
 A **run** is one island's life between two nukes. **Supplies** is the only run currency: each
 line sells what it makes the moment it makes it; nothing is stocked, capped or carried over. Each
-line shows one **product** badge (driftwood, smoked fish, hemp, rope, planks, charcoal, ingots,
+line shows one **product** badge (salvage, jerky, hemp, rope, planks, charcoal, ingots,
 leather, lamp oil, tinned fish, batteries, broadcasts, steel plates, power cells) in the shop card,
 the floater and the scene, using the owner's resource icons. Products are never spent.
 
@@ -237,7 +237,7 @@ cycle used = max(0.1 s, t_i / speed); speed past the floor becomes payout
 
 | # | Line | Era | Cost | Base /s | Cycle | Hand | Hand price |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Beachcomber | Twig | 6 | 0.42 | 0.6 s | Mara | 1.8k |
+| 1 | Barrel Smasher | Twig | 6 | 0.42 | 0.6 s | Mara | 1.8k |
 | 2 | Campfire | Twig | 96 | 1.99 | 1.2 s | Dax | 28.8k |
 | 3 | Garden | Twig | 1.54k | 9.48 | 2.4 s | Ivo | 461k |
 | 4 | Loom | Timber | 24.6k | 45 | 4.8 s | Rook | 7.37M |
@@ -663,7 +663,7 @@ instead.
 - **Effects** in the one vocabulary (`09` 5.1): `inc` on one line's output or on all lines of an
   era, `more` on taps, `add` on the Night Shift (Spare Wicks, D195), `add` on flotsam odds, `inc` on
   milestone thresholds (never below 10), `add` on Frenzy gain, price cuts capped at ×0.6.
-- **Tiers 1-4 (R2, D227):** tier 1 Sharper Hooks, Dry Kindling, Raised Beds (+5% a level on the
+- **Tiers 1-4 (R2, D227):** tier 1 Heavier Crowbars, Dry Kindling, Raised Beds (+5% a level on the
   three Twig lines, 25 levels; 40 at 2:00), Spare Wicks (Night Shift +20 min, 6), Calloused Thumbs
   (taps +1, 10); tier 2 Camp Routine (Twig lines +4%), Greased Axles (Twig lines 1% faster),
   Banked Coals (+5% while away, 10), Tally Sticks (every line +1%), Steady Rhythm (Hustle's peak
@@ -773,12 +773,12 @@ model's (`10` 4) until their phase re-measures them.
 | Time | What happens |
 | --- | --- |
 | 0:00 | Dawn, a twig lean-to, the dead tree. The only text: "Tap the tree." |
-| 0:01 | The drawer slides up with one crowned card: Beachcomber, 6 (Stone Tools waits at 100, D236). |
+| 0:01 | The drawer slides up with one crowned card: Barrel Smasher, 6 (Stone Tools waits at 100, D236). |
 | 0:07 | Forty taps fell the tree ("Timber!"); a new one pops up. |
 | 0:01 | The first badge, Open for Business: its toast, Morale ×1.01; the Logbook joins the dock. |
 | 0:55 | Timber era (1.5k): a cabin, the outcrop, three new lines. |
 | 1:17 | Hire Mara (1.8k): the first line runs without taps. Crew joins the dock. |
-| 2:00 | The Workshop opens: a dock place with a badge, its tab, Sharper Hooks at 40. |
+| 2:00 | The Workshop opens: a dock place with a badge, its tab, Heavier Crowbars at 40. |
 | 3:00 | The first crate: a flat 2 minutes of output, back every 3 minutes until caught. |
 | 7:43 | Sorting Tables (1M): everything ×2. |
 | 8:13-8:59 | The first crow crosses (30 s of output). |
@@ -791,7 +791,7 @@ model's (`10` 4) until their phase re-measures them.
 | --- | --- |
 | 0:00 | Tap the tree; logs arc onto the stockpile |
 | 1:00 | First line, the shop card |
-| 2:00 | The Workshop opens (Sharper Hooks 40) |
+| 2:00 | The Workshop opens (Heavier Crowbars 40) |
 | 4:00 | Fifth fell: first Supply Drop, first survivor reveal, Mara (R3) |
 | 5:00 | First badge (measured: 0:01) |
 | 8:00 | First crow (measured: 8:13-8:59) |

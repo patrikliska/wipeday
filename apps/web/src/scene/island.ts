@@ -1,14 +1,14 @@
 /**
- * The wasteland (owner, 2026-10-18; D203, D206, D209): a side view of one flat stretch of ground
- * under a ruined skyline, no sea. The front row stands on the ground's front edge: the target in
- * the middle, the Twig lines either side, the house on the right. The back row stands a few
- * pixels behind and up: the kiln and the Sheet Metal and Armored structures. The crafting lines
+ * The wasteland (owner, 2026-10-18; D203, D206, D209, D246): a yard seen from above under a
+ * ruined skyline, no sea. The front row stands on the ground's front edge: the target in the
+ * middle, the Twig lines either side, the house on the right. Two raised steps behind carry the
+ * later eras: the kiln and the Sheet Metal and Armored structures. The crafting lines
  * (loom, workbench, furnace, tannery, press) work inside the house, in its room (`ROOM`), which
  * opens when the house is tapped. Everything owned is on screen or one tap away (CLAUDE.md 6.2).
  *
  * Coordinates are art pixels (1 art px = `ART` stage units): x across the stage's 320, y the
  * feet line (the front edge at 112, the stage's ground line 560). Where things stand comes from
- * the yard (`yards.ts`): R2's flat camp, or a deep-yard mock picked in dev (P3).
+ * the yard (`yards.ts`).
  */
 import { ART } from "./pixel";
 import { FRONT, type View, type YardSpot, yard } from "./yards";

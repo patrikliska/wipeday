@@ -17,7 +17,7 @@ import type { BaseState } from "@wipe-day/domain/state";
 import { BitmapText, ColorMatrixFilter, Container, Graphics, Sprite } from "pixi.js";
 import { content, fmt, fmtCount, resourceColor } from "../state/world";
 import { drawLine, type Station } from "./buildings";
-import type { Particles } from "./effects";
+import { Glow, type Particles } from "./effects";
 import { productTexture } from "./icons";
 import { ROOM, spotsFor, stageSpot, TARGET_SPOT } from "./island";
 import { ART, artSprite } from "./pixel";
@@ -100,6 +100,69 @@ function artStation(
     container,
     pile: { x: -side * (half + (3 * ART) / unit), y: 0 },
     work: side * (half - (2 * ART) / unit),
+    ...artFire(id, stage, unit),
+  };
+}
+
+/**
+ * Where an art line's fire burns (art px from its feet: the flame's tip and the glow's middle),
+ * per stage: the campfire's flames lick above the drawn fire and light the yard at night (P4).
+ */
+const ART_FIRES: Readonly<Record<string, readonly { tip: [number, number]; glow: number }[]>> = {
+  campfire: [
+    { tip: [0, -11], glow: -8 },
+    { tip: [0, -13], glow: -11 },
+    { tip: [0, -13], glow: -11 },
+  ],
+};
+
+/** The flame's three frames: pixels (x, y from the tip; colour), stepped, never smooth. */
+const FLAME_FRAMES: readonly (readonly [number, number, number][])[] = [
+  [
+    [0, 0, 0xf5cf81],
+    [0, -1, 0xe0782f],
+    [-1, 0, 0xe0782f],
+  ],
+  [
+    [0, 0, 0xf5cf81],
+    [1, -1, 0xe0782f],
+    [1, 0, 0xf5cf81],
+    [0, -2, 0xc4452d],
+  ],
+  [
+    [0, 0, 0xf5cf81],
+    [0, -1, 0xf5cf81],
+    [0, -2, 0xe0782f],
+    [-1, -1, 0xe0782f],
+  ],
+];
+const FLAME_FPS = 8;
+
+/** An art line's flame and glow at `stage`, in its container's units (`unit` per art px). */
+function artFire(id: string, stage: number, unit: number): Partial<Station> {
+  const spot = ART_FIRES[id]?.[stage - 1];
+  if (!spot) return {};
+  const px = ART / unit;
+  const fire = new Container();
+  const flame = new Graphics();
+  flame.position.set(spot.tip[0] * px, spot.tip[1] * px);
+  fire.addChild(flame);
+  const glow = new Glow(0xffa64d, 24 * px, 1);
+  glow.sprite.position.set(0, spot.glow * px);
+  let shown = -1;
+  return {
+    fire,
+    glow,
+    chimney: { x: 0, y: (spot.tip[1] - 3) * px },
+    animate: (t) => {
+      const frame = reducedMotion() ? 0 : Math.floor(t * FLAME_FPS) % FLAME_FRAMES.length;
+      if (frame === shown) return;
+      shown = frame;
+      flame.clear();
+      for (const [x, y, colour] of FLAME_FRAMES[frame] ?? []) {
+        flame.rect(x * px, y * px, px, px).fill(colour);
+      }
+    },
   };
 }
 

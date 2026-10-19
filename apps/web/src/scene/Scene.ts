@@ -23,7 +23,7 @@ import { countFrame, isFrozen, registerScene } from "../debug";
 import { useAdvisor } from "../state/advisor";
 import { wall } from "../state/clocks";
 import { emit, type GameEvent, on } from "../state/events";
-import { insets } from "../state/layout";
+import { insets, phoneCover } from "../state/layout";
 import { gameSeconds, useWorld } from "../state/store";
 import { heldTaps } from "../state/taps";
 import { closeAll, useUi } from "../state/ui";
@@ -44,7 +44,7 @@ import {
 } from "../state/world";
 import { Hands, type Post } from "./actors";
 import { House } from "./base";
-import { Floaters, Particles, Weather } from "./effects";
+import { Floaters, type Glow, Particles, Weather } from "./effects";
 import { Flotsam } from "./flotsam";
 import { Gulls } from "./gulls";
 import { loadProductIcons } from "./icons";
@@ -71,8 +71,8 @@ import { Room } from "./room";
 import { Sky } from "./sky";
 import { Stockpile } from "./stockpile";
 import { Target, type TargetKind } from "./target";
-import { clamp, lerp, reducedMotion } from "./util";
-import { devMaxZoom, yard } from "./yards";
+import { clamp, reducedMotion } from "./util";
+import { yard } from "./yards";
 
 /** Design space: a 16:9 stage, the ground line a little below centre. */
 const W = 1600;
@@ -92,8 +92,6 @@ const MAX_ZOOM = 7;
 const TARGET = { x: stageSpot(TARGET_SPOT).x, y: GROUND + stageSpot(TARGET_SPOT).y };
 /** The house's place; Armored's wider camp moves it right (`houseSpotFor`). */
 const HOUSE = { x: stageSpot(HOUSE_SPOT).x, y: GROUND + stageSpot(HOUSE_SPOT).y, scale: 1 };
-/** A deep yard's phone camera puts this point at its fraction of the height: the target's middle. */
-const TARGET_MIDDLE = TARGET.y - 15 * ART;
 /** The stockpile at the target's foot (D217); Armored's wider camp moves it (`stockpileSpotFor`). */
 const PILE = { x: stageSpot(STOCKPILE_SPOT).x, y: GROUND + stageSpot(STOCKPILE_SPOT).y };
 /** A fell shakes the camera for this long, a whole art pixel at a time (12-feel.md 3.1). */
@@ -107,8 +105,6 @@ const SHAKE: readonly (readonly [number, number])[] = [
 ];
 /** A fell lands this many pieces on the stockpile. */
 const FELL_CHIPS = 3;
-/** Phones: the ground line at this fraction of the height. */
-const PHONE_GROUND = 0.53;
 /** The tap box: the drawn target padded by this, never smaller than the minimum (CSS px). */
 const HIT_PAD = 12;
 const HIT_MIN = { width: 140, height: 160 };
@@ -166,6 +162,8 @@ export class Scene {
   private readonly lights = new Container();
   /** The island's things, sorted back to front: lines, the house, the target, the hands. */
   private readonly props = new Container();
+  /** The yard's lamps, lit at night. */
+  private propGlows: Glow[] = [];
   private readonly particles = new Particles();
   private readonly floaters = new Floaters((amount) => fmt(amount, "cost"));
   private readonly weather = new Weather(1200, 800);
@@ -321,7 +319,7 @@ export class Scene {
     });
     await Promise.all([loadProductIcons(), loadArt()]);
     this.terrain.build();
-    placeProps(this.props, GROUND, yard.props);
+    this.propGlows = placeProps(this.props, this.lights, GROUND, yard.props);
     if (this.destroyed) {
       this.app.destroy(true, { children: true });
       return;
@@ -460,8 +458,8 @@ export class Scene {
   /**
    * The zoom is the largest whole number of device pixels per art pixel that still shows the
    * whole island (`VIEW`), at most MAX_ZOOM CSS px: a phone sees the island edge to edge, a
-   * desktop more sky and sea around it. The ground line sits at about half the height on a
-   * phone and lower on wide screens.
+   * desktop more sky around it. The yard's front edge sits low on a desktop and just above the
+   * drawer on a phone (`yard.camera`).
    */
   private layout(): void {
     const vw = this.app.screen.width;
@@ -476,19 +474,17 @@ export class Scene {
     const res = this.app.renderer.resolution;
     const view = viewSize(this.view);
     const fit = Math.min((freeW * res * ART) / view.width, (vh * res * ART) / view.height);
-    const zoom = clamp(Math.floor(fit), 1, Math.round((devMaxZoom() ?? MAX_ZOOM) * res));
+    const zoom = clamp(Math.floor(fit), 1, Math.round(MAX_ZOOM * res));
     this.scale = zoom / (res * ART);
     const visibleH = vh / this.scale;
     // Centred on the island; the skyline and the ground run on past every screen's edges.
     this.centerX = view.focus;
-    const aspect = freeW / vh;
-    const groundFraction = aspect < 1 ? PHONE_GROUND : lerp(0.8, 0.84, clamp(aspect - 1, 0, 1));
-    // A deep yard (P3): the front edge low on a desktop, the target's middle high on a phone.
+    // The yard (D246): on a desktop the front edge low; on a phone just above the drawer, so
+    // only a strip of ground shows under the front row (the owner, P4).
     const frame = yard.camera;
-    const top = !frame
-      ? GROUND - groundFraction * visibleH
-      : aspect < 1
-        ? TARGET_MIDDLE - frame.phone * visibleH
+    const top =
+      freeW / vh < 1
+        ? GROUND + frame.phone * ART - (vh - phoneCover(vh)) / this.scale
         : GROUND - frame.desktop * visibleH;
     this.top = clamp(top, -EXTEND + 40, H + EXTEND - visibleH - 40);
     this.world.scale.set(this.scale);
@@ -623,6 +619,7 @@ export class Scene {
     this.sky.update(dt, fraction, palette, this.wind, 0, Math.max(rain, fog));
     this.terrain.update(dt, palette, this.wind, this.parallax);
     this.house.update(dt, darkness);
+    for (const glow of this.propGlows) glow.update(darkness);
     this.target.crowned = useAdvisor.getState().view?.tapHint === true;
     this.target.update(dt, this.wind, darkness, fog);
     this.stockpile.update(dt);
@@ -859,13 +856,15 @@ export class Scene {
       height: `${box.height}px`,
     });
     if (hint) {
-      // Centred over the house, but never past the edge of the island's part of the screen.
+      // Centred under the house (the terrace's lines stand above it, D246), never past the edge
+      // of the island's part of the screen and never under the drawer or the dock: on a phone
+      // it rides up over the house's foot.
       this.houseHint.textContent = t("house.hint", { house: name });
       const half = this.houseHint.offsetWidth / 2 || 90;
       const freeW = this.viewW - this.insetRight;
       const centre = clamp(box.x + box.width / 2, half + 8, freeW - half - 8);
       this.houseHint.style.left = `${Math.round(centre)}px`;
-      this.houseHint.style.top = `${box.y - 6}px`;
+      this.houseHint.style.top = `min(${box.y + box.height}px, calc(100% - var(--hint-floor) - 34px))`;
     }
   }
 

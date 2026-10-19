@@ -32,7 +32,7 @@ const HAZE = "#efc39a";
 const PLAIN_ROWS = 3;
 const PLAIN = 0xd9ab84;
 const PLAIN_LIGHT = 0xe6bf98;
-/** Rows below the ground's lip over which the earth darkens to bedrock. */
+/** Rows past the front edge over which the near ground darkens into shade. */
 const DARKEN = 70;
 /** Layers overlap their neighbours by this many art px, so no gap shows at a seam. */
 const OVERLAP = 12;
@@ -132,8 +132,7 @@ export class Landscape {
         surface: FRONT - GROUND_BACK,
         seed: 7,
         darken: DARKEN,
-        ...(yard.camera ? { deep: true } : {}),
-        ...(yard.steps.length ? { steps: yard.steps.map((step) => step - GROUND_BACK) } : {}),
+        steps: yard.steps.map((step) => step - GROUND_BACK),
       }),
     );
     piece.scale.set(ART);

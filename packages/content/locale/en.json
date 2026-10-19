@@ -10,8 +10,8 @@
     "glass": { "name": "Crater Glass" },
     "scrap": { "name": "Scrap" },
     "sea_charts": { "name": "Sea Charts" },
-    "timber": { "name": "Driftwood" },
-    "roast": { "name": "Smoked Fish" },
+    "timber": { "name": "Salvage" },
+    "roast": { "name": "Jerky" },
     "fibre": { "name": "Hemp" },
     "rope": { "name": "Rope" },
     "planks": { "name": "Planks" },
@@ -26,7 +26,7 @@
     "cell": { "name": "Power Cells" }
   },
   "line": {
-    "beachcomber": { "name": "Beachcomber", "plural": "Beachcombers" },
+    "beachcomber": { "name": "Barrel Smasher", "plural": "Barrel Smashers" },
     "campfire": { "name": "Campfire", "plural": "Campfires" },
     "garden": { "name": "Garden", "plural": "Gardens" },
     "loom": { "name": "Loom", "plural": "Looms" },
@@ -114,7 +114,7 @@
     "steam_hammer": { "name": "Steam Hammer" }
   },
   "research": {
-    "sharper_hooks": { "name": "Sharper Hooks" },
+    "sharper_hooks": { "name": "Heavier Crowbars" },
     "dry_kindling": { "name": "Dry Kindling" },
     "raised_beds": { "name": "Raised Beds" },
     "spare_wicks": { "name": "Spare Wicks" },
@@ -135,9 +135,9 @@
     "crew_rations": { "name": "Crew Rations" },
     "storm_shutters": { "name": "Storm Shutters" },
     "beachcomber_mk": {
-      "name": "Beachcomber Mk",
-      "mk2": "Driftwood Hooks",
-      "mk3": "Beach Sledges"
+      "name": "Barrel Smasher Mk",
+      "mk2": "Pry Bars",
+      "mk3": "Sledgehammers"
     },
     "campfire_mk": { "name": "Campfire Mk", "mk2": "Smoke Racks", "mk3": "Clay Oven" },
     "garden_mk": { "name": "Garden Mk", "mk2": "Rain Barrels", "mk3": "Terraces" },
@@ -545,7 +545,7 @@
     "metal_1": "Sheet metal hammered flat. The camp sounds like a drum.",
     "hqm_1": "Armored plates bolted on. Even the rain knocks first.",
     "mara_1": "Mara found a whole plank today. She named it.",
-    "dax_1": "Dax swears fish taste better smoked over tyres. They do not.",
+    "dax_1": "Dax swears jerky tastes better smoked over tyres. It does not.",
     "ivo_1": "Ivo talks to the hemp. The hemp seems to like it.",
     "rook_1": "Rook is teaching knots. Nobody can untie the lesson.",
     "sela_1": "Sela measured twice, cut once, and still blamed the saw.",

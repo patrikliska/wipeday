@@ -2767,3 +2767,41 @@ two-note chime (cue `era_ready`, Kenney's `confirmation_002`). Reduced motion ke
 and drops the drop-in (a fade) and the bar's glide. Armored stays hidden before its Wipe Day
 (D140): at Sheet Metal there is no plate. The domain is unchanged (`buy_era`, the advisor and
 the simulator), so balance is untouched.
+
+### D246. The yard is P3's Terrace, framed above the phone's drawer (owner, P4)
+The owner picked the "Terrace" mock (P3), with less of the ground under the front row on a phone,
+and the 2k zoom left at 7. `scene/yards.ts` is now one yard: R2's front row on the front edge, two
+raised steps (risers at 93 and 75, the far edge at 62) carrying the Timber to Armored lines, the
+barrel, car, rock and lamp props in the gaps; the flat camp, the Camp mock and the dev switches
+(`?yard=`, `?zoom=`) are gone. **The camera:** a desktop keeps the front edge at 85% of the
+height; a phone puts the front edge 10 art px above the top of the dock and the collapsed drawer
+(`phoneCover()` in `state/layout.ts`, kept in step with `--dock-h` and `--drawer-h`), so about
+25 CSS px of ground shows under the front row instead of about 150 (P3 framed the target's middle
+at 35%). The phone shows more sky instead; the tap target stays over 120 px (N27). The camera does
+not wait for the drawer: before the first line is affordable (a few taps) the ground runs to the
+dock, so the near ground is now textured (dark earth with pebbles) instead of fading to one flat
+colour. `ground.ts` paints only the deep yard (no cliff, no lip). The lamp prop's bulb glows at
+night on the `lights` layer. The house's hint ("Tap the shed to go inside") moved from above the
+house, where the terrace's lines and badges now stand, to under it, held above the drawer and
+the dock by CSS `min()` with `--hint-floor`. *Revisit* if the phone's sky reads as empty to the
+owner (then frame a few px lower and accept more ground), or if the drawer's collapsed height
+changes (`phoneCover` must follow).
+
+### D247. The Barrel Smasher, Salvage, Heavier Crowbars and Jerky; the picked art (owner, P4)
+Names (locale only; ids and the data stay): Beachcomber → **Barrel Smasher**, Driftwood →
+**Salvage** (the `timber` product), Sharper Hooks → **Heavier Crowbars**, and its Mk's levels
+Driftwood Hooks → **Pry Bars**, Beach Sledges → **Sledgehammers** (agent's names, nothing on the
+beach is left). Smoked Fish → **Jerky** (the `roast` product) is in (offered for veto; the owner kept it
+on 2026-10-19); Dax's ticker line follows it. Icons: a rename keeps ids and icons, but three icons drew the old
+names (a rake over waves, a log pile, a fish on a skewer), so `line/beachcomber` is now a barrel
+with a crowbar, `product/timber` a pipe on a corrugated sheet and `product/roast` strips hanging
+from a rail (`pnpm icons` clean). Art from the P3 takes, the owner's numbers:
+04 → `line/beachcomber_2`, 11 → `line/campfire_1`, 17 → `line/garden_1`, installed through
+`scripts/art/picks/p4.json` (pixel-identical to the numbered takes). The owner picked one barrel
+take for three stages; rather than spend on new takes, stage 1 (the red barrel alone on its dirt)
+and stage 3 (the two barrels and the grey one mirrored on a widened patch, 30 px) are cut from
+take 04 by hand, so the three stages are one set. The campfire's earlier stages 2-3 stay. The
+art campfire gets its flame and glow (`ART_FIRES` in `scene/lines.ts`): three pixel frames at 8
+fps above the drawn fire on the `lights` layer (one still frame under reduced motion), the glow
+the procedural campfire had, and smoke from above the flame. The owner approved P4 and kept Jerky
+(2026-10-19). *Revisit* if the owner wants generated stage-1/3 barrels.

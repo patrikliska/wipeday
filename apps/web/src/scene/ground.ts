@@ -1,11 +1,12 @@
 /**
- * The wasteland's ground, painted once (D208, D209): one flat stretch seen from slightly above,
- * from seeded noise that never repeats (a tile repeated across a 2k screen showed its period).
+ * The wasteland's ground, painted once (D208, D209, D246): the yard seen from above, from seeded
+ * noise that never repeats (a tile repeated across a 2k screen showed its period).
  *
- * From the far edge down: the walkable surface (dusty ochre with streaks, specks and the odd
- * stone, paler at its far edge where it meets the skyline), its sunlit front edge, a reddish
- * rim, a near-black lip, the shadow under it, then dirt that darkens with depth, dithered (no
- * hard bands), with scattered pebbles and a few embedded stones, in the Scene Mock's colours.
+ * From the far edge down: the walkable surface (dusty ochre with streaks, specks, broad trodden
+ * and pale patches finer toward the back, dry tufts and the odd stone, hazy over its far half),
+ * crossed by the terraces' risers; past the front edge the ground runs on toward the viewer and
+ * darkens into the foreground's shade, dithered. No cliff: the camera looks down. The Scene
+ * Mock's colours.
  */
 import { Texture } from "pixi.js";
 
@@ -19,19 +20,12 @@ const C = {
   debris: "#502f30",
   edge: "#d6a26a",
   shine: "#f5cf81",
-  sand: "#fddba4",
-  sandSpeck: "#e2b27c",
   sandShade: "#d6a26a",
   wet: "#a35f4d",
-  lip: "#150c19",
   under: "#2f1822",
   dirt: "#502f30",
-  dirtSpeck: "#402437",
-  deep: "#2f1822",
-  bedrock: "#150c19",
   pebble: "#816252",
   pebbleDark: "#6e4d4c",
-  stone: "#584d44",
   stoneLight: "#717061",
   tuft: "#72774a",
   tuftDark: "#454e35",
@@ -92,15 +86,10 @@ export interface GroundPiece {
   /** Rows of walkable surface above the front edge (the far edge is row 0). */
   surface: number;
   seed: number;
-  /** Rows below the lip over which the dirt darkens to bedrock. */
+  /** Rows past the front edge over which the near ground darkens into shade. */
   darken: number;
-  /**
-   * A deep yard (P3): the haze fades over the far half only, the surface has broad patches of
-   * trodden and pale earth (finer toward the back) and dry tufts, and `steps` raise terraces.
-   */
-  deep?: boolean;
   /** Terrace steps: the row (from the far edge) each raised band's things stand on. */
-  steps?: readonly number[];
+  steps: readonly number[];
 }
 
 /** The ground as a nearest-neighbour texture (1 texel = 1 art pixel). */
@@ -132,14 +121,12 @@ export function paintGround(piece: GroundPiece): Texture {
     data[i + 3] = 255;
   };
 
-  const deep = piece.deep === true;
   for (let x = 0; x < w; x++) {
     // The front edge waves a pixel or two; the far edge is straight (the skyline sits on it).
     const edge = piece.surface + Math.round(noise(x, seed, 30) * 1.4);
-    const lipAt = edge + 3;
     // Each terrace's riser: a sunlit lip two rows in front of its band's feet, a darker face
     // under it, and a row of shadow on the band below; it waves like the front edge.
-    const risers = (piece.steps ?? []).map(
+    const risers = piece.steps.map(
       (step, i) => step + 2 + Math.round(noise(x, seed + 40 + i, 24) * 1.2),
     );
     for (let y = 0; y < h; y++) {
@@ -168,11 +155,11 @@ export function paintGround(piece: GroundPiece): Texture {
                     : C.speck;
       } else if (y < edge) {
         // The surface: paler toward the far edge, long streaks, specks and glints.
-        const far = deep ? Math.max(0, 1 - (y / edge) * 1.8) ** 1.4 : 1 - y / edge;
+        const far = Math.max(0, 1 - (y / edge) * 1.8) ** 1.4;
         const streak = noise(x * 0.25 + y * 9, seed + 2, 6) > 0.45;
-        // A deep yard's broad patches: trodden earth and pale drifts, finer toward the back.
+        // Broad patches: trodden earth and pale drifts, finer toward the back.
         const depth = y / edge;
-        const patch = deep ? noise2(x, y, seed + 21, 10 + depth * 16, 4 + depth * 5) : 0;
+        const patch = noise2(x, y, seed + 21, 10 + depth * 16, 4 + depth * 5);
         colour =
           r < far * 0.55
             ? C.far
@@ -189,16 +176,20 @@ export function paintGround(piece: GroundPiece): Texture {
                     : r < 0.1
                       ? C.glint
                       : C.dust;
-      } else if (deep) {
-        // A deep yard has no cliff: the camera looks down, so the ground runs on toward the
-        // viewer and darkens into the foreground's shade, dithered.
-        const near = (y - edge) / 70 + (hash(x, y, seed + 5) - 0.5) * 0.3;
+      } else {
+        // No cliff: the camera looks down, so the ground runs on toward the viewer and darkens
+        // into the foreground's shade, dithered.
+        const near = (y - edge) / piece.darken + (hash(x, y, seed + 5) - 0.5) * 0.3;
         const patch = noise2(x, y, seed + 21, 30, 12);
         colour =
           near > 0.75
-            ? r < 0.5
-              ? C.debris
-              : C.dirt
+            ? patch > 0.35 && r < 0.3
+              ? C.speck
+              : r < 0.06
+                ? C.speck
+                : r < 0.3
+                  ? C.under
+                  : C.debris
             : near > 0.4
               ? r < 0.35
                 ? C.debris
@@ -212,30 +203,6 @@ export function paintGround(piece: GroundPiece): Texture {
                   : r < 0.32 + near
                     ? C.speck
                     : C.dust;
-      } else if (y === edge) colour = r < 0.3 ? C.shine : C.edge;
-      else if (y < lipAt) colour = r < 0.5 ? C.sandShade : C.wet;
-      else if (y < lipAt + 2) colour = C.lip;
-      else if (y < lipAt + 4) colour = r < 0.3 ? C.dirtSpeck : C.under;
-      else {
-        // Dirt, darkening with depth by dithering toward the deeper colours.
-        const depth = (y - lipAt - 4) / piece.darken;
-        const d = depth + (hash(x, y, seed + 3) - 0.5) * 0.35;
-        colour =
-          d > 1
-            ? C.bedrock
-            : d > 0.62
-              ? r < 0.15
-                ? C.bedrock
-                : C.deep
-              : d > 0.3
-                ? r < 0.2
-                  ? C.deep
-                  : C.dirtSpeck
-                : r < 0.05
-                  ? C.dirtSpeck
-                  : r < 0.08
-                    ? C.under
-                    : C.dirt;
       }
       set(x, y, colour);
     }
@@ -247,8 +214,16 @@ export function paintGround(piece: GroundPiece): Texture {
       set(x, y + 1, C.debris);
       set(x + 1, y + 1, C.debris);
     }
-    // A deep yard's dry tufts: a few pixels of olive, bigger and more of them in front.
-    if (deep && hash(x, 8, seed + 23) < 0.05) {
+    // Pebbles in the near ground, scattered (seeded, never in a grid), lit from above.
+    if (hash(x, 3, seed + 13) < 0.025) {
+      const y = edge + 12 + Math.floor(hash(x, 4, seed) * Math.max(1, h - edge - 16));
+      set(x, y, C.pebble);
+      set(x + 1, y, C.pebbleDark);
+      set(x, y + 1, C.under);
+      set(x + 1, y + 1, C.under);
+    }
+    // Dry tufts: a few pixels of olive, bigger and more of them in front.
+    if (hash(x, 8, seed + 23) < 0.05) {
       const y = 3 + Math.floor(hash(x, 9, seed) ** 0.6 * Math.max(1, edge - 5));
       if (!risers.some((at) => y >= at - 2 && y < at + RISER + 1)) {
         const big = y / edge > 0.5;
@@ -260,24 +235,6 @@ export function paintGround(piece: GroundPiece): Texture {
           set(x + 1, y - 2, C.tuft);
         }
         set(x, y + 1, C.debris);
-      }
-    }
-    // Pebbles and stones in the dirt, scattered (seeded, never in a grid).
-    if (!deep && hash(x, 3, seed + 13) < 0.02) {
-      const y = lipAt + 6 + Math.floor(hash(x, 4, seed) * Math.max(1, h - lipAt - 10));
-      set(x, y, C.pebble);
-      set(x + 1, y, C.pebble);
-      set(x, y + 1, C.lip);
-      set(x + 1, y + 1, C.lip);
-    }
-    if (!deep && hash(x, 5, seed + 17) < 0.006) {
-      const y = lipAt + 8 + Math.floor(hash(x, 6, seed) * Math.max(1, h - lipAt - 16));
-      for (let dy = -2; dy <= 2; dy++) {
-        for (let dx = -2; dx <= 2; dx++) {
-          if (dx * dx + dy * dy > 5) continue;
-          const rim = dx * dx + dy * dy >= 4;
-          set(x + dx, y + dy, rim ? C.lip : dy < 0 ? C.stoneLight : C.stone);
-        }
       }
     }
   }

@@ -1,0 +1,15 @@
+{
+  "//": "P4, the owner's picks from preview/art/p3-takes-sheet.png (2026-10-19): 04 the Barrel Smasher, 11 the campfire, 17 the garden. line/beachcomber_1 and _3 are cut from 04 by hand (D247: the red barrel alone; the two barrels and a third on a widened patch), not installed from a take.",
+  "line/beachcomber_2": {
+    "from": "preview/art/p3/barrel_2_0.png",
+    "outline": true
+  },
+  "line/campfire_1": {
+    "from": "preview/art/p3/campfire_1_1.png",
+    "outline": true
+  },
+  "line/garden_1": {
+    "from": "preview/art/p3/garden_1b_1.png",
+    "outline": true
+  }
+}

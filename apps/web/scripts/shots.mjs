@@ -2508,82 +2508,53 @@ const SHOTS = [
     juiceMs: 140,
     clip: [0, 0, 1100, 400],
   },
-  // P3, the deep yard mocks: each yard in Twig, Sheet Metal and Armored, phone to 2k (the
-  // owner picks). `flat` is R2's camp for comparison.
-  ...["flat", "terrace", "camp"].flatMap((yard) => {
-    const query = `yard=${yard}`;
+  // P4, the terrace yard (D246) and the new art (D247): Twig (every stage 1), Sheet Metal (stage
+  // 2) and Armored (stage 3) from a short phone to 2k, the phone's ground under the front row,
+  // night for the campfire and the lamp.
+  ...(() => {
     const day = { time: at(1, 9.5), wall: WALL, weather: "clear" };
+    const night = { time: at(1, 22), wall: WALL, weather: "clear" };
+    const twig = { ...TWIG_HERO, ...day };
+    const metal = { ...METAL_RUN, ...day };
     return [
+      { name: "p4_twig_phone", viewport: PHONE, scale: 2, state: twig, ff: 1 },
+      { name: "p4_twig_phone_short", viewport: [360, 640], scale: 2, state: twig, ff: 1 },
+      { name: "p4_twig_phone_tall", viewport: [412, 915], scale: 2, state: twig, ff: 1 },
+      { name: "p4_twig_desktop", viewport: DESKTOP, state: twig, ff: 1 },
       {
-        name: `p3_${yard}_twig_desktop`,
+        name: "p4_twig_desktop__zoom",
         viewport: DESKTOP,
-        query,
-        state: { ...TWIG_HERO, ...day },
+        state: twig,
         ff: 1,
+        clip: [180, 420, 700, 360],
       },
+      { name: "p4_metal_phone", viewport: PHONE, scale: 2, state: metal, ff: 2.5 },
+      { name: "p4_metal_desktop", viewport: DESKTOP, state: metal, ff: 2.5 },
+      { name: "p4_hqm_phone", viewport: PHONE, scale: 2, state: HQM_RUN, ff: 2.5 },
+      { name: "p4_hqm_desktop", viewport: DESKTOP, state: HQM_RUN, ff: 2.5 },
+      { name: "p4_laptop", viewport: [1440, 900], state: metal, ff: 2.5 },
+      { name: "p4_2k", viewport: [2560, 1440], state: metal, ff: 2.5 },
       {
-        name: `p3_${yard}_twig_phone`,
-        viewport: PHONE,
-        scale: 2,
-        query,
-        state: { ...TWIG_HERO, ...day },
-        ff: 1,
-      },
-      {
-        name: `p3_${yard}_metal_desktop`,
-        viewport: DESKTOP,
-        query,
-        state: { ...METAL_RUN, ...day },
-        ff: 2.5,
-      },
-      {
-        name: `p3_${yard}_metal_phone`,
-        viewport: PHONE,
-        scale: 2,
-        query,
-        state: { ...METAL_RUN, ...day },
-        ff: 2.5,
-      },
-      { name: `p3_${yard}_hqm_desktop`, viewport: DESKTOP, query, state: HQM_RUN, ff: 2.5 },
-      { name: `p3_${yard}_hqm_phone`, viewport: PHONE, scale: 2, query, state: HQM_RUN, ff: 2.5 },
-      {
-        name: `p3_${yard}_laptop`,
-        viewport: [1440, 900],
-        query,
-        state: { ...METAL_RUN, ...day },
-        ff: 2.5,
-      },
-      {
-        name: `p3_${yard}_2k`,
-        viewport: [2560, 1440],
-        query,
-        state: { ...METAL_RUN, ...day },
-        ff: 2.5,
-      },
-      {
-        name: `p3_${yard}_2k_zoom10`,
-        viewport: [2560, 1440],
-        query: `${query}&zoom=10`,
-        state: { ...METAL_RUN, ...day },
-        ff: 2.5,
-      },
-      {
-        name: `p3_${yard}_tall_rain`,
+        name: "p4_tall_rain",
         viewport: [1700, 1340],
-        query,
         state: { ...METAL_RUN, time: at(1, 9), wall: WALL, weather: "rain" },
         ff: 2.5,
       },
       {
-        name: `p3_${yard}_night_phone`,
+        name: "p4_night_phone",
         viewport: PHONE,
         scale: 2,
-        query,
-        state: { ...METAL_RUN, time: at(1, 22), wall: WALL, weather: "clear" },
+        state: { ...METAL_RUN, ...night },
         ff: 2.5,
       },
+      {
+        name: "p4_night_twig_desktop",
+        viewport: DESKTOP,
+        state: { ...TWIG_HERO, ...night },
+        ff: 1,
+      },
     ];
-  }),
+  })(),
 ];
 
 /** Moves `time` by whole days (same hour) until the island has `weather` then. */
@@ -2671,7 +2642,7 @@ async function main() {
     page.on("console", (message) => {
       if (message.type() === "error") errors.push(message.text());
     });
-    // `query` adds dev switches to the page's address (P3: `yard=camp`, `zoom=10`).
+    // `query` adds dev switches to the page's address (`?demo` and the like).
     const address = shot.query ? `${url}${url.includes("?") ? "&" : "?"}${shot.query}` : url;
     await page.goto(address, { waitUntil: "networkidle" });
     // Entrance slides and fades would be caught half-way: shots show the settled layout.

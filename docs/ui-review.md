@@ -1839,3 +1839,34 @@ The owner: the scene feels flat, everything on one or two rows. Two mocks behind
   the plane in 194 art px); Terrace's front row is R2's as before (the step adds depth behind,
   not room in front).
 
+
+## P4: the yard, the art, the names (2026-10-19)
+
+The owner picked the Terrace with less ground under the front row on a phone (their 390 px shot:
+about a fifth of the screen of dark ground between the lines and the drawer), the 2k zoom at 7,
+and takes 04, 11 and 17. Shots `p4_*`; the P1 phone shots rerun.
+
+### Iteration 1
+- **The phone's ground under the front row** was about 150 CSS px (390×844) because the camera
+  put the target's middle at 35%. The phone now frames the front edge 10 art px (25 CSS px) above
+  the dock and the collapsed drawer; at 360×640 (one card) and 412×915 the strip is the same. The
+  price: more sky above the skyline (about a fifth of the screen at 390×844, the sun and clouds in
+  it). Armored on a phone is as dense as P3 noted (fourteen lines and the plane in 194 art px).
+- **The house hint covered the terrace's lines:** "Tap the shed to go inside" stood above the shed,
+  over the Radio Mast and two count badges (Sheet Metal, phone). It now sits under the house,
+  held above the drawer and the dock (`--hint-floor`), so on a phone it rides over the shed's
+  foot and covers no line.
+- **Barrel Smasher stage 3, first cuts:** a mirrored barrel 3 px up the yard floated with no dirt
+  under it; a second patch of dirt beside the first showed a seam. The third barrel now stands on
+  one widened patch (its middle columns repeated), 30 px wide; it reads as three barrels.
+- *Fine:* the campfire's three pixel frames show above the drawn fire in day and night; at night
+  its glow and the lamp's bulb are the warm points of the yard (desktop Twig, phone Sheet Metal).
+  The shop cards' thumbnails show the new art; "Barrel Smasher" fits the card at 360 px.
+
+### Iteration 2
+- **Before the drawer comes** (the first taps), the camera already frames for it, and the near
+  ground faded to one flat maroon over the bottom 40% of a phone (`p1_phone_onboard_tap`). The
+  near ground is now dark earth with specks and scattered pebbles to the dock; it reads as ground.
+- Checked: 2k and tall rain show the ground painted, no repeat; the desktop hint sits over the
+  shed's foot (the dock's floor), clear of the Sheet Metal lines; the new icons pass `pnpm icons`
+  and read at 16 px (the sheet `preview/icons/p4.png` beside planks, plates and scrap).

@@ -71,7 +71,7 @@ in `docs/archive/roadmap-w.md`.
     stages 1-3 and Campfire and Garden stage 1. The owner picks.
   - **P4. Build the yard, install the art, rename** (D246, D247): Beachcomber → **Barrel
     Smasher**, Driftwood → **Salvage** (owner's picks; ids stay), Sharper Hooks → Heavier
-    Crowbars; the art campfire gets its flame and glow; Smoked Fish → Jerky offered for veto.
+    Crowbars; the art campfire gets its flame and glow; Smoked Fish → Jerky (kept by the owner).
   - **R3 answers** (owner, for D248 at R3 S1): a survivor's trait works only while hired; all
     three gear slots open at once; the nuke's drop tier follows glass gained (built in R4); the
     Magpie pays 3 min of output and 1 scrap. Derived: one drop per 10 badges and 1 scrap per 5
@@ -82,9 +82,31 @@ in `docs/archive/roadmap-w.md`.
   below).
 - **P3 is done** (2026-10-19): the deep yard mocks behind a dev switch and the art takes, for
   the owner to pick (results below).
-- **Next: P4, build the yard, install the art, rename**, once the owner has picked a yard (A
-  Terrace or B Camp), the 2k zoom (7 or 10) and the takes by number. Retro Diffusion has about
-  2.59 USD; R3 S3's busts and gear need about 15 USD more.
+- **P4 is done** (2026-10-19; D246, D247): the Terrace yard built (the phone framed just above
+  the drawer), takes 04, 11 and 17 installed with Barrel Smasher stages 1 and 3 cut from 04, the
+  campfire's flame and glow, the lamp's light, the renames (results below). P3 was committed
+  first (60388f9).
+- **The owner approved P4 and kept Jerky** (2026-10-19); P4 committed.
+- **Next: R3 Cards** (plan mode).
+  Retro Diffusion has about 2.59 USD; R3 S3's busts and gear need about 15 USD more.
+
+### P4 results: the yard, the art, the names
+- **The yard** (D246): `scene/yards.ts` is the Terrace alone (the flat camp, the Camp mock and the
+  dev switches are gone; the zoom cap stays 7, the owner's pick for 2k). A phone frames the front
+  edge 10 art px above the dock and the collapsed drawer (`phoneCover()`), about 25 CSS px of
+  ground under the front row instead of about 150; `ground.ts` paints only the deep yard, its
+  near ground textured to the dock; the lamp prop glows at night; the house's hint moved under
+  the house, clear of the terrace's badges.
+- **The art and names** (D247): Barrel Smasher stages 1-3 (04, and two cut from it), Campfire 1
+  (11) with a three-frame pixel flame and its glow, Garden 1 (17) (`scripts/art/picks/p4.json`);
+  Salvage, Heavier Crowbars (Pry Bars, Sledgehammers), Jerky (kept by the owner); three icons
+  redrawn (the line, Salvage, Jerky). No spend.
+- **Tests:** `scene/yards.test.ts` (everything on the ground and in view, no crowded band, steps
+  between the far edge and the front, `phoneCover` against the tokens). `pnpm check` passes. No
+  domain or balance data changed (the sim test inside `pnpm test` passes).
+- **Shots:** 14 `p4_*` (Twig, Sheet Metal and Armored; 360×640, 390, 412×915, desktop, 1440,
+  2k, tall rain, night on a phone and a desktop) and the P1 phone shots again. Notes in
+  `docs/ui-review.md` (P4).
 
 ### P3 results: the deep yard mocks and the art takes
 - **Built:** `scene/yards.ts` (a yard is data: the ground's far edge, terrace steps, the view,

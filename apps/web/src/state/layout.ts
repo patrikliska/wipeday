@@ -15,6 +15,16 @@ export const COLUMN_QUERY =
 /** CSS px the HUD covers: the column on the right. */
 export const insets = { right: 0 };
 
+/**
+ * CSS px the phone's dock and collapsed drawer cover at the foot of a `height` px screen; keep in
+ * step with `--dock-h` and `--drawer-h` in styles/tokens.css (two cards, one under 740 px tall).
+ * The camera frames the yard just above it, whether or not the drawer is shown yet.
+ */
+export function phoneCover(height: number): number {
+  const cards = height < 740 ? 1 : 2;
+  return 64 + 44 + 52 + cards * (80 + 8) + 22;
+}
+
 const query =
   typeof window !== "undefined" && typeof window.matchMedia === "function"
     ? window.matchMedia(COLUMN_QUERY)

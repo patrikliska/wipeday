@@ -1,4 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="currentColor">
-  <rect x="3" y="22.5" width="42" height="3" rx="1.5"/>
-  <path fill-rule="evenodd" d="M8 24C12 14 26 13 34 21L44 13 41 24 44 35 34 27C26 35 12 34 8 24ZM14.5 19.8a2.2 2.2 0 1 0 0 4.4 2.2 2.2 0 1 0 0-4.4Z"/>
+  <rect x="3" y="4" width="42" height="3" rx="1.5"/>
+  <path d="M7 9H16L17 18 15 27 17 36 15 44 12 41 9 44 8 34 6 25 8 17Z"/>
+  <path d="M20 9H29L30 17 28 25 29 33 26 31 23 34 22 25 20 17Z"/>
+  <path d="M33 9H42L43 18 41 27 43 36 41 41 38 39 35 42 34 33 32 24 34 17Z"/>
 </svg>

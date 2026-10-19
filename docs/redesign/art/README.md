@@ -130,6 +130,18 @@ are what is kept.
 - Spend for P3: 1.50 the takes, 0.30 the garden retake (its low-res half rerun after the failed, uncharged try): 1.80 USD. Balance
   after: about 2.59 USD.
 
+### What P4 learned (2026-10-19)
+
+- **Install the picked numbers through a picks file** (`scripts/art/picks/p4.json`): installing
+  from the raw take with `outline: true` gives exactly the numbered take on the sheet.
+- **One pick can make a set.** The owner picked one barrel take (04, stage 2); stages 1 and 3 were
+  cut from it by hand (the red barrel alone; the barrels on a widened patch, its middle columns
+  repeated so no seam shows) instead of new takes that would not match. Strip the outline, cut
+  or compose, then outline again.
+- **A fire needs motion and light, not just pixels:** an art line's flame is three stepped frames
+  of two to four pixels above the drawn fire, plus a glow, on the `lights` layer
+  (`ART_FIRES` in `scene/lines.ts`). Spend for P4: none. Balance: about 2.59 USD.
+
 ## 5. Animation
 
 Retro Diffusion animates an existing sprite: `rd_advanced_animation__idle` and `__walking` take
