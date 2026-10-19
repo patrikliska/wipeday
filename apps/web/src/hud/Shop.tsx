@@ -22,9 +22,8 @@ import {
   bulkShown,
   cardCrowned,
   crownPick,
-  crownTab,
+  crownPlace,
   linesTab,
-  pickPlace,
   type ResearchGroup,
   type Row,
   researchTab,
@@ -77,9 +76,6 @@ export function Shop() {
   useEffect(() => {
     if (!column) insets.right = 0;
   }, [column]);
-  useEffect(() => {
-    if (!open) useUi.setState({ crownInView: true });
-  }, [open]);
   if (!view || !open) return null;
   return column ? <Column view={view} /> : <Drawer view={view} />;
 }
@@ -128,9 +124,8 @@ function Drawer({ view }: { view: AdvisorView }) {
 
   const { rows: plain, bought, groups } = tabRows(view, tab, bulk);
   useSeeWorkshop(view, tab === "research" && expanded, groups);
-  // Collapsed, the drawer is the island's view (its one crown); expanded, a view of its own.
-  const rows = expanded ? crownTab(plain, view) : crownPick(plain, view);
-  useCrownFocus(list, view, tab, expanded ? null : touchedAt);
+  const rows = crownPick(plain, view);
+  useFollowCrown(list, view, tab, expanded ? null : touchedAt);
 
   const onHandleDown = (event: ReactPointerEvent) => {
     drag.current = event.clientY;
@@ -188,10 +183,8 @@ function Column({ view }: { view: AdvisorView }) {
   const list = useRef<HTMLDivElement>(null);
   const { rows: plain, bought, groups } = tabRows(view, tab, bulk);
   useSeeWorkshop(view, tab === "research", groups);
-  // The column shares the island's view: it lights the island's crown, and none while the crown
-  // is on the tap hint (CLAUDE.md 6.3 rule 1).
+  // Only a purchase new to the player is lit (D244).
   const rows = crownPick(plain, view);
-  useCrownFocus(list, view, tab, null);
 
   useLayoutEffect(() => {
     const element = ref.current;
@@ -220,72 +213,31 @@ function Column({ view }: { view: AdvisorView }) {
 }
 
 /**
- * Keeps the crown findable without moving a card (D186, D220): reports whether the crowned card
- * is on screen (the Best buy chip shows when it is not), scrolls to it and pulses it once when
- * the chip asks, and, in the collapsed drawer only (`follow`), keeps it in the two-card window
- * unless the player touched the drawer in the last few seconds.
+ * Onboarding (D244): the collapsed drawer's two-card window keeps the lit card in sight, without
+ * moving a card (D186), unless the player touched the drawer in the last few seconds.
  */
-function useCrownFocus(
+function useFollowCrown(
   list: RefObject<HTMLDivElement | null>,
   view: AdvisorView,
   tab: Tab,
   follow: RefObject<number> | null,
 ): void {
-  const place = pickPlace(view);
-  // The island's crowned card, when it is on the tab in sight.
+  const place = crownPlace(view);
   const crowned = place && place.tab === tab ? place.key : null;
-  const offTab = place !== null && place.tab !== tab;
-  const focusAt = useUi((state) => state.focusAt);
-  const handled = useRef(focusAt);
-
-  useEffect(() => {
-    const root = list.current;
-    if (!root) return;
-    if (!crowned) {
-      useUi.setState({ crownInView: !offTab });
-      return;
-    }
-    const card = root.querySelector<HTMLElement>(`[data-key="${crowned}"]`);
-    if (!card) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => useUi.setState({ crownInView: (entry?.intersectionRatio ?? 0) >= 0.75 }),
-      { root, threshold: [0, 0.75, 1] },
-    );
-    observer.observe(card);
-    return () => observer.disconnect();
-  }, [list, crowned, offTab]);
-
-  // The collapsed drawer's window follows the crown, calmly.
   useEffect(() => {
     const root = list.current;
     if (!root || !crowned || !follow) return;
     if (performance.now() - follow.current < TOUCH_QUIET_MS) return;
     const card = root.querySelector<HTMLElement>(`[data-key="${crowned}"]`);
-    if (card) scrollTo(root, card, "nearest");
+    if (card) scrollTo(root, card);
   }, [list, crowned, follow]);
-
-  // The Best buy chip: scroll to the card and pulse it once.
-  useEffect(() => {
-    if (focusAt === handled.current) return;
-    handled.current = focusAt;
-    const root = list.current;
-    if (!root || !crowned) return;
-    const card = root.querySelector<HTMLElement>(`[data-key="${crowned}"]`);
-    if (!card) return;
-    scrollTo(root, card, "center");
-    card.classList.remove("pulse");
-    void card.offsetWidth;
-    card.classList.add("pulse");
-    window.setTimeout(() => card.classList.remove("pulse"), 900);
-  });
 }
 
-function scrollTo(root: HTMLElement, card: HTMLElement, mode: "nearest" | "center"): void {
+function scrollTo(root: HTMLElement, card: HTMLElement): void {
   const top = card.offsetTop;
   const bottom = top + card.offsetHeight;
   let target = root.scrollTop;
-  if (mode === "center") target = top - (root.clientHeight - card.offsetHeight) / 2;
-  else if (top < root.scrollTop + 6) target = top - 6;
+  if (top < root.scrollTop + 6) target = top - 6;
   else if (bottom > root.scrollTop + root.clientHeight - 6) target = bottom - root.clientHeight + 6;
   if (Math.abs(target - root.scrollTop) < 1) return;
   root.scrollTo({ top: target, behavior: reducedMotion() ? "auto" : "smooth" });
@@ -295,8 +247,6 @@ function Tabs({ view }: { view: AdvisorView }) {
   const tab = useTab(view);
   const setTab = useUi((state) => state.setTab);
   const count = affordableUpgrades(view);
-  // The island's crown on the other tab: a small mark on it (not orange: one crown per view).
-  const elsewhere = pickPlace(view)?.tab;
   const select = (next: Tab) => {
     if (next === tab) return;
     setTab(next);
@@ -321,9 +271,6 @@ function Tabs({ view }: { view: AdvisorView }) {
           onClick={() => select(item.id)}
         >
           {item.label}
-          {elsewhere === item.id && tab !== item.id ? (
-            <Icon kind="ui" id="crown" size={14} className="tab-crown" />
-          ) : null}
           {item.count > 0 ? <span className="count num">{item.count}</span> : null}
         </button>
       ))}

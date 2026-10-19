@@ -416,6 +416,37 @@ function bestScore(offered: readonly Choice[]): Choice | null {
   return best;
 }
 
+/**
+ * Whether the kind of purchase `command` makes is still new to the player (D244): bought fewer
+ * than `advisor.hintUses` times in their whole life. Only then does the game show it as the thing
+ * to do (its Buy orange); afterwards it never advises a purchase. A line counts its units, so ×10
+ * on the first line ends it at once; upgrades count the run's own too, for a save from before the
+ * counter.
+ */
+export function firstUse(content: Content, state: BaseState, command: Command): boolean {
+  const stats = state.meta.stats;
+  const uses = content.run.advisor.hintUses;
+  switch (command.type) {
+    case "buy_line":
+      return stats.units < uses;
+    case "hire_hand":
+      return stats.hands < uses;
+    case "buy_research":
+      return stats.research < uses;
+    case "buy_era":
+      return stats.eras < uses;
+    case "buy_upgrade":
+      return Math.max(stats.upgrades, state.run.upgrades.length) < uses;
+    default:
+      return false;
+  }
+}
+
+/** "Tap the tree." and the target's glow: onboarding, until the first lines are bought (D244). */
+export function tapHintLive(content: Content, state: BaseState): boolean {
+  return state.meta.stats.units < content.run.advisor.hintUses;
+}
+
 /** Whether two commands buy the same row (a line's count aside). */
 export function sameRow(a: Command, b: Command): boolean {
   if (a.type !== b.type) return false;

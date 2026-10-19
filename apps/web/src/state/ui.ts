@@ -32,10 +32,6 @@ export interface UiState {
   house: boolean;
   scientific: boolean;
   motion: Motion;
-  /** Whether the crowned card is on screen in the shop (the Best buy chip shows when not). */
-  crownInView: boolean;
-  /** Bumped by the Best buy chip: the shop scrolls to the crowned card and pulses it once. */
-  focusAt: number;
   /** The hands the Crew sheet last showed, per run: the dock's Crew badge counts the rest. */
   crewSeen: { run: number; hands: number };
   /** The Workshop items open when its tab last showed, per run: the dock's badge counts the rest. */
@@ -56,8 +52,6 @@ interface UiActions {
   toggleBought(): void;
   setScientific(on: boolean): void;
   setMotion(motion: Motion): void;
-  /** The Best buy chip: the crown's tab, and a scroll to its card. */
-  focusCrown(tab: Tab): void;
   /** The Crew sheet was shown with `hands` on shift in the run started at `run`. */
   seeCrew(run: number, hands: number): void;
   /**
@@ -146,8 +140,6 @@ export const useUi = create<UiState & UiActions>((set, get) => {
     house: false,
     scientific: read("wipeday.scientific") === "1",
     motion: storedMotion(),
-    crownInView: true,
-    focusAt: 0,
     crewSeen: storedCrewSeen(),
     workshopSeen: storedWorkshopSeen(),
     badgesSeen: storedBadgesSeen(),
@@ -205,9 +197,6 @@ export const useUi = create<UiState & UiActions>((set, get) => {
     setMotion(motion) {
       write("wipeday.motion", motion);
       set({ motion });
-    },
-    focusCrown(tab) {
-      set({ tab, focusAt: get().focusAt + 1 });
     },
     seeCrew(run, hands) {
       const seen = get().crewSeen;

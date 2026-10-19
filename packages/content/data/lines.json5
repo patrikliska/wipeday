@@ -33,7 +33,9 @@
     // The crown (02 11.1): the next era or a hand is crowned once affordable within 30 s.
     // Purchases are scored over a day the player is away half of, even while they tap now:
     // unmanned lines and taps stop then, hands keep working (D177).
-    advisor: { saveSeconds: 30, away: 0.5 },
+    // hintUses: a kind of purchase (lines, hires, Workshop levels, upgrades, eras) shows its Buy
+    // in orange until it has been bought this many times; after that the game never advises (D244).
+    advisor: { saveSeconds: 30, away: 0.5, hintUses: 2 },
   },
   lines: [
     { id: "beachcomber", rung: 1, era: "twig", hand: "mara", product: "timber" },

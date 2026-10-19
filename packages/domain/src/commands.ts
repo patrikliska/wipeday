@@ -312,6 +312,10 @@ function buyUpgrade(content: Content, state: BaseState, id: string): Step {
         supplies: Math.max(0, supplies - cost),
         upgrades: [...state.run.upgrades, id],
       },
+      meta: {
+        ...state.meta,
+        stats: { ...state.meta.stats, upgrades: state.meta.stats.upgrades + 1 },
+      },
     },
     events: [{ type: "upgraded", upgrade: id, cost }],
   };

@@ -177,8 +177,9 @@ Interface and Impact Sounds (CC0), Freesound filtered to CC0, the Sonniss GDC bu
 - **The shop** on desktop is a right column of **cards**, 400 px: art thumbnail with the level
   badge and the hand's portrait, name, rate, progress to the next milestone, one button. On a
   phone it is the drawer, two cards collapsed, dragged open. Tabs: Lines, Shelf, Research.
-- **Fixed order** by rung, forever (D186). The crown lights its card in place. A **Best buy**
-  chip in the counter plate scrolls the list to the crowned card and pulses once. The advisor's
+- **Fixed order** by rung, forever (D186). The crown lights its card in place. *(D244, after the
+  owner's R2 playtest: the Best buy chip and the pulse are gone, and the crown shows only while a
+  kind of purchase is new.)* The advisor's
   rules (`02` 11) are unchanged; only the presentation moves.
 - Panels never reorder, hide or collapse rows on their own. Locked rows stay visible with the
   reason.

@@ -7,11 +7,10 @@ import {
   affordIn,
   cardCrowned,
   crownPick,
-  crownTab,
+  crownPlace,
   linesTab,
   milestoneNote,
   milestoneSpan,
-  pickPlace,
   type Row,
   researchTab,
   upgradesTab,
@@ -21,16 +20,25 @@ import {
 const T0 = 1_700_000_000;
 const MS = T0 * 1000;
 
-const base = (patch: Partial<BaseState["run"]> = {}): BaseState => {
+type Stats = BaseState["meta"]["stats"];
+
+const base = (patch: Partial<BaseState["run"]> = {}, stats: Partial<Stats> = {}): BaseState => {
   const fresh = newBase(content, T0, 7);
-  return { ...fresh, run: { ...fresh.run, startedAt: T0 - 60, ...patch } };
+  return {
+    ...fresh,
+    run: { ...fresh.run, startedAt: T0 - 60, ...patch },
+    meta: { ...fresh.meta, stats: { ...fresh.meta.stats, ...stats } },
+  };
 };
 
-/** The advisor's view for a player tapping `pace` a second. */
-const viewOf = (patch: Partial<BaseState["run"]> = {}, pace = 6) => {
+/** The advisor's view for a player tapping `pace` a second, new to everything unless `stats`. */
+const viewOf = (patch: Partial<BaseState["run"]> = {}, pace = 6, stats: Partial<Stats> = {}) => {
   seedPace(pace, MS);
-  return computeAdvisor(base(patch), T0, MS);
+  return computeAdvisor(base(patch, stats), T0, MS);
 };
+
+/** A player who has bought every kind of purchase before: past onboarding (D244). */
+const VETERAN: Partial<Stats> = { units: 500, hands: 20, research: 50, upgrades: 10, eras: 6 };
 
 /** Crowned buttons, a card's Buy and its hire counted apart. */
 const crowns = (rows: Row[]) =>
@@ -83,7 +91,7 @@ describe("the shop's fixed order (D186)", () => {
       for (const pace of [0, 2, 12]) {
         const view = viewOf({ ...STONE, supplies }, pace);
         expect(keys(crownPick(linesTab(view, 1), view))).toEqual(order);
-        expect(keys(crownTab(linesTab(view, 10), view))).toEqual(order);
+        expect(keys(crownPick(linesTab(view, 10), view))).toEqual(order);
       }
   });
 
@@ -115,7 +123,7 @@ describe("the shop's fixed order (D186)", () => {
   });
 });
 
-describe("the crown on the cards (CLAUDE.md 6.3 rule 1)", () => {
+describe("the onboarding crown on the cards (CLAUDE.md 6.3 rule 1; D244)", () => {
   it("lights the island's pick in place, and nothing while the crown is on the tap hint", () => {
     const start = viewOf({ supplies: 7 });
     const rows = crownPick(linesTab(start, 1), start);
@@ -128,13 +136,29 @@ describe("the crown on the cards (CLAUDE.md 6.3 rule 1)", () => {
     expect(crowns(crownPick(linesTab(hint, 1), hint))).toBe(0);
   });
 
-  it("an expanded tab crowns exactly one button, even when the island crowns the hint", () => {
-    for (const patch of [{ supplies: 2, lines: { beachcomber: 1 } }, STONE]) {
-      const view = viewOf(patch);
-      expect(crowns(crownTab(linesTab(view, 1), view))).toBe(1);
-      const shelf = upgradesTab(view).rows;
-      if (shelf.some((row) => row.command)) expect(crowns(crownTab(shelf, view))).toBe(1);
+  it("lights nothing once every kind has been bought twice: the game never advises", () => {
+    for (const patch of [{ supplies: 7 }, { supplies: 2, lines: { beachcomber: 1 } }, STONE]) {
+      const view = viewOf(patch, 6, VETERAN);
+      expect(view.crown).toBeNull();
+      expect(view.tapHint).toBe(false);
+      expect(crowns(crownPick(linesTab(view, 1), view))).toBe(0);
+      expect(crowns(crownPick(upgradesTab(view).rows, view))).toBe(0);
+      expect(crowns(crownPick(researchTab(view, 1).rows, view))).toBe(0);
     }
+  });
+
+  it("stops lighting a kind after its second purchase, while others still light", () => {
+    // Two units bought: the first line is no longer lit, and the tap hint is gone.
+    const lines = viewOf({ supplies: 7 }, 6, { units: 2 });
+    expect(lines.pick.kind).toBe("purchase");
+    expect(lines.crown).toBeNull();
+    expect(lines.tapHint).toBe(false);
+    // ...but the first hire still is.
+    const hire = viewOf({ era: "wood", supplies: 4e3, lines: { beachcomber: 12 } }, 6, {
+      units: 12,
+    });
+    if (hire.pick.kind === "purchase" && hire.pick.choice.command.type === "hire_hand")
+      expect(hire.crown?.command).toEqual({ type: "hire_hand", line: "beachcomber" });
   });
 
   it("carries a line's hire on its card, and crowns the hire there", () => {
@@ -143,7 +167,7 @@ describe("the crown on the cards (CLAUDE.md 6.3 rule 1)", () => {
     const card = rows.find((row) => row.key === "line:beachcomber");
     expect(card?.hire?.command).toEqual({ type: "hire_hand", line: "beachcomber" });
     expect(card?.hire?.button.top).toBe("Hire Mara");
-    expect(pickPlace(view)).toEqual({ tab: "lines", key: "line:beachcomber" });
+    expect(crownPlace(view)).toEqual({ tab: "lines", key: "line:beachcomber" });
     if (view.pick.kind === "purchase" && view.pick.choice.command.type === "hire_hand") {
       expect(card?.hire?.crowned).toBe(true);
       expect(card?.crowned).toBe(false);
@@ -164,10 +188,10 @@ describe("the crown on the cards (CLAUDE.md 6.3 rule 1)", () => {
     expect(rows.find((row) => row.crowned)?.key ?? "none").not.toBe("line:beachcomber");
   });
 
-  it("names where the pick lives, for the Best buy chip", () => {
-    expect(pickPlace(viewOf({ supplies: 2, lines: { beachcomber: 1 } }))).toBeNull();
-    const place = pickPlace(viewOf(STONE));
-    expect(place?.tab === "lines" || place?.tab === "upgrades").toBe(true);
+  it("names where the lit purchase lives, so the collapsed drawer keeps it in sight", () => {
+    expect(crownPlace(viewOf({ supplies: 2, lines: { beachcomber: 1 } }))).toBeNull();
+    expect(crownPlace(viewOf({ supplies: 7 }))).toEqual({ tab: "lines", key: "line:beachcomber" });
+    expect(crownPlace(viewOf(STONE, 6, VETERAN))).toBeNull();
   });
 });
 
@@ -233,18 +257,14 @@ describe("cards", () => {
     );
     expect(again.rows[0]?.button).toMatchObject({ top: "Done", enabled: false });
     expect(
-      pickPlace({
+      crownPlace({
         ...after,
-        pick: {
-          kind: "purchase",
-          rule: "best",
-          choice: {
-            command: { type: "buy_research", item: "dry_kindling", count: 1 },
-            cost: 40,
-            gain: 1,
-            score: 1,
-            affordable: true,
-          },
+        crown: {
+          command: { type: "buy_research", item: "dry_kindling", count: 1 },
+          cost: 40,
+          gain: 1,
+          score: 1,
+          affordable: true,
         },
       }),
     ).toEqual({ tab: "research", key: "research:dry_kindling" });

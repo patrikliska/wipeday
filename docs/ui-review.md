@@ -1737,3 +1737,23 @@ size.
   over its edge), and both order checks (`s4_phone_order_kept`, `s6_desktop_research_order`) keep
   the cards' order through three purchases. The dock's pops do not show in older shots (a place
   that joins after the page opened stays frozen unless the shot says `liveDock`).
+
+## P1: no buying advice after onboarding (D244, 2026-10-19)
+
+The owner's R2 playtest: "I still hate how the game suggests best buy." The Best buy chip, the
+crown's pulse, the tab crowns and the expanded drawer's crown are gone; a purchase is lit only
+while its kind is new. New shots `p1_*`, each with an exact crown count (`crowns: 0 | 1`).
+
+### Iteration 1
+- **`p1_phone_onboard_hire` lit nothing**: the shot patched `meta.stats` with three counters, and
+  the patch replaces the whole object, so `hands` was undefined and `undefined < 2` is false. The
+  shots now patch from `NEW_STATS` (every counter, `upgrades` included); `FRENZY_STATS` gained
+  `upgrades`. With it, "Hire Mara 1.80k" is orange on Beachcomber's card, the one crown.
+- *Fine:* at 0:20 the first Beachcomber's Buy is orange, the Campfire's "in 15s" plain;
+  "Tap the tree." glows over the target at 1 supply; past onboarding (`p1_phone_after`,
+  `p1_phone_expanded_after`, `p1_desktop_after`, `p1_desktop_research_after`) no button is
+  orange, no chip sits in the counter plate, no tab wears a mark, the target does not glow, and
+  the phone's counter row holds only the lamp.
+- *Noted:* during onboarding a lit purchase can sit on a tab not in sight (the first upgrade on
+  the Shelf while Lines shows); the Shelf's count badge already says something is affordable
+  there, so no tab mark came back.

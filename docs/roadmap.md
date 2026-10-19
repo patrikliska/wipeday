@@ -56,9 +56,30 @@ in `docs/archive/roadmap-w.md`.
 - **R2 Feel S8, the finish, is done, and with it R2 Feel** (2026-10-19; results below): `pnpm sim
   check --full` passes, the juice checklist on S6-S7's features (D243), every R2 Feel shot in
   day, dusk, night and rain.
-- **Next: the owner's playtest of R2 Feel** (phone and desktop, the whole active layer), then **R3
-  Cards** (plan mode first; `12-feel.md` 15's open questions answered before S1). Retro Diffusion
-  has about 4.39 USD left; R3's busts and gear art will need a top-up.
+- **The owner's R2 Feel playtest (2026-10-19)** and the plan approved from it (in that session's
+  plan mode): playtest fixes first, as four short sessions, then R3 Cards.
+  - **P1. No buying advice after onboarding** (D244): the Best buy chip, the crown's pulse and
+    the tab crowns go; every affordable Buy looks alike; a Buy is orange only while its kind is
+    new (the first two lines, hires, Workshop levels, upgrades, eras; `firstUse` over
+    `meta.stats`); the "Tap the tree" hint stays as onboarding. The domain's `crown()` stays (the
+    simulator buys through it). CLAUDE.md 6.3 rule 1 is rewritten for the owner's OK.
+  - **P2. The era plate** (D245): eras leave the shop list for a plate centred in the top bar
+    (phone: beside the lamp) opening a sheet with cost, result, what is left, Build.
+  - **P3. Mocks and takes**: the "deep yard" (the camera looks down more, ground about half the
+    desktop screen, lines spread over 3-4 depth bands, the same sprites and the unused props)
+    as dev-switch variants A "Terrace" and B "Camp"; Retro Diffusion takes for Barrel Smasher
+    stages 1-3 and Campfire and Garden stage 1. The owner picks.
+  - **P4. Build the yard, install the art, rename** (D246, D247): Beachcomber → **Barrel
+    Smasher**, Driftwood → **Salvage** (owner's picks; ids stay), Sharper Hooks → Heavier
+    Crowbars; the art campfire gets its flame and glow; Smoked Fish → Jerky offered for veto.
+  - **R3 answers** (owner, for D248 at R3 S1): a survivor's trait works only while hired; all
+    three gear slots open at once; the nuke's drop tier follows glass gained (built in R4); the
+    Magpie pays 3 min of output and 1 scrap. Derived: one drop per 10 badges and 1 scrap per 5
+    badges (the R2 badges replace "pages").
+- **P1 is done** (2026-10-19; D244): no buying advice after onboarding; CLAUDE.md 6.3 rule 1
+  rewritten (the owner's OK asked in the report).
+- **Next: P2, the era plate.** Retro Diffusion has about 4.39 USD (P3 needs about 1.5); R3 S3's busts and gear
+  need about 15 USD more.
 
 ### R2 Feel S8 results: the finish
 - **Balance** (`pnpm sim check --full`, 365 days × 3 seeds, 98 s, passes): **N4** 77-105 s (the

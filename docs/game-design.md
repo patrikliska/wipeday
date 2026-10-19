@@ -171,7 +171,7 @@ names are approved.
 | Supply Drop, Album; shards, stars, sets *(proposal)* | | chest; collection; card progress, R3 |
 | Salvaged Hatchet ... Crowbar *(proposal)* | | gear cards, R3 |
 | Overdrive, Double Time, Lucky Tide *(proposal)* | | scrap boosts, R3 |
-| badges, daily quests, the ticker, Best buy *(proposal)* | | the scaffolding (R2, R3) |
+| badges, daily quests, the ticker *(proposal)* | | the scaffolding (R2, R3) |
 | Night Shift; the Kettle, the Big Red *(proposal)* | `night_shift` ... | offline; missile; button |
 | Wipe Day #N, small blast, Afterglow, Fizzle | `fizzle` | the nuke's beats |
 | Blast Map, Ground Zero; the eight sectors | `ground_zero`, sector ids | the tree *(proposal)* |
@@ -421,8 +421,9 @@ content: locked things show only real, reachable reasons.
 **The shop (R2, D186).** On desktop a right column of **cards**, 400 px: an art thumbnail with the
 level badge and the hand's portrait, the name, the rate, progress to the next milestone, one
 button. On a phone the drawer, two cards collapsed, dragged open. Tabs: Lines, Shelf, Research.
-The order is fixed by rung, forever: the crown lights its card in place, and a **Best buy** chip
-in the counter plate scrolls the list to the crowned card and pulses once. Panels never reorder,
+The order is fixed by rung, forever. The game gives no buying advice once the player knows the
+kinds of purchase (D244): a Buy is orange only while its kind is new (the first two lines, hires,
+Workshop levels, upgrades and eras), then every affordable button looks alike. Panels never reorder,
 hide or collapse rows on their own; locked rows stay visible with the reason. (R1's "the row leads
 the drawer", D165-D170, is withdrawn.)
 

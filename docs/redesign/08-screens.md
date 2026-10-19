@@ -221,8 +221,8 @@ The drawer becomes a permanent 420 px right column; the camera recentres in the 
 - The Blast Map covers the scene area: the disk on the left, the selected sector's ladder and its
   clockwise neighbour side by side, the node sheet as a popover. Modals are centred, at most
   480 px wide. Nothing is hover-only.
-- Keyboard: Space or Enter taps the target, holding Space is hold to work, B buys the crowned
-  row, Escape closes the top sheet.
+- Keyboard: Space or Enter taps the target, holding Space is hold to work, Escape closes the
+  top sheet. (No buy key since D244: the game never picks a purchase for the player.)
 
 ### 1.8 Sheets, modals and toasts
 

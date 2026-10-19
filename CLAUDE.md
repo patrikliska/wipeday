@@ -199,12 +199,13 @@ Dependency rules:
 
 ### 6.3 Zero-tutorial UX rules (hard requirements, check them on every screen)
 
-1. **One crowned thing per view** (D138). Exactly one primary-styled (signal orange) action per
-   view: the most useful thing to do now (the advisor picks it). Other affordable rows stay
-   enabled and secondary. **The shop never reorders** (D186): rows stay in a fixed order by rung,
-   the crown lights its card in place, and a Best buy chip in the counter plate scrolls to it. While the crown is on the Big Red, flotsam, a Toolbelt skill or the tap
-   hint, the collapsed drawer has no orange row; the expanded drawer always crowns one. The Big
-   Red is never primary-styled; danger style only for destructive actions.
+1. **No buying advice after onboarding; at most one orange action per view** (D138, D244). In
+   the shop a Buy is signal orange only while its kind of purchase is new to the player (the
+   first two lines, hires, Workshop levels, upgrades, eras; the advisor picks which), and "Tap
+   the tree." glows only until the first lines are bought; after that every affordable button
+   looks alike and nothing advises a purchase. Sheets and cards keep their one natural primary
+   (Collect, Build, Done). **The shop never reorders** (D186): rows stay in a fixed order by
+   rung. The Big Red is never primary-styled; danger style only for destructive actions.
 2. **Never a dead end.** Every panel closes or goes back; every result offers the natural
    follow-up.
 3. **Disabled buttons explain themselves.** A locked action stays visible, disabled, with the

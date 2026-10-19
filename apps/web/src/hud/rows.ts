@@ -521,39 +521,12 @@ export function affordableUpgrades(view: AdvisorView): number {
 }
 
 /**
- * The island's crown on these cards (CLAUDE.md 6.3 rule 1): the collapsed drawer and the desktop
- * column share the island's view, so they light the island's pick where it stands, and nothing
- * while the crown is elsewhere (the tap hint).
+ * The onboarding crown on these cards (CLAUDE.md 6.3 rule 1; D244): the one purchase of a kind
+ * still new to the player, lit where it stands; nothing once every kind has been bought twice.
+ * The drawer, collapsed or expanded, and the desktop column all show the same.
  */
 export function crownPick(rows: Row[], view: AdvisorView): Row[] {
-  if (view.pick.kind === "purchase") crownRow(rows, view.pick.choice);
-  return rows;
-}
-
-/**
- * Crowns exactly one button of an expanded tab (a view of its own, resolution 3.25): the sheet's
- * pick when it is on this tab, otherwise the tab's best score.
- */
-export function crownTab(rows: Row[], view: AdvisorView): Row[] {
-  if (crownRow(rows, view.sheet)) return rows;
-  let best = Number.POSITIVE_INFINITY;
-  let crown: (() => void) | null = null;
-  for (const row of rows) {
-    if (row.command && row.score < best) {
-      best = row.score;
-      crown = () => {
-        row.crowned = true;
-      };
-    }
-    const hire = row.hire;
-    if (hire && hire.score < best) {
-      best = hire.score;
-      crown = () => {
-        hire.crowned = true;
-      };
-    }
-  }
-  crown?.();
+  crownRow(rows, view.crown);
   return rows;
 }
 
@@ -742,10 +715,10 @@ export function researchTab(
   return { groups, rows: groups.flatMap((group) => group.rows) };
 }
 
-/** Where the island's pick lives: its tab and its card's key; null while the crown is elsewhere. */
-export function pickPlace(view: AdvisorView): { tab: Tab; key: string } | null {
-  if (view.pick.kind !== "purchase") return null;
-  const command = view.pick.choice.command;
+/** Where the lit purchase lives (D244): its tab and its card's key; null when nothing is lit. */
+export function crownPlace(view: AdvisorView): { tab: Tab; key: string } | null {
+  if (!view.crown) return null;
+  const command = view.crown.command;
   switch (command.type) {
     case "buy_line":
     case "hire_hand":

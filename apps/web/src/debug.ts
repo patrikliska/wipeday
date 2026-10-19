@@ -3,6 +3,7 @@
  * `__wipeDay.store.getState().demoPatch({ supplies: 1e6 })` (demo mode).
  */
 
+import { TIERS } from "@wipe-day/content/tiers";
 import { badgeMet } from "@wipe-day/domain/badges";
 import { arrivalKind } from "@wipe-day/domain/flotsam";
 import { crossing, gullAt } from "@wipe-day/domain/gulls";
@@ -118,6 +119,12 @@ export function installDebug(): void {
         hands: Math.max(meta.stats.hands, run.hands.length),
         taps: Math.max(meta.stats.taps, run.taps),
         felled: Math.max(meta.stats.felled, run.target.felled),
+        research: Math.max(
+          meta.stats.research,
+          Object.values(run.research).reduce((sum, n) => sum + n, 0),
+        ),
+        upgrades: Math.max(meta.stats.upgrades, run.upgrades.length),
+        eras: Math.max(meta.stats.eras, TIERS.indexOf(run.era)),
       };
       const base = { ...current, meta: { ...meta, stats } };
       const badges = { ...meta.badges };

@@ -226,8 +226,25 @@ const FRENZY_STATS = {
   gulls: 11,
   units: 1_640,
   research: 236,
+  upgrades: 12,
   eras: 3,
   collects: 4,
+};
+
+/** A new player's counters (`meta.stats` is patched whole). */
+const NEW_STATS = {
+  taps: 0,
+  hands: 0,
+  felled: 0,
+  flotsam: 0,
+  crits: 0,
+  frenzies: 0,
+  gulls: 0,
+  units: 0,
+  research: 0,
+  upgrades: 0,
+  eras: 0,
+  collects: 0,
 };
 
 /** Each R2 Feel shot's four skies (08-screens.md 8.3): suffix, the island's hour, weather. */
@@ -437,8 +454,8 @@ const SHOTS = [
     },
     ff: 1,
   },
-  // Saving up (D177): Loom Mk II scores best but is 87 s away, so the crown waits on the tap
-  // hint and the row leads the collapsed drawer unpainted; the expanded drawer crowns it.
+  // Saving up (D177): the advisor waits for Loom Mk II, but past onboarding nothing is lit and
+  // there is no tap hint (D244): every affordable row looks alike, collapsed or expanded.
   {
     name: "phone_saving",
     viewport: PHONE,
@@ -1365,36 +1382,6 @@ const SHOTS = [
     state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
     ff: 2.5,
   },
-  // The crown out of sight: the chip shows; pressed, the list scrolls to the card and pulses it.
-  {
-    name: "s4_desktop_best_buy",
-    viewport: [1440, 810],
-    state: {
-      time: at(1, 10.5),
-      wall: WALL,
-      weather: "clear",
-      ...STONE_RUN,
-      lines: { ...STONE_RUN.lines, tannery: 3, press: 1 },
-      hands: [...STONE_RUN.hands, "furnace"],
-    },
-    scrollRows: "end",
-    ff: 2.5,
-  },
-  {
-    name: "s4_desktop_best_buy_pressed",
-    viewport: [1440, 810],
-    state: {
-      time: at(1, 10.5),
-      wall: WALL,
-      weather: "clear",
-      ...STONE_RUN,
-      lines: { ...STONE_RUN.lines, tannery: 3, press: 1 },
-      hands: [...STONE_RUN.hands, "furnace"],
-    },
-    scrollRows: "end",
-    click: ".best-buy",
-    ff: 0.3,
-  },
   // Three purchases in a row: the cards keep their order (D186); the harness checks it.
   {
     name: "s4_phone_order_kept",
@@ -2177,6 +2164,114 @@ const SHOTS = [
     juice: [{ type: "buy_research", item: "spare_wicks", count: 1 }],
     juiceMs: 60,
   },
+  // P1, no buying advice after onboarding (D244): orange only while a kind of purchase is new.
+  {
+    // The first line: its Buy is orange, the one crown.
+    name: "p1_phone_onboard_line",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      runAge: 20,
+      supplies: 7,
+      made: 12,
+      taps: 12,
+      lines: {},
+      hands: [],
+      badgesFill: false,
+    },
+    ff: 1,
+    crowns: 1,
+  },
+  {
+    // Nothing to buy yet and new to the game: "Tap the tree." glows.
+    name: "p1_phone_onboard_tap",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      runAge: 5,
+      supplies: 1,
+      made: 1,
+      taps: 1,
+      lines: {},
+      hands: [],
+      badgesFill: false,
+    },
+    ff: 1,
+    crowns: 1,
+  },
+  {
+    // Two lines bought, the first hire still new: its Hire is orange.
+    name: "p1_phone_onboard_hire",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      era: "wood",
+      eraAt: { wood: 52 },
+      runAge: 80,
+      supplies: 2600,
+      made: 4200,
+      taps: 380,
+      target: { taps: 4, felled: 9 },
+      lines: { beachcomber: 12, campfire: 2 },
+      hands: [],
+      badgesFill: false,
+      meta: { stats: { ...NEW_STATS, units: 14, eras: 1, taps: 380, felled: 9 } },
+    },
+    ff: 1.5,
+    crowns: 1,
+  },
+  {
+    // Past onboarding: every affordable Buy alike, no chip, no hint, nothing lit.
+    name: "p1_desktop_after",
+    viewport: [1440, 810],
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+    crowns: 0,
+  },
+  {
+    name: "p1_phone_after",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+    crowns: 0,
+  },
+  {
+    name: "p1_phone_expanded_after",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { expanded: true },
+    },
+    ff: 2.5,
+    crowns: 0,
+  },
+  {
+    name: "p1_desktop_research_after",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...WORKSHOP_TIMBER,
+      ui: { tab: "research" },
+    },
+    ff: 2.5,
+    crowns: 0,
+  },
 ];
 
 /** Moves `time` by whole days (same hour) until the island has `weather` then. */
@@ -2199,39 +2294,49 @@ async function pickTime(page, time, weather) {
   );
 }
 
-/** Visible buttons and scene tap areas under 44 px, the target's box, and crowns. */
-async function audit(page, width) {
-  return page.evaluate((viewportWidth) => {
-    const problems = [];
-    const phone = viewportWidth <= 430;
-    const small = (box) => box.width < 44 || box.height < 44;
-    if (phone) {
-      for (const element of document.querySelectorAll("button, a, [role=button]")) {
-        const rect = element.getBoundingClientRect();
-        const style = getComputedStyle(element);
-        if (rect.width === 0 || rect.height === 0 || style.visibility === "hidden") continue;
-        if (small(rect)) {
-          const label =
-            element.getAttribute("aria-label") ?? element.textContent?.trim() ?? element.className;
-          problems.push(
-            `button "${label}" is ${Math.round(rect.width)}×${Math.round(rect.height)}`,
-          );
+/**
+ * Visible buttons and scene tap areas under 44 px, the target's box, and crowns: at most one,
+ * or exactly `want` when the shot says (`crowns: 0 | 1`, D244).
+ */
+async function audit(page, width, want) {
+  return page.evaluate(
+    ([viewportWidth, want]) => {
+      const problems = [];
+      const phone = viewportWidth <= 430;
+      const small = (box) => box.width < 44 || box.height < 44;
+      if (phone) {
+        for (const element of document.querySelectorAll("button, a, [role=button]")) {
+          const rect = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
+          if (rect.width === 0 || rect.height === 0 || style.visibility === "hidden") continue;
+          if (small(rect)) {
+            const label =
+              element.getAttribute("aria-label") ??
+              element.textContent?.trim() ??
+              element.className;
+            problems.push(
+              `button "${label}" is ${Math.round(rect.width)}×${Math.round(rect.height)}`,
+            );
+          }
+        }
+        for (const box of window.__wipeDay.hitBoxes?.() ?? []) {
+          if (small(box)) problems.push(`scene ${box.name} is ${box.width}×${box.height}`);
         }
       }
-      for (const box of window.__wipeDay.hitBoxes?.() ?? []) {
-        if (small(box)) problems.push(`scene ${box.name} is ${box.width}×${box.height}`);
-      }
-    }
-    const target = window.__wipeDay.target?.();
-    if (target && target.height < 120)
-      problems.push(`the target's box is ${target.height} px tall (N27: 120)`);
-    // A view is what is not inert: a sheet makes the rest of the HUD inert (6.3 rule 1).
-    const crowns = [...document.querySelectorAll(".primary, [data-crown]")].filter(
-      (element) => element.getBoundingClientRect().width > 0 && !element.closest("[inert]"),
-    ).length;
-    if (crowns > 1) problems.push(`${crowns} crowned elements (one per view)`);
-    return problems;
-  }, width);
+      const target = window.__wipeDay.target?.();
+      if (target && target.height < 120)
+        problems.push(`the target's box is ${target.height} px tall (N27: 120)`);
+      // A view is what is not inert: a sheet makes the rest of the HUD inert (6.3 rule 1).
+      const crowns = [...document.querySelectorAll(".primary, [data-crown]")].filter(
+        (element) => element.getBoundingClientRect().width > 0 && !element.closest("[inert]"),
+      ).length;
+      if (crowns > 1) problems.push(`${crowns} crowned elements (one per view)`);
+      if (want !== undefined && crowns !== want)
+        problems.push(`${crowns} crowned elements, the shot wants ${want}`);
+      return problems;
+    },
+    [width, want],
+  );
 }
 
 async function main() {
@@ -2258,7 +2363,7 @@ async function main() {
     // Entrance slides and fades would be caught half-way: shots show the settled layout.
     // A place joining the dock is frozen too, unless the shot is about it (`liveDock`).
     await page.addStyleTag({
-      content: `.drawer, .column, .dock, .sheet, .sheet-backdrop, .toast, .ticker-line, .best-buy${shot.liveDock ? "" : ", .dock-item.arrive"} { animation: none !important; transition: none !important; }`,
+      content: `.drawer, .column, .dock, .sheet, .sheet-backdrop, .toast, .ticker-line${shot.liveDock ? "" : ", .dock-item.arrive"} { animation: none !important; transition: none !important; }`,
     });
     await page.waitForFunction(() => (window.__wipeDay?.frames ?? 0) > 5, null, {
       timeout: 20_000,
@@ -2488,7 +2593,7 @@ async function main() {
     }
     const file = path.join(outDir, `${shot.name}.png`);
     await page.screenshot({ path: file });
-    const problems = [...extra, ...(await audit(page, width))];
+    const problems = [...extra, ...(await audit(page, width, shot.crowns))];
     done.push({ ...shot, file: `${shot.name}.png`, errors, problems });
     const notes = [
       errors.length ? `${errors.length} console errors` : "",

@@ -96,7 +96,10 @@ export function App() {
   );
 }
 
-/** Escape closes the top layer; B buys the crowned row (08-screens.md 1.7). */
+/**
+ * Escape closes the top layer (08-screens.md 1.7). No key buys: the game never picks a purchase
+ * for the player (D244).
+ */
 function onKey(event: KeyboardEvent): void {
   const target = event.target as HTMLElement | null;
   if (target?.closest("input, textarea, select")) return;
@@ -108,21 +111,5 @@ function onKey(event: KeyboardEvent): void {
       return;
     }
     if (closeTop()) event.preventDefault();
-    return;
-  }
-  if (
-    (event.key === "b" || event.key === "B") &&
-    !event.ctrlKey &&
-    !event.metaKey &&
-    !event.altKey
-  ) {
-    const pick = useAdvisor.getState().view?.pick;
-    const ui = useUi.getState();
-    if (pick?.kind !== "purchase" || !pick.choice.affordable || ui.sheet || ui.panel) return;
-    if (useWorld.getState().welcome) return;
-    const command = pick.choice.command;
-    useWorld
-      .getState()
-      .send(command.type === "buy_line" ? { ...command, count: ui.bulk } : command);
   }
 }

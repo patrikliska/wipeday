@@ -111,6 +111,8 @@ export interface Meta {
     units: number;
     /** Workshop levels bought. */
     research: number;
+    /** Shelf upgrades bought (Grip rungs, island upgrades). */
+    upgrades: number;
     /** Eras reached (Twig, the start, not counted). */
     eras: number;
     /** Welcome-back Collects pressed. */
@@ -165,6 +167,7 @@ export function newMeta(): Meta {
       gulls: 0,
       units: 0,
       research: 0,
+      upgrades: 0,
       eras: 0,
       collects: 0,
     },

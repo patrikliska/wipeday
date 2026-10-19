@@ -2720,3 +2720,20 @@ badge) rises into it with a gold glow; the toast's Morale pops once it has lande
 into the counter** for a crate's lump and a crow's catch too (three tokens, five for a Magpie,
 four for a crate), through the one helper Collect uses. Reduced motion keeps the flashes and the
 end ticks and drops the pops, the arrivals' rise (a fade) and the coins.
+
+### D244. No buying advice after onboarding (owner, R2 playtest, 2026-10-19)
+The owner, after playing R2 Feel: "I still hate how the game suggests best buy." D186 had stopped
+the crowned card moving and added a gold Best buy chip; the advice itself was the complaint. Asked
+how far to go, the owner chose to remove the chip and the pulse. Now **the game advises only while
+a kind of purchase is new**: `firstUse` (domain `advisor.ts`) is true while the player has bought
+that kind fewer than `advisor.hintUses` (2, `lines.json5`) times in their life, counted by
+`meta.stats` (units, hands, research, eras, and a new `upgrades` counter, which also reads the
+run's own for an older save). The advisor's pick is lit (its Buy or Hire orange, its card's
+border) only then; "Tap the tree." and the target's glow only until the first two units. After
+that every affordable button looks alike, at any tab, collapsed or expanded. Gone: the Best buy
+chip, the crown's 2.2 s pulse, the crown marks on tabs, the expanded drawer's "always crowns one"
+(resolution 3.25), the card pulse, and the **B** key (no key buys for the player). Kept: the
+domain's `crown()`/`choices()` (the simulator buys through them, so balance is untouched; the
+cards' "in 42s" read the same scores), the fixed order (D186), at most one orange per view, and
+the collapsed drawer keeping the lit card in its two-card window during onboarding. CLAUDE.md 6.3
+rule 1 is rewritten to match. The shots gain `crowns: 0 | 1` (an exact count) and `p1_*`.

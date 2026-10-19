@@ -611,7 +611,7 @@ export class Scene {
     this.sky.update(dt, fraction, palette, this.wind, 0, Math.max(rain, fog));
     this.terrain.update(dt, palette, this.wind, this.parallax);
     this.house.update(dt, darkness);
-    this.target.crowned = useAdvisor.getState().view?.pick.kind === "tap";
+    this.target.crowned = useAdvisor.getState().view?.tapHint === true;
     this.target.update(dt, this.wind, darkness, fog);
     this.stockpile.update(dt);
     this.hands.update(dt);

@@ -114,7 +114,12 @@ export const runRulesSchema = z.strictObject({
    * `saveSeconds` at the current income. Purchases are scored over a day the player is away
    * `away` of, even while they tap now: unmanned lines and taps stop then, hands work (D177).
    */
-  advisor: z.strictObject({ saveSeconds: factor, away: z.number().finite().min(0).lt(1) }),
+  advisor: z.strictObject({
+    saveSeconds: factor,
+    away: z.number().finite().min(0).lt(1),
+    /** A kind of purchase is new (its Buy orange) until bought this many times (D244). */
+    hintUses: z.number().int().positive(),
+  }),
 });
 export type RunRules = z.infer<typeof runRulesSchema>;
 

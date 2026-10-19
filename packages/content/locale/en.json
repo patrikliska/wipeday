@@ -188,7 +188,6 @@
     "menu": "Settings",
     "buff": "{name} ×{factor} · {time}",
     "buffs_more": "+{count}",
-    "best_buy": "Best buy",
     "lamp": "Night Shift",
     "lamp_of": "of {window}",
     "lamp_label": "Night Shift: your hands work {left} of {window} if you leave now"
@@ -383,7 +382,7 @@
     "aria_hire": "Hire {name} for {cost} supplies",
     "aria_upgrade": "Buy {name} for {cost} supplies",
     "aria_wait": "{name}: {reason}",
-    "crowned": "Best buy now"
+    "crowned": "Start here"
   },
   "workshop": {
     "hint": "Small upgrades for this run. Each level makes one thing better.",

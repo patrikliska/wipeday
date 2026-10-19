@@ -1,16 +1,19 @@
 /**
- * The crown on screen (02-the-run.md 11.1; CLAUDE.md 6.3 rule 1): the domain's advisor run over
- * the player's base and pace, recomputed when the base changes and once a second. The drawer,
- * the hint pill and the keyboard's B all read this one pick, so they never disagree.
+ * The advisor on screen (02-the-run.md 11.1; CLAUDE.md 6.3 rule 1): the domain's advisor run over
+ * the player's base and pace, recomputed when the base changes and once a second. It scores every
+ * purchase (the cards' "in 42s" and the era plate read it), but the game shows its pick only
+ * while that kind of purchase is new to the player (D244): `crown` and `tapHint` are what the
+ * HUD and the scene light, and after onboarding both stay empty.
  */
 import {
   type Choice,
   choices,
   crown,
+  firstUse,
   lasting,
   type Pick,
   type Player,
-  sheetPick,
+  tapHintLive,
 } from "@wipe-day/domain/advisor";
 import { shownRate, tapGlance } from "@wipe-day/domain/glance";
 import type { BaseState } from "@wipe-day/domain/state";
@@ -32,10 +35,12 @@ export interface AdvisorView {
   player: Player;
   /** Every purchase on offer, scored. */
   offered: Choice[];
-  /** The island's crown. */
+  /** The advisor's pick (what the simulator would do). Never shown as such. */
   pick: Pick;
-  /** The expanded drawer's crown: the pick, or the best score (resolution 3.25). */
-  sheet: Choice | null;
+  /** The purchase lit in orange: the pick, while its kind is new to the player (D244). */
+  crown: Choice | null;
+  /** "Tap the tree." and the target's glow: the pick is to tap and the player is new. */
+  tapHint: boolean;
 }
 
 export const useAdvisor = create<{ view: AdvisorView | null }>(() => ({ view: null }));
@@ -53,7 +58,10 @@ export function computeAdvisor(base: BaseState, now: number, nowMs: number): Adv
   const player: Player = { income: calmIncome, tapShare, tapRate };
   const offered = choices(content, calm, now, calmIncome, tapShare, tapRate);
   const pick = crown(content, calm, now, player, offered);
-  return { base, now, rate, income, player, offered, pick, sheet: sheetPick(pick, offered) };
+  const lit =
+    pick.kind === "purchase" && firstUse(content, base, pick.choice.command) ? pick.choice : null;
+  const tapHint = pick.kind === "tap" && tapHintLive(content, base);
+  return { base, now, rate, income, player, offered, pick, crown: lit, tapHint };
 }
 
 /** Keeps `useAdvisor` current: on every change of the base and every second. */

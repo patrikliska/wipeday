@@ -116,25 +116,6 @@
     0 0 18px var(--primary-glow);
 }
 
-/* The crown breathes every 2.2 s (08-screens.md 6.1); a steady glow under reduced motion. */
-.btn.primary.crowned {
-  animation: crown-pulse 2.2s ease-in-out infinite;
-}
-
-@keyframes crown-pulse {
-  0%,
-  100% {
-    box-shadow:
-      0 3px 0 var(--primary-lip),
-      0 0 14px var(--primary-glow);
-  }
-  50% {
-    box-shadow:
-      0 3px 0 var(--primary-lip),
-      0 0 26px rgba(255, 120, 30, 0.7);
-  }
-}
-
 .btn:disabled {
   cursor: default;
   color: var(--muted);
@@ -270,41 +251,11 @@
   white-space: nowrap;
 }
 
-/* Gold, never orange: the chip points at the crown, it is not one. */
-.best-buy {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  flex: 0 0 auto;
-  min-height: 44px;
-  padding: 0 12px 0 14px;
-  border-radius: 999px;
-  font: 700 13px / 1 var(--body);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink);
-  background: var(--supplies);
-  box-shadow: 0 2px 0 #9a6a00;
-  animation: chip-in 240ms var(--ease);
-}
-
 .tab:active,
 .segment:active,
 .dock-item:active {
   transform: translateY(1px);
   filter: brightness(1.15);
-}
-
-.best-buy:active {
-  transform: translateY(1px);
-  box-shadow: 0 1px 0 #9a6a00;
-}
-
-@keyframes chip-in {
-  from {
-    transform: scale(0.6);
-    opacity: 0;
-  }
 }
 
 .counter-sub {
@@ -548,10 +499,6 @@
   background: var(--supplies);
 }
 
-.tab .tab-crown {
-  color: var(--supplies);
-}
-
 .bulk-cycle {
   min-width: 60px;
   height: 44px;
@@ -627,20 +574,6 @@
     var(--lip),
     0 0 0 3px rgba(255, 106, 0, 0.25),
     var(--shadow-sm);
-}
-
-.card.pulse {
-  animation: card-pulse 900ms var(--ease);
-}
-
-@keyframes card-pulse {
-  30% {
-    transform: scale(1.025);
-    box-shadow:
-      var(--lip),
-      0 0 0 6px rgba(255, 106, 0, 0.45),
-      var(--shadow-sm);
-  }
 }
 
 /* A purchase lands (12-feel.md 3.2): the card flashes gold and its level pops. */
@@ -1064,10 +997,6 @@
     var(--lip),
     0 0 0 3px rgba(255, 106, 0, 0.25),
     var(--shadow-sm);
-}
-
-.tile.pulse {
-  animation: card-pulse 900ms var(--ease);
 }
 
 .tile.locked {
@@ -2814,7 +2743,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .btn.primary.crowned,
   .tap-hint {
     animation: none;
     box-shadow:
@@ -2827,9 +2755,6 @@
   .dock,
   .sheet,
   .ticker-line,
-  .best-buy,
-  .card.pulse,
-  .tile.pulse,
   .badge-toast {
     animation: fade 200ms ease;
   }
@@ -2849,7 +2774,6 @@
   }
 }
 
-.reduced .btn.primary.crowned,
 .reduced .tap-hint {
   animation: none;
   box-shadow:
@@ -2862,9 +2786,6 @@
 .reduced .dock,
 .reduced .sheet,
 .reduced .ticker-line,
-.reduced .best-buy,
-.reduced .card.pulse,
-.reduced .tile.pulse,
 .reduced .badge-toast {
   animation: fade 200ms ease;
 }

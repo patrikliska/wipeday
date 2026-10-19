@@ -9,8 +9,6 @@ import { counterHold, gameSeconds, useWorld } from "../state/store";
 import { useUi } from "../state/ui";
 import { buffName, content, duration, fmt, fmtFactor, fmtRate, t } from "../state/world";
 import { Icon, ResourceIcon } from "./Icon";
-import { pickPlace } from "./rows";
-import { shopOpen } from "./Shop";
 import { useRise } from "./util";
 
 /**
@@ -84,15 +82,13 @@ export function TopBar() {
               <span className="rate num" ref={rate} aria-hidden="true" />
             </span>
           </button>
-          {column ? <BestBuy /> : null}
         </div>
         {column ? (
           <Lamp />
         ) : (
-          // A phone's plate stays narrow: the lamp and the chip share the row under it.
+          // A phone's plate stays narrow: the lamp sits on the row under it.
           <div className="counter-sub">
             <Lamp />
-            <BestBuy />
           </div>
         )}
       </div>
@@ -107,37 +103,6 @@ export function TopBar() {
       </button>
       <BuffPills />
     </div>
-  );
-}
-
-/**
- * The Best buy chip (D186): while the crowned card is out of sight (scrolled away, or on the
- * other tab), one chip in the counter plate brings it into view and pulses it once. Gold, never
- * orange: the crown stays the only orange thing in the view.
- */
-function BestBuy() {
-  const column = useColumn();
-  // A primitive from the selector: a fresh object each time would re-render without end.
-  const tab = useAdvisor((state) => (state.view ? (pickPlace(state.view)?.tab ?? null) : null));
-  const open = useAdvisor((state) => shopOpen(state.view));
-  const inView = useUi((state) => state.crownInView);
-  // Under a panel, a sheet, the room or the expanded drawer (which crowns its own card).
-  const covered = useUi(
-    (state) =>
-      state.panel !== null || state.sheet !== null || state.house || (state.expanded && !column),
-  );
-  if (!tab || !open || inView || covered) return null;
-  return (
-    <button
-      type="button"
-      className="best-buy"
-      onClick={() => {
-        useUi.getState().focusCrown(tab);
-      }}
-    >
-      {t("hud.best_buy")}
-      <Icon kind="ui" id="chevron" size={14} className={column ? "" : "down"} />
-    </button>
   );
 }
 
@@ -233,11 +198,11 @@ function BuffPills() {
 }
 
 /**
- * The hint pill (08-screens.md 7.2): while the crown is on the tap hint (02-the-run.md 11.1
- * rule 7) it reads "Tap the tree." and is the view's one crown.
+ * The hint pill (08-screens.md 7.2): onboarding only (D244). While the player is new and there is
+ * nothing new to buy it reads "Tap the tree." and is the view's one crown.
  */
 export function TapHint() {
-  const tap = useAdvisor((state) => state.view?.pick.kind === "tap");
+  const tap = useAdvisor((state) => state.view?.tapHint === true);
   const era = useWorld((state) => state.base?.run.era);
   const panel = useUi((state) => state.panel);
   const sheet = useUi((state) => state.sheet);

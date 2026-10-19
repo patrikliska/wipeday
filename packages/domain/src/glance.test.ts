@@ -4,7 +4,7 @@
 import { loadContent, loadLocale } from "@wipe-day/content/load";
 import { contentPaths } from "@wipe-day/content/paths";
 import { describe, expect, it } from "vitest";
-import { choices, crown, type Player, sameRow, sheetPick } from "./advisor";
+import { choices, crown, firstUse, type Player, sameRow, sheetPick, tapHintLive } from "./advisor";
 import { fullRate, unitRate } from "./effects";
 import { breakdown, hustleAt, shownRate, tapGlance } from "./glance";
 import { lineOf } from "./lines";
@@ -251,5 +251,43 @@ describe("the Multipliers sheet (08 2.16)", () => {
     expect(tap.flat).toBeGreaterThan(0);
     expect(tap.hustle).toBeGreaterThan(1);
     expect(hustleAt(content, state, T0 + 3600)).toBe(0);
+  });
+});
+
+describe("onboarding: what the game still lights (D244)", () => {
+  const uses = content.run.advisor.hintUses;
+  const withStats = (stats: Partial<BaseState["meta"]["stats"]>, run = {}): BaseState => {
+    const base = fresh(run);
+    return { ...base, meta: { ...base.meta, stats: { ...base.meta.stats, ...stats } } };
+  };
+  const kinds = [
+    ["units", { type: "buy_line", line: "beachcomber", count: 1 }],
+    ["hands", { type: "hire_hand", line: "beachcomber" }],
+    ["research", { type: "buy_research", item: "sharper_hooks", count: 1 }],
+    ["eras", { type: "buy_era", era: "wood" }],
+    ["upgrades", { type: "buy_upgrade", upgrade: "stone_tools" }],
+  ] as const;
+
+  for (const [stat, command] of kinds) {
+    it(`lights ${command.type} until it was bought ${uses} times (${stat})`, () => {
+      for (let n = 0; n <= uses; n++)
+        expect(firstUse(content, withStats({ [stat]: n }), command), `${stat} ${n}`).toBe(n < uses);
+    });
+  }
+
+  it("counts a run's own upgrades for a save from before the counter", () => {
+    const command = { type: "buy_upgrade", upgrade: "iron_tools" } as const;
+    expect(firstUse(content, withStats({ upgrades: 0 }, { upgrades: ["a", "b"] }), command)).toBe(
+      false,
+    );
+  });
+
+  it("never lights anything else", () => {
+    expect(firstUse(content, fresh(), { type: "collect" })).toBe(false);
+  });
+
+  it("shows the tap hint only until the first lines are bought", () => {
+    expect(tapHintLive(content, withStats({ units: 0 }))).toBe(true);
+    expect(tapHintLive(content, withStats({ units: uses }))).toBe(false);
   });
 });

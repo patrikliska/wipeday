@@ -106,6 +106,8 @@ describe("buy_upgrade (02 5.2-5.4)", () => {
     expect(tapParts(content, state, T0).base).toBe(1);
     state = ok(run(state, { type: "buy_upgrade", upgrade: "stone_tools" }));
     expect(state.run.supplies).toBe(1e5 - 100);
+    // Counted for good, so onboarding knows the shelf is no longer new (D244).
+    expect(state.meta.stats.upgrades).toBe(1);
     expect(tapParts(content, state, T0 + 1).base).toBe(2);
     expect(run(state, { type: "buy_upgrade", upgrade: "stone_tools" })).toMatchObject({
       ok: false,
