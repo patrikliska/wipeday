@@ -323,8 +323,8 @@ under 0.6 (a content check); `multCeiling` bounds the folded tap multiplier with
   a second), holding 3 s after the last tap, then draining 2 a second. At its cap it trips the
   `frenzy` buff for 15 real seconds: **taps and lines ×6** (lines as speed ×1.5, so they visibly
   run faster, and output ×4). The sky warms, the bar burns down beside "FRENZY ×6", a sting plays;
-  the meter waits empty until the buff ends. The taps batch steps it tap by tap: the taps after
-  the trip take the buff.
+  the meter waits empty until the buff ends, when the bar ticks white and a falling sweep plays
+  (D243). The taps batch steps it tap by tap: the taps after the trip take the buff.
 - **The token bucket:** up to 15 credited taps a second, bursts of 45. Taps over it still shake
   the target but pay nothing, silently; an autoclicker earns what 15 taps do. Taps travel in
   batches (about 1 s or 30 taps); the counter reacts on the frame.

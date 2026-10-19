@@ -351,7 +351,7 @@ the owner's Feel brainstorm (D181-D192): the old R2-R7 are now R4-R9.
 | --- | --- |
 | R0 Foundations | backup, branch, docs, the cut, state v2, effects, settle, taps, simulator v2 (done) |
 | R1 The run | from the first tap to Sheet Metal; looks great on a phone (done) |
-| R2 Feel | the Feel Board's HUD, the dock, the card shop in fixed order, the hero tap, Frenzy, juice and sound, Workshop tiers 1-4, the 2 h Night Shift, badges, gulls, the ticker; the pixel scene |
+| R2 Feel | the Feel Board's HUD, the dock, the card shop in fixed order, the hero tap, Frenzy, juice and sound, Workshop tiers 1-4, the 2 h Night Shift, badges, gulls, the ticker; the pixel scene (done) |
 | R3 Cards | survivors and gear, Supply Drops, the Album, scrap as premium with boosts, daily quests, Workshop tiers 5-8 |
 | R4 The Big Red | the full loop; cut-over, friends play |
 | R5 Blast Map wave 2 | rings 4-6; months of goals |

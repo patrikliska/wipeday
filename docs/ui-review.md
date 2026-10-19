@@ -1682,3 +1682,58 @@ each with `_dusk`, `_night` and `_rain`; `s7_phone_frenzy`, `s7_phone_frenzy_fil
 - *Fine:* one crown per view everywhere, every tap area at least 44 px (the crow's 64 px button
   is in the audit), the dock gains its Logbook place only where a badge was earned
   (`phone_first_buy` still shows Island alone).
+
+## R2 Feel S8: the finish (2026-10-19)
+
+The juice checklist (`12-feel.md` 3.2) on S6-S7's features (D243), and `08-screens.md` 8.3's
+twelve R2 shots in day, dusk, night and rain: S7 had four of them in four skies, the other eight
+come as `s8_*` (desktop and phone hero, the drawer's cards, the Workshop on both, the Crew sheet,
+the welcome card's lamp, the ticker), plus `s8_desktop_frenzy_end`, `s8_phone_logbook_arrives`
+and `s8_desktop_tile_maxed` for the new juice. Reviewed as four-sky contact sheets and at full
+size.
+
+### Iteration 1
+- **Five places had no juice** (the audit against 3.2): a Frenzy's timer ran out without a tick
+  or a sound; Spare Wicks lengthened the window and the lamp did not react; the dock's counts
+  changed without a pop and a new place just appeared; a tile's last level looked like any other;
+  the toast's Morale line sat still. S7 also left the crow's catch without coins arcing into the
+  counter. All added (D243).
+- **`s8_desktop_frenzy_end` caught the buff still running**: a buff ends on a whole second, and
+  the shot ended it at +2.45 s; and the end tick (260 ms, fading from the first frame) read as a
+  grey bar, not a flash. The shot ends it on a whole second and freezes 80 ms after; the tick holds
+  full white for a third of 360 ms, then fades.
+- **`s8_desktop_tile_maxed` missed the flashes**: it waited 200 ms after the purchase and the
+  screenshot itself takes as long again, so the tile's and the lamp's gold had faded. At 60 ms the
+  lamp's flash, its popped "4h of 4h", the tile's flash and its flaring ring all show.
+- **The ticker's crop cut the dock's left edge** (the dock is centred in the scene, not the
+  page): the crop moved left and narrowed to the dock and its line.
+- **A welcome back in rain could arrive dry**: the harness picked the weather at the moment the
+  player left, three hours before the card. It now picks it for the arrival, whose sky the card
+  sits on.
+- *Fine:* dusk, night and rain keep every plate legible (the plates are opaque, so the sky never
+  reaches the text); one orange per view in every sky (Garden's card in the drawer, Spare Wicks'
+  tile, Done on the Crew sheet, Collect on the welcome card, the Best buy chip's card off-screen
+  on desktop); the dock reads Island, Workshop, Crew, Logbook in every sky; the Frenzy bar over
+  the target and "Keep tapping: Frenzy" read on the night sky.
+- *Noted, not changed:* the phone's Sheet Metal hero is busy (an airdrop with its hint, the
+  house's hint, ten count badges over the hands); each piece is its own rule (an airdrop every few
+  minutes, the house's hint until two openings) and the airdrop's hint is the one a new player
+  needs. The playtest decides whether the count badges thin out on a phone.
+
+### Iteration 2
+- *Fine:* `s8_desktop_frenzy_end` shows the ten segments white beside "Keep tapping: Frenzy";
+  `s8_desktop_tile_maxed` shows Spare Wicks at 6/6 flashing gold with its ring flaring, "All 6
+  levels", Done, and the lamp flashing with "4h of 4h" popped; `s8_phone_logbook_arrives` shows the
+  Logbook rising into the dock in gold beside Island with its count, under "Badge: Open for
+  Business" and "Morale ×1.00 → ×1.01".
+- **The new coin arcs crossed what the catch paid**: three tokens leaving the crow (four from a
+  crate) passed over "+30s of output" and "+2 min of supplies" while those were still landing.
+  They now wait half a second (`CATCH_COINS_DELAY_MS`), so the line reads first and the tokens
+  gather under it; Collect's pour is unchanged (`s5_phone_collect_coins`).
+
+### Iteration 3 (the whole suite, 197 shots, audit clean)
+- Run after every change but the coin arcs, whose three shots (the crow's catch, the crate's,
+  Collect) were run again after them. No console errors, no audit problems (one crown per view, every target at least 44 px, nothing
+  over its edge), and both order checks (`s4_phone_order_kept`, `s6_desktop_research_order`) keep
+  the cards' order through three purchases. The dock's pops do not show in older shots (a place
+  that joins after the page opened stays frozen unless the shot says `liveDock`).

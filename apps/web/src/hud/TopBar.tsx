@@ -11,6 +11,7 @@ import { buffName, content, duration, fmt, fmtFactor, fmtRate, t } from "../stat
 import { Icon, ResourceIcon } from "./Icon";
 import { pickPlace } from "./rows";
 import { shopOpen } from "./Shop";
+import { useRise } from "./util";
 
 /**
  * The top of the screen (12-feel.md 4; the Feel Board's counter plate): the supplies counter
@@ -147,10 +148,15 @@ function BestBuy() {
  */
 function Lamp() {
   const base = useWorld((state) => state.base);
-  const second = useWorld((state) => state.second);
   if (!base || base.run.hands.length === 0) return null;
-  const window = rates(content, base).nightShift;
-  const left = Math.max(0, Math.min(window, base.run.activeAt + window - Math.max(second, 0)));
+  return <LampPlate window={rates(content, base).nightShift} activeAt={base.run.activeAt} />;
+}
+
+/** The lamp's plate; when Spare Wicks lengthen the window it flashes and its time pops (3.2). */
+function LampPlate({ window, activeAt }: { window: number; activeAt: number }) {
+  const second = useWorld((state) => state.second);
+  const longer = useRise(window);
+  const left = Math.max(0, Math.min(window, activeAt + window - Math.max(second, 0)));
   const fill = window > 0 ? left / window : 0;
   return (
     <div
@@ -158,12 +164,15 @@ function Lamp() {
       role="img"
       aria-label={t("hud.lamp_label", { left: duration(left), window: duration(window) })}
     >
+      {longer > 0 ? (
+        <span key={`flash-${longer}`} className="card-flash" aria-hidden="true" />
+      ) : null}
       <Icon kind="ui" id="night_shift" size={18} className="lamp-icon" />
       <span className="lamp-name">{t("hud.lamp")}</span>
       <span className="lamp-bar" aria-hidden="true">
         <i style={{ transform: `scaleX(${fill})` }} />
       </span>
-      <span className="lamp-time num">
+      <span key={`time-${longer}`} className={`lamp-time num${longer > 0 ? " pop" : ""}`}>
         {duration(left)}
         <span className="lamp-of"> {t("hud.lamp_of", { window: duration(window) })}</span>
       </span>

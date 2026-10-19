@@ -765,7 +765,7 @@ export class Target {
    */
   drawFrenzy(
     box: { x: number; y: number; width: number; height: number },
-    view: { open: boolean; fill: number; left: number | null; label: string },
+    view: { open: boolean; fill: number; left: number | null; label: string; flash: number },
     pulse: number,
   ): void {
     const g = this.frenzyBar;
@@ -800,6 +800,15 @@ export class Target {
         color: colour,
         alpha: hot ? 0.8 + pulse * 0.2 : 0.95,
       });
+    }
+    // The buff's end: every segment shows white for a beat, then the empty meter is back.
+    if (view.flash > 0) {
+      for (let i = 0; i < segments; i++) {
+        g.rect(x0 + i * (seg + gap), y0, seg, height).fill({
+          color: 0xffffff,
+          alpha: view.flash,
+        });
+      }
     }
     this.frenzyLabel.tint = hot ? FRENZY_FILL : 0xf4f1e8;
     this.frenzyLabel.position.set(

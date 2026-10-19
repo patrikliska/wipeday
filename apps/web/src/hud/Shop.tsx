@@ -33,7 +33,7 @@ import {
   workshopShown,
 } from "./rows";
 import { Ticker } from "./Ticker";
-import { tierVar, vars } from "./util";
+import { tierVar, useRise, vars } from "./util";
 
 /** A drag on the handle longer than this opens or closes the drawer (CSS px). */
 const DRAG_PX = 30;
@@ -557,7 +557,11 @@ const Tile = memo(function Tile({ row }: { row: Row }) {
     >
       {rose > 0 ? <span key={`flash-${rose}`} className="card-flash" aria-hidden="true" /> : null}
       <div className="tile-head">
-        <span className="ring" aria-hidden="true">
+        <span
+          key={`ring-${rose}`}
+          className={`ring${rose > 0 && done ? " maxed" : ""}`}
+          aria-hidden="true"
+        >
           <Icon kind={row.icon.kind} id={row.icon.id} size={26} />
         </span>
         <span key={`lvl-${rose}`} className={`tile-level num${rose > 0 ? " pop" : ""}`}>
@@ -586,20 +590,6 @@ const Tile = memo(function Tile({ row }: { row: Row }) {
     </div>
   );
 }, sameCard);
-
-/**
- * How many times `value` has risen since the card mounted (0 at first): a new count restarts
- * the card's flash and pop, and a card that mounts with its count shows none.
- */
-function useRise(value: number): number {
-  const last = useRef(value);
-  const [rises, setRises] = useState(0);
-  useEffect(() => {
-    if (value > last.current) setRises((n) => n + 1);
-    last.current = value;
-  }, [value]);
-  return rises;
-}
 
 /** Cards are rebuilt each second: re-render only when something shown changed. */
 function sameCard(a: { row: Row }, b: { row: Row }): boolean {

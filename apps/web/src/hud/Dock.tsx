@@ -1,4 +1,5 @@
 import { badgeCount } from "@wipe-day/domain/badges";
+import { useRef } from "react";
 import { useAdvisor } from "../state/advisor";
 import { useColumn } from "../state/layout";
 import { useWorld } from "../state/store";
@@ -37,6 +38,8 @@ export function Dock() {
   const badgesSeen = useUi((state) => state.badgesSeen);
   const view = useAdvisor((state) => state.view);
   const playing = useWorld((state) => state.phase === "playing");
+  // The places the dock showed when the game opened; a place that joins later pops in (3.2).
+  const first = useRef<Set<Place> | null>(null);
   if (!playing) return null;
 
   const workshop = view !== null && workshopShown(view);
@@ -54,6 +57,8 @@ export function Dock() {
       ? [{ id: "logbook" as const, icon: "logbook", badge: Math.max(0, badges - badgesSeen) }]
       : []),
   ];
+  first.current ??= new Set(items.map((item) => item.id));
+  const shownAtStart = first.current;
   const go = (place: Place) => {
     const ui = useUi.getState();
     if (place === "workshop") {
@@ -77,7 +82,7 @@ export function Dock() {
           <button
             key={item.id}
             type="button"
-            className={`dock-item${current === item.id ? " on" : ""}`}
+            className={`dock-item${current === item.id ? " on" : ""}${shownAtStart.has(item.id) ? "" : " arrive"}`}
             aria-current={current === item.id ? "page" : undefined}
             aria-label={
               item.badge > 0
@@ -91,7 +96,12 @@ export function Dock() {
           >
             <Icon kind="nav" id={item.icon} size={column ? 30 : 26} />
             <span className="dock-label">{t(`nav.${item.id}`)}</span>
-            {item.badge > 0 ? <span className="badge num">{item.badge}</span> : null}
+            {item.badge > 0 ? (
+              // Keyed on the count, so each new thing pops the badge again.
+              <span key={item.badge} className="badge num pop">
+                {item.badge}
+              </span>
+            ) : null}
           </button>
         ))}
       </nav>

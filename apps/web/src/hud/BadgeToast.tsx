@@ -71,7 +71,7 @@ export function BadgeToast() {
               ? t("logbook.toast_many", { count: shown.ids.length })
               : t("logbook.toast", { name: t(`badge.${first.id}.name`) })}
           </span>
-          <span className="badge-toast-morale num">
+          <span className="badge-toast-morale num pop">
             {t("logbook.toast_morale", { from: from.toFixed(2), to: to.toFixed(2) })}
           </span>
         </span>

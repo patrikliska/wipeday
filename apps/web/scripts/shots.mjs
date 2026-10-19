@@ -264,6 +264,8 @@ const SKIES = [
  * `badgesFill` (the ids kept back; `false` for none) earns every badge the run already meets, by
  * default; `frenzy` (the
  * meter) and `buffs` are run fields like any other. On the shot, `sendGull` catches the crow.
+ *
+ * R2 Feel S8: `liveDock` lets a place that joins the dock animate in (frozen otherwise).
  */
 const PHONE_SHORT = [390, 664];
 
@@ -2023,6 +2025,158 @@ const SHOTS = [
     },
     ff: 2.5,
   },
+  // R2 Feel S8, the finish: the rest of 08-screens.md 8.3's R2 shots in day, dusk, night and
+  // rain (S7's four are above), then the juice added to S6-S7's features.
+  ...SKIES.flatMap(([sky, hour, weather]) => [
+    {
+      // 6 taps a second: chips onto the stockpile, the column's cards in fixed order with the
+      // crowned card scrolled out of sight, so the Best buy chip shows; the dock centred.
+      name: `s8_desktop_hero${sky}`,
+      viewport: [1440, 810],
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...STONE_RUN,
+        lines: { ...STONE_RUN.lines, tannery: 3, press: 1 },
+        hands: [...STONE_RUN.hands, "furnace"],
+      },
+      taps: [9, 1],
+      ff: 0.25,
+      scrollRows: "end",
+    },
+    {
+      // The target at a third of the height, the stockpile, the Frenzy bar filling, the
+      // drawer's two cards, the dock.
+      name: `s8_phone_hero${sky}`,
+      viewport: PHONE,
+      scale: 2,
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...FRENZY_RUN,
+        frenzy: { value: 55, at: at(1, hour) },
+      },
+      taps: [8, 1],
+      ff: 0.25,
+    },
+    {
+      name: `s8_phone_drawer_cards${sky}`,
+      viewport: PHONE,
+      scale: 2,
+      state: { time: at(1, hour), wall: WALL, weather, ...STONE_RUN, ui: { expanded: true } },
+      ff: 2.5,
+    },
+    {
+      // Twig and Timber's tiles with their rings, a crowned tile, Stone's group locked.
+      name: `s8_desktop_research${sky}`,
+      viewport: [1440, 810],
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...WORKSHOP_TIMBER,
+        ui: { tab: "research" },
+      },
+      ff: 2.5,
+    },
+    {
+      name: `s8_phone_research${sky}`,
+      viewport: PHONE,
+      scale: 2,
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...WORKSHOP_TIMBER,
+        ui: { expanded: true, tab: "research" },
+      },
+      ff: 2.5,
+    },
+    {
+      name: `s8_desktop_sheet_crew${sky}`,
+      viewport: [1440, 810],
+      state: { time: at(1, hour), wall: WALL, weather, ...STONE_RUN, ui: { panel: "crew" } },
+      ff: 2.5,
+    },
+    {
+      // Back after three hours: the 2 h lamp burnt out, one Collect. The sky is the arrival's.
+      name: `s8_welcome_back_lamp${sky}`,
+      viewport: PHONE,
+      scale: 2,
+      state: {
+        time: at(1, hour) - 3 * 3600,
+        wall: WALL,
+        weather,
+        ...TIMBER_YARD,
+        research: {},
+        away: 3 * 3600,
+      },
+      ff: 2.5,
+    },
+    {
+      name: `s8_ticker${sky}`,
+      viewport: [1440, 810],
+      state: { time: at(1, hour), wall: WALL, weather, ...TIMBER_YARD },
+      ff: 2.5,
+      clip: [240, 680, 560, 130],
+    },
+  ]),
+  {
+    // A Frenzy burns out: the bar's segments show white for a beat (and a falling sweep).
+    name: "s8_desktop_frenzy_end",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRENZY_RUN,
+      buffs: [{ kind: "frenzy", until: at(1, 10.5) + 2 }],
+      frenzy: { value: 0, at: at(1, 10.5) + 2 },
+    },
+    ff: 2.08,
+    clip: [240, 340, 480, 200],
+  },
+  {
+    // The first badge: the Logbook joins the dock, its count pops, the toast lands.
+    name: "s8_phone_logbook_arrives",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      supplies: 40,
+      made: 60,
+      taps: 40,
+      runAge: 30,
+      lines: {},
+      hands: [],
+      badgesFill: false,
+    },
+    liveDock: true,
+    ff: 1,
+    juice: [{ type: "buy_line", line: "beachcomber", count: 1 }],
+    juiceMs: 240,
+  },
+  {
+    // The last level of an item: its full ring flares in the era's colour.
+    name: "s8_desktop_tile_maxed",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...WORKSHOP_TIMBER,
+      supplies: 2e5,
+      research: { ...WORKSHOP_TIMBER.research, spare_wicks: 5 },
+      ui: { tab: "research" },
+    },
+    ff: 2.5,
+    juice: [{ type: "buy_research", item: "spare_wicks", count: 1 }],
+    juiceMs: 60,
+  },
 ];
 
 /** Moves `time` by whole days (same hour) until the island has `weather` then. */
@@ -2102,9 +2256,9 @@ async function main() {
     });
     await page.goto(url, { waitUntil: "networkidle" });
     // Entrance slides and fades would be caught half-way: shots show the settled layout.
+    // A place joining the dock is frozen too, unless the shot is about it (`liveDock`).
     await page.addStyleTag({
-      content:
-        ".drawer, .column, .dock, .sheet, .sheet-backdrop, .toast, .ticker-line, .best-buy { animation: none !important; transition: none !important; }",
+      content: `.drawer, .column, .dock, .sheet, .sheet-backdrop, .toast, .ticker-line, .best-buy${shot.liveDock ? "" : ", .dock-item.arrive"} { animation: none !important; transition: none !important; }`,
     });
     await page.waitForFunction(() => (window.__wipeDay?.frames ?? 0) > 5, null, {
       timeout: 20_000,
@@ -2114,7 +2268,9 @@ async function main() {
     });
     const { weather, ...state } = shot.state;
     const asked = state.time;
-    state.time = await pickTime(page, state.time, weather);
+    // A welcome back shows the arrival's sky, so its weather is picked for then.
+    const away = state.away ?? 0;
+    state.time = (await pickTime(page, state.time + away, weather)) - away;
     if (state.hustle) state.hustle = { ...state.hustle, at: state.time };
     // A weather pick moves whole days: running buffs and the Frenzy meter move with it.
     if (state.buffs)

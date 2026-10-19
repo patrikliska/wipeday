@@ -6,7 +6,7 @@ should think, and what "done" means**. It was rewritten in R0 from the approved 
 (`docs/redesign/11-roadmap.md`, which keeps the reasons); the W-phase roadmap and its results are
 in `docs/archive/roadmap-w.md`.
 
-## Where we are (2026-10-19, R2 Feel S7 done)
+## Where we are (2026-10-19, R2 Feel done)
 
 - **The live game is the redesign** since 2026-10-19 (D242): the owner had R2 Feel S7 (`redesign`
   at fdc5010) deployed to https://wipeday.patrikliska.dev, bringing the cut-over forward from R4.
@@ -53,9 +53,38 @@ in `docs/archive/roadmap-w.md`.
   run (D237, D241), crows and the Magpie from 8:00 (D238), 64 badges, Morale, the Logbook and its
   toast (D239), base output 0.34 × 4.5 a rung and N8/N9 in R2's bands, `shipped: "R2"` (D240);
   the crown on lasting rates (D200) built. S6 was committed first (b7ef8de).
-- **Next: R2 Feel S8, the finish** (`pnpm sim check --full`, the juice checklist on S6-S7, every R2
-  shot in every weather, the report). The owner's playtest is due, now with the whole active
-  layer. Retro Diffusion has about 4.39 USD left (S7 needed none: the crow is drawn in code).
+- **R2 Feel S8, the finish, is done, and with it R2 Feel** (2026-10-19; results below): `pnpm sim
+  check --full` passes, the juice checklist on S6-S7's features (D243), every R2 Feel shot in
+  day, dusk, night and rain.
+- **Next: the owner's playtest of R2 Feel** (phone and desktop, the whole active layer), then **R3
+  Cards** (plan mode first; `12-feel.md` 15's open questions answered before S1). Retro Diffusion
+  has about 4.39 USD left; R3's busts and gear art will need a top-up.
+
+### R2 Feel S8 results: the finish
+- **Balance** (`pnpm sim check --full`, 365 days × 3 seeds, 98 s, passes): **N4** 77-105 s (the
+  autoclicker 36 s); **N5**, **N6** 19 s; **N7** 100%; **N8** 100% / 15.5%; **N9** 5.43 / 5.55 / 5.61
+  at days 14 / 30 / 60 (rain 5.51 / 5.67 / 5.34; band 4-6); **N21** the fifth root; **N23** run 1
+  5.00e10-9.34e11 over 39 run 1s, largest number 2.95e25; **N3** (R2 row) the casual's first nuke
+  day 1 21:00. Beats: Timber 0:55, Mara 1:17, the Workshop 2:00, the crate 3:00, the first crow
+  8:04-8:59, Stone 8:45-9:46, Frenzy 41:09, Sheet Metal 41:04-45:09, the nuke 41:19-45:29. The
+  test profile inside `pnpm test`: same verdicts, 4.7 s.
+- **Juice** (D243): a Frenzy's end ticks (the bar white for a beat, a falling sweep, new event
+  `frenzy_ended` and cue `frenzy_end`); a Workshop item's last level flares its ring; Spare Wicks
+  flash the lamp and pop its time; the dock's counts pop and a place that joins rises in; the
+  toast's Morale pops; tokens arc into the counter after a crate and a crow, as after Collect.
+  `useRise` moved to `hud/util.ts`.
+- **Shots:** 35 new `s8_*`: the eight R2 shots S7 had not covered in four skies (desktop and phone
+  hero, the drawer's cards, the Workshop on both, the Crew sheet, the welcome card's lamp, the
+  ticker) and three juice shots (`s8_desktop_frenzy_end`, `s8_phone_logbook_arrives`,
+  `s8_desktop_tile_maxed`). The harness picks a welcome back's weather for the arrival and has
+  `liveDock`. The whole suite (197 shots) runs clean. Three review rounds in `docs/ui-review.md`.
+- **Done when**, item by item: N4-N7 with the Workshop (N31), N8, N9, N23 and the casual's day-1
+  nuke hold in both profiles; N18 by the content check and the API's window test; the domain tests
+  the phase names (research "max", Frenzy at the first, a middle and the last tap, the oracle
+  across Frenzy, the crow grid, badges once and never on a refusal, idempotency for `buy_research`
+  and `claim_gull`, path independence with the new fields) are in; the shop's order holds through
+  three purchases on both tabs; one crown per view in every shot; every bus event has its line in
+  `sounds.json5` (`sound/map.test.ts`).
 
 ### R2 Feel S7 results: the active layer
 - **Frenzy** (D237, D241): `targets.json5` `tap.frenzy`; the trip stepped tap by tap inside the
@@ -576,7 +605,7 @@ look great on a desktop and a phone (`12-feel.md` 1).
   N8 and N9 switched to their new bands and tuned. *Done* (D237-D241: Frenzy ×6 from 0:40, its
   bar over the target, Crow and Magpie, 64 badges).
 - **S8. The finish.** `pnpm sim check --full`; the juice checklist on S6-S7's features; every R2
-  Feel shot in every weather; the report.
+  Feel shot in every weather; the report. *Done* (D243).
 
 **Done when**
 

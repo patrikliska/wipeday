@@ -94,6 +94,8 @@ const HOUSE = { x: stageSpot(HOUSE_SPOT).x, y: GROUND + stageSpot(HOUSE_SPOT).y,
 const PILE = { x: stageSpot(STOCKPILE_SPOT).x, y: GROUND + stageSpot(STOCKPILE_SPOT).y };
 /** A fell shakes the camera for this long, a whole art pixel at a time (12-feel.md 3.1). */
 const SHAKE_MS = 60;
+/** A Frenzy's end: its bar shows white for this long (ms), held for the first third, then fading. */
+const FRENZY_END_TICK_MS = 360;
 const SHAKE: readonly (readonly [number, number])[] = [
   [1, 0],
   [-1, 1],
@@ -114,6 +116,11 @@ const BUMP_EVERY_MS = 250;
 const SUPPLIES_ICON = { icon: "supplies", iconColor: 0xffd25a } as const;
 /** Coins that arc into the counter after Welcome back's Collect (12-feel.md 3.2). */
 const COLLECT_COINS = 7;
+/** ...and after a crate's lump and a crow's catch (D243). */
+const CRATE_COINS = 4;
+const GULL_COINS = { crow: 3, elite: 5 };
+/** They wait until what the catch paid ("+30s of output") has been read. */
+const CATCH_COINS_DELAY_MS = 500;
 
 /** The house's hint ("Tap the cabin to go inside") retires after this many openings. */
 const HOUSE_HINT_OPENS = 2;
@@ -229,6 +236,9 @@ export class Scene {
     tenth: -1,
     view: null,
   };
+  /** The running Frenzy's end (its `until`) while one runs, and when the last one burned out. */
+  private frenzyRun: number | null = null;
+  private frenzyEndMs = -1e9;
   private hustle = {
     base: null as BaseState | null,
     second: -1,
@@ -615,7 +625,7 @@ export class Scene {
       this.lines.syncLights();
       this.lines.place(base, this.world.position.x, this.world.position.y, this.scale);
       this.drawHustle(base, now);
-      if (frenzy) this.drawFrenzy(base, frenzy, now);
+      if (frenzy) this.drawFrenzy(base, frenzy, now, nowMs);
       this.flotsam.update(base, now, nowMs, dt, this.camera(), Math.max(darkness, fog), jump > 5);
       this.gulls.update(
         base,
@@ -889,8 +899,20 @@ export class Scene {
   }
 
   /** The Frenzy bar over the target: the meter filling, or the running Frenzy burning down. */
-  private drawFrenzy(base: BaseState, view: FrenzyView, now: number): void {
+  private drawFrenzy(base: BaseState, view: FrenzyView, now: number, nowMs: number): void {
     const running = view.until !== null;
+    // Its timer runs out: the bar's end ticks and a falling sweep plays (12-feel.md 3.2). Not
+    // after a jump of the clock past it (a welcome back): nobody watched it burn.
+    if (running) this.frenzyRun = view.until;
+    else if (this.frenzyRun !== null) {
+      if (now >= this.frenzyRun && now - this.frenzyRun < 2) {
+        this.frenzyEndMs = nowMs;
+        emit({ type: "frenzy_ended" });
+      }
+      this.frenzyRun = null;
+    }
+    const since = (nowMs - this.frenzyEndMs) / FRENZY_END_TICK_MS;
+    const flash = running ? 0 : since < 1 / 3 ? 1 : clamp((1 - since) * 1.5, 0, 1);
     const left = running ? clamp(((view.until ?? now) - now) / view.seconds, 0, 1) : null;
     const label = running
       ? t("frenzy.running", { factor: fmtFactor(view.mult) })
@@ -900,7 +922,7 @@ export class Scene {
     const pulse = running && !reducedMotion() ? (Math.sin(now * 10) + 1) / 2 : 0;
     this.target.drawFrenzy(
       this.box,
-      { open: view.open, fill: view.value / view.cap, left, label },
+      { open: view.open, fill: view.value / view.cap, left, label, flash },
       pulse,
     );
   }
@@ -992,6 +1014,31 @@ export class Scene {
       ...SUPPLIES_ICON,
       ...(counter ? { fly: { ...counter, arrive: () => this.bumpCounter() } } : {}),
     });
+    this.coinsToCounter(
+      at.x,
+      at.y,
+      elite ? GULL_COINS.elite : GULL_COINS.crow,
+      nowMs,
+      CATCH_COINS_DELAY_MS,
+    );
+  }
+
+  /**
+   * Supplies tokens arc one after another from a world point into the counter, each bumping it
+   * (12-feel.md 3.2): Collect's pour, and a smaller one for a crate's lump and a crow. None under
+   * reduced motion, where the gain's own floater says it.
+   */
+  private coinsToCounter(x: number, y: number, count: number, nowMs: number, delayMs = 90): void {
+    const counter = this.counterPoint();
+    if (!counter || reducedMotion()) return;
+    for (let i = 0; i < count; i++) {
+      this.floaters.add("flotsam", x + (i - (count - 1) / 2) * 14, y - (i % 2) * 12, "", nowMs, {
+        size: this.floatSize(0.8),
+        ...SUPPLIES_ICON,
+        delayMs: delayMs + i * 70,
+        fly: { ...counter, arrive: () => this.bumpCounter() },
+      });
+    }
   }
 
   /** Flotsam caught (predicted): it pops, coins and a splash, and says what it gave. */
@@ -1022,6 +1069,7 @@ export class Scene {
         ...SUPPLIES_ICON,
         ...(counter ? { fly: { ...counter, arrive: () => this.bumpCounter() } } : {}),
       });
+      this.coinsToCounter(at.x, at.y - 20, CRATE_COINS, nowMs, CATCH_COINS_DELAY_MS);
       return;
     }
     let factor = 1;
@@ -1216,22 +1264,7 @@ export class Scene {
           ...SUPPLIES_ICON,
           ...(counter ? { fly: { ...counter, arrive: () => this.bumpCounter() } } : {}),
         });
-        if (!counter || reducedMotion()) break;
-        for (let i = 0; i < COLLECT_COINS; i++) {
-          this.floaters.add(
-            "flotsam",
-            HOUSE.x + (i - (COLLECT_COINS - 1) / 2) * 14,
-            HOUSE.y - 60 - (i % 2) * 12,
-            "",
-            nowMs,
-            {
-              size: this.floatSize(0.8),
-              ...SUPPLIES_ICON,
-              delayMs: 90 + i * 70,
-              fly: { ...counter, arrive: () => this.bumpCounter() },
-            },
-          );
-        }
+        this.coinsToCounter(HOUSE.x, HOUSE.y - 60, COLLECT_COINS, nowMs);
         break;
       }
       case "go_tap": {

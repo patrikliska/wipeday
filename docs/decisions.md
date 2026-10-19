@@ -2703,3 +2703,20 @@ sites 200, the API on Discord login with dev login off, the bot started. The old
 on each player's first look (`base_reset` logged, D133's safety net). From here deploys ship
 `redesign`, `main` keeps the old code, and R4's cut-over runbook shrinks to what is left (the
 legacy rows and the hall of fame from the saved database, if wanted).
+
+### D243. The juice checklist on the Workshop and the active layer (R2 Feel S8)
+`12-feel.md` 3.2 applied to S6-S7's features, completing D225. Already in place: a Workshop
+level's sound, its tile's gold flash and level pop, the lines it reaches flashing and its name
+rising (D235); Frenzy's sting, sparks, "FRENZY! ×6" and warm sky (D241); a crow's caw, its catch's
+coins, "+30s of output" and the gain flying to the counter (D238); the badge's chime and toast
+(D239). Added: **a bar's end ticks** where S6-S7 had bars without one: a Frenzy that burns out
+shows its ten segments white for a beat (held a third of 360 ms, then fading) with a falling
+sweep (`frenzy_ended`, a client-noticed event like `flotsam_lost`, cue `frenzy_end`, Kenney's
+`minimize_008`; not after a jump of the clock past it); a Workshop item's last level flares its
+full ring once in the era's colour. **The thing it changed flashes:** Spare Wicks lengthening the
+window flash the lamp and pop its time. **Counts pop:** a dock badge pops each time its count
+rises, and a place that joins the dock mid-game (the Workshop at 2:00, the Logbook at the first
+badge) rises into it with a gold glow; the toast's Morale pops once it has landed. **Coins arc
+into the counter** for a crate's lump and a crow's catch too (three tokens, five for a Magpie,
+four for a crate), through the one helper Collect uses. Reduced motion keeps the flashes and the
+end ticks and drops the pops, the arrivals' rise (a fade) and the coins.

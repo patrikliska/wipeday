@@ -167,6 +167,8 @@
 
     // Frenzy trips (D237): a rising sting.
     frenzy: { voice: "frenzy", files: ["kenney_interface/maximize_008"], gain: 0.7 },
+    // ...and burns out: the same sweep falling, quieter.
+    frenzy_end: { voice: "ui_close", files: ["kenney_interface/minimize_008"], gain: 0.45 },
     // Crows (D238): a caw as one flies in, wings and coins when it is caught.
     gull_in: { voice: "caw", gain: 0.5 },
     gull_caught: { voice: "gull_caught", files: ["kenney_rpg/cloth3"], gain: 0.8 },
@@ -201,6 +203,7 @@
     era_reached: { cue: "era", buzz: [30, 50, 30] },
     flotsam_claimed: { cue: "claim_{kind}", buzz: [15] },
     frenzy_tripped: { cue: "frenzy", buzz: [20, 40, 20, 40, 60] },
+    frenzy_ended: { cue: "frenzy_end" },
     gull_caught: { cue: "gull_caught", buzz: [15] },
     badge_unlocked: { cue: "badge" },
     // The welcome card's Collect plays its own coins (`collected`).

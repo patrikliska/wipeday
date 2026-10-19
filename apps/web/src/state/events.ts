@@ -33,6 +33,8 @@ export type GameEvent =
   | { type: "gull_arrived"; elite: boolean }
   /** A claim on crow `k` came too late: it flew on (no toast). */
   | { type: "gull_lost"; k: number }
+  /** A running Frenzy burned out (the scene saw its timer end): the bar's tick and a fall. */
+  | { type: "frenzy_ended" }
   /** The welcome card's Collect: `gain` flies into the counter. */
   | { type: "collected"; gain: number };
 
@@ -69,6 +71,7 @@ export const EVENT_TYPES = Object.keys({
   go_tap: 1,
   flotsam_lost: 1,
   collected: 1,
+  frenzy_ended: 1,
 } satisfies Record<GameEvent["type"], 1>) as GameEvent["type"][];
 
 /** A sheet opened or closed, a switch flipped: the panels say so, the sound answers. */
