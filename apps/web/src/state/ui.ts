@@ -12,7 +12,7 @@ import { create } from "zustand";
 export type Bulk = 1 | 10 | 100 | "max";
 export type Tab = "lines" | "upgrades" | "research";
 export type Panel = "crew" | "logbook" | "settings";
-export type Sheet = "multipliers" | "odds" | "credits";
+export type Sheet = "multipliers" | "odds" | "credits" | "era";
 export type Motion = "device" | "reduced" | "full";
 
 export const BULKS: readonly Bulk[] = [1, 10, 100, "max"];
@@ -24,7 +24,7 @@ export interface UiState {
   bulk: Bulk;
   /** A destination of the nav row over the island (Island is none). */
   panel: Panel | null;
-  /** A small sheet over everything (the Multipliers sheet, the Odds sheet). */
+  /** A small sheet over everything (the Multipliers sheet, the Odds sheet, the next era). */
   sheet: Sheet | null;
   /** "Bought this run" unfolded on the Upgrades tab. */
   boughtOpen: boolean;

@@ -78,8 +78,28 @@ in `docs/archive/roadmap-w.md`.
     badges (the R2 badges replace "pages").
 - **P1 is done** (2026-10-19; D244): no buying advice after onboarding; CLAUDE.md 6.3 rule 1
   rewritten (the owner's OK asked in the report).
-- **Next: P2, the era plate.** Retro Diffusion has about 4.39 USD (P3 needs about 1.5); R3 S3's busts and gear
-  need about 15 USD more.
+- **P2 is done** (2026-10-19; D245): the era plate in the top bar and the era sheet (results
+  below).
+- **Next: P3, mocks and takes** (the deep yard variants A and B; Retro Diffusion takes for Barrel
+  Smasher and the Campfire and Garden). Retro Diffusion has about 4.39 USD (P3 needs about 1.5);
+  R3 S3's busts and gear need about 15 USD more.
+
+### P2 results: the era plate
+- **Built:** the Lines tab without the era card; `eraPlate()` (rows.ts) and `hud/Era.tsx` (the
+  plate, the sheet, live figures); the plate on the phone's lamp row and in the desktop top bar's
+  centre column; `SheetFrame` with a disabled primary; `era_ready` (watcher in
+  `state/advisor.ts`, cue `era_ready`); the HUD's pixel art reads the scene's houses and targets
+  too.
+- **Tests:** rows.test.ts (no era card in the fixed order; the plate's figures, ready and saving;
+  Workshop items only once open; lit only as the onboarding pick; Armored hidden);
+  eraReady.test.ts (once per era a run, never on arrival or after a jump, again next run).
+- **Balance:** untouched (no domain or data change but the sound map); `pnpm sim check` passes.
+- **Shots:** 17 `p2_*` (phone, 360, laptop, 1440, 1600, night, ready, sheets saving and ready,
+  999Dc, onboarding, Sheet Metal without a plate, the build's juice), each with its crown count,
+  audit clean. The full suite ran clean through `s7_desktop_2k_frenzy` (about 160 shots) before
+  the machine ran low on memory; the rest (S8, P1, P2) still needs one full run. Notes in
+  `docs/ui-review.md` (P2).
+
 
 ### R2 Feel S8 results: the finish
 - **Balance** (`pnpm sim check --full`, 365 days × 3 seeds, 98 s, passes): **N4** 77-105 s (the

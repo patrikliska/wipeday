@@ -14,6 +14,7 @@ export function SheetFrame({
   title,
   head,
   primary,
+  primaryDisabled = false,
   onPrimary,
   onClose,
   closable = true,
@@ -25,6 +26,8 @@ export function SheetFrame({
   /** Under the title: a sub line or a big figure. */
   head?: ReactNode;
   primary: string;
+  /** The primary waits (an era still saving): shown, disabled, its label the reason (6.3 rule 3). */
+  primaryDisabled?: boolean;
   onPrimary: () => void;
   onClose: () => void;
   closable?: boolean;
@@ -63,7 +66,12 @@ export function SheetFrame({
         </header>
         <div className="panel-scroll">{children}</div>
         <footer className="panel-foot">
-          <button type="button" className="btn primary grow" onClick={onPrimary}>
+          <button
+            type="button"
+            className="btn primary grow"
+            disabled={primaryDisabled}
+            onClick={onPrimary}
+          >
             {primary}
           </button>
         </footer>

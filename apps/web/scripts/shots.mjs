@@ -247,6 +247,18 @@ const NEW_STATS = {
   collects: 0,
 };
 
+/** A player past onboarding: every kind bought twice and more, so nothing is lit (D244). */
+const VETERAN_STATS = {
+  ...NEW_STATS,
+  taps: 9000,
+  hands: 20,
+  felled: 300,
+  units: 600,
+  research: 60,
+  upgrades: 12,
+  eras: 6,
+};
+
 /** Each R2 Feel shot's four skies (08-screens.md 8.3): suffix, the island's hour, weather. */
 const SKIES = [
   ["", 10.5, "clear"],
@@ -282,7 +294,8 @@ const SKIES = [
  * default; `frenzy` (the
  * meter) and `buffs` are run fields like any other. On the shot, `sendGull` catches the crow.
  *
- * R2 Feel S8: `liveDock` lets a place that joins the dock animate in (frozen otherwise).
+ * R2 Feel S8: `liveDock` lets a place that joins the dock (and P2's next era plate) animate in
+ * (frozen otherwise).
  */
 const PHONE_SHORT = [390, 664];
 
@@ -2272,6 +2285,229 @@ const SHOTS = [
     ff: 2.5,
     crowns: 0,
   },
+  // P2, the era plate (D245): the next era in the top bar, its sheet with cost, result and Build.
+  {
+    // Saving for Sheet Metal: the plate beside the lamp, its bar in the era's colour.
+    name: "p2_phone_plate",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+    crowns: 0,
+    clip: [0, 0, 390, 140],
+  },
+  {
+    name: "p2_desktop_plate",
+    viewport: [1440, 810],
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+    crowns: 0,
+    clip: [0, 0, 1100, 110],
+  },
+  {
+    name: "p2_desktop_plate_1600",
+    viewport: DESKTOP,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+    crowns: 0,
+  },
+  {
+    name: "p2_laptop_plate",
+    viewport: LAPTOP,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+    crowns: 0,
+  },
+  {
+    // The narrowest phone: lamp and plate still share the row.
+    name: "p2_phone_360",
+    viewport: [360, 780],
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+    crowns: 0,
+    clip: [0, 0, 360, 140],
+  },
+  {
+    // Stone affordable from Timber: "Build" and the price, lit in the era's colour, not orange.
+    name: "p2_phone_plate_ready",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...TIMBER_YARD,
+      supplies: 3.4e6,
+      meta: { stats: VETERAN_STATS },
+    },
+    ff: 2.5,
+    crowns: 0,
+    clip: [0, 0, 390, 140],
+  },
+  {
+    name: "p2_desktop_plate_ready",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...TIMBER_YARD,
+      supplies: 3.4e6,
+      meta: { stats: VETERAN_STATS },
+    },
+    ff: 2.5,
+    crowns: 0,
+    clip: [0, 0, 1100, 110],
+  },
+  {
+    name: "p2_phone_plate_night",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 23), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+    crowns: 0,
+    clip: [0, 0, 390, 140],
+  },
+  {
+    // Saving: Build stays, disabled, saying how much is missing (6.3 rule 3).
+    name: "p2_phone_sheet",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, ui: { sheet: "era" } },
+    ff: 2.5,
+    crowns: 1,
+  },
+  {
+    name: "p2_desktop_sheet",
+    viewport: [1440, 810],
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, ui: { sheet: "era" } },
+    ff: 2.5,
+    crowns: 1,
+  },
+  {
+    // Affordable: what is left after, Build the Stone era.
+    name: "p2_phone_sheet_ready",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...TIMBER_YARD,
+      supplies: 3.4e6,
+      ui: { sheet: "era" },
+    },
+    ff: 2.5,
+    crowns: 1,
+  },
+  {
+    name: "p2_desktop_sheet_ready",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...TIMBER_YARD,
+      supplies: 3.4e6,
+      ui: { sheet: "era" },
+    },
+    ff: 2.5,
+    crowns: 1,
+  },
+  {
+    // Run 1's first era, new to the player: the plate is the one orange (D244).
+    name: "p2_phone_onboard_era",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      runAge: 55,
+      supplies: 1600,
+      made: 2400,
+      taps: 300,
+      target: { taps: 4, felled: 7 },
+      lines: { beachcomber: 12, campfire: 3 },
+      hands: ["beachcomber"],
+      badgesFill: false,
+      meta: { stats: { ...NEW_STATS, units: 15, hands: 1, taps: 300, felled: 7 } },
+    },
+    ff: 1.5,
+    crowns: 1,
+    clip: [0, 0, 390, 140],
+  },
+  {
+    // The longest numbers: 999Dc held, left after in the sheet.
+    name: "p2_phone_sheet_numbers_big",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      supplies: 9.99e35,
+      made: 9.99e35,
+      ui: { sheet: "era" },
+    },
+    ff: 2.5,
+    crowns: 1,
+  },
+  {
+    // Sheet Metal reached: Armored waits on a Wipe Day, so there is no plate (D140).
+    name: "p2_phone_metal_no_plate",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      era: "metal",
+      eraAt: { wood: 52, stone: 400, metal: 600 },
+    },
+    ff: 2.5,
+    crowns: 0,
+    clip: [0, 0, 390, 140],
+  },
+  {
+    // Build: the era's pop on the island, and the next era's plate sliding in.
+    name: "p2_phone_build_juice",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...TIMBER_YARD,
+      supplies: 3.4e6,
+      meta: { stats: VETERAN_STATS },
+    },
+    ff: 2.5,
+    liveDock: true,
+    juice: [{ type: "buy_era", era: "stone" }],
+    juiceMs: 140,
+    clip: [0, 0, 390, 420],
+  },
+  {
+    name: "p2_desktop_build_juice",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...TIMBER_YARD,
+      supplies: 3.4e6,
+      meta: { stats: VETERAN_STATS },
+    },
+    ff: 2.5,
+    liveDock: true,
+    juice: [{ type: "buy_era", era: "stone" }],
+    juiceMs: 140,
+    clip: [0, 0, 1100, 400],
+  },
 ];
 
 /** Moves `time` by whole days (same hour) until the island has `weather` then. */
@@ -2363,7 +2599,7 @@ async function main() {
     // Entrance slides and fades would be caught half-way: shots show the settled layout.
     // A place joining the dock is frozen too, unless the shot is about it (`liveDock`).
     await page.addStyleTag({
-      content: `.drawer, .column, .dock, .sheet, .sheet-backdrop, .toast, .ticker-line${shot.liveDock ? "" : ", .dock-item.arrive"} { animation: none !important; transition: none !important; }`,
+      content: `.drawer, .column, .dock, .sheet, .sheet-backdrop, .toast, .ticker-line, .era-fill${shot.liveDock ? "" : ", .dock-item.arrive, .era-plate.arrive"} { animation: none !important; transition: none !important; }`,
     });
     await page.waitForFunction(() => (window.__wipeDay?.frames ?? 0) > 5, null, {
       timeout: 20_000,

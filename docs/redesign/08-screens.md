@@ -164,7 +164,8 @@ most 600 px wide; the column layout starts at 1024 px wide with width/height at 
   right cycling `×1 → ×10 → ×100 → Max` (44 × 44). Tapping "See all" or dragging up expands.
 - **Expanded**: the drawer rises to y = 64 under the top bar, so the counter stays in view. The
   header holds the tabs **Lines** and **Upgrades** (44 px) and the bulk segmented control
-  (`×1 · ×10 · ×100 · Max`, 4 × 72 × 44). Lines lists the era row first, then lines 1-14 in order
+  (`×1 · ×10 · ×100 · Max`, 4 × 72 × 44). Lines lists the era row first (D245: the era is now a
+  plate in the top bar), then lines 1-14 in order
   with locked rows last. Drag down, tap the grabber or "Close" to collapse; Android back collapses
   too. Taps on the target need the collapsed drawer.
 - **One crown per view** (resolution 3.25). When the advisor's pick is a purchase, that row is
@@ -1240,7 +1241,7 @@ wins.
 | # | Crown goes to | What the player sees |
 | --- | --- | --- |
 | 1 | The Big Red: the first nuke at yield 10; later a counted nuke that doubles glass ever, whose run's glass rate fell below 80% of its peak, or whose run is 20 h old (resolution 1.9) | the hazard chip with the crown above the drawer; the lid rattles, steam |
-| 2 | The next era | the era row, orange, crown on its button |
+| 2 | The next era | the era row, orange, crown on its button (D245: the top bar's era plate) |
 | 3 | A hand for the top-earning unmanned line | the hand row, orange |
 | 4 | The best-payback purchase | that line or upgrade row, orange |
 | 5 | Waiting Blowback crates | a crown marker over the crates on the shore (R6) |

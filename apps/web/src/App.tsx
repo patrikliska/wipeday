@@ -3,6 +3,7 @@ import { BadgeToast } from "./hud/BadgeToast";
 import { Credits } from "./hud/Credits";
 import { DemoDrawer } from "./hud/DemoDrawer";
 import { Dock } from "./hud/Dock";
+import { EraSheet } from "./hud/Era";
 import { Login } from "./hud/Login";
 import { Multipliers } from "./hud/Multipliers";
 import { Odds } from "./hud/Odds";
@@ -84,6 +85,7 @@ export function App() {
             <Multipliers />
             <Odds />
             <Credits />
+            <EraSheet />
             <Toasts />
             <BadgeToast />
             <Welcome />

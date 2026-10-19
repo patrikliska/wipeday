@@ -8,6 +8,7 @@ import {
   cardCrowned,
   crownPick,
   crownPlace,
+  eraPlate,
   linesTab,
   milestoneNote,
   milestoneSpan,
@@ -63,7 +64,7 @@ const STONE = {
 };
 
 describe("the shop's fixed order (D186)", () => {
-  it("lists the lines by rung, the next era's card after them, then its lines locked", () => {
+  it("lists the lines by rung, then the next era's lines locked (the era is the plate)", () => {
     const rows = linesTab(viewOf(STONE), 1);
     expect(keys(rows)).toEqual([
       "line:beachcomber",
@@ -75,7 +76,6 @@ describe("the shop's fixed order (D186)", () => {
       "line:furnace",
       "line:tannery",
       "line:press",
-      "era:metal",
       "line:dock",
       "line:generator",
       "line:radio_mast",
@@ -110,8 +110,7 @@ describe("the shop's fixed order (D186)", () => {
     const timber = viewOf({ era: "wood", supplies: 0, lines: { beachcomber: 12, campfire: 3 } });
     const after = keys(linesTab(timber, 1));
     expect(before.slice(0, 3)).toEqual(after.slice(0, 3));
-    const loom = before.indexOf("line:loom");
-    expect(after.indexOf("line:loom")).toBe(loom - 1);
+    expect(after.indexOf("line:loom")).toBe(before.indexOf("line:loom"));
   });
 
   it("orders the Shelf by price", () => {
@@ -198,7 +197,7 @@ describe("the onboarding crown on the cards (CLAUDE.md 6.3 rule 1; D244)", () =>
 describe("cards", () => {
   it("never shows the Armored era before its Wipe Day (D140)", () => {
     const view = viewOf({ ...STONE, era: "metal" });
-    expect(linesTab(view, 1).some((row) => row.key.startsWith("era:"))).toBe(false);
+    expect(eraPlate(view)).toBeNull();
     expect(linesTab(view, 1).some((row) => row.key === "line:reactor")).toBe(false);
   });
 
@@ -319,5 +318,62 @@ describe("card words", () => {
     const earning = { ...view, income: 10 };
     expect(affordIn(100, earning)).toBe("in 10s");
     expect(affordIn(0, earning)).toBe("");
+  });
+});
+
+describe("the era plate and its sheet (D245)", () => {
+  it("tells the next era's price, how far along, and what it brings", () => {
+    const view = viewOf({ ...STONE, startedAt: T0 - 600 }, 6, VETERAN);
+    const plate = eraPlate(view);
+    expect(plate?.era).toBe("metal");
+    expect(plate?.name).toBe("Sheet Metal era");
+    expect(plate?.command).toEqual({ type: "buy_era", era: "metal" });
+    expect(plate?.price).toBe("20.0B");
+    expect(plate?.ready).toBe(false);
+    expect(plate?.progress).toBeCloseTo(31.2e6 / 2e10);
+    expect(plate?.eta).toMatch(/^in /);
+    expect(plate?.factor).toBe("2");
+    expect(plate?.lines.map((line) => line.id)).toEqual(["dock", "generator", "radio_mast"]);
+    expect(plate?.target).toEqual({ id: "sulfur", name: "Sulfur Vent" });
+    expect(plate?.house).toEqual({ from: "stone house", to: "shed" });
+    expect(plate?.workshop).toBe(content.research.filter((def) => def.era === "metal").length);
+    expect(plate?.left).toBeNull();
+    expect(plate?.need).toBe("20.0B");
+    expect(plate?.crowned).toBe(false);
+  });
+
+  it("says Build and what is left once the supplies reach the price", () => {
+    const view = viewOf({ era: "wood", supplies: 4e6, lines: { beachcomber: 40 } }, 6, VETERAN);
+    const plate = eraPlate(view);
+    expect(plate?.era).toBe("stone");
+    expect(plate?.ready).toBe(true);
+    expect(plate?.progress).toBe(1);
+    expect(plate?.eta).toBe("");
+    expect(plate?.left).toBe("1.00M");
+    expect(plate?.need).toBeNull();
+    expect(plate?.label).toContain("ready to build");
+  });
+
+  it("counts the Workshop's items only once the Workshop is open", () => {
+    expect(eraPlate(viewOf({ supplies: 10, startedAt: T0 - 60 }))?.workshop).toBe(0);
+    expect(eraPlate(viewOf({ supplies: 10, startedAt: T0 - 600 }))?.workshop).toBeGreaterThan(0);
+  });
+
+  it("is lit only while it is the onboarding pick (D244)", () => {
+    const view = viewOf({ supplies: 2e3, lines: { beachcomber: 12 } }, 6, VETERAN);
+    expect(eraPlate(view)?.crowned).toBe(false);
+    const lit = {
+      ...view,
+      crown: {
+        command: { type: "buy_era" as const, era: "wood" },
+        cost: 1.5e3,
+        gain: 1,
+        score: 1,
+        affordable: true,
+      },
+    };
+    expect(eraPlate(lit)?.crowned).toBe(true);
+    // The plate is always in sight: the collapsed drawer has nothing to follow.
+    expect(crownPlace(lit)).toBeNull();
   });
 });

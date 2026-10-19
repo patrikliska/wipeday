@@ -427,6 +427,15 @@ Workshop levels, upgrades and eras), then every affordable button looks alike. P
 hide or collapse rows on their own; locked rows stay visible with the reason. (R1's "the row leads
 the drawer", D165-D170, is withdrawn.)
 
+**The era plate (P2, D245).** The next era is not a card in the shop: it is a plate in the top
+bar, beside the lamp on a phone and after the lamp on desktop (centred in the bar when the row
+has room). Saving, it shows the era, "in 3h 12m" and a bar in the era's colour along its foot;
+affordable, "Build" and the price, lit in the era's colour, with a chime once per era a run. It
+never buys: it opens the era's sheet, which shows what you have, what is left after (or what is
+still needed and when at this pace), the lines it opens, every line ×2, the new target, the new
+house and the Workshop items, and Build. The plate is orange only while eras are new (D244), and
+gone when the next era is shut (Armored before Wipe Day #2, D140).
+
 **The dock (R2, D187, D199).** One bottom dock on every device, centred with larger icons on
 desktop. It appears at 0:00 with Island alone and grows as each destination unlocks: the Workshop
 when research opens (2:00), Crew at the first hand, the Logbook at the first badge; the Album

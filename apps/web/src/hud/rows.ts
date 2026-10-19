@@ -59,7 +59,7 @@ import {
   upgradeName,
 } from "../state/world";
 
-export type RowKind = "line" | "era" | "upgrade" | "research";
+export type RowKind = "line" | "upgrade" | "research";
 
 /** A button on a card: its two lines, whether it can be pressed, its spoken label. */
 export interface Button {
@@ -70,7 +70,7 @@ export interface Button {
 }
 
 export interface Row {
-  /** Stable across renders: `line:loom`, `era:stone`, `upgrade:handcarts`, `research:loom_mk`. */
+  /** Stable across renders: `line:loom`, `upgrade:handcarts`, `research:loom_mk`. */
   key: string;
   kind: RowKind;
   /** What the button sends; null while locked. */
@@ -99,7 +99,7 @@ export interface Row {
   gain?: string;
   /** The last line: the next milestone, a hint or the real reason it is locked. */
   note?: string;
-  /** The bar under the name (0..1): a line toward its next milestone, an era toward its price. */
+  /** The bar under the name (0..1): a line toward its next milestone, a Mk toward its units. */
   progress?: number;
   /** A line owned but not manned: its hand's hire, a second, smaller button on the card. */
   hire?: { command: Command; button: Button; crowned: boolean; score: number };
@@ -298,45 +298,81 @@ function lineRow(view: AdvisorView, line: LineDef, bulk: Bulk): Row {
   };
 }
 
-/** The next era's card, or null when there is none or a later phase's gate shuts it (D140). */
-function eraRow(view: AdvisorView): Row | null {
+/**
+ * The next era, as the plate in the top bar and its sheet (D245): what it costs, how far along,
+ * what it brings and what is left after. Null when there is none or a later phase's gate shuts
+ * it (Armored before its Wipe Day, D140): the plate is then gone.
+ */
+export interface EraPlate {
+  era: Tier;
+  /** "Stone era"; `short` is the era alone ("Stone"), for a phone's plate. */
+  name: string;
+  short: string;
+  command: Command;
+  cost: number;
+  /** The price, formatted as a cost. */
+  price: string;
+  /** Supplies held over the price, 0..1: the plate's bar. */
+  progress: number;
+  ready: boolean;
+  /** "in 3h 12m", or "tap to earn" when nothing comes in; empty when ready. */
+  eta: string;
+  /** Lit in orange: the player has bought an era fewer than twice and this is the pick (D244). */
+  crowned: boolean;
+  /** What it brings: every line's factor, the lines it opens, the new target, the house. */
+  factor: string;
+  lines: Array<{ id: string; name: string }>;
+  target: { id: string; name: string };
+  house: { from: string; to: string } | null;
+  /** Workshop items the era opens, counted once the Workshop is open (else 0). */
+  workshop: number;
+  /** What is left after, or still needed (whichever applies; the sheet writes them live). */
+  left: string | null;
+  need: string | null;
+  /** The plate's spoken label. */
+  label: string;
+}
+
+export function eraPlate(view: AdvisorView): EraPlate | null {
   const base = view.base;
   const era = nextEra(content, base);
   if (!era || eraGate(base, era)) return null;
   const cost = eraCost(content, base, era);
-  const opens = content.lines
-    .filter((line) => line.era === era.id)
-    .map((line) => lineName(line.id));
+  const supplies = base.run.supplies;
   let factor = 1;
   for (const effect of era.effects ?? []) if (effect.op === "more") factor *= effect.value;
-  const progress = Math.min(1, base.run.supplies / cost);
+  const ready = cost <= supplies;
+  const eta = ready ? "" : affordIn(cost, view);
   const name = t("row.era_name", { era: tierName(era.id) });
   const command: Command = { type: "buy_era", era: era.id };
+  const price = fmt(cost, "cost");
+  const houseFrom = t(`house.${base.run.era}`);
+  const houseTo = t(`house.${era.id}`);
   return {
-    key: `era:${era.id}`,
-    kind: "era",
-    command,
-    icon: { kind: "tier", id: era.id },
-    tier: era.id,
+    era: era.id,
     name,
-    sub: t("row.era_effect", { factor: fmtFactor(factor), lines: opens.join(", ") }),
-    note:
-      progress >= 1
-        ? t("row.era_ready")
-        : t("row.era_progress", {
-            percent: Math.floor(progress * 100),
-            time: affordIn(cost, view).replace(/^in /, ""),
-          }),
-    progress,
-    button: buyButton(
-      cost,
-      view,
-      t("row.buy"),
-      t("row.aria_upgrade", { name, cost: fmt(cost, "cost") }),
-    ),
-    locked: false,
-    crowned: false,
-    score: scoreOfCommand(view, command),
+    short: tierName(era.id),
+    command,
+    cost,
+    price,
+    progress: Math.min(1, Math.max(0, supplies / cost)),
+    ready,
+    eta,
+    crowned: view.crown !== null && sameRow(view.crown.command, command),
+    factor: fmtFactor(factor),
+    lines: content.lines
+      .filter((line) => line.era === era.id)
+      .map((line) => ({ id: line.id, name: lineName(line.id) })),
+    target: { id: era.target, name: t(`target.${era.target}.name`) },
+    house: houseFrom === houseTo ? null : { from: houseFrom, to: houseTo },
+    workshop: workshopShown(view) ? content.research.filter((def) => def.era === era.id).length : 0,
+    left: ready ? fmt(supplies - cost, "held") : null,
+    need: ready ? null : fmt(cost - supplies, "cost"),
+    label: t("era_plate.aria", {
+      era: name,
+      cost: price,
+      status: ready ? t("era_plate.ready") : eta,
+    }),
   };
 }
 
@@ -452,15 +488,13 @@ function crownRow(rows: Row[], choice: Choice | null | undefined): boolean {
 
 /**
  * The Lines tab, in its fixed order (D186): the lines of the eras reached by rung, then the next
- * era's card, then that era's lines, locked with their reason. Nothing moves when the crown does:
- * an era bought unlocks its lines where they already stand.
+ * era's lines, locked with their reason (the era itself is the top bar's plate, D245). Nothing
+ * moves when the crown does: an era bought unlocks its lines where they already stand.
  */
 export function linesTab(view: AdvisorView, bulk: Bulk): Row[] {
   const base = view.base;
   const rows: Row[] = [];
   for (const line of content.lines) if (eraOpen(base, line)) rows.push(lineRow(view, line, bulk));
-  const era = eraRow(view);
-  if (era) rows.push(era);
   const next = nextEra(content, base);
   if (next && !eraGate(base, next))
     for (const line of content.lines) if (line.era === next.id) rows.push(lockedLineRow(line));
@@ -715,7 +749,10 @@ export function researchTab(
   return { groups, rows: groups.flatMap((group) => group.rows) };
 }
 
-/** Where the lit purchase lives (D244): its tab and its card's key; null when nothing is lit. */
+/**
+ * Where the lit purchase lives (D244): its tab and its card's key; null when nothing is lit or it
+ * is the era, whose plate is always in sight.
+ */
 export function crownPlace(view: AdvisorView): { tab: Tab; key: string } | null {
   if (!view.crown) return null;
   const command = view.crown.command;
@@ -723,8 +760,7 @@ export function crownPlace(view: AdvisorView): { tab: Tab; key: string } | null 
     case "buy_line":
     case "hire_hand":
       return { tab: "lines", key: `line:${command.line}` };
-    case "buy_era":
-      return { tab: "lines", key: `era:${command.era}` };
+    // The era plate stands in the top bar, always in sight (D245).
     case "buy_upgrade":
       return { tab: "upgrades", key: `upgrade:${command.upgrade}` };
     case "buy_research":

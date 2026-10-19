@@ -16,9 +16,11 @@ import {
   tapHintLive,
 } from "@wipe-day/domain/advisor";
 import { shownRate, tapGlance } from "@wipe-day/domain/glance";
+import { eraCost, eraGate, nextEra } from "@wipe-day/domain/shelf";
 import type { BaseState } from "@wipe-day/domain/state";
 import { create } from "zustand";
 import { wall } from "./clocks";
+import { emit } from "./events";
 import { pace } from "./pace";
 import { gameSeconds, settledBase, useWorld } from "./store";
 import { content } from "./world";
@@ -64,8 +66,29 @@ export function computeAdvisor(base: BaseState, now: number, nowMs: number): Adv
   return { base, now, rate, income, player, offered, pick, crown: lit, tapHint };
 }
 
+/**
+ * The era plate's tick (D245): `era_ready` when the next era turns affordable while the player
+ * watches, once per era a run (saving around the price never repeats it). An era already
+ * affordable on arrival (the page loading, a welcome back's jump of the clock) is not news.
+ */
+export function eraReadyWatcher(): (previous: AdvisorView | null, next: AdvisorView) => void {
+  let told = "";
+  return (previous, next) => {
+    const base = next.base;
+    const era = nextEra(content, base);
+    if (!era || eraGate(base, era) || eraCost(content, base, era) > base.run.supplies) return;
+    const key = `${base.run.n}:${era.id}`;
+    if (key === told) return;
+    told = key;
+    const watched =
+      previous !== null && previous.base.run.n === base.run.n && next.now - previous.now <= 2;
+    if (watched && !useWorld.getState().welcome) emit({ type: "era_ready", era: era.id });
+  };
+}
+
 /** Keeps `useAdvisor` current: on every change of the base and every second. */
 export function startAdvisor(): () => void {
+  const eraReady = eraReadyWatcher();
   const update = () => {
     const state = useWorld.getState();
     const base = settledBase(state);
@@ -74,7 +97,10 @@ export function startAdvisor(): () => void {
       return;
     }
     const now = Math.max(Math.floor(gameSeconds()), base.run.settledAt);
-    useAdvisor.setState({ view: computeAdvisor(base, now, wall.nowMs()) });
+    const previous = useAdvisor.getState().view;
+    const view = computeAdvisor(base, now, wall.nowMs());
+    useAdvisor.setState({ view });
+    eraReady(previous, view);
   };
   update();
   return useWorld.subscribe((state, previous) => {

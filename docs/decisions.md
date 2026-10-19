@@ -2737,3 +2737,33 @@ domain's `crown()`/`choices()` (the simulator buys through them, so balance is u
 cards' "in 42s" read the same scores), the fixed order (D186), at most one orange per view, and
 the collapsed drawer keeping the lit card in its two-card window during onboarding. CLAUDE.md 6.3
 rule 1 is rewritten to match. The shots gain `crowns: 0 | 1` (an exact count) and `p1_*`.
+
+### D245. The era plate: the next era leaves the shop for the top bar (owner, R2 playtest, P2)
+The owner, after R2 Feel: the eras ("tiers") belong outside the shop list. Asked where, the owner
+chose a plate centred in the top bar (phone: beside the lamp) that opens a sheet with cost,
+result and Build. Now: the Lines tab lists the lines of the eras reached, then the next era's
+lines locked with "Opens in the X era"; no era card. **The plate** (`hud/Era.tsx`, data
+`eraPlate()` in `hud/rows.ts`) shows from the shop's first card, as the card did: the era's icon,
+its name (the era alone on a phone), "in 3h 12m" (or "tap to earn") and a bar in the era's colour
+along its foot, gliding once a second; affordable, "Build" and the price, its frame lit in the
+era's colour (a status, not advice: never orange after onboarding). It never buys: a purchase
+this size shows cost and outcome first (6.3 rule 4), so it opens **the era sheet**: the price,
+then what you have and what is left after (or what is still needed and when at this pace),
+written each frame from the settle like the counter so the two never disagree; then what it
+brings: the lines it opens (with their art), every line ×2, the new target (its art), the house
+it becomes (its art), and the Workshop items it opens (counted only once the Workshop is open);
+then **Build the X era**, disabled while saving with "Need 3.4M more" as its label and enabled in
+place when the supplies arrive. Build sends `buy_era` and closes the sheet, so the island's era
+pop and sound are seen; the next era's plate drops in. The sheet closes itself if its era goes
+(bought on another tab). **Placement:** on a phone in the row under the counter, the lamp and the
+plate 36 px tall (the lamp's bar 52 px, 40 under 375 px wide); on desktop the top bar is a
+three-column grid, so the plate stands centred when the row has room and just after the lamp
+otherwise (at 1440-1600 the counter and the lamp take more than half the row). **Onboarding**
+(D244): the plate is the view's one orange while eras are new and the era is the advisor's pick;
+`crownPlace` returns null for an era, since the plate is always in sight. **Juice:** `era_ready`,
+a client event fired by the advisor's watcher when the next era turns affordable while watched,
+once per era a run and never on arrival or after a jump of the clock: the plate's flash and a
+two-note chime (cue `era_ready`, Kenney's `confirmation_002`). Reduced motion keeps the flash
+and drops the drop-in (a fade) and the bar's glide. Armored stays hidden before its Wipe Day
+(D140): at Sheet Metal there is no plate. The domain is unchanged (`buy_era`, the advisor and
+the simulator), so balance is untouched.

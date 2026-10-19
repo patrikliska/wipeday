@@ -362,9 +362,6 @@
     "hand_first": "Keeps the {line} running, even while you're away.",
     "hand_later": "{line} runs without taps",
     "era_name": "{era} era",
-    "era_effect": "Everything ×{factor} · {lines}",
-    "era_progress": "{percent}% · in {time}",
-    "era_ready": "Ready to build",
     "unmanned": "Runs while you tap",
     "idle": "Idle · tap to run",
     "rate_tapped": "{rate} while tapped",
@@ -482,6 +479,28 @@
       "CC0-1.0": "Public domain (CC0)"
     },
     "voices": "Every other sound is played by the game itself, from oscillators and noise"
+  },
+  "era_plate": {
+    "build": "Build",
+    "ready": "ready to build",
+    "aria": "Next: the {era}, {cost} supplies, {status}. Show what it brings."
+  },
+  "era_sheet": {
+    "costs": "Costs {cost}",
+    "brings": "What it brings",
+    "everything": "Every line ×{factor}",
+    "everything_sub": "For the rest of the run",
+    "opens": "Opens {count} new lines",
+    "target": "New target: {target}",
+    "target_sub": "What you tap from now on",
+    "house": "Your {from} becomes a {to}",
+    "workshop": "{count} new Workshop items",
+    "have": "You have",
+    "left": "Left after",
+    "need": "Still needed",
+    "eta": "At this pace",
+    "build": "Build the {era}",
+    "build_need": "Need {need} more"
   },
   "mult": {
     "title": "Supplies per second",

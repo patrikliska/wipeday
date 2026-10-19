@@ -151,6 +151,8 @@
     upgrade: { voice: "buy", files: ["kenney_rpg/metalLatch"], gain: 0.7, detune: 40 },
     hand: { voice: "hand", gain: 0.9 },
     era: { voice: "era", gain: 0.9 },
+    // The next era can be built (D245): a bright two-note, once per era a run.
+    era_ready: { voice: "milestone", files: ["kenney_interface/confirmation_002"], gain: 0.55 },
     milestone: { voice: "milestone", files: ["kenney_interface/confirmation_001"], gain: 0.6 },
     roster: { voice: "milestone", files: ["kenney_interface/confirmation_003"], gain: 0.6 },
 
@@ -201,6 +203,7 @@
     researched: { cue: "upgrade" },
     hand_hired: { cue: "hand" },
     era_reached: { cue: "era", buzz: [30, 50, 30] },
+    era_ready: { cue: "era_ready" },
     flotsam_claimed: { cue: "claim_{kind}", buzz: [15] },
     frenzy_tripped: { cue: "frenzy", buzz: [20, 40, 20, 40, 60] },
     frenzy_ended: { cue: "frenzy_end" },

@@ -124,7 +124,7 @@
   box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
 }
 
-/* A crowned purchase still saving up (the era counting down) keeps its orange, dimmed. */
+/* A crowned purchase still saving up keeps its orange, dimmed. */
 .btn.primary:disabled {
   color: var(--on-primary);
   background: linear-gradient(180deg, var(--primary-hi), var(--primary));
@@ -274,7 +274,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 32px;
+  height: 36px;
   padding: 0 10px 0 8px;
   font: 600 12px / 1 var(--body);
   color: var(--text-2);
@@ -298,7 +298,8 @@
 
 .lamp-bar {
   position: relative;
-  width: 72px;
+  /* Narrow on a phone: the era plate shares the row (D245). */
+  width: 52px;
   height: 7px;
   border-radius: 4px;
   background: var(--sunk);
@@ -329,10 +330,25 @@
 
 /* Desktop: the Feel Board's counter, 64 px figures, the lamp beside it. */
 @media (min-width: 1024px) and (min-aspect-ratio: 6 / 5) {
+  /* The next era's plate stands centred when there is room, else just after the counter group. */
   .topbar {
     top: calc(10px + var(--safe-top));
     left: 14px;
     right: calc(var(--column-w) + 14px);
+    display: grid;
+    grid-template-columns: minmax(max-content, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+  }
+
+  .topbar > .menu {
+    grid-column: 3;
+    justify-self: end;
+    align-self: start;
+  }
+
+  .topbar > .era-plate {
+    grid-column: 2;
   }
 
   .counter-row {
@@ -639,10 +655,6 @@
   border-color: var(--edge-soft);
 }
 
-.card.kind-era {
-  border-color: color-mix(in srgb, var(--tier-color) 60%, var(--edge));
-}
-
 .thumb {
   position: relative;
   width: 60px;
@@ -657,10 +669,6 @@
     #2d251a 78%
   );
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
-}
-
-.kind-era .thumb {
-  color: var(--tier-color);
 }
 
 .card.locked .thumb > .pixel-art,
@@ -855,14 +863,6 @@
   inset: 0;
   background: linear-gradient(90deg, #8a6a2a, var(--supplies-hi));
   transform-origin: left;
-}
-
-.kind-era .mid .prog > i {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--tier-color) 55%, #2a2319),
-    var(--tier-color)
-  );
 }
 
 .mid .note {
@@ -1928,6 +1928,179 @@
   color: var(--supplies-hi);
 }
 
+/* --- the era sheet (D245): price, what is left, what it brings, Build --- */
+
+/* Still saving: Build waits as a plain plate, its label the reason (6.3 rule 3). */
+.era-sheet .panel-foot .btn.primary:disabled {
+  color: var(--text-2);
+  background: var(--plate-lo);
+  border-color: var(--edge);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+  opacity: 1;
+}
+
+.era-cost {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--supplies-hi);
+}
+
+.era-sums {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.era-sums > div {
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--sunk);
+  border: 1px solid var(--edge-soft);
+}
+
+.era-sums dt {
+  font: 600 11px / 1.2 var(--body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.era-sums dd {
+  margin: 4px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 900 20px / 1 var(--display);
+  color: var(--text);
+}
+
+.era-sums .total dd {
+  color: var(--supplies-hi);
+}
+
+.era-sheet-title {
+  margin: 0 0 8px;
+  font: 800 12px / 1 var(--body);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.era-brings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.era-brings > li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 5px 10px 5px 5px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--edge-soft);
+}
+
+.era-glyph {
+  flex: 0 0 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  overflow: hidden;
+  color: var(--tier-color);
+  background: radial-gradient(
+    circle at 50% 35%,
+    color-mix(in srgb, var(--tier-color) 30%, #6b5a3f),
+    #2d251a 78%
+  );
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.era-glyph.factor {
+  font: 900 22px / 1 var(--display);
+  color: #fff;
+  text-shadow: 0 2px 0 var(--ink);
+}
+
+.era-say {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.era-say b {
+  font: 700 14px / 1.25 var(--body);
+  color: var(--text);
+}
+
+.era-say .era-sub {
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--muted);
+}
+
+.era-brings > li.era-opens {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 7px;
+  padding: 8px 8px 8px 10px;
+}
+
+.era-lines {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.era-line-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 4px 6px 4px 4px;
+  border-radius: 9px;
+  color: var(--tier-color);
+  background: radial-gradient(
+    circle at 25% 40%,
+    color-mix(in srgb, var(--tier-color) 26%, #6b5a3f),
+    #2d251a 80%
+  );
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.era-line-chip > span {
+  min-width: 0;
+  font: 600 12px / 1.15 var(--body);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 720px) {
+  .era-sheet {
+    width: min(560px, 100%);
+  }
+
+  .era-brings {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .era-brings > li.era-opens {
+    grid-column: 1 / -1;
+  }
+}
+
 .mult-note {
   margin: 0 0 6px;
   font-size: 13px;
@@ -2742,6 +2915,219 @@
   }
 }
 
+/* --- the era plate (D245): the next era, beside the lamp on a phone, centred on desktop --- */
+
+.era-plate {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  flex: 0 1 auto;
+}
+
+.era-face {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  min-width: 0;
+  /* Room at the foot for the bar. */
+  padding: 0 11px 4px 8px;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--tier-color) 55%, var(--edge));
+  white-space: nowrap;
+}
+
+.era-plate:hover .era-face {
+  filter: brightness(1.08);
+}
+
+.era-plate:active .era-face {
+  transform: translateY(1px);
+}
+
+.era-face .card-flash {
+  border-radius: inherit;
+}
+
+.era-icon {
+  flex: 0 0 auto;
+  color: var(--tier-color);
+}
+
+.era-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+}
+
+.era-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font: 800 10px / 1 var(--body);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tier-color);
+}
+
+.era-eta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font: 600 12px / 1 var(--body);
+  color: var(--text);
+}
+
+/* Along the plate's foot, like a buff's line: it fills once a second, gliding between figures. */
+.era-bar {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 3px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.era-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--tier-color);
+  transform-origin: left;
+  transition: transform 1s linear;
+}
+
+.era-build {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+}
+
+.era-build-word {
+  font: 800 11px / 1 var(--body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.era-build .num {
+  font: 900 14px / 1 var(--display);
+  color: #fff;
+}
+
+/* Affordable: the plate lights in its era's colour (a status, not advice: never orange). */
+.era-plate.ready .era-face {
+  border-color: var(--tier-color);
+  box-shadow:
+    var(--lip),
+    var(--shadow),
+    0 0 14px color-mix(in srgb, var(--tier-color) 45%, transparent);
+}
+
+/* Onboarding only (D244): the crowned plate is the view's one orange. */
+.era-face.primary {
+  background: linear-gradient(180deg, var(--primary-hi), var(--primary));
+  border-color: var(--primary-edge);
+  box-shadow:
+    0 3px 0 var(--primary-lip),
+    0 0 18px var(--primary-glow);
+}
+
+.era-face.primary .era-icon,
+.era-face.primary .era-name,
+.era-face.primary .era-build-word,
+.era-face.primary .era-build .num,
+.era-face.primary .era-eta {
+  color: var(--on-primary);
+}
+
+.era-face.primary .era-fill {
+  background: var(--on-primary);
+}
+
+/* A new era's plate drops in from above (the next one after a build). */
+.era-plate.arrive {
+  animation: era-arrive 420ms var(--ease-back, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+@keyframes era-arrive {
+  from {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+}
+
+/* Under 375 px the lamp and the plate tighten so they still share the row. */
+@media (max-width: 374px) {
+  .lamp {
+    gap: 6px;
+    padding: 0 8px 0 6px;
+  }
+
+  .lamp-bar {
+    width: 40px;
+  }
+
+  .era-face {
+    padding: 0 9px 4px 6px;
+  }
+}
+
+@media (min-width: 1024px) and (min-aspect-ratio: 6 / 5) {
+  .era-plate {
+    min-height: 52px;
+    justify-self: center;
+  }
+
+  .era-face {
+    height: 52px;
+    gap: 10px;
+    padding: 0 18px 6px 12px;
+  }
+
+  .era-text {
+    gap: 5px;
+  }
+
+  .era-name {
+    font: 800 15px / 1 var(--display);
+    letter-spacing: 0.07em;
+    color: #fff;
+  }
+
+  .era-eta {
+    font-size: 14px;
+    color: var(--text-2);
+  }
+
+  .era-bar {
+    left: 12px;
+    right: 12px;
+    bottom: 5px;
+    height: 4px;
+  }
+
+  .era-build-word {
+    font-size: 12px;
+    color: var(--tier-color);
+  }
+
+  .era-build .num {
+    font-size: 18px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tap-hint {
     animation: none;
@@ -2769,8 +3155,13 @@
     animation: none;
   }
 
-  .dock-item.arrive {
+  .dock-item.arrive,
+  .era-plate.arrive {
     animation: fade 300ms ease;
+  }
+
+  .era-face .era-fill {
+    transition: none;
   }
 }
 
@@ -2801,8 +3192,13 @@
   animation: none;
 }
 
-.reduced .dock-item.arrive {
+.reduced .dock-item.arrive,
+.reduced .era-plate.arrive {
   animation: fade 300ms ease;
+}
+
+.reduced .era-face .era-fill {
+  transition: none;
 }
 
 /* Under a panel, a sheet or the welcome card the HUD is inert and its crown goes quiet: the
@@ -2814,6 +3210,24 @@
   box-shadow: 0 3px 0 var(--ink);
   animation: none;
   opacity: 1;
+}
+
+[inert] .era-face.primary {
+  color: var(--text);
+  background: var(--plate);
+  border-color: var(--edge-hi);
+  box-shadow: var(--lip), var(--shadow);
+}
+
+[inert] .era-face.primary .era-icon {
+  color: var(--tier-color);
+}
+
+[inert] .era-face.primary .era-build-word,
+[inert] .era-face.primary .era-build .num,
+[inert] .era-face.primary .era-eta,
+[inert] .era-face.primary .era-name {
+  color: var(--text);
 }
 
 [inert] .card.crown {

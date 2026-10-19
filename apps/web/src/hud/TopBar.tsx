@@ -8,13 +8,14 @@ import { useColumn } from "../state/layout";
 import { counterHold, gameSeconds, useWorld } from "../state/store";
 import { useUi } from "../state/ui";
 import { buffName, content, duration, fmt, fmtFactor, fmtRate, t } from "../state/world";
+import { EraPlate } from "./Era";
 import { Icon, ResourceIcon } from "./Icon";
 import { useRise } from "./util";
 
 /**
  * The top of the screen (12-feel.md 4; the Feel Board's counter plate): the supplies counter
- * with its `/s` and the Best buy chip, the Night Shift lamp beside it, the settings pill on the
- * right. React renders it once; a rAF loop writes the figures from the closed-form settle, so a
+ * with its `/s`, the Night Shift lamp beside it, the next era's plate (D245), the settings pill on
+ * the right. React renders it once; a rAF loop writes the figures from the closed-form settle, so a
  * ticking counter never re-renders the HUD (4.4). Held amounts floor. While the welcome-back card
  * is up the counter keeps its old value; Collect flies the gain in.
  */
@@ -86,12 +87,15 @@ export function TopBar() {
         {column ? (
           <Lamp />
         ) : (
-          // A phone's plate stays narrow: the lamp sits on the row under it.
+          // A phone's plate stays narrow: the lamp and the era plate sit on the row under it.
           <div className="counter-sub">
             <Lamp />
+            <EraPlate />
           </div>
         )}
       </div>
+      {/* Desktop: the next era centred between the counter and the settings pill (D245). */}
+      {column ? <EraPlate /> : null}
       <button
         type="button"
         className={`plate pill menu${panel === "settings" ? " active" : ""}`}

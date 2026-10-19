@@ -1757,3 +1757,50 @@ while its kind is new. New shots `p1_*`, each with an exact crown count (`crowns
 - *Noted:* during onboarding a lit purchase can sit on a tab not in sight (the first upgrade on
   the Shelf while Lines shows); the Shelf's count badge already says something is affordable
   there, so no tab mark came back.
+
+## P2: the era plate (D245, 2026-10-19)
+
+The owner: the eras belong outside the shop list, on a plate in the top bar that opens a sheet
+with cost, result and Build. New shots `p2_*`.
+
+### Iteration 1
+- **The sheet was too tall:** on a 390 × 844 phone and a 1440 × 810 desktop, "Left after" and
+  "Still needed" sat under the footer, so the outcome before commitment needed a scroll. The
+  figures moved to the top as two or three tiles (have, left after; or have, still needed, at
+  this pace); the rows of what it brings shrank (52 px, 42 px art), and on desktop they sit two
+  to a row with the lines across both. Everything now fits without a scroll on both.
+- **The phone's plate did not say what it was:** an era icon, an empty bar and "in 11h 56m". It
+  now names the era ("SHEET METAL", 10 px caps in the era's colour) over the time, with the bar
+  along its foot like a buff's line; at 0.2% the bar showed nothing, so a 3% sliver shows it is a
+  bar. The lamp grew to the plate's 36 px so the row reads as one.
+- **Desktop: the plate drifted right**, next to the settings pill, as a flex child with auto
+  margins. The top bar is now a three-column grid; the plate centres when the row has room and
+  follows the lamp otherwise (at 1440 and 1600 the counter and the lamp take more than half).
+- **"Ready" shots lit the plate orange:** correct for that state (the shots' Timber player had
+  bought one era, so eras were still new, D244); the "ready, not lit" shots now use a veteran's
+  counters (`VETERAN_STATS`), and `p2_phone_onboard_era` keeps the lit case.
+- *Fine:* "Every line ×2" duplicated the ×2 glyph as "Everything ×2" at first; reworded.
+
+### Iteration 2
+- **Text centred in the plate** (a button's default): left-aligned now, and the foot bar touched
+  the time's descenders; the face keeps 4 px (6 on desktop) for it.
+- **"Need 20.0B more" looked like a live orange button** (the dimmed-orange rule for a lit
+  purchase still saving). In the sheet a waiting Build is a plain plate with muted text; it turns
+  orange in place when the supplies arrive.
+- **"You have 32.0M" under a counter at 32.2M:** the sheet read the advisor's once-a-second view.
+  Have, left after and still needed are now written each frame from the settle, as the counter
+  is; they agree in every shot.
+
+### Iteration 3
+- Phone 390 and 360 (the lamp's bar 40 px under 375): lamp and plate share the row with room;
+  999Dc held and left after fit their tiles; Sheet Metal shows no plate (Armored waits on a
+  Wipe Day); night keeps the plate legible (its plate background, not the sky); the build juice
+  shows "Stone era · ×2" over the island and Sheet Metal's plate in place. One crown in each sheet
+  (Build), none on the plate after onboarding, one during it.
+- *Noted:* on desktops up to about 1800 px wide the plate follows the lamp rather than standing
+  in the bar's exact centre; moving the lamp under the counter would centre it but changes the
+  approved Feel Board layout, so it is left for the owner's look.
+- *Full suite:* clean (no audit problems, no console errors) through `s7_desktop_2k_frenzy`, about
+  160 shots, when the browser crashed for lack of memory; the last change before it (the plate's
+  CSS moved later in `hud.css` for the lint, the fill renamed `.era-fill`) is not yet re-shot.
+

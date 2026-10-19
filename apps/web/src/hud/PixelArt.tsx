@@ -1,21 +1,26 @@
 import { type ReactElement, useEffect, useState } from "react";
 
 /**
- * The scene's pixel art in the HUD (D188): a line's sprite on its shop card, drawn at the largest
- * whole zoom that fits `box` CSS px, nearest-neighbour, so a card shows exactly what the island
- * shows. The PNGs are the scene's own (`packages/content/art/scene/line/`); their sizes are read
- * once on load. A missing file draws `fallback` (the icon).
+ * The scene's pixel art in the HUD (D188): a line's sprite on its shop card, a house or a target
+ * on the era sheet, drawn at the largest whole zoom that fits `box` CSS px, nearest-neighbour, so
+ * the HUD shows exactly what the island shows. The PNGs are the scene's own
+ * (`packages/content/art/scene/`); their sizes are read once on load. A missing file draws
+ * `fallback` (the icon).
  */
-const urls = import.meta.glob<string>("../../../../packages/content/art/scene/line/*.png", {
-  query: "?url",
-  import: "default",
-  eager: true,
-});
+const urls = import.meta.glob<string>(
+  [
+    "../../../../packages/content/art/scene/line/*.png",
+    // The era sheet shows the house and the target an era brings (D245).
+    "../../../../packages/content/art/scene/house/*.png",
+    "../../../../packages/content/art/scene/target/*.png",
+  ],
+  { query: "?url", import: "default", eager: true },
+);
 
 const URLS = new Map<string, string>();
 for (const [path, url] of Object.entries(urls)) {
-  const id = path.split("/").at(-1)?.slice(0, -".png".length) ?? "";
-  URLS.set(`line/${id}`, url);
+  const [folder, file] = path.split("/").slice(-2);
+  URLS.set(`${folder}/${file?.slice(0, -".png".length) ?? ""}`, url);
 }
 
 const sizes = new Map<string, { w: number; h: number }>();
