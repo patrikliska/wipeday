@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import { useUi } from "../state/ui";
 import { content, fmt, fmtFactor, t } from "../state/world";
 import { Icon } from "./Icon";
+import { TodayQuests } from "./mocks/Mocks";
 
 /** A badge's icon as `<Icon>` wants it (`kind/id` in the data, D141). */
 export function BadgeIcon({ badge, size }: { badge: BadgeDef; size: number }) {
@@ -41,6 +42,7 @@ export function LogbookPanel({ base }: { base: BaseState }) {
   );
   return (
     <div className="logbook">
+      <TodayQuests />
       {BADGE_CHAPTERS.map((chapter) => {
         const badges = all.filter((badge) => badge.chapter === chapter);
         if (badges.length === 0) return null;

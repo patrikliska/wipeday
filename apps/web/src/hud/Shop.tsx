@@ -14,6 +14,7 @@ import { useWorld } from "../state/store";
 import { BULKS, type Bulk, reducedMotion, type Tab, useUi } from "../state/ui";
 import { content, t } from "../state/world";
 import { Icon, ResourceIcon } from "./Icon";
+import { OrdersCard } from "./mocks/Mocks";
 import { PixelArt } from "./PixelArt";
 import {
   affordableUpgrades,
@@ -324,6 +325,7 @@ function CardList({
   }
   return (
     <div className="cards" role="tabpanel" ref={list}>
+      {tab === "lines" ? <OrdersCard /> : null}
       {rows.length === 0 ? <p className="empty">{t("drawer.empty")}</p> : null}
       {rows.map((row) => (
         <Card key={row.key} row={row} />

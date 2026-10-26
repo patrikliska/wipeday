@@ -6,6 +6,7 @@ import { Dock } from "./hud/Dock";
 import { EraSheet } from "./hud/Era";
 import { Login } from "./hud/Login";
 import { Multipliers } from "./hud/Multipliers";
+import { MockLayer } from "./hud/mocks/Mocks";
 import { Odds } from "./hud/Odds";
 import { Panels } from "./hud/Panels";
 import { RoomBar } from "./hud/RoomBar";
@@ -86,6 +87,7 @@ export function App() {
             <Odds />
             <Credits />
             <EraSheet />
+            <MockLayer />
             <Toasts />
             <BadgeToast />
             <Welcome />

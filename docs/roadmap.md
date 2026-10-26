@@ -6,7 +6,7 @@ should think, and what "done" means**. It was rewritten in R0 from the approved 
 (`docs/redesign/11-roadmap.md`, which keeps the reasons); the W-phase roadmap and its results are
 in `docs/archive/roadmap-w.md`.
 
-## Where we are (2026-10-20, R3 Cards S1 done)
+## Where we are (2026-10-26, R3 Cards S1 done, missions mocks for the pick)
 
 - **The live game is the redesign** since 2026-10-19 (D242): the owner had R2 Feel S7 (`redesign`
   at fdc5010) deployed to https://wipeday.patrikliska.dev, bringing the cut-over forward from R4.
@@ -91,8 +91,16 @@ in `docs/archive/roadmap-w.md`.
   owner's answers (scrap from the daily quests, the Album full in about two weeks, about 15 USD of
   art before S3).
 - **R3 S1, cards and drops in the domain, is done** (2026-10-20; D249-D254; results below).
-- **Next: R3 S2** (scrap, boosts and the daily quests). Retro Diffusion has about 2.59 USD;
-  S3's busts and gear need about 15 USD more.
+- **The missions mocks (2026-10-26)**: the owner's research on the AdVenture trilogy
+  (`docs/redesign/adventure-trilogy-research.md`; the owner likes Communist and Ages) was compared with the
+  design in `docs/redesign/13-adventure.md`: the run is AdCap's already, the cards are R3's, and
+  the one structural gap is a mission list per run. Three variants were mocked behind `?mock=`
+  (`apps/web/src/hud/mocks/`; shots `mock_*`; the picks page `preview/missions/index.html`):
+  A daily quests (the R3 plan), B Work Orders per run (any five of eight fuel the Kettle and
+  crown the Big Red), C both; plus the postcard with Glow and the crew side by side. The pick
+  decides R3 S2's shape; nothing is decided yet.
+- **Next: the owner's pick, then R3 S2** (scrap, boosts, and quests or orders as picked). Retro
+  Diffusion has about 2.59 USD; S3's busts and gear need about 15 USD more.
 
 ### R3 S1 results: cards and drops in the domain
 - **Built:** `content/data/cards.json5` (14 survivors with traits, 30 gear cards, the crew sets

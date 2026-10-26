@@ -1894,3 +1894,37 @@ S1 is the domain; the only visible change is the new airdrop kind and its Odds l
   1.1%") wraps to two lines at 390 px like the Drift Crate's; the percentages stay aligned.
 - *Left for S3:* the pixel PNG for the locker (item icons, D188) and the reveal's own sound (the
   catch plays the confirmation cue for now).
+
+## Missions mocks: quests, Work Orders, both, the postcard (2026-10-26)
+
+Shots `mock_*` (13: the Stone run at 10:30 with six hands, phone and desktop), the picks page
+`preview/missions/index.html`. Static screens behind `?mock=` for the owner's pick before R3 S2
+(`docs/redesign/13-adventure.md`); nothing in the domain.
+
+### Iteration 1
+- **The Kettle line was below the fold** on both devices: eight order rows filled the sheet and
+  the box saying "any 5 of the 8 fuel the Kettle" (and, when done, "the Big Red is lit") sat under
+  the primary, cut off. It is the point of the variant. Moved above the list, right under the
+  head's steps.
+- **"Fell the ore seam 20 times" truncated** at 390 px ("20 ti…") beside its reward chip. Shorter
+  ("Fell the seam 20 times") and the name may wrap to two lines.
+- **The orders card's sub line wrapped** ("Put 6 hands on shift · ready to claim", and the done
+  text) and pushed the card past 80 px on both devices. Shorter: "· ready", "Kettle fuelled · the
+  Big Red is lit".
+- **The postcard's secondary ("Blast Map · 5 affordable") was off the phone screen** and the
+  "+2 gear" tile wrapped alone onto a second row. The crew is a six-column grid; the front
+  picture is shorter (300×96); the back's gaps tightened. Everything fits above Rebuild at 390 px.
+- *Fine:* one primary per view (Claim 1 reward, Done, Rebuild); the ready row glows gold and the
+  claimed rows strike through; the steps bar reads at a glance on the card and in the sheet's
+  head; the reward chips (a locker for a drop, the scrap nut for scrap) line up at one width.
+
+### Iteration 2
+- The Kettle box leads the sheet: dashed and quiet while open, red-bordered when fuelled, with
+  the Big Red's icon; the "5 of 5" head fills all five steps.
+- Names fit on one line at 390 px; the done card's desktop sub wraps to two short lines (kept).
+- The postcard on a phone shows the picture, the four figures, Glow and Crew side by side, the
+  five portraits with stars, NEXT and the secondary, then Rebuild; on desktop it is one card
+  with air around it.
+- *Left for the build:* the "1" ready badge on the orders card borrows the level badge's shape
+  (reads as "level 1" at a glance): a tick or a star would be its own mark; the crater picture is
+  a placeholder for R4's `postcardSvg`.

@@ -2592,6 +2592,112 @@ const SHOTS = [
     state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, ui: { sheet: "odds" } },
     ff: 2.5,
   },
+  // The missions mocks (2026-10-26; hud/mocks): the owner's pick before R3 S2. `query` carries
+  // the dev switch; the Stone run at 10:30 with six hands is the mocks' own fixture.
+  ...(() => {
+    const stone = { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN };
+    const logbook = { ...stone, ui: { panel: "logbook" } };
+    return [
+      {
+        name: "mock_quests_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: logbook,
+        query: "mock=quests",
+        ff: 0.5,
+      },
+      {
+        name: "mock_quests_desktop",
+        viewport: DESKTOP,
+        state: logbook,
+        query: "mock=quests",
+        ff: 0.5,
+      },
+      {
+        name: "mock_orders_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: stone,
+        query: "mock=orders",
+        ff: 0.5,
+      },
+      {
+        name: "mock_orders_desktop",
+        viewport: DESKTOP,
+        state: stone,
+        query: "mock=orders",
+        ff: 0.5,
+      },
+      {
+        name: "mock_orders_sheet_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: stone,
+        query: "mock=orders&view=sheet",
+        ff: 0.5,
+      },
+      {
+        name: "mock_orders_sheet_desktop",
+        viewport: DESKTOP,
+        state: stone,
+        query: "mock=orders&view=sheet",
+        ff: 0.5,
+      },
+      {
+        name: "mock_orders_done_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: stone,
+        query: "mock=orders&view=done",
+        ff: 0.5,
+      },
+      {
+        name: "mock_orders_done_desktop",
+        viewport: DESKTOP,
+        state: stone,
+        query: "mock=orders&view=done",
+        ff: 0.5,
+      },
+      {
+        name: "mock_both_sheet_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: stone,
+        query: "mock=both&view=sheet",
+        ff: 0.5,
+      },
+      {
+        name: "mock_both_sheet_desktop",
+        viewport: DESKTOP,
+        state: stone,
+        query: "mock=both&view=sheet",
+        ff: 0.5,
+      },
+      {
+        name: "mock_both_logbook_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: logbook,
+        query: "mock=both",
+        ff: 0.5,
+      },
+      {
+        name: "mock_postcard_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: stone,
+        query: "mock=postcard",
+        ff: 0.5,
+      },
+      {
+        name: "mock_postcard_desktop",
+        viewport: DESKTOP,
+        state: stone,
+        query: "mock=postcard",
+        ff: 0.5,
+      },
+    ];
+  })(),
 ];
 
 /** Moves `time` by whole days (same hour) until the island has `weather` then. */
