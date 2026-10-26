@@ -4,7 +4,8 @@
 research `adventure-trilogy-research.md` (beside this file) (AdVenture Capitalist, Communist and Ages, plus other
 idle games' mechanics); the owner likes **AdVenture Communist and Ages** most. The mocks for the
 pick are behind `?mock=` (`apps/web/src/hud/mocks/`, shots `mock_*`, the picks page
-`preview/missions/index.html`). Nothing in this file is decided; the pick becomes a D-number.
+`preview/missions/index.html`). **Decided 2026-10-26, D255:** C (both), the fuelled set crowns the Big Red, cards carry about as
+much as Glow, the name Work Orders.
 
 ## 1. What is already in
 

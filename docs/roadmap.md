@@ -6,7 +6,7 @@ should think, and what "done" means**. It was rewritten in R0 from the approved 
 (`docs/redesign/11-roadmap.md`, which keeps the reasons); the W-phase roadmap and its results are
 in `docs/archive/roadmap-w.md`.
 
-## Where we are (2026-10-26, R3 Cards S1 done, missions mocks for the pick)
+## Where we are (2026-10-26, R3 Cards S1 done, the missions pick made)
 
 - **The live game is the redesign** since 2026-10-19 (D242): the owner had R2 Feel S7 (`redesign`
   at fdc5010) deployed to https://wipeday.patrikliska.dev, bringing the cut-over forward from R4.
@@ -97,10 +97,11 @@ in `docs/archive/roadmap-w.md`.
   the one structural gap is a mission list per run. Three variants were mocked behind `?mock=`
   (`apps/web/src/hud/mocks/`; shots `mock_*`; the picks page `preview/missions/index.html`):
   A daily quests (the R3 plan), B Work Orders per run (any five of eight fuel the Kettle and
-  crown the Big Red), C both; plus the postcard with Glow and the crew side by side. The pick
-  decides R3 S2's shape; nothing is decided yet.
-- **Next: the owner's pick, then R3 S2** (scrap, boosts, and quests or orders as picked). Retro
-  Diffusion has about 2.59 USD; S3's busts and gear need about 15 USD more.
+  crown the Big Red), C both; plus the postcard with Glow and the crew side by side. The owner picked on 2026-10-26
+  (D255): C, the fuelled set crowns the Big Red, cards carry about as much as Glow, the name
+  Work Orders. S1 and the mocks are committed (361dde2, 6e9e84a).
+- **Next: R3 S2** (scrap, boosts, Work Orders and the daily quests; D255). Retro Diffusion has
+  about 2.59 USD; S3's busts and gear need about 15 USD more.
 
 ### R3 S1 results: cards and drops in the domain
 - **Built:** `content/data/cards.json5` (14 survivors with traits, 30 gear cards, the crew sets
@@ -777,11 +778,17 @@ and scrap as the premium currency earned in play (`12-feel.md` 7, 8, 9.2).
   buy any gear. Sources: felling on a slowing schedule, one drop per 10 badges, the Sealed Locker
   (tier II), paid from the counters (`credit`). `open_drop`, `star_up`, `craft_gear`,
   `equip_gear`; the simulator opens, stars, crafts and equips.
-- **S2. Scrap, boosts and quests.** `meta.scrap`; earned from badges (1 per 5), the Magpie (1)
-  and daily quests (1 each, all three a tier-I drop and 2 more: the owner's pick, about 5 a day);
-  spent on drops (30 / 120) and boosts on real seconds (Overdrive, Double Time, Lucky Tide on its
-  own airdrop grid); three quests an island day (UTC+1), unclaimed ones paid at the roll; N19 and
-  N30 in the simulator. Nothing for real money (D182).
+- **S2. Scrap, boosts, Work Orders and quests** (amended by D255). `meta.scrap`; earned from Work
+  Orders and the daily quests (the split tuned so a casual sees about 5 a day), the Magpie (1) and
+  badges; spent on drops (30 / 120) and boosts on real seconds (Overdrive, Double Time, Lucky Tide
+  on its own airdrop grid). **Work Orders**: `orders.json5` (a pool per era; eight rolled per run on
+  the base's seed; each a predicate on the run in the badges' `when` vocabulary; each pays a drop or
+  scrap), `claim_order`, `fuelled` (five of eight) in the run for R4's crown and the Kettle; the
+  orders card at the top of the shop (fixed, D186) and the orders sheet with "Today": the three
+  daily quests (an island day, UTC+1; unclaimed ones paid at the roll), also in the Logbook. The
+  mocks (`hud/mocks`) go. Simulator: every archetype claims orders and quests; N19, N30 and the new
+  **N32** (five orders reachable in every run 1); N1-N3 and N5-N7 re-measured. Nothing for real
+  money (D182).
 - **S3. The Album and the reveal** (needs about 15 USD of Retro Diffusion first). The dock's
   Album, the reveal sheet (one flip per tap, rarity colour first, "Flip the next" primary, "To the
   Album" secondary), the survivor sheet with gear, the Scrap sheet and plate, boost pills, quests
@@ -793,14 +800,14 @@ and scrap as the premium currency earned in play (`12-feel.md` 7, 8, 9.2).
 **Done when:** **N28** no card is blank, a duplicate pays shards (domain test); **N29** pity as
 printed (the seeded drop test); **N30** the casual opens at least one drop a day in days 1-30;
 **N19** scrap 4-6 a day for a casual (7-day average from day 2), at least 100 by day 30, nobody
-above 8; scrap never traded, gifted, wagered, stolen or sold for Supplies; the odds page is one
+above 8; **N32** five Work Orders are reachable in every run 1, for every archetype (D255); scrap never traded, gifted, wagered, stolen or sold for Supplies; the odds page is one
 tap from every drop.
 
 **Owner supplies:** answers to `12-feel.md` 15; picks for busts and gear art; names (survivor
-traits, gear, sets, quests).
+traits, gear, sets, quests, the orders' pool).
 
 **Shots:** the drop's reveal at each rarity, the Album (empty, half, full), a survivor's sheet
-with gear, a boost running, the daily quests.
+with gear, a boost running, the daily quests; the orders card and sheet (running, claimable, fuelled).
 
 ### R4 The Big Red
 

@@ -2908,3 +2908,20 @@ On a phone the crow's hint ("A crow! Tap it before it flies off.") and the airdr
 dropping in...") overlapped when both arrived together (seen in R3 S1's locker shot; an R2 bug).
 The crow's hint now waits while the airdrop's is up (`quiet` in `scene/gulls.ts`); the airdrop
 lasts 13 s, so the crow's shows after it if the crow is still in the sky.
+
+### D255. Work Orders per run beside the daily quests (the missions pick)
+From the missions mocks (`docs/redesign/13-adventure.md`, `?mock=`), the owner picked on
+2026-10-26: **C, both.** Eight **Work Orders** a run (the name is approved, no longer a proposal),
+rolled from a pool per era on the base's seed, each a predicate on the run in the badges' `when`
+vocabulary so the list is data (`orders.json5`, `claim_order`). **Any five fuel the Kettle, and the
+fuelled set crowns the Big Red**: it lights it and the advisor recommends it, and it never locks
+it (pillar 3: the glass formula is unchanged and the press stays free). Each order pays a drop or
+scrap when claimed; the orders card sits at the top of the shop and never reorders (D186); the
+three daily quests stay (`12-feel.md` 9.2), listed under "Today" in the orders sheet and in the
+Logbook. **Cards carry about as much power as Glow** across runs (the postcard's two columns,
+Glow from glass and Crew from cards, roughly even for equal play; the Blast Map stays glass).
+Consequences: R3 S2 builds the orders with scrap, boosts and quests, and the scrap sources are
+re-split so a casual still sees 4-6 a day (N19); a new assertion **N32**, five orders are
+reachable in every run 1, for every archetype; R4's crown rule 3 (the slowing run) becomes "the
+set is fuelled", and the Kettle's fuel stage follows the five orders; R3 S4 and R4 measure the
+cards-against-Glow setting. The mocks (`hud/mocks`) are deleted when S2 ships, as P3's yards were.

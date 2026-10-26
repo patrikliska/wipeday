@@ -479,14 +479,14 @@ doubling Wipe Day; and scrap, 3 on a Wipe Day and 10 on a doubling (`12` 7.1, 8)
 
 **When to press.** The card and chip show "+12 now · 9/h now · peak 14/h". The advisor crowns the
 Big Red (first match): the first nuke at a delta of 10 (guided); doubling (gain ≥ glass ever); a
-slowing run (at least 10 min old, rate under 80% of its peak) when the nuke counts; or a counting
-nuke in a run at least 20 h old. The crown is sticky, waits while a buff runs or a Dare's goal is
-unmet, and never shows on welcome back. Rule 3's rate definition is an R4 tuning item.
+fuelled run (five of its eight Work Orders done, D255; this replaced the slowing-run rule) when the
+nuke counts; or a counting nuke in a run at least 20 h old. The crown is sticky, waits while a buff runs or a Dare's goal is
+unmet, and never shows on welcome back. Rule 3 is read from the run's `fuelled` flag (R3 S2).
 
 **The Kettle** stands on the slope where the Signal stood and assembles as the yield grows: the
 pad at 5e8 lifetime supplies in run 1 (minute 9-10; from the rebuild later), with a locked card
 that says what the first launch needs; the frame at a yield of 5 (later 1% of glass ever); the
-warhead when the nuke counts; fuel and steam when crowned. A "+1" glass floater rises from it.
+warhead when the nuke counts; fuel as the Work Orders come in (five fuel it, D255) and steam when crowned. A "+1" glass floater rises from it.
 
 **The press.** The cover card (danger style, never primary) shows the gain, "Glow ×1.79 → ×2.17",
 what this Wipe Day unlocks, and what is kept and lost; **Flip the lid** or **Not yet**. Then
@@ -693,6 +693,7 @@ is earned in play or bought with scrap; nothing else opens one before R9.
 | Badges | I | one per 10, through the same hourly gate (they wait their turn) | R3 |
 | Flotsam: Sealed Locker | II | weight 1 (1.1% of airdrops) | R3 |
 | Daily quests | I | all three of the day's quests | R3 |
+| Work Orders | I | some of the eight orders a run pay a drop, the rest scrap (D255) | R3 |
 | Scrap | II / III | 30 / 120 scrap | R3 |
 | The nuke | I / II / III | a small blast / a Wipe Day / a doubling Wipe Day | R4 |
 
@@ -740,7 +741,8 @@ game-icons.net until the pixel icons exist (D141's fallback).
 
 Scrap is the premium currency (D182): earned in play, spent on drops and boosts.
 
-- **Earn:** badges and pages 1 per 5, elite gulls 1, the day's quest set 1 (R3); the nuke 3 on a
+- **Earn:** Work Orders and the day's quest set (most of a casual's scrap, D255), badges and pages,
+  elite gulls 1 (R3); the nuke 3 on a
   Wipe Day, 10 on a doubling (R4); the Magnet about 1 a day (R7); the Freighter at most 3 a week
   (R8). Target for a casual: 4-6 a day (N19).
 - **Spend:** Supply Drops (30 / 120) and **boosts** on real seconds (R3): Overdrive (all lines ×3
