@@ -3,7 +3,19 @@
  * the rare ones to `event_log` (D143: never a row per tap, ping or purchase), and the clients
  * turn all of them into feedback. Later phases add theirs (docs/redesign/09-architecture.md 7.2).
  */
+import type { DropTier, Rarity } from "@wipe-day/content/cards";
 import type { Amount } from "./amount";
+
+/** A card a Supply Drop gave: new to the Album, or `shards` into a survivor's or a rarity's. */
+export interface DropCard {
+  kind: "survivor" | "gear";
+  id: string;
+  rarity: Rarity;
+  fresh: boolean;
+  shards: number;
+  /** Where a duplicate's shards went: the survivor's own, or its rarity's gear shards. */
+  into: "crew" | "gear" | null;
+}
 
 export type GameEvent =
   /**
@@ -37,6 +49,21 @@ export type GameEvent =
   | { type: "frenzy_tripped"; until: number }
   /** Collect pressed; `full` when the Night Shift had already run out (client feedback only). */
   | { type: "night_shift_collected"; full: boolean }
+  /** Supply Drops earned (R3): `count` of `tier` from `source`. */
+  | {
+      type: "drop_earned";
+      tier: DropTier;
+      count: number;
+      source: "fells" | "badges" | "locker";
+    }
+  /** A Supply Drop opened: its cards in reveal order (logged for balance). */
+  | { type: "drop_opened"; tier: DropTier; cards: DropCard[] }
+  /** A survivor's next star, paid in its shards. */
+  | { type: "starred"; survivor: string; stars: number; cost: number }
+  /** A gear card bought with rarity shards. */
+  | { type: "gear_crafted"; gear: string; cost: number }
+  /** A gear card put on a survivor, or back in the Album (`survivor` null). */
+  | { type: "gear_equipped"; gear: string; survivor: string | null }
   /** A badge earned (D198): the Logbook's toast; logged for the feed and balance. */
   | { type: "badge_unlocked"; id: string }
   /** The Night Shift window closed at `at`: manned lines stopped until the next command. */
@@ -52,6 +79,9 @@ export const LOGGED_TYPES: ReadonlySet<GameEvent["type"]> = new Set([
   "night_shift_over",
   "base_reset",
   "badge_unlocked",
+  "drop_opened",
+  "starred",
+  "gear_crafted",
 ]);
 
 export const isLogged = (event: GameEvent): boolean => LOGGED_TYPES.has(event.type);

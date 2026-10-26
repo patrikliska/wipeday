@@ -20,6 +20,8 @@
       weight: 6,
       effect: { buff: "adrenaline", seconds: 12, effects: [{ stat: "tap", op: "more", value: 100 }] },
     },
+    // A Supply Drop II instead of supplies (12-feel.md 7.1; R3 Cards).
+    { id: "sealed_locker", weight: 1, effect: { drop: 2 } },
   ],
   // Crows (id `gull`; 12-feel.md 9.3, D197, D238): the sky's tap-to-catch sibling of flotsam,
   // only while the page is open. Slot j crosses at firstAfterSeconds + j × every on the run's

@@ -166,6 +166,8 @@
     },
     claim_fuel_drum: { voice: "rally", gain: 0.9 },
     claim_adrenaline: { voice: "rally", files: ["kenney_interface/maximize_006"], gain: 0.6 },
+    // The Sealed Locker: a Supply Drop II (R3; its own creak and burst come with the reveal, S3).
+    claim_sealed_locker: { voice: "milestone", files: ["kenney_interface/confirmation_003"], gain: 0.6 },
 
     // Frenzy trips (D237): a rising sting.
     frenzy: { voice: "frenzy", files: ["kenney_interface/maximize_008"], gain: 0.7 },
@@ -209,6 +211,12 @@
     frenzy_ended: { cue: "frenzy_end" },
     gull_caught: { cue: "gull_caught", buzz: [15] },
     badge_unlocked: { cue: "badge" },
+    // R3's cards: placeholders on existing cues until the reveal's creak, burst and flips (S3).
+    drop_earned: { cue: "roster" },
+    drop_opened: { cue: "milestone" },
+    starred: { cue: "upgrade" },
+    gear_crafted: { cue: "upgrade" },
+    gear_equipped: { cue: "buy" },
     // The welcome card's Collect plays its own coins (`collected`).
     night_shift_collected: null,
     // The server's echo of taps already heard.

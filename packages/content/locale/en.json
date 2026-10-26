@@ -156,7 +156,8 @@
   "flotsam": {
     "crate": { "name": "Drift Crate" },
     "fuel_drum": { "name": "Fuel Drum" },
-    "adrenaline": { "name": "Adrenaline Kit" }
+    "adrenaline": { "name": "Adrenaline Kit" },
+    "sealed_locker": { "name": "Sealed Locker" }
   },
   "buff": {
     "rally": { "name": "Rally" },
@@ -200,7 +201,8 @@
     "buff_tap": "{name}! Taps ×{factor} · {time}",
     "sank": "The wind took it. More drop in every few minutes.",
     "sank_first": "The wind took it. Another one drops within 3 minutes.",
-    "drifted": "The wind took it."
+    "drifted": "The wind took it.",
+    "drop": "{tier}!"
   },
   "odds": {
     "open": "Odds",
@@ -214,7 +216,8 @@
     "hidden": "While the page is hidden, airdrops come down unseen. Missing one costs nothing.",
     "crows": "Crows",
     "crow": "{time} of output",
-    "crows_schedule": "A crow crosses the sky every 2-4 minutes while the page is open. Tap it before it is gone."
+    "crows_schedule": "A crow crosses the sky every 2-4 minutes while the page is open. Tap it before it is gone.",
+    "drop": "A {tier}: three cards for the Album"
   },
   "frenzy": {
     "hint": "Keep tapping: Frenzy",
@@ -298,6 +301,11 @@
     "gone": "It drifted off. More drifts in every few minutes.",
     "claimed": "Already caught.",
     "stale_run": "That washed up before the blast.",
+    "no_drop": "No Supply Drop of that kind to open.",
+    "shards": "Need {need} shards: you have {have}.",
+    "max_stars": "Already five stars.",
+    "not_owned": "That card is not in your Album yet.",
+    "stale": "That already happened.",
     "not_on_discord": "Do that in the game.",
     "slow_down": "Slow down a moment."
   },
@@ -657,5 +665,69 @@
       "night_shift": "Night Shift",
       "supplies": "Supplies"
     }
+  },
+  "gear": {
+    "salvaged_hatchet": { "name": "Salvaged Hatchet" },
+    "crowbar": { "name": "Crowbar" },
+    "pipe_wrench": { "name": "Pipe Wrench" },
+    "work_gloves": { "name": "Work Gloves" },
+    "claw_hammer": { "name": "Claw Hammer" },
+    "hand_drill": { "name": "Hand Drill" },
+    "bolt_cutters": { "name": "Bolt Cutters" },
+    "chainsaw": { "name": "Chainsaw" },
+    "welding_torch": { "name": "Welding Torch" },
+    "power_saw": { "name": "Power Saw" },
+    "tin_lantern": { "name": "Tin Lantern" },
+    "bandana": { "name": "Bandana" },
+    "welding_goggles": { "name": "Welding Goggles" },
+    "hard_hat": { "name": "Hard Hat" },
+    "gas_mask": { "name": "Gas Mask" },
+    "headlamp": { "name": "Headlamp" },
+    "ear_defenders": { "name": "Ear Defenders" },
+    "night_goggles": { "name": "Night Goggles" },
+    "hazmat_hood": { "name": "Hazmat Hood" },
+    "spotter_scope": { "name": "Spotter's Scope" },
+    "rope_belt": { "name": "Rope Belt" },
+    "jerrycan": { "name": "Jerrycan" },
+    "car_battery": { "name": "Car Battery" },
+    "tool_roll": { "name": "Tool Roll" },
+    "satchel": { "name": "Satchel" },
+    "water_flask": { "name": "Water Flask" },
+    "tarp_bundle": { "name": "Tarp Bundle" },
+    "hazmat_coat": { "name": "Hazmat Coat" },
+    "flare_pouch": { "name": "Flare Pouch" },
+    "generator_pack": { "name": "Generator Pack" }
+  },
+  "trait": {
+    "mara": { "name": "Early Riser" },
+    "dax": { "name": "Keeps the Fire" },
+    "ivo": { "name": "Green Thumb" },
+    "rook": { "name": "Quick Fingers" },
+    "sela": { "name": "Sharp Eye" },
+    "bram": { "name": "Slow Burn" },
+    "wren": { "name": "Hot Hands" },
+    "otto": { "name": "Thick Skin" },
+    "juno": { "name": "Heavy Swing" },
+    "pike": { "name": "Long Reach" },
+    "hale": { "name": "Night Owl" },
+    "tamsin": { "name": "Clear Signal" },
+    "gus": { "name": "Heavy Lifter" },
+    "vera": { "name": "Steady Hands" }
+  },
+  "set": {
+    "common_crew": { "name": "The Old Hands" },
+    "full_crew": { "name": "Full Muster" },
+    "matched_kit": { "name": "Matched Kit" }
+  },
+  "rarity": {
+    "common": { "name": "Common" },
+    "rare": { "name": "Rare" },
+    "epic": { "name": "Epic" },
+    "legendary": { "name": "Legendary" }
+  },
+  "drop": {
+    "tier_1": "Supply Drop I",
+    "tier_2": "Supply Drop II",
+    "tier_3": "Supply Drop III"
   }
 }

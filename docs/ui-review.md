@@ -1870,3 +1870,27 @@ and takes 04, 11 and 17. Shots `p4_*`; the P1 phone shots rerun.
 - Checked: 2k and tall rain show the ground painted, no repeat; the desktop hint sits over the
   shed's foot (the dock's floor), clear of the Sheet Metal lines; the new icons pass `pnpm icons`
   and read at 16 px (the sheet `preview/icons/p4.png` beside planks, plates and scrap).
+
+## R3 S1: the Sealed Locker (2026-10-20)
+
+Shots `r3_locker_phone`, `r3_locker_desktop`, `r3_odds_locker_phone` (Stone run, day and dusk).
+S1 is the domain; the only visible change is the new airdrop kind and its Odds line.
+
+### Iteration 1
+- **Two hints on top of each other (phone):** a crow and the locker came in together; "A crow!
+  Tap it before it flies off." sat over the airdrop's "Something's dropping in. Tap it before
+  the wind takes it.", both cut off. An R2 bug the locker shot happened to catch: on desktop the
+  two stand apart. Now one scene hint at a time: the crow's waits while the airdrop's is up
+  (D254).
+- **The locker's icon read as a sheet of paper** (the R0 drawing: a tilted page with lines), on
+  the parachute and on the Odds sheet. Redrawn as a locker: three vents, a door handle and a red
+  padlock (the one accent), tilted like the other airdrops; tinted the Magpie's gold in the sky
+  so the rare one reads as rare.
+
+### Iteration 2
+- One hint shows (the airdrop's) beside the locker; the crow flies by without its plate. The
+  locker reads at 48 px in the sky and at 40 px in the Odds row; `pnpm icons` clean.
+- The Odds sheet's new line ("Sealed Locker · A Supply Drop II: three cards for the Album ·
+  1.1%") wraps to two lines at 390 px like the Drift Crate's; the percentages stay aligned.
+- *Left for S3:* the pixel PNG for the locker (item icons, D188) and the reveal's own sound (the
+  catch plays the confirmation cue for now).

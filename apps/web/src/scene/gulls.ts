@@ -111,6 +111,8 @@ export class Gulls {
       claim: (run: number, k: number) => void;
       /** A crow came into view (its caw). */
       arrived: (elite: boolean) => void;
+      /** Another hint is up (the airdrop's): one hint at a time, so the crow's waits. */
+      quiet?: () => boolean;
     },
   ) {
     this.halo.anchor.set(0.5);
@@ -305,7 +307,7 @@ export class Gulls {
     const label = t("gull.catch", { name });
     if (this.button.getAttribute("aria-label") !== label)
       this.button.setAttribute("aria-label", label);
-    const hint = base.meta.stats.gulls < HINT_CATCHES;
+    const hint = base.meta.stats.gulls < HINT_CATCHES && !this.on.quiet?.();
     this.hint.hidden = !hint;
     if (hint) {
       const text = t(this.shown?.elite ? "gull.hint_elite" : "gull.hint");

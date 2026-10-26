@@ -19,9 +19,12 @@ export function badgeCount(content: Content, state: BaseState): number {
   return n;
 }
 
-/** Morale (D198): 1 + moralePer × badges earned; it multiplies every line and tap. */
+/**
+ * Morale (D198): 1 + moralePer × badges earned, times a crew set's Morale (R3); it multiplies
+ * every line and tap.
+ */
 export function moraleOf(content: Content, state: BaseState): number {
-  return 1 + content.achievements.moralePer * badgeCount(content, state);
+  return rates(content, state).morale;
 }
 
 const eraIndex = (era: string): number => TIERS.indexOf(era as (typeof TIERS)[number]);

@@ -51,5 +51,15 @@ export function refusalMessage(refusal: Refusal): string {
       return t("refusal.claimed");
     case "stale_run":
       return t("refusal.stale_run");
+    case "no_drop":
+      return t("refusal.no_drop");
+    case "shards":
+      return t("refusal.shards", { need: refusal.need, have: refusal.have });
+    case "max_stars":
+      return t("refusal.max_stars");
+    case "not_owned":
+      return t("refusal.not_owned");
+    case "stale":
+      return t("refusal.stale");
   }
 }

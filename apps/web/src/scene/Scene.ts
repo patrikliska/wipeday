@@ -179,6 +179,8 @@ export class Scene {
   private readonly gulls = new Gulls({
     claim: (run, k) => useWorld.getState().send({ type: "claim_gull", run, k }),
     arrived: (elite) => emit({ type: "gull_arrived", elite }),
+    // On a phone the two hints would overlap (R3 review): the airdrop's goes first.
+    quiet: () => !this.flotsam.hint.hidden,
   });
   private readonly house = new House(this.particles);
   private readonly lines: Lines;
@@ -1081,6 +1083,17 @@ export class Scene {
         ...(counter ? { fly: { ...counter, arrive: () => this.bumpCounter() } } : {}),
       });
       this.coinsToCounter(at.x, at.y - 20, CRATE_COINS, nowMs, CATCH_COINS_DELAY_MS);
+      return;
+    }
+    if ("drop" in effect) {
+      this.floaters.add(
+        "event",
+        at.x,
+        at.y - 60,
+        t("sea.drop", { tier: t(`drop.tier_${effect.drop}`) }),
+        nowMs,
+        { size: this.floatSize(1.05), color: 0xffd25a, holdMs: 1600 },
+      );
       return;
     }
     let factor = 1;

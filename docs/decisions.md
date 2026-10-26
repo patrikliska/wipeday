@@ -2805,3 +2805,106 @@ art campfire gets its flame and glow (`ART_FIRES` in `scene/lines.ts`): three pi
 fps above the drawn fire on the `lights` layer (one still frame under reduced motion), the glow
 the procedural campfire had, and smoke from above the flame. The owner approved P4 and kept Jerky
 (2026-10-19). *Revisit* if the owner wants generated stage-1/3 barrels.
+
+## R3 (Cards)
+
+### D248. R3 Cards' plan and the owner's answers (owner, 2026-10-19)
+The plan in `docs/roadmap.md` R3 (four sessions: cards and drops in the domain, scrap with boosts
+and quests, the Album and the reveal, Workshop tiers 5-8 with the balance) was approved in plan
+mode. The owner's answers, from the R2 playtest and this session:
+- A survivor's trait, like everything its card does, works only while its hand is hired.
+- All three gear slots (hand, head, pack) open at once.
+- The nuke's drop tier follows the glass gained (built in R4).
+- The Magpie pays 3 min of output and 1 scrap (S2).
+- One drop per 10 badges and 1 scrap per 5 badges (the R2 badges replace "pages").
+- **Scrap comes from the daily quests:** each pays 1 scrap, all three a tier-I drop and 2 more,
+  about 5 a day for a casual (N19's 4-6 band counted the Magnet and the nuke, which come in R7
+  and R4); retuned in R4 when the nuke pays scrap.
+- **The Album fills in about two weeks:** a casual opens 2-4 drops a day in days 1-30.
+- **Art:** about 15 USD of Retro Diffusion before S3, for busts and gear.
+
+### D249. Where Supply Drops come from in R3, and how fast
+- **Felling:** a tier-I drop at the 5th lifetime fell, then every 25th, **at most one an hour and
+  three an island day**; marks passed while that gate is shut pay nothing later. 12-feel.md 7.1's
+  "every 5th fell in run 1, every 10th after" would flood: until R4 everyone stays in run 1, and
+  an active player fells about eight times as often as a casual one (the simulator: 206 drops in
+  30 days for the active archetype against 35 for the casual under a plain fell count). The gate
+  also keeps run 1's first hour as R2 tuned it: with more drops early, the cards sped the
+  first-hour scenario's Sheet Metal to 30-37 min and its nuke to 31-38 min (bands 30-50 and
+  40-60), and Frenzy (opening at 40:00) never showed in run 1.
+- **Badges:** one tier-I drop per 10 badges, through the same hourly gate; they wait their turn
+  instead of lapsing (there are six in all). R2's badges come fast in the first hour, and paid at
+  once they alone moved the first-hour nuke to 35-44 min.
+- **The Sealed Locker:** an airdrop kind of weight 1 (1.1% of airdrops) that gives a Supply Drop
+  II instead of supplies; its icon is a locker with a red padlock, tinted gold in the sky.
+- From S2: the third daily quest (tier I) and scrap (30 for II, 120 for III); from R4 the nuke.
+- Measured (seed 11, before S2's quests): the casual opens 1 drop on day 1, 13 by day 7, 23 by
+  day 14 and 44 by day 30 (1.5 a day; the quests add about one a day, inside the owner's 2-4)
+  and owns 30 of the 44 cards by day 14; the active archetype 103 by day 30; the idler 3 (it
+  barely taps: S2's quests and S4 look at it).
+*Revisit* in S4 with the quests in: the gap, the cap and `every` are data (`cards.json5`).
+
+### D250. Supply Drops roll on the base's seed; the first card is Mara; pity is conditional
+Card k of a player's lifetime rolls on `seedOf(base seed, SEED.drop, k)`: the rarity from its
+tier's printed odds, then a card of that rarity uniformly (survivors and gear together, content
+order). Pity counts cards in a row without a Rare, an Epic and a Legendary across tiers and runs
+(`meta.drops.pity`); when a counter reaches its printed limit less one, the next card's rarity is
+drawn from the odds of the rarities from the forced one up, renormalised (a tier without them
+gives the forced rarity). The first card ever is Mara, printed on the odds page (12-feel.md 10's
+"first survivor reveal"). The seed is in the state the client gets, so the client predicts the
+reveal and shows it at once, like every other roll (09-architecture.md 3.1); since the order is
+fixed by the card count, knowing the next card changes nothing a player can choose except which
+tier to open first, which no money touches before R9. A duplicate pays shards: a survivor's own
+(its stars), or, at five stars, gear shards of its rarity; a duplicate gear card pays shards of
+its rarity, and rarity shards buy any gear card of that rarity, so nothing drawn is ever blank
+(N28). `open_drop` names `meta.drops.pulls` as the client saw it, so a second click is refused as
+`stale` instead of opening a second drop. *Revisit* at R9's scrap store: then a server-only seed
+(D98's `World`) and a pending reveal.
+
+### D251. Count-based rewards are paid from counters after every command
+Drops from felling and badges (and from S2 the badges' scrap) are paid by `credit` in
+`applyCommand`, after `earnBadges`, from `meta.stats.felled` and the badge count against
+`meta.drops.paid`, never from events: one taps batch of 30 pays what 30 single taps would, a
+refusal pays nothing, settle pays nothing (N24), and nothing is ever taken back. At most one
+such drop comes per command and per hour (D249). A base from before R3 gets its first on its first
+command, and the badges it already holds pay theirs one an hour after, which is the R3 welcome.
+
+### D252. What a card does, in the effects vocabulary
+- Stars, gear and the kit are each one `more` on the line (5★ = ×2), so the Workshop's output
+  `inc`s never dilute them (an `inc` would make five stars read about ×1.2).
+- A card names a stat and a value (`{stat, value}`); the op and the most each rarity may give
+  come from `CARD_STATS` in `content/src/cards.ts`: output and speed reach the holder's own line
+  (the domain fills in the scope), the rest the whole island. Gear may give up to its rarity's
+  share of a stat's Legendary top (Common 1/3, Rare 1/2, Epic 3/4), a trait up to +25% output's
+  share; the content check holds every card to that, every hand to one survivor card, every
+  rarity to a non-empty pool, odds to 100, pity rising, and the Night Shift with every card's
+  hours under its ceiling.
+- Card effects join `activeEffects`, never `globalEffects` (E23: no card multiplies the flat
+  tap). The effects layer now keys on `meta.cards` and `run.hands` too; `meta.cards` holds only
+  owned survivors with stars and owned gear with its wearer, so shards, drops and pity never
+  rebuild it. The crew sets' Morale multiplies the badges' Morale.
+- The advisor's hire gain multiplies the line by its survivor's card (`hireFactor`).
+- `normalizeState` drops unknown cards, clamps stars to 1-5, and keeps gear only on an owned
+  survivor, one card a slot.
+
+### D253. Cards give production only; the simulator keeps its cards
+- A card's stat is output, speed or offline (the line's output while away), on the holder's own
+  line, or Night Shift hours. The first set also had tap, crit, fell bonus, Frenzy time and
+  airdrop stats: together they lifted N9's active hour to 7.5-8.6× an idle one (band 4-6); no one
+  of them alone did, and halving them still left 6-6.6×. Without them N9 reads 4.9-5.3. Cards
+  make the crew work harder, the taps stay the taps' own (guardrail 2). Traits and gear were
+  re-statted accordingly (names unchanged; `cards.json5`).
+- The simulator (`tend` in `sim.ts`): after a hire or an earned drop, every archetype opens its
+  drops, buys each star its shards pay for, crafts the first missing gear its rarity shards buy,
+  and puts the strongest production gear on the hired survivors whose lines make the most, slot
+  by slot. Its day rows and CSV add `drops` (opened) and `cards` (owned); run 1's beats add
+  `drop` (the first opened: 0:33 for the first-hour scenario, which fells every 7 s).
+- Result: every R0-R2 assertion passes with cards in play (N9 4.94-5.27, rain warns to 6.08; 4.2
+  Sheet Metal 41:14-44:04, Frenzy 41:09, nuke 42:14-45:14; N3 day 1 21:00), and the test
+  profile takes 7.0 s of its 10.
+
+### D254. One scene hint at a time
+On a phone the crow's hint ("A crow! Tap it before it flies off.") and the airdrop's ("Something's
+dropping in...") overlapped when both arrived together (seen in R3 S1's locker shot; an R2 bug).
+The crow's hint now waits while the airdrop's is up (`quiet` in `scene/gulls.ts`); the airdrop
+lasts 13 s, so the crow's shows after it if the crow is still in the sky.

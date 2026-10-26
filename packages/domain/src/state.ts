@@ -7,8 +7,10 @@
  * Times are whole unix seconds; amounts are finite doubles (`Amount`, D130); counts are
  * integers. Each phase adds the fields its rules use, with defaults, which `normalizeState`
  * fills in for stored bases (R1: eras, the shelf, the roster, the target and the flotsam;
- * R2 Feel: the Workshop's levels, the Frenzy meter, the gulls and the badges).
+ * R2 Feel: the Workshop's levels, the Frenzy meter, the gulls and the badges; R3 the cards and
+ * the Supply Drops).
  */
+import type { DropTier, Rarity } from "@wipe-day/content/cards";
 import type { Content } from "@wipe-day/content/schema";
 import type { Tier } from "@wipe-day/content/tiers";
 import type { Amount } from "./amount";
@@ -117,11 +119,36 @@ export interface Meta {
     eras: number;
     /** Welcome-back Collects pressed. */
     collects: number;
+    /** Supply Drops opened. */
+    drops: number;
   };
   /** Badges earned (the Logbook's wall), by id: the second each was earned. */
   badges: Record<string, number>;
   /** The chosen cosmetic; owned ones live in the `legacy` row. */
   skin: string | null;
+  /**
+   * The cards owned (12-feel.md 7): survivors by id with their stars, gear by id with who wears
+   * it (null: in the Album). Only what changes effects lives here, so earning shards or drops
+   * never rebuilds the effects cache (effects.ts keys on this object).
+   */
+  cards: { survivors: Record<string, number>; gear: Record<string, string | null> };
+  /** Supply Drops: held unopened by tier, cards drawn, pity, shards, and what was paid. */
+  drops: Drops;
+}
+
+export interface Drops {
+  /** Earned and not yet opened, by tier. */
+  held: Record<DropTier, number>;
+  /** Cards drawn so far: the drop seed's index (the first is the printed first card). */
+  pulls: number;
+  /** Cards in a row without at least this rarity (pity, counted across tiers). */
+  pity: { rare: number; epic: number; legendary: number };
+  /** A survivor's own shards (its stars), and shards of each rarity (gear). */
+  shards: { crew: Record<string, number>; gear: Record<Rarity, number> };
+  /** Count-based drops already paid: tier-I drops for fells and for badges (`credit`). */
+  paid: { fells: number; badges: number };
+  /** Felling's drops given on island day `day` (at most `fells.perDay`), the last one at `at`. */
+  today: { day: number; fells: number; at: number };
 }
 
 export interface BaseState {
@@ -147,6 +174,9 @@ export const KEEP_ON_CROSSING: Record<keyof Meta, boolean> = {
   stats: true,
   badges: true,
   skin: true,
+  // Precious things are never at risk (guardrail 8).
+  cards: true,
+  drops: true,
 };
 
 export function newMeta(): Meta {
@@ -170,9 +200,23 @@ export function newMeta(): Meta {
       upgrades: 0,
       eras: 0,
       collects: 0,
+      drops: 0,
     },
     badges: {},
     skin: null,
+    cards: { survivors: {}, gear: {} },
+    drops: newDrops(),
+  };
+}
+
+export function newDrops(): Drops {
+  return {
+    held: { 1: 0, 2: 0, 3: 0 },
+    pulls: 0,
+    pity: { rare: 0, epic: 0, legendary: 0 },
+    shards: { crew: {}, gear: { common: 0, rare: 0, epic: 0, legendary: 0 } },
+    paid: { fells: 0, badges: 0 },
+    today: { day: 0, fells: 0, at: 0 },
   };
 }
 

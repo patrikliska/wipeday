@@ -27,6 +27,8 @@ export const SEED = {
   gull: 0x6011,
   /** The Magnet's hauls (on the base's seed: they span runs). */
   magnet: 0x3a6e,
+  /** Supply Drop card k's rarity and pick (on the base's seed: pity spans runs). */
+  drop: 0xd209,
 } as const;
 
 export interface Rng {

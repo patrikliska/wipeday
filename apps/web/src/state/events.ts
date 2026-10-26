@@ -75,6 +75,11 @@ export const EVENT_TYPES = Object.keys({
   collected: 1,
   frenzy_ended: 1,
   era_ready: 1,
+  drop_earned: 1,
+  drop_opened: 1,
+  starred: 1,
+  gear_crafted: 1,
+  gear_equipped: 1,
 } satisfies Record<GameEvent["type"], 1>) as GameEvent["type"][];
 
 /** A sheet opened or closed, a switch flipped: the panels say so, the sound answers. */

@@ -9,6 +9,7 @@
  * island's clock and weather. Each later phase adds its files (09-architecture.md 8.1).
  */
 import { z } from "zod";
+import { CARD_STAT_IDS, type CardStatId, RARITIES, SLOTS } from "./cards";
 import { type Effect, OPS, PERS, STAT_IDS, STATS, type StatId, WHENS } from "./effects";
 import { TIERS, type Tier } from "./tiers";
 
@@ -334,6 +335,8 @@ const flotsamEffectSchema = z.union([
     }),
   }),
   z.strictObject({ buff: id, seconds, effects: z.array(effectSchema).min(1) }),
+  /** A Supply Drop of this tier (the Sealed Locker, 12-feel.md 7.1). */
+  z.strictObject({ drop: z.union([z.literal(1), z.literal(2), z.literal(3)]) }),
 ]);
 
 export const flotsamKindSchema = z.strictObject({
@@ -463,6 +466,7 @@ export const BADGE_STATS = [
   "research",
   "eras",
   "collects",
+  "drops",
 ] as const;
 export type BadgeStat = (typeof BADGE_STATS)[number];
 /** Domain events a badge may wait for (the domain test holds each to a real event type). */
@@ -546,6 +550,76 @@ export const achievementsFileSchema = z.strictObject({
 });
 export type Achievements = z.infer<typeof achievementsFileSchema>;
 
+const rarity = z.enum(RARITIES);
+const cardEffectSchema = z.strictObject({
+  stat: z.enum(CARD_STAT_IDS as [CardStatId, ...CardStatId[]]),
+  value: z.number().finite(),
+});
+const byRarity = (value: z.ZodType<number>) =>
+  z.strictObject({ common: value, rare: value, epic: value, legendary: value });
+const percent = z.number().finite().min(0).max(100);
+
+/**
+ * Survivor and gear cards, the sets and the Supply Drops (12-feel.md 7; R3 Cards). A survivor is
+ * a hand of crew.json5; owning the card adds, while the hand is hired, its stars, its trait and
+ * the gear it wears (D248).
+ */
+export const cardsFileSchema = z.strictObject({
+  /** Stars 2-5 cost these shards of the survivor; each star above 1 gives its line ×(1 + perStar). */
+  stars: z.strictObject({
+    costs: z.array(z.int().min(1)).length(4),
+    perStar: z.number().finite().positive().max(1),
+  }),
+  shards: z.strictObject({
+    /** A duplicate survivor pays this many of its own shards (a 5★ one pays gear shards). */
+    survivor: byRarity(z.int().min(1)),
+    /** A duplicate gear card pays this many shards of its rarity. */
+    gear: byRarity(z.int().min(1)),
+    /** Rarity shards buy any gear card of that rarity. */
+    craft: byRarity(z.int().min(1)),
+  }),
+  drops: z.strictObject({
+    /** Cards in a drop. */
+    cards: z.int().min(1).max(5),
+    /** The first drop's first card (printed on the odds page). */
+    first: id,
+    /** Tier I, II, III: the odds of each card's rarity, in percent. */
+    tiers: z.array(z.strictObject({ odds: byRarity(percent) })).length(3),
+    /** Pity, counted per player across tiers: at least this rarity within this many cards. */
+    pity: z.strictObject({ rare: z.int().min(2), epic: z.int().min(2), legendary: z.int().min(2) }),
+    /**
+     * A tier-I drop at each of these lifetime fells, then one every `every` fells; at most one
+     * every `gapMinutes` and `perDay` an island day (marks passed meanwhile pay nothing, D249).
+     */
+    fells: z.strictObject({
+      at: z.array(z.int().min(1)).min(1),
+      every: z.int().min(1),
+      gapMinutes: z.number().finite().nonnegative(),
+      perDay: z.int().min(1),
+    }),
+    /** A tier-I drop per this many badges earned. */
+    badgesPer: z.int().min(1),
+  }),
+  survivors: z.array(z.strictObject({ id, rarity, trait: cardEffectSchema })),
+  gear: z.array(z.strictObject({ id, rarity, slot: z.enum(SLOTS), effect: cardEffectSchema })),
+  sets: z.strictObject({
+    /** Every survivor (of `rarity`, when named) owned at `stars` or more. */
+    crews: z.array(
+      z.strictObject({
+        id,
+        rarity: rarity.optional(),
+        stars: z.int().min(1).max(5),
+        effects: z.array(effectSchema).min(1),
+      }),
+    ),
+    /** A hired survivor wearing `pieces` gear cards of one rarity: `effect` on its own line. */
+    kit: z.strictObject({ id, pieces: z.int().min(2).max(3), effect: cardEffectSchema }),
+  }),
+});
+export type CardsFile = z.infer<typeof cardsFileSchema>;
+export type SurvivorDef = CardsFile["survivors"][number];
+export type GearDef = CardsFile["gear"][number];
+
 /** Everything the game's rules read, validated. */
 export interface Content {
   resources: Resource[];
@@ -579,6 +653,8 @@ export interface Content {
   achievements: Achievements;
   /** What each timed buff does while it runs, by buff kind (from `flotsam.json5`). */
   buffs: Record<string, Effect[]>;
+  /** Survivor and gear cards, sets and Supply Drops (R3). */
+  cards: CardsFile;
 }
 
 /** Data files the game needs, in load order. */
@@ -597,6 +673,7 @@ export const DATA_FILES = [
   "island.json5",
   "pacing.json5",
   "achievements.json5",
+  "cards.json5",
 ] as const;
 export type DataFile = (typeof DATA_FILES)[number];
 
@@ -610,7 +687,9 @@ export type EntityKind =
   | "target"
   | "upgrade"
   | "research"
-  | "flotsam";
+  | "flotsam"
+  | "gear"
+  | "set";
 
 /** The named entities: their file, where `Content` keeps them and their locale namespace. */
 export const FILES = [

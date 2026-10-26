@@ -192,8 +192,13 @@ describe("what the scene and the Odds sheet read", () => {
 
   it("prints shares that sum to 1 in the data's order", () => {
     const shown = odds(content);
-    expect(shown.map((row) => row.kind.id)).toEqual(["crate", "fuel_drum", "adrenaline"]);
-    expect(shown.map((row) => Math.round(row.share * 1000) / 10)).toEqual([49.5, 44, 6.6]);
+    expect(shown.map((row) => row.kind.id)).toEqual([
+      "crate",
+      "fuel_drum",
+      "adrenaline",
+      "sealed_locker",
+    ]);
+    expect(shown.map((row) => Math.round(row.share * 1000) / 10)).toEqual([48.9, 43.5, 6.5, 1.1]);
     expect(shown.reduce((sum, row) => sum + row.share, 0)).toBeCloseTo(1, 12);
   });
 

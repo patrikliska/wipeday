@@ -104,6 +104,7 @@ function effectLine(effect: Effect): string {
       cap: rateMinutes,
     });
   }
+  if ("drop" in effect) return t("odds.drop", { tier: t(`drop.tier_${effect.drop}`) });
   let factor = 1;
   for (const item of effect.effects) if (item.op === "more") factor *= item.value;
   const output = effect.effects.some((item) => item.stat === "output");

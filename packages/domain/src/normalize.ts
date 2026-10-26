@@ -9,11 +9,13 @@
  *   shape fills whatever is missing, and ids the content no longer knows are dropped.
  * - R2 moved the shelf's Line Mk rows into the Workshop (D194): a stored `{line}_mk2` or
  *   `{line}_mk3` becomes that many levels of `{line}_mk`; Workshop levels stay within each item's.
+ * - R3's cards: unknown survivors and gear are dropped, stars stay 1-5, gear is worn only by an
+ *   owned survivor and one card a slot.
  *
  * Idempotent: a current state passes through unchanged.
  */
 import type { Content } from "@wipe-day/content/schema";
-import { type BaseState, newBase } from "./state";
+import { type BaseState, type Meta, newBase } from "./state";
 
 type Plain = Record<string, unknown>;
 
@@ -51,6 +53,7 @@ export function normalizeState(content: Content, stored: unknown): BaseState | n
   }
   return {
     ...state,
+    meta: { ...state.meta, cards: cardsOf(content, state.meta.cards) },
     run: {
       ...state.run,
       lines: keep(state.run.lines),
@@ -60,4 +63,31 @@ export function normalizeState(content: Content, stored: unknown): BaseState | n
       research: levels,
     },
   };
+}
+
+/** The stored cards with unknown ids, stars out of range and impossible wear dropped. */
+function cardsOf(content: Content, cards: Meta["cards"]): Meta["cards"] {
+  const top = content.cards.stars.costs.length + 1;
+  const survivors: Record<string, number> = {};
+  for (const row of content.cards.survivors) {
+    const stars = cards.survivors[row.id];
+    if (typeof stars === "number" && stars >= 1)
+      survivors[row.id] = Math.min(top, Math.floor(stars));
+  }
+  const gear: Record<string, string | null> = {};
+  const slots = new Set<string>();
+  for (const row of content.cards.gear) {
+    if (!(row.id in cards.gear)) continue;
+    const wearer = cards.gear[row.id] ?? null;
+    const ok =
+      wearer !== null && survivors[wearer] !== undefined && !slots.has(`${wearer}|${row.slot}`);
+    if (ok) slots.add(`${wearer}|${row.slot}`);
+    gear[row.id] = ok ? wearer : null;
+  }
+  const same =
+    Object.keys(survivors).length === Object.keys(cards.survivors).length &&
+    Object.entries(survivors).every(([id, n]) => cards.survivors[id] === n) &&
+    Object.keys(gear).length === Object.keys(cards.gear).length &&
+    Object.entries(gear).every(([id, w]) => cards.gear[id] === w);
+  return same ? cards : { survivors, gear };
 }

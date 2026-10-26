@@ -5,12 +5,21 @@
  * the whole list.
  */
 import type { z } from "zod";
+import {
+  CARD_STATS,
+  type CardEffect,
+  RARITIES,
+  RARITY_SHARE,
+  TRAIT_SHARE,
+  withinCap,
+} from "./cards";
 import { deriveLines } from "./lines";
 import type { Locale } from "./locale";
 import { deriveResearch, isScored, levelEffect, levelsCost, tierEra } from "./research";
 import {
   achievementsFileSchema,
   type Content,
+  cardsFileSchema,
   crewSchema,
   DATA_FILES,
   type DataFile,
@@ -79,6 +88,16 @@ export function identities(content: Content): Identity[] {
       file: "flotsam.json5",
       kind: "flotsam" as const,
       id: kind.id,
+    })),
+    ...content.cards.gear.map((gear) => ({
+      file: "cards.json5",
+      kind: "gear" as const,
+      id: gear.id,
+    })),
+    ...[...content.cards.sets.crews, content.cards.sets.kit].map((set) => ({
+      file: "cards.json5",
+      kind: "set" as const,
+      id: set.id,
     })),
   ];
 }
@@ -159,6 +178,7 @@ export function parseContent(
   const islandClock = whole("island.json5", islandFileSchema);
   const pacing = whole("pacing.json5", pacingSchema);
   const achievements = whole("achievements.json5", achievementsFileSchema);
+  const cards = whole("cards.json5", cardsFileSchema);
 
   if (
     problems.length > 0 ||
@@ -171,7 +191,8 @@ export function parseContent(
     !flotsam ||
     !islandClock ||
     !pacing ||
-    !achievements
+    !achievements ||
+    !cards
   ) {
     throw new ContentError(problems);
   }
@@ -210,6 +231,7 @@ export function parseContent(
     pacing,
     achievements,
     buffs,
+    cards,
   };
   problems.push(...crossCheck(content, locale));
   if (problems.length > 0) throw new ContentError(problems);
@@ -261,6 +283,7 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
   problems.push(...checkResearch(content, locale));
   problems.push(...checkFlotsam(content));
   problems.push(...checkAchievements(content, locale));
+  problems.push(...checkCards(content, locale));
 
   // The tap (N10, N9).
   const { tap } = content;
@@ -510,7 +533,13 @@ export const TAP_COEFFICIENT_MAX = 0.6;
  * rate stays a share of it, never the game.
  */
 export function tapCoefficient(content: Content): number {
-  const top = content.research.map((def) => levelEffect(def.effect, def.levels));
+  // Every card at once: a bound (one survivor wears one card a slot, and only while hired).
+  const cards = allCardEffects(content).map((effect) => ({
+    stat: effect.stat as string,
+    op: CARD_STATS[effect.stat].op as string,
+    value: effect.value,
+  }));
+  const top = [...content.research.map((def) => levelEffect(def.effect, def.levels)), ...cards];
   const grip = content.tools.flatMap((tool) => tool.effects);
   const sum = (stat: string, op: string, effects = top) =>
     effects.filter((e) => e.stat === stat && e.op === op).reduce((a, e) => a + e.value, 0);
@@ -588,3 +617,76 @@ function checkResearch(content: Content, locale: Locale): Problem[] {
 
 /** A Line Mk's levels by name (`research.{line}_mk.mk2`, ...). */
 export const MK_LEVELS = ["mk2", "mk3", "mk4", "mk5", "mk6"] as const;
+
+/** Every trait and gear card's effect (the most the cards can give at once). */
+function allCardEffects(content: Content): CardEffect[] {
+  const { survivors, gear } = content.cards;
+  return [...survivors.map((row) => row.trait), ...gear.map((row) => row.effect)];
+}
+
+/** The cards, the sets and the Supply Drops (12-feel.md 7; D248-D250). */
+function checkCards(content: Content, locale: Locale): Problem[] {
+  const problems: Problem[] = [];
+  const add = (id: string, message: string) => problems.push({ file: "cards.json5", id, message });
+  const { survivors, gear, sets, drops, stars } = content.cards;
+  const crew = new Set(content.crew.map((member) => member.id));
+  const seen = new Set<string>();
+  for (const survivor of survivors) {
+    if (!crew.has(survivor.id)) add(survivor.id, "a survivor must be a hand of crew.json5");
+    if (seen.has(survivor.id)) add(survivor.id, "a survivor is listed once");
+    seen.add(survivor.id);
+    if (!withinCap(survivor.trait, TRAIT_SHARE))
+      add(
+        survivor.id,
+        `the trait must give something and at most a trait's share of \`${survivor.trait.stat}\``,
+      );
+    const key = `trait.${survivor.id}.name`;
+    if (!locale.has(key)) add(survivor.id, `missing locale key \`${key}\``);
+  }
+  for (const member of crew) if (!seen.has(member)) add(member, "every hand needs a survivor card");
+  for (const row of gear)
+    if (!withinCap(row.effect, RARITY_SHARE[row.rarity]))
+      add(
+        row.id,
+        `a ${row.rarity} card gives at most ${row.rarity}'s share of \`${row.effect.stat}\``,
+      );
+  if (!withinCap(sets.kit.effect, TRAIT_SHARE))
+    add(sets.kit.id, "the kit gives at most a trait's share");
+  // No blank card (N28): every rarity has a card to draw.
+  for (const rarity of RARITIES) {
+    const pool = survivors.filter((row) => row.rarity === rarity).length;
+    if (pool + gear.filter((row) => row.rarity === rarity).length === 0)
+      add("", `no card of rarity \`${rarity}\`: a drop could draw nothing`);
+    const name = `rarity.${rarity}.name`;
+    if (!locale.has(name)) add("", `missing locale key \`${name}\``);
+  }
+  for (const [index, tier] of drops.tiers.entries()) {
+    const sum = RARITIES.reduce((total, rarity) => total + tier.odds[rarity], 0);
+    if (Math.abs(sum - 100) > 1e-9) add("", `tier ${index + 1}'s odds sum to ${sum}, not 100`);
+    const name = `drop.tier_${index + 1}`;
+    if (!locale.has(name)) add("", `missing locale key \`${name}\``);
+  }
+  const { rare, epic, legendary } = drops.pity;
+  if (!(rare < epic && epic < legendary)) add("", "pity must rise: rare < epic < legendary");
+  if (!survivors.some((row) => row.id === drops.first))
+    add("", `the first card \`${drops.first}\` must be a survivor`);
+  for (const [index, at] of drops.fells.at.entries()) {
+    const before = drops.fells.at[index - 1];
+    if (before !== undefined && !(at > before)) add("", "drops.fells.at must rise");
+  }
+  for (const [index, cost] of stars.costs.entries()) {
+    const before = stars.costs[index - 1];
+    if (before !== undefined && !(cost > before)) add("", "each star must cost more shards");
+  }
+  // N18 with the cards: the window with the Workshop's hours and every card's stays under the ceiling.
+  const { windowHours, maxHours } = content.run.nightShift;
+  const workshop = content.research
+    .filter((def) => def.effect.stat === "night_shift")
+    .reduce((sum, def) => sum + levelEffect(def.effect, def.levels).value, 0);
+  const fromCards = allCardEffects(content)
+    .filter((effect) => effect.stat === "night_shift")
+    .reduce((sum, effect) => sum + effect.value, 0);
+  if (windowHours + workshop + fromCards > maxHours + 1e-9)
+    add("", "the Night Shift with the Workshop's and the cards' hours passes its ceiling (N18)");
+  return problems;
+}

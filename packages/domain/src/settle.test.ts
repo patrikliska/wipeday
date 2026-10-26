@@ -5,8 +5,9 @@
  * 1. A generator of random states: up to 1,200 owned per line (every milestone kind), a random
  *    era, roster tiers, shelf rows and Workshop levels (away-only ones among them), a random
  *    manned subset, cycles in flight on unmanned lines, up to three buffs, the last command up
- *    to 20 h back, a Night Shift of 2-24 h, glass for Glow. The fixture content adds buffs (a global ×4, a one-line ×12) and an effect
- *    that holds only while the player is away.
+ *    to 20 h back, a Night Shift of 2-24 h, glass for Glow, survivor cards with stars and worn gear
+ *    and held Supply Drops (R3). The fixture content adds buffs (a global ×4, a one-line ×12) and
+ *    an effect that holds only while the player is away.
  * 2. Path independence: settling to t1 and then t2 equals settling to t2, within 1e-9, over
  *    10,000 states, with t1 placed around the window's end, buff ends and payouts; the same
  *    over 10,000 random command sequences (buys, hires, shelf rows, Workshop levels, eras,
@@ -98,6 +99,25 @@ function randomCase(random: Rng): Case {
   for (const def of content.research) {
     if (random.next() < 0.3) research[def.id] = random.int(1, def.levels);
   }
+  // R3: survivor cards at random stars, gear worn one card a slot, drops to open.
+  const survivors: Record<string, number> = {};
+  for (const row of content.cards.survivors)
+    if (random.next() < 0.5) survivors[row.id] = random.int(1, 5);
+  const owners = Object.keys(survivors);
+  const gear: Record<string, string | null> = {};
+  const slots = new Set<string>();
+  for (const row of content.cards.gear) {
+    if (random.next() < 0.4) continue;
+    const wearer =
+      owners.length > 0 && random.next() < 0.7
+        ? owners[random.int(0, owners.length - 1)]
+        : undefined;
+    const slot = `${wearer}|${row.slot}`;
+    if (wearer && !slots.has(slot)) {
+      slots.add(slot);
+      gear[row.id] = wearer;
+    } else gear[row.id] = null;
+  }
   const state: BaseState = {
     ...base,
     run: {
@@ -118,7 +138,12 @@ function randomCase(random: Rng): Case {
       n: random.int(1, 2),
       startedAt: random.next() < 0.8 ? T0 - random.int(0, 30 * HOUR) : null,
     },
-    meta: { ...base.meta, glass: { ...base.meta.glass, ever: random.int(0, 5000) } },
+    meta: {
+      ...base.meta,
+      glass: { ...base.meta.glass, ever: random.int(0, 5000) },
+      cards: { survivors, gear },
+      drops: { ...base.meta.drops, held: { 1: random.int(0, 2), 2: 0, 3: 0 } },
+    },
   };
   return { content, state };
 }
@@ -190,6 +215,17 @@ describe("settle's path independence (N24)", () => {
         const upgrade = content.upgrades[random.int(0, content.upgrades.length - 1)]?.id ?? "";
         const item = content.research[random.int(0, content.research.length - 1)]?.id ?? "";
         const era = TIERS[random.int(0, TIERS.length - 1)] ?? "wood";
+        const gears = content.cards.gear;
+        const owners = Object.keys(a.meta.cards.survivors);
+        const card: Command =
+          random.next() < 0.5
+            ? { type: "open_drop", tier: 1, pull: a.meta.drops.pulls }
+            : {
+                type: "equip_gear",
+                gear: gears[random.int(0, gears.length - 1)]?.id ?? "crowbar",
+                survivor:
+                  owners.length > 0 ? (owners[random.int(0, owners.length - 1)] ?? null) : null,
+              };
         const command: Command = floating
           ? { type: "claim_flotsam", run: a.run.n, k: cursor.k }
           : roll < 0.25
@@ -202,14 +238,16 @@ describe("settle's path independence (N24)", () => {
                   ? { type: "buy_research", item, count: random.next() < 0.5 ? 1 : "max" }
                   : roll < 0.6
                     ? { type: "buy_era", era }
-                    : roll < 0.85
+                    : roll < 0.8
                       ? {
                           type: "taps",
                           count: random.int(1, 30),
                           from: t - random.int(0, 2),
                           to: t,
                         }
-                      : { type: "ping" };
+                      : roll < 0.88
+                        ? card
+                        : { type: "ping" };
         // B settles somewhere in between first; A does not.
         const between = t - random.int(1, Math.max(1, t - b.run.settledAt));
         if (between > b.run.settledAt) b = settle(content, b, between).state;
@@ -240,12 +278,33 @@ function researchLevels(
   return out;
 }
 
-/** The Night Shift's hours: the base plus the Workshop's, under the ceiling. */
+/** What the hired survivors' cards carry: traits and worn gear, by stat (R3). */
+function hiredCardEffects(
+  content: Content,
+  state: BaseState,
+  id?: string,
+): { stat: string; value: number }[] {
+  const out: { stat: string; value: number }[] = [];
+  const cards = state.meta.cards;
+  for (const line of content.lines) {
+    if (!state.run.hands.includes(line.id) || (id !== undefined && line.id !== id)) continue;
+    const survivor = content.cards.survivors.find((row) => row.id === line.hand);
+    if (!survivor || cards.survivors[survivor.id] === undefined) continue;
+    out.push(survivor.trait);
+    for (const gear of content.cards.gear)
+      if (cards.gear[gear.id] === survivor.id) out.push(gear.effect);
+  }
+  return out;
+}
+
+/** The Night Shift's hours: the base plus the Workshop's and the cards', under the ceiling. */
 function windowHoursOf(content: Content, state: BaseState): number {
   const { windowHours, maxHours } = content.run.nightShift;
   let hours = windowHours;
   for (const effect of researchLevels(content, state))
     if (effect.stat === "night_shift") hours += effect.value * effect.n;
+  for (const effect of hiredCardEffects(content, state))
+    if (effect.stat === "night_shift") hours += effect.value;
   return Math.min(maxHours, hours);
 }
 
@@ -297,6 +356,38 @@ function lineFactors(
   const every = content.milestones.lineEvery;
   for (let at = every.from; at <= n; at += every.step)
     output *= every.special.find((special) => special.at === at)?.payout ?? every.payout;
+  // R3: a hired survivor's stars, trait and gear on its own line, three of a rarity the kit.
+  const cards = state.meta.cards;
+  const hand = content.lines.find((line) => line.id === id)?.hand ?? "";
+  const stars = cards.survivors[hand];
+  if (run.hands.includes(id) && stars !== undefined) {
+    output *= 1 + content.cards.stars.perStar * (stars - 1);
+    for (const effect of hiredCardEffects(content, state, id)) {
+      if (effect.stat === "output") output *= effect.value;
+      if (effect.stat === "speed") speed *= effect.value;
+    }
+    const byRarity = new Map<string, number>();
+    for (const gear of content.cards.gear)
+      if (cards.gear[gear.id] === hand)
+        byRarity.set(gear.rarity, (byRarity.get(gear.rarity) ?? 0) + 1);
+    const kit = content.cards.sets.kit;
+    if ([...byRarity.values()].some((count) => count >= kit.pieces)) output *= kit.effect.value;
+  }
+  // The crew sets, for every line: era-scoped output, and Morale on everything.
+  for (const set of content.cards.sets.crews) {
+    const pool = content.cards.survivors.filter(
+      (row) => set.rarity === undefined || row.rarity === set.rarity,
+    );
+    if (!pool.every((row) => (cards.survivors[row.id] ?? 0) >= set.stars)) continue;
+    for (const effect of set.effects) {
+      const reaches =
+        effect.scope === undefined ||
+        effect.scope === "all" ||
+        effect.scope === id ||
+        effect.scope === era;
+      if (reaches && (effect.stat === "output" || effect.stat === "morale")) output *= effect.value;
+    }
+  }
   return { output, speed };
 }
 
@@ -313,14 +404,18 @@ function oracle(content: Content, state: BaseState, until: number): number {
   const away = awayFactorOf(content, state);
   const offlineFrom = run.activeAt + content.run.nightShift.pingMinutes * 60 + 30;
   const rates = new Map(content.lines.map((line) => [line.id, line]));
-  let manned = 0;
   const mannedByLine = new Map<string, number>();
+  /** A hired survivor's away output on its own line (R3 cards' `offline`). */
+  const cardAway = new Map<string, number>();
   for (const id of run.hands) {
     const line = rates.get(id);
     const { output, speed } = lineFactors(content, state, id);
     const per = (run.lines[id] ?? 0) * (line?.rate ?? 0) * output * speed * glow;
-    manned += per;
     mannedByLine.set(id, per);
+    let factor = 1;
+    for (const effect of hiredCardEffects(content, state, id))
+      if (effect.stat === "offline") factor *= effect.value;
+    cardAway.set(id, factor);
   }
   const factorAt = (t: number, line?: string): number => {
     let factor = 1;
@@ -349,14 +444,16 @@ function oracle(content: Content, state: BaseState, until: number): number {
     }
     if (t >= offlineFrom) global *= away;
     // Buffs multiply, so two drones on one line make it ×144 there.
-    let second = manned * global;
     const boosted = new Map<string, number>();
     for (const drone of drones) {
       if (drone.until > t && drone.line)
         boosted.set(drone.line, (boosted.get(drone.line) ?? 1) * DRONE);
     }
-    for (const [line, factor] of boosted)
-      second += (mannedByLine.get(line) ?? 0) * global * (factor - 1);
+    let second = 0;
+    for (const [line, per] of mannedByLine) {
+      const own = t >= offlineFrom ? (cardAway.get(line) ?? 1) : 1;
+      second += per * global * own * (boosted.get(line) ?? 1);
+    }
     total += second;
   }
   for (const [id, ready] of Object.entries(run.readyAt)) {

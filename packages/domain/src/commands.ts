@@ -10,12 +10,16 @@
  *
  * R0's commands: `taps` and `ping` (the slim path, D134), `buy_line` and `hire_hand`. R1 adds
  * the shelf (`buy_upgrade`), eras (`buy_era`), flotsam and Collect; R2 the Workshop
- * (`buy_research`) and the crows (`claim_gull`); R4 the nuke and the Blast Map.
+ * (`buy_research`) and the crows (`claim_gull`); R3 the cards (`open_drop`, `star_up`,
+ * `craft_gear`, `equip_gear`); R4 the nuke and the Blast Map.
  */
+import { DROP_TIERS, type DropTier } from "@wipe-day/content/cards";
 import type { Content } from "@wipe-day/content/schema";
 import { TIERS } from "@wipe-day/content/tiers";
 import type { Amount } from "./amount";
 import { earnBadges } from "./badges";
+import { gearOf, survivorOf } from "./cards";
+import { credit, grantDrops, openDrop } from "./drops";
 import type { GameEvent } from "./events";
 import { arrivalKind, claimUntil, crateValue, flotsamAt, gapBefore } from "./flotsam";
 import { crossing, gullValue } from "./gulls";
@@ -57,7 +61,15 @@ export type Command =
   /** Catch crow `k` of run `run` while it crosses the sky (D197, D238). */
   | { type: "claim_gull"; run: number; k: number }
   /** The welcome-back card's one button: back to work (restarts the Night Shift). */
-  | { type: "collect" };
+  | { type: "collect" }
+  /** Open a held Supply Drop of `tier`; `pull` is `meta.drops.pulls` as the client saw it. */
+  | { type: "open_drop"; tier: DropTier; pull: number }
+  /** A survivor's next star, `to` (2-5), paid in its shards. */
+  | { type: "star_up"; survivor: string; to: number }
+  /** A gear card not yet owned, paid in shards of its rarity. */
+  | { type: "craft_gear"; gear: string }
+  /** Put a gear card on an owned survivor (swapping out what that slot held), or back (null). */
+  | { type: "equip_gear"; gear: string; survivor: string | null };
 
 export type CommandType = Command["type"];
 
@@ -88,7 +100,17 @@ export type Refusal =
   /** That flotsam is already caught. */
   | { reason: "claimed" }
   /** That flotsam belonged to an earlier run. */
-  | { reason: "stale_run" };
+  | { reason: "stale_run" }
+  /** No Supply Drop of that tier is held. */
+  | { reason: "no_drop" }
+  /** Not enough shards: `need` and `have`. */
+  | { reason: "shards"; need: number; have: number }
+  /** That survivor already has five stars. */
+  | { reason: "max_stars" }
+  /** That card is not in the Album yet. */
+  | { reason: "not_owned"; what: string }
+  /** The command was sent for an older state (a second click): nothing happened. */
+  | { reason: "stale" };
 
 export type { Gate };
 
@@ -142,10 +164,12 @@ export function applyCommand(
   // Badges after every successful command, never on a refusal or inside settle (D198). They read
   // the command's own events only: settle's can be swallowed by an earlier settle (N24).
   const badges = earnBadges(content, { ...result.state, run }, result.events, now);
+  // Then the drops the counters have earned (fells, badges), from the counters alone (D251).
+  const paid = credit(content, badges.state, now);
   return {
     ok: true,
-    state: badges.state,
-    events: [...events, ...badges.events],
+    state: paid.state,
+    events: [...events, ...badges.events, ...paid.events],
     changed: true,
   };
 }
@@ -179,7 +203,104 @@ function step(content: Content, state: BaseState, command: Command, now: number)
       return claimFlotsam(content, state, command.run, command.k, now);
     case "claim_gull":
       return claimGull(content, state, command.run, command.k, now);
+    case "open_drop":
+      return openHeldDrop(content, state, command.tier, command.pull);
+    case "star_up":
+      return starUp(content, state, command.survivor, command.to);
+    case "craft_gear":
+      return craftGear(content, state, command.gear);
+    case "equip_gear":
+      return equipGear(content, state, command.gear, command.survivor);
   }
+}
+
+function openHeldDrop(content: Content, state: BaseState, tier: DropTier, pull: number): Step {
+  if (!DROP_TIERS.includes(tier))
+    return { ok: false, refusal: { reason: "unknown", what: String(tier) } };
+  if (pull !== state.meta.drops.pulls) return { ok: false, refusal: { reason: "stale" } };
+  if (state.meta.drops.held[tier] <= 0) return { ok: false, refusal: { reason: "no_drop" } };
+  const opened = openDrop(content, state, tier);
+  return {
+    ok: true,
+    state: opened.state,
+    events: [{ type: "drop_opened", tier, cards: opened.cards }],
+  };
+}
+
+function starUp(content: Content, state: BaseState, survivor: string, to: number): Step {
+  if (!survivorOf(content, survivor))
+    return { ok: false, refusal: { reason: "unknown", what: survivor } };
+  const stars = state.meta.cards.survivors[survivor];
+  if (stars === undefined) return { ok: false, refusal: { reason: "not_owned", what: survivor } };
+  const costs = content.cards.stars.costs;
+  if (stars >= costs.length + 1) return { ok: false, refusal: { reason: "max_stars" } };
+  // A second click asks for a star already bought.
+  if (to !== stars + 1) return { ok: false, refusal: { reason: to <= stars ? "owned" : "stale" } };
+  const cost = costs[stars - 1] ?? Number.POSITIVE_INFINITY;
+  const drops = state.meta.drops;
+  const have = drops.shards.crew[survivor] ?? 0;
+  if (have < cost) return { ok: false, refusal: { reason: "shards", need: cost, have } };
+  const crew = { ...drops.shards.crew, [survivor]: have - cost };
+  const meta = {
+    ...state.meta,
+    cards: { ...state.meta.cards, survivors: { ...state.meta.cards.survivors, [survivor]: to } },
+    drops: { ...drops, shards: { ...drops.shards, crew } },
+  };
+  return {
+    ok: true,
+    state: { ...state, meta },
+    events: [{ type: "starred", survivor, stars: to, cost }],
+  };
+}
+
+function craftGear(content: Content, state: BaseState, id: string): Step {
+  const gear = gearOf(content, id);
+  if (!gear) return { ok: false, refusal: { reason: "unknown", what: id } };
+  if (id in state.meta.cards.gear) return { ok: false, refusal: { reason: "owned" } };
+  const cost = content.cards.shards.craft[gear.rarity];
+  const drops = state.meta.drops;
+  const have = drops.shards.gear[gear.rarity];
+  if (have < cost) return { ok: false, refusal: { reason: "shards", need: cost, have } };
+  const meta = {
+    ...state.meta,
+    cards: { ...state.meta.cards, gear: { ...state.meta.cards.gear, [id]: null } },
+    drops: {
+      ...drops,
+      shards: { ...drops.shards, gear: { ...drops.shards.gear, [gear.rarity]: have - cost } },
+    },
+  };
+  return {
+    ok: true,
+    state: { ...state, meta },
+    events: [{ type: "gear_crafted", gear: id, cost }],
+  };
+}
+
+function equipGear(content: Content, state: BaseState, id: string, survivor: string | null): Step {
+  const gear = gearOf(content, id);
+  if (!gear) return { ok: false, refusal: { reason: "unknown", what: id } };
+  const cards = state.meta.cards;
+  if (!(id in cards.gear)) return { ok: false, refusal: { reason: "not_owned", what: id } };
+  if (survivor !== null) {
+    if (!survivorOf(content, survivor))
+      return { ok: false, refusal: { reason: "unknown", what: survivor } };
+    if (cards.survivors[survivor] === undefined)
+      return { ok: false, refusal: { reason: "not_owned", what: survivor } };
+  }
+  // Already so: a second click changes nothing (and keeps the effects cache).
+  if (cards.gear[id] === survivor)
+    return { ok: true, state, events: [{ type: "gear_equipped", gear: id, survivor }] };
+  const worn: Record<string, string | null> = { ...cards.gear, [id]: survivor };
+  // One card a slot: what the survivor wore there goes back to the Album.
+  if (survivor !== null)
+    for (const other of content.cards.gear)
+      if (other.id !== id && other.slot === gear.slot && worn[other.id] === survivor)
+        worn[other.id] = null;
+  return {
+    ok: true,
+    state: { ...state, meta: { ...state.meta, cards: { ...cards, gear: worn } } },
+    events: [{ type: "gear_equipped", gear: id, survivor }],
+  };
 }
 
 function claimGull(content: Content, state: BaseState, n: number, k: number, now: number): Step {
@@ -221,6 +342,7 @@ function claimFlotsam(content: Content, state: BaseState, n: number, k: number, 
   const kind = arrivalKind(content, state, k);
   const effect = kind.effect;
   const lump = crateValue(content, state, kind, now);
+  const drop = "drop" in effect ? effect.drop : null;
   const buffs =
     "buff" in effect
       ? [
@@ -243,11 +365,14 @@ function claimFlotsam(content: Content, state: BaseState, n: number, k: number, 
   // The next arrival follows this one's own time, whenever it was caught.
   const next = k + 1;
   const flotsam = { ...caught.run.flotsam, k: next, at: at + gapBefore(content, caught, next, at) };
-  return {
-    ok: true,
-    state: { ...caught, run: { ...caught.run, flotsam } },
-    events: [{ type: "flotsam_claimed", kind: kind.id, k, value: lump }],
-  };
+  const events: GameEvent[] = [{ type: "flotsam_claimed", kind: kind.id, k, value: lump }];
+  let out: BaseState = { ...caught, run: { ...caught.run, flotsam } };
+  // The Sealed Locker: a Supply Drop instead of supplies (12-feel.md 7.1).
+  if (drop !== null) {
+    out = grantDrops(out, drop, 1);
+    events.push({ type: "drop_earned", tier: drop, count: 1, source: "locker" });
+  }
+  return { ok: true, state: out, events };
 }
 
 function buyLine(content: Content, state: BaseState, id: string, count: BuyCount): Step {

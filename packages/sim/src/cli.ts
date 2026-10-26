@@ -39,14 +39,14 @@ function table(life: Life): string {
   const lines = [
     `${life.name}: first hand ${life.firstHandSeconds === null ? "-" : `${life.firstHandSeconds}s`}, ` +
       `largest ${sci(life.largest)}, ${life.runs.length} run(s), ${life.steps} commands`,
-    "  day  run   supplies       made   lifetime  owned hands  glass nukes      taps",
+    "  day  run   supplies       made   lifetime  owned hands  glass nukes      taps drops cards",
   ];
   for (const row of life.days.filter((row) => SHOWN.has(row.day) || row === life.days.at(-1))) {
     lines.push(
       `  ${String(row.day).padStart(3)} ${String(row.run).padStart(4)} ${sci(row.supplies).padStart(10)} ` +
         `${sci(row.made).padStart(10)} ${sci(row.lifetime).padStart(10)} ${String(row.owned).padStart(6)} ` +
         `${String(row.hands).padStart(5)} ${String(row.glassEver).padStart(6)} ${String(row.nukes).padStart(5)} ` +
-        `${String(row.taps).padStart(9)}`,
+        `${String(row.taps).padStart(9)} ${String(row.drops).padStart(5)} ${String(row.cards).padStart(5)}`,
     );
   }
   return lines.join("\n");
@@ -123,7 +123,7 @@ if (args[0] === "window") {
   for (const life of simulateAll(content, days)) {
     console.log(`${table(life)}\n`);
     const csv = [
-      "day,run,supplies,made,lifetime,owned,hands,glassEver,nukes,taps",
+      "day,run,supplies,made,lifetime,owned,hands,glassEver,nukes,taps,drops,cards",
       ...life.days.map((row) =>
         [
           row.day,
@@ -136,6 +136,8 @@ if (args[0] === "window") {
           row.glassEver,
           row.nukes,
           row.taps,
+          row.drops,
+          row.cards,
         ].join(","),
       ),
     ].join("\n");

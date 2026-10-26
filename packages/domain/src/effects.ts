@@ -11,12 +11,14 @@
  *
  * Sources from R1: the eras bought, each line's milestones (from its owned count), the roster
  * tiers reached, and the shelf (Grip rungs, island upgrades); Glow from glass ever; and timed
- * buffs from flotsam (`content.buffs`). From R2 the Workshop's levels (Line Mks among them).
- * Nodes, ranks and the Logbook join in their phases through `activeEffects`.
+ * buffs from flotsam (`content.buffs`). From R2 the Workshop's levels (Line Mks among them); from
+ * R3 the cards (`cards.ts`: hired survivors' stars, traits and gear, and the crew sets). Nodes and
+ * the Logbook join in their phases through `activeEffects`.
  */
 import { type Effect, STATS, type StatId } from "@wipe-day/content/effects";
 import type { Content, LineDef } from "@wipe-day/content/schema";
 import { TIERS } from "@wipe-day/content/tiers";
+import { cardEffects } from "./cards";
 import { glow } from "./prestige";
 import { researchEffects } from "./research";
 import type { BaseState, Buff } from "./state";
@@ -83,6 +85,8 @@ export function activeEffects(content: Content, state: BaseState): Effect[] {
       out.push(...upgrade.effects);
   }
   out.push(...researchEffects(content, state));
+  // Never in `globalEffects`: a card does not multiply the flat tap (E23).
+  out.push(...cardEffects(content, state));
   return out;
 }
 
@@ -282,6 +286,9 @@ interface Layer {
   upgrades: BaseState["run"]["upgrades"];
   research: BaseState["run"]["research"];
   badges: BaseState["meta"]["badges"];
+  /** The cards owned and who is hired: survivors' effects hold only while hired (R3). */
+  cards: BaseState["meta"]["cards"];
+  hands: BaseState["run"]["hands"];
   /** Each line's milestone payout and speed, in content order: the only way counts reach effects. */
   milestones: number[];
   /** Some effect counts units or hands (`per`): unit rates then depend on the counts too. */
@@ -365,6 +372,8 @@ function layerOf(content: Content, state: BaseState): Layer {
     known.roster === state.run.roster &&
     known.research === state.run.research &&
     known.badges === state.meta.badges &&
+    known.cards === state.meta.cards &&
+    known.hands === state.run.hands &&
     sameNumbers(known.milestones, milestones)
   ) {
     return known;
@@ -378,7 +387,8 @@ function layerOf(content: Content, state: BaseState): Layer {
   let earned = 0;
   for (const badge of content.achievements.badges)
     if (state.meta.badges[badge.id] !== undefined) earned++;
-  const morale = 1 + content.achievements.moralePer * earned;
+  // A crew set's Morale multiplies the badges' (R3).
+  const morale = (1 + content.achievements.moralePer * earned) * foldStat("morale", effects, 1);
   const byStat = new Map<StatId, Effect[]>();
   for (const effect of effects) {
     const list = byStat.get(effect.stat);
@@ -394,6 +404,8 @@ function layerOf(content: Content, state: BaseState): Layer {
     upgrades: state.run.upgrades,
     research: state.run.research,
     badges: state.meta.badges,
+    cards: state.meta.cards,
+    hands: state.run.hands,
     milestones,
     counted: effects.some((effect) => effect.per !== undefined),
     rates: {
@@ -435,7 +447,8 @@ export function rates(content: Content, state: BaseState): Rates {
     old.run.roster === state.run.roster &&
     old.run.upgrades === state.run.upgrades &&
     old.run.research === state.run.research &&
-    old.meta.badges === state.meta.badges
+    old.meta.badges === state.meta.badges &&
+    old.meta.cards === state.meta.cards
   ) {
     return hit.rates;
   }

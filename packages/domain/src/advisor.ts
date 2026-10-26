@@ -19,6 +19,7 @@ import { isScored } from "@wipe-day/content/research";
 import type { Content, LineDef, ResearchDef } from "@wipe-day/content/schema";
 import { TIERS } from "@wipe-day/content/tiers";
 import type { Amount } from "./amount";
+import { hireFactor } from "./cards";
 import type { Command } from "./commands";
 import type { Conditions, Effect } from "./effects";
 import { foldParts, rates, unitRate } from "./effects";
@@ -106,7 +107,8 @@ export function choices(
     }
     if (!manned && n > 0) {
       const cost = handPriceOf(content, state, line);
-      const gain = n * unit * (1 - tapShare);
+      // Its survivor card turns on with the hire (R3): stars and own-line gear multiply it.
+      const gain = n * unit * (hireFactor(content, state, line) - tapShare);
       out.push({
         command: { type: "hire_hand", line: line.id },
         cost,

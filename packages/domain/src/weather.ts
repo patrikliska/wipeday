@@ -29,6 +29,11 @@ export function isNight(content: Content, t: number): boolean {
   return from > to ? hour >= from || hour < to : hour >= from && hour < to;
 }
 
+/** The island's day number at `t`: days since the epoch on the island's clock (UTC+1, E9). */
+export function islandDay(content: Content, t: number): number {
+  return Math.floor((t + content.islandClock.utcOffsetMinutes * 60) / 86_400);
+}
+
 /** The island's hour at `t` (0 ≤ h < 24): UTC plus its fixed offset, no daylight saving (E9). */
 export function islandHour(content: Content, t: number): number {
   const seconds = t + content.islandClock.utcOffsetMinutes * 60;

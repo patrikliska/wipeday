@@ -6,7 +6,7 @@ should think, and what "done" means**. It was rewritten in R0 from the approved 
 (`docs/redesign/11-roadmap.md`, which keeps the reasons); the W-phase roadmap and its results are
 in `docs/archive/roadmap-w.md`.
 
-## Where we are (2026-10-19, R2 Feel done)
+## Where we are (2026-10-20, R3 Cards S1 done)
 
 - **The live game is the redesign** since 2026-10-19 (D242): the owner had R2 Feel S7 (`redesign`
   at fdc5010) deployed to https://wipeday.patrikliska.dev, bringing the cut-over forward from R4.
@@ -87,8 +87,38 @@ in `docs/archive/roadmap-w.md`.
   campfire's flame and glow, the lamp's light, the renames (results below). P3 was committed
   first (60388f9).
 - **The owner approved P4 and kept Jerky** (2026-10-19); P4 committed.
-- **Next: R3 Cards** (plan mode).
-  Retro Diffusion has about 2.59 USD; R3 S3's busts and gear need about 15 USD more.
+- **R3 Cards' plan was approved on 2026-10-19** (D248; "R3 Cards" below): four sessions, with the
+  owner's answers (scrap from the daily quests, the Album full in about two weeks, about 15 USD of
+  art before S3).
+- **R3 S1, cards and drops in the domain, is done** (2026-10-20; D249-D254; results below).
+- **Next: R3 S2** (scrap, boosts and the daily quests). Retro Diffusion has about 2.59 USD;
+  S3's busts and gear need about 15 USD more.
+
+### R3 S1 results: cards and drops in the domain
+- **Built:** `content/data/cards.json5` (14 survivors with traits, 30 gear cards, the crew sets
+  and the kit, the drop tiers' odds, pity, shards and the fell schedule), `content/src/cards.ts`
+  (rarities, slots, the card stats and their caps) and the content checks; `domain/cards.ts`
+  (what owned cards do while hired), `domain/drops.ts` (the draw, pity, shards, `credit`);
+  `meta.cards` and `meta.drops`; `open_drop`, `star_up`, `craft_gear`, `equip_gear` (domain, API
+  schema, refusal words); the Sealed Locker airdrop; the advisor's hire gain with the card; the
+  simulator opens, stars, crafts and equips (`tend`), and counts drops and cards a day.
+- **Decisions:** D248 the plan and the owner's answers; D249 the drop sources (felling every 25th
+  fell, one an hour and three a day; badges through the same gate; the locker); D250 the seed,
+  the first card and pity; D251 the counters' ledger; D252 the effects (`more`, own line, caps);
+  D253 production-only cards and the simulator; D254 one scene hint at a time.
+- **Tests:** `domain/cards.test.ts`: **N28** (10,000 drops on a full Album, 2,000 on an empty
+  one: never blank), **N29** (all-Common odds: the 10th, 40th and 150th card as printed; the
+  shipped odds' longest gaps inside the pity over 3,000 drops a tier), the ledger's batching, the
+  hourly gate and the day's cap, each command's refusals and second clicks, stars ×2, gear and
+  the kit, the sets, normalize. `settle.test.ts` generates cards and drops, adds card commands to
+  its 10,000 sequences, and its oracle counts stars, traits, gear, the kit, the sets and away
+  output. `pnpm check` passes; `pnpm icons` clean.
+- **Balance** (`pnpm sim check`, test profile, 7.0 s): every R0-R2 assertion passes with cards
+  in play: N9 4.94-5.27 (rain warns to 6.08), 4.2 Sheet Metal 41:14-44:04, Frenzy 41:09, nuke
+  42:14-45:14, N3 day 1 21:00. Casual drops (before S2's quests): 13 by day 7, 23 by day 14, 44
+  by day 30; 30 of the 44 cards owned by day 14. N19 and N30 wait for S2.
+- **Shots:** `r3_locker_phone`, `r3_locker_desktop`, `r3_odds_locker_phone`; notes in
+  `docs/ui-review.md` (R3 S1).
 
 ### P4 results: the yard, the art, the names
 - **The yard** (D246): `scene/yards.ts` is the Terrace alone (the flat camp, the Camp mock and the
@@ -726,24 +756,31 @@ and scrap as the premium currency earned in play (`12-feel.md` 7, 8, 9.2).
 
 | Kind | Plan mode | Model and effort | Sessions | Lands on |
 | --- | --- | --- | --- | --- |
-| domain, balance, UI | yes, full | Opus, high for drops, pity and scrap; medium for the Album | 4 (17-20) | `redesign`, played locally |
+| domain, balance, UI | yes, full (approved 2026-10-19, D248) | Opus, high for drops, pity and scrap; medium for the Album | 4 (17-20) | `redesign`, played locally |
 
-**Build** (from `12-feel.md` 7-9; the open questions of its 15 answered first)
+**Build** (from `12-feel.md` 7-9; the plan approved on 2026-10-19 with the owner's answers, D248)
 
-- **S1. Cards and drops in the domain.** `cards.json5`: 14 survivors (rarity fixed per survivor,
-  stars 1-5 from shards, one trait while hired), about 30 gear cards (one stat, a slot kind),
-  sets; Supply Drops of three cards in tiers I-III with printed odds and pity counted per player
-  (10 / 40 / 150); duplicates pay shards; shard prices; the drop sources (every 5th fell in run
-  1, every 10th after; achievements; the Sealed Locker; scrap). Seeded, printed, tested.
-- **S2. Scrap and boosts.** Scrap earned in play (badges, elite gulls, daily quests, and from R4
-  the nuke); Overdrive, Double Time and Lucky Tide on real seconds; daily quests (three a day on
-  the island's clock, the third pays a drop and 1 scrap). Nothing for real money (D182).
-- **S3. The Album and the reveal.** The dock's Album (portraits greyed until owned, stars, gear,
-  sets, odds and pity counters, shard balances); the drop's reveal (one flip per tap, rarity
-  colour first, "Flip the next" primary); equipping gear; survivor busts and gear art through
-  `pnpm art`.
-- **S4. Workshop tiers 5-8 and balance.** The late tiers; the simulator's drop and scrap
-  accounting; N19 and N30.
+- **S1. Cards and drops in the domain** (no UI). `cards.json5`: 14 survivors (rarity fixed per
+  survivor; stars 2-5 from its shards, each a `more` on its line, ×2 at five; one trait), 30 gear
+  cards (one stat each from a short list with a cap per rarity, slots hand, head and pack), the
+  crew sets and the kit; everything a card does works only while its hand is hired. Supply Drops
+  of three cards in tiers I-III with printed odds and pity per player (10 / 40 / 150), the first
+  card always Mara, duplicates pay shards (a five-star survivor's pay gear shards), rarity shards
+  buy any gear. Sources: felling on a slowing schedule, one drop per 10 badges, the Sealed Locker
+  (tier II), paid from the counters (`credit`). `open_drop`, `star_up`, `craft_gear`,
+  `equip_gear`; the simulator opens, stars, crafts and equips.
+- **S2. Scrap, boosts and quests.** `meta.scrap`; earned from badges (1 per 5), the Magpie (1)
+  and daily quests (1 each, all three a tier-I drop and 2 more: the owner's pick, about 5 a day);
+  spent on drops (30 / 120) and boosts on real seconds (Overdrive, Double Time, Lucky Tide on its
+  own airdrop grid); three quests an island day (UTC+1), unclaimed ones paid at the roll; N19 and
+  N30 in the simulator. Nothing for real money (D182).
+- **S3. The Album and the reveal** (needs about 15 USD of Retro Diffusion first). The dock's
+  Album, the reveal sheet (one flip per tap, rarity colour first, "Flip the next" primary, "To the
+  Album" secondary), the survivor sheet with gear, the Scrap sheet and plate, boost pills, quests
+  in the Logbook, unopened drops as crates by the house; busts and gear art through `pnpm art`.
+- **S4. Workshop tiers 5-8 and balance.** The late tiers; the fell schedule, shards and quest
+  goals tuned (a casual opens 2-4 drops a day, the base set in about two weeks); card power
+  against N4-N9 and N23; `shipped: "R3"`; `pnpm sim check --full`; the juice checklist.
 
 **Done when:** **N28** no card is blank, a duplicate pays shards (domain test); **N29** pity as
 printed (the seeded drop test); **N30** the casual opens at least one drop a day in days 1-30;

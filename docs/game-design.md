@@ -329,8 +329,9 @@ under 0.6 (a content check); `multCeiling` bounds the folded tap multiplier with
   the target but pay nothing, silently; an autoclicker earns what 15 taps do. Taps travel in
   batches (about 1 s or 30 taps); the counter reacts on the frame.
 - **Hold to work:** a press held 0.35 s counts 4 taps a second until release. **Felling** adds
-  `10/N` to tap income: +25% in Twig down to +8% in Armored; from R3 a fell also drops a tier-I
-  Supply Drop on a printed schedule (every 5th fell in run 1, every 10th after). Afterglow stays.
+  `10/N` to tap income: +25% in Twig down to +8% in Armored; from R3 felling pays a tier-I
+  Supply Drop at the 5th fell, then every 25th, at most one an hour and three a day (D249).
+  Afterglow stays.
 
 ### 5.3 Flotsam and gulls (R1, R2; more kinds in R6 and R7)
 
@@ -346,7 +347,7 @@ never a toast (D171). Settings and the Multipliers sheet open the **Odds** sheet
 | Fuel Drum | 40 | Rally: all lines ×4 for 60 s | R1 |
 | Adrenaline Kit | 6 | taps ×100 for 12 s | R1 |
 | Drowned Drone | 7 | one owned line ×12 for 30 s | R6 |
-| Sealed Locker | 1 | a tier-II Supply Drop (replaces its scrap, `12` 7.1) | R7 |
+| Sealed Locker | 1 | a tier-II Supply Drop (replaces its scrap, `12` 7.1) | R3 |
 | Message in a Bottle | 0.5 | a Logbook secret's hint plus a Drift Crate | R6 |
 
 Odds are renormalised over shipped kinds and printed (R1-R5: crate 49.5%, drum 44.0%, kit 6.6%).
@@ -688,12 +689,15 @@ is earned in play or bought with scrap; nothing else opens one before R9.
 
 | Source | Tier | How often | Ships |
 | --- | --- | --- | --- |
-| Felling | I | every 5th fell in run 1, every 10th after (printed) | R3 |
-| Daily quests | I | the third quest of the day | R3 |
-| Badges and pages | I-II | one per 10 | R3 |
+| Felling | I | the 5th fell, then every 25th; at most one an hour and three a day (D249) | R3 |
+| Badges | I | one per 10, through the same hourly gate (they wait their turn) | R3 |
+| Flotsam: Sealed Locker | II | weight 1 (1.1% of airdrops) | R3 |
+| Daily quests | I | all three of the day's quests | R3 |
 | Scrap | II / III | 30 / 120 scrap | R3 |
 | The nuke | I / II / III | a small blast / a Wipe Day / a doubling Wipe Day | R4 |
-| Flotsam: Sealed Locker | II | weight 1 | R7 |
+
+Card k of a player's life rolls on the base's seed (D250), so the client shows the reveal at once;
+the first card ever is Mara (printed).
 
 **Odds, printed in the Album** (per card, Common/Rare/Epic/Legendary): tier I 70/25/4.5/0.5%;
 tier II 45/40/13/2%; tier III 10/50/32/8%. **Pity, printed:** a Rare or better within 10 cards,
@@ -706,22 +710,27 @@ pulls:** a duplicate pays shards (N28, N29). The reveal is one flip per tap, rar
 - **Rarity** fixed per survivor, not per line order, so early pulls matter: 5 Common (Mara, Dax,
   Ivo, Bram, Otto), 5 Rare (Rook, Sela, Wren, Juno, Pike), 3 Epic (Hale, Tamsin, Gus), 1
   Legendary (Vera).
-- **Stars** 1-5 from shards: 10 / 25 / 50 / 100 shards for stars 2-5; each star is that line
-  +25% (`inc`), five stars ×2.
-- **One trait** each, on while hired, at most +25% on one stat, in `cards.json5`: Dax "Keeps the
-  fire" (crit +2%), Mara "Early riser" (Night Shift +10 min), Wren "Hot hands" (Furnace cycle
-  −10%), and so on.
-- **Three gear slots.**
+- **Stars** 1-5 from the survivor's own shards: 10 / 25 / 50 / 100 for stars 2-5; each star above
+  1 is that line ×1.25 more (one `more`, D252), five stars ×2.
+- **One trait** each *(names: proposal)*, at most +25% on one stat, in `cards.json5`: Mara "Early
+  Riser" (Night Shift +10 min), Wren "Hot Hands" (Furnace speed ×1.11), Bram "Slow Burn" (the
+  Kiln ×1.25 while you are away), and so on.
+- **Three gear slots**, all open at once (D248). Everything a card does works only while its hand
+  is hired (D248).
+- Cards give production only: output, speed, away output on the holder's line, Night Shift hours
+  (D253); taps stay the taps' own.
 
-**Gear cards.** About 30 at launch, Rust in mood with our names: Salvaged Hatchet, Driftwood Rod,
-Rope Belt, Tin Lantern, Gas Mask, Hazmat Coat, Jerrycan, Car Battery, Welding Goggles, Crowbar.
-Each has a rarity, one stat (`{stat, op, value}`, at most +20% Common to +60% Legendary) and a
-slot kind (hand, head, pack); equipped to one survivor at a time, swapped free and instantly.
+**Gear cards.** 30 at launch *(names: proposal)*, Rust in mood with our names: 10 a slot (hand:
+Salvaged Hatchet to Power Saw; head: Tin Lantern to Spotter's Scope; pack: Rope Belt to Generator
+Pack), 12 Common, 9 Rare, 6 Epic, 3 Legendary. Each has a rarity, one stat (`{stat, value}`, at
+most +20% Common to +60% Legendary) and a slot; worn by one survivor at a time, swapped free and
+instantly. A five-star survivor's duplicate pays gear shards of its rarity.
 Duplicates pay shards of their rarity; shards buy any gear card of that rarity in the Album (20 /
 50 / 120 / 300), so a wanted piece is always reachable by play.
 
-**Sets**, printed in the Album: all five Common survivors at 3 stars, Twig and Timber lines ×1.5;
-all 14 at 1 star, Morale +10%; a survivor with three gear pieces of one rarity, that line +10%.
+**Sets** *(names: proposal)*, printed in the Album: The Old Hands, all five Common survivors at 3
+stars, Twig and Timber lines ×1.5; Full Muster, all 14 owned, Morale +10%; Matched Kit, a hired
+survivor wearing three gear cards of one rarity, that line +10%.
 
 **The Album** is a dock destination: survivors as a grid of portraits (greyed until owned, stars
 under each), gear as a grid, sets, the odds and pity counters, the shard balances. Icons from

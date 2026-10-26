@@ -11,13 +11,19 @@
  *
  * Until R4's real `nuke`, a stub nuke folds the run into `meta` by the prestige formula
  * (`prestige.ts`) and starts a fresh run, so the loop already plays lifetimes.
+ *
+ * R3's cards (D252): every archetype opens its drops at once, buys each star its shards pay
+ * for, crafts the first missing gear its rarity shards buy, and after a hire or a new card puts
+ * the strongest production gear on the hired survivors whose lines make the most.
  */
+
+import { RARITIES, SLOTS } from "@wipe-day/content/cards";
 import type { Archetype, Assertion, Content, Phase } from "@wipe-day/content/schema";
 import { PHASES } from "@wipe-day/content/schema";
 import { choices, crown, lasting, type Player } from "@wipe-day/domain/advisor";
 import { assertFiniteState } from "@wipe-day/domain/amount";
 import { applyCommand, type Command } from "@wipe-day/domain/commands";
-import { fullRate, rates } from "@wipe-day/domain/effects";
+import { fullRate, rates, unitRate } from "@wipe-day/domain/effects";
 import type { GameEvent } from "@wipe-day/domain/events";
 import { claimUntil, flotsamAt } from "@wipe-day/domain/flotsam";
 import { gullAt } from "@wipe-day/domain/gulls";
@@ -72,6 +78,9 @@ export interface DayRow {
   glassEver: number;
   nukes: number;
   taps: number;
+  /** Supply Drops opened so far, and cards owned (R3). */
+  drops: number;
+  cards: number;
 }
 
 export interface RunRow {
@@ -224,12 +233,17 @@ export function simulate(
       if (event.type === "frenzy_tripped") beat("frenzy", since(now));
       if (event.type === "gull_caught") beat("gull", since(now));
       if (event.type === "badge_unlocked") beat("badge", since(now));
+      if (event.type === "drop_opened") beat("drop", since(now));
+      if (event.type === "hand_hired" || event.type === "drop_earned") tending = true;
       if (event.type === "researched") {
         beat("research", since(now));
         beat(event.item, since(now));
       }
     }
   };
+
+  /** A hire or an earned drop since the cards were last tended. */
+  let tending = false;
 
   const step = (command: Command, now: number): ReturnType<typeof applyCommand> => {
     const result = applyCommand(content, state, command, now);
@@ -317,6 +331,56 @@ export function simulate(
     return true;
   };
 
+  /** The cards, as a player would keep them: open, star, craft, then wear the best (D252). */
+  const tend = (now: number) => {
+    tending = false;
+    for (const tier of [1, 2, 3] as const)
+      while (state.meta.drops.held[tier] > 0)
+        if (!step({ type: "open_drop", tier, pull: state.meta.drops.pulls }, now).ok) break;
+    const { stars, shards } = content.cards;
+    for (const row of content.cards.survivors) {
+      for (
+        let n = state.meta.cards.survivors[row.id];
+        n !== undefined && n <= stars.costs.length;
+        n++
+      ) {
+        if ((state.meta.drops.shards.crew[row.id] ?? 0) < (stars.costs[n - 1] ?? Infinity)) break;
+        if (!step({ type: "star_up", survivor: row.id, to: n + 1 }, now).ok) break;
+      }
+    }
+    for (const rarity of RARITIES) {
+      for (const row of content.cards.gear) {
+        if (row.rarity !== rarity || row.id in state.meta.cards.gear) continue;
+        if (state.meta.drops.shards.gear[rarity] < shards.craft[rarity]) break;
+        step({ type: "craft_gear", gear: row.id }, now);
+      }
+    }
+    // The hired survivors, the line that makes most first; production gear, strongest first.
+    const hired = content.lines
+      .filter((line) => state.run.hands.includes(line.id))
+      .filter((line) => state.meta.cards.survivors[line.hand] !== undefined)
+      .map((line) => ({
+        hand: line.hand,
+        rate: (state.run.lines[line.id] ?? 0) * unitRate(content, state, line, now, ONLINE),
+      }))
+      .sort((a, b) => b.rate - a.rate);
+    const power = (stat: string, value: number) =>
+      stat === "output" || stat === "speed" ? value : 1;
+    for (const slot of SLOTS) {
+      const owned = content.cards.gear
+        .filter((row) => row.slot === slot && row.id in state.meta.cards.gear)
+        .sort(
+          (a, b) => power(b.effect.stat, b.effect.value) - power(a.effect.stat, a.effect.value),
+        );
+      for (const [i, survivor] of hired.entries()) {
+        const gear = owned[i];
+        if (!gear) break;
+        if (state.meta.cards.gear[gear.id] !== survivor.hand)
+          step({ type: "equip_gear", gear: gear.id, survivor: survivor.hand }, now);
+      }
+    }
+  };
+
   const wanted = new Set(snapshotDays);
   for (let day = startDay; day <= days; day++) {
     const midnight = DAY0 + (day - 1) * DAY;
@@ -367,6 +431,7 @@ export function simulate(
         if (crow && catches(archetype, seedOf(baseSeed, SEED.gull), state.run.n, crow.k))
           step({ type: "claim_gull", run: state.run.n, k: crow.k }, to);
         const affordable = buy(to, rate);
+        if (tending) tend(to);
         if (state.run.n <= EARLY_RUNS) {
           stuck = affordable ? 0 : stuck + length;
           life.stuck.online = Math.max(life.stuck.online, stuck);
@@ -415,6 +480,9 @@ export function simulate(
       glassEver: state.meta.glass.ever,
       nukes: state.meta.nukes,
       taps: state.meta.stats.taps,
+      drops: state.meta.stats.drops,
+      cards:
+        Object.keys(state.meta.cards.survivors).length + Object.keys(state.meta.cards.gear).length,
     });
     if (stop && day >= stop.day && life.runs.length > 0 && state.run.n > stop.runs) break;
   }

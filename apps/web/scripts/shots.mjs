@@ -2555,6 +2555,43 @@ const SHOTS = [
       },
     ];
   })(),
+  // R3 S1: the Sealed Locker (a Supply Drop II) coming down, and its line on the Odds sheet.
+  {
+    name: "r3_locker_phone",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      runAge: 1800,
+      flotsamAge: 5,
+      flotsamKind: "sealed_locker",
+    },
+    ff: 0.5,
+  },
+  {
+    name: "r3_locker_desktop",
+    viewport: DESKTOP,
+    state: {
+      time: at(1, 19),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      runAge: 1800,
+      flotsamAge: 5,
+      flotsamKind: "sealed_locker",
+    },
+    ff: 0.5,
+  },
+  {
+    name: "r3_odds_locker_phone",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, ui: { sheet: "odds" } },
+    ff: 2.5,
+  },
 ];
 
 /** Moves `time` by whole days (same hour) until the island has `weather` then. */

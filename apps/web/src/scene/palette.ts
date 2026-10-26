@@ -292,6 +292,8 @@ export const FLOTSAM_TINT: Record<string, number> = {
   crate: 0xe2bc7c,
   fuel_drum: 0xdde2e6,
   adrenaline: 0xf4f1e8,
+  // The Sealed Locker (R3): a Supply Drop, in the Magpie's gold so it reads as the rare one.
+  sealed_locker: 0xe3c04f,
 };
 export const FLOTSAM_GLOW = 0xffe2a0;
 /** The Frenzy bar under the target (D237): its track, the fill, and the tripped buff's timer. */
