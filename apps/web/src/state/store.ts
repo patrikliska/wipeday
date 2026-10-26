@@ -258,7 +258,11 @@ export const useWorld = create<Store>((set, get) => {
       base: rebase(confirmed, rest),
     });
     if (!response.ok) {
-      if (entry.command.type === "claim_flotsam" || entry.command.type === "claim_gull")
+      if (
+        entry.command.type === "claim_flotsam" ||
+        entry.command.type === "claim_gull" ||
+        entry.command.type === "claim_tide"
+      )
         lostClaim(entry.command, response.refusal);
       else refuse(response.refusal);
     }
@@ -329,12 +333,12 @@ export const useWorld = create<Store>((set, get) => {
   /** A claim too late is quiet (02-the-run.md 8.4): the scene says it drifted off. */
   /** A claim came too late: the airdrop drifts off, the crow flies on (no toast). */
   const lostClaim = (
-    command: { type: "claim_flotsam" | "claim_gull"; k: number },
+    command: { type: "claim_flotsam" | "claim_gull" | "claim_tide"; k: number },
     refusal: Refusal,
   ): void => {
     if (refusal.reason !== "gone") return;
-    if (command.type === "claim_flotsam") emit({ type: "flotsam_lost", k: command.k });
-    else emit({ type: "gull_lost", k: command.k });
+    if (command.type === "claim_gull") emit({ type: "gull_lost", k: command.k });
+    else emit({ type: "flotsam_lost", k: command.k });
   };
 
   const connect = async (): Promise<void> => {
@@ -446,7 +450,11 @@ export const useWorld = create<Store>((set, get) => {
       set({ queue, base: rebase(state.confirmed, queue) });
       lastCommandAt = now;
       if (result.ok) for (const event of result.events) emit(event);
-      else if (command.type === "claim_flotsam" || command.type === "claim_gull")
+      else if (
+        command.type === "claim_flotsam" ||
+        command.type === "claim_gull" ||
+        command.type === "claim_tide"
+      )
         lostClaim(command, result.refusal);
       else {
         refuse(result.refusal);

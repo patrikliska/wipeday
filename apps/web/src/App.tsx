@@ -6,10 +6,11 @@ import { Dock } from "./hud/Dock";
 import { EraSheet } from "./hud/Era";
 import { Login } from "./hud/Login";
 import { Multipliers } from "./hud/Multipliers";
-import { MockLayer } from "./hud/mocks/Mocks";
 import { Odds } from "./hud/Odds";
+import { OrdersSheet } from "./hud/Orders";
 import { Panels } from "./hud/Panels";
 import { RoomBar } from "./hud/RoomBar";
+import { ScrapSheet } from "./hud/Scrap";
 import { Shop, shopOpen } from "./hud/Shop";
 import { Toasts } from "./hud/Toasts";
 import { TapHint, TopBar } from "./hud/TopBar";
@@ -87,7 +88,8 @@ export function App() {
             <Odds />
             <Credits />
             <EraSheet />
-            <MockLayer />
+            <OrdersSheet />
+            <ScrapSheet />
             <Toasts />
             <BadgeToast />
             <Welcome />

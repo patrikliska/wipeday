@@ -193,7 +193,53 @@
     "buffs_more": "+{count}",
     "lamp": "Night Shift",
     "lamp_of": "of {window}",
-    "lamp_label": "Night Shift: your hands work {left} of {window} if you leave now"
+    "lamp_label": "Night Shift: your hands work {left} of {window} if you leave now",
+    "tide": "{name} · {time}"
+  },
+  "goals": {
+    "ready": "Ready",
+    "done": "Done",
+    "open": "Open",
+    "progress": "{value} / {goal}",
+    "claim": "Claim",
+    "claim_one": "Claim 1 reward",
+    "claim_many": "Claim {count} rewards"
+  },
+  "orders": {
+    "title": "Work Orders",
+    "open": "Open",
+    "steps": "{done} / {of}",
+    "claim_label": "Claim {count} rewards",
+    "open_label": "Work Orders: {done} of {of} done",
+    "next_ready": "{name} · ready",
+    "next_progress": "{name} · {value} / {goal}",
+    "complete_sub": "Set complete · {done} of {of} done",
+    "head": "{done} of {of} complete the set · run {run}",
+    "head_complete": "{of} of {of} · the set is complete",
+    "set_rule": "Any {fuel} of the {count} complete the set. The other {spare} are yours to skip.",
+    "set_complete": "Set complete. The {spare} left are yours to skip or finish."
+  },
+  "quests": {
+    "title": "Today",
+    "count": "{done}/{of} · new in {time}",
+    "note": "All three today: {rewards}.",
+    "set_paid": "All three done: {rewards} paid.",
+    "a_drop": "a {drop}",
+    "scrap": "+{n} scrap",
+    "and": " and "
+  },
+  "scrap": {
+    "title": "Scrap",
+    "label": "Scrap: {n}",
+    "boosts": "Boosts",
+    "drops": "Supply Drops",
+    "buy": "Buy",
+    "need": "need {need}",
+    "running": "{time} left",
+    "running_short": "Running",
+    "buy_label": "{name} for {cost} scrap",
+    "drop_sub": "{cards} cards for the Album",
+    "earn": "Earned in play: 1 for each daily quest, +2 for all three; a Magpie pays {magpie}."
   },
   "sea": {
     "catch": "Catch the {name}",

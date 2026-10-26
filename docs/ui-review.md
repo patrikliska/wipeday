@@ -1928,3 +1928,40 @@ Shots `mock_*` (13: the Stone run at 10:30 with six hands, phone and desktop), t
 - *Left for the build:* the "1" ready badge on the orders card borrows the level badge's shape
   (reads as "level 1" at a glance): a tick or a star would be its own mark; the crater picture is
   a placeholder for R4's `postcardSvg`.
+
+## R3 S2: the Work Orders, Today, the scrap chip and sheet (2026-10-26)
+
+Shots `r3s2_*` (17: the Stone run at 10:30 with six hands, phone and desktop; the orders named
+outright so the card reads the same on every seed). The mocks (`hud/mocks`, `mocks.css`, the 13
+`mock_*` shots) are gone; their rows, chips, steps and set box moved into `hud.css` under real
+names, with the fixes of the mocks' review kept (the set's rule above the list, names that may wrap
+to two lines, short card subs).
+
+### Iteration 1
+- **The three boost glyphs showed as lettered tiles** ("OV", "DO", "LU") in the Scrap sheet and
+  the pills: Vite's icon glob had not seen the new files (the S6 gotcha). `touch Icon.tsx`; the
+  gauge, the fast-forward and the parachute draw now.
+- **The scrap chip failed the 44 px audit on phones** (56×36): the plate was the button. Now the
+  button is a 44 px tap target around the 36 px plate, as the era plate does; the audit is clean.
+- **The claim shot's flash was gone by 420 ms** (the card had rebuilt by then): captured at 240 ms,
+  where the gold border and the fourth step read.
+- **The ready mark is its own shape** (a gold rounded square with a tick, "✓2" for two), not the
+  level badge, as the mocks' review asked.
+- *Fine:* the card sits first on the lines and keeps its place after a claim (`orderSends` style:
+  `data-key="orders"`); the phone's collapsed drawer shows it and one line card; the chip fits
+  between the lamp and the era plate at 390 px ("SHEET METAL in 11h 50m" still whole); the sheet's
+  one primary ("Claim 2 rewards" / Done) and the per-row Claim on ready rows, so a quest in the
+  Logbook is never a dead end; "need 7" / "need 97" on the drops' Buy and "Running · 6m 40s" on
+  Overdrive's (6.3 rule 3); a tide crate comes down the airdrop's way with the pill above it.
+
+### Iteration 2
+- The complete set: the card's thumb lights gold with "Set complete · 5 of 8 done" and Open 5/5;
+  the sheet's box turns solid gold with "The 3 left are yours to skip or finish"; the head reads
+  "5 of 5 · the set is complete". Nothing names the Kettle or the Big Red before R4 (D140).
+- Claimed rows strike through and grey their icon; a two-line struck name ("Three hands on the
+  Twig lines") stays readable at 390 px.
+- The Logbook's Today reads "1/3 · NEW IN 13H 30M" in the chapter's capitals (consistent with the
+  chapter counts); the note under it says what the set pays.
+- *Left for S3:* the reveal for the drops the claims earn (held drops still only count), a sound
+  of their own for a claim and the set (both on the era-ready and Frenzy-end cues now), and the
+  pills' polish.

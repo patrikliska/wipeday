@@ -10,6 +10,7 @@ import { useUi } from "../state/ui";
 import { buffName, content, duration, fmt, fmtFactor, fmtRate, t } from "../state/world";
 import { EraPlate } from "./Era";
 import { Icon, ResourceIcon } from "./Icon";
+import { ScrapPlate } from "./Scrap";
 import { useRise } from "./util";
 
 /**
@@ -85,11 +86,16 @@ export function TopBar() {
           </button>
         </div>
         {column ? (
-          <Lamp />
+          <>
+            <Lamp />
+            <ScrapPlate />
+          </>
         ) : (
-          // A phone's plate stays narrow: the lamp and the era plate sit on the row under it.
+          // A phone's plate stays narrow: the lamp, the scrap chip and the era plate sit on the
+          // row under it.
           <div className="counter-sub">
             <Lamp />
+            <ScrapPlate />
             <EraPlate />
           </div>
         )}
@@ -149,13 +155,22 @@ function LampPlate({ window, activeAt }: { window: number; activeAt: number }) {
   );
 }
 
-/** Active buffs under the counter: icon, `×4 · 41s` and a draining line; three at most (1.3). */
+/**
+ * Active buffs under the counter: icon, `×4 · 41s` and a draining line; three at most (1.3). A
+ * bought boost (D258) is a pill like a Rally's; a running Lucky Tide is one too, with its time.
+ */
 function BuffPills() {
   const buffs = useWorld((state) => state.base?.run.buffs);
+  const tide = useWorld((state) => state.base?.run.tide ?? null);
   const second = useWorld((state) => state.second);
   const live = (buffs ?? []).filter((buff) => buff.until > second);
-  if (live.length === 0) return null;
+  const tideBoost =
+    tide && tide.until > second
+      ? content.scrap.boosts.find((row) => row.id === tide.boost)
+      : undefined;
+  if (live.length === 0 && !tideBoost) return null;
   const shown = live.slice(0, 3);
+  const hidden = live.length - shown.length;
   return (
     <div className="buffs" aria-live="off">
       {shown.map((buff) => {
@@ -170,16 +185,19 @@ function BuffPills() {
         const kind = content.flotsam.kinds.find(
           (row) => "buff" in row.effect && row.effect.buff === buff.kind,
         );
+        const boost = content.scrap.boosts.find((row) => row.id === buff.kind);
         const total = frenzy
           ? content.tap.frenzy.seconds
-          : kind && "seconds" in kind.effect
-            ? kind.effect.seconds
-            : buff.until - second;
+          : boost
+            ? boost.seconds
+            : kind && "seconds" in kind.effect
+              ? kind.effect.seconds
+              : buff.until - second;
         const left = Math.max(0, buff.until - second);
         return (
           <span key={buff.kind} className={`plate buff${frenzy ? " frenzy" : ""}`}>
-            {frenzy ? (
-              <Icon kind="ui" id="frenzy" size={18} />
+            {frenzy || boost ? (
+              <Icon kind="ui" id={buff.kind} size={18} />
             ) : (
               <Icon kind="flotsam" id={kind?.id ?? buff.kind} size={18} />
             )}
@@ -194,8 +212,24 @@ function BuffPills() {
           </span>
         );
       })}
-      {live.length > 3 ? (
-        <span className="plate buff more">{t("hud.buffs_more", { count: live.length - 3 })}</span>
+      {tideBoost && tide && shown.length < 3 ? (
+        <span key="tide" className="plate buff">
+          <Icon kind="ui" id={tideBoost.id} size={18} />
+          <span className="num">
+            {t("hud.tide", {
+              name: t(`boost.${tideBoost.id}.name`),
+              time: duration(Math.max(0, tide.until - second)),
+            })}
+          </span>
+          <i
+            style={{
+              transform: `scaleX(${Math.max(0, tide.until - second) / tideBoost.seconds})`,
+            }}
+          />
+        </span>
+      ) : null}
+      {hidden > 0 ? (
+        <span className="plate buff more">{t("hud.buffs_more", { count: hidden })}</span>
       ) : null}
     </div>
   );

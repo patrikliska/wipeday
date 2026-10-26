@@ -1375,6 +1375,12 @@ order (D192): the groups once tagged R2-R7 are R4-R9.
 | `cine_flash_night`, `cine_cloud_night`, `cine_flash_rain`, `cine_cloud_rain` | 03-the-big-red.md 7.5's weather minimum | R4 |
 | `desktop_cine_fireball`, `desktop_cine_cloud`, `cine_reduced` | desktop; the reduced-motion midpoint | R4 |
 | `phone_postcard_front` / `_back` / `_small` | Wipe Day #1; a small blast's puddle | R4 |
+| `r3s2_orders_card_{phone,desktop}`, `r3s2_orders_complete_{phone,desktop}` | the Stone run at 10:30: the orders card with two ready (the mark, "Tap 300 times · ready", 3 of 5 steps); the complete set lit | R3 |
+| `r3s2_orders_sheet_{phone,desktop}`, `r3s2_orders_sheet_complete_phone` | the sheet: the set's rule, eight rows (claimed struck, ready gold with Claim), "Today", "Claim 2 rewards" | R3 |
+| `r3s2_logbook_today_{phone,desktop}` | the Logbook's Today chapter: 1/3, new in 13 h, the set's note | R3 |
+| `r3s2_scrap_plate_{phone,desktop}`, `r3s2_scrap_sheet_{phone,desktop}` | the chip at 23; the Scrap sheet with Overdrive running, Buy and "need 7" | R3 |
+| `r3s2_boost_running_{phone,desktop}`, `r3s2_tide_crate_phone` | the Overdrive and Lucky Tide pills; a tide crate under its parachute | R3 |
+| `r3s2_claim_juice_phone` | a claim mid-flash: the fourth step lit, the mark down to one | R3 |
 | `phone_rebuild_plain`, `phone_afterglow`, `desktop_afterglow` | the landing; the green sky with ash, pill frozen at ×3 | R4 |
 | `phone_crater_27` | the deepened crater, "WIPE DAY #27" | R4 |
 | `phone_armored_locked` | run 2, "Opens after Wipe Day #2" | R4 |

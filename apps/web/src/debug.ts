@@ -7,7 +7,8 @@ import { TIERS } from "@wipe-day/content/tiers";
 import { badgeMet } from "@wipe-day/domain/badges";
 import { arrivalKind } from "@wipe-day/domain/flotsam";
 import { crossing, gullAt } from "@wipe-day/domain/gulls";
-import { weatherAt } from "@wipe-day/domain/weather";
+import { questOf } from "@wipe-day/domain/quests";
+import { islandDay, weatherAt } from "@wipe-day/domain/weather";
 import { demoClocks, wall } from "./state/clocks";
 import { seedPace } from "./state/pace";
 import { useWorld } from "./state/store";
@@ -49,6 +50,19 @@ interface DebugHook {
   gullNow: () => { run: number; k: number } | null;
   /** Marks every badge the base already meets as earned (`at`), but `except`: shots of one toast. */
   fillBadges: (at: number, except?: string[]) => void;
+  /**
+   * The day's quests as a shot wants them at game second `time`: these ids, these claimed, the
+   * set paid or not, and each quest's progress today (its counter's growth since the roll).
+   */
+  setQuests: (
+    time: number,
+    quests: {
+      ids: string[];
+      claimed?: string[];
+      setPaid?: boolean;
+      progress?: Record<string, number>;
+    },
+  ) => void;
 }
 
 interface Box {
@@ -106,6 +120,27 @@ export function installDebug(): void {
       if (!base) return null;
       const slot = gullAt(content, base, Math.floor(demoClocks.game.now()));
       return slot ? { run: base.run.n, k: slot.k } : null;
+    },
+    setQuests: (time, quests) => {
+      const current = useWorld.getState().base;
+      if (!current) return;
+      const snapshot = { ...current.meta.stats };
+      for (const [id, value] of Object.entries(quests.progress ?? {})) {
+        const quest = questOf(content, id);
+        if (quest) snapshot[quest.stat] = current.meta.stats[quest.stat] - value;
+      }
+      useWorld.getState().demoPatch(
+        {},
+        {
+          quests: {
+            day: islandDay(content, time),
+            ids: quests.ids,
+            claimed: quests.claimed ?? [],
+            snapshot,
+            setPaid: quests.setPaid ?? false,
+          },
+        },
+      );
     },
     fillBadges: (at, except = []) => {
       const current = useWorld.getState().base;

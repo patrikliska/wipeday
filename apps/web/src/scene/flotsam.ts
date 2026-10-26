@@ -9,6 +9,9 @@
  *
  * It glows but never takes the crown (02 11.1). Its hint ("Something's drifting in...") sits
  * beside it until the player has caught two (02 11.2, hint 10).
+ *
+ * A Lucky Tide's crate (D258) comes down the same way when no airdrop is on the water: `find`
+ * says what floats, and a tide crate's claim names the tide (`claim_tide`).
  */
 import { type Afloat, afloat } from "@wipe-day/domain/flotsam";
 import type { BaseState } from "@wipe-day/domain/state";
@@ -49,6 +52,9 @@ export interface FlotsamCamera {
 
 type Leaving = { kind: "caught" | "sank"; x: number; y: number; since: number; tint: number };
 
+/** What floats: an airdrop, or a Lucky Tide's crate (`tide`), claimed through its own command. */
+export type Shown = Afloat & { tide?: boolean };
+
 export class Flotsam {
   /** Screen space, above the night tint: the glow, the icon, the ring. */
   readonly overlay = new Container();
@@ -63,7 +69,7 @@ export class Flotsam {
   private readonly canopy = new Graphics();
   private readonly ghost = new Sprite();
   /** The arrival on screen, and where it was drawn last (CSS px). */
-  private shown: Afloat | null = null;
+  private shown: Shown | null = null;
   private shownRun = 0;
   private point = { x: 0, y: 0 };
   private leaving: Leaving | null = null;
@@ -72,7 +78,7 @@ export class Flotsam {
   private time = 0;
   /** The wall clock at the last frame (ms). */
   private nowMs = 0;
-  private cache: { base: BaseState | null; tenth: number; value: Afloat | null } = {
+  private cache: { base: BaseState | null; tenth: number; value: Shown | null } = {
     base: null,
     tenth: -1,
     value: null,
@@ -83,12 +89,14 @@ export class Flotsam {
 
   constructor(
     private readonly on: {
-      /** The player tapped arrival `k` of run `run`. */
-      claim: (run: number, k: number) => void;
+      /** The player tapped arrival `k` of run `run` (a tide crate's when `tide`). */
+      claim: (run: number, k: number, tide: boolean) => void;
       /** A new arrival came into view (the bell). */
       arrived: () => void;
       /** The shown one sank uncaught while the page was visible, at screen point `x, y`. */
       sank: (x: number, y: number, firstRun: boolean, nowMs: number) => void;
+      /** What floats at `now`: the airdrop, else a tide crate (the domain's `afloat` alone without). */
+      find?: (base: BaseState, now: number) => Shown | null;
     },
   ) {
     this.halo.anchor.set(0.5);
@@ -141,7 +149,7 @@ export class Flotsam {
   private claim(): void {
     const shown = this.shown;
     if (!shown || this.leaving) return;
-    this.on.claim(this.shownRun, shown.k);
+    this.on.claim(this.shownRun, shown.k, shown.tide === true);
   }
 
   /** Arrival `k` was caught (predicted): it pops where it floats. */
@@ -173,13 +181,13 @@ export class Flotsam {
     this.shown = null;
   }
 
-  private afloatAt(base: BaseState, now: number): Afloat | null {
+  private afloatAt(base: BaseState, now: number): Shown | null {
     const tenth = Math.floor(now * 10);
     const cache = this.cache;
     if (cache.base !== base || cache.tenth !== tenth) {
       cache.base = base;
       cache.tenth = tenth;
-      cache.value = afloat(content, base, now);
+      cache.value = this.on.find ? this.on.find(base, now) : afloat(content, base, now);
     }
     return cache.value;
   }
@@ -202,9 +210,11 @@ export class Flotsam {
     const found = this.afloatAt(base, now);
     const current = found && found.k !== this.gone ? found : null;
     const shown = this.shown;
-    if (shown && current?.k !== shown.k) {
+    if (shown && (current?.k !== shown.k || (current?.tide === true) !== (shown.tide === true))) {
       // Gone without a catch this page saw: it sank (or a claim elsewhere took it).
-      const caughtElsewhere = base.run.flotsam.last === shown.k;
+      const caughtElsewhere = shown.tide
+        ? base.run.tide?.last === shown.k
+        : base.run.flotsam.last === shown.k;
       const end = shown.at + shown.float + SINK_S;
       if (!caughtElsewhere && !jumped && !document.hidden && now >= end) {
         const firstRun = base.run.n === 1 && base.run.flotsam.caught === 0;
@@ -215,7 +225,7 @@ export class Flotsam {
     }
     const age = current ? now - current.at : 0;
     // On screen from its arrival until it has sunk; the grace after that is the network's.
-    if (current && current.k !== this.shown?.k && age < current.float + SINK_S) {
+    if (current && !this.shown && age < current.float + SINK_S) {
       this.shown = current;
       this.shownRun = base.run.n;
       if (age < DRIFT_S + 1 && !jumped && !document.hidden) this.on.arrived();

@@ -693,7 +693,7 @@ is earned in play or bought with scrap; nothing else opens one before R9.
 | Badges | I | one per 10, through the same hourly gate (they wait their turn) | R3 |
 | Flotsam: Sealed Locker | II | weight 1 (1.1% of airdrops) | R3 |
 | Daily quests | I | all three of the day's quests | R3 |
-| Work Orders | I | some of the eight orders a run pay a drop, the rest scrap (D255) | R3 |
+| Work Orders | I | each claimed order, through the same hourly gate as felling's (D256) | R3 |
 | Scrap | II / III | 30 / 120 scrap | R3 |
 | The nuke | I / II / III | a small blast / a Wipe Day / a doubling Wipe Day | R4 |
 
@@ -741,8 +741,8 @@ game-icons.net until the pixel icons exist (D141's fallback).
 
 Scrap is the premium currency (D182): earned in play, spent on drops and boosts.
 
-- **Earn:** Work Orders and the day's quest set (most of a casual's scrap, D255), badges and pages,
-  elite gulls 1 (R3); the nuke 3 on a
+- **Earn:** the day's quests, 1 each and 2 more for the set (a casual's scrap, D257, D259), the
+  Magpie 1 (R3); the nuke 3 on a
   Wipe Day, 10 on a doubling (R4); the Magnet about 1 a day (R7); the Freighter at most 3 a week
   (R8). Target for a casual: 4-6 a day (N19).
 - **Spend:** Supply Drops (30 / 120) and **boosts** on real seconds (R3): Overdrive (all lines ×3
@@ -754,7 +754,20 @@ Scrap is the premium currency (D182): earned in play, spent on drops and boosts.
   Before it ships: a payment provider, a short legal check on loot boxes for the players'
   countries, and the owner's prices. Nothing else in the game changes when the switch flips.
 
-### 5.15 Badges, daily quests and the ticker (R2, R3)
+### 5.15 Badges, Work Orders, daily quests and the ticker (R2, R3)
+
+- **Work Orders (R3, D255, D256).** The run's checklist: eight orders rolled per run from pools
+  per era on the base's seed (run 1: three Twig, three Timber, two Stone), at most three that need
+  the player at the screen and at least five that any player reaches given time. Each is a state
+  predicate (an era reached, hands on shift, units owned, taps, fells, catches, supplies made);
+  claimed when met, it pays a Supply Drop I through the drops' hourly gate. Any five complete the
+  set: in R4 the set fuels the Kettle and crowns the Big Red, and never locks it. On screen: a
+  card first on the shop's lines (the next order, its progress or "ready", the steps to the set,
+  Claim or Open), never reordered; a sheet with the set's rule, the eight rows and "Today".
+- **Daily quests (R3, D257).** Three a day on the island's clock, the same for every friend,
+  each a counter that must grow by its goal since the day's roll; 1 scrap each, all three a
+  Supply Drop I and 2 more; unclaimed ones are paid at the next roll. Under "Today" in the orders
+  sheet and first in the Logbook, each ready row with its own Claim.
 
 - **Badges (R2, D198, D239).** The Logbook's pages in their simplest form: 64 in
   `achievements.json5`, ten chapters, no secrets yet, shown as a wall in the Logbook (a dock

@@ -12,7 +12,8 @@
  * the waterline and is caught through a button of its own (`flotsam.ts`). Animation runs on the
  * `wall` clock, never the game clock, so a demo jump moves no animation (rule 6.3.9).
  */
-import { crateMinutes } from "@wipe-day/domain/flotsam";
+import { tideAt } from "@wipe-day/domain/boosts";
+import { afloat, crateMinutes, floatSeconds } from "@wipe-day/domain/flotsam";
 import { type FrenzyView, frenzyAt } from "@wipe-day/domain/frenzy";
 import { lineOf } from "@wipe-day/domain/lines";
 import type { BaseState } from "@wipe-day/domain/state";
@@ -172,9 +173,28 @@ export class Scene {
   private readonly target = new Target(this.particles);
   private readonly stockpile = new Stockpile(this.particles);
   private readonly flotsam = new Flotsam({
-    claim: (run, k) => useWorld.getState().send({ type: "claim_flotsam", run, k }),
+    claim: (run, k, tide) =>
+      useWorld
+        .getState()
+        .send(tide ? { type: "claim_tide", run, k } : { type: "claim_flotsam", run, k }),
     arrived: () => emit({ type: "flotsam_arrived" }),
     sank: (x, y, firstRun, nowMs) => this.sank(x, y, firstRun, nowMs),
+    // An airdrop first; a Lucky Tide's crate (D258) when the water is clear.
+    find: (base, now) => {
+      const drop = afloat(content, base, now);
+      if (drop) return drop;
+      const slot = tideAt(content, base, now);
+      return slot
+        ? {
+            k: slot.k,
+            at: slot.at,
+            float: floatSeconds(content, base),
+            until: slot.until,
+            kind: slot.kind,
+            tide: true,
+          }
+        : null;
+    },
   });
   private readonly gulls = new Gulls({
     claim: (run, k) => useWorld.getState().send({ type: "claim_gull", run, k }),
@@ -1004,6 +1024,24 @@ export class Scene {
     return { x: rect.left + rect.width / 2 - host.left, y: rect.top + rect.height / 2 - host.top };
   }
 
+  /** The scrap chip bumps as a flyer lands on it (as the counter does). */
+  private bumpScrap(): void {
+    const chip = document.querySelector(".topbar .scrap-plate");
+    if (!chip || reducedMotion()) return;
+    chip.classList.remove("bump");
+    void (chip as HTMLElement).offsetWidth;
+    chip.classList.add("bump");
+  }
+
+  /** The scrap chip's icon on screen (CSS px), or null before the player has earned any. */
+  private scrapPoint(): { x: number; y: number } | null {
+    const chip = document.querySelector(".topbar .scrap-plate-icon");
+    const rect = chip?.getBoundingClientRect();
+    if (!rect) return null;
+    const host = this.host.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2 - host.left, y: rect.top + rect.height / 2 - host.top };
+  }
+
   /** A crow caught (predicted): feathers where it flew, its seconds of output to the counter. */
   private gullCaught(k: number, elite: boolean, value: number, nowMs: number): void {
     const screen = this.gulls.screenPoint;
@@ -1240,8 +1278,23 @@ export class Scene {
         );
         break;
       }
-      case "flotsam_claimed": {
+      case "flotsam_claimed":
+      case "tide_claimed": {
         this.flotsamCaught(event.kind, event.k, event.value, nowMs);
+        break;
+      }
+      case "scrap_earned": {
+        // Scrap flies from the house to its chip in the top bar (3.2); a first ever earned scrap
+        // has no chip yet, so it rises where it was earned.
+        const plate = this.scrapPoint();
+        this.floaters.add("event", HOUSE.x, HOUSE.y - 90, `+${event.n}`, nowMs, {
+          size: this.floatSize(1.1),
+          color: 0xe3a32f,
+          icon: "scrap",
+          iconColor: 0xe3a32f,
+          holdMs: 900,
+          ...(plate ? { fly: { ...plate, arrive: () => this.bumpScrap() } } : {}),
+        });
         break;
       }
       case "frenzy_tripped": {

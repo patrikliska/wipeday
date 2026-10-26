@@ -3244,3 +3244,405 @@
 .btn.primary:disabled .buy-cost {
   color: var(--on-primary);
 }
+
+/* Goals (R3 S2; D256, D257): the Work Orders' and the quests' rows, shared by the orders sheet,
+   the Logbook's Today and the Scrap sheet's rows. */
+.goals {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.goal,
+.scrap-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 8px 10px 8px 8px;
+  border-radius: 12px;
+  background: var(--plate);
+  border: 2px solid var(--edge-soft);
+}
+
+.goals.compact .goal,
+.goals.compact .scrap-row {
+  min-height: 52px;
+}
+
+.goal.ready {
+  border-color: var(--supplies);
+  box-shadow:
+    var(--lip),
+    0 0 0 3px rgba(242, 177, 52, 0.18);
+}
+
+.goal.claimed {
+  background: linear-gradient(180deg, #2f281e, #221c14);
+}
+
+.goal-icon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--text);
+  background: radial-gradient(circle at 50% 32%, #6b5a3f, #2d251a 78%);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.goal.claimed .goal-icon {
+  filter: grayscale(1) brightness(0.7);
+}
+
+.goal-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.goal-name {
+  font: 700 16px / 1.1 var(--display);
+  letter-spacing: 0.02em;
+  color: #fff;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.goal.claimed .goal-name {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--faint);
+}
+
+.goal-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 12px / 1.2 var(--body);
+  color: var(--text-2);
+}
+
+.goal-bar {
+  position: relative;
+  flex: 1 1 auto;
+  max-width: 180px;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--sunk);
+  border: 1px solid var(--edge-soft);
+  overflow: hidden;
+}
+
+.goal-bar > i.fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #8a6a2a, var(--supplies-hi));
+  transform-origin: left;
+}
+
+.goal.ready .goal-figure {
+  color: var(--supplies-hi);
+}
+
+/* The reward chips: a locker for a Supply Drop, the scrap nut for scrap, a tick once paid. */
+.rewards {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.reward {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 4px 9px;
+  border-radius: 8px;
+  background: var(--ink);
+  border: 2px solid var(--edge);
+  color: var(--text-2);
+  font: 700 12px / 1 var(--body);
+  white-space: nowrap;
+}
+
+.rewards.ready .reward {
+  border-color: var(--supplies);
+  color: var(--supplies-hi);
+}
+
+.rewards.claimed .reward {
+  color: var(--muted);
+}
+
+.reward-tick {
+  color: var(--success);
+  font: 900 14px / 1 var(--display);
+}
+
+/* A ready row's own Claim: the word over its chips, gold-edged, never orange (D244). */
+.btn.goal-claim {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-height: 44px;
+  padding: 4px 8px;
+  border-color: var(--supplies);
+  color: var(--supplies-hi);
+}
+
+.btn.goal-claim .claim-word {
+  font: 800 12px / 1 var(--body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.btn.goal-claim .reward {
+  min-height: 24px;
+  padding: 2px 7px;
+  border-width: 1px;
+}
+
+/* Steps to the set: one segment per order it needs. */
+.steps {
+  display: flex;
+  gap: 4px;
+  margin-top: 7px;
+}
+
+.steps > i.step {
+  flex: 1 1 0;
+  height: 8px;
+  border-radius: 3px;
+  background: var(--sunk);
+  border: 1px solid var(--edge-soft);
+}
+
+.steps > i.step.on {
+  background: linear-gradient(180deg, var(--supplies-hi), #8a6a2a);
+  border-color: #8a6a2a;
+}
+
+.steps.small {
+  width: 90px;
+  margin: 0;
+}
+
+.steps.small > i.step {
+  height: 6px;
+}
+
+/* The orders card at the top of the shop's lines (D256): gold while something is ready, lit
+   when the set is complete; its thumb has no era colour. */
+.orders-card {
+  --tier-color: #8a6a2a;
+}
+
+.orders-card .thumb {
+  color: var(--supplies-hi);
+}
+
+.orders-card.complete .thumb {
+  color: var(--supplies-hi);
+  background: radial-gradient(circle at 50% 32%, #8a6a2a, #3b2d14 78%);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 0 14px rgba(255, 209, 102, 0.35);
+}
+
+.orders-card .mid .sub {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The ready mark: a tick (and a count past one), its own shape, not a level badge. */
+.thumb .ready-mark {
+  position: absolute;
+  left: -7px;
+  top: -7px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 8px;
+  border: 2px solid var(--supplies-hi);
+  background: var(--supplies);
+  color: var(--ink);
+  font: 900 13px / 1 var(--display);
+  z-index: 3;
+}
+
+.thumb .ready-mark.pop {
+  animation: badge-pop 300ms var(--ease-back, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+.orders-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* The set's rule leads the sheet: quiet and dashed while open, lit when complete. */
+.set-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 2px dashed var(--edge);
+  color: var(--text-2);
+  font: 500 13px / 1.3 var(--body);
+}
+
+.set-box .icon {
+  flex: none;
+  color: var(--supplies);
+}
+
+.set-box.lit {
+  border: 2px solid var(--supplies);
+  background: rgba(242, 177, 52, 0.1);
+  color: var(--text);
+}
+
+.set-box.lit .icon {
+  color: var(--supplies-hi);
+}
+
+.sub-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 18px 0 8px;
+  font: 700 17px / 1.1 var(--display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.sub-title .sub-count {
+  font: 700 14px / 1 var(--display);
+  color: var(--muted);
+}
+
+.today.logbook-chapter {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--edge-soft);
+}
+
+.goal-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0;
+  font: 500 13px / 1.3 var(--body);
+  color: var(--text-2);
+}
+
+.goal-note-icon {
+  flex: none;
+  display: inline-flex;
+  color: var(--supplies);
+}
+
+.goal-note.done {
+  color: var(--text);
+}
+
+/* The scrap chip in the top bar (D259): gold, the count, 44 px tall around a 20 px tile. */
+.scrap-plate {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--supplies-hi);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.scrap-face {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 10px 0 8px;
+  font: 900 15px / 1 var(--display);
+  border-color: color-mix(in srgb, var(--supplies) 45%, var(--edge));
+}
+
+.scrap-plate:hover .scrap-face {
+  filter: brightness(1.08);
+}
+
+.scrap-plate:active .scrap-face {
+  transform: translateY(1px);
+}
+
+.scrap-face .card-flash {
+  border-radius: inherit;
+}
+
+.scrap-plate .num.pop {
+  display: inline-block;
+  animation: badge-pop 300ms var(--ease-back, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+.scrap-plate.bump .scrap-face {
+  animation: badge-pop 300ms var(--ease-back, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+.scrap-held {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--supplies-hi);
+}
+
+.scrap-sheet .sub-title:first-child {
+  margin-top: 0;
+}
+
+.scrap-row .goal-progress {
+  color: var(--text-2);
+}
+
+.scrap-row.running {
+  border-color: var(--supplies);
+}
+
+.scrap-row .btn.buy {
+  min-width: 84px;
+}
+
+.scrap-row .scrap-cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+[inert] .goal.ready,
+[inert] .scrap-row.running {
+  border-color: var(--edge-soft);
+  box-shadow: none;
+}

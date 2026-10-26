@@ -6,7 +6,7 @@ should think, and what "done" means**. It was rewritten in R0 from the approved 
 (`docs/redesign/11-roadmap.md`, which keeps the reasons); the W-phase roadmap and its results are
 in `docs/archive/roadmap-w.md`.
 
-## Where we are (2026-10-26, R3 Cards S1 done, the missions pick made)
+## Where we are (2026-10-26, R3 Cards S2 done)
 
 - **The live game is the redesign** since 2026-10-19 (D242): the owner had R2 Feel S7 (`redesign`
   at fdc5010) deployed to https://wipeday.patrikliska.dev, bringing the cut-over forward from R4.
@@ -100,8 +100,43 @@ in `docs/archive/roadmap-w.md`.
   crown the Big Red), C both; plus the postcard with Glow and the crew side by side. The owner picked on 2026-10-26
   (D255): C, the fuelled set crowns the Big Red, cards carry about as much as Glow, the name
   Work Orders. S1 and the mocks are committed (361dde2, 6e9e84a).
-- **Next: R3 S2** (scrap, boosts, Work Orders and the daily quests; D255). Retro Diffusion has
-  about 2.59 USD; S3's busts and gear need about 15 USD more.
+- **R3 S2, scrap, boosts, Work Orders and the daily quests, is done** (2026-10-26; D256-D259;
+  results below): the orders card and sheet replaced the mocks, the day's quests under "Today",
+  the scrap chip and sheet, the boosts and the Lucky Tide; N19, N30 and N32 pass at R3.
+- **Next: R3 S3** (the Album and the reveal; busts and gear art). Retro Diffusion has about
+  2.59 USD; S3 needs about 15 USD more.
+
+### R3 S2 results: scrap, boosts, Work Orders and the daily quests
+- **Built:** `orders.json5`, `quests.json5`, `scrap.json5` with their schemas and checks (pools
+  deep enough for every roll, five idle orders a roll, the tide's slots fit); `meta.scrap` and the
+  earned counter; `domain/orders.ts` (the seeded roll with `activeMax` and `idleMin`, `fuelled`),
+  `quests.ts` (the island's roll per day, the snapshot, the roll's auto-pay), `boosts.ts` (buffs,
+  the tide grid), `scrap.ts` (earn, spend, pay through the gate); `claim_order`, `claim_quest`,
+  `buy_boost`, `buy_drop`, `claim_tide`, with their refusals (`scrap`, `unmet`, `running`); the
+  Magpie's scrap; run-scoped badge states; `drops.owed` in the ledger; normalize for stored runs.
+  Web: `hud/Goals.tsx` (rows, chips, steps), `Orders.tsx` (the card first on the lines, the sheet
+  with the set's rule and "Today"), `Today.tsx` (the Logbook's chapter), `Scrap.tsx` (the chip
+  beside the lamp, the sheet), boost pills and a tide pill, the tide crate through the airdrop's
+  button, scrap flying to its chip, three boost glyphs; the mocks deleted.
+- **Decisions:** D256 the roll and the gate; D257 the quests' roll; D258 the boosts; D259 the
+  scrap sources and the S2 UI scope.
+- **Tests:** `orders.test.ts` (1,000 seeds: eight distinct, the spread, ≤3 active, ≥5 idle;
+  claims, the gate an hour on, the fifth claim fuels once), `quests.test.ts` (the island-wide
+  roll, progress since the roll, the set, the next day's auto-pay, a refused command rolls),
+  `boosts.test.ts` (Overdrive ×3 and refused while running, Double Time ×5, the tide's slots and
+  claims, `buy_drop`, scrap falls only by the owner's buys over 10,000 commands), the run states
+  in `badges.test.ts`, the five commands in the settle sequences, the prediction test and the
+  API's replay list; the oracle's generator no longer stacks one buff kind twice (a latent case).
+  `pnpm check` passes; `pnpm icons` 121 clean.
+- **Balance** (`pnpm sim check --phase R3`; `--full` over three seeds, 131 s): every R0-R2 row
+  passes, run 1's beats unchanged (Frenzy 41:09, nuke 41:19-45:19); **N19** casual 4.57-5.00 a
+  day, active 5.43-6.43, optimal 5.86-6.86, late joiner 4.14-5.00, idler 1.14-1.29, the casual
+  136-151 by day 30; **N30** the casual's fewest drops in a day 3; **N32** run 1 claims idler 5,
+  casual 5-7, active 6-8, optimal 6-7, late joiner 5-7, first hour 6-8, autoclicker 6-8. The
+  quick profile stays 7.8 s. `shipped` stays R2 until S4.
+- **Shots:** 17 `r3s2_*` (the card, the complete set, the sheet, the Logbook's Today, the chip,
+  the Scrap sheet, the pills, the tide crate, a claim's flash) on phone and desktop; notes in
+  `docs/ui-review.md`.
 
 ### R3 S1 results: cards and drops in the domain
 - **Built:** `content/data/cards.json5` (14 survivors with traits, 30 gear cards, the crew sets
@@ -791,8 +826,9 @@ and scrap as the premium currency earned in play (`12-feel.md` 7, 8, 9.2).
   money (D182).
 - **S3. The Album and the reveal** (needs about 15 USD of Retro Diffusion first). The dock's
   Album, the reveal sheet (one flip per tap, rarity colour first, "Flip the next" primary, "To the
-  Album" secondary), the survivor sheet with gear, the Scrap sheet and plate, boost pills, quests
-  in the Logbook, unopened drops as crates by the house; busts and gear art through `pnpm art`.
+  Album" secondary), the survivor sheet with gear, the Scrap sheet's and the pills' polish (the
+  plain sheet, the chip and the quests in the Logbook shipped in S2, D259), unopened drops as
+  crates by the house; busts and gear art through `pnpm art`.
 - **S4. Workshop tiers 5-8 and balance.** The late tiers; the fell schedule, shards and quest
   goals tuned (a casual opens 2-4 drops a day, the base set in about two weeks); card power
   against N4-N9 and N23; `shipped: "R3"`; `pnpm sim check --full`; the juice checklist.

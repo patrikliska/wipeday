@@ -245,6 +245,10 @@ const NEW_STATS = {
   upgrades: 0,
   eras: 0,
   collects: 0,
+  drops: 0,
+  scrap: 0,
+  orders: 0,
+  quests: 0,
 };
 
 /** A player past onboarding: every kind bought twice and more, so nothing is lit (D244). */
@@ -1772,7 +1776,7 @@ const SHOTS = [
         weather,
         ...FRENZY_RUN,
         buffs: [{ kind: "frenzy", until: at(1, hour) + 9 }],
-        frenzy: { value: 0, at: at(1, hour) + 9 },
+        frenzy: { value: 0, at: at(1, hour) + 9, trips: 0 },
       },
       taps: [8, 2],
       ff: 2.5,
@@ -1832,7 +1836,7 @@ const SHOTS = [
       weather: "clear",
       ...FRENZY_RUN,
       buffs: [{ kind: "frenzy", until: at(1, 10.5) + 6 }],
-      frenzy: { value: 0, at: at(1, 10.5) + 6 },
+      frenzy: { value: 0, at: at(1, 10.5) + 6, trips: 0 },
     },
     taps: [8, 2],
     ff: 2.5,
@@ -1847,7 +1851,7 @@ const SHOTS = [
       wall: WALL,
       weather: "clear",
       ...FRENZY_RUN,
-      frenzy: { value: 62, at: at(1, 10.5) },
+      frenzy: { value: 62, at: at(1, 10.5), trips: 0 },
       meta: { stats: { ...FRENZY_STATS, frenzies: 0 } },
     },
     taps: [6, 2],
@@ -1861,7 +1865,7 @@ const SHOTS = [
       wall: WALL,
       weather: "clear",
       ...FRENZY_RUN,
-      frenzy: { value: 35, at: at(1, 22.5) },
+      frenzy: { value: 35, at: at(1, 22.5), trips: 0 },
       meta: { stats: { ...FRENZY_STATS, frenzies: 0 } },
     },
     taps: [6, 2],
@@ -2021,7 +2025,7 @@ const SHOTS = [
       weather: "clear",
       ...FRENZY_RUN,
       buffs: [{ kind: "frenzy", until: at(1, 10.5) + 9 }],
-      frenzy: { value: 0, at: at(1, 10.5) + 9 },
+      frenzy: { value: 0, at: at(1, 10.5) + 9, trips: 0 },
     },
     ff: 2.5,
   },
@@ -2056,7 +2060,7 @@ const SHOTS = [
         wall: WALL,
         weather,
         ...FRENZY_RUN,
-        frenzy: { value: 55, at: at(1, hour) },
+        frenzy: { value: 55, at: at(1, hour), trips: 0 },
       },
       taps: [8, 1],
       ff: 0.25,
@@ -2133,7 +2137,7 @@ const SHOTS = [
       weather: "clear",
       ...FRENZY_RUN,
       buffs: [{ kind: "frenzy", until: at(1, 10.5) + 2 }],
-      frenzy: { value: 0, at: at(1, 10.5) + 2 },
+      frenzy: { value: 0, at: at(1, 10.5) + 2, trips: 0 },
     },
     ff: 2.08,
     clip: [240, 340, 480, 200],
@@ -2592,109 +2596,177 @@ const SHOTS = [
     state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, ui: { sheet: "odds" } },
     ff: 2.5,
   },
-  // The missions mocks (2026-10-26; hud/mocks): the owner's pick before R3 S2. `query` carries
-  // the dev switch; the Stone run at 10:30 with six hands is the mocks' own fixture.
+  // R3 S2 (D255-D259): the Work Orders card and sheet, the day's quests, scrap and the boosts.
+  // The Stone run at 10:30 with six hands; the orders are named outright so the card reads the
+  // same on every seed (two ready: 3,200 taps and the Stone era; the rest counting).
   ...(() => {
     const stone = { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN };
-    const logbook = { ...stone, ui: { panel: "logbook" } };
+    const evening = { ...stone, time: at(1, 19) };
+    const orders = {
+      ids: [
+        "twig_three_hands",
+        "twig_lines_10",
+        "twig_taps_300",
+        "wood_era",
+        "wood_lines_25",
+        "wood_catch_3",
+        "stone_era",
+        "stone_furnace_50",
+      ],
+      claimed: ["twig_three_hands", "twig_lines_10", "wood_era"],
+      fuelledAt: null,
+    };
+    const complete = {
+      ...orders,
+      claimed: [...orders.claimed, "twig_taps_300", "stone_era"],
+      fuelledAt: "now",
+    };
+    const quests = {
+      ids: ["tap_500", "hire_2", "catch_1"],
+      claimed: ["tap_500"],
+      progress: { hire_2: 1 },
+    };
+    const scrap = (held, ever = held + 5) => ({
+      scrap: held,
+      stats: { ...VETERAN_STATS, scrap: ever, orders: 3, quests: 1 },
+    });
     return [
       {
-        name: "mock_quests_phone",
+        name: "r3s2_orders_card_phone",
         viewport: PHONE,
         scale: 2,
-        state: logbook,
-        query: "mock=quests",
+        state: { ...stone, orders, meta: scrap(3) },
         ff: 0.5,
       },
       {
-        name: "mock_quests_desktop",
+        name: "r3s2_orders_card_desktop",
         viewport: DESKTOP,
-        state: logbook,
-        query: "mock=quests",
+        state: { ...evening, orders, meta: scrap(3) },
         ff: 0.5,
       },
       {
-        name: "mock_orders_phone",
+        name: "r3s2_orders_complete_phone",
         viewport: PHONE,
         scale: 2,
-        state: stone,
-        query: "mock=orders",
+        state: { ...stone, orders: complete, meta: scrap(3) },
         ff: 0.5,
       },
       {
-        name: "mock_orders_desktop",
+        name: "r3s2_orders_complete_desktop",
         viewport: DESKTOP,
-        state: stone,
-        query: "mock=orders",
+        state: { ...evening, orders: complete, meta: scrap(3) },
         ff: 0.5,
       },
       {
-        name: "mock_orders_sheet_phone",
+        name: "r3s2_orders_sheet_phone",
         viewport: PHONE,
         scale: 2,
-        state: stone,
-        query: "mock=orders&view=sheet",
+        state: { ...stone, orders, quests, meta: scrap(3), ui: { sheet: "orders" } },
         ff: 0.5,
       },
       {
-        name: "mock_orders_sheet_desktop",
+        name: "r3s2_orders_sheet_desktop",
         viewport: DESKTOP,
-        state: stone,
-        query: "mock=orders&view=sheet",
+        state: { ...evening, orders, quests, meta: scrap(3), ui: { sheet: "orders" } },
         ff: 0.5,
       },
       {
-        name: "mock_orders_done_phone",
+        name: "r3s2_orders_sheet_complete_phone",
         viewport: PHONE,
         scale: 2,
-        state: stone,
-        query: "mock=orders&view=done",
+        state: { ...stone, orders: complete, quests, meta: scrap(3), ui: { sheet: "orders" } },
         ff: 0.5,
       },
       {
-        name: "mock_orders_done_desktop",
+        name: "r3s2_logbook_today_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, orders, quests, meta: scrap(3), ui: { panel: "logbook" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s2_logbook_today_desktop",
         viewport: DESKTOP,
-        state: stone,
-        query: "mock=orders&view=done",
+        state: { ...evening, orders, quests, meta: scrap(3), ui: { panel: "logbook" } },
         ff: 0.5,
       },
       {
-        name: "mock_both_sheet_phone",
+        name: "r3s2_scrap_plate_phone",
         viewport: PHONE,
         scale: 2,
-        state: stone,
-        query: "mock=both&view=sheet",
+        state: { ...stone, orders, meta: scrap(23, 31) },
         ff: 0.5,
       },
       {
-        name: "mock_both_sheet_desktop",
+        name: "r3s2_scrap_plate_desktop",
         viewport: DESKTOP,
-        state: stone,
-        query: "mock=both&view=sheet",
+        state: { ...evening, orders, meta: scrap(23, 31) },
         ff: 0.5,
       },
       {
-        name: "mock_both_logbook_phone",
+        name: "r3s2_scrap_sheet_phone",
         viewport: PHONE,
         scale: 2,
-        state: logbook,
-        query: "mock=both",
+        state: {
+          ...stone,
+          orders,
+          meta: scrap(23, 31),
+          buffs: [{ kind: "overdrive", until: at(1, 10.5) + 400 }],
+          ui: { sheet: "scrap" },
+        },
         ff: 0.5,
       },
       {
-        name: "mock_postcard_phone",
-        viewport: PHONE,
-        scale: 2,
-        state: stone,
-        query: "mock=postcard",
-        ff: 0.5,
-      },
-      {
-        name: "mock_postcard_desktop",
+        name: "r3s2_scrap_sheet_desktop",
         viewport: DESKTOP,
-        state: stone,
-        query: "mock=postcard",
+        state: {
+          ...evening,
+          orders,
+          meta: scrap(23, 31),
+          buffs: [{ kind: "overdrive", until: at(1, 19) + 400 }],
+          ui: { sheet: "scrap" },
+        },
         ff: 0.5,
+      },
+      {
+        name: "r3s2_boost_running_desktop",
+        viewport: DESKTOP,
+        state: {
+          ...evening,
+          orders,
+          meta: scrap(8, 31),
+          buffs: [{ kind: "overdrive", until: at(1, 19) + 400 }],
+          tide: { fromAgo: 60, length: 300 },
+        },
+        ff: 0.5,
+      },
+      {
+        name: "r3s2_boost_running_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: {
+          ...stone,
+          orders,
+          meta: scrap(8, 31),
+          buffs: [{ kind: "overdrive", until: at(1, 10.5) + 400 }],
+          tide: { fromAgo: 60, length: 300 },
+        },
+        ff: 0.5,
+      },
+      {
+        name: "r3s2_tide_crate_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, orders, meta: scrap(3, 31), tide: { fromAgo: 20, length: 300 } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s2_claim_juice_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, orders, meta: scrap(3) },
+        juice: [{ type: "claim_order", run: 1, id: "twig_taps_300" }],
+        juiceMs: 240,
       },
     ];
   })(),
@@ -2832,8 +2904,19 @@ async function main() {
           meta,
           badgesNew,
           badgesFill,
+          quests,
+          tide,
           ...run
         } = state;
+        // R3 S2: the set completed a minute ago; a Lucky Tide bought `fromAgo` seconds ago.
+        if (run.orders?.fuelledAt === "now") run.orders = { ...run.orders, fuelledAt: time - 60 };
+        if (tide)
+          run.tide = {
+            boost: "lucky_tide",
+            from: time - tide.fromAgo,
+            until: time - tide.fromAgo + tide.length,
+            last: -1,
+          };
         if (runAge !== undefined) run.startedAt = time - runAge;
         // A crow (or a Magpie) `gull.age` seconds into its crossing at `time` (D238).
         if (gull)
@@ -2860,6 +2943,8 @@ async function main() {
           window.__wipeDay.fastForward?.(0.1);
         }
         store.getState().demoPatch(run, meta ?? {});
+        // The day's quests as the shot names them (their day is the game clock's).
+        if (quests) window.__wipeDay.setQuests(time, quests);
         if (flotsamAge !== undefined) {
           // An arrival on the water: run 1's guaranteed crate, or the first of a kind after it.
           const k = flotsamKind ? window.__wipeDay.flotsamK(flotsamKind) : 0;

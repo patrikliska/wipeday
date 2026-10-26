@@ -2925,3 +2925,63 @@ re-split so a casual still sees 4-6 a day (N19); a new assertion **N32**, five o
 reachable in every run 1, for every archetype; R4's crown rule 3 (the slowing run) becomes "the
 set is fuelled", and the Kettle's fuel stage follows the five orders; R3 S4 and R4 measure the
 cards-against-Glow setting. The mocks (`hud/mocks`) are deleted when S2 ships, as P3's yards were.
+
+### D256. Work Orders: the roll, the run-scoped predicates, the drops through the gate
+`orders.json5` holds pools per era; at the start of every run `rollOrders` draws the `spread` of
+each era's pool on `seedOf(base seed, SEED.order, run number)` (the client predicts the list, nothing
+re-rolls it), at most `activeMax` (3) orders that need the player at the screen and at least
+`idleMin` (5) marked `idle` (eras reached, supplies made, a first pair of hands: what any player
+reaches given time), so an idler can always complete the set (N32, measured: the idler claims 5 in
+run 1). Run 1's spread is 3 Twig, 3 Timber, 2 Stone: run 1 ends in Sheet Metal about a minute
+after reaching it, so Sheet Metal orders would be unreachable; later runs' spreads follow their
+start era (R4). An order is a state predicate in the badges' vocabulary, which gained run-scoped
+states (`run_taps`, `run_felled`, `run_flotsam`, `run_gulls`, `run_frenzies`, `run_made`,
+`line_owned` with its `line`) and `run.frenzy.trips`. The list never reorders (era, then pool
+order; D186). `claim_order` pays the order's drop as a mark the drops' hourly gate pays
+(`meta.drops.owed`, after felling's, before the badges', D251), so the Album's pace stays bounded;
+scrap would pay at once (none ships, D259). The fifth claim sets `run.orders.fuelledAt` and emits
+`orders_fuelled`; `fuelled(state)` is what R4's crown rule 3 and the Kettle's fuel stage read.
+Until R4 the UI calls it "the set" and never names the Kettle or the Big Red (D140): the strings
+switch when they ship. A stored run without orders gets its own run's roll in `normalizeState`.
+
+### D257. Daily quests: one roll for the island, lazy, paid at the roll
+`quests.json5`: three a day drawn on `seedOf(island seed, SEED.quest, island day)`, so every friend
+has the same three (like the weather). Each is a lifetime counter that must grow by `n` since the
+roll: `meta.quests.snapshot` keeps `meta.stats` at the roll, and progress is the difference, so
+counters already high count for nothing. The roll is lazy and lives at the top of `applyCommand`
+after settle and before the rule (never inside settle, N24): when the island day moved it pays the
+old day's met, unclaimed quests and the set's bonus, then draws the new day; a refused command rolls
+too (the roll is time's). Nothing is lost by not clicking; `claim_quest {day, id}` is for the number
+pop and refuses `stale` when the day moved under it. The set pays the owner's D248 numbers (1 scrap
+each, all three a tier-I drop and 2 more), the drop through the same gate as an order's.
+Two quests were eased for the casual (catch one airdrop, catch one crow; one Frenzy): the sim's
+casual missed a set most days otherwise and fell under N19's band.
+
+### D258. Boosts: buffs on real seconds, the Lucky Tide as a grid, refused while running
+`scrap.json5` holds the boosts. Overdrive (lines ×3 for 10 min, 15 scrap) and Double Time (taps ×5
+for 2 min, 10) are ordinary `run.buffs` entries whose effects register in `content.buffs`, so
+settle's cut points, the rates, the tap folds and the buff pills already handle them. The Lucky
+Tide (20 scrap, 5 min) is its own seeded grid like the crows': `run.tide {boost, from, until, last}`,
+slot k at `from + 15 + 90k`, its kind from the flotsam weights without the locker, caught with
+`claim_tide {run, k}` through the airdrop's own button when no airdrop is on the water (the scene's
+`find`). Buying a boost that still runs is refused `running {until}` (no accidental restart: the
+Scrap sheet's Buy reads "Running" with the time left, 6.3 rule 3). A boost dies with the run at the
+nuke: R4's `newRun` must carry running boosts over, and the cover card says a boost is running.
+`buy_drop {tier}` buys a Supply Drop II or III for 30 or 120.
+
+### D259. Scrap's sources: quests and the Magpie; orders pay drops; the plate and the sheet now
+`meta.scrap` (held) and `meta.stats.scrap` (ever earned, what N19 reads), both kept on a Crossing.
+The simulator at R3 (test and `--full`, three seeds) settled the sources: a per-run scrap source
+(orders paying scrap) put the active player at 10.4 a day and the optimal at 12.4, past N19's cap
+of 8, because runs a day vary 1-5 across archetypes while the band is tight. So the shipped
+orders pay tier-I drops only (`pays` stays general), scrap comes from the day's quests (1 each, +2
+the set) and the Magpie (1), and the badges' 1 per 5 of D248 is not built (D255 said the orders
+replace it; the quests do). Measured: casual 4.6-5.0 a day, active 5.4-6.4, optimal 5.9-6.9,
+late joiner 4.1-5.0, idler 1.1-1.3; the casual holds 136-151 by day 30. Scrap falls only by the
+owner's own `buy_boost` or `buy_drop` (a 10,000-command property test). The scrap chip (gold,
+once any was ever earned) and a plain Scrap sheet (boosts and drops with price, effect and what is
+missing; where scrap comes from) ship in S2 so earned scrap is never a dead end; S3 keeps the
+reveal and the pills' polish. The sim's archetypes spend by a `spend` policy (casual: tier-II
+drops; active and optimal: boosts at a session's start). N23's run-1 band rose to 2e12: the
+idler nukes at a check-in and overshoots the nuke point by one Night Shift window of Sheet Metal
+output (1.06e12 with the orders' drops in play).

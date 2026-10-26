@@ -784,6 +784,10 @@ export interface WorldCopy {
 | `island.json5` | new (resolution 3.17) | id, UTC offset, seed, the weather table in 30-minute blocks |
 | `blastmap.json5` | new (replaces `legacy`'s perks) | sectors, rings, bands, ceilings, `shippedWave`, reserved slots, nodes |
 | `agenda.json5` | new | Wipe Day gates and their unlocks, keystone slots at 10/20/40 |
+| `cards.json5` | new, R3 S1 | survivors and their traits, gear, the sets and the kit, the drop tiers' odds, pity, shards, the fell schedule |
+| `orders.json5` | new, R3 S2 (D256) | the Work Orders: pools per era, the run's spread, `activeMax`, `idleMin`, `fuel`; each order a state predicate and what it pays |
+| `quests.json5` | new, R3 S2 (D257) | the daily quests: `perDay`, what each and the set pay, the pool of counters |
+| `scrap.json5` | new, R3 S2 (D258) | the drop prices, the Magpie's scrap, the boosts (buffs with effects, the tide's grid) |
 | `logbook.json5` | new, R4 | entries, conditions, secrets, hints, poke ids |
 | `magnet.json5`, `toolbelt.json5` | new, R5 | cycle and odds; three skills |
 | `dares.json5` | new, R7 (reuses the `seasons` modifier ids) | constraint and goal effects, reward |

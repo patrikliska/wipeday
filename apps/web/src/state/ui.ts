@@ -12,7 +12,7 @@ import { create } from "zustand";
 export type Bulk = 1 | 10 | 100 | "max";
 export type Tab = "lines" | "upgrades" | "research";
 export type Panel = "crew" | "logbook" | "settings";
-export type Sheet = "multipliers" | "odds" | "credits" | "era";
+export type Sheet = "multipliers" | "odds" | "credits" | "era" | "orders" | "scrap";
 export type Motion = "device" | "reduced" | "full";
 
 export const BULKS: readonly Bulk[] = [1, 10, 100, "max"];
