@@ -55,6 +55,15 @@ export const commandSchema = z.discriminatedUnion("type", [
   z.strictObject({ type: z.literal("star_up"), survivor: id, to: z.int().min(2).max(5) }),
   z.strictObject({ type: z.literal("craft_gear"), gear: id }),
   z.strictObject({ type: z.literal("equip_gear"), gear: id, survivor: id.nullable() }),
+  z.strictObject({ type: z.literal("claim_order"), run: z.int().min(1).max(1e9), id }),
+  z.strictObject({ type: z.literal("claim_quest"), day: z.int().min(0).max(1e9), id }),
+  z.strictObject({ type: z.literal("buy_boost"), boost: id }),
+  z.strictObject({ type: z.literal("buy_drop"), tier: z.union([z.literal(2), z.literal(3)]) }),
+  z.strictObject({
+    type: z.literal("claim_tide"),
+    run: z.int().min(1).max(1e9),
+    k: z.int().min(0).max(1e9),
+  }),
 ]) satisfies z.ZodType<Command>;
 
 /** Fails to compile while a domain command has no shape above (the error names it). */

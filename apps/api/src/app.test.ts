@@ -189,6 +189,8 @@ const playing =
       startedAt: T0 - 180,
       flotsam: { k: 0, at: T0, caught: 0, last: -1 },
     },
+    // Scrap for a boost or a drop (R3 S2).
+    meta: { ...base.meta, scrap: 60 },
   });
 
 /** As `playing`, with the run started so that its first crow crosses at T0 (D238). */
@@ -232,6 +234,8 @@ describe("state and commands", () => {
     { type: "claim_flotsam", run: 1, k: 0 },
     { type: "claim_gull", run: 1, k: 0 },
     { type: "collect" },
+    { type: "buy_boost", boost: "overdrive" },
+    { type: "buy_drop", tier: 2 },
   ] as const;
 
   for (const command of COMMANDS) {
@@ -258,6 +262,8 @@ describe("state and commands", () => {
       expect(replay.state.run.flotsam).toEqual(first.state.run.flotsam);
       expect(replay.state.run.gulls).toEqual(first.state.run.gulls);
       expect(replay.state.meta.badges).toEqual(first.state.meta.badges);
+      expect(replay.state.meta.scrap).toBe(first.state.meta.scrap);
+      expect(replay.state.meta.drops.held).toEqual(first.state.meta.drops.held);
       expect(replay.state.run.supplies).toBeCloseTo(suppliesAt(content, first.state, T0 + 10), 6);
     });
   }

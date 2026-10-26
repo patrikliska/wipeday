@@ -6,7 +6,7 @@ import { loadContent, loadLocale } from "@wipe-day/content/load";
 import { contentPaths } from "@wipe-day/content/paths";
 import { BADGE_EVENTS, BADGE_STATS } from "@wipe-day/content/schema";
 import { describe, expect, it } from "vitest";
-import { badgeCount, badgeProgress, moraleOf } from "./badges";
+import { badgeCount, badgeProgress, moraleOf, stateValue, whenMet } from "./badges";
 import { applyCommand } from "./commands";
 import { rates } from "./effects";
 import type { GameEvent } from "./events";
@@ -104,6 +104,45 @@ describe("badges", () => {
     // A compile-time check: every badge event is a GameEvent type.
     const types: GameEvent["type"][] = [...BADGE_EVENTS];
     expect(types).toHaveLength(BADGE_EVENTS.length);
+  });
+
+  it("read the run-scoped states and a line's units (the Work Orders' predicates, D256)", () => {
+    const state = fresh({
+      taps: 40,
+      target: { taps: 3, felled: 7 },
+      flotsam: { k: 2, at: null, caught: 2, last: 1 },
+      gulls: { caught: 4, last: 3 },
+      frenzy: { value: 0, at: T0, trips: 2 },
+      made: 12_345,
+      lines: { loom: 51, furnace: 9 },
+    });
+    const value = (when: Parameters<typeof stateValue>[2]) => stateValue(content, state, when);
+    expect(value({ kind: "state", state: "run_taps", gte: 1 })).toBe(40);
+    expect(value({ kind: "state", state: "run_felled", gte: 1 })).toBe(7);
+    expect(value({ kind: "state", state: "run_flotsam", gte: 1 })).toBe(2);
+    expect(value({ kind: "state", state: "run_gulls", gte: 1 })).toBe(4);
+    expect(value({ kind: "state", state: "run_frenzies", gte: 1 })).toBe(2);
+    expect(value({ kind: "state", state: "run_made", gte: 1 })).toBe(12_345);
+    expect(value({ kind: "state", state: "line_owned", line: "loom", gte: 50 })).toBe(51);
+    expect(value({ kind: "state", state: "line_owned", line: "furnace", gte: 50 })).toBe(9);
+    expect(
+      whenMet(
+        content,
+        { kind: "state", state: "line_owned", line: "loom", gte: 50 },
+        state,
+        [],
+        T0,
+      ),
+    ).toBe(true);
+    expect(
+      whenMet(
+        content,
+        { kind: "state", state: "line_owned", line: "furnace", gte: 50 },
+        state,
+        [],
+        T0,
+      ),
+    ).toBe(false);
   });
 
   it("find Slept Through It on the Collect after a full window", () => {

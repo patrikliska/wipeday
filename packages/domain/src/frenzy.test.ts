@@ -29,7 +29,7 @@ const fresh = (meter: number, patch: Partial<BaseState["run"]> = {}): BaseState 
       settledAt: T0,
       activeAt: T0,
       hustle: { value: content.tap.hustle.cap, at: T0 },
-      frenzy: { value: meter, at: T0 },
+      frenzy: { value: meter, at: T0, trips: 0 },
       bucket: { tokens: content.tap.bucket.burst, at: T0 },
       ...patch,
     },
@@ -69,7 +69,7 @@ describe("Frenzy's trip inside a batch (D237)", () => {
       expect(result.state.meta.stats.frenzies).toBe(1);
       expect(result.events).toContainEqual({ type: "frenzy_tripped", until: buff?.until });
       // The meter waits empty until the buff ends.
-      expect(result.state.run.frenzy).toEqual({ value: 0, at: buff?.until });
+      expect(result.state.run.frenzy).toEqual({ value: 0, at: buff?.until, trips: 1 });
     });
   }
 
@@ -78,7 +78,7 @@ describe("Frenzy's trip inside a batch (D237)", () => {
     const state = fresh(0, { buffs: [{ kind: "frenzy", until: T0 + 1 }] });
     const { result, direct: value } = direct(state);
     expect(value).toBeCloseTo(calm, 9);
-    expect(result.state.run.frenzy).toEqual({ value: 10 * rules.perTap, at: T0 + 1 });
+    expect(result.state.run.frenzy).toEqual({ value: 10 * rules.perTap, at: T0 + 1, trips: 0 });
   });
 
   it("runs hot for a batch inside it, however late in the buff", () => {
@@ -90,7 +90,7 @@ describe("Frenzy's trip inside a batch (D237)", () => {
     const early = fresh(0, { startedAt: T0 - 10 });
     expect(direct(early).result.state.run.frenzy.value).toBe(0);
     const running = fresh(0, { buffs: [{ kind: "frenzy", until: T0 + 10 }] });
-    expect(direct(running).result.state.run.frenzy).toEqual({ value: 0, at: T0 + 10 });
+    expect(direct(running).result.state.run.frenzy).toEqual({ value: 0, at: T0 + 10, trips: 0 });
   });
 
   it("holds for its grace after the last tap, then drains", () => {

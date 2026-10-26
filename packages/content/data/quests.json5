@@ -1,0 +1,21 @@
+// Daily quests (docs/redesign/12-feel.md 9.2; D248, D257): `perDay` a day on the island's clock
+// (UTC+1), the same three for every friend (rolled on the island's seed and the day number), each
+// a lifetime counter (`meta.stats`) that must grow by `n` since the day's roll. Each pays `each`
+// when claimed; the day's whole set pays `set` once (owner, D248: 1 scrap each, the set a
+// Supply Drop I and 2 more). Quests nobody claimed are paid at the next roll: nothing is lost.
+// Never "spend scrap"; no rerolls. Names: `quest.{id}.name`.
+{
+  perDay: 3,
+  pays: { each: [{ scrap: 1 }], set: [{ drop: 1 }, { scrap: 2 }] },
+  quests: [
+    { id: "tap_500", stat: "taps", n: 500 },
+    { id: "hire_2", stat: "hands", n: 2 },
+    { id: "catch_1", stat: "flotsam", n: 1 },
+    { id: "open_drop", stat: "drops", n: 1 },
+    { id: "fell_20", stat: "felled", n: 20 },
+    { id: "frenzy_1", stat: "frenzies", n: 1 },
+    { id: "crows_1", stat: "gulls", n: 1 },
+    { id: "units_25", stat: "units", n: 25 },
+    { id: "workshop_2", stat: "research", n: 2 },
+  ],
+}

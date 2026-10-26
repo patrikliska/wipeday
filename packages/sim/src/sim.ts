@@ -15,6 +15,11 @@
  * R3's cards (D252): every archetype opens its drops at once, buys each star its shards pay
  * for, crafts the first missing gear its rarity shards buy, and after a hire or a new card puts
  * the strongest production gear on the hired survivors whose lines make the most.
+ *
+ * R3 S2: every archetype claims the Work Orders and the daily quests it has met (after each
+ * batch), catches Lucky Tide crates by its flotsam share, and spends scrap by its `spend` policy
+ * at a session's start: boosts (Overdrive, Double Time while it taps, the tide while it catches),
+ * tier-II drops, or none.
  */
 
 import { RARITIES, SLOTS } from "@wipe-day/content/cards";
@@ -22,12 +27,15 @@ import type { Archetype, Assertion, Content, Phase } from "@wipe-day/content/sch
 import { PHASES } from "@wipe-day/content/schema";
 import { choices, crown, lasting, type Player } from "@wipe-day/domain/advisor";
 import { assertFiniteState } from "@wipe-day/domain/amount";
+import { tideAt } from "@wipe-day/domain/boosts";
 import { applyCommand, type Command } from "@wipe-day/domain/commands";
 import { fullRate, rates, unitRate } from "@wipe-day/domain/effects";
 import type { GameEvent } from "@wipe-day/domain/events";
 import { claimUntil, flotsamAt } from "@wipe-day/domain/flotsam";
 import { gullAt } from "@wipe-day/domain/gulls";
+import { fuelled, orderClaimed, orderMet, ordersOf } from "@wipe-day/domain/orders";
 import { glassLevel } from "@wipe-day/domain/prestige";
+import { questClaimed, questMet, questsOf } from "@wipe-day/domain/quests";
 import { workshopOpensAt } from "@wipe-day/domain/research";
 import { rng, SEED, seedOf } from "@wipe-day/domain/rng";
 import { mannedRate, settle } from "@wipe-day/domain/settle";
@@ -81,6 +89,10 @@ export interface DayRow {
   /** Supply Drops opened so far, and cards owned (R3). */
   drops: number;
   cards: number;
+  /** Scrap ever earned, Work Orders and quests claimed so far (R3 S2). */
+  scrap: number;
+  orders: number;
+  quests: number;
 }
 
 export interface RunRow {
@@ -90,6 +102,9 @@ export interface RunRow {
   end: number | null;
   made: number;
   glass: number;
+  /** Work Orders claimed in the run, and whether the set was fuelled (R3 S2). */
+  orders: number;
+  fuelled: boolean;
 }
 
 export interface Life {
@@ -245,6 +260,32 @@ export function simulate(
   /** A hire or an earned drop since the cards were last tended. */
   let tending = false;
 
+  /** The Work Orders and quests met and not yet claimed (R3 S2): a player taps Claim. */
+  const claims = (now: number) => {
+    for (const order of ordersOf(content, state))
+      if (!orderClaimed(state, order.id) && orderMet(content, state, order))
+        step({ type: "claim_order", run: state.run.n, id: order.id }, now);
+    for (const quest of questsOf(content, state))
+      if (!questClaimed(state, quest.id) && questMet(state, quest))
+        step({ type: "claim_quest", day: state.meta.quests.day, id: quest.id }, now);
+  };
+
+  /** Scrap by the archetype's policy, at a session's start. */
+  const spend = (now: number) => {
+    if (archetype.spend === "boosts") {
+      for (const boost of content.scrap.boosts) {
+        if (boost.id === "double_time" && archetype.tapsPerSecond === 0) continue;
+        if (boost.tide && archetype.catches === 0) continue;
+        if (state.meta.scrap >= boost.cost) step({ type: "buy_boost", boost: boost.id }, now);
+      }
+    } else if (archetype.spend === "drops") {
+      while (state.meta.scrap >= content.scrap.drops[2]) {
+        if (!step({ type: "buy_drop", tier: 2 }, now).ok) break;
+        tending = true;
+      }
+    }
+  };
+
   const step = (command: Command, now: number): ReturnType<typeof applyCommand> => {
     const result = applyCommand(content, state, command, now);
     state = result.state;
@@ -391,6 +432,8 @@ export function simulate(
       bought = false;
       const checkIn = { at: t - DAY0, made: settle(content, state, t).state };
       step({ type: "ping" }, t);
+      claims(t);
+      spend(t);
       while (t < end) {
         const idle = state.run.hands.length === 0;
         const rate = archetype.tapsPerSecond + (idle ? (archetype.tapsWhileNothingRuns ?? 0) : 0);
@@ -430,7 +473,12 @@ export function simulate(
         const crow = gullAt(content, state, to);
         if (crow && catches(archetype, seedOf(baseSeed, SEED.gull), state.run.n, crow.k))
           step({ type: "claim_gull", run: state.run.n, k: crow.k }, to);
+        // Lucky Tide crates, by the same share on their own stream.
+        const tide = tideAt(content, state, to);
+        if (tide && catches(archetype, seedOf(baseSeed, SEED.tide), state.run.n, tide.k))
+          step({ type: "claim_tide", run: state.run.n, k: tide.k }, to);
         const affordable = buy(to, rate);
+        claims(to);
         if (tending) tend(to);
         if (state.run.n <= EARLY_RUNS) {
           stuck = affordable ? 0 : stuck + length;
@@ -446,6 +494,8 @@ export function simulate(
             end: to - DAY0,
             made: state.run.made,
             glass: nuked.meta.glass.ever - state.meta.glass.ever,
+            orders: state.run.orders.claimed.length,
+            fuelled: fuelled(content, state),
           });
           state = nuked;
           runStart = to - DAY0;
@@ -483,10 +533,21 @@ export function simulate(
       drops: state.meta.stats.drops,
       cards:
         Object.keys(state.meta.cards.survivors).length + Object.keys(state.meta.cards.gear).length,
+      scrap: state.meta.stats.scrap,
+      orders: state.meta.stats.orders,
+      quests: state.meta.stats.quests,
     });
     if (stop && day >= stop.day && life.runs.length > 0 && state.run.n > stop.runs) break;
   }
-  life.runs.push({ n: state.run.n, start: runStart, end: null, made: state.run.made, glass: 0 });
+  life.runs.push({
+    n: state.run.n,
+    start: runStart,
+    end: null,
+    made: state.run.made,
+    glass: 0,
+    orders: state.run.orders.claimed.length,
+    fuelled: fuelled(content, state),
+  });
   return life;
 }
 
@@ -520,7 +581,13 @@ const SHORT_CHECKS: ReadonlySet<string> = new Set([
   "run1Made",
   "firstHourBeats",
   "casualFirstNuke",
+  "scrap",
+  "casualDropsPerDay",
+  "ordersReachable",
 ]);
+/** N19's window: a 7-day average from day 2 (12-feel.md 11), so everyone plays to day 8. */
+const SCRAP_FROM_DAY = 2;
+const SCRAP_DAYS = 7;
 
 /** Each archetype's early stop for the due assertions, or null when one reaches further. */
 export function earlyStops(
@@ -530,8 +597,16 @@ export function earlyStops(
   if (due.some((assertion) => !SHORT_CHECKS.has(assertion.check))) return null;
   const stops: Record<string, Stop> = {};
   for (const [name, archetype] of Object.entries(content.pacing.archetypes)) {
-    let day = archetype.startDay ?? 1;
+    const startDay = archetype.startDay ?? 1;
+    let day = startDay;
     for (const assertion of due) {
+      // N19 reads everyone's first week from day 2, and the casual to its day-30 total.
+      if (assertion.check === "scrap") {
+        day = Math.max(day, startDay + SCRAP_FROM_DAY + SCRAP_DAYS - 2);
+        if (name === str(assertion.archetype, "casual"))
+          day = Math.max(day, num(assertion.byDay, 30));
+        continue;
+      }
       const reads =
         assertion.check === "activeHour"
           ? str(assertion.archetype, "active")
@@ -864,6 +939,66 @@ export const CHECKS: Record<string, Check> = {
       );
     }
     return { ok, detail: parts.join(", ") };
+  },
+  // N19 (12-feel.md 11): scrap a day for a casual, a 7-day average from day 2, in its band;
+  // at least `casualByDay30` ever by day 30; nobody's average above `anyMeanMax`.
+  scrap: (assertion, { lives }) => {
+    const [low, high] = pair(assertion.casualMean, [4, 6]);
+    const byDay = num(assertion.byDay, 30);
+    const casualName = str(assertion.archetype, "casual");
+    const means = lives
+      .filter((life) => life.days.length >= SCRAP_FROM_DAY + SCRAP_DAYS - 1)
+      .map((life) => {
+        const first = life.days[0]?.day ?? 1;
+        const earned = (day: number) =>
+          life.days.find((row) => row.day === day)?.scrap ?? Number.NaN;
+        const from = first + SCRAP_FROM_DAY - 1;
+        return [
+          life.name,
+          (earned(from + SCRAP_DAYS - 1) - earned(from - 1)) / SCRAP_DAYS,
+        ] as const;
+      });
+    const casual = means.filter(([name]) => name === casualName).map(([, mean]) => mean);
+    const totals = named(lives, casualName).map(
+      (life) => life.days.find((row) => row.day === byDay)?.scrap,
+    );
+    const worst = Math.max(...means.map(([, mean]) => mean));
+    const ok =
+      casual.length > 0 &&
+      casual.every((mean) => mean >= low && mean <= high) &&
+      totals.every((total) => total !== undefined && total >= num(assertion.casualByDay30, 100)) &&
+      worst <= num(assertion.anyMeanMax, 8);
+    return {
+      ok,
+      detail: `${perName(means, (mean) => mean.toFixed(2))} a day; ${casualName} by day ${byDay} ${range(totals, (n) => String(n))}`,
+    };
+  },
+  // N30: the casual opens at least `min` drops every day of days 1-`days`.
+  casualDropsPerDay: (assertion, { lives }) => {
+    const days = num(assertion.days, 30);
+    const min = num(assertion.min, 1);
+    let worst = Number.POSITIVE_INFINITY;
+    let where = "";
+    for (const life of named(lives, str(assertion.archetype, "casual"))) {
+      let before = 0;
+      for (const row of life.days) {
+        if (row.day > days) break;
+        const opened = row.drops - before;
+        before = row.drops;
+        if (opened < worst) {
+          worst = opened;
+          where = `day ${row.day}`;
+        }
+      }
+    }
+    return { ok: worst >= min, detail: `fewest in a day ${worst} (${where})` };
+  },
+  // N32 (D255): five Work Orders are reachable in every run 1, for every archetype.
+  ordersReachable: (assertion, { content, lives }) => {
+    const fuel = num(assertion.fuel, content.orders.fuel);
+    const rows = lives.map((life) => [life.name, life.runs[0]?.orders ?? 0] as const);
+    const ok = rows.every(([, claimed]) => claimed >= fuel);
+    return { ok, detail: `run 1 claims ${perName(rows, (n) => String(n))} (want ${fuel})` };
   },
 };
 

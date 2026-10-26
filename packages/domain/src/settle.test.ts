@@ -38,6 +38,7 @@ const AWAY = 1.5;
 /** Frenzy (D237): lines ×MULT, as a visible speed-up and the rest as output. */
 const FRENZY_MULT = 7;
 const FRENZY_SPEED = 1.5;
+const OVERDRIVE = 3;
 
 /** R0's content plus buffs and an away-only effect, with a Night Shift of `hours`. */
 function fixture(hours: number): Content {
@@ -53,6 +54,8 @@ function fixture(hours: number): Content {
       ],
       // Holds only while away: settle must cut where the player goes offline.
       lantern: [{ stat: "offline", op: "more", value: AWAY, when: "offline" }],
+      // R3 S2's bought boost (D258): an ordinary buff on every line.
+      overdrive: [{ stat: "output", op: "more", value: OVERDRIVE }],
     },
   };
 }
@@ -81,9 +84,11 @@ function randomCase(random: Rng): Case {
     else if (random.next() < 0.6) readyAt[line.id] = T0 + random.int(1, 3 * HOUR);
   }
   const buffs: Buff[] = [];
-  const kinds = ["rally", "drone", "lantern", "frenzy"];
+  const kinds = ["rally", "drone", "lantern", "frenzy", "overdrive"];
   for (let i = random.int(0, 3); i > 0; i--) {
     const kind = kinds[random.int(0, kinds.length - 1)] ?? "rally";
+    // The same kind again restarts its timer in the game (D148); only drones stack, per line.
+    if (kind !== "drone" && buffs.some((buff) => buff.kind === kind)) continue;
     const owned = Object.keys(lines);
     const line = owned[random.int(0, Math.max(0, owned.length - 1))];
     buffs.push({
@@ -143,7 +148,15 @@ function randomCase(random: Rng): Case {
       glass: { ...base.meta.glass, ever: random.int(0, 5000) },
       cards: { survivors, gear },
       drops: { ...base.meta.drops, held: { 1: random.int(0, 2), 2: 0, 3: 0 } },
+      // R3 S2: scrap to spend, some orders already claimed.
+      scrap: random.int(0, 200),
     },
+  };
+  const claimed = state.run.orders.ids.filter(() => random.next() < 0.3);
+  state.run.orders = {
+    ids: state.run.orders.ids,
+    claimed,
+    fuelledAt: claimed.length >= 5 ? T0 : null,
   };
   return { content, state };
 }
@@ -226,6 +239,29 @@ describe("settle's path independence (N24)", () => {
                 survivor:
                   owners.length > 0 ? (owners[random.int(0, owners.length - 1)] ?? null) : null,
               };
+        // R3 S2: the scrap commands and the claims (most refuse; the ones that land must agree).
+        const scrapRoll = random.next();
+        const scrapCommand: Command =
+          scrapRoll < 0.3
+            ? {
+                type: "buy_boost",
+                boost: ["overdrive", "double_time", "lucky_tide"][random.int(0, 2)] ?? "overdrive",
+              }
+            : scrapRoll < 0.45
+              ? { type: "buy_drop", tier: random.next() < 0.5 ? 2 : 3 }
+              : scrapRoll < 0.7
+                ? {
+                    type: "claim_order",
+                    run: a.run.n,
+                    id: a.run.orders.ids[random.int(0, 7)] ?? "",
+                  }
+                : scrapRoll < 0.9
+                  ? {
+                      type: "claim_quest",
+                      day: a.meta.quests.day,
+                      id: a.meta.quests.ids[random.int(0, 2)] ?? "",
+                    }
+                  : { type: "claim_tide", run: a.run.n, k: random.int(0, 4) };
         const command: Command = floating
           ? { type: "claim_flotsam", run: a.run.n, k: cursor.k }
           : roll < 0.25
@@ -247,7 +283,9 @@ describe("settle's path independence (N24)", () => {
                         }
                       : roll < 0.88
                         ? card
-                        : { type: "ping" };
+                        : roll < 0.95
+                          ? scrapCommand
+                          : { type: "ping" };
         // B settles somewhere in between first; A does not.
         const between = t - random.int(1, Math.max(1, t - b.run.settledAt));
         if (between > b.run.settledAt) b = settle(content, b, between).state;
@@ -425,6 +463,7 @@ function oracle(content: Content, state: BaseState, until: number): number {
       if (buff.kind === "drone" && (line === undefined || buff.line === line)) factor *= DRONE;
       if (buff.kind === "lantern" && t >= offlineFrom) factor *= AWAY;
       if (buff.kind === "frenzy") factor *= FRENZY_MULT / FRENZY_SPEED;
+      if (buff.kind === "overdrive") factor *= OVERDRIVE;
     }
     return t >= offlineFrom ? factor * away : factor;
   };
@@ -441,6 +480,7 @@ function oracle(content: Content, state: BaseState, until: number): number {
       if (buff.kind === "rally") global *= RALLY;
       if (buff.kind === "lantern" && t >= offlineFrom) global *= AWAY;
       if (buff.kind === "frenzy") global *= FRENZY_MULT;
+      if (buff.kind === "overdrive") global *= OVERDRIVE;
     }
     if (t >= offlineFrom) global *= away;
     // Buffs multiply, so two drones on one line make it ×144 there.

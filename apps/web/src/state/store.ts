@@ -186,7 +186,7 @@ export const useWorld = create<Store>((set, get) => {
             run: () => emit({ type: "go_tap" }),
           }
         : undefined;
-    toast(refusalMessage(refusal), "warning", false, action);
+    toast(refusalMessage(refusal, nowSecond()), "warning", false, action);
   };
 
   const showWelcome = (card: WelcomeBack, activeAt: number): void => {

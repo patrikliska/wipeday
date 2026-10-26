@@ -115,6 +115,21 @@ export function stateValue(
     }
     case "window_hours":
       return rates(content, state).nightShift / 3600;
+    // Run-scoped (the Work Orders, D256).
+    case "run_taps":
+      return run.taps;
+    case "run_felled":
+      return run.target.felled;
+    case "run_flotsam":
+      return run.flotsam.caught;
+    case "run_gulls":
+      return run.gulls.caught;
+    case "run_frenzies":
+      return run.frenzy.trips;
+    case "run_made":
+      return run.made;
+    case "line_owned":
+      return when.line === undefined ? 0 : (run.lines[when.line] ?? 0);
   }
 }
 
@@ -149,7 +164,17 @@ export function badgeMet(
   events: readonly GameEvent[],
   now: number,
 ): boolean {
-  const when = badge.when;
+  return whenMet(content, badge.when, state, events, now);
+}
+
+/** Whether a condition holds on `state` after a command that reported `events` at `now`. */
+export function whenMet(
+  content: Content,
+  when: BadgeWhen,
+  state: BaseState,
+  events: readonly GameEvent[],
+  now: number,
+): boolean {
   if (when.kind === "stat") return state.meta.stats[when.stat] >= when.gte;
   if (when.kind === "state") {
     const value = stateValue(content, state, when);
@@ -172,7 +197,15 @@ export function badgeProgress(
   badge: BadgeDef,
   state: BaseState,
 ): { value: number; goal: number } | null {
-  const when = badge.when;
+  return whenProgress(content, badge.when, state);
+}
+
+/** A condition's progress, or null for one-off conditions (events, buffs, an era). */
+export function whenProgress(
+  content: Content,
+  when: BadgeWhen,
+  state: BaseState,
+): { value: number; goal: number } | null {
   if (when.kind === "stat") return { value: state.meta.stats[when.stat], goal: when.gte };
   if (
     when.kind === "state" &&

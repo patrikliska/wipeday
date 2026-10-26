@@ -4,7 +4,20 @@
  * turn all of them into feedback. Later phases add theirs (docs/redesign/09-architecture.md 7.2).
  */
 import type { DropTier, Rarity } from "@wipe-day/content/cards";
+import type { Pay } from "@wipe-day/content/schema";
 import type { Amount } from "./amount";
+
+/** Where a Supply Drop or scrap came from. */
+export type ScrapSource =
+  | "fells"
+  | "badges"
+  | "locker"
+  | "orders"
+  | "quests"
+  /** A claimed order's or quest set's drop, paid by the gate. */
+  | "claims"
+  | "scrap"
+  | "magpie";
 
 /** A card a Supply Drop gave: new to the Album, or `shards` into a survivor's or a rarity's. */
 export interface DropCard {
@@ -54,8 +67,26 @@ export type GameEvent =
       type: "drop_earned";
       tier: DropTier;
       count: number;
-      source: "fells" | "badges" | "locker";
+      source: ScrapSource;
     }
+  /** A Work Order claimed (D256): what it pays (a drop pays through the gate, later). */
+  | { type: "order_claimed"; id: string; pays: Pay[] }
+  /** The run's set is fuelled: five orders claimed; the Kettle lights (R4 crowns the Big Red). */
+  | { type: "orders_fuelled"; run: number }
+  /** A daily quest claimed, by hand or at the next day's roll (D257). */
+  | { type: "quest_claimed"; id: string; pays: Pay[] }
+  /** The day's three quests all claimed: the set's bonus. */
+  | { type: "quest_set_done"; day: number; pays: Pay[] }
+  /** The island day moved: new quests (client feedback only). */
+  | { type: "quests_rolled"; day: number }
+  /** Scrap earned: `n` from `source` (the plate's number pop). */
+  | { type: "scrap_earned"; n: number; source: ScrapSource }
+  /** Scrap spent: `n` on `what` (a boost id or `drop_2`, `drop_3`). */
+  | { type: "scrap_spent"; n: number; what: string }
+  /** A boost bought; its buff or tide runs until `until`. */
+  | { type: "boost_bought"; boost: string; until: number }
+  /** A Lucky Tide crate `k` caught; `value` is a crate's supplies (0 for a buff). */
+  | { type: "tide_claimed"; kind: string; k: number; value: Amount }
   /** A Supply Drop opened: its cards in reveal order (logged for balance). */
   | { type: "drop_opened"; tier: DropTier; cards: DropCard[] }
   /** A survivor's next star, paid in its shards. */
@@ -82,6 +113,10 @@ export const LOGGED_TYPES: ReadonlySet<GameEvent["type"]> = new Set([
   "drop_opened",
   "starred",
   "gear_crafted",
+  "orders_fuelled",
+  "quest_set_done",
+  "scrap_spent",
+  "boost_bought",
 ]);
 
 export const isLogged = (event: GameEvent): boolean => LOGGED_TYPES.has(event.type);

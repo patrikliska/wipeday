@@ -20,15 +20,16 @@
   // share of the flotsam floating while online that it catches.
   archetypes: {
     idler: { sessions: ["08:00+3m", "21:00+3m"], tapsPerSecond: 0, tapsWhileNothingRuns: 4, nuke: "double" },
-    casual: { sessions: ["08:00+5m", "13:00+5m", "21:00+5m"], tapsPerSecond: 4, catches: 0.5, nuke: "crown" },
+    casual: { sessions: ["08:00+5m", "13:00+5m", "21:00+5m"], tapsPerSecond: 4, catches: 0.5, nuke: "crown", spend: "drops" },
     active: {
       sessions: ["07:00+10m", "09:00+10m", "12:00+10m", "15:00+10m", "17:00+10m", "19:00+10m", "21:00+10m", "23:00+10m"],
       tapsPerSecond: 6,
       catches: 1,
       nuke: "crown",
+      spend: "boosts",
     },
-    optimal: { sessions: ["hourly+5m"], tapsPerSecond: 6, catches: 1, nuke: "best" },
-    lateJoiner: { sessions: ["08:00+5m", "13:00+5m", "21:00+5m"], tapsPerSecond: 4, catches: 0.5, nuke: "crown", startDay: 30 },
+    optimal: { sessions: ["hourly+5m"], tapsPerSecond: 6, catches: 1, nuke: "best", spend: "boosts" },
+    lateJoiner: { sessions: ["08:00+5m", "13:00+5m", "21:00+5m"], tapsPerSecond: 4, catches: 0.5, nuke: "crown", startDay: 30, spend: "drops" },
   },
   // One long session from the first tap.
   scenarios: {
@@ -51,7 +52,9 @@
     // N9 on the weather-weighted hour; a rain hour alone only warns (errata E13).
     { n: "N9", on: "R2", check: "activeHour", days: [14, 30, 60], min: 4, max: 6 },
     { n: "N9", on: "R2", check: "activeHour", days: [14, 30, 60], rain: true, min: 4, max: 6, warn: true },
-    { n: "N23", on: "R1", check: "run1Made", min: 1e10, max: 1e12 },
+    // The idler nukes at a check-in, so its run 1 overshoots the nuke point by one Night Shift
+    // window of Sheet Metal output (about 1e12 since R3 S2's orders pay drops; was 1e12).
+    { n: "N23", on: "R1", check: "run1Made", min: 1e10, max: 2e12 },
     // Run 1's script (10-balance.md 4.2, errata E1's column), seconds after the first tap. R2 Feel
     // S6 retuned it around the Workshop (base output ×0.28, earned back from 2:00), S7 around
     // Morale, crows and Frenzy (×0.65 more, D240): Timber about 0:57, Mara 1:24, the Workshop
@@ -80,6 +83,8 @@
     // R3 Cards: scrap as the premium currency (12-feel.md 8, 11; D182) and the Supply Drops.
     { n: "N19", on: "R3", check: "scrap", casualMean: [4, 6], casualByDay30: 100, anyMeanMax: 8 },
     { n: "N30", on: "R3", check: "casualDropsPerDay", min: 1, days: 30 },
+    // N32 (D255, D256): five Work Orders are reachable in every run 1, for every archetype.
+    { n: "N32", on: "R3", check: "ordersReachable" },
     // R4: the nuke (the old R2; 12-feel.md 12 reordered the phases).
     { n: "N1", on: "R4", check: "firstNukeMinutes", scenario: "firstHour", min: 40, max: 60 },
     { n: "N2", on: "R4", check: "firstNukeMinutesAny", min: 25 },

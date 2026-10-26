@@ -11,10 +11,14 @@
  *   `{line}_mk3` becomes that many levels of `{line}_mk`; Workshop levels stay within each item's.
  * - R3's cards: unknown survivors and gear are dropped, stars stay 1-5, gear is worn only by an
  *   owned survivor and one card a slot.
+ * - R3 S2: a run stored without Work Orders gets its own run's roll (not run 1's, which the
+ *   fresh shape would give); unknown order ids are dropped; quests stored without a day roll
+ *   fresh on the next command.
  *
  * Idempotent: a current state passes through unchanged.
  */
 import type { Content } from "@wipe-day/content/schema";
+import { orderOf, rollOrders } from "./orders";
 import { type BaseState, type Meta, newBase } from "./state";
 
 type Plain = Record<string, unknown>;
@@ -51,6 +55,16 @@ export function normalizeState(content: Content, stored: unknown): BaseState | n
     const n = Math.min(def.levels, Math.floor(research[def.id] ?? 0));
     if (n > 0) levels[def.id] = n;
   }
+  const storedRun = isPlain(stored.run) ? stored.run : {};
+  const rolled =
+    storedRun.orders === undefined
+      ? rollOrders(content, seed, state.run.n)
+      : state.run.orders.ids.filter((id) => orderOf(content, id) !== undefined);
+  const orders = {
+    ids: rolled,
+    claimed: state.run.orders.claimed.filter((id) => rolled.includes(id)),
+    fuelledAt: state.run.orders.fuelledAt,
+  };
   return {
     ...state,
     meta: { ...state.meta, cards: cardsOf(content, state.meta.cards) },
@@ -61,6 +75,7 @@ export function normalizeState(content: Content, stored: unknown): BaseState | n
       hands: state.run.hands.filter((id) => known.has(id)),
       upgrades: state.run.upgrades.filter((id) => shelf.has(id)),
       research: levels,
+      orders,
     },
   };
 }

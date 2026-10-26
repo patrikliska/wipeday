@@ -11,20 +11,25 @@
  * R0's commands: `taps` and `ping` (the slim path, D134), `buy_line` and `hire_hand`. R1 adds
  * the shelf (`buy_upgrade`), eras (`buy_era`), flotsam and Collect; R2 the Workshop
  * (`buy_research`) and the crows (`claim_gull`); R3 the cards (`open_drop`, `star_up`,
- * `craft_gear`, `equip_gear`); R4 the nuke and the Blast Map.
+ * `craft_gear`, `equip_gear`), then the Work Orders (`claim_order`), the daily quests
+ * (`claim_quest`) and scrap (`buy_boost`, `buy_drop`, `claim_tide`); R4 the nuke and the Blast Map.
  */
 import { DROP_TIERS, type DropTier } from "@wipe-day/content/cards";
-import type { Content } from "@wipe-day/content/schema";
+import type { Content, FlotsamKind } from "@wipe-day/content/schema";
 import { TIERS } from "@wipe-day/content/tiers";
 import type { Amount } from "./amount";
 import { earnBadges } from "./badges";
+import { boostOf, boostUntil, tideSlot } from "./boosts";
 import { gearOf, survivorOf } from "./cards";
 import { credit, grantDrops, openDrop } from "./drops";
 import type { GameEvent } from "./events";
 import { arrivalKind, claimUntil, crateValue, flotsamAt, gapBefore } from "./flotsam";
 import { crossing, gullValue } from "./gulls";
 import { costFactor, costOf, eraOpen, handPriceOf, lineOf, maxAffordable } from "./lines";
+import { orderClaimed, orderMet, orderOf, orderProgress } from "./orders";
+import { claimQuest, questClaimed, questMet, questOf, questProgress, rollQuests } from "./quests";
 import { levelOf, levelsCost, maxResearch, researchGate, researchOf } from "./research";
+import { earnScrap, pay, spendScrap } from "./scrap";
 import { cyclePayout, settle, windowEnd } from "./settle";
 import {
   bought,
@@ -37,7 +42,7 @@ import {
   upgradeGate,
   upgradeOf,
 } from "./shelf";
-import type { BaseState } from "./state";
+import type { BaseState, RunState } from "./state";
 import { applyTaps } from "./taps";
 import type { World } from "./world";
 
@@ -69,7 +74,17 @@ export type Command =
   /** A gear card not yet owned, paid in shards of its rarity. */
   | { type: "craft_gear"; gear: string }
   /** Put a gear card on an owned survivor (swapping out what that slot held), or back (null). */
-  | { type: "equip_gear"; gear: string; survivor: string | null };
+  | { type: "equip_gear"; gear: string; survivor: string | null }
+  /** Claim a met Work Order `id` of run `run` (D256). */
+  | { type: "claim_order"; run: number; id: string }
+  /** Claim a met daily quest `id` of island day `day` (D257). */
+  | { type: "claim_quest"; day: number; id: string }
+  /** Buy a boost for scrap: a timed buff, or the Lucky Tide (D258). */
+  | { type: "buy_boost"; boost: string }
+  /** Buy a Supply Drop of tier II or III for scrap. */
+  | { type: "buy_drop"; tier: 2 | 3 }
+  /** Catch Lucky Tide crate `k` of run `run` while it floats. */
+  | { type: "claim_tide"; run: number; k: number };
 
 export type CommandType = Command["type"];
 
@@ -110,7 +125,13 @@ export type Refusal =
   /** That card is not in the Album yet. */
   | { reason: "not_owned"; what: string }
   /** The command was sent for an older state (a second click): nothing happened. */
-  | { reason: "stale" };
+  | { reason: "stale" }
+  /** Not enough scrap: `need` and `have`. */
+  | { reason: "scrap"; need: number; have: number }
+  /** That order or quest is not done yet: `value` of `goal` (null for a one-off condition). */
+  | { reason: "unmet"; value: number | null; goal: number | null }
+  /** That boost still runs until `until`: buy it again after. */
+  | { reason: "running"; until: number };
 
 export type { Gate };
 
@@ -141,7 +162,11 @@ export function applyCommand(
   _world?: World,
 ): CommandResult {
   const settled = settle(content, state, now);
-  let base = settled.state;
+  // The island day's quests roll with time, like settle: the old day's met quests are paid, the
+  // new day's drawn, before any rule runs (D257).
+  const rolled = rollQuests(content, settled.state, now);
+  const before = [...settled.events, ...rolled.events];
+  let base = rolled.state;
   if (base.run.startedAt === null && (command.type === "taps" || isPurchase(command))) {
     base = { ...base, run: { ...base.run, startedAt: now } };
     // The flotsam schedule starts with the run's clock (D154).
@@ -151,16 +176,16 @@ export function applyCommand(
   if (!result.ok) {
     return {
       ok: false,
-      state: settled.state,
-      events: settled.events,
-      changed: settled.changed,
+      state: rolled.state,
+      events: before,
+      changed: settled.changed || rolled.events.length > 0,
       refusal: result.refusal,
     };
   }
   let run = result.state.run;
   if (isPurchase(command) && run.firstBuyAt === null) run = { ...run, firstBuyAt: now };
   run = { ...run, activeAt: now, madeAtActive: run.made };
-  const events = [...settled.events, ...result.events];
+  const events = [...before, ...result.events];
   // Badges after every successful command, never on a refusal or inside settle (D198). They read
   // the command's own events only: settle's can be swallowed by an earlier settle (N24).
   const badges = earnBadges(content, { ...result.state, run }, result.events, now);
@@ -211,7 +236,141 @@ function step(content: Content, state: BaseState, command: Command, now: number)
       return craftGear(content, state, command.gear);
     case "equip_gear":
       return equipGear(content, state, command.gear, command.survivor);
+    case "claim_order":
+      return claimOrder(content, state, command.run, command.id, now);
+    case "claim_quest":
+      return claimDailyQuest(content, state, command.day, command.id);
+    case "buy_boost":
+      return buyBoost(content, state, command.boost, now);
+    case "buy_drop":
+      return buyDrop(content, state, command.tier);
+    case "claim_tide":
+      return claimTide(content, state, command.run, command.k, now);
   }
+}
+
+function claimOrder(content: Content, state: BaseState, n: number, id: string, now: number): Step {
+  const run = state.run;
+  if (n !== run.n) return { ok: false, refusal: { reason: "stale_run" } };
+  const order = orderOf(content, id);
+  if (!order || !run.orders.ids.includes(id))
+    return { ok: false, refusal: { reason: "unknown", what: id } };
+  if (orderClaimed(state, id)) return { ok: false, refusal: { reason: "claimed" } };
+  if (!orderMet(content, state, order)) {
+    const progress = orderProgress(content, state, order);
+    return {
+      ok: false,
+      refusal: { reason: "unmet", value: progress?.value ?? null, goal: progress?.goal ?? null },
+    };
+  }
+  const claimed = [...run.orders.claimed, id];
+  const fuelsNow = claimed.length === content.orders.fuel && run.orders.fuelledAt === null;
+  let out: BaseState = {
+    ...state,
+    run: {
+      ...run,
+      orders: { ...run.orders, claimed, fuelledAt: fuelsNow ? now : run.orders.fuelledAt },
+    },
+    meta: { ...state.meta, stats: { ...state.meta.stats, orders: state.meta.stats.orders + 1 } },
+  };
+  const events: GameEvent[] = [{ type: "order_claimed", id, pays: order.pays }];
+  // Its drop queues for the drops' hourly gate (`credit`, after this step); scrap is at once.
+  const paid = pay(out, order.pays, "orders", true);
+  out = paid.state;
+  events.push(...paid.events);
+  if (fuelsNow) events.push({ type: "orders_fuelled", run: run.n });
+  return { ok: true, state: out, events };
+}
+
+function claimDailyQuest(content: Content, state: BaseState, day: number, id: string): Step {
+  const quests = state.meta.quests;
+  // The day moved under the click: the roll already paid what was met (D257).
+  if (day !== quests.day) return { ok: false, refusal: { reason: "stale" } };
+  const quest = questOf(content, id);
+  if (!quest || !quests.ids.includes(id))
+    return { ok: false, refusal: { reason: "unknown", what: id } };
+  if (questClaimed(state, id)) return { ok: false, refusal: { reason: "claimed" } };
+  if (!questMet(state, quest)) {
+    const progress = questProgress(state, quest);
+    return { ok: false, refusal: { reason: "unmet", value: progress.value, goal: progress.goal } };
+  }
+  return { ok: true, ...claimQuest(content, state, quest) };
+}
+
+function buyBoost(content: Content, state: BaseState, id: string, now: number): Step {
+  const boost = boostOf(content, id);
+  if (!boost) return { ok: false, refusal: { reason: "unknown", what: id } };
+  const until = boostUntil(state, boost, now);
+  if (until !== null) return { ok: false, refusal: { reason: "running", until } };
+  const have = state.meta.scrap;
+  if (have < boost.cost) return { ok: false, refusal: { reason: "scrap", need: boost.cost, have } };
+  const ends = now + boost.seconds;
+  let run: RunState = state.run;
+  if (boost.tide) {
+    run = { ...run, tide: { boost: id, from: now, until: ends, last: -1 } };
+  } else {
+    // The buff of its kind (none runs: checked above); other kinds multiply (D148).
+    run = {
+      ...run,
+      buffs: [...run.buffs.filter((buff) => buff.kind !== id), { kind: id, until: ends }],
+    };
+  }
+  return {
+    ok: true,
+    state: spendScrap({ ...state, run }, boost.cost),
+    events: [
+      { type: "scrap_spent", n: boost.cost, what: id },
+      { type: "boost_bought", boost: id, until: ends },
+    ],
+  };
+}
+
+function buyDrop(content: Content, state: BaseState, tier: 2 | 3): Step {
+  const cost = content.scrap.drops[tier];
+  if (cost === undefined) return { ok: false, refusal: { reason: "unknown", what: String(tier) } };
+  const have = state.meta.scrap;
+  if (have < cost) return { ok: false, refusal: { reason: "scrap", need: cost, have } };
+  return {
+    ok: true,
+    state: grantDrops(spendScrap(state, cost), tier, 1),
+    events: [
+      { type: "scrap_spent", n: cost, what: `drop_${tier}` },
+      { type: "drop_earned", tier, count: 1, source: "scrap" },
+    ],
+  };
+}
+
+function claimTide(content: Content, state: BaseState, n: number, k: number, now: number): Step {
+  const run = state.run;
+  if (n !== run.n) return { ok: false, refusal: { reason: "stale_run" } };
+  if (!Number.isInteger(k) || k < 0)
+    return { ok: false, refusal: { reason: "unknown", what: String(k) } };
+  const tide = run.tide;
+  if (!tide) return { ok: false, refusal: { reason: "gone", at: null } };
+  if (k <= tide.last) return { ok: false, refusal: { reason: "claimed" } };
+  const slot = tideSlot(content, state, k);
+  if (!slot || now < slot.at || now > slot.until)
+    return { ok: false, refusal: { reason: "gone", at: slot && now < slot.at ? slot.at : null } };
+  const lump = crateValue(content, state, slot.kind, now);
+  const caught = withCatch(run, slot.kind, lump, now);
+  return {
+    ok: true,
+    state: { ...state, run: { ...caught, tide: { ...tide, last: k } } },
+    events: [{ type: "tide_claimed", kind: slot.kind.id, k, value: lump }],
+  };
+}
+
+/** The run after catching `kind`: its lump, or its buff (the same kind again restarts, D148). */
+function withCatch(run: RunState, kind: FlotsamKind, lump: Amount, now: number): RunState {
+  const effect = kind.effect;
+  const buffs =
+    "buff" in effect
+      ? [
+          ...run.buffs.filter((buff) => buff.kind !== effect.buff),
+          { kind: effect.buff, until: now + effect.seconds },
+        ]
+      : run.buffs;
+  return { ...run, supplies: run.supplies + lump, made: run.made + lump, buffs };
 }
 
 function openHeldDrop(content: Content, state: BaseState, tier: DropTier, pull: number): Step {
@@ -314,20 +473,21 @@ function claimGull(content: Content, state: BaseState, n: number, k: number, now
   if (!slot || now < slot.at || now > slot.until)
     return { ok: false, refusal: { reason: "gone", at: slot && now < slot.at ? slot.at : null } };
   const value = gullValue(content, state, slot.elite, now);
-  return {
-    ok: true,
-    state: {
-      ...state,
-      run: {
-        ...run,
-        supplies: run.supplies + value,
-        made: run.made + value,
-        gulls: { caught: run.gulls.caught + 1, last: k },
-      },
-      meta: { ...state.meta, stats: { ...state.meta.stats, gulls: state.meta.stats.gulls + 1 } },
+  const caught: BaseState = {
+    ...state,
+    run: {
+      ...run,
+      supplies: run.supplies + value,
+      made: run.made + value,
+      gulls: { caught: run.gulls.caught + 1, last: k },
     },
-    events: [{ type: "gull_caught", k, elite: slot.elite, value }],
+    meta: { ...state.meta, stats: { ...state.meta.stats, gulls: state.meta.stats.gulls + 1 } },
   };
+  const events: GameEvent[] = [{ type: "gull_caught", k, elite: slot.elite, value }];
+  // The Magpie pays its scrap too (D248, D259).
+  const magpie = slot.elite ? earnScrap(caught, content.scrap.magpie, "magpie") : null;
+  if (magpie) events.push(...magpie.events);
+  return { ok: true, state: magpie ? magpie.state : caught, events };
 }
 
 function claimFlotsam(content: Content, state: BaseState, n: number, k: number, now: number): Step {
@@ -343,21 +503,10 @@ function claimFlotsam(content: Content, state: BaseState, n: number, k: number, 
   const effect = kind.effect;
   const lump = crateValue(content, state, kind, now);
   const drop = "drop" in effect ? effect.drop : null;
-  const buffs =
-    "buff" in effect
-      ? [
-          // The same kind again restarts its timer; different kinds multiply (D148).
-          ...run.buffs.filter((buff) => buff.kind !== effect.buff),
-          { kind: effect.buff, until: now + effect.seconds },
-        ]
-      : run.buffs;
   const caught: BaseState = {
     ...state,
     run: {
-      ...run,
-      supplies: run.supplies + lump,
-      made: run.made + lump,
-      buffs,
+      ...withCatch(run, kind, lump, now),
       flotsam: { k, at, caught: cursor.caught + 1, last: k },
     },
     meta: { ...state.meta, stats: { ...state.meta.stats, flotsam: state.meta.stats.flotsam + 1 } },

@@ -217,6 +217,16 @@
     starred: { cue: "upgrade" },
     gear_crafted: { cue: "upgrade" },
     gear_equipped: { cue: "buy" },
+    // R3 S2: the Work Orders, the quests and scrap (placeholders on existing cues until S3).
+    order_claimed: { cue: "era_ready", buzz: [15] },
+    orders_fuelled: { cue: "frenzy_end", buzz: [30, 50, 30] },
+    quest_claimed: { cue: "era_ready", buzz: [15] },
+    quest_set_done: { cue: "roster" },
+    quests_rolled: null,
+    scrap_earned: { cue: "collect" },
+    scrap_spent: { cue: "buy" },
+    boost_bought: { cue: "upgrade" },
+    tide_claimed: { cue: "claim_{kind}", buzz: [15] },
     // The welcome card's Collect plays its own coins (`collected`).
     night_shift_collected: null,
     // The server's echo of taps already heard.

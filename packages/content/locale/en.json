@@ -162,7 +162,9 @@
   "buff": {
     "rally": { "name": "Rally" },
     "adrenaline": { "name": "Adrenaline" },
-    "frenzy": { "name": "Frenzy" }
+    "frenzy": { "name": "Frenzy" },
+    "overdrive": { "name": "Overdrive" },
+    "double_time": { "name": "Double Time" }
   },
   "weather": {
     "clear": { "name": "Clear" },
@@ -307,7 +309,11 @@
     "not_owned": "That card is not in your Album yet.",
     "stale": "That already happened.",
     "not_on_discord": "Do that in the game.",
-    "slow_down": "Slow down a moment."
+    "slow_down": "Slow down a moment.",
+    "scrap": "Need {need} scrap: you have {have}.",
+    "unmet": "Not done yet: {value} of {goal}.",
+    "running": "That boost is still running: {time} left.",
+    "unmet_once": "Not done yet."
   },
   "notify": {
     "night_shift_over": "Night Shift over"
@@ -724,6 +730,48 @@
     "rare": { "name": "Rare" },
     "epic": { "name": "Epic" },
     "legendary": { "name": "Legendary" }
+  },
+  "order": {
+    "twig_two_hands": { "name": "Two hands on the Twig lines" },
+    "twig_three_hands": { "name": "Three hands on the Twig lines" },
+    "twig_lines_10": { "name": "Ten of every Twig line" },
+    "twig_line_25": { "name": "25 of one line" },
+    "twig_taps_300": { "name": "Tap 300 times" },
+    "twig_fell_5": { "name": "Fell the oak 5 times" },
+    "twig_catch_1": { "name": "Catch an airdrop" },
+    "twig_made_10k": { "name": "Make 10k supplies" },
+    "wood_era": { "name": "Reach the Timber era" },
+    "wood_three_hands": { "name": "Three hands on the Timber lines" },
+    "wood_lines_25": { "name": "25 of every Timber line" },
+    "wood_loom_50": { "name": "50 Looms" },
+    "wood_taps_1000": { "name": "Tap 1,000 times" },
+    "wood_fell_15": { "name": "Fell the target 15 times" },
+    "wood_catch_3": { "name": "Catch 3 airdrops" },
+    "wood_made_1m": { "name": "Make 1M supplies" },
+    "stone_era": { "name": "Reach the Stone era" },
+    "stone_three_hands": { "name": "Three hands on the Stone lines" },
+    "stone_lines_25": { "name": "25 of every Stone line" },
+    "stone_furnace_50": { "name": "50 Furnaces" },
+    "stone_taps_2000": { "name": "Tap 2,000 times" },
+    "stone_fell_20": { "name": "Fell the target 20 times" },
+    "stone_made_1b": { "name": "Make 1B supplies" },
+    "stone_nine_hands": { "name": "Nine hands on shift" }
+  },
+  "quest": {
+    "tap_500": { "name": "Tap 500 times" },
+    "hire_2": { "name": "Hire 2 hands" },
+    "catch_1": { "name": "Catch an airdrop" },
+    "open_drop": { "name": "Open a Supply Drop" },
+    "fell_20": { "name": "Fell the target 20 times" },
+    "frenzy_1": { "name": "Trip a Frenzy" },
+    "crows_1": { "name": "Catch a crow" },
+    "units_25": { "name": "Buy 25 units" },
+    "workshop_2": { "name": "Buy 2 Workshop levels" }
+  },
+  "boost": {
+    "overdrive": { "name": "Overdrive", "sub": "All lines ×3 for 10 min" },
+    "double_time": { "name": "Double Time", "sub": "Taps ×5 for 2 min" },
+    "lucky_tide": { "name": "Lucky Tide", "sub": "An airdrop every 90 s for 5 min" }
   },
   "drop": {
     "tier_1": "Supply Drop I",

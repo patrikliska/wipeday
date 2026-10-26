@@ -13,10 +13,13 @@ import flotsamFile from "@wipe-day/content/data/flotsam.json5";
 import islandFile from "@wipe-day/content/data/island.json5";
 import linesFile from "@wipe-day/content/data/lines.json5";
 import milestonesFile from "@wipe-day/content/data/milestones.json5";
+import ordersFile from "@wipe-day/content/data/orders.json5";
 import pacingFile from "@wipe-day/content/data/pacing.json5";
 import prestigeFile from "@wipe-day/content/data/prestige.json5";
+import questsFile from "@wipe-day/content/data/quests.json5";
 import researchFile from "@wipe-day/content/data/research.json5";
 import resourcesFile from "@wipe-day/content/data/resources.json5";
+import scrapFile from "@wipe-day/content/data/scrap.json5";
 import targetsFile from "@wipe-day/content/data/targets.json5";
 import toolsFile from "@wipe-day/content/data/tools.json5";
 import upgradesFile from "@wipe-day/content/data/upgrades.json5";
@@ -61,6 +64,9 @@ export const content: Content = parseContent(
     "pacing.json5": pacingFile,
     "achievements.json5": achievementsFile,
     "cards.json5": cardsFile,
+    "orders.json5": ordersFile,
+    "quests.json5": questsFile,
+    "scrap.json5": scrapFile,
   },
   locale,
 );

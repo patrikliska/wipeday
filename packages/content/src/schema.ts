@@ -417,6 +417,8 @@ export const archetypeSchema = z.strictObject({
   catches: z.number().finite().min(0).max(1).default(0),
   nuke: z.enum(["crown", "double", "best"]),
   startDay: z.int().min(1).optional(),
+  /** What it does with scrap (R3 S2): boosts at a session's start, tier-II drops, or hoard. */
+  spend: z.enum(["boosts", "drops", "none"]).default("none"),
 });
 export type Archetype = z.infer<typeof archetypeSchema>;
 
@@ -492,8 +494,19 @@ export const BADGE_STATES = [
   "made_ever",
   "research_maxed",
   "window_hours",
+  // Run-scoped (the Work Orders, D256): this run's taps, fells, catches, crows, Frenzies and
+  // supplies made, and the units of one `line`.
+  "run_taps",
+  "run_felled",
+  "run_flotsam",
+  "run_gulls",
+  "run_frenzies",
+  "run_made",
+  "line_owned",
 ] as const;
 export type BadgeState = (typeof BADGE_STATES)[number];
+/** The states that name their line. */
+export const LINE_STATES: readonly BadgeState[] = ["line_owned"];
 const scalar = z.union([z.string(), z.number(), z.boolean()]);
 /** Parsed into a tagged shape (`kind`) so the domain can switch on it. */
 export const badgeWhenSchema = z.union([
@@ -506,6 +519,8 @@ export const badgeWhenSchema = z.union([
       gte: factor.optional(),
       eq: z.number().finite().optional(),
       era: tier.optional(),
+      /** `line_owned`'s line. */
+      line: id.optional(),
     })
     .transform((when) => ({ kind: "state" as const, ...when })),
   z
@@ -549,6 +564,76 @@ export const achievementsFileSchema = z.strictObject({
   badges: z.array(badgeSchema),
 });
 export type Achievements = z.infer<typeof achievementsFileSchema>;
+
+/** What an order or a quest pays: a Supply Drop of a tier, or scrap (12-feel.md 7.1, 8). */
+export const paySchema = z.union([
+  z.strictObject({ drop: z.union([z.literal(1), z.literal(2), z.literal(3)]) }),
+  z.strictObject({ scrap: z.int().min(1) }),
+]);
+export type Pay = z.infer<typeof paySchema>;
+
+/**
+ * Work Orders (13-adventure.md 3; D255, D256): a run's checklist, rolled per run from pools per
+ * era. `when` is a state predicate (progress must be showable, so no events or buffs).
+ */
+export const orderSchema = z.strictObject({
+  id,
+  era: tier,
+  when: badgeWhenSchema.refine((when) => when.kind === "state", {
+    message: "an order's `when` is a `state` predicate",
+  }),
+  pays: z.array(paySchema).min(1),
+  /** Needs the player at the screen (taps, fells, catches, Frenzy): at most `activeMax` a roll. */
+  active: z.boolean().optional(),
+  /** Reached by any player given time (eras, supplies made): at least `idleMin` a roll (N32). */
+  idle: z.boolean().optional(),
+});
+export type OrderDef = z.infer<typeof orderSchema>;
+export const ordersFileSchema = z.strictObject({
+  perRun: z.int().min(1),
+  /** Claimed orders that fuel the Kettle (crown the Big Red). */
+  fuel: z.int().min(1),
+  /** How many of each era's pool a run gets, in era order. */
+  spread: z.array(z.strictObject({ era: tier, count: z.int().min(1) })).min(1),
+  activeMax: z.int().min(0),
+  idleMin: z.int().min(0),
+  orders: z.array(orderSchema),
+});
+export type OrdersFile = z.infer<typeof ordersFileSchema>;
+
+/** Daily quests (12-feel.md 9.2; D257): lifetime counters that must grow by `n` in the day. */
+export const questSchema = z.strictObject({ id, stat: z.enum(BADGE_STATS), n: z.int().min(1) });
+export type QuestDef = z.infer<typeof questSchema>;
+export const questsFileSchema = z.strictObject({
+  perDay: z.int().min(1),
+  pays: z.strictObject({ each: z.array(paySchema), set: z.array(paySchema) }),
+  quests: z.array(questSchema),
+});
+export type QuestsFile = z.infer<typeof questsFileSchema>;
+
+/** A scrap boost (12-feel.md 8; D258): a timed buff (`effects`) or the Lucky Tide (`tide`). */
+export const boostSchema = z
+  .strictObject({
+    id,
+    cost: z.int().min(1),
+    seconds,
+    effects: z.array(effectSchema).min(1).optional(),
+    tide: z
+      .strictObject({ firstAfterSeconds: z.number().finite().nonnegative(), every: seconds })
+      .optional(),
+  })
+  .refine((boost) => (boost.effects === undefined) !== (boost.tide === undefined), {
+    message: "a boost has either `effects` or `tide`",
+  });
+export type BoostDef = z.infer<typeof boostSchema>;
+export const scrapFileSchema = z.strictObject({
+  /** Supply Drop prices by tier (only the tiers scrap buys). */
+  drops: z.strictObject({ 2: z.int().min(1), 3: z.int().min(1) }),
+  /** What the Magpie pays. */
+  magpie: z.int().min(0),
+  boosts: z.array(boostSchema),
+});
+export type ScrapFile = z.infer<typeof scrapFileSchema>;
 
 const rarity = z.enum(RARITIES);
 const cardEffectSchema = z.strictObject({
@@ -655,6 +740,12 @@ export interface Content {
   buffs: Record<string, Effect[]>;
   /** Survivor and gear cards, sets and Supply Drops (R3). */
   cards: CardsFile;
+  /** Work Orders: the run's checklist (R3 S2, D256). */
+  orders: OrdersFile;
+  /** Daily quests on the island's clock (R3 S2, D257). */
+  quests: QuestsFile;
+  /** Scrap: drop prices, the Magpie's pay and the boosts (R3 S2, D258). */
+  scrap: ScrapFile;
 }
 
 /** Data files the game needs, in load order. */
@@ -674,6 +765,9 @@ export const DATA_FILES = [
   "pacing.json5",
   "achievements.json5",
   "cards.json5",
+  "orders.json5",
+  "quests.json5",
+  "scrap.json5",
 ] as const;
 export type DataFile = (typeof DATA_FILES)[number];
 
@@ -689,7 +783,10 @@ export type EntityKind =
   | "research"
   | "flotsam"
   | "gear"
-  | "set";
+  | "set"
+  | "order"
+  | "quest"
+  | "boost";
 
 /** The named entities: their file, where `Content` keeps them and their locale namespace. */
 export const FILES = [

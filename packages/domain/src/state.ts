@@ -8,12 +8,13 @@
  * integers. Each phase adds the fields its rules use, with defaults, which `normalizeState`
  * fills in for stored bases (R1: eras, the shelf, the roster, the target and the flotsam;
  * R2 Feel: the Workshop's levels, the Frenzy meter, the gulls and the badges; R3 the cards and
- * the Supply Drops).
+ * the Supply Drops, then scrap, the Work Orders, the daily quests and the boosts).
  */
 import type { DropTier, Rarity } from "@wipe-day/content/cards";
 import type { Content } from "@wipe-day/content/schema";
 import type { Tier } from "@wipe-day/content/tiers";
 import type { Amount } from "./amount";
+import { rollOrders } from "./orders";
 import { SEED, seedOf } from "./rng";
 
 /** A timed boost: Rally, a Drowned Drone, Adrenaline, Rush (what each does is content). */
@@ -74,8 +75,8 @@ export interface RunState {
   readyAt: Record<string, number>;
   /** The tap meter, 0..cap, and the second of the last credited tap. */
   hustle: { value: number; at: number };
-  /** The Frenzy meter (12-feel.md 3.1), 0..cap, and the second it was last moved. */
-  frenzy: { value: number; at: number };
+  /** The Frenzy meter (12-feel.md 3.1), 0..cap, the second it was last moved, and trips this run. */
+  frenzy: { value: number; at: number; trips: number };
   /** Gulls caught this run, and the slot of the latest (−1: none), as for flotsam. */
   gulls: { caught: number; last: number };
   /** The tap credit (D134): whole tokens, refilled up to the second `at`. */
@@ -83,6 +84,16 @@ export interface RunState {
   /** Taps credited this run: the crit seed's index. */
   taps: number;
   buffs: Buff[];
+  /**
+   * The run's Work Orders (D256): the ids rolled for it in their fixed order, the ones claimed
+   * in claim order, and the second the set was fuelled (`fuel` claims), or null.
+   */
+  orders: { ids: string[]; claimed: string[]; fuelledAt: number | null };
+  /**
+   * A Lucky Tide (D258), or null: bought as `boost` at `from`, dropping crates until `until`;
+   * `last` is the slot caught latest (−1: none), as for the crows.
+   */
+  tide: { boost: string; from: number; until: number; last: number } | null;
 }
 
 export interface Meta {
@@ -121,6 +132,12 @@ export interface Meta {
     collects: number;
     /** Supply Drops opened. */
     drops: number;
+    /** Scrap ever earned (N19 reads it; `meta.scrap` is what is held). */
+    scrap: number;
+    /** Work Orders claimed. */
+    orders: number;
+    /** Daily quests claimed (by hand or at the roll). */
+    quests: number;
   };
   /** Badges earned (the Logbook's wall), by id: the second each was earned. */
   badges: Record<string, number>;
@@ -134,6 +151,22 @@ export interface Meta {
   cards: { survivors: Record<string, number>; gear: Record<string, string | null> };
   /** Supply Drops: held unopened by tier, cards drawn, pity, shards, and what was paid. */
   drops: Drops;
+  /** Scrap held (D182, D259): a whole number, earned in play, spent on drops and boosts. */
+  scrap: number;
+  /** The day's quests (D257). */
+  quests: Quests;
+}
+
+export interface Quests {
+  /** The island day the set was rolled for (0: none yet; the first command rolls). */
+  day: number;
+  /** The day's quest ids, in the pool's order. */
+  ids: string[];
+  claimed: string[];
+  /** `meta.stats` at the roll: a quest's progress is its counter's growth since. */
+  snapshot: Meta["stats"];
+  /** The day's set bonus paid. */
+  setPaid: boolean;
 }
 
 export interface Drops {
@@ -147,6 +180,8 @@ export interface Drops {
   shards: { crew: Record<string, number>; gear: Record<Rarity, number> };
   /** Count-based drops already paid: tier-I drops for fells and for badges (`credit`). */
   paid: { fells: number; badges: number };
+  /** Drops claims owe (the Work Orders', the quest set's): marks earned, and the ones the gate has paid (D256). */
+  owed: { earned: number; paid: number };
   /** Felling's drops given on island day `day` (at most `fells.perDay`), the last one at `at`. */
   today: { day: number; fells: number; at: number };
 }
@@ -177,7 +212,31 @@ export const KEEP_ON_CROSSING: Record<keyof Meta, boolean> = {
   // Precious things are never at risk (guardrail 8).
   cards: true,
   drops: true,
+  scrap: true,
+  quests: true,
 };
+
+/** Every lifetime counter at zero. */
+export function newStats(): Meta["stats"] {
+  return {
+    taps: 0,
+    hands: 0,
+    felled: 0,
+    flotsam: 0,
+    crits: 0,
+    frenzies: 0,
+    gulls: 0,
+    units: 0,
+    research: 0,
+    upgrades: 0,
+    eras: 0,
+    collects: 0,
+    drops: 0,
+    scrap: 0,
+    orders: 0,
+    quests: 0,
+  };
+}
 
 export function newMeta(): Meta {
   return {
@@ -187,26 +246,19 @@ export function newMeta(): Meta {
     glass: { ever: 0, held: 0, level: 0, spent: 0 },
     nodes: [],
     hints: {},
-    stats: {
-      taps: 0,
-      hands: 0,
-      felled: 0,
-      flotsam: 0,
-      crits: 0,
-      frenzies: 0,
-      gulls: 0,
-      units: 0,
-      research: 0,
-      upgrades: 0,
-      eras: 0,
-      collects: 0,
-      drops: 0,
-    },
+    stats: newStats(),
     badges: {},
     skin: null,
     cards: { survivors: {}, gear: {} },
     drops: newDrops(),
+    scrap: 0,
+    quests: newQuests(),
   };
+}
+
+/** No day rolled yet: the first command draws the island's quests for its day. */
+export function newQuests(): Quests {
+  return { day: 0, ids: [], claimed: [], snapshot: newStats(), setPaid: false };
 }
 
 export function newDrops(): Drops {
@@ -216,6 +268,7 @@ export function newDrops(): Drops {
     pity: { rare: 0, epic: 0, legendary: 0 },
     shards: { crew: {}, gear: { common: 0, rare: 0, epic: 0, legendary: 0 } },
     paid: { fells: 0, badges: 0 },
+    owed: { earned: 0, paid: 0 },
     today: { day: 0, fells: 0, at: 0 },
   };
 }
@@ -246,11 +299,13 @@ export function newRun(content: Content, meta: Meta, baseSeed: number, now: numb
     hands: [],
     readyAt: {},
     hustle: { value: 0, at: now },
-    frenzy: { value: 0, at: now },
+    frenzy: { value: 0, at: now, trips: 0 },
     gulls: { caught: 0, last: -1 },
     bucket: { tokens: content.tap.bucket.burst, at: now },
     taps: 0,
     buffs: [],
+    orders: { ids: rollOrders(content, baseSeed, meta.nukes + 1), claimed: [], fuelledAt: null },
+    tide: null,
   };
 }
 

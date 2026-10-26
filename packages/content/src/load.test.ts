@@ -76,7 +76,13 @@ describe("the shipped data files", () => {
     ]);
     expect(content.eras.at(-1)?.requires).toEqual({ wipeDays: 2 });
     expect(content.targets.map((target) => target.fellTaps)).toEqual([40, 60, 80, 100, 120]);
-    expect(Object.keys(content.buffs).sort()).toEqual(["adrenaline", "frenzy", "rally"]);
+    expect(Object.keys(content.buffs).sort()).toEqual([
+      "adrenaline",
+      "double_time",
+      "frenzy",
+      "overdrive",
+      "rally",
+    ]);
     expect(content.islandClock).toMatchObject({ id: "saltmarsh", utcOffsetMinutes: 60 });
   });
 });

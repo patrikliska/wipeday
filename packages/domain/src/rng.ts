@@ -29,6 +29,12 @@ export const SEED = {
   magnet: 0x3a6e,
   /** Supply Drop card k's rarity and pick (on the base's seed: pity spans runs). */
   drop: 0xd209,
+  /** Run n's Work Orders (on the base's seed and the run number). */
+  order: 0x04de4,
+  /** The island day's quests (on the island's seed: the same for every friend). */
+  quest: 0x9e57,
+  /** A Lucky Tide's crate k. */
+  tide: 0x71de,
 } as const;
 
 export interface Rng {

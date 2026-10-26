@@ -18,6 +18,7 @@ import type { Locale } from "./locale";
 import { deriveResearch, isScored, levelEffect, levelsCost, tierEra } from "./research";
 import {
   achievementsFileSchema,
+  type BadgeWhen,
   type Content,
   cardsFileSchema,
   crewSchema,
@@ -28,12 +29,16 @@ import {
   FILES,
   flotsamFileSchema,
   islandFileSchema,
+  LINE_STATES,
   linesFileSchema,
   milestonesFileSchema,
+  ordersFileSchema,
   pacingSchema,
   prestigeSchema,
+  questsFileSchema,
   researchFileSchema,
   resourceSchema,
+  scrapFileSchema,
   targetsFileSchema,
   toolSchema,
   upgradesFileSchema,
@@ -98,6 +103,21 @@ export function identities(content: Content): Identity[] {
       file: "cards.json5",
       kind: "set" as const,
       id: set.id,
+    })),
+    ...content.orders.orders.map((order) => ({
+      file: "orders.json5",
+      kind: "order" as const,
+      id: order.id,
+    })),
+    ...content.quests.quests.map((quest) => ({
+      file: "quests.json5",
+      kind: "quest" as const,
+      id: quest.id,
+    })),
+    ...content.scrap.boosts.map((boost) => ({
+      file: "scrap.json5",
+      kind: "boost" as const,
+      id: boost.id,
     })),
   ];
 }
@@ -179,6 +199,9 @@ export function parseContent(
   const pacing = whole("pacing.json5", pacingSchema);
   const achievements = whole("achievements.json5", achievementsFileSchema);
   const cards = whole("cards.json5", cardsFileSchema);
+  const orders = whole("orders.json5", ordersFileSchema);
+  const quests = whole("quests.json5", questsFileSchema);
+  const scrap = whole("scrap.json5", scrapFileSchema);
 
   if (
     problems.length > 0 ||
@@ -192,7 +215,10 @@ export function parseContent(
     !islandClock ||
     !pacing ||
     !achievements ||
-    !cards
+    !cards ||
+    !orders ||
+    !quests ||
+    !scrap
   ) {
     throw new ContentError(problems);
   }
@@ -209,6 +235,8 @@ export function parseContent(
     { stat: "speed", op: "more", value: frenzy.speed },
     { stat: "output", op: "more", value: frenzy.mult / frenzy.speed },
   ];
+  // The scrap boosts that are timed buffs (Overdrive, Double Time; D258).
+  for (const boost of scrap.boosts) if (boost.effects) buffs[boost.id] = boost.effects;
   const content: Content = {
     resources,
     crew,
@@ -232,6 +260,9 @@ export function parseContent(
     achievements,
     buffs,
     cards,
+    orders,
+    quests,
+    scrap,
   };
   problems.push(...crossCheck(content, locale));
   if (problems.length > 0) throw new ContentError(problems);
@@ -264,7 +295,10 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
     if (!locale.has(key)) add(file, id, `missing locale key \`${key}\``);
   };
   for (const target of content.targets) need("targets.json5", target.id, `target.${target.id}.cry`);
-  for (const buff of Object.keys(content.buffs)) need("flotsam.json5", buff, `buff.${buff}.name`);
+  for (const buff of Object.keys(content.buffs)) {
+    const boost = content.scrap.boosts.some((row) => row.id === buff);
+    need(boost ? "scrap.json5" : "flotsam.json5", buff, `buff.${buff}.name`);
+  }
   for (const weather of WEATHERS) need("island.json5", weather, `weather.${weather}.name`);
 
   // Grip: Rock is free and owned; each rung after it costs more, in era order.
@@ -284,6 +318,9 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
   problems.push(...checkFlotsam(content));
   problems.push(...checkAchievements(content, locale));
   problems.push(...checkCards(content, locale));
+  problems.push(...checkOrders(content));
+  problems.push(...checkQuests(content));
+  problems.push(...checkScrap(content));
 
   // The tap (N10, N9).
   const { tap } = content;
@@ -423,6 +460,43 @@ function checkFlotsam(content: Content): Problem[] {
   return problems;
 }
 
+/** What is wrong with a `when` condition: fields that do not fit its state, unknown ids. */
+function whenProblems(content: Content, when: BadgeWhen): string[] {
+  const problems: string[] = [];
+  if (when.kind === "state") {
+    const exact = when.state === "supplies_digits";
+    if (exact ? when.eq === undefined || when.gte !== undefined : when.gte === undefined)
+      problems.push(exact ? "`supplies_digits` takes `eq`" : `\`${when.state}\` takes \`gte\``);
+    if (
+      when.era !== undefined &&
+      when.state !== "lines_min_owned" &&
+      when.state !== "hands_working"
+    )
+      problems.push(`\`${when.state}\` takes no \`era\``);
+    const lined = LINE_STATES.includes(when.state);
+    if (lined && when.line === undefined) problems.push(`\`${when.state}\` needs its \`line\``);
+    if (!lined && when.line !== undefined) problems.push(`\`${when.state}\` takes no \`line\``);
+    if (when.line !== undefined && !content.lines.some((line) => line.id === when.line))
+      problems.push(`unknown line \`${when.line}\``);
+  } else if (when.kind === "buffs") {
+    for (const kind of when.buffs)
+      if (!(kind in content.buffs)) problems.push(`unknown buff \`${kind}\``);
+  } else if (when.kind === "event") {
+    const known: Record<string, readonly string[]> = {
+      kind: content.flotsam.kinds.map((kind) => kind.id),
+      era: content.eras.map((era) => era.id),
+      target: content.targets.map((target) => target.id),
+      item: content.research.map((item) => item.id),
+    };
+    for (const [field, value] of Object.entries(when.filters)) {
+      const ids = known[field];
+      if (ids && !ids.includes(String(value)))
+        problems.push(`unknown ${field} \`${String(value)}\``);
+    }
+  }
+  return problems;
+}
+
 /** The badges (D198, D239): ids, names, and conditions that name real things. */
 function checkAchievements(content: Content, locale: Locale): Problem[] {
   const problems: Problem[] = [];
@@ -436,33 +510,7 @@ function checkAchievements(content: Content, locale: Locale): Problem[] {
     chapters.add(badge.chapter);
     for (const key of [`badge.${badge.id}.name`, `badge.${badge.id}.how`])
       if (!locale.has(key)) add(badge.id, `missing locale key \`${key}\``);
-    const when = badge.when;
-    if (when.kind === "state") {
-      const exact = when.state === "supplies_digits";
-      if (exact ? when.eq === undefined || when.gte !== undefined : when.gte === undefined)
-        add(badge.id, exact ? "`supplies_digits` takes `eq`" : `\`${when.state}\` takes \`gte\``);
-      if (
-        when.era !== undefined &&
-        when.state !== "lines_min_owned" &&
-        when.state !== "hands_working"
-      )
-        add(badge.id, `\`${when.state}\` takes no \`era\``);
-    } else if (when.kind === "buffs") {
-      for (const kind of when.buffs)
-        if (!(kind in content.buffs)) add(badge.id, `unknown buff \`${kind}\``);
-    } else if (when.kind === "event") {
-      const known: Record<string, readonly string[]> = {
-        kind: content.flotsam.kinds.map((kind) => kind.id),
-        era: content.eras.map((era) => era.id),
-        target: content.targets.map((target) => target.id),
-        item: content.research.map((item) => item.id),
-      };
-      for (const [field, value] of Object.entries(when.filters)) {
-        const ids = known[field];
-        if (ids && !ids.includes(String(value)))
-          add(badge.id, `unknown ${field} \`${String(value)}\``);
-      }
-    }
+    for (const message of whenProblems(content, badge.when)) add(badge.id, message);
   }
   for (const chapter of chapters)
     if (!locale.has(`logbook.chapter.${chapter}`))
@@ -622,6 +670,73 @@ export const MK_LEVELS = ["mk2", "mk3", "mk4", "mk5", "mk6"] as const;
 function allCardEffects(content: Content): CardEffect[] {
   const { survivors, gear } = content.cards;
   return [...survivors.map((row) => row.trait), ...gear.map((row) => row.effect)];
+}
+
+/** The Work Orders (D256): pools deep enough for every roll, five always reachable (N32). */
+function checkOrders(content: Content): Problem[] {
+  const problems: Problem[] = [];
+  const add = (id: string, message: string) => problems.push({ file: "orders.json5", id, message });
+  const { perRun, fuel, spread, activeMax, idleMin, orders } = content.orders;
+  for (const order of orders) {
+    for (const message of whenProblems(content, order.when)) add(order.id, message);
+    if (order.active && order.idle) add(order.id, "an order is `active` or `idle`, not both");
+  }
+  const total = spread.reduce((sum, row) => sum + row.count, 0);
+  if (total !== perRun) add("", `the spread rolls ${total} orders, perRun is ${perRun}`);
+  if (fuel > perRun) add("", "`fuel` must not exceed `perRun`");
+  // Every roll needs enough non-active orders in each pool once the active budget is spent.
+  const eras = new Set<string>();
+  for (const row of spread) {
+    if (eras.has(row.era)) add("", `era \`${row.era}\` is spread twice`);
+    eras.add(row.era);
+    const pool = orders.filter((order) => order.era === row.era);
+    const calm = pool.filter((order) => !order.active).length;
+    if (pool.length < row.count)
+      add("", `era \`${row.era}\` has ${pool.length} orders, the spread needs ${row.count}`);
+    if (calm < row.count)
+      add("", `era \`${row.era}\` needs ${row.count} orders that need no taps or catches (N32)`);
+  }
+  if (perRun - activeMax < fuel)
+    add("", "fewer than `fuel` orders could need no taps or catches (N32)");
+  // The idle minimum must be fillable from the spread's eras.
+  const idleRoom = spread.reduce(
+    (sum, row) =>
+      sum +
+      Math.min(row.count, orders.filter((order) => order.era === row.era && order.idle).length),
+    0,
+  );
+  if (idleRoom < idleMin)
+    add("", `the pools hold room for ${idleRoom} idle orders a roll, idleMin is ${idleMin}`);
+  if (idleMin < fuel) add("", "`idleMin` under `fuel`: an idler could not fuel the set (N32)");
+  for (const order of orders)
+    if (!eras.has(order.era))
+      add(order.id, `era \`${order.era}\` is not in the spread: never rolled`);
+  return problems;
+}
+
+/** The daily quests (D257): a pool the day's roll can draw from. */
+function checkQuests(content: Content): Problem[] {
+  const { perDay, quests } = content.quests;
+  if (quests.length < perDay)
+    return [
+      { file: "quests.json5", id: "", message: `${quests.length} quests, a day needs ${perDay}` },
+    ];
+  return [];
+}
+
+/** Scrap (D258): the tide's slots fit its length; a boost's buff is its own. */
+function checkScrap(content: Content): Problem[] {
+  const problems: Problem[] = [];
+  const add = (id: string, message: string) => problems.push({ file: "scrap.json5", id, message });
+  for (const boost of content.scrap.boosts) {
+    if (boost.tide && boost.tide.firstAfterSeconds + boost.tide.every > boost.seconds)
+      add(boost.id, "the tide ends before its second crate");
+    if (boost.effects && content.flotsam.kinds.some((kind) => kind.id === boost.id))
+      add(boost.id, "a boost's id must not be a flotsam kind's (one buff a kind)");
+  }
+  if (!(content.scrap.drops[2] < content.scrap.drops[3]))
+    add("", "a Supply Drop III must cost more than a II");
+  return problems;
 }
 
 /** The cards, the sets and the Supply Drops (12-feel.md 7; D248-D250). */

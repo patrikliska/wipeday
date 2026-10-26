@@ -195,9 +195,10 @@ export function fellRoom(content: Content, drops: Drops, now: number): boolean {
 /**
  * Pays the count-based drops earned and not yet received at `now`, one at most (D249, D251):
  * felling's (its schedule's marks; at most `perDay` an island day; marks passed while the gate is
- * shut pay nothing later), else the badges' (one per `badgesPer`; they wait their turn, there are
- * few). From counters, so a batch of fells pays what the same fells one by one would, and it
- * never takes back (a removed badge stops counting toward new drops only).
+ * shut pay nothing later), else the claims' (one mark a claimed drop order or quest set, D256),
+ * else the badges' (one per `badgesPer`); the last two wait their turn, there are few. From counters, so a
+ * batch of fells pays what the same fells one by one would, and it never takes back (a removed
+ * badge stops counting toward new drops only).
  */
 export function credit(
   content: Content,
@@ -211,14 +212,17 @@ export function credit(
     0,
     Math.floor(badgeCount(content, state) / content.cards.drops.badgesPer) - paid.badges,
   );
-  if (fellsDue === 0 && badgesDue === 0) return { state, events: [] };
+  const owedDue = Math.max(0, drops.owed.earned - drops.owed.paid);
+  if (fellsDue === 0 && badgesDue === 0 && owedDue === 0) return { state, events: [] };
   const open = dropGateOpen(content, drops, now);
   const source =
     open && fellsDue > 0 && fellRoom(content, drops, now)
       ? ("fells" as const)
-      : open && badgesDue > 0
-        ? ("badges" as const)
-        : null;
+      : open && owedDue > 0
+        ? ("claims" as const)
+        : open && badgesDue > 0
+          ? ("badges" as const)
+          : null;
   // Felling's marks are spent either way; the badges' wait.
   if (source === null && fellsDue === 0) return { state, events: [] };
   const day = islandDay(content, now);
@@ -229,6 +233,7 @@ export function credit(
     drops: {
       ...next.meta.drops,
       paid: { fells: paid.fells + fellsDue, badges: paid.badges + (source === "badges" ? 1 : 0) },
+      owed: { ...drops.owed, paid: drops.owed.paid + (source === "claims" ? 1 : 0) },
       today: source ? { day, fells: given + (source === "fells" ? 1 : 0), at: now } : drops.today,
     },
   };

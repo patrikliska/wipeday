@@ -3,7 +3,7 @@
  * missing: CLAUDE.md 6.3 rule 5). Every string comes from the locale.
  */
 import type { Gate, Refusal } from "@wipe-day/domain/commands";
-import { fmt, lineName, t, tierName, upgradeName } from "./world";
+import { duration, fmt, lineName, t, tierName, upgradeName } from "./world";
 
 function gateMessage(gate: Gate): string {
   switch (gate.kind) {
@@ -24,7 +24,8 @@ function gateMessage(gate: Gate): string {
   }
 }
 
-export function refusalMessage(refusal: Refusal): string {
+/** `now`: the game clock's second, for a boost's time left. */
+export function refusalMessage(refusal: Refusal, now = 0): string {
   switch (refusal.reason) {
     case "unknown":
       return t("refusal.unknown");
@@ -61,5 +62,16 @@ export function refusalMessage(refusal: Refusal): string {
       return t("refusal.not_owned");
     case "stale":
       return t("refusal.stale");
+    case "scrap":
+      return t("refusal.scrap", { need: refusal.need, have: refusal.have });
+    case "unmet":
+      return refusal.goal === null
+        ? t("refusal.unmet_once")
+        : t("refusal.unmet", {
+            value: fmt(refusal.value ?? 0, "held"),
+            goal: fmt(refusal.goal, "cost"),
+          });
+    case "running":
+      return t("refusal.running", { time: duration(Math.max(0, refusal.until - now)) });
   }
 }

@@ -36,21 +36,41 @@ function randomCommand(random: Rng, state: BaseState, t: number): Command {
     return { type: "buy_upgrade", upgrade };
   }
   if (roll < 0.84) return { type: "buy_era", era: TIERS[random.int(1, 3)] ?? "wood" };
-  if (roll < 0.94) {
+  if (roll < 0.9) {
     const cursor = flotsamAt(content, state, t);
     return { type: "claim_flotsam", run: state.run.n, k: cursor.k };
   }
+  // R3 S2: scrap, boosts, the orders and the quests.
+  if (roll < 0.92)
+    return {
+      type: "buy_boost",
+      boost: ["overdrive", "double_time", "lucky_tide"][random.int(0, 2)] ?? "overdrive",
+    };
+  if (roll < 0.94) return { type: "buy_drop", tier: random.next() < 0.5 ? 2 : 3 };
+  if (roll < 0.96)
+    return {
+      type: "claim_order",
+      run: state.run.n,
+      id: state.run.orders.ids[random.int(0, 7)] ?? "",
+    };
+  if (roll < 0.98)
+    return {
+      type: "claim_quest",
+      day: state.meta.quests.day,
+      id: state.meta.quests.ids[random.int(0, 2)] ?? "",
+    };
   return random.next() < 0.5 ? { type: "ping" } : { type: "collect" };
 }
 
 describe("client prediction", () => {
-  it("equals the server over 1,000 seeded sequences of every R1 command", () => {
+  it("equals the server over 1,000 seeded sequences of every command", () => {
     let worst = 0;
     for (let seed = 1; seed <= 1_000; seed++) {
       const random = rng(seed * 4099);
       let server = stored({
         ...newBase(content, T0, seed),
         run: { ...newBase(content, T0, seed).run, supplies: random.next() * 1e7 },
+        meta: { ...newBase(content, T0, seed).meta, scrap: random.int(0, 60) },
       });
       // The client's last confirmed state, and the commands it queued since.
       let confirmed = server;

@@ -219,7 +219,9 @@ export function applyTaps(
   }
   const hustle = { value: Math.min(parts.hustleCap, h0 + parts.gain * credited), at: to };
   // While a Frenzy runs the meter waits empty for its end; otherwise it holds from `to`.
-  const frenzyState = until > to ? { value: 0, at: until } : { value: meter, at: to };
+  const tripped = run.frenzy.trips + trips;
+  const frenzyState =
+    until > to ? { value: 0, at: until, trips: tripped } : { value: meter, at: to, trips: tripped };
   const buffs = trips > 0 ? [...calm.run.buffs, { kind: "frenzy", until }] : run.buffs;
 
   // 5. Unmanned lines: start cycles on idle ones; pay the ones that already ended.
