@@ -124,7 +124,7 @@ describe("the roll (D256)", () => {
 });
 
 describe("claim_order", () => {
-  it("pays scrap at once and a drop through the gate, once, and refuses what is not met", () => {
+  it("pays its era's shards at once, once, and refuses what is not met (D266)", () => {
     const state = fresh(3);
     const [first] = ordersOf(content, state);
     if (!first) throw new Error("no orders");
@@ -140,22 +140,29 @@ describe("claim_order", () => {
     expect(next.run.orders.claimed).toEqual([first.id]);
     expect(next.meta.stats.orders).toBe(1);
     expect(claimed.events.map((event) => event.type)).toContain("order_claimed");
+    expect(first.pays).toHaveLength(1);
     for (const pay of first.pays) {
       if ("scrap" in pay) {
         expect(next.meta.scrap).toBe(pay.scrap);
         expect(next.meta.stats.scrap).toBe(pay.scrap);
+      } else if ("shards" in pay) {
+        expect(next.meta.drops.shards.gear[pay.shards.rarity]).toBe(pay.shards.n);
+        expect(claimed.events).toContainEqual({
+          type: "shards_earned",
+          rarity: pay.shards.rarity,
+          n: pay.shards.n,
+          source: "orders",
+        });
+        // Nothing queued, no drop: the set's fifth claim pays that.
+        expect(next.meta.drops.owed).toEqual({ earned: 0, paid: 0 });
+        expect(next.meta.drops.held[1]).toBe(0);
       } else {
         // The mark is earned; the gate pays it on this very command (nothing paid yet today).
         expect(next.meta.drops.owed).toEqual({ earned: 1, paid: 1 });
         expect(next.meta.drops.held[1]).toBe(1);
-        expect(claimed.events).toContainEqual({
-          type: "drop_earned",
-          tier: 1,
-          count: 1,
-          source: "claims",
-        });
       }
     }
+    expect(next.meta.scrap).toBe(0);
     // A second click: nothing happens.
     const again = run(next, { type: "claim_order", run: 1, id: first.id });
     expect(again.ok).toBe(false);
@@ -169,27 +176,55 @@ describe("claim_order", () => {
     if (!unknown.ok) expect(unknown.refusal.reason).toBe("unknown");
   });
 
-  it("queues a second drop behind the hourly gate and pays it an hour later", () => {
+  it("pays every order's shards by era, and the set's drop through the gate on the fifth claim", () => {
     let state = fresh(5);
-    const dropOrders = ordersOf(content, state).filter((order) =>
-      order.pays.some((pay) => "drop" in pay),
-    );
-    const [a, b] = dropOrders;
-    if (!a || !b) throw new Error("need two drop orders");
-    state = ok(run(meeting(state, a.id), { type: "claim_order", run: 1, id: a.id }));
+    const orders = ordersOf(content, state);
+    const rarityOf = { twig: "common", wood: "rare", stone: "epic" } as const;
+    const want = { common: 0, rare: 0, epic: 0, legendary: 0 };
+    for (const [i, order] of orders.entries()) {
+      for (const pay of order.pays) {
+        expect("shards" in pay && pay.shards.rarity).toBe(
+          rarityOf[order.era as keyof typeof rarityOf],
+        );
+        if ("shards" in pay) want[pay.shards.rarity] += pay.shards.n;
+      }
+      const result = run(
+        meeting(state, order.id),
+        { type: "claim_order", run: 1, id: order.id },
+        T0 + i,
+      );
+      state = ok(result);
+      const fifth = i + 1 === content.orders.fuel;
+      // The set's mark: the gate pays the first at once (nothing paid today), later ones wait.
+      expect(state.meta.drops.owed).toEqual(
+        fifth || i + 1 > content.orders.fuel ? { earned: 1, paid: 1 } : { earned: 0, paid: 0 },
+      );
+      if (fifth) {
+        expect(result.events).toContainEqual({
+          type: "orders_fuelled",
+          run: 1,
+          pays: content.orders.set,
+        });
+        expect(result.events).toContainEqual({
+          type: "drop_earned",
+          tier: 1,
+          count: 1,
+          source: "claims",
+        });
+      }
+    }
+    expect(state.meta.drops.shards.gear).toEqual(want);
     expect(state.meta.drops.held[1]).toBe(1);
-    state = ok(run(meeting(state, b.id), { type: "claim_order", run: 1, id: b.id }, T0 + 60));
-    expect(state.meta.drops.owed).toEqual({ earned: 2, paid: 1 });
-    expect(state.meta.drops.held[1]).toBe(1);
-    const later = run(state, { type: "ping" }, T0 + 3601);
+    // A second set's drop (the next run's) waits for the hour.
+    const second = {
+      ...state,
+      meta: { ...state.meta, drops: { ...state.meta.drops, owed: { earned: 2, paid: 1 } } },
+    };
+    const soon = run(second, { type: "ping" }, T0 + 60);
+    expect(soon.state.meta.drops.held[1]).toBe(1);
+    const later = run(second, { type: "ping" }, T0 + 3700);
     expect(later.state.meta.drops.owed).toEqual({ earned: 2, paid: 2 });
     expect(later.state.meta.drops.held[1]).toBe(2);
-    expect(later.events).toContainEqual({
-      type: "drop_earned",
-      tier: 1,
-      count: 1,
-      source: "claims",
-    });
   });
 
   it("fuels the set at the fifth claim, exactly once, and never locks anything", () => {

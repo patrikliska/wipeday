@@ -39,7 +39,7 @@ function table(life: Life): string {
   const lines = [
     `${life.name}: first hand ${life.firstHandSeconds === null ? "-" : `${life.firstHandSeconds}s`}, ` +
       `largest ${sci(life.largest)}, ${life.runs.length} run(s), ${life.steps} commands`,
-    "  day  run   supplies       made   lifetime  owned hands  glass nukes      taps drops cards scrap orders quests",
+    "  day  run   supplies       made   lifetime  owned hands  glass nukes      taps drops cards  base  owed stars shards craft scrap orders quests",
   ];
   for (const row of life.days.filter((row) => SHOWN.has(row.day) || row === life.days.at(-1))) {
     lines.push(
@@ -47,6 +47,8 @@ function table(life: Life): string {
         `${sci(row.made).padStart(10)} ${sci(row.lifetime).padStart(10)} ${String(row.owned).padStart(6)} ` +
         `${String(row.hands).padStart(5)} ${String(row.glassEver).padStart(6)} ${String(row.nukes).padStart(5)} ` +
         `${String(row.taps).padStart(9)} ${String(row.drops).padStart(5)} ${String(row.cards).padStart(5)} ` +
+        `${String(row.baseSet).padStart(5)} ${String(row.owed).padStart(5)} ${String(row.stars).padStart(5)} ` +
+        `${String(row.shards).padStart(6)} ${String(row.crafted).padStart(5)} ` +
         `${String(row.scrap).padStart(5)} ${String(row.orders).padStart(6)} ${String(row.quests).padStart(6)}`,
     );
   }
@@ -124,7 +126,7 @@ if (args[0] === "window") {
   for (const life of simulateAll(content, days)) {
     console.log(`${table(life)}\n`);
     const csv = [
-      "day,run,supplies,made,lifetime,owned,hands,glassEver,nukes,taps,drops,cards,scrap,orders,quests",
+      "day,run,supplies,made,lifetime,owned,hands,glassEver,nukes,taps,drops,cards,scrap,orders,quests,baseSet,owed,stars,shards,crafted",
       ...life.days.map((row) =>
         [
           row.day,
@@ -142,6 +144,11 @@ if (args[0] === "window") {
           row.scrap,
           row.orders,
           row.quests,
+          row.baseSet,
+          row.owed,
+          row.stars,
+          row.shards,
+          row.crafted,
         ].join(","),
       ),
     ].join("\n");

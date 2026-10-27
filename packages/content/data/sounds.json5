@@ -183,6 +183,21 @@
       perSecond: 6,
     },
     card_common: { voice: "ui_toggle", files: ["kenney_interface/select_001"], gain: 0.3 },
+    // R3 S4 (D267): a Supply Drop lands by the house (a wooden thud), a day's quest set or a
+    // run's order set completes (a warm confirmation), a boost ignites, shards clink.
+    drop_land: {
+      voice: "milestone",
+      files: ["kenney_impact/impactWood_heavy_000", "kenney_impact/impactWood_heavy_001", "kenney_impact/impactWood_heavy_002"],
+      gain: 0.55,
+    },
+    set_done: { voice: "badge", files: ["kenney_interface/confirmation_004"], gain: 0.6 },
+    boost: { voice: "rally", files: ["kenney_interface/maximize_008"], gain: 0.6 },
+    shards: {
+      voice: "ui_toggle",
+      files: ["kenney_impact/impactGlass_light_000", "kenney_impact/impactGlass_light_001"],
+      gain: 0.35,
+      perSecond: 4,
+    },
     card_rare: { voice: "milestone", files: ["kenney_interface/confirmation_003"], gain: 0.55 },
     card_epic: { voice: "badge", files: ["kenney_interface/maximize_004"], gain: 0.65 },
     card_legendary: { voice: "era", files: ["kenney_impact/impactBell_heavy_002"], gain: 0.75 },
@@ -232,24 +247,26 @@
     flotsam_claimed: { cue: "claim_{kind}", buzz: [15] },
     frenzy_tripped: { cue: "frenzy", buzz: [20, 40, 20, 40, 60] },
     frenzy_ended: { cue: "frenzy_end" },
+    boost_ended: { cue: "frenzy_end" },
     gull_caught: { cue: "gull_caught", buzz: [15] },
     badge_unlocked: { cue: "badge" },
-    // R3's cards: placeholders on existing cues until the reveal's creak, burst and flips (S3).
-    drop_earned: { cue: "roster" },
+    // R3's cards (S3, S4): the crate lands, creaks open, the cards flip and sting.
+    drop_earned: { cue: "drop_land", buzz: [20] },
     drop_opened: { cue: "drop_creak", buzz: [20] },
     card_flipped: { cue: "card_{rarity}" },
     starred: { cue: "star", buzz: [15, 30, 15] },
     gear_crafted: { cue: "craft" },
     gear_equipped: { cue: "equip" },
-    // R3 S2: the Work Orders, the quests and scrap (placeholders on existing cues until S3).
+    // R3 S2, S4: the Work Orders, the quests and scrap (D267: own cues for a set, a boost and shards).
     order_claimed: { cue: "claim", buzz: [15] },
-    orders_fuelled: { cue: "frenzy_end", buzz: [30, 50, 30] },
+    orders_fuelled: { cue: "set_done", buzz: [30, 50, 30] },
     quest_claimed: { cue: "claim", buzz: [15] },
-    quest_set_done: { cue: "roster" },
+    quest_set_done: { cue: "set_done", buzz: [30, 50, 30] },
     quests_rolled: null,
     scrap_earned: { cue: "collect" },
+    shards_earned: { cue: "shards" },
     scrap_spent: { cue: "buy" },
-    boost_bought: { cue: "upgrade" },
+    boost_bought: { cue: "boost", buzz: [20, 30, 40] },
     tide_claimed: { cue: "claim_{kind}", buzz: [15] },
     // The welcome card's Collect plays its own coins (`collected`).
     night_shift_collected: null,

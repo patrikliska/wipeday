@@ -37,9 +37,9 @@ export function spendScrap(state: BaseState, n: number): BaseState {
 }
 
 /**
- * Pays a list of rewards from `source`: scrap at once; a drop at once, or, when `gated`, as a
- * mark the drops' hourly gate pays (`credit`, D251: the orders' and the quest set's drops queue
- * like the badges', so the Album's pace stays bounded; the gate pays the first at once).
+ * Pays a list of rewards from `source`: scrap and gear shards at once; a drop at once, or, when
+ * `gated`, as a mark the drops' hourly gate pays (`credit`, D251, D266: the orders' set drops
+ * queue like the badges', so the Album's pace stays bounded; the gate pays the first at once).
  */
 export function pay(
   state: BaseState,
@@ -54,6 +54,15 @@ export function pay(
       const earned = earnScrap(out, row.scrap, source);
       out = earned.state;
       events.push(...earned.events);
+    } else if ("shards" in row) {
+      const { rarity, n } = row.shards;
+      const drops = out.meta.drops;
+      const gear = { ...drops.shards.gear, [rarity]: drops.shards.gear[rarity] + n };
+      out = {
+        ...out,
+        meta: { ...out.meta, drops: { ...drops, shards: { ...drops.shards, gear } } },
+      };
+      events.push({ type: "shards_earned", rarity, n, source });
     } else if (gated) {
       const drops = out.meta.drops;
       out = {

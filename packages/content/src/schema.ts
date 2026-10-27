@@ -419,6 +419,8 @@ export const archetypeSchema = z.strictObject({
   startDay: z.int().min(1).optional(),
   /** What it does with scrap (R3 S2): boosts at a session's start, tier-II drops, or hoard. */
   spend: z.enum(["boosts", "drops", "none"]).default("none"),
+  /** The quick profile plays it this many days at most (its later days are `--full`'s, D236). */
+  quickDays: z.int().min(1).optional(),
 });
 export type Archetype = z.infer<typeof archetypeSchema>;
 
@@ -565,10 +567,14 @@ export const achievementsFileSchema = z.strictObject({
 });
 export type Achievements = z.infer<typeof achievementsFileSchema>;
 
-/** What an order or a quest pays: a Supply Drop of a tier, or scrap (12-feel.md 7.1, 8). */
+/**
+ * What an order or a quest pays: a Supply Drop of a tier, scrap, or gear shards of a rarity
+ * (12-feel.md 7.1, 8; D266: the orders pay shards at once, their set a drop).
+ */
 export const paySchema = z.union([
   z.strictObject({ drop: z.union([z.literal(1), z.literal(2), z.literal(3)]) }),
   z.strictObject({ scrap: z.int().min(1) }),
+  z.strictObject({ shards: z.strictObject({ rarity: z.enum(RARITIES), n: z.int().min(1) }) }),
 ]);
 export type Pay = z.infer<typeof paySchema>;
 
@@ -593,6 +599,8 @@ export const ordersFileSchema = z.strictObject({
   perRun: z.int().min(1),
   /** Claimed orders that fuel the Kettle (crown the Big Red). */
   fuel: z.int().min(1),
+  /** What the `fuel`-th claim pays on top (D266): a drop, through the gate. */
+  set: z.array(paySchema),
   /** How many of each era's pool a run gets, in era order. */
   spread: z.array(z.strictObject({ era: tier, count: z.int().min(1) })).min(1),
   activeMax: z.int().min(0),

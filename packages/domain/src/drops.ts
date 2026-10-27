@@ -182,8 +182,20 @@ export function grantDrops(state: BaseState, tier: DropTier, count: number): Bas
 
 /** Whether a count-based drop (felling's or the badges') may come at `now`: one an hour. */
 export function dropGateOpen(content: Content, drops: Drops, now: number): boolean {
+  return now >= nextDropAt(content, drops);
+}
+
+/** When the gate opens next (0 when it is open): the last gated drop's time plus the gap. */
+export function nextDropAt(content: Content, drops: Drops): number {
   const { gapMinutes } = content.cards.drops.fells;
-  return drops.today.at === 0 || now >= drops.today.at + gapMinutes * 60;
+  return drops.today.at === 0 ? 0 : drops.today.at + gapMinutes * 60;
+}
+
+/** Drops promised and not yet paid by the gate (the order sets' marks, the badges'; D266). */
+export function dropsOnWay(content: Content, state: BaseState): number {
+  const drops = state.meta.drops;
+  const badges = Math.floor(badgeCount(content, state) / content.cards.drops.badgesPer);
+  return Math.max(0, drops.owed.earned - drops.owed.paid) + Math.max(0, badges - drops.paid.badges);
 }
 
 /** Whether felling is still under its cap for the island day of `now`. */
@@ -193,10 +205,11 @@ export function fellRoom(content: Content, drops: Drops, now: number): boolean {
 }
 
 /**
- * Pays the count-based drops earned and not yet received at `now`, one at most (D249, D251):
- * felling's (its schedule's marks; at most `perDay` an island day; marks passed while the gate is
- * shut pay nothing later), else the claims' (one mark a claimed drop order or quest set, D256),
- * else the badges' (one per `badgesPer`); the last two wait their turn, there are few. From counters, so a
+ * Pays the count-based drops earned and not yet received at `now`, one at most (D249, D251,
+ * D266): the claims' queue first (one mark per quest set and per fuelled order set; the orders
+ * themselves pay shards), else felling's (its schedule's marks; at most `perDay` an island day;
+ * marks passed while the gate is shut pay nothing later), else the badges' (one per
+ * `badgesPer`); the queue and the badges wait their turn, there are few. From counters, so a
  * batch of fells pays what the same fells one by one would, and it never takes back (a removed
  * badge stops counting toward new drops only).
  */
@@ -214,12 +227,14 @@ export function credit(
   );
   const owedDue = Math.max(0, drops.owed.earned - drops.owed.paid);
   if (fellsDue === 0 && badgesDue === 0 && owedDue === 0) return { state, events: [] };
+  // The queue first (D266): its marks are few by construction (one per quest day and per
+  // fuelled set) and must arrive; felling's marks are elastic, they lapse when the hour is taken.
   const open = dropGateOpen(content, drops, now);
   const source =
-    open && fellsDue > 0 && fellRoom(content, drops, now)
-      ? ("fells" as const)
-      : open && owedDue > 0
-        ? ("claims" as const)
+    open && owedDue > 0
+      ? ("claims" as const)
+      : open && fellsDue > 0 && fellRoom(content, drops, now)
+        ? ("fells" as const)
         : open && badgesDue > 0
           ? ("badges" as const)
           : null;

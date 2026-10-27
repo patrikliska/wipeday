@@ -29,6 +29,7 @@ import { choices, crown, lasting, type Player } from "@wipe-day/domain/advisor";
 import { assertFiniteState } from "@wipe-day/domain/amount";
 import { tideAt } from "@wipe-day/domain/boosts";
 import { applyCommand, type Command } from "@wipe-day/domain/commands";
+import { dropsOnWay } from "@wipe-day/domain/drops";
 import { fullRate, rates, unitRate } from "@wipe-day/domain/effects";
 import type { GameEvent } from "@wipe-day/domain/events";
 import { claimUntil, flotsamAt } from "@wipe-day/domain/flotsam";
@@ -93,6 +94,13 @@ export interface DayRow {
   scrap: number;
   orders: number;
   quests: number;
+  /** The Album's pace (R3 S4, N33): Common and Rare cards owned (the base set), drops promised
+   * and not yet paid by the gate, stars above 1, gear shards held, gear crafted. */
+  baseSet: number;
+  owed: number;
+  stars: number;
+  shards: number;
+  crafted: number;
 }
 
 export interface RunRow {
@@ -259,6 +267,7 @@ export function simulate(
 
   /** A hire or an earned drop since the cards were last tended. */
   let tending = false;
+  let crafted = 0;
 
   /** The Work Orders and quests met and not yet claimed (R3 S2): a player taps Claim. */
   const claims = (now: number) => {
@@ -294,6 +303,7 @@ export function simulate(
     if (result.ok) {
       record(result.events, now);
       if (PURCHASES.has(command.type)) bought = true;
+      if (command.type === "craft_gear") crafted += 1;
     }
     if (
       command.type === "hire_hand" &&
@@ -367,7 +377,10 @@ export function simulate(
         };
         return any;
       }
-      step(pick.choice.command, now);
+      // A Workshop level: as many as the supplies reach, the tile's Max (D229, D235); one level
+      // at a time made the late tiers' 500 levels a run the quick profile's cost (R3 S4).
+      const command = pick.choice.command;
+      step(command.type === "buy_research" ? { ...command, count: "max" } : command, now);
     }
     return true;
   };
@@ -536,6 +549,11 @@ export function simulate(
       scrap: state.meta.stats.scrap,
       orders: state.meta.stats.orders,
       quests: state.meta.stats.quests,
+      baseSet: baseSetOwned(content, state),
+      owed: dropsOnWay(content, state),
+      stars: Object.values(state.meta.cards.survivors).reduce((sum, n) => sum + n - 1, 0),
+      shards: Object.values(state.meta.drops.shards.gear).reduce((sum, n) => sum + n, 0),
+      crafted,
     });
     if (stop && day >= stop.day && life.runs.length > 0 && state.run.n > stop.runs) break;
   }
@@ -583,6 +601,8 @@ const SHORT_CHECKS: ReadonlySet<string> = new Set([
   "casualFirstNuke",
   "scrap",
   "casualDropsPerDay",
+  "casualAlbumBase",
+  "casualAlbumFull",
   "ordersReachable",
 ]);
 /** N19's window: a 7-day average from day 2 (12-feel.md 11), so everyone plays to day 8. */
@@ -619,7 +639,10 @@ export function earlyStops(
         : [num(assertion.days ?? assertion.day, 1)];
       day = Math.max(day, ...days);
     }
-    stops[name] = { day, runs: EARLY_RUNS };
+    stops[name] = {
+      day: Math.min(day, archetype.quickDays ?? Number.POSITIVE_INFINITY),
+      runs: EARLY_RUNS,
+    };
   }
   return stops;
 }
@@ -770,6 +793,26 @@ export const dayClock = (seconds: number): string => {
 
 /** The lives of an archetype or scenario by name (one per seed). */
 const named = (lives: Life[], name: string): Life[] => lives.filter((life) => life.name === name);
+
+/** Common and Rare cards owned: the Album's base set (N33, D266). */
+function baseSetOwned(content: Content, state: BaseState): number {
+  const base = (rarity: string) => rarity === "common" || rarity === "rare";
+  const cards = state.meta.cards;
+  return (
+    content.cards.survivors.filter(
+      (row) => base(row.rarity) && cards.survivors[row.id] !== undefined,
+    ).length + content.cards.gear.filter((row) => base(row.rarity) && row.id in cards.gear).length
+  );
+}
+
+/** How many cards the base set and the whole Album hold. */
+function albumSizes(content: Content): { base: number; all: number } {
+  const rows = [...content.cards.survivors, ...content.cards.gear];
+  return {
+    base: rows.filter((row) => row.rarity === "common" || row.rarity === "rare").length,
+    all: rows.length,
+  };
+}
 
 /** Values per name, in order of first appearance: "47s", or "45:39-51:24" over several seeds. */
 function perName(
@@ -973,13 +1016,17 @@ export const CHECKS: Record<string, Check> = {
       detail: `${perName(means, (mean) => mean.toFixed(2))} a day; ${casualName} by day ${byDay} ${range(totals, (n) => String(n))}`,
     };
   },
-  // N30: the casual opens at least `min` drops every day of days 1-`days`.
+  // N30: the casual opens at least `min` drops every day of days 1-`days`, `casualMean` a day
+  // over them (D248: 2-4), and nobody averages more than `anyMeanMax` (D266).
   casualDropsPerDay: (assertion, { lives }) => {
     const days = num(assertion.days, 30);
     const min = num(assertion.min, 1);
+    const [low, high] = pair(assertion.casualMean, [0, Number.POSITIVE_INFINITY]);
+    const anyMax = num(assertion.anyMeanMax, Number.POSITIVE_INFINITY);
+    const casualName = str(assertion.archetype, "casual");
     let worst = Number.POSITIVE_INFINITY;
     let where = "";
-    for (const life of named(lives, str(assertion.archetype, "casual"))) {
+    for (const life of named(lives, casualName)) {
       let before = 0;
       for (const row of life.days) {
         if (row.day > days) break;
@@ -991,7 +1038,51 @@ export const CHECKS: Record<string, Check> = {
         }
       }
     }
-    return { ok: worst >= min, detail: `fewest in a day ${worst} (${where})` };
+    // A mean over at least a week (a life the quick profile cuts shorter is `--full`'s).
+    const means = lives
+      .filter((life) => life.days.length >= 7)
+      .map((life) => {
+        const first = life.days[0]?.day ?? 1;
+        const last = life.days.find((row) => row.day === first + days - 1) ?? life.days.at(-1);
+        return [life.name, (last?.drops ?? 0) / ((last?.day ?? first) - first + 1)] as const;
+      });
+    const casual = means.filter(([name]) => name === casualName).map(([, mean]) => mean);
+    const ok =
+      worst >= min &&
+      casual.every((mean) => mean >= low && mean <= high) &&
+      means.every(([, mean]) => mean <= anyMax);
+    return {
+      ok,
+      detail: `fewest in a day ${worst} (${where}); ${perName(means, (mean) => mean.toFixed(2))} a day`,
+    };
+  },
+  // N33 (D266): the casual owns the Album's base set (every Common and Rare) by day `days`, and
+  // not before day `notBefore` (a flood would empty the goal).
+  casualAlbumBase: (assertion, { content, lives }) => {
+    const days = num(assertion.days, 14);
+    const notBefore = num(assertion.notBefore, 1);
+    const want = albumSizes(content).base;
+    const whens = named(lives, str(assertion.archetype, "casual")).map(
+      (life) => life.days.find((row) => row.baseSet >= want)?.day,
+    );
+    const ok = whens.every((day) => day !== undefined && day <= days && day >= notBefore);
+    return {
+      ok,
+      detail: `base set (${want} cards) complete on day ${range(whens, (n) => String(n))} (want days ${notBefore}-${days})`,
+    };
+  },
+  // N33: the whole Album (the Legendaries by pity) is not complete before day `notBefore`.
+  casualAlbumFull: (assertion, { content, lives }) => {
+    const notBefore = num(assertion.notBefore, 45);
+    const want = albumSizes(content).all;
+    const whens = named(lives, str(assertion.archetype, "casual")).map(
+      (life) => life.days.find((row) => row.cards >= want)?.day,
+    );
+    const ok = whens.every((day) => day === undefined || day >= notBefore);
+    return {
+      ok,
+      detail: `Album (${want} cards) complete on day ${range(whens, (n) => String(n))} (want not before ${notBefore})`,
+    };
   },
   // N32 (D255): five Work Orders are reachable in every run 1, for every archetype.
   ordersReachable: (assertion, { content, lives }) => {

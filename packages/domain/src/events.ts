@@ -71,8 +71,8 @@ export type GameEvent =
     }
   /** A Work Order claimed (D256): what it pays (a drop pays through the gate, later). */
   | { type: "order_claimed"; id: string; pays: Pay[] }
-  /** The run's set is fuelled: five orders claimed; the Kettle lights (R4 crowns the Big Red). */
-  | { type: "orders_fuelled"; run: number }
+  /** The run's set is fuelled: five orders claimed, paying `pays`; the Kettle lights (R4 crowns the Big Red). */
+  | { type: "orders_fuelled"; run: number; pays: Pay[] }
   /** A daily quest claimed, by hand or at the next day's roll (D257). */
   | { type: "quest_claimed"; id: string; pays: Pay[] }
   /** The day's three quests all claimed: the set's bonus. */
@@ -81,6 +81,8 @@ export type GameEvent =
   | { type: "quests_rolled"; day: number }
   /** Scrap earned: `n` from `source` (the plate's number pop). */
   | { type: "scrap_earned"; n: number; source: ScrapSource }
+  /** Gear shards of `rarity` earned: `n` from `source` (a claimed Work Order, D266). */
+  | { type: "shards_earned"; rarity: Rarity; n: number; source: ScrapSource }
   /** Scrap spent: `n` on `what` (a boost id or `drop_2`, `drop_3`). */
   | { type: "scrap_spent"; n: number; what: string }
   /** A boost bought; its buff or tide runs until `until`. */

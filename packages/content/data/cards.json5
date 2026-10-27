@@ -29,7 +29,7 @@
     // Felling pays a tier-I drop at these lifetime fells, then every `every`, at most one every
     // `gapMinutes` and `perDay` an island day (everyone stays in run 1 until R4, so "every 5th
     // fell" would flood, and an active player fells eight times as often as a casual one; D249).
-    fells: { at: [5], every: 25, gapMinutes: 60, perDay: 3 },
+    fells: { at: [5], every: 30, gapMinutes: 60, perDay: 3 },
     badgesPer: 10,
   },
   survivors: [

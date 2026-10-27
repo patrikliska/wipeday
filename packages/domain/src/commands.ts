@@ -274,11 +274,17 @@ function claimOrder(content: Content, state: BaseState, n: number, id: string, n
     meta: { ...state.meta, stats: { ...state.meta.stats, orders: state.meta.stats.orders + 1 } },
   };
   const events: GameEvent[] = [{ type: "order_claimed", id, pays: order.pays }];
-  // Its drop queues for the drops' hourly gate (`credit`, after this step); scrap is at once.
+  // Its shards are at once (D266); a drop would queue for the drops' hourly gate (`credit`,
+  // after this step), as the set's does on the fuelling claim.
   const paid = pay(out, order.pays, "orders", true);
   out = paid.state;
   events.push(...paid.events);
-  if (fuelsNow) events.push({ type: "orders_fuelled", run: run.n });
+  if (fuelsNow) {
+    events.push({ type: "orders_fuelled", run: run.n, pays: content.orders.set });
+    const bonus = pay(out, content.orders.set, "orders", true);
+    out = bonus.state;
+    events.push(...bonus.events);
+  }
   return { ok: true, state: out, events };
 }
 

@@ -168,13 +168,13 @@ describe("Supply Drops", () => {
 });
 
 describe("drops earned by counts (D251)", () => {
-  it("felling pays at the 5th fell, then every 25th", () => {
-    expect([0, 4, 5, 29, 30, 55, 80].map((n) => fellDrops(content, n))).toEqual([
-      0, 0, 1, 1, 2, 3, 4,
-    ]);
+  it("felling pays at the 5th fell, then every `every`th (40, D266)", () => {
+    const every = content.cards.drops.fells.every;
+    const fells = [0, 4, 5, 4 + every, 5 + every, 5 + 2 * every, 5 + 3 * every];
+    expect(fells.map((n) => fellDrops(content, n))).toEqual([0, 0, 1, 1, 2, 3, 4]);
     expect(nextFellDrop(content, 0)).toBe(5);
-    expect(nextFellDrop(content, 5)).toBe(30);
-    expect(nextFellDrop(content, 31)).toBe(55);
+    expect(nextFellDrop(content, 5)).toBe(5 + every);
+    expect(nextFellDrop(content, 6 + every)).toBe(5 + 2 * every);
   });
 
   it("pays from the counters, one an hour and three an island day, whatever the batching", () => {

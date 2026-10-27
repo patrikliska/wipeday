@@ -26,10 +26,10 @@ function problemsWith(patch: (text: string) => string): string[] {
 }
 
 describe("the Workshop's shipped data (game-design 5.12; D194)", () => {
-  it("has four tiers of five items and one Line Mk per line", () => {
+  it("has eight tiers of five items and one Line Mk per line (D265)", () => {
     const tiers = content.research.filter((def) => def.kind === "tier");
-    expect(tiers).toHaveLength(20);
-    for (const k of [1, 2, 3, 4]) {
+    expect(tiers).toHaveLength(40);
+    for (const k of [1, 2, 3, 4, 5, 6, 7, 8]) {
       const items = tiers.filter((def) => def.tier === k);
       expect(items).toHaveLength(5);
       for (const def of items) expect(def.era).toBe(tierEra(k));

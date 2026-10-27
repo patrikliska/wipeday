@@ -23,8 +23,10 @@ describe("simulator v2", () => {
     const due = content.pacing.assertions.filter((a) => phaseIndex(a.on) <= shipped);
     const stops = earlyStops(content, due);
     expect(stops?.active).toEqual({ day: 60, runs: 5 });
+    // N19 reads everyone's first week from day 2 (R3), but the optimal player's `quickDays` keeps it at run 1.
     expect(stops?.optimal).toEqual({ day: 1, runs: 5 });
-    expect(stops?.lateJoiner?.day).toBe(30);
+    // The scrap row reads the late joiner's first week from its day 2 too (start day 30).
+    expect(stops?.lateJoiner?.day).toBe(37);
     // A check whose reach is unknown plays every life to the profile's last day.
     expect(earlyStops(content, [...due, { n: "N99", on: "R1", check: "gaps" }])).toBeNull();
   });

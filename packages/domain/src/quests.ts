@@ -109,7 +109,8 @@ export function claimQuest(
       day: out.meta.quests.day,
       pays: content.quests.pays.set,
     });
-    // The set's drop queues for the drops' hourly gate like an order's (D256).
+    // The set's drop queues for the drops' hourly gate, which pays the queue before felling's
+    // marks (D256, D266): once a day by construction, so the queue stays short.
     const bonus = pay(out, content.quests.pays.set, "quests", true);
     out = bonus.state;
     events.push(...bonus.events);

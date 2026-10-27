@@ -1,9 +1,10 @@
 // The Workshop (docs/game-design.md 5.12; 12-feel.md 5; D185, D194, D195): a per-run tree of
-// small, repeatable upgrades priced in Supplies, reset by the nuke. R2 ships tiers 1-4; R3 adds
-// tiers 5-8.
+// small, repeatable upgrades priced in Supplies, reset by the nuke. R2 shipped tiers 1-4; R3
+// added tiers 5-8 (D265).
 //
 // - It opens opensAfterSeconds after the run's clock starts (the first tap or purchase).
-// - Tier k (1-based) opens with era ceil(k/2): tiers 1-2 with Twig, 3-4 with Timber.
+// - Tier k (1-based) opens with era ceil(k/2): tiers 1-2 with Twig, 3-4 with Timber, 5-6 with
+//   Stone, 7-8 with Sheet Metal. Armored has no tier.
 // - Level n (0 for the first) of an item in tier k costs base × tierRatio^(k−1) × growth^n.
 // - One effect per item; a level adds it once more (add and inc sum, more compounds). Only stats
 //   the crown can score in closed form are allowed (content/src/research.ts SCORED), and no item
@@ -55,6 +56,50 @@
         { id: "hide_mitts", levels: 10, effect: { stat: "tap_flat", op: "add", value: 1 } },
         { id: "crew_rations", levels: 25, effect: { stat: "output", op: "inc", value: 0.01, scope: "all" } },
         { id: "storm_shutters", levels: 10, effect: { stat: "offline", op: "more", value: 1.05 } },
+      ],
+    },
+    // Tiers 5-8 (R3 S4, D265): the Stone and Sheet Metal tiers, from 6.4M and 51B. The Night
+    // Shift's 2 h budget (Spare Wicks) and Hustle's ceiling (Steady Rhythm) are spent, so the late
+    // tiers lift output, speed, flat taps and the away rate only.
+    {
+      era: "stone",
+      items: [
+        { id: "fire_brick", levels: 25, effect: { stat: "output", op: "inc", value: 0.05, scope: "furnace" } },
+        { id: "bark_liquor", levels: 25, effect: { stat: "output", op: "inc", value: 0.05, scope: "tannery" } },
+        { id: "iron_screws", levels: 25, effect: { stat: "output", op: "inc", value: 0.05, scope: "press" } },
+        { id: "bellows", levels: 20, effect: { stat: "speed", op: "more", value: 1.01, scope: "stone" } },
+        { id: "quota_board", levels: 25, effect: { stat: "output", op: "inc", value: 0.01, scope: "all" } },
+      ],
+    },
+    {
+      era: "stone",
+      items: [
+        { id: "quarry_rails", levels: 25, effect: { stat: "output", op: "inc", value: 0.05, scope: "stone" } },
+        { id: "seasoned_timber", levels: 25, effect: { stat: "output", op: "inc", value: 0.03, scope: "wood" } },
+        { id: "wrapped_grips", levels: 10, effect: { stat: "tap_flat", op: "add", value: 1 } },
+        { id: "tar_paper", levels: 10, effect: { stat: "offline", op: "more", value: 1.05 } },
+        { id: "shift_bell", levels: 25, effect: { stat: "output", op: "inc", value: 0.01, scope: "all" } },
+      ],
+    },
+    {
+      era: "metal",
+      items: [
+        { id: "mooring_winch", levels: 25, effect: { stat: "output", op: "inc", value: 0.05, scope: "dock" } },
+        { id: "copper_windings", levels: 25, effect: { stat: "output", op: "inc", value: 0.05, scope: "generator" } },
+        { id: "guy_wires", levels: 25, effect: { stat: "output", op: "inc", value: 0.05, scope: "radio_mast" } },
+        { id: "drive_belts", levels: 20, effect: { stat: "speed", op: "more", value: 1.01, scope: "metal" } },
+        { id: "work_rota", levels: 25, effect: { stat: "output", op: "inc", value: 0.01, scope: "all" } },
+      ],
+    },
+    {
+      era: "metal",
+      items: [
+        { id: "welded_frames", levels: 25, effect: { stat: "output", op: "inc", value: 0.05, scope: "metal" } },
+        { id: "brick_lining", levels: 25, effect: { stat: "output", op: "inc", value: 0.03, scope: "stone" } },
+        // The late tree's bite: a compounding 2% on every line, ten levels (×1.22 at the top).
+        { id: "assembly_line", levels: 10, effect: { stat: "output", op: "more", value: 1.02, scope: "all" } },
+        { id: "blackout_cloth", levels: 10, effect: { stat: "offline", op: "more", value: 1.05 } },
+        { id: "steel_toecaps", levels: 10, effect: { stat: "tap_flat", op: "add", value: 1 } },
       ],
     },
   ],
