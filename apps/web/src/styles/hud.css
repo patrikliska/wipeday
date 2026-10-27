@@ -3646,3 +3646,841 @@
   border-color: var(--edge-soft);
   box-shadow: none;
 }
+
+/* --- cards (R3 S3; D260-D263): the Album, the reveal, the survivor and gear sheets --------- */
+
+/* What every card surface shares: the rarity in --rarity, the art box, the star pips. */
+.card-art {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  color: var(--text-2);
+  background: radial-gradient(circle at 50% 35%, #4a3c2a, #2a2319 85%);
+  border: 1px solid var(--edge);
+  overflow: hidden;
+}
+
+.card-art.dim > * {
+  filter: grayscale(1) brightness(0.55);
+}
+
+.stars {
+  display: inline-flex;
+  gap: 1px;
+  line-height: 0;
+}
+
+.stars .icon.lit {
+  color: var(--supplies-hi);
+}
+
+.stars .icon.dark {
+  color: var(--edge-soft);
+}
+
+.big-stars {
+  gap: 3px;
+}
+
+.rarity-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font: 700 12px / 1.2 var(--display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--rarity);
+}
+
+.card-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn.small {
+  min-height: 44px;
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
+.btn.secondary {
+  flex: 0 0 auto;
+  margin-right: 10px;
+  background: linear-gradient(180deg, #4a3c2a, #33291c);
+  border-color: var(--edge);
+  color: var(--text-2);
+}
+
+/* The Album panel: the segments, the drops waiting, the grids. */
+.album {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.album-tabs {
+  margin: 0 0 6px;
+}
+
+.album-held {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 2px solid color-mix(in srgb, var(--supplies) 60%, var(--edge));
+  color: var(--supplies-hi);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--lip);
+}
+
+.album-held-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.album-held-count {
+  font: 800 20px / 1 var(--display);
+  letter-spacing: 0.03em;
+  color: #fff;
+}
+
+.album-held-sub {
+  font-size: 13px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.album-held .btn {
+  pointer-events: none;
+}
+
+.album-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.album-grid.gear {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (min-width: 720px) {
+  .album-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .album-grid.gear {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+  }
+}
+
+.card-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 92px;
+  padding: 8px 4px 6px;
+  border-radius: 12px;
+  border: 2px solid color-mix(in srgb, var(--rarity) 55%, var(--edge));
+  background: var(--plate);
+  color: var(--text);
+  box-shadow: var(--lip);
+  cursor: pointer;
+  text-align: center;
+}
+
+.card-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  border-radius: 10px 10px 0 0;
+  background: var(--rarity);
+}
+
+.album-grid.gear .card-tile {
+  min-height: 78px;
+  padding-top: 10px;
+}
+
+.card-tile.missing {
+  border-color: var(--edge-soft);
+  background: linear-gradient(180deg, #2f281e, #221c14);
+  color: var(--muted);
+  box-shadow: none;
+}
+
+.card-tile.missing::before {
+  opacity: 0.35;
+}
+
+.card-tile:active {
+  transform: translateY(1px);
+}
+
+.card-tile-name {
+  font: 700 13px / 1.1 var(--display);
+  letter-spacing: 0.02em;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-tile.missing .card-tile-name {
+  color: var(--muted);
+}
+
+/* Gear names are long ("Salvaged Hatchet"): two lines, never cut. */
+.album-grid.gear .card-tile-name {
+  font-size: 12px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.card-tile-dot {
+  position: absolute;
+  top: 8px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+}
+
+.card-tile-wearer {
+  position: absolute;
+  top: 6px;
+  right: 4px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid var(--edge-hi);
+  background: var(--sunk);
+  line-height: 0;
+}
+
+.card-tile-wearer .card-art {
+  border: 0;
+  border-radius: 50%;
+}
+
+/* The sets under the crew. */
+.album-sets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.album-set {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 2px solid var(--edge-soft);
+  background: var(--plate);
+}
+
+.album-set.done {
+  border-color: color-mix(in srgb, var(--supplies) 55%, var(--edge));
+}
+
+.album-set-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.album-set-name {
+  font: 700 16px / 1.1 var(--display);
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+
+.album-set-effect {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.album-set-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.album-set-progress .badge-bar {
+  width: 72px;
+}
+
+.album-set.done .album-set-progress {
+  color: var(--success);
+}
+
+.album-slot .sub-title > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The Odds segment: shards, the table, the pity bars. */
+.shard-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.shard-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  border: 2px solid color-mix(in srgb, var(--rarity) 55%, var(--edge));
+  background: var(--plate);
+  color: var(--rarity);
+}
+
+.shard-chip .num {
+  font: 800 20px / 1 var(--display);
+  color: #fff;
+}
+
+.shard-chip-name {
+  font: 700 11px / 1 var(--display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.odds-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.odds-table th,
+.odds-table td {
+  padding: 8px 6px;
+  text-align: right;
+  border-bottom: 1px solid var(--edge-soft);
+}
+
+.odds-table th:first-child,
+.odds-table td:first-child {
+  text-align: left;
+}
+
+.odds-table thead th {
+  font: 700 12px / 1 var(--display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rarity, var(--muted));
+}
+
+.odds-table tbody th {
+  font: 600 14px / 1.2 var(--body);
+  color: var(--text-2);
+}
+
+.odds-table td {
+  color: var(--text);
+}
+
+.pity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pity-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 2px solid color-mix(in srgb, var(--rarity) 45%, var(--edge));
+  background: var(--plate);
+}
+
+.pity-text {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.pity-count {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.pity-row .badge-bar {
+  grid-column: 1 / -1;
+}
+
+.pity-row .badge-fill {
+  background: var(--rarity);
+}
+
+/* The reveal sheet: three cards, face down, each turning on its tap. */
+.reveal-sheet .panel-scroll {
+  display: flex;
+  align-items: center;
+}
+
+.reveal-cards {
+  list-style: none;
+  margin: 0 auto;
+  padding: 8px 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.reveal-card {
+  perspective: 900px;
+}
+
+.reveal-flip {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 5 / 7;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: transform 520ms var(--ease);
+}
+
+.reveal-flip:disabled {
+  cursor: default;
+}
+
+.reveal-card.up .reveal-flip {
+  transform: rotateY(180deg);
+}
+
+.reveal-back,
+.reveal-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 12px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.reveal-back {
+  color: var(--text-2);
+  border: 2px solid var(--edge);
+  background:
+    repeating-linear-gradient(135deg, transparent 0 10px, rgba(0, 0, 0, 0.12) 10px 20px),
+    var(--plate);
+}
+
+.reveal-card.down .reveal-back {
+  animation: reveal-breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes reveal-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(255, 200, 120, 0);
+  }
+  50% {
+    box-shadow: 0 0 14px rgba(255, 200, 120, 0.35);
+  }
+}
+
+.reveal-face {
+  transform: rotateY(180deg);
+  padding: 22px 6px 8px;
+  border: 2px solid color-mix(in srgb, var(--rarity) 70%, var(--edge));
+  background: var(--plate);
+  color: var(--text);
+  text-align: center;
+}
+
+/* The rarity's colour comes first (D261): the strap and a glow, then the face's details fade in. */
+.reveal-card.up .reveal-face {
+  animation: reveal-glow 900ms var(--ease) forwards;
+}
+
+@keyframes reveal-glow {
+  0% {
+    box-shadow: 0 0 0 color-mix(in srgb, var(--rarity) 0%, transparent);
+  }
+  40% {
+    box-shadow: 0 0 28px var(--rarity);
+  }
+  100% {
+    box-shadow: 0 0 10px color-mix(in srgb, var(--rarity) 45%, transparent);
+  }
+}
+
+.reveal-card.up .reveal-face > :not(.reveal-strap) {
+  animation: fade 500ms ease 300ms both;
+}
+
+.reveal-strap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 3px 0;
+  border-radius: 10px 10px 0 0;
+  font: 700 11px / 1.2 var(--display);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--rarity);
+}
+
+.reveal-name {
+  font: 800 15px / 1.1 var(--display);
+  letter-spacing: 0.02em;
+  color: #fff;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.reveal-kind {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.reveal-new {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font: 800 11px / 1.2 var(--display);
+  letter-spacing: 0.1em;
+  color: var(--on-primary);
+  background: linear-gradient(180deg, var(--primary-hi), var(--primary));
+}
+
+.reveal-dupe {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--rarity);
+}
+
+.reduced .reveal-flip,
+.reduced .reveal-card.up .reveal-face,
+.reduced .reveal-card.up .reveal-face > :not(.reveal-strap),
+.reduced .reveal-card.down .reveal-back {
+  animation: none;
+  transition: none;
+}
+
+/* The survivor and gear sheets. */
+.card-sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.card-hero .card-art {
+  border-color: color-mix(in srgb, var(--rarity) 60%, var(--edge));
+  box-shadow: 0 0 16px color-mix(in srgb, var(--rarity) 30%, transparent);
+}
+
+.card-hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.card-status {
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.card-adds,
+.card-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: 700 15px / 1.2 var(--body);
+  color: var(--supplies-hi);
+}
+
+.card-facts {
+  margin: 12px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card-facts > div {
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 2px solid var(--edge-soft);
+  background: var(--plate);
+}
+
+.card-facts dt {
+  font: 700 12px / 1.2 var(--display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.card-facts dd {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.card-facts .muted {
+  color: var(--muted);
+}
+
+.slot-list,
+.slot-options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.slot-row {
+  border-radius: 12px;
+  border: 2px solid var(--edge-soft);
+  background: var(--plate);
+}
+
+.slot-row.open {
+  border-color: var(--edge-hi);
+}
+
+.slot-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 12px 8px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.slot-glyph {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  color: var(--muted);
+  background: var(--sunk);
+}
+
+.slot-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.slot-name {
+  font: 700 15px / 1.1 var(--display);
+  letter-spacing: 0.02em;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slot-text.empty .slot-name {
+  color: var(--text-2);
+}
+
+.slot-effect {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.slot-text:not(.empty) .slot-effect {
+  color: var(--text-2);
+}
+
+.slot-options {
+  padding: 0 10px 10px;
+}
+
+.slot-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--sunk);
+}
+
+.slot-option.none {
+  color: var(--muted);
+  font-size: 13px;
+  justify-content: center;
+}
+
+.slot-option.on {
+  outline: 2px solid color-mix(in srgb, var(--rarity) 60%, var(--edge));
+}
+
+.slot-options.wearers {
+  padding: 0;
+}
+
+.slot-options.wearers .slot-option {
+  border: 2px solid var(--edge-soft);
+  background: var(--plate);
+}
+
+.crew-hit {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.crew-hit .crew-text {
+  flex: 1 1 auto;
+}
+
+.crew-chevron {
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+
+.crew-row .portrait .card-art {
+  border: 0;
+  background: transparent;
+}
+
+.scrap-row .scrap-open {
+  flex: 0 0 auto;
+  order: -1;
+}
+
+/* --- the drop crates by the house (D261): a button over the stack, the count, the hint --- */
+
+.crate-hit {
+  position: absolute;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.crate-hit:focus {
+  outline: none;
+}
+
+.crate-hit:focus-visible,
+.crate-hit:hover {
+  outline: 2px dashed rgba(244, 234, 211, 0.6);
+  outline-offset: 2px;
+}
+
+.crate-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  font: 800 13px / 1 var(--display);
+  color: #fff;
+  background: var(--badge);
+  border: 2px solid var(--ink);
+  pointer-events: none;
+}
+
+.crate-hint {
+  position: absolute;
+  z-index: 1;
+  transform: translate(-50%, calc(-100% - 8px));
+  padding: 6px 10px;
+  border-radius: 10px;
+  font: 700 13px / 1.2 var(--body);
+  white-space: nowrap;
+  color: var(--text);
+  pointer-events: none;
+}

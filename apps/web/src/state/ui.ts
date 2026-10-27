@@ -11,8 +11,18 @@ import { create } from "zustand";
 
 export type Bulk = 1 | 10 | 100 | "max";
 export type Tab = "lines" | "upgrades" | "research";
-export type Panel = "crew" | "logbook" | "settings";
-export type Sheet = "multipliers" | "odds" | "credits" | "era" | "orders" | "scrap";
+export type Panel = "crew" | "logbook" | "settings" | "album";
+export type Sheet =
+  | "multipliers"
+  | "odds"
+  | "credits"
+  | "era"
+  | "orders"
+  | "scrap"
+  | "reveal"
+  | "survivor"
+  | "gear";
+export type AlbumTab = "crew" | "gear" | "odds";
 export type Motion = "device" | "reduced" | "full";
 
 export const BULKS: readonly Bulk[] = [1, 10, 100, "max"];
@@ -38,6 +48,13 @@ export interface UiState {
   workshopSeen: { run: number; items: number };
   /** Badges earned when the Logbook last showed (they last for good): the dock counts the rest. */
   badgesSeen: number;
+  /** Cards owned when the Album last showed (D260): the dock's Album badge counts the rest. */
+  albumSeen: number;
+  /** The Album's segment (D260): Crew, Gear or Odds. */
+  albumTab: AlbumTab;
+  /** The survivor whose sheet is open, and the gear card whose sheet is open. */
+  survivorSheet: string | null;
+  gearSheet: string | null;
 }
 
 interface UiActions {
@@ -63,6 +80,12 @@ interface UiActions {
   seeWorkshop(run: number, items: number): void;
   /** The Logbook showed `count` badges earned. */
   seeBadges(count: number): void;
+  /** The Album showed `count` cards owned. */
+  seeAlbum(count: number): void;
+  setAlbumTab(tab: AlbumTab): void;
+  /** A survivor's or a gear card's sheet (D260): over the Album, the Crew panel or the reveal. */
+  openSurvivor(id: string): void;
+  openGear(id: string): void;
   /** Closes the top layer (sheet, then panel, then the expanded drawer); false when none. */
   back(): boolean;
 }
@@ -107,6 +130,11 @@ const storedBadgesSeen = (): number => {
   return Number.isFinite(value) ? value : 0;
 };
 
+const storedAlbumSeen = (): number => {
+  const value = Number(read("wipeday.album_seen") ?? "0");
+  return Number.isFinite(value) ? value : 0;
+};
+
 const storedMotion = (): Motion => {
   const value = read("wipeday.motion");
   return value === "reduced" || value === "full" ? value : "device";
@@ -143,6 +171,10 @@ export const useUi = create<UiState & UiActions>((set, get) => {
     crewSeen: storedCrewSeen(),
     workshopSeen: storedWorkshopSeen(),
     badgesSeen: storedBadgesSeen(),
+    albumSeen: storedAlbumSeen(),
+    albumTab: "crew",
+    survivorSheet: null,
+    gearSheet: null,
 
     expand(open) {
       if (open === get().expanded) return;
@@ -224,6 +256,22 @@ export const useUi = create<UiState & UiActions>((set, get) => {
       if (get().badgesSeen === count) return;
       write("wipeday.badges_seen", String(count));
       set({ badgesSeen: count });
+    },
+    seeAlbum(count) {
+      if (get().albumSeen === count) return;
+      write("wipeday.album_seen", String(count));
+      set({ albumSeen: count });
+    },
+    setAlbumTab(tab) {
+      set({ albumTab: tab });
+    },
+    openSurvivor(id) {
+      set({ survivorSheet: id });
+      get().openSheet("survivor");
+    },
+    openGear(id) {
+      set({ gearSheet: id });
+      get().openSheet("gear");
     },
     back() {
       const state = get();

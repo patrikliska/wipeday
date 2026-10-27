@@ -13,6 +13,10 @@ const urls = import.meta.glob<string>(
     // The era sheet shows the house and the target an era brings (D245).
     "../../../../packages/content/art/scene/house/*.png",
     "../../../../packages/content/art/scene/target/*.png",
+    // The Album (D263): the survivors' busts, the gear cards, the drop crates.
+    "../../../../packages/content/art/scene/bust/*.png",
+    "../../../../packages/content/art/scene/gear/*.png",
+    "../../../../packages/content/art/scene/prop/drop_*.png",
   ],
   { query: "?url", import: "default", eager: true },
 );

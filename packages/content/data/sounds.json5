@@ -166,8 +166,31 @@
     },
     claim_fuel_drum: { voice: "rally", gain: 0.9 },
     claim_adrenaline: { voice: "rally", files: ["kenney_interface/maximize_006"], gain: 0.6 },
-    // The Sealed Locker: a Supply Drop II (R3; its own creak and burst come with the reveal, S3).
+    // The Sealed Locker: a Supply Drop II lands (R3).
     claim_sealed_locker: { voice: "milestone", files: ["kenney_interface/confirmation_003"], gain: 0.6 },
+
+    // Supply Drops and cards (R3 S3; D261): the crate creaks open, each card flips with a page
+    // turn, a Rare or better adds its own sting on top; shards and gear click into place.
+    drop_creak: {
+      voice: "ui_open",
+      files: ["kenney_rpg/creak1", "kenney_rpg/creak2", "kenney_rpg/creak3"],
+      gain: 0.6,
+    },
+    card_flip: {
+      voice: "ui_toggle",
+      files: ["kenney_rpg/bookFlip1", "kenney_rpg/bookFlip2", "kenney_rpg/bookFlip3"],
+      gain: 0.7,
+      perSecond: 6,
+    },
+    card_common: { voice: "ui_toggle", files: ["kenney_interface/select_001"], gain: 0.3 },
+    card_rare: { voice: "milestone", files: ["kenney_interface/confirmation_003"], gain: 0.55 },
+    card_epic: { voice: "badge", files: ["kenney_interface/maximize_004"], gain: 0.65 },
+    card_legendary: { voice: "era", files: ["kenney_impact/impactBell_heavy_002"], gain: 0.75 },
+    star: { voice: "milestone", files: ["kenney_interface/maximize_005"], gain: 0.6 },
+    craft: { voice: "buy", files: ["kenney_rpg/handleSmallLeather"], gain: 0.7 },
+    equip: { voice: "buy", files: ["kenney_rpg/cloth1"], gain: 0.7 },
+    // A Work Order or a quest claimed (D256, D257): a short pick, then the drop's own sound.
+    claim: { voice: "milestone", files: ["kenney_interface/select_005"], gain: 0.55 },
 
     // Frenzy trips (D237): a rising sting.
     frenzy: { voice: "frenzy", files: ["kenney_interface/maximize_008"], gain: 0.7 },
@@ -213,14 +236,15 @@
     badge_unlocked: { cue: "badge" },
     // R3's cards: placeholders on existing cues until the reveal's creak, burst and flips (S3).
     drop_earned: { cue: "roster" },
-    drop_opened: { cue: "milestone" },
-    starred: { cue: "upgrade" },
-    gear_crafted: { cue: "upgrade" },
-    gear_equipped: { cue: "buy" },
+    drop_opened: { cue: "drop_creak", buzz: [20] },
+    card_flipped: { cue: "card_{rarity}" },
+    starred: { cue: "star", buzz: [15, 30, 15] },
+    gear_crafted: { cue: "craft" },
+    gear_equipped: { cue: "equip" },
     // R3 S2: the Work Orders, the quests and scrap (placeholders on existing cues until S3).
-    order_claimed: { cue: "era_ready", buzz: [15] },
+    order_claimed: { cue: "claim", buzz: [15] },
     orders_fuelled: { cue: "frenzy_end", buzz: [30, 50, 30] },
-    quest_claimed: { cue: "era_ready", buzz: [15] },
+    quest_claimed: { cue: "claim", buzz: [15] },
     quest_set_done: { cue: "roster" },
     quests_rolled: null,
     scrap_earned: { cue: "collect" },

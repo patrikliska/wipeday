@@ -4,6 +4,7 @@
  * a tap's point on screen, a milestone the scene saw crossed, a sheet opened. Every sound plays
  * from here (D224): `data/sounds.json5` maps each type below to its cue or to silence.
  */
+import type { Rarity } from "@wipe-day/content/cards";
 import type { GameEvent as DomainEvent } from "@wipe-day/domain/events";
 
 export type GameEvent =
@@ -38,7 +39,9 @@ export type GameEvent =
   /** A running Frenzy burned out (the scene saw its timer end): the bar's tick and a fall. */
   | { type: "frenzy_ended" }
   /** The welcome card's Collect: `gain` flies into the counter. */
-  | { type: "collected"; gain: number };
+  | { type: "collected"; gain: number }
+  /** A card turned over in the reveal (D261): the flip, then its rarity's sting. */
+  | { type: "card_flipped"; rarity: Rarity };
 
 export type UiAction = "open" | "close" | "switch";
 
@@ -89,6 +92,7 @@ export const EVENT_TYPES = Object.keys({
   scrap_spent: 1,
   boost_bought: 1,
   tide_claimed: 1,
+  card_flipped: 1,
 } satisfies Record<GameEvent["type"], 1>) as GameEvent["type"][];
 
 /** A sheet opened or closed, a switch flipped: the panels say so, the sound answers. */

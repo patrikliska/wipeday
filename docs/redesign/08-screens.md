@@ -872,6 +872,9 @@ to its sources.
 | Friends | Load (Freighter), else Done | `(x)`, Island |
 | Magnet card | Haul / Take it, else none | `(x)`, backdrop |
 | Welcome back | Collect | Collect, backdrop |
+| Album | Open (drops waiting), else Done | `(x)`, Island, back |
+| Reveal | Flip the next / Open the next / To the Album | `(x)`, backdrop, To the Album |
+| Survivor, gear sheet | Star up / Craft (disabled with its reason), else Done | `(x)`, backdrop, back |
 
 ---
 
@@ -1392,6 +1395,18 @@ order (D192): the groups once tagged R2-R7 are R4-R9.
 | `phone_toolbelt`, `phone_flare_pick`, `phone_pockets`, `phone_rebuild_pockets`, `phone_magnet`, `phone_dead_hand` | slow layer; a Pocket blocked with its reason (crew ranks are gone: survivor stars, R3) | R7 |
 | `phone_blowback_shore`, `phone_boards`, `phone_freighter`, `phone_visit`, `phone_island_count`, `phone_late_tide` | friends (the Discord postcard is reviewed with `pnpm preview`) | R8 |
 | `phone_map_full`, `phone_ladder_long`, `phone_rebuild_dare`, `desktop_map_full` | all 361 lit; ring 9's longest names; Dares | R9 |
+
+### 8.3b R3 S3's shots (the Album and the reveal)
+
+| Shot | Shows | Phase |
+| --- | --- | --- |
+| `r3s3_crates_{phone,desktop}`, `r3s3_crates_night_phone`, `r3s3_crates_first_phone` | the drop crates by the house with the count and the hint, by day and at night; a new island's first crate | R3 |
+| `r3s3_reveal_first_{phone,desktop}`, `r3s3_reveal_down_phone`, `r3s3_reveal_mid_phone`, `r3s3_reveal_all_{phone,desktop}` | the first drop opening on Mara (NEW); three cards face down; a Rare caught mid-flip; every card up with "Open the next" | R3 |
+| `r3s3_album_{empty,half,full}_{phone,desktop}` | the Crew segment: nothing found yet; nine survivors with stars and the sets; every card at five stars | R3 |
+| `r3s3_album_gear_{phone,desktop}`, `r3s3_album_odds_{phone,desktop}` | the Gear segment by slot with wearers; the Odds segment: shards, the table, the pity bars | R3 |
+| `r3s3_survivor_{phone,desktop}`, `r3s3_survivor_short_phone`, `r3s3_survivor_missing_phone` | Mara's sheet with three pieces worn; Dax short of shards with an empty slot; Vera not found | R3 |
+| `r3s3_gear_{phone,desktop}`, `r3s3_gear_craft_phone` | the Crowbar's sheet with Equip to every owned survivor; the Welding Goggles to craft, 17 of 20 shards | R3 |
+| `r3s3_scrap_open_phone`, `r3s3_crew_stars_phone`, `r3s3_dock_album_phone` | Open beside a bought drop; the Crew panel's busts and stars; the dock's Album badge | R3 |
 
 ### 8.4 The `docs/ui-review.md` checklist, adapted
 

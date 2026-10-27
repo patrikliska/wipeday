@@ -1,6 +1,7 @@
 import type { BoostDef } from "@wipe-day/content/schema";
 import { boostUntil } from "@wipe-day/domain/boosts";
 import type { BaseState } from "@wipe-day/domain/state";
+import { useReveal } from "../state/reveal";
 import { useWorld } from "../state/store";
 import { useUi } from "../state/ui";
 import { content, duration, t } from "../state/world";
@@ -99,8 +100,19 @@ function BoostRow({ boost, base, now }: { boost: BoostDef; base: BaseState; now:
 function DropRow({ tier, base }: { tier: 2 | 3; base: BaseState }) {
   const cost = content.scrap.drops[tier];
   const short = Math.max(0, cost - base.meta.scrap);
+  const held = base.meta.drops.held[tier];
   return (
     <li className="scrap-row" data-key={`drop:${tier}`}>
+      {/* A bought drop is one tap from its reveal (D261): never a dead end (6.3 rule 2). */}
+      {held > 0 ? (
+        <button
+          type="button"
+          className="btn scrap-open"
+          onClick={() => useReveal.getState().start(tier)}
+        >
+          {t("album.open_n", { n: held })}
+        </button>
+      ) : null}
       <span className="goal-icon">
         <Icon kind="flotsam" id="sealed_locker" size={26} />
       </span>

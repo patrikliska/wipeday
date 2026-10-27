@@ -3,6 +3,7 @@
  * must exist for every value its template can take (every era's target, every airdrop kind,
  * every UI action). Throws on bad data, so a broken map never ships quietly.
  */
+import { RARITIES } from "@wipe-day/content/cards";
 import soundsFile from "@wipe-day/content/data/sounds.json5";
 import { checkSounds, type Sounds } from "@wipe-day/content/sounds";
 import type { UiAction } from "../state/events";
@@ -15,6 +16,7 @@ export const TEMPLATE_VALUES: Record<string, readonly string[]> = {
   target: content.targets.map((target) => target.id),
   kind: content.flotsam.kinds.map((kind) => kind.id),
   action: UI_ACTIONS,
+  rarity: RARITIES,
 };
 
 function load(): Sounds {

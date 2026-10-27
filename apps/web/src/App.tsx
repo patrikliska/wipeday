@@ -4,14 +4,17 @@ import { Credits } from "./hud/Credits";
 import { DemoDrawer } from "./hud/DemoDrawer";
 import { Dock } from "./hud/Dock";
 import { EraSheet } from "./hud/Era";
+import { GearSheet } from "./hud/Gear";
 import { Login } from "./hud/Login";
 import { Multipliers } from "./hud/Multipliers";
 import { Odds } from "./hud/Odds";
 import { OrdersSheet } from "./hud/Orders";
 import { Panels } from "./hud/Panels";
+import { RevealSheet } from "./hud/Reveal";
 import { RoomBar } from "./hud/RoomBar";
 import { ScrapSheet } from "./hud/Scrap";
 import { Shop, shopOpen } from "./hud/Shop";
+import { SurvivorSheet } from "./hud/Survivor";
 import { Toasts } from "./hud/Toasts";
 import { TapHint, TopBar } from "./hud/TopBar";
 import { Welcome } from "./hud/Welcome";
@@ -90,6 +93,9 @@ export function App() {
             <EraSheet />
             <OrdersSheet />
             <ScrapSheet />
+            <RevealSheet />
+            <SurvivorSheet />
+            <GearSheet />
             <Toasts />
             <BadgeToast />
             <Welcome />

@@ -2985,3 +2985,59 @@ reveal and the pills' polish. The sim's archetypes spend by a `spend` policy (ca
 drops; active and optimal: boosts at a session's start). N23's run-1 band rose to 2e12: the
 idler nukes at a check-in and overshoots the nuke point by one Night Shift window of Sheet Metal
 output (1.06e12 with the orders' drops in play).
+
+### D260. The Album in the dock, as three segments (R3 S3)
+The Album joins the dock when the first Supply Drop is earned, held or opened (`albumShown`;
+12-feel.md 4), fifth place between Crew and Logbook; its badge counts the drops waiting plus the
+cards owned since the Album last showed (`albumSeen`, per device like `badgesSeen`). The panel is
+one head ("23 of 44 cards", the drops to open with Open) and three segments, the owner's pick over
+one long page: **Crew** (the 14 survivors as portraits, greyed until found, five star pips under
+each, the on-shift dot; the three sets under them with a bar), **Gear** (the 30 cards by slot,
+the wearer's bust on a worn piece), **Odds** (the shard balances, the printed odds per card and
+tier, the three pity bars "Rare or better within 10 cards · 3 of 10", the first-card note, a
+button to the airdrops' and crows' odds; guardrail 9). Tapping a card opens its sheet. The Crew
+panel stays (R7 gives it the Foreman, Dead Hand and Pockets); its rows gained the bust, the stars
+and a tap to the survivor sheet, so the roster and the collection never disagree.
+
+### D261. Where a drop opens, and the reveal (R3 S3)
+Held drops stand as **crates by the house**, between it and the stockpile (`scene/crates.ts`: one
+sprite per tier, the highest tier in front, at most three drawn, a count on the button past one;
+a 64 px tap area at a fixed screen size, D48; a landing bounce, a lift when opened). Tapping a
+crate, Open in the Album's head, or Open beside a drop just bought in the Scrap sheet opens the
+**reveal**, so a bought drop is never a dead end (6.3 rule 2). The reveal is a sheet: three cards
+face down; a tap on any card, or "Flip the next", turns one over, the rarity's strap and glow
+first, then the face (bust or gear, name, slot, NEW or "+5 shards"); "To the Album" is always
+present, the secondary until the last card, when the primary becomes "Open the next" while
+another drop waits, else "To the Album". The cards are the client's own prediction: `open_drop`
+carries `pull` as the client saw it (a second click is `stale`, D250), and the predicted
+`drop_opened` fills the reveal store (`state/reveal.ts`); the rarity sounds on the flip, not the
+open, so a Legendary rings when it is seen (`card_flipped`). Reduced motion shows the faces
+without the turn. The crate's hint ("A Supply Drop! Tap the crate to open it.") shows until two
+drops were opened and takes the one-hint channel after the airdrop's and before the house's and
+the crow's (D254).
+
+### D262. Rarity colours (R3 S3)
+Four HUD tokens (`--rarity-common` steel grey, `--rarity-rare` sea blue, `--rarity-epic` violet,
+`--rarity-legendary` amber) read as `--rarity` on every card surface: the tile's strap and border,
+the reveal's strap and glow, the sheets' tag, the Odds table's heads, the shard chips and the pity
+bars. Legendary's amber is warmer than scrap's gold so the two never read as one.
+
+### D263. Busts and gear art as pixel PNGs under `art/scene/` (R3 S3)
+Survivors have 24×24 busts (`packages/content/art/scene/bust/<id>.png`, `rd_pro__platformer`
+with the hand sprite as reference and the palette, "head and shoulders, facing the viewer"),
+gear cards 16×16 (`art/scene/gear/<id>.png`; two `rd_plus__low_res` takes and one pro take each,
+as P3 did) and the drop crates 16×16 (`prop/drop_1..3.png`). The HUD draws them through
+`PixelArt` at a whole zoom; the crew SVG glyph and the slot glyph stand in while a file is
+missing, so no pick blocks anything. This is D188's "item icons become pixel PNGs" landing for
+its first kinds: they live under `art/scene/`, where `pnpm art install` and the palette own them,
+and `icons/` stays `currentColor` SVG for glyphs (`nav/album`, `ui/star`, `ui/shard`, the three
+slot glyphs). The gen script now fetches a pending task by id when it has fallen off the API's
+50-task list (a 60-job batch did).
+
+### D264. Provisional art picks (owner, 2026-10-27)
+The owner chose, for S3, that the agent installs its recommended take per sprite
+(`scripts/art/picks/r3.json`) rather than leaving placeholders until the owner picks (P3's rule).
+The contact sheets stay in `preview/art/r3-busts-sheet.png`, `r3-gear-sheet.png` and
+`r3-crates-sheet.png`; a swap is a number in the picks file and `pnpm art install
+scripts/art/picks/r3.json`. Spend: 13.86 USD (busts 5.76 with retakes, gear 8.46, crates 0.36,
+every 502 uncharged); balance after 13.73 USD.

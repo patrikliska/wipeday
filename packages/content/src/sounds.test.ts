@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import JSON5 from "json5";
 import { describe, expect, it } from "vitest";
+import { RARITIES } from "./cards";
 import { loadGame } from "./load";
 import { contentPaths } from "./paths";
 import { checkSounds, fillCue, templateFields } from "./sounds";
@@ -12,6 +13,7 @@ const values = {
   target: content.targets.map((target) => target.id),
   kind: content.flotsam.kinds.map((kind) => kind.id),
   action: ["open", "close", "switch"],
+  rarity: [...RARITIES],
 };
 
 describe("sounds.json5", () => {

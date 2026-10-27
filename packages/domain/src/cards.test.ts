@@ -3,7 +3,18 @@ import { loadContent, loadLocale } from "@wipe-day/content/load";
 import { contentPaths } from "@wipe-day/content/paths";
 import type { Content } from "@wipe-day/content/schema";
 import { describe, expect, it } from "vitest";
-import { cardEffects, hireFactor } from "./cards";
+import {
+  albumCounts,
+  cardEffects,
+  craftCost,
+  heldDrops,
+  hireFactor,
+  maxStars,
+  nextStar,
+  pityView,
+  setProgress,
+  topTier,
+} from "./cards";
 import { applyCommand, type Command, type CommandResult } from "./commands";
 import { credit, drawCard, fellDrops, nextFellDrop, nextPity, openDrop, rollRarity } from "./drops";
 import { unitRate } from "./effects";
@@ -389,5 +400,58 @@ describe("normalize", () => {
     delete old.meta.cards;
     delete old.meta.drops;
     expect(normalizeState(content, old)?.meta.drops.held).toEqual({ 1: 0, 2: 0, 3: 0 });
+  });
+});
+
+describe("what the Album reads (R3 S3)", () => {
+  const owned = (state: BaseState, survivors: Record<string, number>, gear: string[]) =>
+    withMeta(state, {
+      cards: { survivors, gear: Object.fromEntries(gear.map((id) => [id, null])) },
+    });
+
+  it("nextStar: the next star's price and the shards held; null unowned or at five", () => {
+    expect(nextStar(content, fresh(), "mara")).toBeNull();
+    let state = owned(fresh(), { mara: 1, dax: 5 }, []);
+    expect(nextStar(content, state, "mara")).toEqual({ to: 2, cost: 10, have: 0 });
+    expect(nextStar(content, state, "dax")).toBeNull();
+    state = withMeta(state, {
+      drops: { ...state.meta.drops, shards: { ...state.meta.drops.shards, crew: { mara: 7 } } },
+    });
+    expect(nextStar(content, state, "mara")?.have).toBe(7);
+    expect(maxStars(content)).toBe(5);
+  });
+
+  it("craftCost: the rarity's price against the rarity's shards", () => {
+    const state = withMeta(fresh(), {
+      drops: {
+        ...fresh().meta.drops,
+        shards: { crew: {}, gear: { common: 3, rare: 0, epic: 0, legendary: 0 } },
+      },
+    });
+    expect(craftCost(content, state, "crowbar")).toEqual({ cost: 20, have: 3 });
+    expect(craftCost(content, state, "power_saw")).toEqual({ cost: 300, have: 0 });
+    expect(craftCost(content, state, "nothing")).toBeNull();
+  });
+
+  it("albumCounts, setProgress, pityView, heldDrops and topTier", () => {
+    const state = owned(fresh(), { mara: 3, dax: 3, ivo: 1 }, ["crowbar", "chainsaw"]);
+    expect(albumCounts(content, state)).toEqual({
+      survivors: { owned: 3, total: 14 },
+      gear: { owned: 2, total: 30 },
+    });
+    const [oldHands, fullCrew] = content.cards.sets.crews;
+    if (!oldHands || !fullCrew) throw new Error("sets missing");
+    expect(setProgress(content, state.meta.cards, oldHands)).toEqual({ done: 2, total: 5 });
+    expect(setProgress(content, state.meta.cards, fullCrew)).toEqual({ done: 3, total: 14 });
+    expect(pityView(content, state.meta.drops)).toEqual([
+      { rarity: "rare", since: 0, within: 10 },
+      { rarity: "epic", since: 0, within: 40 },
+      { rarity: "legendary", since: 0, within: 150 },
+    ]);
+    expect(heldDrops(state.meta.drops)).toBe(0);
+    expect(topTier(state.meta.drops)).toBeNull();
+    const held = holding(holding(state, 1, 2), 3, 1);
+    expect(heldDrops(held.meta.drops)).toBe(3);
+    expect(topTier(held.meta.drops)).toBe(3);
   });
 });

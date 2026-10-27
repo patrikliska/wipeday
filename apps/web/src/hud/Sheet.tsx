@@ -18,6 +18,7 @@ export function SheetFrame({
   onPrimary,
   onClose,
   closable = true,
+  secondary,
   children,
 }: {
   id: string;
@@ -31,6 +32,8 @@ export function SheetFrame({
   onPrimary: () => void;
   onClose: () => void;
   closable?: boolean;
+  /** A second, quiet way on beside the primary (the reveal's "To the Album", D261). */
+  secondary?: { label: string; onClick: () => void } | undefined;
   children: ReactNode;
 }) {
   return (
@@ -66,6 +69,11 @@ export function SheetFrame({
         </header>
         <div className="panel-scroll">{children}</div>
         <footer className="panel-foot">
+          {secondary ? (
+            <button type="button" className="btn secondary" onClick={secondary.onClick}>
+              {secondary.label}
+            </button>
+          ) : null}
           <button
             type="button"
             className="btn primary grow"

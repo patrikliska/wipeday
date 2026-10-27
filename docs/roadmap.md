@@ -103,8 +103,43 @@ in `docs/archive/roadmap-w.md`.
 - **R3 S2, scrap, boosts, Work Orders and the daily quests, is done** (2026-10-26; D256-D259;
   results below): the orders card and sheet replaced the mocks, the day's quests under "Today",
   the scrap chip and sheet, the boosts and the Lucky Tide; N19, N30 and N32 pass at R3.
-- **Next: R3 S3** (the Album and the reveal; busts and gear art). Retro Diffusion has about
-  2.59 USD; S3 needs about 15 USD more.
+- **R3 S3, the Album and the reveal, is done** (2026-10-27; D260-D264; results below): the
+  Album in the dock as Crew · Gear · Odds, the reveal sheet, the survivor and gear sheets,
+  crates by the house, 14 busts and 30 gear cards installed as provisional picks.
+- **Next: R3 S4** (Workshop tiers 5-8 and the balance: the fell schedule, shards and quest goals
+  against a casual's 2-4 drops a day and the Album in about two weeks; `shipped: "R3"`;
+  `pnpm sim check --full`; the juice checklist). Retro Diffusion holds 13.73 USD.
+
+### R3 S3 results: the Album and the reveal
+- **Built:** `hud/Album.tsx` (the panel: head, three segments, the held-drops plate, the crew
+  grid with stars and the on-shift dot, the sets with bars, the gear grid by slot with the
+  wearer's bust, the odds table, the pity bars, the shard chips), `hud/Reveal.tsx` (the sheet:
+  three face-down cards, a 3D flip per tap in any order, the rarity's glow first, NEW or
+  "+n shards", "Flip the next" / "Open the next" / "To the Album"), `hud/Survivor.tsx` (the
+  bust, the trait, the stars with "Star up · 10" or "need 19 more", three slots that open the
+  owned gear of their kind to equip, swap or take off, "Barrel Smasher ×1.98 while hired"),
+  `hud/Gear.tsx` (the stat, who wears it, "Craft · 20" against the rarity's shards, Equip to any
+  owned survivor with the piece it would replace), `hud/cards.tsx` (the shared bust, gear art,
+  star pips, rarity variable and stat lines), `state/reveal.ts`, `scene/crates.ts` (the crates
+  by the house with their button, count and hint), the Crew panel's rows with bust, stars and a
+  tap to the sheet, the Scrap sheet's Open beside a bought drop, the dock's Album with its badge,
+  `SheetFrame`'s secondary button; domain read helpers (`nextStar`, `craftCost`, `albumCounts`,
+  `pityView`, `setProgress`, `heldDrops`, `topTier`); six glyphs (`nav/album`, `ui/star`,
+  `ui/shard`, `ui/slot_*`); own sounds for the creak, the flip, each rarity's sting, a star, a
+  craft, an equip and a claim (`card_flipped` on the bus); 14 busts, 30 gear cards and three
+  crates generated and installed (`scripts/art/jobs/r3-*.json`, `picks/r3.json`).
+- **Decisions:** D260 the Album as segments; D261 the crates and the reveal; D262 the rarity
+  colours; D263 busts and gear as pixel PNGs; D264 provisional picks.
+- **Tests:** `cards.test.ts` gained the read helpers; the sounds and icons content tests cover
+  the new cues and glyphs; `pnpm check` passes; `pnpm icons` 127 clean.
+- **Balance:** unchanged (the simulator already played cards): `pnpm sim check --phase R3`
+  passes every R0-R3 row (N19 casual 5.00, N30 3, N32 idler 5; run 1's beats as S2).
+- **Shots:** 29 `r3s3_*` (the crates by day and night, the first reveal on Mara, a reveal face
+  down, mid-flip and all up, the Album empty, half and full on both devices, the Gear and Odds
+  segments, a survivor's sheet owned, short of shards and not found, a gear sheet owned and to
+  craft, the Scrap sheet's Open, the Crew panel's stars, the dock's badge); four iterations in
+  `docs/ui-review.md`.
+- **Art:** 13.86 USD spent; the owner may swap any take by its number (D264).
 
 ### R3 S2 results: scrap, boosts, Work Orders and the daily quests
 - **Built:** `orders.json5`, `quests.json5`, `scrap.json5` with their schemas and checks (pools

@@ -85,6 +85,12 @@
   --accent-red: #f05252;
   /* Dock badges: new things. */
   --badge: #e03a2f;
+  /* Card rarities (D262): one colour each, on the reveal, the Album, the sheets and the Odds.
+     Legendary is a warmer amber than scrap's gold so the two never read as one. */
+  --rarity-common: #a9b1b7;
+  --rarity-rare: #5aa7e0;
+  --rarity-epic: #b06ee6;
+  --rarity-legendary: #ff9f2e;
 
   --tier-twig: #c2a868;
   --tier-wood: #b07840;

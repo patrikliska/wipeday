@@ -142,6 +142,26 @@ are what is kept.
   of two to four pixels above the drawn fire, plus a glow, on the `lights` layer
   (`ART_FIRES` in `scene/lines.ts`). Spend for P4: none. Balance: about 2.59 USD.
 
+### What R3 S3 learned (2026-10-27)
+
+- **Busts: the pro style with the hand sprite as reference, 24×24, "head and shoulders, facing
+  the viewer, simple shapes."** Fourteen distinct people first try where the prompt named one
+  strong feature each (a red knit cap, a straw hat, a grey ponytail, radio headphones, a white
+  bun); two takes each, near-identical, so one seed is enough next time.
+- **Gear at 16×16: mix the styles per item.** Low-res takes are brighter and read for soft things
+  (rope, tarp, jerrycan, hard hat); the pro take is crisper for tools and glass (wrench, torch,
+  lantern, goggles, scope, flask, battery). The pro takes carry their own outline, so
+  `outline: true` only on the low-res picks.
+- **The API fails about half a big batch with 502 `inference_failed`** (uncharged) and its task
+  list holds only the last 50, so a 60-job batch loses its first ten: `gen` now fetches a pending
+  job's task by id, and failed ids are resubmitted in chunks of eight with `--only`. Three busts
+  needed three tries each; one prompt ("freckles, a leaf behind his ear") failed three times
+  and passed reworded.
+- **The low-res style refuses 16×14** (`invalid_style_dimensions`): crates at 16×16, trimmed on
+  install.
+- Spend for S3: 5.76 the busts (with retakes), 8.46 the gear, 0.36 the crates: 13.86 USD.
+  Balance after: about 13.73 USD.
+
 ## 5. Animation
 
 Retro Diffusion animates an existing sprite: `rd_advanced_animation__idle` and `__walking` take

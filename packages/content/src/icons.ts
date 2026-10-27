@@ -102,5 +102,11 @@ export function iconsWanted(content: Content): { kind: IconKind; id: string }[] 
     ...content.tools.map((tool) => ({ kind: "tool" as const, id: tool.id })),
     ...content.targets.map((target) => ({ kind: "target" as const, id: target.id })),
     ...content.flotsam.kinds.map((kind) => ({ kind: "flotsam" as const, id: kind.id })),
+    // The Album (R3 S3): its dock place and the glyphs its sheets use (gear art is pixel PNG, D263).
+    { kind: "nav" as const, id: "album" },
+    ...["star", "shard", "slot_hand", "slot_head", "slot_pack"].map((id) => ({
+      kind: "ui" as const,
+      id,
+    })),
   ];
 }

@@ -2770,6 +2770,357 @@ const SHOTS = [
       },
     ];
   })(),
+  // R3 S3, the Album and the reveal (12-feel.md 7; D260-D264): crates by the house, the reveal
+  // at each rarity, the Album's three segments empty, half and full, a survivor's and a gear
+  // card's sheet, the Scrap sheet's Open, the Crew panel's stars, the Album joining the dock.
+  ...(() => {
+    const stone = { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN };
+    const evening = { ...stone, time: at(1, 19) };
+    const night = { ...stone, time: at(1, 23.5) };
+    const noShards = { common: 0, rare: 0, epic: 0, legendary: 0 };
+    /** `meta.drops` whole (the patch merges meta shallowly): `held` and the shards as given. */
+    const drops = (
+      held = {},
+      shards = {},
+      pulls = 0,
+      pity = { rare: 0, epic: 0, legendary: 0 },
+    ) => ({
+      held: { 1: 0, 2: 0, 3: 0, ...held },
+      pulls,
+      pity,
+      shards: {
+        crew: {},
+        gear: { ...noShards, ...shards.gear },
+        ...(shards.crew ? { crew: shards.crew } : {}),
+      },
+      paid: { fells: 0, badges: 0 },
+      owed: { earned: 0, paid: 0 },
+      today: { day: 0, fells: 0, at: 0 },
+    });
+    const stats = (opened) => ({ ...VETERAN_STATS, drops: opened, scrap: 31 });
+    /** The Album empty: the first drop just landed, nothing opened yet. */
+    const empty = {
+      cards: { survivors: {}, gear: {} },
+      drops: drops({ 1: 1 }),
+      stats: stats(0),
+      scrap: 3,
+    };
+    /** Half full, a week in: nine survivors, fourteen gear cards, some worn, shards saved. */
+    const half = {
+      cards: {
+        survivors: {
+          mara: 3,
+          dax: 2,
+          ivo: 1,
+          bram: 3,
+          otto: 1,
+          rook: 2,
+          sela: 1,
+          wren: 1,
+          hale: 1,
+        },
+        gear: {
+          salvaged_hatchet: "mara",
+          crowbar: null,
+          pipe_wrench: "dax",
+          work_gloves: null,
+          claw_hammer: "wren",
+          tin_lantern: "mara",
+          bandana: "dax",
+          hard_hat: null,
+          gas_mask: null,
+          rope_belt: "mara",
+          jerrycan: null,
+          car_battery: "wren",
+          satchel: null,
+          chainsaw: "bram",
+        },
+      },
+      drops: drops(
+        { 1: 2, 2: 1 },
+        {
+          gear: { common: 17, rare: 6, epic: 0, legendary: 0 },
+          crew: { mara: 31, dax: 4, bram: 12 },
+        },
+        63,
+        { rare: 3, epic: 22, legendary: 63 },
+      ),
+      stats: stats(21),
+      scrap: 23,
+    };
+    /** Full: every card, every survivor at five stars. */
+    const full = {
+      cards: {
+        survivors: Object.fromEntries(
+          [
+            "mara",
+            "dax",
+            "ivo",
+            "rook",
+            "sela",
+            "bram",
+            "wren",
+            "otto",
+            "juno",
+            "pike",
+            "hale",
+            "tamsin",
+            "gus",
+            "vera",
+          ].map((id) => [id, 5]),
+        ),
+        gear: {
+          salvaged_hatchet: null,
+          crowbar: null,
+          pipe_wrench: null,
+          work_gloves: null,
+          claw_hammer: null,
+          hand_drill: null,
+          bolt_cutters: null,
+          chainsaw: "mara",
+          welding_torch: "wren",
+          power_saw: "vera",
+          tin_lantern: null,
+          bandana: null,
+          welding_goggles: null,
+          hard_hat: null,
+          gas_mask: null,
+          headlamp: null,
+          ear_defenders: null,
+          night_goggles: "mara",
+          hazmat_hood: null,
+          spotter_scope: "vera",
+          rope_belt: null,
+          jerrycan: null,
+          car_battery: null,
+          tool_roll: null,
+          satchel: null,
+          water_flask: null,
+          tarp_bundle: null,
+          hazmat_coat: "mara",
+          flare_pouch: null,
+          generator_pack: "vera",
+        },
+      },
+      drops: drops({}, { gear: { common: 212, rare: 90, epic: 48, legendary: 9 } }, 600, {
+        rare: 1,
+        epic: 7,
+        legendary: 40,
+      }),
+      stats: stats(200),
+      scrap: 140,
+    };
+    /** The reveal: a fresh island's first drop opens on Mara (pull 0) at each tier; the rarity
+     *  of the first card after Mara is the seed's, so each shot names the pull index that gives
+     *  its rarity on the demo's seed (found with `pnpm web:shots --only r3s3_reveal`). */
+    const reveal = (tier, pulls, opened) => ({
+      // The first drop ever (pull 0) opens on a fresh Album; later ones already hold Mara.
+      cards: { survivors: pulls === 0 ? {} : { mara: 1 }, gear: {} },
+      drops: drops({ [tier]: 1 }, {}, pulls),
+      stats: stats(opened),
+      scrap: 3,
+    });
+    return [
+      {
+        name: "r3s3_crates_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: { ...empty, drops: drops({ 1: 2, 2: 1 }) } },
+        ff: 0.8,
+      },
+      {
+        name: "r3s3_crates_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, meta: { ...empty, drops: drops({ 1: 2, 2: 1 }) } },
+        ff: 0.8,
+      },
+      {
+        name: "r3s3_crates_night_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...night, meta: { ...empty, drops: drops({ 1: 1 }) } },
+        ff: 0.8,
+      },
+      {
+        name: "r3s3_crates_first_phone",
+        viewport: PHONE,
+        scale: 2,
+        // A new island's first crate, with its hint (the Album is not in the dock yet).
+        state: { ...stone, meta: { ...empty }, badgesFill: false },
+        ff: 0.8,
+      },
+      {
+        name: "r3s3_reveal_first_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: reveal(1, 0, 0), ui: {} },
+        reveal: { tier: 1, flip: [0], ms: 900 },
+      },
+      {
+        name: "r3s3_reveal_first_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, meta: reveal(1, 0, 0), ui: {} },
+        reveal: { tier: 1, flip: [0], ms: 900 },
+      },
+      {
+        name: "r3s3_reveal_down_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: reveal(2, 3, 1), ui: {} },
+        reveal: { tier: 2, flip: [], ms: 600 },
+      },
+      {
+        name: "r3s3_reveal_all_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: reveal(2, 3, 1), ui: {} },
+        reveal: { tier: 2, flip: [0, 1, 2], ms: 1200 },
+      },
+      {
+        name: "r3s3_reveal_all_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, meta: reveal(3, 3, 1), ui: {} },
+        reveal: { tier: 3, flip: [0, 1, 2], ms: 1200 },
+      },
+      {
+        name: "r3s3_reveal_mid_phone",
+        viewport: PHONE,
+        scale: 2,
+        // Caught mid-turn: the rarity's glow before the face.
+        state: { ...stone, meta: reveal(3, 3, 1), ui: {} },
+        reveal: { tier: 3, flip: [1], ms: 260 },
+      },
+      {
+        name: "r3s3_album_empty_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: empty, ui: { panel: "album" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_album_half_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: half, ui: { panel: "album" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_album_half_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, meta: half, ui: { panel: "album" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_album_full_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: full, ui: { panel: "album" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_album_full_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, meta: full, ui: { panel: "album" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_album_gear_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: half, ui: { panel: "album", albumTab: "gear" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_album_gear_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, meta: half, ui: { panel: "album", albumTab: "gear" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_album_odds_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: half, ui: { panel: "album", albumTab: "odds" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_album_odds_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, meta: half, ui: { panel: "album", albumTab: "odds" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_survivor_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: half, ui: { sheet: "survivor", survivorSheet: "mara" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_survivor_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, meta: half, ui: { sheet: "survivor", survivorSheet: "mara" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_survivor_short_phone",
+        viewport: PHONE,
+        scale: 2,
+        // Dax: shards short of the next star, a slot empty.
+        state: { ...stone, meta: half, ui: { sheet: "survivor", survivorSheet: "dax" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_survivor_missing_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: half, ui: { sheet: "survivor", survivorSheet: "vera" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_gear_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: half, ui: { sheet: "gear", gearSheet: "crowbar" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_gear_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, meta: half, ui: { sheet: "gear", gearSheet: "crowbar" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_gear_craft_phone",
+        viewport: PHONE,
+        scale: 2,
+        // Not owned: Craft against the common shards held (17 of 20).
+        state: { ...stone, meta: half, ui: { sheet: "gear", gearSheet: "welding_goggles" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_scrap_open_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: half, ui: { sheet: "scrap" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_crew_stars_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: half, ui: { panel: "crew" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_dock_album_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: half, albumNew: 3 },
+        ff: 0.5,
+      },
+    ];
+  })(),
 ];
 
 /** Moves `time` by whole days (same hour) until the island has `weather` then. */
@@ -2906,6 +3257,7 @@ async function main() {
           badgesFill,
           quests,
           tide,
+          albumNew,
           ...run
         } = state;
         // R3 S2: the set completed a minute ago; a Lucky Tide bought `fromAgo` seconds ago.
@@ -2986,6 +3338,13 @@ async function main() {
           badgesSeen: Math.max(
             0,
             Object.keys(store.getState().base.meta.badges).length - (badgesNew ?? 0),
+          ),
+          // The Album's (D260): every card seen, unless the shot says how many are new.
+          albumSeen: Math.max(
+            0,
+            Object.keys(store.getState().base.meta.cards.survivors).length +
+              Object.keys(store.getState().base.meta.cards.gear).length -
+              (albumNew ?? 0),
           ),
         });
         if (away) {
@@ -3096,6 +3455,16 @@ async function main() {
         hook.fastForward?.(0.06);
       }, shot.juice);
       await page.waitForTimeout(shot.juiceMs ?? 60);
+    }
+    if (shot.reveal) {
+      // The reveal (D261): open a held drop of `tier` as a tap on the crates does, then turn the
+      // named cards over and wait `ms` for the flip (short, to catch it mid-turn).
+      await page.evaluate((tier) => window.__wipeDay.openDrop?.(tier), shot.reveal.tier);
+      await page.waitForTimeout(300);
+      await page.evaluate((indexes) => {
+        for (const index of indexes) window.__wipeDay.reveal?.(index);
+      }, shot.reveal.flip);
+      await page.waitForTimeout(shot.reveal.ms ?? 800);
     }
     if (shot.clip) {
       const [x, y, clipWidth, clipHeight] = shot.clip;

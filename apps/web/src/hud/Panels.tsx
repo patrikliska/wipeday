@@ -1,3 +1,4 @@
+import { heldDrops } from "@wipe-day/domain/cards";
 import type { NotifyPrefs } from "@wipe-day/domain/feed";
 import { eraOpen } from "@wipe-day/domain/lines";
 import { nextEra } from "@wipe-day/domain/shelf";
@@ -6,9 +7,12 @@ import type { NotifyView } from "../net/backend";
 import { currentSubscription, disablePush, enablePush, pushSupport } from "../net/push";
 import { haptics, sound } from "../sound/audio";
 import { uiEvent } from "../state/events";
+import { useReveal } from "../state/reveal";
 import { currentBackend, useWorld } from "../state/store";
 import { type Motion, type Panel, useUi } from "../state/ui";
 import { content, crewName, lineName, t, tierName } from "../state/world";
+import { AlbumPanel, albumSummary } from "./Album";
+import { Bust, Stars } from "./cards";
 import { Icon } from "./Icon";
 import { LogbookPanel, logbookSummary } from "./Logbook";
 import { tierVar, vars } from "./util";
@@ -28,7 +32,9 @@ export function Panels() {
       ? "crew_panel.title"
       : panel === "logbook"
         ? "logbook.title"
-        : "settings.title",
+        : panel === "album"
+          ? "album.title"
+          : "settings.title",
   );
   return (
     <div className="sheet-backdrop panel-backdrop">
@@ -54,7 +60,31 @@ export function Panels() {
 export function PanelBody({ panel }: { panel: Panel }) {
   if (panel === "crew") return <CrewPanel />;
   if (panel === "logbook") return <LogbookShell />;
+  if (panel === "album") return <AlbumShell />;
   return <SettingsPanel />;
+}
+
+/** The Album (D260), in the panel's shell: Open while drops wait, else Done. */
+function AlbumShell() {
+  const base = useWorld((state) => state.base);
+  if (!base) return null;
+  const held = heldDrops(base.meta.drops);
+  return (
+    <Shell
+      title={t("album.title")}
+      sub={albumSummary(base)}
+      {...(held > 0
+        ? {
+            primary: {
+              label: t("album.open_n", { n: held }),
+              onClick: () => useReveal.getState().start(),
+            },
+          }
+        : {})}
+    >
+      <AlbumPanel base={base} />
+    </Shell>
+  );
 }
 
 /** The badge wall (D239), in the panel's shell. */
@@ -68,7 +98,18 @@ function LogbookShell() {
   );
 }
 
-function Shell({ title, sub, children }: { title: string; sub?: string; children: ReactNode }) {
+function Shell({
+  title,
+  sub,
+  primary,
+  children,
+}: {
+  title: string;
+  sub?: string;
+  /** In the foot instead of Done: a panel's one natural action (the Album's Open). */
+  primary?: { label: string; onClick: () => void } | undefined;
+  children: ReactNode;
+}) {
   const openPanel = useUi((state) => state.openPanel);
   const close = () => openPanel(null);
   return (
@@ -89,8 +130,8 @@ function Shell({ title, sub, children }: { title: string; sub?: string; children
       </header>
       <div className="panel-scroll">{children}</div>
       <footer className="panel-foot">
-        <button type="button" className="btn primary grow" onClick={close}>
-          {t("settings.done")}
+        <button type="button" className="btn primary grow" onClick={primary?.onClick ?? close}>
+          {primary?.label ?? t("settings.done")}
         </button>
       </footer>
     </div>
@@ -113,6 +154,7 @@ function CrewPanel() {
     (line) => eraOpen(base, line) || (next && line.era === next.id && !next.requires),
   );
   const on = shown.filter((line) => base.run.hands.includes(line.id)).length;
+  const openSurvivor = useUi.getState().openSurvivor;
   return (
     <Shell title={t("crew_panel.title")} sub={t("crew_panel.summary", { on, total: shown.length })}>
       <ul className="crew-list">
@@ -120,6 +162,7 @@ function CrewPanel() {
           const hired = base.run.hands.includes(line.id);
           const open = eraOpen(base, line);
           const owned = base.run.lines[line.id] ?? 0;
+          const stars = base.meta.cards.survivors[line.hand];
           const status = !open
             ? t("crew_panel.opens_in", { era: tierName(line.era) })
             : hired
@@ -133,15 +176,24 @@ function CrewPanel() {
               className={`crew-row${hired ? " on" : ""}${open ? "" : " locked"}`}
               style={vars({ "--tier-color": tierVar(line.era) })}
             >
-              <span className="portrait">
-                <Icon kind="crew" id={line.hand} size={40} />
-              </span>
-              <span className="crew-text">
-                <span className="crew-name">
-                  {t("crew_panel.line", { name: crewName(line.hand), line: lineName(line.id) })}
+              <button
+                type="button"
+                className="crew-hit"
+                aria-label={crewName(line.hand)}
+                onClick={() => openSurvivor(line.hand)}
+              >
+                <span className="portrait">
+                  <Bust id={line.hand} box={44} dim={stars === undefined} />
                 </span>
-                <span className={`crew-status${hired ? " on" : ""}`}>{status}</span>
-              </span>
+                <span className="crew-text">
+                  <span className="crew-name">
+                    {t("crew_panel.line", { name: crewName(line.hand), line: lineName(line.id) })}
+                  </span>
+                  <span className={`crew-status${hired ? " on" : ""}`}>{status}</span>
+                  {stars !== undefined ? <Stars stars={stars} size={11} /> : null}
+                </span>
+                <Icon kind="ui" id="chevron" size={16} className="crew-chevron" />
+              </button>
             </li>
           );
         })}

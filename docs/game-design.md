@@ -733,9 +733,16 @@ Duplicates pay shards of their rarity; shards buy any gear card of that rarity i
 stars, Twig and Timber lines ×1.5; Full Muster, all 14 owned, Morale +10%; Matched Kit, a hired
 survivor wearing three gear cards of one rarity, that line +10%.
 
-**The Album** is a dock destination: survivors as a grid of portraits (greyed until owned, stars
-under each), gear as a grid, sets, the odds and pity counters, the shard balances. Icons from
-game-icons.net until the pixel icons exist (D141's fallback).
+**The Album** (R3 S3, D260) is a dock destination from the first Supply Drop: one head ("23 of
+44 cards", the drops waiting with Open) and three segments. Crew: the 14 survivors as busts,
+greyed until found, five star pips under each, the on-shift dot, the three sets with a bar. Gear:
+the 30 cards by slot, the wearer's bust on a worn piece. Odds: the shard balances, the printed
+odds per card and tier, the pity bars, the first-card note. A tap opens the survivor's sheet
+(trait, stars with "Star up · 10", three slots to equip, swap or take off) or the gear's (its
+stat, who wears it, "Craft · 20", Equip to any owned survivor). Held drops stand as crates by the
+house; a tap opens the **reveal** (D261): three cards face down, one flip per tap, the rarity's
+colour first, "Flip the next" and "To the Album". Busts and gear are 24×24 and 16×16 pixel art
+(D263).
 
 ### 5.14 Scrap, boosts and the store (R3, R9)
 

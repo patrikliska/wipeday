@@ -1,0 +1,35 @@
+[
+  {
+    "id": "drop_1",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1600,
+    "palette": true,
+    "prompt": "a small wooden supply crate of rough planks with a rope handle and a stencilled mark, standing on the ground, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "drop_2",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1601,
+    "palette": true,
+    "prompt": "a sturdy supply crate of dark wood with riveted steel corner bands and a brass padlock, standing on the ground, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "drop_3",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1602,
+    "palette": true,
+    "prompt": "a heavy steel military supply case, dark green with yellow hazard stripes and a glowing latch, standing on the ground, strict side view, light from the upper left, on a plain white background"
+  }
+]

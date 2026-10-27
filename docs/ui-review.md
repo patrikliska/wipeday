@@ -1965,3 +1965,53 @@ to two lines, short card subs).
 - *Left for S3:* the reveal for the drops the claims earn (held drops still only count), a sound
   of their own for a claim and the set (both on the era-ready and Frenzy-end cues now), and the
   pills' polish.
+
+## R3 S3: the Album, the reveal, the crates (2026-10-27)
+
+Shots `r3s3_*` (29: the Stone run at 10:30 and 19:00 with the Album empty, half full and full,
+phone and desktop). Four iterations.
+
+### Iteration 1
+- **The reveal never opened in the shots:** the harness sent `open_drop` straight through the
+  store, so the reveal store had no drop in hand and ignored the predicted `drop_opened`. The
+  harness now opens through the same hook a crate tap uses (`__wipeDay.openDrop`) and flips the
+  named cards (`reveal: {tier, flip, ms}`).
+- **Every new glyph drew as a lettered tile** (`ST`, `SL`, `AL`): Vite's icon glob had not seen
+  the files (the S6 gotcha again; `touch Icon.tsx`). The star pips at 11 px then overflowed their
+  tile as 44 px tiles until the real icon loaded.
+- **Two primaries on the Album** (the held plate's orange Open and the foot's Open 4) and on the
+  Scrap sheet (Open 1 beside Done): the plate's chip and the Scrap row's Open are plain buttons;
+  the foot keeps the one orange. **Equip buttons were 65×36:** `.btn.small` keeps the 44 px floor.
+- *Fine:* the crates stand between the pile and the house with the ×4 count and the hint; the
+  survivor sheet reads top to bottom (bust, stars, status, "Barrel Smasher ×1.98 while hired",
+  trait, stars' price, three slots); "STAR UP · NEED 19 MORE" disabled with its reason.
+
+### Iteration 2
+- The reveal: three cards, the Rare's blue strap and glow first, NEW ribbons, "To the Album"
+  beside "Flip the next"; mid-flip at 260 ms shows the glow before the face.
+- **"OPEN THE NEXT SUPPLY DROP II" overflowed the primary** at 390 px: "Open the next"; the head's
+  sub says what waits.
+- **The sets printed raw keys** (`[[line.twig.name]] ×1.5`): era-scoped and Morale effects now
+  have their own lines ("Twig lines ×1.5", "Morale ×1.1", "That line ×1.1").
+- **Two hints on the island** (the crate's and the house's): the house's waits while the crate's
+  is up (D254's chain: airdrop, crate, house, crow).
+- *Fine:* the Odds segment (shard chips in rarity colours, the table, "Rare or better within 10
+  cards · 3 of 10"); the gear sheet's Equip list with "Swap for Salvaged Hatchet · Barrel
+  Smasher ×1.2"; the desktop Album at seven columns.
+
+### Iteration 3 (the art installed)
+- Busts at zoom 2 in the grid and zoom 4 on the sheet read as people at arm's length; Dax's red
+  cap, Rook's grey ponytail and Vera's bun tell them apart at 48 px.
+- **Gear names truncated at five columns** ("Salvage…", "Bolt Cutt…"): four columns on a phone,
+  names on two lines, the wearer's bust moved to the top-right corner clear of the name.
+- **The first reveal showed Mara as "+5 shards":** the shot's Album already held her; a first
+  drop now opens on an empty Album and she wears NEW.
+- *Fine:* the crates' art (planks for I, banded for II, the green case for III) on the ground
+  by day and at night; the crew rows with busts and stars.
+
+### Iteration 4
+- Clean: no audit problems on 29 shots; the Bram and Pike busts arrived last and show after the
+  dev server re-globs the art (a restart or a touch of `PixelArt.tsx`).
+- *Left for S4:* the reveal's "creak then burst" is a creak and a flip (the burst waits for a
+  particle pass); the crates stand behind the hands' walk line on a busy camp; the Album's
+  desktop width could take the sets beside the grid.

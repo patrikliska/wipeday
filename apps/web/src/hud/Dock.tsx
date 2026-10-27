@@ -1,10 +1,12 @@
 import { badgeCount } from "@wipe-day/domain/badges";
+import { heldDrops } from "@wipe-day/domain/cards";
 import { useRef } from "react";
 import { useAdvisor } from "../state/advisor";
 import { useColumn } from "../state/layout";
 import { useWorld } from "../state/store";
 import { type Panel, useUi } from "../state/ui";
 import { content, t } from "../state/world";
+import { albumShown, cardsOwned } from "./Album";
 import { Icon } from "./Icon";
 import { researchTab, workshopOpenItems, workshopShown } from "./rows";
 import { Ticker } from "./Ticker";
@@ -16,7 +18,8 @@ import { Ticker } from "./Ticker";
  * at the first hand, the Logbook at the first badge. A badge counts new things (the Workshop:
  * items opened since its tab last showed; Crew: hands hired since the Crew sheet last showed
  * this run; the Logbook: badges earned since it last showed). Island closes any sheet.
- * On desktop the news ticker runs under it.
+ * The Album (D260) counts held drops plus cards owned since it last showed. On desktop the news
+ * ticker runs under it.
  */
 type Place = "island" | "workshop" | Panel;
 
@@ -36,6 +39,10 @@ export function Dock() {
   const workshopSeen = useUi((state) => state.workshopSeen);
   const badges = useWorld((state) => (state.base ? badgeCount(content, state.base) : 0));
   const badgesSeen = useUi((state) => state.badgesSeen);
+  const album = useWorld((state) => (state.base ? albumShown(state.base) : false));
+  const albumHeld = useWorld((state) => (state.base ? heldDrops(state.base.meta.drops) : 0));
+  const albumCards = useWorld((state) => (state.base ? cardsOwned(state.base) : 0));
+  const albumSeen = useUi((state) => state.albumSeen);
   const view = useAdvisor((state) => state.view);
   const playing = useWorld((state) => state.phase === "playing");
   // The places the dock showed when the game opened; a place that joins later pops in (3.2).
@@ -47,12 +54,26 @@ export function Dock() {
   const newItems = Math.max(0, openItems - (workshopSeen.run === run ? workshopSeen.items : 0));
   const onWorkshop = workshop && tab === "research" && (column || expanded);
   const current: Place =
-    panel === "crew" || panel === "logbook" ? panel : onWorkshop ? "workshop" : "island";
+    panel === "crew" || panel === "logbook" || panel === "album"
+      ? panel
+      : onWorkshop
+        ? "workshop"
+        : "island";
   const newHands = Math.max(0, hands - (seen.run === run ? seen.hands : 0));
   const items: Array<{ id: Place; icon: string; badge: number }> = [
     { id: "island", icon: "island", badge: 0 },
     ...(workshop ? [{ id: "workshop" as const, icon: "workshop", badge: newItems }] : []),
     ...(crew ? [{ id: "crew" as const, icon: "crew", badge: newHands }] : []),
+    // The Album from the first Supply Drop (D260): drops to open, and cards new since it showed.
+    ...(album
+      ? [
+          {
+            id: "album" as const,
+            icon: "album",
+            badge: albumHeld + Math.max(0, albumCards - albumSeen),
+          },
+        ]
+      : []),
     ...(badges > 0
       ? [{ id: "logbook" as const, icon: "logbook", badge: Math.max(0, badges - badgesSeen) }]
       : []),

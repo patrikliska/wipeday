@@ -117,3 +117,91 @@ export function hireFactor(content: Content, state: BaseState, line: LineDef): n
   }
   return factor;
 }
+
+// --- what the Album and the sheets read (R3 S3; D260-D262) ----------------------------------
+
+/** The next star a survivor can buy: its number, its shard price and the shards held. */
+export function nextStar(
+  content: Content,
+  state: BaseState,
+  survivor: string,
+): { to: number; cost: number; have: number } | null {
+  const stars = state.meta.cards.survivors[survivor];
+  if (stars === undefined) return null;
+  const cost = content.cards.stars.costs[stars - 1];
+  if (cost === undefined) return null;
+  return { to: stars + 1, cost, have: state.meta.drops.shards.crew[survivor] ?? 0 };
+}
+
+/** The most stars a survivor can hold. */
+export const maxStars = (content: Content): number => content.cards.stars.costs.length + 1;
+
+/** What crafting `gear` costs in shards of its rarity, and how many are held. */
+export function craftCost(
+  content: Content,
+  state: BaseState,
+  gear: string,
+): { cost: number; have: number } | null {
+  const def = gearOf(content, gear);
+  if (!def) return null;
+  return {
+    cost: content.cards.shards.craft[def.rarity],
+    have: state.meta.drops.shards.gear[def.rarity],
+  };
+}
+
+/** How full the Album is: survivors and gear owned against the whole set. */
+export function albumCounts(
+  content: Content,
+  state: BaseState,
+): { survivors: { owned: number; total: number }; gear: { owned: number; total: number } } {
+  const cards = state.meta.cards;
+  return {
+    survivors: {
+      owned: content.cards.survivors.filter((row) => cards.survivors[row.id] !== undefined).length,
+      total: content.cards.survivors.length,
+    },
+    gear: {
+      owned: content.cards.gear.filter((row) => row.id in cards.gear).length,
+      total: content.cards.gear.length,
+    },
+  };
+}
+
+/** The pity counters as the Album prints them: cards since the last of each rarity, of `within`. */
+export function pityView(
+  content: Content,
+  drops: BaseState["meta"]["drops"],
+): { rarity: "rare" | "epic" | "legendary"; since: number; within: number }[] {
+  const limits = content.cards.drops.pity;
+  return (["rare", "epic", "legendary"] as const).map((rarity) => ({
+    rarity,
+    since: drops.pity[rarity],
+    within: limits[rarity],
+  }));
+}
+
+/** How many of a crew set's survivors stand at its stars, of how many it needs. */
+export function setProgress(
+  content: Content,
+  cards: Cards,
+  set: Content["cards"]["sets"]["crews"][number],
+): { done: number; total: number } {
+  const members = content.cards.survivors.filter(
+    (row) => set.rarity === undefined || row.rarity === set.rarity,
+  );
+  return {
+    done: members.filter((row) => (cards.survivors[row.id] ?? 0) >= set.stars).length,
+    total: members.length,
+  };
+}
+
+/** Supply Drops held, every tier together. */
+export const heldDrops = (drops: BaseState["meta"]["drops"]): number =>
+  drops.held[1] + drops.held[2] + drops.held[3];
+
+/** The highest tier held (the crate in front, the one a tap opens), or null. */
+export function topTier(drops: BaseState["meta"]["drops"]): 1 | 2 | 3 | null {
+  for (const tier of [3, 2, 1] as const) if (drops.held[tier] > 0) return tier;
+  return null;
+}

@@ -25,6 +25,7 @@ import { useAdvisor } from "../state/advisor";
 import { wall } from "../state/clocks";
 import { emit, type GameEvent, on } from "../state/events";
 import { insets, phoneCover } from "../state/layout";
+import { useReveal } from "../state/reveal";
 import { gameSeconds, useWorld } from "../state/store";
 import { heldTaps } from "../state/taps";
 import { closeAll, useUi } from "../state/ui";
@@ -45,6 +46,7 @@ import {
 } from "../state/world";
 import { Hands, type Post } from "./actors";
 import { House } from "./base";
+import { Crates } from "./crates";
 import { Floaters, type Glow, Particles, Weather } from "./effects";
 import { Flotsam } from "./flotsam";
 import { Gulls } from "./gulls";
@@ -125,6 +127,8 @@ const CATCH_COINS_DELAY_MS = 500;
 
 /** The house's hint ("Tap the cabin to go inside") retires after this many openings. */
 const HOUSE_HINT_OPENS = 2;
+/** The drop crates stand this far left of the house's centre (art px), between it and the pile. */
+const CRATES_LEFT = 22;
 
 function readHint(): string | null {
   try {
@@ -196,11 +200,17 @@ export class Scene {
         : null;
     },
   });
+  /** Supply Drops waiting by the house (D261): a tap opens the top tier's reveal. */
+  private readonly crates = new Crates({
+    open: (tier) => useReveal.getState().start(tier),
+    quiet: () => !this.flotsam.hint.hidden,
+  });
   private readonly gulls = new Gulls({
     claim: (run, k) => useWorld.getState().send({ type: "claim_gull", run, k }),
     arrived: (elite) => emit({ type: "gull_arrived", elite }),
-    // On a phone the two hints would overlap (R3 review): the airdrop's goes first.
-    quiet: () => !this.flotsam.hint.hidden,
+    // On a phone the hints would overlap (R3 review, D254): the airdrop's goes first, then the
+    // crate's, then the crow's.
+    quiet: () => !this.flotsam.hint.hidden || !this.crates.hint.hidden,
   });
   private readonly house = new House(this.particles);
   private readonly lines: Lines;
@@ -312,7 +322,13 @@ export class Scene {
     this.house.container.position.set(HOUSE.x, HOUSE.y);
     this.house.container.zIndex = HOUSE.y;
     this.stockpile.place(PILE.x, PILE.y);
-    this.props.addChild(this.house.container, this.target.container, this.stockpile.container);
+    this.crates.place(HOUSE.x - CRATES_LEFT * ART, HOUSE.y);
+    this.props.addChild(
+      this.house.container,
+      this.target.container,
+      this.stockpile.container,
+      this.crates.container,
+    );
     this.world.addChild(
       this.sky.container,
       this.terrain.back,
@@ -351,6 +367,8 @@ export class Scene {
     this.host.appendChild(this.button);
     this.host.appendChild(this.flotsam.button);
     this.host.appendChild(this.flotsam.hint);
+    this.host.appendChild(this.crates.button);
+    this.host.appendChild(this.crates.hint);
     this.host.appendChild(this.gulls.button);
     this.host.appendChild(this.gulls.hint);
     this.host.appendChild(this.houseButton);
@@ -379,10 +397,12 @@ export class Scene {
       hitBoxes: () => {
         const flotsam = this.flotsam.hitBox;
         const gull = this.gulls.hitBox;
+        const crates = this.crates.hitBox;
         return [
           { name: "target", ...this.box },
           ...(flotsam ? [{ name: "flotsam", ...flotsam }] : []),
           ...(gull ? [{ name: "gull", ...gull }] : []),
+          ...(crates ? [{ name: "crates", ...crates }] : []),
         ];
       },
       counts: () => ({ floaters: this.floaters.count, particles: this.particles.count }),
@@ -400,6 +420,8 @@ export class Scene {
     this.houseHint.remove();
     this.flotsam.button.remove();
     this.flotsam.hint.remove();
+    this.crates.button.remove();
+    this.crates.hint.remove();
     this.gulls.button.remove();
     this.gulls.hint.remove();
     if (!this.ready) return;
@@ -668,6 +690,7 @@ export class Scene {
         jump > 5,
       );
       this.updateRoom(base, now, nowMs, dt);
+      this.crates.update(base, nowMs, this.camera(), this.viewW - this.insetRight, this.roomOpen);
     }
     this.placeButton();
     this.drawHoldRing(nowMs);
@@ -695,6 +718,7 @@ export class Scene {
         this.lines.relayout(layoutFor(era));
         HOUSE.x = stageSpot(houseSpotFor(era)).x;
         this.house.container.position.set(HOUSE.x, HOUSE.y);
+        this.crates.place(HOUSE.x - CRATES_LEFT * ART, HOUSE.y);
         this.stockpile.place(stageSpot(stockpileSpotFor(era)).x, PILE.y);
       }
       this.button.setAttribute(
@@ -855,7 +879,8 @@ export class Scene {
     this.houseButton.hidden = !shown;
     const name = t(`house.${base.run.era}`);
     this.houseButton.setAttribute("aria-label", t("house.open", { house: name }));
-    const hint = shown && Number(readHint() ?? 0) < HOUSE_HINT_OPENS;
+    // One hint at a time (D254): the crate's first, it is the newer thing.
+    const hint = shown && Number(readHint() ?? 0) < HOUSE_HINT_OPENS && this.crates.hint.hidden;
     this.houseHint.hidden = !hint;
     if (!shown) return;
     const b = this.house.container.getBounds();

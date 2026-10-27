@@ -80,6 +80,19 @@ while (Date.now() < deadline) {
     headers: H,
   });
   const { tasks = [] } = await res.json();
+  // The list holds the last 50 tasks: a big batch's first jobs fall off it while later ones
+  // still run (R3 S3's 60 gear jobs), so a pending job with a task of its own is fetched by id.
+  const listed = new Set(tasks.map((t) => t.task_id));
+  for (const id of want) {
+    const taskId = manifest[id]?.task_id;
+    if (!taskId || manifest[id]?.done || listed.has(taskId)) continue;
+    const one = await fetch(`https://api.retrodiffusion.ai/v2/inferences/tasks/${taskId}`, {
+      headers: H,
+    });
+    const body = await one.json().catch(() => null);
+    const task = body?.task ?? body;
+    if (task?.task_id) tasks.push(task);
+  }
   for (const t of tasks) {
     if (t.status !== "succeeded" && t.status !== "failed") continue;
     let id = Object.keys(manifest).find((k) => manifest[k].task_id === t.task_id);

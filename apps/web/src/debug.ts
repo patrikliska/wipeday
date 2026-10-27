@@ -11,6 +11,7 @@ import { questOf } from "@wipe-day/domain/quests";
 import { islandDay, weatherAt } from "@wipe-day/domain/weather";
 import { demoClocks, wall } from "./state/clocks";
 import { seedPace } from "./state/pace";
+import { useReveal } from "./state/reveal";
 import { useWorld } from "./state/store";
 import { useUi } from "./state/ui";
 import { content } from "./state/world";
@@ -50,6 +51,10 @@ interface DebugHook {
   gullNow: () => { run: number; k: number } | null;
   /** Marks every badge the base already meets as earned (`at`), but `except`: shots of one toast. */
   fillBadges: (at: number, except?: string[]) => void;
+  /** Opens a held drop of `tier` through the reveal (D261), as a tap on the crates does. */
+  openDrop: (tier: 1 | 2 | 3) => void;
+  /** Turns card `index` of the open reveal over, as a tap on it would. */
+  reveal: (index: number) => void;
   /**
    * The day's quests as a shot wants them at game second `time`: these ids, these claimed, the
    * set paid or not, and each quest's progress today (its counter's growth since the roll).
@@ -142,6 +147,8 @@ export function installDebug(): void {
         },
       );
     },
+    openDrop: (tier) => useReveal.getState().start(tier),
+    reveal: (index) => useReveal.getState().flip(index),
     fillBadges: (at, except = []) => {
       const current = useWorld.getState().base;
       if (!current) return;
