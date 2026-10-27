@@ -12,9 +12,15 @@ const sources = import.meta.glob<string>("../../../../packages/content/icons/pro
   import: "default",
   eager: true,
 });
-/** Supplies, glass and scrap ride on the gains that are not a product's (taps, fells, crates). */
+/**
+ * Supplies, glass and scrap ride on the gains that are not a product's (taps, fells, crates);
+ * the shard rides on a claimed Work Order's (D266).
+ */
 const currencySources = import.meta.glob<string>(
-  "../../../../packages/content/icons/currency/*.svg",
+  [
+    "../../../../packages/content/icons/currency/*.svg",
+    "../../../../packages/content/icons/ui/shard.svg",
+  ],
   { query: "?raw", import: "default", eager: true },
 );
 const flotsamSources = import.meta.glob<string>(

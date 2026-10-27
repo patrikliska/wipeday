@@ -6,7 +6,7 @@ should think, and what "done" means**. It was rewritten in R0 from the approved 
 (`docs/redesign/11-roadmap.md`, which keeps the reasons); the W-phase roadmap and its results are
 in `docs/archive/roadmap-w.md`.
 
-## Where we are (2026-10-26, R3 Cards S2 done)
+## Where we are (2026-10-27, R3 Cards done)
 
 - **The live game is the redesign** since 2026-10-19 (D242): the owner had R2 Feel S7 (`redesign`
   at fdc5010) deployed to https://wipeday.patrikliska.dev, bringing the cut-over forward from R4.
@@ -106,9 +106,50 @@ in `docs/archive/roadmap-w.md`.
 - **R3 S3, the Album and the reveal, is done** (2026-10-27; D260-D264; results below): the
   Album in the dock as Crew · Gear · Odds, the reveal sheet, the survivor and gear sheets,
   crates by the house, 14 busts and 30 gear cards installed as provisional picks.
-- **Next: R3 S4** (Workshop tiers 5-8 and the balance: the fell schedule, shards and quest goals
-  against a casual's 2-4 drops a day and the Album in about two weeks; `shipped: "R3"`;
-  `pnpm sim check --full`; the juice checklist). Retro Diffusion holds 13.73 USD.
+- **R3 S4, Workshop tiers 5-8 and the balance, is done: R3 Cards is complete** (2026-10-27;
+  D265-D267; results below): twenty late Workshop items, Work Orders pay shards and their set a
+  drop, the drops' gate pays its queue first and shows it, N30 and N33 at R3, `shipped: "R3"`,
+  the juice pass on R3's features.
+- **Next: R4 The Big Red** (plan mode; the nuke, Crater Glass, the Blast Map's first rings, the
+  Kettle's crown from the fuelled set, the cut-over's remains). Retro Diffusion holds 13.73 USD.
+  R4 tunes against the late tiers' later-runs power (D265: a casual's day-30 lifetime rose from
+  1.6e20 to 1.2e23).
+
+### R3 S4 results: Workshop tiers 5-8 and the balance
+- **Built:** `research.json5` tiers 5-8 (D265: twenty items, names proposed in the decision);
+  `orders.json5` pays shards per era and a `set` drop, the `Pay` schema's `shards` row, `pay()`
+  crediting gear shards with `shards_earned`, `claimOrder` paying the set on the fuelling claim,
+  the gate paying its queue before felling's marks (`credit`), `nextDropAt` and `dropsOnWay`
+  (D266); the quests' fell mark every 30th; simulator columns `base owed stars shards craft`,
+  checks `casualAlbumBase`/`casualAlbumFull`, N30's band, the optimal's `quickDays`, Max on
+  Workshop levels. Web: shard chips in the rarity's colour (`RewardChips`), `payWords`, `OnWay`
+  ("1 on its way · next in 42 min") in the Orders sheet's set box, Today and the Album's plate,
+  the Odds segment's gate rule, shards flying into the dock's Album (`dockPoint`, `bumpDock`),
+  boost pills lingering with a tick (`boost_ended`), pops on the held count and the shard chips,
+  own cues `drop_land`, `set_done`, `boost`, `shards` (D267).
+- **Decisions:** D265 tiers 5-8 and their later-runs power; D266 orders pay shards, the set a
+  drop, the queue first and shown; D267 the juice pass.
+- **Tests:** content research test at eight tiers; `orders.test.ts` (shards per era, the set's
+  gated drop), `cards.test.ts` (the fell schedule from data); `sim.test.ts` stops; `pnpm check`
+  passes; the quick profile 9.5-10.2 s.
+- **Balance** (`pnpm sim check`, test profile): every R0-R3 row passes. Run 1 unchanged (first
+  hour: Stone 8:32-8:59, Sheet Metal 42:29-45:09, Frenzy 41:09, nuke 42:34-45:19; N23 run 1
+  5.0e10-2.5e11; the casual nukes at day 1 21:00). **N19** casual 5.00, active 6.14, idler 1.14,
+  late joiner 5.00 a day, the casual 135 by day 30. **N30** the casual 2.43 a day, fewest 1,
+  active 5.23, idler 0.64, late joiner 3.13 (the optimal about 9-10 in `--full`'s first week,
+  under the 12 ceiling). **N33** the base set on day 10 (want 7-14); the Album never inside 30
+  days. **N32** idler 5, casual 5, active 8, optimal 6, late joiner 7. **N4-N9** as before (N9
+  5.06-5.31). The late tiers are a later-runs engine (D265): R4 tunes the nuke against them.
+  `pnpm sim check --full` (365 days, seeds 7, 11, 23; 147 s) passes every R0-R3 row: N19 casual
+  4.57-5.00, active 5.86-6.29, optimal 6.29-7.00, late joiner 4.14-5.00, idler 1.14, the casual
+  135-141 by day 30; N30 casual 2.43-2.60 a day (fewest 1), active 5.17-5.33, optimal 5.60-5.73,
+  late joiner 2.57-2.63, idler 0.37; N33 the base set on day 8-10, the whole Album on day
+  101-131; N32 5-8 in every run 1; N9 5.28-5.41 (rain warns at 6.07-6.89 on days 30 and 60, as
+  before); first-hour nuke 41:54-46:34 over 12 seeds; N23 run 1 5.0e10-6.7e11.
+- **Shots:** `r3s4_*` (08-screens.md 8.3c); notes in `docs/ui-review.md`.
+- **Owner supplies:** the twenty names of D265 (approve or veto); a shard sink for the surplus
+  (a casual holds 1,000+ Common and Rare shards by day 30 once its gear is complete: R6's
+  Logbook or the Album could spend them).
 
 ### R3 S3 results: the Album and the reveal
 - **Built:** `hud/Album.tsx` (the panel: head, three segments, the held-drops plate, the crew
@@ -853,7 +894,7 @@ and scrap as the premium currency earned in play (`12-feel.md` 7, 8, 9.2).
   badges; spent on drops (30 / 120) and boosts on real seconds (Overdrive, Double Time, Lucky Tide
   on its own airdrop grid). **Work Orders**: `orders.json5` (a pool per era; eight rolled per run on
   the base's seed; each a predicate on the run in the badges' `when` vocabulary; each pays a drop or
-  scrap), `claim_order`, `fuelled` (five of eight) in the run for R4's crown and the Kettle; the
+  scrap *(S4, D266: gear shards of its era's rarity, and the fifth claim a drop)*), `claim_order`, `fuelled` (five of eight) in the run for R4's crown and the Kettle; the
   orders card at the top of the shop (fixed, D186) and the orders sheet with "Today": the three
   daily quests (an island day, UTC+1; unclaimed ones paid at the roll), also in the Logbook. The
   mocks (`hud/mocks`) go. Simulator: every archetype claims orders and quests; N19, N30 and the new
@@ -869,7 +910,9 @@ and scrap as the premium currency earned in play (`12-feel.md` 7, 8, 9.2).
   against N4-N9 and N23; `shipped: "R3"`; `pnpm sim check --full`; the juice checklist.
 
 **Done when:** **N28** no card is blank, a duplicate pays shards (domain test); **N29** pity as
-printed (the seeded drop test); **N30** the casual opens at least one drop a day in days 1-30;
+printed (the seeded drop test); **N30** the casual opens at least one drop a day in days 1-30,
+2-4 a day on average, nobody above 12 (D266); **N33** the base set (every Common and Rare) by
+day 14 and not before day 7, the Album never before day 45 (warn);
 **N19** scrap 4-6 a day for a casual (7-day average from day 2), at least 100 by day 30, nobody
 above 8; **N32** five Work Orders are reachable in every run 1, for every archetype (D255); scrap never traded, gifted, wagered, stolen or sold for Supplies; the odds page is one
 tap from every drop.

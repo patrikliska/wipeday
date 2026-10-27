@@ -1408,6 +1408,18 @@ order (D192): the groups once tagged R2-R7 are R4-R9.
 | `r3s3_gear_{phone,desktop}`, `r3s3_gear_craft_phone` | the Crowbar's sheet with Equip to every owned survivor; the Welding Goggles to craft, 17 of 20 shards | R3 |
 | `r3s3_scrap_open_phone`, `r3s3_crew_stars_phone`, `r3s3_dock_album_phone` | Open beside a bought drop; the Crew panel's busts and stars; the dock's Album badge | R3 |
 
+### 8.3c R3 S4's shots (Workshop tiers 5-8 and the balance)
+
+| Shot | Shows | Phase |
+| --- | --- | --- |
+| `r3s4_{desktop,phone}_workshop_stone`, `r3s4_{desktop,phone}_workshop_stone_night` | the Workshop's Stone group with tiers 5-6 started, by day and in night rain, scrolled to its end | R3 |
+| `r3s4_{desktop,phone}_workshop_metal` | Sheet Metal an hour in: six tiers bought out, tiers 7-8 going | R3 |
+| `r3s4_desktop_workshop_flash` | Fire Brick's tile mid-flash after a level | R3 |
+| `r3s4_{phone,desktop}_orders_shards`, `r3s4_phone_orders_claim_shards` | the Orders sheet with the shard chips in their rarity's colour and the set's drop under the rule; a claim mid-flash | R3 |
+| `r3s4_{phone,desktop}_orders_set_onway` | the complete set: "The set paid a Supply Drop I" and "1 on its way · next in 40 min" | R3 |
+| `r3s4_{phone,desktop}_album_onway` | the Album's plate with a drop on its way (nothing held; one held) | R3 |
+| `r3s4_{phone,desktop}_album_gate` | the Odds segment with the gate's rule under the pity bars | R3 |
+
 ### 8.4 The `docs/ui-review.md` checklist, adapted
 
 The review loop of CLAUDE.md 6.4 stays; the checklist becomes:

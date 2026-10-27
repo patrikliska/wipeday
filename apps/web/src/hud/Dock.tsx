@@ -104,6 +104,7 @@ export function Dock() {
             key={item.id}
             type="button"
             className={`dock-item${current === item.id ? " on" : ""}${shownAtStart.has(item.id) ? "" : " arrive"}`}
+            data-place={item.id}
             aria-current={current === item.id ? "page" : undefined}
             aria-label={
               item.badge > 0

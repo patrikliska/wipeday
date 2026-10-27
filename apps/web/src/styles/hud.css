@@ -4484,3 +4484,74 @@
   color: var(--text);
   pointer-events: none;
 }
+
+/* R3 S4 (D266): shard chips in their rarity's colour, the set's pay line, drops on their way. */
+.reward-shards,
+.rewards.ready .reward-shards {
+  color: var(--rarity);
+  border-color: color-mix(in srgb, var(--rarity) 55%, var(--edge));
+}
+
+.rewards.claimed .reward-shards {
+  color: color-mix(in srgb, var(--rarity) 55%, var(--muted));
+}
+
+.set-box-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.set-box-pays {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  color: var(--text);
+}
+
+.on-way {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--supplies-hi);
+  font: 700 12px / 1.2 var(--body);
+  white-space: nowrap;
+}
+
+.album-onway {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 2px dashed color-mix(in srgb, var(--supplies) 45%, var(--edge));
+}
+
+.album-onway .on-way {
+  font-size: 13px;
+}
+
+.dock-item.bump .icon,
+.dock-item.bump svg {
+  animation: counter-bump 320ms ease-out;
+}
+
+/* A boost's pill lingers for a beat as it runs out: its line goes white, then it fades (D267). */
+.plate.buff.ending {
+  animation: fade 600ms ease reverse;
+}
+
+.plate.buff.ending > i {
+  transform: scaleX(1);
+  background: #fff;
+  transition: none;
+}
+
+/* The Album's held count and the shard chips pop as they rise (12-feel.md 3.2, D267). */
+.album-held-count.pop,
+.shard-chip .num.pop {
+  animation: badge-pop 300ms var(--ease-back, cubic-bezier(0.34, 1.56, 0.64, 1));
+}

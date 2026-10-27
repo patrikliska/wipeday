@@ -4,6 +4,7 @@ import { suppliesAt } from "@wipe-day/domain/settle";
 import { useEffect, useRef } from "react";
 import { useAdvisor } from "../state/advisor";
 import { wall } from "../state/clocks";
+import { emit } from "../state/events";
 import { useColumn } from "../state/layout";
 import { counterHold, gameSeconds, useWorld } from "../state/store";
 import { useUi } from "../state/ui";
@@ -163,9 +164,25 @@ function BuffPills() {
   const buffs = useWorld((state) => state.base?.run.buffs);
   const tide = useWorld((state) => state.base?.run.tide ?? null);
   const second = useWorld((state) => state.second);
-  const live = (buffs ?? []).filter((buff) => buff.until > second);
+  // A bought boost or the tide that ran out this very second lingers a beat with its tick
+  // (12-feel.md 3.2, D267): the pill is drawn once more with `ending`, and the bus hears it.
+  const ending = useRef(new Map<string, number>());
+  const boosts = (buffs ?? [])
+    .filter((buff) => content.scrap.boosts.some((row) => row.id === buff.kind))
+    .map((buff) => [buff.kind, buff.until] as const);
+  if (tide) boosts.push([tide.boost, tide.until]);
+  for (const [kind, until] of boosts) {
+    if (until <= second && until > second - 2 && !ending.current.has(kind)) {
+      ending.current.set(kind, until);
+      emit({ type: "boost_ended", boost: kind });
+    }
+  }
+  for (const [kind, until] of ending.current) if (until <= second - 2) ending.current.delete(kind);
+  const live = (buffs ?? []).filter(
+    (buff) => buff.until > second || ending.current.get(buff.kind) === buff.until,
+  );
   const tideBoost =
-    tide && tide.until > second
+    tide && (tide.until > second || ending.current.get(tide.boost) === tide.until)
       ? content.scrap.boosts.find((row) => row.id === tide.boost)
       : undefined;
   if (live.length === 0 && !tideBoost) return null;
@@ -174,6 +191,7 @@ function BuffPills() {
   return (
     <div className="buffs" aria-live="off">
       {shown.map((buff) => {
+        const over = buff.until <= second;
         // Frenzy (D237) is one number on screen: taps and lines ×mult.
         const frenzy = buff.kind === "frenzy";
         let factor = 1;
@@ -195,7 +213,10 @@ function BuffPills() {
               : buff.until - second;
         const left = Math.max(0, buff.until - second);
         return (
-          <span key={buff.kind} className={`plate buff${frenzy ? " frenzy" : ""}`}>
+          <span
+            key={buff.kind}
+            className={`plate buff${frenzy ? " frenzy" : ""}${over ? " ending" : ""}`}
+          >
             {frenzy || boost ? (
               <Icon kind="ui" id={buff.kind} size={18} />
             ) : (
@@ -213,7 +234,7 @@ function BuffPills() {
         );
       })}
       {tideBoost && tide && shown.length < 3 ? (
-        <span key="tide" className="plate buff">
+        <span key="tide" className={`plate buff${tide.until <= second ? " ending" : ""}`}>
           <Icon kind="ui" id={tideBoost.id} size={18} />
           <span className="num">
             {t("hud.tide", {

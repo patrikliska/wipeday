@@ -673,6 +673,15 @@ instead.
   lines +5%), Camp Kitchen (Twig lines +3%), Hide Mitts (taps +1), Crew Rations (every line +1%),
   Storm Shutters (+5% while away). Only stats the crown scores in closed form; nothing that raises
   the tap's `c` (5.2). Quick Count (buy ×10) is dropped (D194).
+- **Tiers 5-8 (R3, D265):** tier 5 Fire Brick, Bark Liquor, Iron Screws (+5% a level on the
+  Furnace, the Tannery, the Press, 25), Bellows (Stone lines 1% faster, 20), Quota Board (every
+  line +1%); tier 6 Quarry Rails (Stone lines +5%), Seasoned Timber (Timber lines +3%), Wrapped
+  Grips (taps +1, 10), Tar Paper (+5% while away, 10), Shift Bell (every line +1%); tier 7 Mooring
+  Winch, Copper Windings, Guy Wires (+5% on the Dock, the Generator, the Radio Mast), Drive Belts
+  (Sheet Metal lines 1% faster), Work Rota (every line +1%); tier 8 Welded Frames (Sheet Metal
+  lines +5%), Brick Lining (Stone lines +3%), Assembly Line (every line ×1.02 a level, 10),
+  Blackout Cloth (+5% while away), Steel Toecaps (taps +1). Run 1 barely reaches them; from run
+  2 they are a ×6-×9 on the late eras, the power R4's nuke rows are tuned against.
 - **Opens** two minutes after the run's clock starts (D229); tier `k` with era `ceil(k/2)`.
 - **Shown** on the shop's Workshop tab as tiles two to a row in era groups (D235): the icon of what
   it improves in a ring of its levels, `n/levels`, what a level does and adds, one button (×1 or
@@ -689,11 +698,11 @@ is earned in play or bought with scrap; nothing else opens one before R9.
 
 | Source | Tier | How often | Ships |
 | --- | --- | --- | --- |
-| Felling | I | the 5th fell, then every 25th; at most one an hour and three a day (D249) | R3 |
+| Felling | I | the 5th fell, then every 30th; at most one an hour and three a day (D249, D266) | R3 |
 | Badges | I | one per 10, through the same hourly gate (they wait their turn) | R3 |
 | Flotsam: Sealed Locker | II | weight 1 (1.1% of airdrops) | R3 |
-| Daily quests | I | all three of the day's quests | R3 |
-| Work Orders | I | each claimed order, through the same hourly gate as felling's (D256) | R3 |
+| Daily quests | I | all three of the day's quests, through the gate (the queue is paid first, D266) | R3 |
+| Work Orders | I | the fifth claim (the set), through the gate; each order pays gear shards of its era's rarity at once (D266) | R3 |
 | Scrap | II / III | 30 / 120 scrap | R3 |
 | The nuke | I / II / III | a small blast / a Wipe Day / a doubling Wipe Day | R4 |
 

@@ -3041,3 +3041,62 @@ The contact sheets stay in `preview/art/r3-busts-sheet.png`, `r3-gear-sheet.png`
 `r3-crates-sheet.png`; a swap is a number in the picks file and `pnpm art install
 scripts/art/picks/r3.json`. Spend: 13.86 USD (busts 5.76 with retakes, gear 8.46, crates 0.36,
 every 502 uncharged); balance after 13.73 USD.
+
+### D265. Workshop tiers 5-8: twenty late items on the same shape; the late tree is a later-runs engine (R3 S4)
+`research.json5` gained tiers 5-6 (Stone) and 7-8 (Sheet Metal), five items each, on D227's rules
+(one scorable effect, 5-25 levels, `40 × 20^(k−1) × 1.35^n`): tier 5 Fire Brick, Bark Liquor,
+Iron Screws (+5% a level on the Furnace, the Tannery, the Press, 25), Bellows (Stone lines 1%
+faster, 20), Quota Board (every line +1%, 25); tier 6 Quarry Rails (Stone lines +5%), Seasoned
+Timber (Timber lines +3%), Wrapped Grips (taps +1, 10), Tar Paper (+5% while away, 10), Shift
+Bell (every line +1%); tier 7 Mooring Winch, Copper Windings, Guy Wires (+5% on the Dock, the
+Generator, the Radio Mast), Drive Belts (Sheet Metal lines 1% faster), Work Rota (every line
++1%); tier 8 Welded Frames (Sheet Metal lines +5%), Brick Lining (Stone lines +3%), Assembly Line
+(every line ×1.02 a level, 10: the late tree's one compounding item), Blackout Cloth (+5% while
+away), Steel Toecaps (taps +1). The Night Shift's 2 h Workshop budget (Spare Wicks) and Hustle's
+ceiling (Steady Rhythm) are spent, so the late tiers never touch them. Names are proposals. The
+whole tree costs about 1.4e15 (the check's 1e18 holds); nothing else changed: `tierEra`, the era
+gate, the tab's groups, the advisor and the checks already took eight tiers. Measured: run 1 is
+untouched (tier 5 opens at Stone from 6.4M against a 5e10 lifetime: the first-hour beats stay
+Stone 8:32-8:59, Sheet Metal 42:29-45:09, Frenzy 41:09, the nuke 42:34-45:19; the casual still
+nukes at day 1 21:00), but from run 2 the late tiers are bought out within a run and act as a
+×6-×9 on the Stone and Sheet Metal lines: the casual's lifetime at day 30 rose from 1.6e20 to
+1.2e23, the optimal's from 2.7e24 to 1.4e26. That is the power R4's nuke rows (N11-N13, the
+glass formula, the Blast Map budget) will be tuned against; nothing R3 asserts moved. The
+simulator buys a Workshop level with the tile's Max (D235): one level at a time, the 500 new
+levels a run put the quick profile past its 10 s.
+
+### D266. Work Orders pay shards; the set pays a drop; the gate pays its queue first and shows it (R3 S4)
+`pnpm sim` showed the orders' drops never arriving: each of the eight orders a run paid a drop
+through the hourly gate (D256), the casual claimed about 185 in 30 days, and the gate (one an
+hour, three sessions) opened 94, so about 100 promised drops sat for ever in an invisible queue;
+with about a run a day, orders alone exceed the owner's 2-4 drops a day (D248), so no tuning
+could keep the promise. The owner picked: **each order pays gear shards of its era's rarity at
+once** (Twig 3 Common, Timber 6 Rare, Stone 10 Epic; `pays: [{ shards: { rarity, n } }]`, a new
+`Pay` kind `pay()` credits to `meta.drops.shards.gear` with a `shards_earned` event), and **the
+fifth claim, the set, pays a tier-I drop** (`orders.json5` `set`, through the gate as the quest
+set's does). The gate now pays its queue (the quest set's and the order sets' marks, the badges')
+**before** felling's marks: the queue's marks are few by construction and must arrive; felling's
+are elastic and lapse when the hour is taken (D249). Felling's mark moved to every 30th fell (a
+casual session fells about 30 times, so a session never comes up empty) and the quest set's drop
+stays gated. The queue is shown: the Album's plate and the Orders sheet's set box say "1 on its
+way · next in 42 min" (`dropsOnWay`, `nextDropAt`), the Odds segment prints the gate's rule, and
+the reward chips show the shard in its rarity's colour with its number flying into the dock's
+Album. Measured (test profile): the casual opens 2.4 a day, never none, the queue at most 1, the
+base set (every Common and Rare, 31 of 44, the owner's "Album in about two weeks") complete on
+day 10, the whole Album never inside 30 days (the four Legendaries by pity over months); the
+idler 0.6, the active 5.2, the late joiner 3.1; the optimal about 9-10 in its first week (an
+hourly player with seven runs a day; the gate's ceiling is 24). **N30** now asserts the casual's
+2-4 mean and nobody above 12; **N33** asserts the base set on days 7-14 and warns if the Album
+completes before day 45. The optimal archetype's first week is `--full`'s (`quickDays: 1`).
+`12-feel.md` 7.1's "orders pay drops" and D259 are superseded; 13-adventure.md B stands with
+"a drop or scrap" read as "shards, and the set a drop".
+
+### D267. The juice checklist on R3's features (R3 S4)
+As D225 and D243 did for R2: a Supply Drop landing has its own thud (`drop_land`, Kenney wood
+impacts), a completed quest set and a fuelled order set their own confirmation (`set_done`), a
+bought boost its own ignition (`boost`), earned shards a glass clink (`shards`); a bought boost's
+or the Lucky Tide's pill lingers a beat as it runs out with its line white and a `boost_ended`
+tick; the Album's held count and the Odds segment's shard chips pop as they rise; a claimed
+order's shards fly from the house into the dock's Album, which bumps. Reduced motion already
+covered the reveal (`.reduced .reveal-*`) and the crates' landing; the new flyers and pops are on
+the same switches.

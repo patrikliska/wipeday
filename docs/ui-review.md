@@ -2015,3 +2015,50 @@ phone and desktop). Four iterations.
 - *Left for S4:* the reveal's "creak then burst" is a creak and a flip (the burst waits for a
   particle pass); the crates stand behind the hands' walk line on a busy camp; the Album's
   desktop width could take the sets beside the grid.
+
+## R3 S4: Workshop tiers 5-8, the orders' shards, the drop queue (2026-10-27)
+
+Shots `r3s4_*` (08-screens.md 8.3c): the Workshop's Stone group with tiers 5-6 started and the
+Sheet Metal group with tiers 7-8 going, on both devices, by day and in night rain; Fire Brick
+mid-flash; the Orders sheet with shard chips and the set's drop; the complete set with its drop
+on its way; the Album's plate with a drop on its way; the Odds segment's gate rule.
+
+### Iteration 1
+- **Assembly Line printed a raw key** (`[[line.all.name]] ×1.02`): the `more` wording had one
+  form, for a line; it now has one per scope (line, era, every line), as `inc` does.
+- **The Stone tiles were out of the frame:** `scrollRows: "end"` shows the list's end, the
+  locked Sheet Metal group; the harness gained `scrollTo` (a selector into the middle of its
+  list or sheet) and the Stone shots look at Bellows and Quarry Rails, the flash at Fire Brick.
+- **The gate rule was below the fold** on the Odds segment (after the pity bars): the gate shots
+  scroll to the pity list, where the rule reads under "A Legendary within 150 cards".
+- **"1 on its way · next in 1h" where 40 min was meant:** the shot's veteran stats earned badge
+  drops the queue counted; the on-way shots mark the badges paid, so only the set's mark waits.
+- *Fine:* the shard chips (grey +3, blue +6, purple +10) on the sheet's rows and inside a ready
+  row's Claim; "The fifth claim pays a Supply Drop I on top." under the set's rule; the complete
+  set's gold box with "The set paid a Supply Drop I." and the on-way line; the late tiles' rings,
+  gains ("+316M/s" on Assembly Line at 51.2B) and the Mk tiles' "in 14d 20h" beside them.
+
+### Iteration 2
+- The Stone group reads as one: the era's header, six tiles with their rings at 12/25, 8/25,
+  5/25, 4/20, 6/25, 2/25, every effect in words ("+5% Furnace", "Stone lines 1% faster", "Every
+  line +1%"); Bark Liquor and Iron Screws show no gain line because the run owns no Tannery or
+  Oil Press yet (as S6's tiles do for an unowned line).
+- The flash: Fire Brick's tile lit gold at 13/25 with its name floating over the island.
+- The gate rule: "Felling pays a drop every 30th fell, one every 1h and 3 a day. A quest set's,
+  an order set's and a badge's drop take the next free hour." in three lines at 390 px.
+- **The on-way plate vanished** in the Album shots: the queued mark was paid at the patch
+  (`today.day` 0 reads as "no day yet", so the gate stood open); the shots now give `today` the
+  island day of their time.
+
+### Iteration 3
+- The gate's last payment is given as `today.ago` (the harness resolves it against the shot's
+  final time, as it does `fuelledAt: "now"`): the Album's dashed plate reads "1 on its way ·
+  next in 40m" on a phone with nothing held, sits under "1 to open" on desktop, and the complete
+  set's box carries the same line after "The set paid a Supply Drop I."
+- Clean: no audit problems on the 16 shots; one orange action per view (Claim 2 rewards, Open 1,
+  Done); every locked tile says why (the next era's group, a Mk's "Needs 25 Charcoal Kilns (9
+  now)"); nothing names the Kettle or the Big Red (D140).
+- *Left for R4:* the dock's Album bump and the shard flyer are behind the sheet when a claim
+  comes from the sheet (the flyer lands on the dock's Album place, which is visible on desktop
+  beside the sheet and under it on a phone); a surplus of Common and Rare shards piles up once
+  the gear is complete (a sink is R6's).

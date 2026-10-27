@@ -284,7 +284,8 @@ const SKIES = [
  * `{name}__zoom.png` ([x, y, width, height] in CSS pixels). `press` holds a finger on the
  * target through the fast-forward (hold to work). `send` sends a command through the store after
  * the patch (a refusal shows its toast); `scrollRows: "end"` scrolls the open shop list down and
- * `scroll` scrolls any element (a selector) to its end.
+ * `scroll` scrolls any element (a selector) to its end; `scrollTo` brings one element (a
+ * selector) into the middle of its list or sheet.
  *
  * Flotsam and away (R1 S4), in `state`: `runAge` starts the run that many seconds before `time`;
  * `flotsamAge` puts an arrival on the water that many seconds old (run 1's crate, or the first
@@ -3121,6 +3122,261 @@ const SHOTS = [
       },
     ];
   })(),
+  // R3 S4 (D265-D267): the Workshop's Stone and Sheet Metal tiers, the orders' shard chips, the
+  // set's drop on its way, the Odds page's gate rule.
+  ...(() => {
+    const stone = { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN };
+    const evening = { ...stone, time: at(1, 19) };
+    const night = { ...stone, time: at(1, 23.5), weather: "rain" };
+    /** The Stone run with the fifth and sixth tiers started. */
+    const lateStone = {
+      ...STONE_RUN,
+      research: {
+        ...STONE_RUN.research,
+        fire_brick: 12,
+        bark_liquor: 8,
+        iron_screws: 5,
+        bellows: 4,
+        quota_board: 6,
+        quarry_rails: 2,
+        shift_bell: 1,
+      },
+      supplies: 2.1e9,
+      made: 2.1e9,
+    };
+    /** Sheet Metal an hour in, the first six tiers bought out, the seventh and eighth going. */
+    const metal = {
+      ...FRENZY_RUN,
+      runAge: 3600,
+      research: {
+        ...Object.fromEntries(
+          Object.entries(STONE_RUN.research).map(([id, n]) => [id, id.endsWith("_mk") ? n : 25]),
+        ),
+        spare_wicks: 6,
+        calloused_thumbs: 10,
+        banked_coals: 10,
+        steady_rhythm: 5,
+        greased_axles: 20,
+        oiled_pulleys: 20,
+        hide_mitts: 10,
+        storm_shutters: 10,
+        fire_brick: 25,
+        bark_liquor: 25,
+        iron_screws: 25,
+        bellows: 20,
+        quota_board: 25,
+        quarry_rails: 25,
+        seasoned_timber: 25,
+        wrapped_grips: 10,
+        tar_paper: 10,
+        shift_bell: 25,
+        mooring_winch: 9,
+        copper_windings: 6,
+        guy_wires: 4,
+        drive_belts: 3,
+        work_rota: 5,
+        welded_frames: 1,
+      },
+      supplies: 3.8e11,
+      made: 9.5e11,
+    };
+    const orders = {
+      ids: [
+        "twig_three_hands",
+        "twig_lines_10",
+        "twig_taps_300",
+        "wood_era",
+        "wood_lines_25",
+        "wood_catch_3",
+        "stone_era",
+        "stone_furnace_50",
+      ],
+      claimed: ["twig_three_hands", "twig_lines_10", "wood_era"],
+      fuelledAt: null,
+    };
+    const complete = {
+      ...orders,
+      claimed: [...orders.claimed, "twig_taps_300", "stone_era"],
+      fuelledAt: "now",
+    };
+    const quests = {
+      ids: ["tap_500", "hire_2", "catch_1"],
+      claimed: ["tap_500"],
+      progress: { hire_2: 1 },
+    };
+    const noShards = { common: 0, rare: 0, epic: 0, legendary: 0 };
+    /** `meta.drops` whole: `held` and the shards as given; `onWay` marks queued, the last gated
+     * drop paid `ago` seconds before the shot's time (the gate opens an hour after it). */
+    const drops = (held = {}, shards = {}, onWay = 0, ago = 1200) => ({
+      held: { 1: 0, 2: 0, 3: 0, ...held },
+      pulls: 27,
+      pity: { rare: 4, epic: 21, legendary: 27 },
+      shards: { crew: {}, gear: { ...noShards, ...shards } },
+      paid: { fells: 3, badges: 99 },
+      owed: { earned: onWay, paid: 0 },
+      today: onWay > 0 ? { day: 0, fells: 1, at: 0, ago } : { day: 0, fells: 1, at: 0 },
+    });
+    const few = {
+      survivors: { mara: 2, dax: 1, rook: 1, bram: 1 },
+      gear: { salvaged_hatchet: "mara", crowbar: null, work_gloves: "dax" },
+    };
+    const meta = (extra = {}) => ({
+      scrap: 3,
+      stats: { ...VETERAN_STATS, scrap: 8, orders: 3, quests: 1, drops: 9 },
+      cards: few,
+      drops: drops(),
+      ...extra,
+    });
+    return [
+      {
+        name: "r3s4_desktop_workshop_stone",
+        viewport: DESKTOP,
+        state: { ...stone, ...lateStone, ui: { tab: "research" } },
+        scrollTo: '[data-key="research:bellows"]',
+        ff: 2.5,
+      },
+      {
+        name: "r3s4_phone_workshop_stone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, ...lateStone, ui: { expanded: true, tab: "research" } },
+        scrollTo: '[data-key="research:bellows"]',
+        ff: 2.5,
+      },
+      {
+        name: "r3s4_desktop_workshop_stone_night",
+        viewport: DESKTOP,
+        state: { ...night, ...lateStone, ui: { tab: "research" } },
+        scrollTo: '[data-key="research:quarry_rails"]',
+        ff: 2.5,
+      },
+      {
+        name: "r3s4_phone_workshop_stone_night",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...night, ...lateStone, ui: { expanded: true, tab: "research" } },
+        scrollTo: '[data-key="research:quarry_rails"]',
+        ff: 2.5,
+      },
+      {
+        name: "r3s4_desktop_workshop_metal",
+        viewport: DESKTOP,
+        state: {
+          time: at(1, 11.5),
+          wall: WALL,
+          weather: "clear",
+          ...metal,
+          ui: { tab: "research" },
+        },
+        scrollRows: "end",
+        ff: 2.5,
+      },
+      {
+        name: "r3s4_phone_workshop_metal",
+        viewport: PHONE,
+        scale: 2,
+        state: {
+          time: at(1, 11.5),
+          wall: WALL,
+          weather: "clear",
+          ...metal,
+          ui: { expanded: true, tab: "research" },
+        },
+        scrollRows: "end",
+        ff: 2.5,
+      },
+      {
+        name: "r3s4_desktop_workshop_flash",
+        viewport: DESKTOP,
+        state: { ...stone, ...lateStone, ui: { tab: "research" } },
+        scrollTo: '[data-key="research:fire_brick"]',
+        juice: [{ type: "buy_research", item: "fire_brick", count: 1 }],
+        ff: 2.5,
+      },
+      {
+        name: "r3s4_phone_orders_shards",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, orders, quests, meta: meta(), ui: { sheet: "orders" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s4_desktop_orders_shards",
+        viewport: DESKTOP,
+        state: { ...evening, orders, quests, meta: meta(), ui: { sheet: "orders" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s4_phone_orders_set_onway",
+        viewport: PHONE,
+        scale: 2,
+        state: {
+          ...stone,
+          orders: complete,
+          quests,
+          meta: meta({ drops: drops({}, { common: 9, rare: 12 }, 1) }),
+          ui: { sheet: "orders" },
+        },
+        ff: 0.5,
+      },
+      {
+        name: "r3s4_desktop_orders_set_onway",
+        viewport: DESKTOP,
+        state: {
+          ...evening,
+          orders: complete,
+          quests,
+          meta: meta({ drops: drops({}, { common: 9, rare: 12 }, 1) }),
+          ui: { sheet: "orders" },
+        },
+        ff: 0.5,
+      },
+      {
+        name: "r3s4_phone_orders_claim_shards",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, orders, quests, meta: meta(), ui: { sheet: "orders" } },
+        juice: [{ type: "claim_order", run: 1, id: "twig_taps_300" }],
+        ff: 0.5,
+      },
+      {
+        name: "r3s4_phone_album_onway",
+        viewport: PHONE,
+        scale: 2,
+        state: {
+          ...stone,
+          meta: meta({ drops: drops({}, {}, 1) }),
+          ui: { panel: "album", albumTab: "crew" },
+        },
+        ff: 0.5,
+      },
+      {
+        name: "r3s4_desktop_album_onway",
+        viewport: DESKTOP,
+        state: {
+          ...evening,
+          meta: meta({ drops: drops({ 1: 1 }, {}, 1) }),
+          ui: { panel: "album", albumTab: "crew" },
+        },
+        ff: 0.5,
+      },
+      {
+        name: "r3s4_phone_album_gate",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: meta(), ui: { panel: "album", albumTab: "odds" } },
+        scrollTo: ".pity-list",
+        ff: 0.5,
+      },
+      {
+        name: "r3s4_desktop_album_gate",
+        viewport: DESKTOP,
+        state: { ...evening, meta: meta(), ui: { panel: "album", albumTab: "odds" } },
+        scrollTo: ".pity-list",
+        ff: 0.5,
+      },
+    ];
+  })(),
 ];
 
 /** Moves `time` by whole days (same hour) until the island has `weather` then. */
@@ -3262,6 +3518,12 @@ async function main() {
         } = state;
         // R3 S2: the set completed a minute ago; a Lucky Tide bought `fromAgo` seconds ago.
         if (run.orders?.fuelledAt === "now") run.orders = { ...run.orders, fuelledAt: time - 60 };
+        // R3 S4: the drops' gate last paid `today.ago` seconds before the shot's time (which
+        // `pickTime` may have moved by days), so a queued mark waits for its hour.
+        if (meta?.drops?.today?.ago !== undefined) {
+          const { ago, ...today } = meta.drops.today;
+          meta.drops = { ...meta.drops, today: { ...today, at: time - ago } };
+        }
         if (tide)
           run.tide = {
             boost: "lucky_tide",
@@ -3438,6 +3700,13 @@ async function main() {
         const list = document.querySelector(".cards");
         if (list) list.scrollTop = list.scrollHeight;
       });
+      await page.waitForTimeout(100);
+    }
+    if (shot.scrollTo) {
+      // Brings one element (a selector) into the middle of its scrolling list or sheet.
+      await page.evaluate((selector) => {
+        document.querySelector(selector)?.scrollIntoView({ block: "center" });
+      }, shot.scrollTo);
       await page.waitForTimeout(100);
     }
     if (shot.click) {

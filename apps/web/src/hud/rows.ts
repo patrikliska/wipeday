@@ -577,7 +577,10 @@ export function researchEffect(effect: Effect): string {
   switch (effect.stat) {
     case "output":
       if (effect.op === "more")
-        return t("research_effect.output_more", { ...named, factor: fmtFactor(effect.value) });
+        return t(`research_effect.output_more_${where}`, {
+          ...named,
+          factor: fmtFactor(effect.value),
+        });
       return t(`research_effect.output_${where}`, { ...named, pct: pct(effect.value) });
     case "speed":
       return t(`research_effect.speed_${where}`, { ...named, pct: pct(effect.value - 1) });

@@ -38,6 +38,8 @@ export type GameEvent =
   | { type: "era_ready"; era: string }
   /** A running Frenzy burned out (the scene saw its timer end): the bar's tick and a fall. */
   | { type: "frenzy_ended" }
+  /** A bought boost or a Lucky Tide ran out while watched (D267): its pill's tick. */
+  | { type: "boost_ended"; boost: string }
   /** The welcome card's Collect: `gain` flies into the counter. */
   | { type: "collected"; gain: number }
   /** A card turned over in the reveal (D261): the flip, then its rarity's sting. */
@@ -77,6 +79,7 @@ export const EVENT_TYPES = Object.keys({
   flotsam_lost: 1,
   collected: 1,
   frenzy_ended: 1,
+  boost_ended: 1,
   era_ready: 1,
   drop_earned: 1,
   drop_opened: 1,
@@ -89,6 +92,7 @@ export const EVENT_TYPES = Object.keys({
   quest_set_done: 1,
   quests_rolled: 1,
   scrap_earned: 1,
+  shards_earned: 1,
   scrap_spent: 1,
   boost_bought: 1,
   tide_claimed: 1,

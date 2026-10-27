@@ -10,15 +10,18 @@ import {
   setProgress,
   survivorOf,
 } from "@wipe-day/domain/cards";
+import { dropsOnWay } from "@wipe-day/domain/drops";
 import type { BaseState } from "@wipe-day/domain/state";
+import { duration } from "@wipe-day/domain/words";
 import { useEffect } from "react";
 import { useReveal } from "../state/reveal";
 import { type AlbumTab, useUi } from "../state/ui";
 import { content, crewName, fmtFactor, t, tierName } from "../state/world";
 import { Bust, GearArt, rarityName, rarityStyle, Stars, slotName } from "./cards";
+import { OnWay } from "./Goals";
 import { Icon } from "./Icon";
 import { researchEffect } from "./rows";
-import { vars } from "./util";
+import { useRise, vars } from "./util";
 
 /*
  * The Album (12-feel.md 7.4; D260): a dock destination from the first Supply Drop. One head
@@ -63,6 +66,7 @@ export function AlbumPanel({ base }: { base: BaseState }) {
     useUi.getState().seeAlbum(owned);
   }, [owned]);
   const held = heldDrops(base.meta.drops);
+  const onWay = dropsOnWay(content, base);
   return (
     <div className="album">
       <fieldset className="segments album-tabs">
@@ -87,7 +91,9 @@ export function AlbumPanel({ base }: { base: BaseState }) {
         >
           <Icon kind="flotsam" id="sealed_locker" size={28} />
           <span className="album-held-text">
-            <span className="album-held-count num">{t("album.held", { n: held })}</span>
+            <span key={`held-${held}`} className="album-held-count num pop">
+              {t("album.held", { n: held })}
+            </span>
             <span className="album-held-sub">
               {([3, 2, 1] as const)
                 .filter((tier) => base.meta.drops.held[tier] > 0)
@@ -97,6 +103,11 @@ export function AlbumPanel({ base }: { base: BaseState }) {
           </span>
           <span className="btn small">{t("album.open")}</span>
         </button>
+      ) : null}
+      {onWay > 0 ? (
+        <p className="album-onway plate">
+          <OnWay base={base} />
+        </p>
       ) : null}
       {tab === "crew" ? <CrewTab base={base} /> : null}
       {tab === "gear" ? <GearTab base={base} /> : null}
@@ -243,6 +254,20 @@ function GearTile({ gear, base, onOpen }: { gear: GearDef; base: BaseState; onOp
   );
 }
 
+/** One rarity's shard count; the number pops when it rises (12-feel.md 3.2, D267). */
+function ShardChip({ rarity, count }: { rarity: Rarity; count: number }) {
+  const rose = useRise(count);
+  return (
+    <li className="shard-chip" style={rarityStyle(rarity)}>
+      <Icon kind="ui" id="shard" size={16} />
+      <span key={`n-${rose}`} className={`num${rose > 0 ? " pop" : ""}`}>
+        {count}
+      </span>
+      <span className="shard-chip-name">{rarityName(rarity)}</span>
+    </li>
+  );
+}
+
 function OddsTab({ base }: { base: BaseState }) {
   const openSheet = useUi((state) => state.openSheet);
   const drops = base.meta.drops;
@@ -254,11 +279,7 @@ function OddsTab({ base }: { base: BaseState }) {
       </h3>
       <ul className="shard-chips">
         {RARITIES.map((rarity) => (
-          <li key={rarity} className="shard-chip" style={rarityStyle(rarity)}>
-            <Icon kind="ui" id="shard" size={16} />
-            <span className="num">{drops.shards.gear[rarity]}</span>
-            <span className="shard-chip-name">{rarityName(rarity)}</span>
-          </li>
+          <ShardChip key={rarity} rarity={rarity} count={drops.shards.gear[rarity]} />
         ))}
       </ul>
       <p className="goal-note">
@@ -312,6 +333,18 @@ function OddsTab({ base }: { base: BaseState }) {
           </li>
         ))}
       </ul>
+      <p className="goal-note">
+        <span className="goal-note-icon">
+          <Icon kind="flotsam" id="sealed_locker" size={16} />
+        </span>
+        <span>
+          {t("album.gate_rule", {
+            every: content.cards.drops.fells.every,
+            gap: duration(content.cards.drops.fells.gapMinutes * 60),
+            perDay: content.cards.drops.fells.perDay,
+          })}
+        </span>
+      </p>
       {first ? (
         <p className="goal-note">
           <span>{t("album.first_card", { name: crewName(first.id) })}</span>

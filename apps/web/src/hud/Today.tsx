@@ -9,7 +9,7 @@ import {
 import type { BaseState } from "@wipe-day/domain/state";
 import { useWorld } from "../state/store";
 import { content, duration, t } from "../state/world";
-import { type Goal, GoalRow } from "./Goals";
+import { type Goal, GoalRow, OnWay, payWords } from "./Goals";
 import { Icon, ResourceIcon } from "./Icon";
 
 /*
@@ -80,14 +80,7 @@ export function questsView(base: BaseState): QuestsView {
 }
 
 /** "a Supply Drop I and +2 scrap": what the set pays, in words. */
-function setWords(): string {
-  const parts = content.quests.pays.set.map((pay) =>
-    "drop" in pay
-      ? t("quests.a_drop", { drop: t(`drop.tier_${pay.drop}`) })
-      : t("quests.scrap", { n: pay.scrap }),
-  );
-  return parts.join(t("quests.and"));
-}
+const setWords = (): string => payWords(content.quests.pays.set);
 
 /**
  * The "Today" section: the count and when the day rolls over, the three rows, and what the
@@ -124,6 +117,7 @@ export function TodayQuests({ base, inSheet = false }: { base: BaseState; inShee
             ? t("quests.set_paid", { rewards: setWords() })
             : t("quests.note", { rewards: setWords() })}
         </span>
+        {view.setDone ? <OnWay base={base} /> : null}
       </p>
     </section>
   );

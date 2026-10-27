@@ -36,7 +36,8 @@ much as Glow, the name Work Orders.
   the third pays a Supply Drop I and scrap. A daily rhythm; the run itself keeps the crown only.
 - **B. Work Orders** *(name: proposal)*: eight orders per run, any five fuel the Kettle: the
   finished set lights the Big Red (it crowns it; it never locks it, pillar 3: the glass formula is
-  unchanged). Each order pays a drop or scrap when claimed. A card at the top of the shop, never
+  unchanged). Each order pays a drop or scrap when claimed *(as built, D266: gear shards of its
+  era's rarity at once, and the fifth claim a drop)*. A card at the top of the shop, never
   reordered (D186), shows the running order and the steps; a sheet lists them. Orders are
   predicates on the run, built with the badges' condition machinery (`achievements.json5`'s
   `when`), so the list is data. Wipe Day #N is the rank.

@@ -1,8 +1,12 @@
 import type { IconKind } from "@wipe-day/content/icons";
 import type { Pay } from "@wipe-day/content/schema";
 import type { Command } from "@wipe-day/domain/commands";
+import { dropsOnWay, nextDropAt } from "@wipe-day/domain/drops";
+import type { BaseState } from "@wipe-day/domain/state";
+import { duration } from "@wipe-day/domain/words";
 import { useWorld } from "../state/store";
-import { fmt, t } from "../state/world";
+import { content, fmt, t } from "../state/world";
+import { rarityName, rarityStyle } from "./cards";
 import { Icon, ResourceIcon } from "./Icon";
 
 /**
@@ -28,7 +32,10 @@ export const send = (command: Command | null): void => {
   if (command) useWorld.getState().send(command);
 };
 
-/** What a goal pays, as chips: a locker for a Supply Drop, the scrap nut for scrap. */
+/**
+ * What a goal pays, as chips: a locker for a Supply Drop, the scrap nut for scrap, the shard in
+ * its rarity's colour for gear shards (D266).
+ */
 export function RewardChips({ pays, state }: { pays: readonly Pay[]; state: GoalState }) {
   return (
     <span className={`rewards ${state}`}>
@@ -37,6 +44,19 @@ export function RewardChips({ pays, state }: { pays: readonly Pay[]; state: Goal
           <span key={`drop-${pay.drop}`} className="reward">
             <Icon kind="flotsam" id="sealed_locker" size={16} />
             <span>{t(`drop.tier_${pay.drop}`)}</span>
+          </span>
+        ) : "shards" in pay ? (
+          <span
+            key={`shards-${pay.shards.rarity}`}
+            className="reward reward-shards"
+            style={rarityStyle(pay.shards.rarity)}
+            title={t("goals.shards", { n: pay.shards.n, rarity: rarityName(pay.shards.rarity) })}
+          >
+            <Icon kind="ui" id="shard" size={16} />
+            <span className="num">+{pay.shards.n}</span>
+            <span className="sr-only">
+              {t("goals.shards", { n: pay.shards.n, rarity: rarityName(pay.shards.rarity) })}
+            </span>
           </span>
         ) : (
           <span key="scrap" className="reward">
@@ -50,6 +70,39 @@ export function RewardChips({ pays, state }: { pays: readonly Pay[]; state: Goal
           ✓
         </span>
       ) : null}
+    </span>
+  );
+}
+
+/** "a Supply Drop I and +2 scrap": a list of pays in words (the quests' set, the orders' set). */
+export function payWords(pays: readonly Pay[]): string {
+  const parts = pays.map((pay) =>
+    "drop" in pay
+      ? t("quests.a_drop", { drop: t(`drop.tier_${pay.drop}`) })
+      : "shards" in pay
+        ? t("goals.shards", { n: pay.shards.n, rarity: rarityName(pay.shards.rarity) })
+        : t("quests.scrap", { n: pay.scrap }),
+  );
+  return parts.join(t("quests.and"));
+}
+
+/**
+ * Drops promised and not yet paid by the hourly gate (a quest set's, an order set's, a badge's;
+ * D266): "1 on its way · next in 42 min", or nothing. Honest about the wait, so a claim never
+ * looks like it paid nothing.
+ */
+export function OnWay({ base, className = "" }: { base: BaseState; className?: string }) {
+  const second = useWorld((state) => state.second);
+  const n = dropsOnWay(content, base);
+  if (n === 0) return null;
+  const now = Math.max(second, base.run.settledAt);
+  const left = nextDropAt(content, base.meta.drops) - now;
+  return (
+    <span className={`on-way ${className}`.trim()}>
+      <Icon kind="flotsam" id="sealed_locker" size={14} />
+      <span>
+        {left > 0 ? t("album.on_way", { n, time: duration(left) }) : t("album.on_way_now", { n })}
+      </span>
     </span>
   );
 }

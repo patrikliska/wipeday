@@ -117,6 +117,13 @@ const HOLD_SLOP = 12;
 const BUMP_EVERY_MS = 250;
 /** Gains that are not a product's carry the supplies icon (6.3.7). */
 const SUPPLIES_ICON = { icon: "supplies", iconColor: 0xffd25a } as const;
+/** The rarity colours (tokens.css, D262) for the scene's shard floaters. */
+const RARITY_TINT = {
+  common: 0xa9b1b7,
+  rare: 0x5aa7e0,
+  epic: 0xb06ee6,
+  legendary: 0xff9f2e,
+} as const;
 /** Coins that arc into the counter after Welcome back's Collect (12-feel.md 3.2). */
 const COLLECT_COINS = 7;
 /** ...and after a crate's lump and a crow's catch (D243). */
@@ -1058,6 +1065,24 @@ export class Scene {
     chip.classList.add("bump");
   }
 
+  /** A dock place's icon on screen (CSS px), or null while the place has not joined the dock. */
+  private dockPoint(place: string): { x: number; y: number } | null {
+    const item = document.querySelector(`.dock-item[data-place="${place}"] svg`);
+    const rect = item?.getBoundingClientRect();
+    if (!rect) return null;
+    const host = this.host.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2 - host.left, y: rect.top + rect.height / 2 - host.top };
+  }
+
+  /** A dock place bumps as a flyer lands on it (as the counter and the scrap chip do). */
+  private bumpDock(place: string): void {
+    const item = document.querySelector(`.dock-item[data-place="${place}"]`);
+    if (!item || reducedMotion()) return;
+    item.classList.remove("bump");
+    void (item as HTMLElement).offsetWidth;
+    item.classList.add("bump");
+  }
+
   /** The scrap chip's icon on screen (CSS px), or null before the player has earned any. */
   private scrapPoint(): { x: number; y: number } | null {
     const chip = document.querySelector(".topbar .scrap-plate-icon");
@@ -1319,6 +1344,34 @@ export class Scene {
           iconColor: 0xe3a32f,
           holdMs: 900,
           ...(plate ? { fly: { ...plate, arrive: () => this.bumpScrap() } } : {}),
+        });
+        break;
+      }
+      case "drop_earned": {
+        // A crate lands by the house: dust where it settles (D261, D267).
+        const stack = this.crates.container.position;
+        this.particles.spawn("dust", stack.x + 8 * ART, stack.y, 10);
+        break;
+      }
+      case "drop_opened": {
+        // The crate creaks, then bursts (12-feel.md 3.2): sparks from the stack as the front
+        // crate lifts away.
+        const stack = this.crates.container.position;
+        this.particles.spawn("sparks", stack.x + 8 * ART, stack.y - 10 * ART, 18);
+        this.particles.spawn("dust", stack.x + 8 * ART, stack.y, 8);
+        break;
+      }
+      case "shards_earned": {
+        // Shards fly from the house into the dock's Album, in their rarity's colour (D266).
+        const place = this.dockPoint("album");
+        const color = RARITY_TINT[event.rarity];
+        this.floaters.add("event", HOUSE.x, HOUSE.y - 90, `+${event.n}`, nowMs, {
+          size: this.floatSize(1.1),
+          color,
+          icon: "shard",
+          iconColor: color,
+          holdMs: 900,
+          ...(place ? { fly: { ...place, arrive: () => this.bumpDock("album") } } : {}),
         });
         break;
       }

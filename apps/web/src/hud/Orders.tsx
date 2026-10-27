@@ -7,7 +7,7 @@ import { useAdvisor } from "../state/advisor";
 import { useColumn } from "../state/layout";
 import { useUi } from "../state/ui";
 import { content, fmt, t } from "../state/world";
-import { claimLabel, type Goal, GoalRow, Steps, send } from "./Goals";
+import { claimLabel, type Goal, GoalRow, OnWay, payWords, Steps, send } from "./Goals";
 import { Icon } from "./Icon";
 import { SheetFrame } from "./Sheet";
 import { questsView, TodayQuests } from "./Today";
@@ -211,10 +211,20 @@ export function OrdersSheet() {
     >
       <div className={`set-box${view.complete ? " lit" : ""}`}>
         <Icon kind="ui" id="rank" size={28} />
-        <span>
-          {view.complete
-            ? t("orders.set_complete", { spare })
-            : t("orders.set_rule", { fuel: view.fuel, count: view.goals.length, spare })}
+        <span className="set-box-text">
+          <span>
+            {view.complete
+              ? t("orders.set_complete", { spare })
+              : t("orders.set_rule", { fuel: view.fuel, count: view.goals.length, spare })}
+          </span>
+          <span className="set-box-pays">
+            <span>
+              {view.complete
+                ? t("orders.set_paid", { rewards: payWords(content.orders.set) })
+                : t("orders.set_pays", { rewards: payWords(content.orders.set) })}
+            </span>
+            {view.complete ? <OnWay base={base} /> : null}
+          </span>
         </span>
       </div>
       <ul className="goals">
