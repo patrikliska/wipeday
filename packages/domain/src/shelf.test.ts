@@ -153,7 +153,9 @@ describe("buy_era (02 6)", () => {
     expect(state.run.eraAt).toEqual({ wood: 36 });
     expect(state.run.target).toEqual({ taps: 0, felled: 2 });
     expect(state.run.supplies).toBe(1e7 - 1.5e3);
-    expect(result.events).toContainEqual({ type: "era_reached", era: "wood", at: 36 });
+    expect(result.events).toContainEqual(
+      expect.objectContaining({ type: "era_reached", era: "wood", at: 36 }),
+    );
     expect(rates(content, state).tapGlobal).toBe(2);
   });
 

@@ -97,6 +97,10 @@ export const EVENT_TYPES = Object.keys({
   boost_bought: 1,
   tide_claimed: 1,
   card_flipped: 1,
+  nuked: 1,
+  node_bought: 1,
+  granted: 1,
+  respecced: 1,
 } satisfies Record<GameEvent["type"], 1>) as GameEvent["type"][];
 
 /** A sheet opened or closed, a switch flipped: the panels say so, the sound answers. */

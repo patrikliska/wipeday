@@ -3,6 +3,8 @@
  * minute scheduler (which also runs once at boot, so everything that ended
  * while the server was down lands at once) and serve HTTP.
  */
+
+import { createRequire } from "node:module";
 import { serve } from "@hono/node-server";
 import { loadGame } from "@wipe-day/content/load";
 import { systemClock } from "@wipe-day/domain/clock";
@@ -14,6 +16,7 @@ import { Game } from "./game";
 import { EventHub } from "./hub";
 import { log } from "./log";
 import { Notifier } from "./push";
+import { Status } from "./status";
 import { openDb } from "./store/db";
 
 const TICK_MS = 60_000;
@@ -58,7 +61,28 @@ const discord = config.discord
       `${config.publicUrl}/api/auth/callback`,
     )
   : null;
-const app = createApp({ db, game, hub, clock, config, discord, notifier });
+// The server's health (R4): `/api/status`, and the owner's DMs through the bot's stream.
+const { version } = createRequire(import.meta.url)("../package.json") as { version: string };
+const status = new Status({
+  version,
+  backupDir: config.backupDir,
+  offsiteFile: `${config.backupDir}/../offsite.json`,
+  startedAt: clock.now(),
+  tellOwner: (title, body) => {
+    if (!config.ownerDiscordId) return;
+    hub.broadcastBot({
+      event: "dm",
+      data: {
+        discordId: config.ownerDiscordId,
+        kind: "night_shift_over",
+        title,
+        body,
+        url: config.publicUrl,
+      },
+    });
+  },
+});
+const app = createApp({ db, game, hub, clock, config, discord, notifier, status });
 if (config.production && !config.botToken)
   log.warn("the Discord bot cannot connect: set BOT_API_TOKEN (32+ characters) for both");
 if (!discord)
@@ -75,6 +99,7 @@ const tick = () => {
   } catch (error) {
     log.error("scheduler failed", { error: (error as Error).message });
   }
+  if (config.production) status.watch(clock.now());
   if (config.production) {
     backupOnce(db, config.backupDir, clock.now())
       .then((file) => file && log.info("backup written", { file }))

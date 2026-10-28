@@ -29,9 +29,13 @@ export function upgradeOf(content: Content, id: string): UpgradeDef | undefined 
 
 export const bought = (state: BaseState, id: string): boolean => state.run.upgrades.includes(id);
 
-/** A shelf row's price after `upgrade_cost` discounts. */
+/** A shelf row's price after `upgrade_cost` discounts (the row's own id or its kind, R4). */
 export function upgradeCost(content: Content, state: BaseState, upgrade: UpgradeDef): Amount {
-  return upgrade.cost * statOf(content, state, "upgrade_cost", 1);
+  return (
+    upgrade.cost *
+    statOf(content, state, "upgrade_cost", 1, undefined, upgrade.kind) *
+    statOf(content, state, "upgrade_cost", 1, undefined, upgrade.id)
+  );
 }
 
 /** Why `upgrade` cannot be bought yet, the price aside; null when only the price is left. */

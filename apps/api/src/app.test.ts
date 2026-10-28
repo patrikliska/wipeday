@@ -16,6 +16,7 @@ import { type CommandResponse, Game, type PushMessage, type StateResponse } from
 import { EventHub } from "./hub";
 import { log } from "./log";
 import { Notifier } from "./push";
+import { Status } from "./status";
 import { openDb } from "./store/db";
 import { bases, commands, eventLog, players } from "./store/schema";
 
@@ -35,6 +36,7 @@ const config: Config = {
   devLogin: true,
   adminToken: null,
   botToken: null,
+  ownerDiscordId: null,
 };
 
 const discord: DiscordAuth = {
@@ -69,7 +71,14 @@ function setup(file = ":memory:", clock: ManualClock = manualClock(T0)) {
     newSeed: () => 7,
     notify: (playerId, events) => notifier.notify(playerId, events),
   });
-  const app = createApp({ db, game, hub, clock, config, discord, notifier });
+  const status = new Status({
+    version: "test",
+    backupDir: config.webDist,
+    offsiteFile: join(config.webDist, "offsite.json"),
+    startedAt: T0,
+    tellOwner: () => {},
+  });
+  const app = createApp({ db, game, hub, clock, config, discord, notifier, status });
   /** The `name=value` of the cookie a response sets (the session one unless named). */
   const cookieOf = (response: Response, name = "wd_session"): string =>
     response.headers

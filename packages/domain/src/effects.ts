@@ -15,15 +15,20 @@
  * R3 the cards (`cards.ts`: hired survivors' stars, traits and gear, and the crew sets). Nodes and
  * the Logbook join in their phases through `activeEffects`.
  */
-import { type Effect, STATS, type StatId } from "@wipe-day/content/effects";
+import { type Effect, isFeatureStat, STATS, type StatId } from "@wipe-day/content/effects";
 import type { Content, LineDef } from "@wipe-day/content/schema";
 import { TIERS } from "@wipe-day/content/tiers";
+import { nodeEffects, sectorCounts } from "./blastmap";
 import { cardEffects } from "./cards";
-import { glow } from "./prestige";
 import { researchEffects } from "./research";
 import type { BaseState, Buff } from "./state";
 
 export type { Effect, StatId };
+
+/** Glow: 1 + k × √(glass ever) (`prestige.ts` re-exports it; here so the fold has no cycle). */
+export function glow(content: Content, glassEver: number, k = content.prestige.glowK): number {
+  return 1 + k * Math.sqrt(Math.max(0, glassEver));
+}
 
 /**
  * The effects that multiply the flat part of a tap as well as the lines (errata E23): eras,
@@ -87,12 +92,23 @@ export function activeEffects(content: Content, state: BaseState): Effect[] {
   out.push(...researchEffects(content, state));
   // Never in `globalEffects`: a card does not multiply the flat tap (E23).
   out.push(...cardEffects(content, state));
+  // The Blast Map's owned nodes (R4), and Personal Best once this run passed the best one's made.
+  const nodes = nodeEffects(content, state.meta);
+  out.push(...nodes);
+  if (state.run.personalBestAt !== null) {
+    const best = nodes.find((effect) => effect.stat === "feature:personal_best");
+    if (best) out.push({ stat: "output", op: "inc", value: best.value, scope: "all" });
+  }
   return out;
 }
 
-/** What a scoped stat is asked about: a line (and its era), or the whole island. */
+/**
+ * What a scoped stat is asked about: a line (and its era), a shelf kind (`grip`, `island`,
+ * `line_mk` for `upgrade_cost`), or the whole island.
+ */
 export interface Query {
   line?: LineDef;
+  kind?: string;
 }
 
 /** The moment an effect is evaluated at. */
@@ -107,17 +123,19 @@ export interface Conditions {
 
 const ALWAYS: Conditions = { online: true };
 
-/** Counts for `per` effects. */
+/** Counts for `per` effects: units, hands on shift, counted Wipe Days, owned nodes per sector. */
 export interface Counts {
   owned?: number;
   hands?: number;
   nukes?: number;
   entries?: number;
+  sectors?: Readonly<Record<string, number>>;
 }
 
 function scopeMatches(effect: Effect, query: Query): boolean {
   const scope = effect.scope;
   if (scope === undefined || scope === "all") return true;
+  if (query.kind !== undefined) return scope === query.kind;
   if (!query.line) return false;
   return scope === query.line.id || scope === query.line.era;
 }
@@ -137,8 +155,12 @@ function holds(effect: Effect, when: Conditions): boolean {
 
 /** An effect's value, scaled by what it counts and capped by its `max`. */
 function strength(effect: Effect, counts: Counts): number {
-  if (effect.per === undefined) return effect.value;
-  const n = counts[effect.per] ?? 0;
+  const per = effect.per;
+  if (per === undefined) return effect.value;
+  const n =
+    (per.startsWith("sector:")
+      ? counts.sectors?.[per.slice("sector:".length)]
+      : counts[per as keyof Omit<Counts, "sectors">]) ?? 0;
   const max = effect.max ?? Number.POSITIVE_INFINITY;
   if (effect.op === "more") return Math.min(max, 1 + (effect.value - 1) * n);
   return Math.min(max, effect.value * n);
@@ -271,9 +293,13 @@ export interface Rates {
   /** Memo of the totals over the lines owned and manned (`fullRate`, `mannedRate`). */
   totals: Map<string, number>;
   /** The effects in force by stat, so a fold scans only its own. */
-  byStat: Map<StatId, Effect[]>;
+  byStat: Map<Effect["stat"], Effect[]>;
   /** Memo of the production effects (output, speed, offline) that reach each line. */
   scoped: Map<string, Effect[]>;
+  /** Some effect counts (`per`): unit rates then depend on the counts too. */
+  counted: boolean;
+  /** Which conditions any effect in force reads, so settle cuts only where it must. */
+  whens: { night: boolean; rain: boolean; afterglow: boolean };
 }
 
 /** The effects layer of `Rates`, and what it was built from. */
@@ -289,10 +315,10 @@ interface Layer {
   /** The cards owned and who is hired: survivors' effects hold only while hired (R3). */
   cards: BaseState["meta"]["cards"];
   hands: BaseState["run"]["hands"];
+  /** Personal Best (R4): its bonus joins once the run passes the record. */
+  personalBestAt: number | null;
   /** Each line's milestone payout and speed, in content order: the only way counts reach effects. */
   milestones: number[];
-  /** Some effect counts units or hands (`per`): unit rates then depend on the counts too. */
-  counted: boolean;
   rates: Omit<Rates, "totals">;
 }
 
@@ -304,7 +330,7 @@ function lineEffects(r: Rates, line: LineDef): Effect[] {
   if (known) return known;
   const query = { line };
   const list = r.effects.filter(
-    (effect) => PRODUCTION.has(effect.stat) && scopeMatches(effect, query),
+    (effect) => PRODUCTION.has(effect.stat as StatId) && scopeMatches(effect, query),
   );
   r.scoped.set(line.id, list);
   return list;
@@ -320,6 +346,7 @@ export function statOf(
   stat: StatId,
   base: number,
   line?: LineDef,
+  kind?: string,
 ): number {
   const r = rates(content, state);
   let memo = r.memo;
@@ -331,12 +358,64 @@ export function statOf(
       r.perLine.set(line.id, memo);
     }
   }
-  const key = base === 1 ? stat : `${stat}|${base}`;
+  const key = `${base === 1 ? stat : `${stat}|${base}`}${kind ? `#${kind}` : ""}`;
   const known = memo.get(key);
   if (known !== undefined) return known;
-  const value = foldStat(stat, r.byStat.get(stat) ?? [], base, line ? { line } : {});
+  const query: Query = line ? { line } : kind ? { kind } : {};
+  const value = foldStat(stat, r.byStat.get(stat) ?? [], base, query);
   memo.set(key, value);
   return value;
+}
+
+/** Whether any effect in force reads condition `when`. */
+export function hasWhen(effects: readonly Effect[], when: Effect["when"]): boolean {
+  return effects.some((effect) => effect.when === when);
+}
+
+/**
+ * Afterglow on taps at `t` (N20; 03-the-big-red.md 10.1): 1 in run 1, then ×start fading by
+ * half every `half` seconds after `hold`, ended `endsAfterSeconds` after the fade starts. Nodes
+ * move the constants through `afterglow`, `afterglow_half` and `afterglow_hold`.
+ */
+export function afterglowAt(content: Content, state: BaseState, t: number): number {
+  const from = state.run.afterglowFrom;
+  if (state.meta.nukes === 0 || from === null) return 1;
+  const { start, half, hold, ends } = afterglowRules(content, state);
+  const elapsed = t - from;
+  if (elapsed >= hold + ends) return 1;
+  return 1 + (start - 1) * 2 ** (-Math.max(0, elapsed - hold) / half);
+}
+
+/** Afterglow's constants with the nodes folded in. */
+export function afterglowRules(
+  content: Content,
+  state: BaseState,
+): { start: number; half: number; hold: number; ends: number } {
+  const p = content.prestige.afterglow;
+  const r = rates(content, state);
+  return {
+    start: foldStat("afterglow", r.byStat.get("afterglow") ?? [], p.start),
+    half: foldStat("afterglow_half", r.byStat.get("afterglow_half") ?? [], p.halfSeconds),
+    hold: foldStat("afterglow_hold", r.byStat.get("afterglow_hold") ?? [], p.holdSeconds),
+    ends: p.endsAfterSeconds,
+  };
+}
+
+/** The second Afterglow ends (null in run 1 or before the run's first tap). */
+export function afterglowEndsAt(content: Content, state: BaseState): number | null {
+  const from = state.run.afterglowFrom;
+  if (state.meta.nukes === 0 || from === null) return null;
+  const { hold, ends } = afterglowRules(content, state);
+  return from + hold + ends;
+}
+
+/** The second Afterglow stops adding at least 10% (`when: afterglow`; 04 4.1), or null. */
+export function afterglowHoldsUntil(content: Content, state: BaseState): number | null {
+  const from = state.run.afterglowFrom;
+  if (state.meta.nukes === 0 || from === null) return null;
+  const { start, half, hold, ends } = afterglowRules(content, state);
+  if (start - 1 < 0.1) return from;
+  return Math.min(from + hold + ends, from + hold + half * Math.log2((start - 1) / 0.1));
 }
 
 /** Each line's milestone factors in content order: the signature of `activeEffects`' milestones. */
@@ -374,6 +453,7 @@ function layerOf(content: Content, state: BaseState): Layer {
     known.badges === state.meta.badges &&
     known.cards === state.meta.cards &&
     known.hands === state.run.hands &&
+    known.personalBestAt === state.run.personalBestAt &&
     sameNumbers(known.milestones, milestones)
   ) {
     return known;
@@ -389,8 +469,9 @@ function layerOf(content: Content, state: BaseState): Layer {
     if (state.meta.badges[badge.id] !== undefined) earned++;
   // A crew set's Morale multiplies the badges' (R3).
   const morale = (1 + content.achievements.moralePer * earned) * foldStat("morale", effects, 1);
-  const byStat = new Map<StatId, Effect[]>();
+  const byStat = new Map<Effect["stat"], Effect[]>();
   for (const effect of effects) {
+    if (isFeatureStat(effect.stat)) continue;
     const list = byStat.get(effect.stat);
     if (list) list.push(effect);
     else byStat.set(effect.stat, [effect]);
@@ -406,8 +487,8 @@ function layerOf(content: Content, state: BaseState): Layer {
     badges: state.meta.badges,
     cards: state.meta.cards,
     hands: state.run.hands,
+    personalBestAt: state.run.personalBestAt,
     milestones,
-    counted: effects.some((effect) => effect.per !== undefined),
     rates: {
       effects,
       tapGlobal: foldStat("output", globalEffects(content, state), 1) * glowNow * morale,
@@ -419,6 +500,12 @@ function layerOf(content: Content, state: BaseState): Layer {
       units: new Map(),
       byStat,
       scoped: new Map(),
+      counted: effects.some((effect) => effect.per !== undefined),
+      whens: {
+        night: hasWhen(effects, "night"),
+        rain: hasWhen(effects, "rain"),
+        afterglow: hasWhen(effects, "afterglow"),
+      },
     },
   };
   layers.set(state.run.upgrades, layer);
@@ -448,14 +535,15 @@ export function rates(content: Content, state: BaseState): Rates {
     old.run.upgrades === state.run.upgrades &&
     old.run.research === state.run.research &&
     old.meta.badges === state.meta.badges &&
-    old.meta.cards === state.meta.cards
+    old.meta.cards === state.meta.cards &&
+    old.run.personalBestAt === state.run.personalBestAt
   ) {
     return hit.rates;
   }
   const layer = layerOf(content, state);
   const result: Rates = {
     ...layer.rates,
-    units: layer.counted ? new Map() : layer.rates.units,
+    units: layer.rates.counted ? new Map() : layer.rates.units,
     totals: new Map(),
   };
   cache.set(state.run.lines, { state, layer, rates: result });
@@ -500,7 +588,14 @@ export function unitRate(
   const own = lineEffects(r, line);
   const effects = buffs.length ? [...own, ...buffs] : own;
   const query = { line };
-  const counts = { owned: state.run.lines[line.id] ?? 0, hands: state.run.hands.length };
+  const counts: Counts = r.counted
+    ? {
+        owned: state.run.lines[line.id] ?? 0,
+        hands: state.run.hands.length,
+        nukes: state.meta.wipeDays,
+        sectors: sectorCounts(content, state.meta),
+      }
+    : { owned: state.run.lines[line.id] ?? 0, hands: state.run.hands.length };
   const output = foldStat("output", effects, line.rate, query, when, counts);
   const speed = foldStat("speed", effects, 1, query, when, counts);
   const away = when.online ? 1 : foldStat("offline", effects, 1, query, when, counts);

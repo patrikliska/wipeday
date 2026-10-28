@@ -19,6 +19,7 @@ import { Game } from "./game";
 import { EventHub } from "./hub";
 import { log } from "./log";
 import { Notifier } from "./push";
+import { Status } from "./status";
 import { openDb } from "./store/db";
 import { bases, players } from "./store/schema";
 
@@ -39,6 +40,7 @@ function setup(overrides: Partial<Config> = {}) {
     devLogin: true,
     adminToken: null,
     botToken: TOKEN,
+    ownerDiscordId: null,
     ...overrides,
   };
   const clock = manualClock(T0);
@@ -68,7 +70,14 @@ function setup(overrides: Partial<Config> = {}) {
     newSeed: () => 7,
     notify: (playerId, events) => notifier.notify(playerId, events),
   });
-  const app = createApp({ db, game, hub, clock, config, discord: null, notifier });
+  const status = new Status({
+    version: "test",
+    backupDir: config.webDist,
+    offsiteFile: join(config.webDist, "offsite.json"),
+    startedAt: T0,
+    tellOwner: () => {},
+  });
+  const app = createApp({ db, game, hub, clock, config, discord: null, notifier, status });
 
   /** A request from the bot, acting for `user` (or for nobody). */
   const bot = async (

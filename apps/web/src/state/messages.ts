@@ -58,6 +58,17 @@ export function refusalMessage(refusal: Refusal, now = 0): string {
       return t("refusal.shards", { need: refusal.need, have: refusal.have });
     case "max_stars":
       return t("refusal.max_stars");
+    case "not_ready":
+      return t("refusal.not_ready", { need: fmt(refusal.need, "cost") });
+    case "glass":
+      return t("refusal.glass", {
+        need: fmt(refusal.need, "cost"),
+        have: fmt(refusal.have, "held"),
+      });
+    case "hidden":
+      return t("refusal.hidden");
+    case "no_parent":
+      return t("refusal.no_parent");
     case "not_owned":
       return t("refusal.not_owned");
     case "stale":

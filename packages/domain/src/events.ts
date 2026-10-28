@@ -17,7 +17,42 @@ export type ScrapSource =
   /** A claimed order's or quest set's drop, paid by the gate. */
   | "claims"
   | "scrap"
-  | "magpie";
+  | "magpie"
+  /** The Big Red's press (R4). */
+  | "nuke";
+
+/** A finished run's numbers (03-the-big-red.md 8.3): the postcard's back and the log. */
+export interface RunSummary {
+  /** Seconds from the run's first tap or purchase to the press. */
+  seconds: number;
+  made: Amount;
+  era: string;
+  flotsam: number;
+  gulls: number;
+  orders: number;
+  taps: number;
+  /** The line making the largest share of the full rate at the press. */
+  bestLine: { id: string; share: number } | null;
+}
+
+/** The Big Red pressed (R4, D268): a Wipe Day (`wipeDay` its count) or a small blast (null). */
+export interface NukedEvent {
+  type: "nuked";
+  /** The run that ended. */
+  n: number;
+  wipeDay: number | null;
+  gain: Amount;
+  /** Glass ever after the press. */
+  ever: Amount;
+  glowBefore: number;
+  glowAfter: number;
+  doubling: boolean;
+  flight: string;
+  pays: { drop: DropTier; scrap: number };
+  /** News: the Wipe Days folded into this one since the last news nuke, and their glass. Null when held back or a small blast. */
+  news: { folded: number; glass: Amount } | null;
+  summary: RunSummary;
+}
 
 /** A card a Supply Drop gave: new to the Album, or `shards` into a survivor's or a rarity's. */
 export interface DropCard {
@@ -50,8 +85,8 @@ export type GameEvent =
   | { type: "upgraded"; upgrade: string; cost: Amount }
   /** Workshop levels bought: `count` of `item`, now at `level` (client feedback only). */
   | { type: "researched"; item: string; level: number; count: number; cost: Amount }
-  /** The run reached an era, `at` seconds after its first tap or purchase. */
-  | { type: "era_reached"; era: string; at: number }
+  /** The run reached an era, `at` seconds after its first tap or purchase; `first` ever (news). */
+  | { type: "era_reached"; era: string; at: number; first?: boolean }
   /** Flotsam arrival `k` caught; `value` is a crate's supplies (0 for a buff). */
   | { type: "flotsam_claimed"; kind: string; k: number; value: Amount }
   /** Crow `k` caught; `elite` for a Magpie; `value` its seconds of output. */
@@ -102,7 +137,14 @@ export type GameEvent =
   /** The Night Shift window closed at `at`: manned lines stopped until the next command. */
   | { type: "night_shift_over"; at: number }
   /** A stored base of an older shape was replaced by a fresh v2 base (the API logs it). */
-  | { type: "base_reset"; from: number };
+  | { type: "base_reset"; from: number }
+  | NukedEvent
+  /** Blast Map nodes bought in one command (a path), in buy order, for `cost` glass in all. */
+  | { type: "node_bought"; ids: string[]; cost: Amount }
+  /** The admin's gift (R4): glass to held only, a skin; never Glow. */
+  | { type: "granted"; glass: Amount; skin: string | null; note: string }
+  /** The admin's full free respec (R4): every node but Ground Zero cleared, the glass back. */
+  | { type: "respecced"; refunded: Amount; nodes: number };
 
 /** Event types written to `event_log`. Everything else is feedback for the clients. */
 export const LOGGED_TYPES: ReadonlySet<GameEvent["type"]> = new Set([
@@ -119,6 +161,10 @@ export const LOGGED_TYPES: ReadonlySet<GameEvent["type"]> = new Set([
   "quest_set_done",
   "scrap_spent",
   "boost_bought",
+  "nuked",
+  "node_bought",
+  "granted",
+  "respecced",
 ]);
 
 export const isLogged = (event: GameEvent): boolean => LOGGED_TYPES.has(event.type);

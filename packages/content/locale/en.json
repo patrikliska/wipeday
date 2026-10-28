@@ -1,7 +1,5 @@
 {
-  "format": {
-    "suffixes": "k M B T Qa Qi Sx Sp Oc No Dc"
-  },
+  "format": { "suffixes": "k M B T Qa Qi Sx Sp Oc No Dc" },
   "island": {
     "saltmarsh": { "name": "Saltmarsh" }
   },
@@ -154,11 +152,7 @@
     "assembly_line": { "name": "Assembly Line" },
     "blackout_cloth": { "name": "Blackout Cloth" },
     "steel_toecaps": { "name": "Steel Toecaps" },
-    "beachcomber_mk": {
-      "name": "Barrel Smasher Mk",
-      "mk2": "Pry Bars",
-      "mk3": "Sledgehammers"
-    },
+    "beachcomber_mk": { "name": "Barrel Smasher Mk", "mk2": "Pry Bars", "mk3": "Sledgehammers" },
     "campfire_mk": { "name": "Campfire Mk", "mk2": "Smoke Racks", "mk3": "Clay Oven" },
     "garden_mk": { "name": "Garden Mk", "mk2": "Rain Barrels", "mk3": "Terraces" },
     "loom_mk": { "name": "Loom Mk", "mk2": "Foot Treadle", "mk3": "Rope Walk" },
@@ -384,16 +378,31 @@
     "scrap": "Need {need} scrap: you have {have}.",
     "unmet": "Not done yet: {value} of {goal}.",
     "running": "That boost is still running: {time} left.",
-    "unmet_once": "Not done yet."
+    "unmet_once": "Not done yet.",
+    "not_ready": "Nothing to launch yet: the next glass comes at {need} supplies made.",
+    "glass": "Need {need} glass: you have {have}.",
+    "hidden": "That part of the map is not open yet.",
+    "no_parent": "Light a node next to it first.",
+    "locked_ring": "Ring {ring} opens at Wipe Day #{count}.",
+    "locked_node": "Opens at Wipe Day #{count}."
   },
-  "notify": {
-    "night_shift_over": "Night Shift over"
-  },
+  "notify": { "night_shift_over": "Night Shift over" },
   "push": {
     "night_shift_over_title": "The Night Shift is over",
     "night_shift_over": "Your hands have stopped. Check in to start the next shift."
   },
-  "feed": {},
+  "feed": {
+    "nuked": "{who} pressed the Big Red. Wipe Day #{n} on {island}: +{gain} crater glass.",
+    "nuked_first": "{who} pressed the Big Red for the first time. Wipe Day #1: +{gain} crater glass and a fresh crater.",
+    "nuked_folded": "{who} pressed the Big Red {times} times since {since}. Wipe Day #{n}: +{gain} crater glass in all.",
+    "nuked_milestone": "{who} reached Wipe Day #{n}: +{gain} crater glass. The crater sign needed a bigger post.",
+    "first_armored": "{who} reached the Armored era for the first time. There is a wreck to crack open on the rise.",
+    "flight": {
+      "loop_the_loop": "The Kettle did a loop-the-loop first.",
+      "sputter_drop": "The Kettle coughed, dropped and went off anyway.",
+      "u_turn": "The Kettle went out over the sea and thought better of it."
+    }
+  },
   "discord": {
     "command": "Your island: a link into the game",
     "title": "{name} on {island}",
@@ -563,9 +572,7 @@
       "kenney_interface": "Interface Sounds by Kenney",
       "kenney_rpg": "RPG Audio by Kenney"
     },
-    "licence": {
-      "CC0-1.0": "Public domain (CC0)"
-    },
+    "licence": { "CC0-1.0": "Public domain (CC0)" },
     "voices": "Every other sound is played by the game itself, from oscillators and noise"
   },
   "era_plate": {
@@ -613,7 +620,8 @@
     "unmanned": "Unmanned lines run only while you tap.",
     "odds": "Flotsam odds",
     "source_factor": "{name} ×{factor}",
-    "source_buff": "{name} ×{factor} · {time}"
+    "source_buff": "{name} ×{factor} · {time}",
+    "nodes": "Blast Map"
   },
   "ticker": {
     "any_1": "Radio: static, then a man selling batteries, then static.",
@@ -945,9 +953,223 @@
     "swap": "Swap for {name}",
     "no_survivors": "Own a survivor card to wear it"
   },
-  "drop": {
-    "tier_1": "Supply Drop I",
-    "tier_2": "Supply Drop II",
-    "tier_3": "Supply Drop III"
+  "drop": { "tier_1": "Supply Drop I", "tier_2": "Supply Drop II", "tier_3": "Supply Drop III" },
+  "node": {
+    "ground_zero": {
+      "name": "Ground Zero",
+      "blurb": "Lit by the first nuke: the map opens and Glow works from Wipe Day #1"
+    },
+    "second_wind": {
+      "name": "Second Wind",
+      "blurb": "Hustle holds 3 s (was 2) and drains 20% slower"
+    },
+    "steady_hands": { "name": "Calloused Hands" },
+    "whetstone": {
+      "name": "Whetstone",
+      "blurb": "Taps carry +0.16% of supplies/s; a whetstone by the target throws sparks"
+    },
+    "quick_fingers": { "name": "Quick Fingers" },
+    "keep_swinging": {
+      "name": "Keep Swinging",
+      "blurb": "Unmanned lines keep running while Hustle is above zero, not just while you tap"
+    },
+    "steady_breath_1": { "name": "Steady Breath I" },
+    "lucky_swing": { "name": "Lucky Swing", "blurb": "4% of your taps crit for ×8" },
+    "heavy_haft": { "name": "Heavy Haft", "blurb": "Fells need 20% fewer taps" },
+    "rhythm_1": { "name": "Rhythm I" },
+    "old_friend": {
+      "name": "Old Friends",
+      "blurb": "Mara stays hired through every Wipe Day and rows back in with you"
+    },
+    "fair_pay_1": { "name": "Fair Pay I" },
+    "hiring_board": {
+      "name": "Hiring Board",
+      "blurb": "Dax stays hired through every Wipe Day too, and every hand costs ×0.9"
+    },
+    "work_gang_1": { "name": "Work Gang I" },
+    "pep_talk": {
+      "name": "Pep Talk",
+      "blurb": "All lines +1% a hand on shift (up to +5%), twice that while Afterglow lasts"
+    },
+    "work_gang_2": { "name": "Work Gang II" },
+    "old_crew_1": {
+      "name": "Old Crew I",
+      "blurb": "Hands for lines 1-6 stay hired through every Wipe Day"
+    },
+    "fair_wages": {
+      "name": "Fair Wages",
+      "blurb": "Hands cost ×0.9, and each hand on shift adds +0.5% to all lines (up to +5%)"
+    },
+    "crew_kit_1": { "name": "Crew Kit I" },
+    "packed_crate": {
+      "name": "Go Bag",
+      "blurb": "Start every run with 10 Beachcombers and 5 Campfires, already working"
+    },
+    "hot_coals": { "name": "Hot Coals" },
+    "first_light": {
+      "name": "First Light",
+      "blurb": "Beachcombers, Campfires and Gardens cycle twice as fast. Up at dawn"
+    },
+    "bulk_discount_1": { "name": "Bulk Discount I" },
+    "bulk_buttons": {
+      "name": "Bulk Buttons",
+      "blurb": "Adds Next to the bulk toggle: buys just enough for each line's next milestone"
+    },
+    "elbow_grease_1": { "name": "Elbow Grease I" },
+    "conveyor": {
+      "name": "Conveyor Belts",
+      "blurb": "All lines +30%. Belts rattle between the buildings, carrying every product"
+    },
+    "prefab_walls": {
+      "name": "Prefab Walls",
+      "blurb": "Every run starts in the Timber era. The cabin comes flat-packed"
+    },
+    "bulk_discount_2": { "name": "Bulk Discount II" },
+    "fair_winds": { "name": "Fair Winds", "blurb": "Flotsam drifts in 5% more often" },
+    "slow_current_1": { "name": "Slow Current I" },
+    "lookout_post": {
+      "name": "Lookout Post",
+      "blurb": "A lookout points and a bell rings 3 s before flotsam drifts in"
+    },
+    "driftwood_1": { "name": "Driftwood I" },
+    "rally_cry": {
+      "name": "Rally Cry",
+      "blurb": "Flotsam pays 5% more, Rallies included; the crew cheer each Rally"
+    },
+    "slow_current_2": { "name": "Slow Current II" },
+    "rainmaker": { "name": "Rainmaker", "blurb": "In rain, flotsam floats 10 s longer" },
+    "circling_gulls": {
+      "name": "Circling Gulls",
+      "blurb": "Gulls circle anything afloat: flotsam floats 3 s longer"
+    },
+    "driftwood_2": { "name": "Driftwood II" },
+    "hot_breakfast": {
+      "name": "Hot Breakfast",
+      "blurb": "Back after 6 h or more? Collect also starts a Rally: all lines ×4 for 60 s"
+    },
+    "deep_cellars": { "name": "Deep Cellars" },
+    "night_lamps": {
+      "name": "Night Lamps",
+      "blurb": "Lines +20% at night. Lanterns go up on every building after dusk"
+    },
+    "lantern_oil_1": { "name": "Lantern Oil I" },
+    "insulated_walls": {
+      "name": "Insulated Walls",
+      "blurb": "Night Shift +4 h. Shutters go up and the draughts stay out"
+    },
+    "lantern_oil_2": { "name": "Lantern Oil II" },
+    "all_clear": {
+      "name": "All Clear",
+      "blurb": "Lines +50% while Afterglow lasts. The siren winds down; the crew climb out"
+    },
+    "moonshine_still": {
+      "name": "Moonshine Still",
+      "blurb": "Lines +1% at night per Bunker node you own, up to +10%. It's lamp fuel. Mostly"
+    },
+    "root_cellar_1": { "name": "Root Cellar I" },
+    "souvenir_jar": {
+      "name": "Souvenir Jar",
+      "blurb": "Afterglow's half-life +1 min. A jar on the shelf fills with glass"
+    },
+    "bigger_payload": { "name": "Bigger Payload" },
+    "forecast": {
+      "name": "Forecast",
+      "blurb": "The Big Red's card tells you when the next Wipe Day will count, at this rate"
+    },
+    "warm_embers_1": { "name": "Warm Embers I" },
+    "tinfoil_hats": {
+      "name": "Tinfoil Hats",
+      "blurb": "Glow factor +0.01 and crater glass +5%. The crew swear by them"
+    },
+    "bigger_payload_2": { "name": "Bigger Payload II" },
+    "glow_lamp": {
+      "name": "Glow Lamp",
+      "blurb": "Glow factor +0.02. A green lamp glows on the Kettle's pad"
+    },
+    "flight_school": {
+      "name": "Flight School",
+      "blurb": "Pick the missile's flight on the cover card, from the flights you've seen"
+    },
+    "fertile_ash_1": { "name": "Fertile Ash I" },
+    "tally_wall": {
+      "name": "Tally Wall",
+      "blurb": "Lines +1% a Wipe Day, up to +10%. Somebody keeps score on the cabin wall"
+    },
+    "night_log_1": { "name": "Night Log I" },
+    "personal_best": {
+      "name": "Personal Best",
+      "blurb": "Beat your last run's supplies made: the bell rings, lines +15% for the run"
+    },
+    "crib_notes_1": { "name": "Crib Notes I" },
+    "weather_log": {
+      "name": "Weather Log",
+      "blurb": "Lines +30% in rain. Today's entry: 'Wet. Again.'"
+    },
+    "crib_notes_2": { "name": "Crib Notes II" },
+    "almanac": {
+      "name": "Almanac",
+      "blurb": "Lines +30% at night. The crew know when dark falls and work to it"
+    },
+    "bookshelf": {
+      "name": "Bookshelf",
+      "blurb": "Lines +1.5% per Logbook node you own, up to +9%. The shelf sags a bit"
+    },
+    "night_log_2": { "name": "Night Log II" },
+    "scrap_heap": {
+      "name": "Scrap Heap",
+      "blurb": "Grip rungs and Line Mks cost 15% less; the junk heap grows every Wipe Day"
+    },
+    "odd_lumber_1": { "name": "Odd Lumber I" },
+    "tool_bag": { "name": "Tool Bag", "blurb": "Start every run with Stone Tools in hand" },
+    "sharp_eye_1": { "name": "Sharp Eye I" },
+    "bargain_bin": {
+      "name": "Bargain Bin",
+      "blurb": "Line Mk upgrades cost 15% less. Every bolt in the bin is 'nearly new'"
+    },
+    "sharp_eye_2": { "name": "Sharp Eye II" },
+    "patched_sail": {
+      "name": "Patched Sail",
+      "blurb": "Island upgrades cost 20% less; the skiff flies a sail of three old tarps"
+    },
+    "iron_bag": { "name": "Iron Bag", "blurb": "Start every run with Iron Tools in hand" },
+    "bolt_bucket_1": { "name": "Bolt Bucket I" }
+  },
+  "sector": {
+    "grip": { "name": "Grip", "tagline": "Your hands are the first machine" },
+    "crew": { "name": "Crew", "tagline": "Every line has a name on it" },
+    "works": { "name": "Works", "tagline": "Build it once, build it bigger" },
+    "tide": { "name": "Tide", "tagline": "The sea always brings something" },
+    "bunker": { "name": "Bunker", "tagline": "Lock up, sleep well, wake up rich" },
+    "blast": { "name": "Blast", "tagline": "Bigger bangs, brighter glass" },
+    "logbook": { "name": "Logbook", "tagline": "Write it down; it pays" },
+    "scrapyard": { "name": "Scrapyard", "tagline": "Nothing is junk if you keep it" }
+  },
+  "agenda": {
+    "feature": { "glow": "Glow", "afterglow": "Afterglow", "crater": "the crater and its sign" },
+    "ring": {
+      "1": "Blast Map ring 1",
+      "2": "Blast Map ring 2",
+      "3": "Blast Map ring 3",
+      "4": "Blast Map ring 4",
+      "5": "Blast Map ring 5",
+      "6": "Blast Map ring 6",
+      "7": "Blast Map ring 7",
+      "8": "Blast Map ring 8",
+      "9": "Blast Map ring 9"
+    },
+    "era": { "hqm": "the Armored era" },
+    "flight": {
+      "u_turn": "the U-Turn",
+      "loop_the_loop": "a new flight: Loop-the-Loop",
+      "sputter_drop": "a new flight: Sputter and Drop"
+    },
+    "sign": { "painted": "a painted sign", "metal": "a metal sign", "lit": "a lit sign" },
+    "hands": { "3": "hands for lines 1-3 survive nukes" }
+  },
+  "flight": {
+    "u_turn": "U-Turn",
+    "loop_the_loop": "Loop-the-Loop",
+    "sputter_drop": "Sputter and Drop",
+    "fizzle": "Fizzle"
   }
 }

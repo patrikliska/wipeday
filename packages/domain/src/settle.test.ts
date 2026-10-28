@@ -142,10 +142,23 @@ function randomCase(random: Rng): Case {
       // Most runs have started (the flotsam schedule runs); run 1 has guaranteed crates.
       n: random.int(1, 2),
       startedAt: random.next() < 0.8 ? T0 - random.int(0, 30 * HOUR) : null,
+      // Afterglow in flight for some (it reads meta.nukes > 0), Hustle left over for Keep Swinging.
+      afterglowFrom: random.next() < 0.5 ? T0 - random.int(0, 2400) : null,
+      hustle: { value: random.next() < 0.5 ? random.next() * 10 : 0, at: T0 - random.int(0, 60) },
     },
     meta: {
       ...base.meta,
       glass: { ...base.meta.glass, ever: random.int(0, 5000) },
+      // R4: a slice of the Blast Map (night, rain, Afterglow and Keep Swinging effects among
+      // them), counted Wipe Days for `per: nukes`.
+      nodes: [
+        "ground_zero",
+        ...content.blastMap.nodes
+          .filter((node) => node.ring > 0 && random.next() < 0.3)
+          .map((node) => node.id),
+      ],
+      nukes: random.int(0, 12),
+      wipeDays: random.int(0, 12),
       cards: { survivors, gear },
       drops: { ...base.meta.drops, held: { 1: random.int(0, 2), 2: 0, 3: 0 } },
       // R3 S2: scrap to spend, some orders already claimed.
@@ -205,7 +218,7 @@ describe("settle's path independence (N24)", () => {
       worst = Math.max(worst, rel(twice.state.run.supplies, once.state.run.supplies));
     }
     expect(worst).toBeLessThanOrEqual(1e-9);
-  });
+  }, 30_000);
 
   it("holds over 10,000 random command sequences with extra settles between", () => {
     let caught = 0;
@@ -300,7 +313,7 @@ describe("settle's path independence (N24)", () => {
     // The sequences really catch flotsam (and so restart buffs and move the cursor).
     expect(caught).toBeGreaterThan(1000);
     // 10,000 sequences take about 5 s on the dev PC: past vitest's default, inside pnpm test.
-  }, 20_000);
+  }, 60_000);
 });
 
 /** The Workshop's levels as plain effects: `value` per level, `more` compounding. */
@@ -514,7 +527,14 @@ describe("the tick oracle (N24)", () => {
   it("agrees with settle within 1e-6 over 1,000 states × 48 h", () => {
     let worst = 0;
     for (let seed = 1; seed <= 1_000; seed++) {
-      const { content, state } = randomCase(rng(seed * 31));
+      const { content, state: withNodes } = randomCase(rng(seed * 31));
+      // The oracle models no Blast Map node (night, rain, Afterglow, Keep Swinging, Glow's k):
+      // the path-independence tests cover those; here the map is Ground Zero alone.
+      const state: BaseState = {
+        ...withNodes,
+        meta: { ...withNodes.meta, nodes: ["ground_zero"] },
+        run: { ...withNodes.run, hustle: { value: 0, at: T0 } },
+      };
       const until = T0 + 48 * HOUR;
       const settled = settle(content, state, until).state.run.supplies - state.run.supplies;
       const expected = oracle(content, state, until);
@@ -523,7 +543,8 @@ describe("the tick oracle (N24)", () => {
       expect(error, `seed ${seed}`).toBeLessThanOrEqual(1e-6);
     }
     expect(worst).toBeLessThanOrEqual(1e-6);
-  });
+    // The oracle walks 48 h second by second for every state: a few seconds, more on a slow box.
+  }, 30_000);
 });
 
 describe("suppliesAt", () => {

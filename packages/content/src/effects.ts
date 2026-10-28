@@ -3,6 +3,9 @@
  * these stats only; the domain's evaluator folds them in a fixed order. Each stat is
  * registered once with its direction, so a `set` knows which value is best and the tests can
  * prove that adding a source never makes a stat worse. Browser-safe.
+ *
+ * R4 adds the Blast Map's two open forms: `feature:<id>` (an unlock the code reads by id, on
+ * unlock, automation and keystone nodes only) and `per: sector:<id>` (owned nodes of a sector).
  */
 
 export const OPS = ["add", "inc", "more", "set", "unlock"] as const;
@@ -64,6 +67,7 @@ export const STATS = {
   grit_cap: higher("add", "more", "set"),
   grit_cooldown: lower("add", "more", "set"),
   flare_cooldown: lower("add", "more", "set"),
+  /** Run starts (the Blast Map): units of a line, the era (its TIERS index; `scope` names it), an upgrade. */
   start_owned: higher("set"),
   start_era: higher("set"),
   start_upgrade: { better: "none", ops: ["unlock"] },
@@ -75,16 +79,24 @@ export const STATS = {
 export type StatId = keyof typeof STATS;
 export const STAT_IDS = Object.keys(STATS) as StatId[];
 
-/** What a `per` effect counts (each carries a `max`). `sector:<id>` arrives with the Blast Map. */
+/** A feature flag the code reads by id (`feature:glow`): unlock, automation and keystone nodes. */
+export type FeatureStat = `feature:${string}`;
+export const FEATURE_STAT = /^feature:[a-z][a-z0-9_]{1,31}$/;
+export const isFeatureStat = (stat: string): stat is FeatureStat => FEATURE_STAT.test(stat);
+/** The feature's id without its prefix. */
+export const featureId = (stat: FeatureStat): string => stat.slice("feature:".length);
+
+/** What a `per` effect counts (each carries a `max`); `sector:<id>` counts a sector's owned nodes. */
 export const PERS = ["owned", "hands", "nukes", "entries"] as const;
-export type Per = (typeof PERS)[number];
+export type Per = (typeof PERS)[number] | `sector:${string}`;
+export const SECTOR_PER = /^sector:[a-z][a-z0-9_]{1,31}$/;
 
 /** When a conditional effect applies. `dare:<id>` arrives with Dares (R9). */
 export const WHENS = ["online", "offline", "afterglow", "rain", "night", "hustle_full"] as const;
 export type When = (typeof WHENS)[number];
 
 export interface Effect {
-  stat: StatId;
+  stat: StatId | FeatureStat;
   op: Op;
   value: number;
   /** A line id, an era id or `all`; for shelf, flotsam and skill stats their kind or id. */

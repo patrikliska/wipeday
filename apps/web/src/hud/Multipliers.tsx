@@ -109,6 +109,7 @@ const STEP_TITLE: Record<Step["id"], string> = {
   upgrades: "mult.upgrades",
   eras: "mult.eras",
   roster: "mult.roster_title",
+  nodes: "mult.nodes",
   glow: "mult.glow",
   morale: "mult.morale",
   buffs: "mult.buffs",

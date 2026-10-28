@@ -6,6 +6,8 @@
  * Every data file must be imported here: a missing one is a `ContentError` at load.
  */
 import achievementsFile from "@wipe-day/content/data/achievements.json5";
+import agendaFile from "@wipe-day/content/data/agenda.json5";
+import blastMapFile from "@wipe-day/content/data/blastmap.json5";
 import cardsFile from "@wipe-day/content/data/cards.json5";
 import crewFile from "@wipe-day/content/data/crew.json5";
 import erasFile from "@wipe-day/content/data/eras.json5";
@@ -58,6 +60,8 @@ export const content: Content = parseContent(
     "eras.json5": erasFile,
     "upgrades.json5": upgradesFile,
     "research.json5": researchFile,
+    "blastmap.json5": blastMapFile,
+    "agenda.json5": agendaFile,
     "milestones.json5": milestonesFile,
     "flotsam.json5": flotsamFile,
     "island.json5": islandFile,

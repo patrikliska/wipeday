@@ -14,11 +14,13 @@
  * `craft_gear`, `equip_gear`), then the Work Orders (`claim_order`), the daily quests
  * (`claim_quest`) and scrap (`buy_boost`, `buy_drop`, `claim_tide`); R4 the nuke and the Blast Map.
  */
+import { GROUND_ZERO, nodeOf } from "@wipe-day/content/blastmap";
 import { DROP_TIERS, type DropTier } from "@wipe-day/content/cards";
 import type { Content, FlotsamKind } from "@wipe-day/content/schema";
 import { TIERS } from "@wipe-day/content/tiers";
 import type { Amount } from "./amount";
 import { earnBadges } from "./badges";
+import { gateOpen, hasFeature, nodeEffects, nodeState } from "./blastmap";
 import { boostOf, boostUntil, tideSlot } from "./boosts";
 import { gearOf, survivorOf } from "./cards";
 import { credit, grantDrops, openDrop } from "./drops";
@@ -27,8 +29,9 @@ import { arrivalKind, claimUntil, crateValue, flotsamAt, gapBefore } from "./flo
 import { crossing, gullValue } from "./gulls";
 import { costFactor, costOf, eraOpen, handPriceOf, lineOf, maxAffordable } from "./lines";
 import { orderClaimed, orderMet, orderOf, orderProgress } from "./orders";
+import { glassYield, nuke } from "./prestige";
 import { claimQuest, questClaimed, questMet, questOf, questProgress, rollQuests } from "./quests";
-import { levelOf, levelsCost, maxResearch, researchGate, researchOf } from "./research";
+import { levelOf, levelsCost, maxResearch, mkFactor, researchGate, researchOf } from "./research";
 import { earnScrap, pay, spendScrap } from "./scrap";
 import { cyclePayout, settle, windowEnd } from "./settle";
 import {
@@ -84,7 +87,15 @@ export type Command =
   /** Buy a Supply Drop of tier II or III for scrap. */
   | { type: "buy_drop"; tier: 2 | 3 }
   /** Catch Lucky Tide crate `k` of run `run` while it floats. */
-  | { type: "claim_tide"; run: number; k: number };
+  | { type: "claim_tide"; run: number; k: number }
+  /** Press the Big Red on run `run` (R4): the island goes, the glass stays (03-the-big-red.md). */
+  | { type: "nuke"; run: number }
+  /** Buy Blast Map nodes, the whole `path` or nothing, in order (04-blast-map.md 8.3). */
+  | { type: "buy_node"; path: string[] }
+  /** The admin's gift (server only): glass to held, a skin; logged with its note. */
+  | { type: "grant"; glass: number; skin: string | null; note: string }
+  /** The admin's full free respec (server only): every node but Ground Zero back to glass. */
+  | { type: "respec" };
 
 export type CommandType = Command["type"];
 
@@ -92,8 +103,8 @@ export type CommandType = Command["type"];
 export const SLIM_COMMANDS: readonly CommandType[] = ["taps", "ping"];
 export const isSlim = (command: Command): boolean => SLIM_COMMANDS.includes(command.type);
 
-/** Commands the client cannot predict (none since the redesign; kept for `set_cosmetic`). */
-export const SERVER_ONLY: readonly CommandType[] = [];
+/** Commands only the server issues (the admin's); a client never sends or predicts them. */
+export const SERVER_ONLY: readonly CommandType[] = ["grant", "respec"];
 
 /**
  * Why a command did not happen, with what is missing (rule 6.3.5): `need` and `have` in
@@ -131,7 +142,15 @@ export type Refusal =
   /** That order or quest is not done yet: `value` of `goal` (null for a one-off condition). */
   | { reason: "unmet"; value: number | null; goal: number | null }
   /** That boost still runs until `until`: buy it again after. */
-  | { reason: "running"; until: number };
+  | { reason: "running"; until: number }
+  /** Nothing to launch yet: the next glass comes at `need` supplies made (R4). */
+  | { reason: "not_ready"; need: Amount }
+  /** Not enough glass: `need` and `have`. */
+  | { reason: "glass"; need: Amount; have: Amount }
+  /** That node is not in this build (a later wave). */
+  | { reason: "hidden" }
+  /** That node has no owned parent yet (the path was not whole). */
+  | { reason: "no_parent"; what: string };
 
 export type { Gate };
 
@@ -185,6 +204,22 @@ export function applyCommand(
   let run = result.state.run;
   if (isPurchase(command) && run.firstBuyAt === null) run = { ...run, firstBuyAt: now };
   run = { ...run, activeAt: now, madeAtActive: run.made };
+  // The Big Red's readout keeps the run's best glass an hour (03 2.1), sampled per command; and
+  // Personal Best (R4) turns on the first command after the run passes the record (never inside
+  // settle, so settle stays path independent, N24).
+  const after: BaseState = { ...result.state, run };
+  if (command.type !== "nuke") {
+    // Rounded, so two settle paths' float noise never shows up in a stored number (N24).
+    const peak = Number(glassYield(content, after, now).peak.toPrecision(10));
+    if (peak > run.peak) run = { ...run, peak };
+    if (
+      run.personalBestAt === null &&
+      run.made > after.meta.records.bestRun &&
+      after.meta.records.bestRun > 0 &&
+      hasFeature(content, after.meta, "personal_best")
+    )
+      run = { ...run, personalBestAt: now };
+  }
   const events = [...before, ...result.events];
   // Badges after every successful command, never on a refusal or inside settle (D198). They read
   // the command's own events only: settle's can be swallowed by an earlier settle (N24).
@@ -205,15 +240,16 @@ function step(content: Content, state: BaseState, command: Command, now: number)
       return { ok: true, ...applyTaps(content, state, command, now) };
     case "ping":
       return { ok: true, state, events: [] };
-    case "collect": {
-      const stats = { ...state.meta.stats, collects: state.meta.stats.collects + 1 };
-      const full = windowEnd(content, state) <= now;
-      return {
-        ok: true,
-        state: { ...state, meta: { ...state.meta, stats } },
-        events: [{ type: "night_shift_collected", full }],
-      };
-    }
+    case "collect":
+      return collect(content, state, now);
+    case "nuke":
+      return pressBigRed(content, state, command.run, now);
+    case "buy_node":
+      return buyNodes(content, state, command.path);
+    case "grant":
+      return grant(state, command.glass, command.skin, command.note);
+    case "respec":
+      return respec(content, state);
     case "buy_line":
       return buyLine(content, state, command.line, command.count);
     case "hire_hand":
@@ -247,6 +283,125 @@ function step(content: Content, state: BaseState, command: Command, now: number)
     case "claim_tide":
       return claimTide(content, state, command.run, command.k, now);
   }
+}
+
+/**
+ * Collect (the welcome card's one button): counts, and with Hot Breakfast (R4, Bunker 1.1) a
+ * return after its hours starts a Rally: every line ×4 for 60 s, the Fuel Drum's buff.
+ */
+function collect(content: Content, state: BaseState, now: number): Step {
+  const stats = { ...state.meta.stats, collects: state.meta.stats.collects + 1 };
+  const full = windowEnd(content, state) <= now;
+  const events: GameEvent[] = [{ type: "night_shift_collected", full }];
+  let run = state.run;
+  const breakfast = nodeEffects(content, state.meta).find(
+    (effect) => effect.stat === "feature:hot_breakfast",
+  );
+  const drum = content.flotsam.kinds.find((kind) => "buff" in kind.effect);
+  if (breakfast && drum && "buff" in drum.effect && now - run.activeAt >= breakfast.value * 3600) {
+    const { buff, seconds } = drum.effect;
+    const until = now + seconds;
+    run = { ...run, buffs: [...run.buffs.filter((b) => b.kind !== buff), { kind: buff, until }] };
+    events.push({ type: "boost_bought", boost: buff, until });
+  }
+  return { ok: true, state: { ...state, run, meta: { ...state.meta, stats } }, events };
+}
+
+/** The Big Red (03 1.5, 7.7): one hold on the right run, if the yield allows a press. */
+function pressBigRed(content: Content, state: BaseState, n: number, now: number): Step {
+  if (n !== state.run.n) return { ok: false, refusal: { reason: "stale_run" } };
+  const y = glassYield(content, state, now);
+  if (!y.pressable) return { ok: false, refusal: { reason: "not_ready", need: y.nextAt } };
+  return { ok: true, ...nuke(content, state, now) };
+}
+
+/**
+ * Blast Map nodes (04 5, 8.3): the whole path or nothing, in order, each node open (its ring
+ * and own gate), reachable from what is owned or earlier on the path, and paid in glass held.
+ * The server recomputes the cost; a path the client built on a stale map is refused whole.
+ */
+function buyNodes(content: Content, state: BaseState, path: string[]): Step {
+  if (path.length === 0) return { ok: false, refusal: { reason: "unknown", what: "" } };
+  const meta = state.meta;
+  const owned = new Set(meta.nodes);
+  let cost = 0;
+  const ids: string[] = [];
+  for (const id of path) {
+    const node = nodeOf(content, id);
+    if (!node) return { ok: false, refusal: { reason: "unknown", what: id } };
+    if (id === GROUND_ZERO || owned.has(id)) return { ok: false, refusal: { reason: "owned" } };
+    const check = nodeState(content, meta, id);
+    if (check.kind === "hidden") return { ok: false, refusal: { reason: "hidden" } };
+    if (check.kind === "ring_gate")
+      return {
+        ok: false,
+        refusal: { reason: "locked", gate: { kind: "wipe_day", value: check.at } },
+      };
+    if (check.kind === "node_gate")
+      return {
+        ok: false,
+        refusal: { reason: "locked", gate: { kind: "wipe_day", value: check.at } },
+      };
+    const parents =
+      node.type === "completion"
+        ? node.requires.every((parent) => owned.has(parent))
+        : node.requires.some((parent) => owned.has(parent));
+    if (!parents) return { ok: false, refusal: { reason: "no_parent", what: id } };
+    if (!gateOpen(content, meta, node)) return { ok: false, refusal: { reason: "hidden" } };
+    owned.add(id);
+    ids.push(id);
+    cost += node.cost;
+  }
+  if (cost > meta.glass.held)
+    return { ok: false, refusal: { reason: "glass", need: cost, have: meta.glass.held } };
+  return {
+    ok: true,
+    state: {
+      ...state,
+      meta: {
+        ...meta,
+        nodes: [...meta.nodes, ...ids],
+        glass: { ...meta.glass, held: meta.glass.held - cost, spent: meta.glass.spent + cost },
+      },
+    },
+    events: [{ type: "node_bought", ids, cost }],
+  };
+}
+
+/** The admin's gift (09-architecture.md 9.6): to glass held only, never Glow or the formula. */
+function grant(state: BaseState, glass: number, skin: string | null, note: string): Step {
+  const meta = state.meta;
+  return {
+    ok: true,
+    state: {
+      ...state,
+      meta: {
+        ...meta,
+        glass: { ...meta.glass, held: meta.glass.held + Math.max(0, glass) },
+        skin: skin ?? meta.skin,
+      },
+    },
+    events: [{ type: "granted", glass, skin, note }],
+  };
+}
+
+/** A full free respec (04 5): every glass spent back, every node but Ground Zero cleared. */
+function respec(_content: Content, state: BaseState): Step {
+  const meta = state.meta;
+  const nodes = meta.nodes.filter((id) => id === GROUND_ZERO);
+  const refunded = meta.glass.spent;
+  return {
+    ok: true,
+    state: {
+      ...state,
+      meta: {
+        ...meta,
+        nodes,
+        glass: { ...meta.glass, held: meta.glass.held + refunded, spent: 0 },
+      },
+    },
+    events: [{ type: "respecced", refunded, nodes: meta.nodes.length - nodes.length }],
+  };
 }
 
 function claimOrder(content: Content, state: BaseState, n: number, id: string, now: number): Step {
@@ -616,8 +771,9 @@ function buyResearch(
   if (gate) return { ok: false, refusal: { reason: "locked", gate } };
   const supplies = state.run.supplies;
   const owned = def.line === undefined ? 0 : (state.run.lines[def.line] ?? 0);
-  const k = count === "max" ? maxResearch(def, n, supplies, owned) : 1;
-  const cost = levelsCost(def, n, Math.max(1, k));
+  const factor = mkFactor(content, state, def);
+  const k = count === "max" ? maxResearch(def, n, supplies, owned, factor) : 1;
+  const cost = levelsCost(def, n, Math.max(1, k)) * factor;
   if (k === 0 || cost > supplies)
     return { ok: false, refusal: { reason: "supplies", need: cost, have: supplies } };
   const stats = state.meta.stats;
@@ -652,6 +808,9 @@ function buyEra(content: Content, state: BaseState, id: string, now: number): St
     return { ok: false, refusal: { reason: "supplies", need: cost, have: supplies } };
   // A purchase starts the run's clock before the step, so `startedAt` is set.
   const at = now - (state.run.startedAt ?? now);
+  // The first time ever this era is reached (the feed's "first Armored", R4): the lifetime
+  // count of eras reached says whether any earlier run got this far.
+  const first = !everReached(content, state, era.id);
   return {
     ok: true,
     state: {
@@ -666,8 +825,24 @@ function buyEra(content: Content, state: BaseState, id: string, now: number): St
       },
       meta: { ...state.meta, stats: { ...state.meta.stats, eras: state.meta.stats.eras + 1 } },
     },
-    events: [{ type: "era_reached", era: era.id, at }],
+    events: first
+      ? [{ type: "era_reached", era: era.id, at, first }]
+      : [{ type: "era_reached", era: era.id, at }],
   };
+}
+
+/**
+ * Whether any run before this one reached `era`: the badges' wall keeps the first time each era
+ * was reached (`era_<id>` badges, from R2), so no new counter is needed.
+ */
+function everReached(content: Content, state: BaseState, era: string): boolean {
+  const badge = content.achievements.badges.find(
+    (row) =>
+      row.when.kind === "state" &&
+      row.when.state === "era" &&
+      row.when.gte === TIERS.indexOf(era as (typeof TIERS)[number]),
+  );
+  return badge !== undefined && state.meta.badges[badge.id] !== undefined;
 }
 
 function hireHand(content: Content, state: BaseState, id: string, now: number): Step {

@@ -28,6 +28,11 @@ const schema = z.object({
   ADMIN_TOKEN: z.string().min(16).optional(),
   /** The Discord bot's bearer token for `/api/bot/*` (W8). Unset: dev only. */
   BOT_API_TOKEN: z.string().min(32).optional(),
+  /** The owner's Discord id: error and stale-backup DMs go there (R4). Unset: none. */
+  OWNER_DISCORD_ID: z
+    .string()
+    .regex(/^\d{17,20}$/)
+    .optional(),
 });
 
 export interface Config {
@@ -44,6 +49,8 @@ export interface Config {
   adminToken: string | null;
   /** Bearer token for `/api/bot/*`; null leaves them to development only. */
   botToken: string | null;
+  /** The owner's Discord id for the server's own DMs, or null. */
+  ownerDiscordId: string | null;
 }
 
 const fromRoot = (path: string) => (isAbsolute(path) ? path : join(ROOT, path));
@@ -77,5 +84,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, root = ROOT): C
     devLogin: !production,
     adminToken: data.ADMIN_TOKEN ?? null,
     botToken: data.BOT_API_TOKEN ?? null,
+    ownerDiscordId: data.OWNER_DISCORD_ID ?? null,
   };
 }

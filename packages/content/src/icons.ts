@@ -108,5 +108,22 @@ export function iconsWanted(content: Content): { kind: IconKind; id: string }[] 
       kind: "ui" as const,
       id,
     })),
+    // The Blast Map (R4): its dock place, each sector's glyph and each node type's frame; node
+    // icons fall back to the type's frame until the owner's icon pass (D268).
+    { kind: "nav" as const, id: "blast_map" },
+    ...content.blastMap.sectors.map((id) => ({ kind: "sector" as const, id })),
+    ...["small", "notable", "keystone", "unlock", "automation", "completion"].map((id) => ({
+      kind: "node_type" as const,
+      id,
+    })),
+    ...[
+      "big_red",
+      "glow",
+      "afterglow",
+      "kettle_pad",
+      "kettle_frame",
+      "kettle_warhead",
+      "kettle_fuel",
+    ].map((id) => ({ kind: "ui" as const, id })),
   ];
 }

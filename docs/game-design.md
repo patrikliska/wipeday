@@ -466,16 +466,18 @@ gain goes to **glass ever** and **glass held**. Multipliers are never clawed bac
 (the founders' 5, admin grants) goes to held only and never moves Glow. The exponent never goes
 above 1/5 without a group-simulation proof.
 
-**Glow** = `1 + 0.25 × √(glass ever)` (Blast nodes raise `k`), a global multiplier on lines and
+**Glow** = `1 + 0.3 × √(glass ever)` (k 0.25 → 0.3 in D269; Blast nodes raise `k`), a global multiplier on lines and
 the flat tap. Spending glass never lowers it. Ground Zero is granted lit with the first nuke.
 
 **Wipe Day or small blast.** The first nuke needs a formula delta of 10; later nukes are
-pressable at a gain of 1. A nuke that adds at least 10% to glass ever is a counted **Wipe Day**:
+pressable at a gain of 1. A nuke that adds at least 10% to glass ever, and at least 10 glass
+(D269), is a counted **Wipe Day**:
 it raises Wipe Day #N, moves the agenda, posts news, washes Blowback, adds to the Island Count and
 the boards, and deepens the crater. A smaller press is a **small blast**: it resets the island and
 pays its glass quietly (the Fizzle flight, a private postcard). The cover card always says which.
-Every nuke also pays a Supply Drop: tier I for a small blast, II for a Wipe Day, III for a
-doubling Wipe Day; and scrap, 3 on a Wipe Day and 10 on a doubling (`12` 7.1, 8).
+Every nuke also pays a Supply Drop, at once and never through the hourly gate: tier I for a
+small blast, II for a Wipe Day, III for a doubling Wipe Day (the first Wipe Day counts as one);
+and 3 scrap on a doubling only (D269: the daily quests already pay a casual 5 a day).
 
 **When to press.** The card and chip show "+12 now · 9/h now · peak 14/h". The advisor crowns the
 Big Red (first match): the first nuke at a delta of 10 (guided); doubling (gain ≥ glass ever); a

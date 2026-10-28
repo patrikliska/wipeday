@@ -9,8 +9,9 @@
  * and is away in between, where settle runs in closed form. Deterministic: seeds only, no clock
  * reads.
  *
- * Until R4's real `nuke`, a stub nuke folds the run into `meta` by the prestige formula
- * (`prestige.ts`) and starts a fresh run, so the loop already plays lifetimes.
+ * R4: the real `nuke` through `applyCommand`, pressed by each archetype's policy (the crown,
+ * doubling, or the optimal's "past the peak"), and after every press the Blast Map's pick bought
+ * while glass allows (`nodePick`, D268), so N11-N14 and 4.10 read the game as shipped.
  *
  * R3's cards (D252): every archetype opens its drops at once, buys each star its shards pay
  * for, crafts the first missing gear its rarity shards buy, and after a hire or a new card puts
@@ -27,20 +28,21 @@ import type { Archetype, Assertion, Content, Phase } from "@wipe-day/content/sch
 import { PHASES } from "@wipe-day/content/schema";
 import { choices, crown, lasting, type Player } from "@wipe-day/domain/advisor";
 import { assertFiniteState } from "@wipe-day/domain/amount";
+import { type NodeDef, nodeEffects, nodePick, shippedNodes } from "@wipe-day/domain/blastmap";
 import { tideAt } from "@wipe-day/domain/boosts";
 import { applyCommand, type Command } from "@wipe-day/domain/commands";
 import { dropsOnWay } from "@wipe-day/domain/drops";
-import { fullRate, rates, unitRate } from "@wipe-day/domain/effects";
+import { foldStat, fullRate, glow, rates, unitRate } from "@wipe-day/domain/effects";
 import type { GameEvent } from "@wipe-day/domain/events";
 import { claimUntil, flotsamAt } from "@wipe-day/domain/flotsam";
 import { gullAt } from "@wipe-day/domain/gulls";
 import { fuelled, orderClaimed, orderMet, ordersOf } from "@wipe-day/domain/orders";
-import { glassLevel } from "@wipe-day/domain/prestige";
+import { bigRedCrown, glassYield, runAge } from "@wipe-day/domain/prestige";
 import { questClaimed, questMet, questsOf } from "@wipe-day/domain/quests";
 import { workshopOpensAt } from "@wipe-day/domain/research";
 import { rng, SEED, seedOf } from "@wipe-day/domain/rng";
 import { mannedRate, settle } from "@wipe-day/domain/settle";
-import { type BaseState, newBase, newRun } from "@wipe-day/domain/state";
+import { type BaseState, type Meta, newBase } from "@wipe-day/domain/state";
 import { tapParts } from "@wipe-day/domain/taps";
 import { weatherAt } from "@wipe-day/domain/weather";
 
@@ -86,6 +88,8 @@ export interface DayRow {
   hands: number;
   glassEver: number;
   nukes: number;
+  /** Counted Wipe Days (R4). */
+  wipeDays: number;
   taps: number;
   /** Supply Drops opened so far, and cards owned (R3). */
   drops: number;
@@ -113,6 +117,15 @@ export interface RunRow {
   /** Work Orders claimed in the run, and whether the set was fuelled (R3 S2). */
   orders: number;
   fuelled: boolean;
+  /** R4: the Wipe Day it counted as (null: a small blast), the nodes bought right after the press,
+   * the lasting power the press and those nodes added (N12), and when the run passed the one
+   * before it (N11; seconds after DAY0, null if never). */
+  wipeDay: number | null;
+  nodes: number;
+  /** Shipped nodes lit after the shopping (N14 reads later nukes while the map has room). */
+  lit: number;
+  power: number;
+  passedAt: number | null;
 }
 
 export interface Life {
@@ -150,30 +163,81 @@ export interface Life {
   steps: number;
 }
 
-/** The stub nuke (R0): the formula's glass for the run, then a fresh island. */
-function stubNuke(content: Content, state: BaseState, now: number, rule: Archetype["nuke"]) {
-  const { meta, run } = state;
-  const lifetime = meta.lifetime + run.made;
-  const level = glassLevel(content, lifetime);
-  const gain = level - meta.glass.level;
-  const first = meta.nukes === 0;
-  if (gain < (first ? content.prestige.firstNukeGlass : 1)) return null;
-  const counts = first || gain >= Math.ceil(content.prestige.countShare * meta.glass.ever);
-  const press = rule === "double" ? gain >= Math.max(1, meta.glass.ever) : counts;
-  if (!press) return null;
-  const nextMeta = {
-    ...meta,
-    nukes: meta.nukes + 1,
-    wipeDays: meta.wipeDays + (counts ? 1 : 0),
-    lifetime,
-    glass: {
-      ...meta.glass,
-      ever: meta.glass.ever + gain,
-      held: meta.glass.held + gain,
-      level,
-    },
-  };
-  return { ...state, meta: nextMeta, run: newRun(content, nextMeta, state.seed, now) };
+/**
+ * Whether the archetype presses the Big Red now (R4): `crown` when the advisor crowns it (the
+ * four rules, waiting out buffs), `double` at a gain of at least glass ever, `best` (the optimal
+ * player) at a counting press once this run's glass an hour has fallen under 80% of its peak
+ * ten minutes in, or at the first nuke.
+ */
+function pressesNow(content: Content, state: BaseState, now: number, rule: Archetype["nuke"]) {
+  const y = glassYield(content, state, now);
+  if (!y.pressable) return false;
+  if (rule === "double") return y.first || y.gain >= Math.max(1, state.meta.glass.ever);
+  if (rule === "best")
+    return y.first || (y.counts && runAge(state, now) >= 600 && y.rateNow < 0.8 * y.peak);
+  return (
+    !state.run.buffs.some((buff) => buff.until > now) && bigRedCrown(content, state, now) !== null
+  );
+}
+
+/**
+ * The lasting power `meta` gives a fresh run (N12): Glow times the map's all-line output fold.
+ * Scoped nodes (a line, an era) are left out: a cheap, monotone measure of what a nuke added.
+ */
+function metaPower(content: Content, meta: Meta): number {
+  const effects = nodeEffects(content, meta);
+  const k = foldStat("glow_k", effects, content.prestige.glowK);
+  const counts = { nukes: meta.wipeDays, hands: 14, sectors: {} };
+  const output = foldStat("output", effects, 1, {}, { online: true }, counts);
+  return glow(content, meta.glass.ever, k) * output;
+}
+
+/** A rough gain per node for the pick's "best income per glass" (04 8.4), deterministic. */
+function nodeGain(content: Content, node: NodeDef): number {
+  let gain = 0;
+  for (const effect of node.effects) {
+    const share =
+      effect.scope === undefined || effect.scope === "all"
+        ? 1
+        : content.lines.some((line) => line.id === effect.scope)
+          ? 1 / content.lines.length
+          : 0.25;
+    const v = effect.value;
+    switch (effect.stat) {
+      case "output":
+      case "speed":
+        gain += (effect.op === "more" ? v - 1 : v) * share * (effect.when ? 0.3 : 1);
+        break;
+      case "tap":
+      case "tap_share":
+        gain += 0.3 * v;
+        break;
+      case "glass_gain":
+        gain += 0.5 * (effect.op === "more" ? v - 1 : v);
+        break;
+      case "glow_k":
+        gain += 2 * v;
+        break;
+      case "night_shift":
+        gain += 0.05 * v;
+        break;
+      case "line_cost":
+      case "hand_cost":
+      case "upgrade_cost":
+      case "era_cost":
+        gain += 0.5 * (1 - v);
+        break;
+      case "keep_hand":
+      case "start_owned":
+      case "start_era":
+      case "start_upgrade":
+        gain += 0.2;
+        break;
+      default:
+        gain += effect.stat.startsWith("feature:") ? 0.1 : 0.05;
+    }
+  }
+  return gain;
 }
 
 const largestOf = (state: BaseState): number =>
@@ -241,6 +305,9 @@ export function simulate(
   let runOnline = 0;
   let stuck = 0;
   let bought = false;
+  /** The run before this one: its made (N11 reads when this run passes it). */
+  let previousMade = 0;
+  let passedAt: number | null = null;
 
   /** Run 1's moments, from the events of each command. */
   const beat = (key: string, at: number) => {
@@ -268,6 +335,56 @@ export function simulate(
   /** A hire or an earned drop since the cards were last tended. */
   let tending = false;
   let crafted = 0;
+
+  /** The Blast Map's pick, bought while glass allows (R4, 04 8.4): every nuke's shopping. */
+  const buyNodes = (now: number): number => {
+    let count = 0;
+    for (let i = 0; i < 400; i++) {
+      const pick = nodePick(content, state, (node) => nodeGain(content, node));
+      if (pick?.state.kind !== "affordable") break;
+      if (!step({ type: "buy_node", path: [pick.node.id] }, now).ok) break;
+      count += 1;
+    }
+    return count;
+  };
+
+  /** The Big Red, by the archetype's policy (R4): the press, then the map. */
+  const maybeNuke = (now: number): boolean => {
+    if (!pressesNow(content, state, now, archetype.nuke)) return false;
+    const before = metaPower(content, state.meta);
+    const made = state.run.made;
+    const orders = state.run.orders.claimed.length;
+    const wasFuelled = fuelled(content, state);
+    const n = state.run.n;
+    // Run 1's beat is read before the press: `beat` only records while no nuke has happened.
+    if (pressesNow(content, state, now, archetype.nuke)) beat("nuke", since(now));
+    const result = step({ type: "nuke", run: n }, now);
+    if (!result.ok) return false;
+    const nuked = result.events.find((event) => event.type === "nuked");
+    const nodes = buyNodes(now);
+    tending = true;
+    life.runs.push({
+      n,
+      start: runStart,
+      end: now - DAY0,
+      made,
+      glass: nuked?.type === "nuked" ? nuked.gain : 0,
+      orders,
+      fuelled: wasFuelled,
+      wipeDay: nuked?.type === "nuked" ? nuked.wipeDay : null,
+      nodes,
+      lit: state.meta.nodes.length,
+      power: metaPower(content, state.meta) / before,
+      passedAt,
+    });
+    previousMade = made;
+    passedAt = null;
+    runStart = now - DAY0;
+    runOnline = 0;
+    stuck = 0;
+    waiting = null;
+    return true;
+  };
 
   /** The Work Orders and quests met and not yet claimed (R3 S2): a player taps Claim. */
   const claims = (now: number) => {
@@ -447,6 +564,11 @@ export function simulate(
       step({ type: "ping" }, t);
       claims(t);
       spend(t);
+      // A check-in finds a run that grew while away: the record may have fallen (N11), and the
+      // crown may already say press (the casual's evening nuke).
+      if (passedAt === null && previousMade > 0 && state.run.made >= previousMade)
+        passedAt = t - DAY0;
+      maybeNuke(t);
       while (t < end) {
         const idle = state.run.hands.length === 0;
         const rate = archetype.tapsPerSecond + (idle ? (archetype.tapsWhileNothingRuns ?? 0) : 0);
@@ -498,23 +620,9 @@ export function simulate(
           life.stuck.online = Math.max(life.stuck.online, stuck);
           if (runOnline < FINE_SECONDS) life.stuck.early = Math.max(life.stuck.early, stuck);
         }
-        const nuked = stubNuke(content, state, to, archetype.nuke);
-        if (nuked) {
-          beat("nuke", since(to));
-          life.runs.push({
-            n: state.run.n,
-            start: runStart,
-            end: to - DAY0,
-            made: state.run.made,
-            glass: nuked.meta.glass.ever - state.meta.glass.ever,
-            orders: state.run.orders.claimed.length,
-            fuelled: fuelled(content, state),
-          });
-          state = nuked;
-          runStart = to - DAY0;
-          runOnline = 0;
-          stuck = 0;
-        }
+        if (passedAt === null && previousMade > 0 && state.run.made >= previousMade)
+          passedAt = to - DAY0;
+        maybeNuke(to);
         runOnline += length;
         t += length;
       }
@@ -542,6 +650,7 @@ export function simulate(
       hands: state.run.hands.length,
       glassEver: state.meta.glass.ever,
       nukes: state.meta.nukes,
+      wipeDays: state.meta.wipeDays,
       taps: state.meta.stats.taps,
       drops: state.meta.stats.drops,
       cards:
@@ -565,6 +674,11 @@ export function simulate(
     glass: 0,
     orders: state.run.orders.claimed.length,
     fuelled: fuelled(content, state),
+    wipeDay: null,
+    nodes: 0,
+    lit: state.meta.nodes.length,
+    power: 1,
+    passedAt,
   });
   return life;
 }
@@ -604,7 +718,23 @@ const SHORT_CHECKS: ReadonlySet<string> = new Set([
   "casualAlbumBase",
   "casualAlbumFull",
   "ordersReachable",
+  "firstNukeMinutes",
+  "firstNukeMinutesAny",
+  "passPreviousRun",
+  "powerPerNuke",
+  "flattening",
+  "nodesBought",
+  "casualWipeDaysByDay30",
+  "casualFirstWeekGlass",
 ]);
+/** Days every archetype must play for a check that reads them all (R4's run-to-run checks). */
+const REACH_DAYS: Readonly<Record<string, number>> = {
+  passPreviousRun: 30,
+  powerPerNuke: 30,
+  flattening: 30,
+  nodesBought: 7,
+  firstNukeMinutesAny: 3,
+};
 /** N19's window: a 7-day average from day 2 (12-feel.md 11), so everyone plays to day 8. */
 const SCRAP_FROM_DAY = 2;
 const SCRAP_DAYS = 7;
@@ -627,6 +757,8 @@ export function earlyStops(
           day = Math.max(day, num(assertion.byDay, 30));
         continue;
       }
+      const reach = REACH_DAYS[assertion.check];
+      if (reach !== undefined) day = Math.max(day, startDay + reach - 1);
       const reads =
         assertion.check === "activeHour"
           ? str(assertion.archetype, "active")
@@ -793,6 +925,51 @@ export const dayClock = (seconds: number): string => {
 
 /** The lives of an archetype or scenario by name (one per seed). */
 const named = (lives: Life[], name: string): Life[] => lives.filter((life) => life.name === name);
+
+/** The archetypes N11-N13 judge (the idler's doubling runs sit outside the bands by design). */
+const RUN_ARCHETYPES = ["casual", "active", "optimal"] as const;
+/** Early is runs 1-5, mid later runs ending by day 30, late runs ending by day 180 (03 13.1). */
+type RunPhase = "early" | "mid" | "late";
+const phaseOf = (run: RunRow): RunPhase | null => {
+  if (run.end === null) return null;
+  if (run.n <= EARLY_RUNS) return "early";
+  const day = Math.floor(run.end / DAY) + 1;
+  return day <= 30 ? "mid" : day <= 180 ? "late" : null;
+};
+const median = (values: number[]): number => {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const a = sorted[mid - 1];
+  const b = sorted[mid];
+  if (b === undefined) return Number.NaN;
+  return sorted.length % 2 === 0 && a !== undefined ? (a + b) / 2 : b;
+};
+const geomean = (values: number[]): number =>
+  values.length === 0
+    ? Number.NaN
+    : Math.exp(values.reduce((sum, v) => sum + Math.log(Math.max(v, 1e-12)), 0) / values.length);
+/** Per archetype and phase, `pick` over every finished run pair or run. */
+function byPhase(
+  lives: Life[],
+  pick: (run: RunRow, previous: RunRow | undefined, life: Life) => number | null,
+): Map<string, Map<RunPhase, number[]>> {
+  const out = new Map<string, Map<RunPhase, number[]>>();
+  for (const name of RUN_ARCHETYPES) {
+    const phases = new Map<RunPhase, number[]>();
+    for (const life of named(lives, name)) {
+      for (const [i, run] of life.runs.entries()) {
+        const phase = phaseOf(run);
+        if (phase === null) continue;
+        const value = pick(run, life.runs[i - 1], life);
+        if (value === null || !Number.isFinite(value)) continue;
+        phases.set(phase, [...(phases.get(phase) ?? []), value]);
+      }
+    }
+    out.set(name, phases);
+  }
+  return out;
+}
+const PHASES_IN_ORDER: RunPhase[] = ["early", "mid", "late"];
 
 /** Common and Rare cards owned: the Album's base set (N33, D266). */
 function baseSetOwned(content: Content, state: BaseState): number {
@@ -1082,6 +1259,156 @@ export const CHECKS: Record<string, Check> = {
     return {
       ok,
       detail: `Album (${want} cards) complete on day ${range(whens, (n) => String(n))} (want not before ${notBefore})`,
+    };
+  },
+  // N1 (guardrail 1): the first-hour scenario's first nuke, minutes after its first tap.
+  firstNukeMinutes: (assertion, { lives }) => {
+    const scenario = named(lives, str(assertion.scenario, "firstHour"));
+    const minutes = scenario.map((life) =>
+      life.beats.nuke === undefined ? undefined : life.beats.nuke / 60,
+    );
+    const low = num(assertion.min, 40);
+    const high = num(assertion.max, 60);
+    const ok = minutes.length > 0 && minutes.every((m) => m !== undefined && m >= low && m <= high);
+    return {
+      ok,
+      detail: `first nuke ${range(minutes, (m) => clock(m * 60))} (want ${low}-${high} min)`,
+    };
+  },
+  // N2: no first nuke under `min` minutes on the wall clock from the first tap, for anyone.
+  firstNukeMinutesAny: (assertion, { lives }) => {
+    const rows = lives.map(
+      (life) =>
+        [life.name, life.beats.nuke === undefined ? undefined : life.beats.nuke / 60] as const,
+    );
+    const known = rows.filter((row): row is readonly [string, number] => row[1] !== undefined);
+    const worst = Math.min(...known.map(([, m]) => m));
+    return {
+      ok: known.length === rows.length && worst >= num(assertion.min, 25),
+      detail: perName(rows, (m) => clock(m * 60)),
+    };
+  },
+  // N11: the time run N+1 needs to pass run N's supplies made, as a share of run N's length;
+  // the median per phase at most `early` / `mid` / `late`.
+  passPreviousRun: (assertion, { lives }) => {
+    const shares = byPhase(lives, (run, previous) => {
+      if (!previous || previous.end === null || run.passedAt === null) return null;
+      const length = previous.end - previous.start;
+      return length > 0 ? (run.passedAt - run.start) / length : null;
+    });
+    const parts: string[] = [];
+    let ok = true;
+    for (const [name, phases] of shares) {
+      const words: string[] = [];
+      for (const phase of PHASES_IN_ORDER) {
+        const values = phases.get(phase);
+        if (!values || values.length === 0) continue;
+        const m = median(values);
+        const limit = num(assertion[phase], 1);
+        ok &&= m <= limit;
+        words.push(`${phase} ${pct(m)} (${values.length})`);
+      }
+      if (words.length > 0) parts.push(`${name}: ${words.join(", ")}`);
+    }
+    return { ok, detail: parts.join("; ") || "no finished run pairs" };
+  },
+  // N12: the lasting power a nuke adds (Glow and the map), geometric mean per phase in its band.
+  powerPerNuke: (assertion, { lives }) => {
+    const powers = byPhase(lives, (run) => run.power);
+    const parts: string[] = [];
+    let ok = true;
+    for (const [name, phases] of powers) {
+      const words: string[] = [];
+      for (const phase of PHASES_IN_ORDER) {
+        const values = phases.get(phase);
+        if (!values || values.length === 0) continue;
+        const g = geomean(values);
+        const [low, high] = pair(assertion[phase], [0, Number.POSITIVE_INFINITY]);
+        ok &&= g >= low && g <= high;
+        words.push(`${phase} ×${g.toFixed(2)} (${values.length})`);
+      }
+      if (words.length > 0) parts.push(`${name}: ${words.join(", ")}`);
+    }
+    return { ok, detail: parts.join("; ") || "no finished runs" };
+  },
+  // N13: five consecutive nukes whose power product is under `minProduct`, with nothing on the
+  // agenda in the next `unlockLookahead` Wipe Days, is a flat stretch: the build fails.
+  flattening: (assertion, { content, lives }) => {
+    const window = num(assertion.window, 5);
+    const minProduct = num(assertion.minProduct, 1.3);
+    const lookahead = num(assertion.unlockLookahead, 3);
+    const alarms: string[] = [];
+    for (const life of lives) {
+      const finished = life.runs.filter((run) => run.end !== null);
+      for (let i = window - 1; i < finished.length; i++) {
+        let product = 1;
+        for (let j = i - window + 1; j <= i; j++) product *= finished[j]?.power ?? 1;
+        if (product >= minProduct) continue;
+        const wipeDay = finished[i]?.wipeDay ?? 0;
+        const opens = content.agenda.rows.some(
+          (row) => row.at > wipeDay && row.at <= wipeDay + lookahead,
+        );
+        if (!opens)
+          alarms.push(
+            `${life.name} runs ${finished[i - window + 1]?.n}-${finished[i]?.n} ×${product.toFixed(2)}`,
+          );
+      }
+    }
+    return {
+      ok: alarms.length === 0,
+      detail: alarms.length ? alarms.join("; ") : "no flat stretch",
+    };
+  },
+  // N14: 6-10 nodes bought at the first nuke; later a median of at least `laterMedianMin` a nuke.
+  nodesBought: (assertion, { content, lives }) => {
+    const [low, high] = pair(assertion.first, [6, 10]);
+    const laterMin = num(assertion.laterMedianMin, 2);
+    const firsts = lives.map(
+      (life) => [life.name, life.runs.find((run) => run.end !== null)?.nodes] as const,
+    );
+    // Later nukes count while the shipped map still had room before the shopping.
+    const total = shippedNodes(content).length;
+    const laters = lives
+      .map((life) => {
+        const finished = life.runs.filter((run) => run.end !== null);
+        const room = finished.slice(1).filter((run) => run.lit - run.nodes < total);
+        return [
+          life.name,
+          room.length >= 2 ? median(room.map((run) => run.nodes)) : undefined,
+        ] as const;
+      })
+      .filter((row): row is readonly [string, number] => row[1] !== undefined);
+    const ok =
+      firsts.every(([, n]) => n !== undefined && n >= low && n <= high) &&
+      laters.every(([, m]) => m >= laterMin);
+    return {
+      ok,
+      detail: `first nuke ${perName(firsts, (n) => String(n))}; later median ${perName(laters, (m) => m.toFixed(1))}`,
+    };
+  },
+  // 4.10 (errata E14): the casual's counted Wipe Days by day 30 in the month-1 band.
+  casualWipeDaysByDay30: (assertion, { lives }) => {
+    const day = num(assertion.day, 30);
+    const counts = named(lives, str(assertion.archetype, "casual")).map(
+      (life) => life.days.find((row) => row.day === day)?.wipeDays,
+    );
+    const ok = counts.every(
+      (n) => n !== undefined && n >= num(assertion.min, 20) && n <= num(assertion.max, 40),
+    );
+    return { ok, detail: `Wipe Days by day ${day}: ${range(counts, (n) => String(n))}` };
+  },
+  // 4.10: the casual's glass ever at the end of the first week.
+  casualFirstWeekGlass: (assertion, { lives }) => {
+    const day = num(assertion.day, 7);
+    const glass = named(lives, str(assertion.archetype, "casual")).map(
+      (life) => life.days.find((row) => row.day === day)?.glassEver,
+    );
+    const ok = glass.every(
+      (g) => g !== undefined && g >= num(assertion.min, 300) && g <= num(assertion.max, 2000),
+    );
+    return {
+      ok,
+      detail: `glass ever at day ${day}: ${range(glass, (g) => String(Math.round(g)))}`,
     };
   },
   // N32 (D255): five Work Orders are reachable in every run 1, for every archetype.

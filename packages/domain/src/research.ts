@@ -7,7 +7,7 @@ import { levelEffect, levelsCost } from "@wipe-day/content/research";
 import type { Content, ResearchDef } from "@wipe-day/content/schema";
 import { TIERS } from "@wipe-day/content/tiers";
 import type { Amount } from "./amount";
-import type { Effect } from "./effects";
+import { type Effect, statOf } from "./effects";
 import type { Gate } from "./shelf";
 import type { BaseState } from "./state";
 
@@ -62,17 +62,28 @@ export function researchGate(
   return null;
 }
 
+/** A Line Mk's price factor from the Blast Map's `upgrade_cost` on `line_mk` (1 for tier items). */
+export function mkFactor(content: Content, state: BaseState, def: ResearchDef): number {
+  return def.kind === "mk" ? statOf(content, state, "upgrade_cost", 1, undefined, "line_mk") : 1;
+}
+
 /** The price of the next level of `def`. */
-export function researchCost(state: BaseState, def: ResearchDef): Amount {
-  return levelsCost(def, levelOf(state, def.id), 1);
+export function researchCost(content: Content, state: BaseState, def: ResearchDef): Amount {
+  return levelsCost(def, levelOf(state, def.id), 1) * mkFactor(content, state, def);
 }
 
 /**
  * How many more levels `supplies` buys from level `n` (at most to the top). Closed form for tier
  * items, stepped when floating point overshoots; a Line Mk also stops at a level its units do not
- * reach yet.
+ * reach yet (`factor` is its Blast Map discount).
  */
-export function maxResearch(def: ResearchDef, n: number, supplies: Amount, owned = 0): number {
+export function maxResearch(
+  def: ResearchDef,
+  n: number,
+  supplies: Amount,
+  owned = 0,
+  factor = 1,
+): number {
   const room = Math.max(0, def.levels - n);
   if (room === 0 || supplies <= 0) return 0;
   if (def.kind === "mk") {
@@ -80,7 +91,7 @@ export function maxResearch(def: ResearchDef, n: number, supplies: Amount, owned
     while (
       k < room &&
       owned >= (def.needOwned[n + k] ?? Number.POSITIVE_INFINITY) &&
-      levelsCost(def, n, k + 1) <= supplies
+      levelsCost(def, n, k + 1) * factor <= supplies
     ) {
       k += 1;
     }

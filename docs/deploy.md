@@ -140,7 +140,27 @@ DISCORD_TOKEN=...            # developer portal -> the application -> Bot -> Res
 DISCORD_GUILD_ID=718829849137119232
 FEED_CHANNEL_ID=...          # where the island's feed and season news go (optional)
 BOT_API_TOKEN=...            # 32+ random characters (openssl rand -hex 32); the API reads it too
+ADMIN_TOKEN=...              # 16+ characters: the admin routes and admin-cli (R4)
+OWNER_DISCORD_ID=...         # the owner's Discord id: error and stale-copy DMs (R4)
 ```
+
+## The admin (R4)
+
+`/api/admin/grant` and `/api/admin/respec_all` take the `ADMIN_TOKEN` bearer (development
+without one), each an idempotent command by key; `/api/status` reports the version, uptime, the
+last backup, the last off-site copy and the errors of the last 24 h. The CLI runs on the server
+over loopback:
+
+```sh
+docker exec -w /app/apps/api wipeday node_modules/.bin/tsx src/admin-cli.ts grant --player 1 --glass 5 --skin founder --note founders
+docker exec -w /app/apps/api wipeday node_modules/.bin/tsx src/admin-cli.ts respec-all --note "D2xx"
+docker exec -w /app/apps/api wipeday node_modules/.bin/tsx src/admin-cli.ts status
+```
+
+A grant goes to glass held only (never Glow); a respec refunds every node but Ground Zero on
+every base and ships only with a decision. With `OWNER_DISCORD_ID` set the API DMs the owner
+through the bot when a command throws (once an hour per signature) and when the off-site copy is
+older than 26 h (once a day).
 
 - The bot must be in the server: developer portal -> OAuth2 -> URL Generator, scopes `bot` and
   `applications.commands`; in the feed channel it needs View Channel and Send Messages. It

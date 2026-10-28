@@ -6,9 +6,11 @@
 import type { Content, LineDef } from "@wipe-day/content/schema";
 import { TIERS } from "@wipe-day/content/tiers";
 import { badgeCount } from "./badges";
+import { nodeEffects, sectorCounts } from "./blastmap";
 import {
   buffEffects,
   type Conditions,
+  type Counts,
   type Effect,
   foldStat,
   fullRate,
@@ -17,12 +19,27 @@ import {
   unitRate,
 } from "./effects";
 import { lineOf } from "./lines";
+import { glassYield, type KettleStage, kettleStage, type Yield } from "./prestige";
 import { levelEffect, researchEffects } from "./research";
 import { conditionsAt, mannedRate } from "./settle";
 import type { BaseState } from "./state";
 import { hustleFactor, tapParts } from "./taps";
 
 const ONLINE: Conditions = { online: true };
+
+/**
+ * The Big Red's readout (03-the-big-red.md 2.1, 4.4): "+12 now · 9/h now · peak 14/h", the
+ * Kettle's stage and whether the press would count. Read-only; the web's chip, the cover card
+ * and the bot's card share it.
+ */
+export function bigRedGlance(
+  content: Content,
+  state: BaseState,
+  now: number,
+  crowned: boolean,
+): Yield & { stage: KettleStage } {
+  return { ...glassYield(content, state, now), stage: kettleStage(content, state, now, crowned) };
+}
 
 /**
  * The top bar's `/s` (02-the-run.md 3.2): manned lines plus unmanned lines with a cycle
@@ -55,6 +72,7 @@ export interface Step {
     | "upgrades"
     | "eras"
     | "roster"
+    | "nodes"
     | "glow"
     | "morale"
     | "buffs"
@@ -116,6 +134,11 @@ export function breakdown(content: Content, state: BaseState, t: number): Breakd
   );
   const roster = content.milestones.roster.slice(0, state.run.roster);
   const buffs = state.run.buffs.filter((buff) => buff.until > t);
+  // The Blast Map's production effects (R4), read at the conditions of this moment.
+  const when = conditionsAt(content, state, t);
+  const nodes = nodeEffects(content, state.meta).filter(
+    (effect) => effect.stat === "output" || effect.stat === "speed",
+  );
 
   /** Σ owned × a unit's output and speed folded over `effects` (per line). */
   const total = (effects: (line: LineDef) => Effect[]): number => {
@@ -123,9 +146,14 @@ export function breakdown(content: Content, state: BaseState, t: number): Breakd
     for (const { line, n } of owned) {
       const list = effects(line);
       const query = { line };
-      const counts = { owned: n, hands: state.run.hands.length };
-      const output = foldStat("output", list, line.rate, query, ONLINE, counts);
-      const speed = foldStat("speed", list, 1, query, ONLINE, counts);
+      const counts: Counts = {
+        owned: n,
+        hands: state.run.hands.length,
+        nukes: state.meta.wipeDays,
+        sectors: sectorCounts(content, state.meta),
+      };
+      const output = foldStat("output", list, line.rate, query, when, counts);
+      const speed = foldStat("speed", list, 1, query, when, counts);
       sum += n * output * speed;
     }
     return sum;
@@ -144,6 +172,7 @@ export function breakdown(content: Content, state: BaseState, t: number): Breakd
           value: step.payout,
         })),
     },
+    { id: "nodes", effects: () => nodes },
   ];
 
   const steps: Step[] = [];
@@ -181,6 +210,16 @@ export function breakdown(content: Content, state: BaseState, t: number): Breakd
       id: String(content.milestones.roster[index]?.at ?? 0),
       factor: step.payout,
     });
+  // Each production node's own factor over the lines with everything before the map.
+  const beforeMap = total((line) => applied.slice(0, 5).flatMap((get) => get(line)));
+  for (const node of content.blastMap.nodes) {
+    if (!state.meta.nodes.includes(node.id)) continue;
+    const own = node.effects.filter((e) => e.stat === "output" || e.stat === "speed");
+    if (own.length === 0 || beforeMap <= 0) continue;
+    const factor =
+      total((line) => [...applied.slice(0, 5).flatMap((get) => get(line)), ...own]) / beforeMap;
+    if (factor > 1 + 1e-12) sources("nodes").push({ id: node.id, factor });
+  }
 
   steps.push({ id: "glow", factor: r.glow, sources: [] });
   // Morale (D198): its one source is the badge count.

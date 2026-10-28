@@ -1,0 +1,15 @@
+// The agenda (docs/redesign/03-the-big-red.md 12; D268): what each counted Wipe Day unlocks.
+// Shipped content only: a row names a `kind:id` the build has (a content check refuses the
+// rest), so nobody reads about something that does not exist yet (CLAUDE.md 6.3 rule 12). The
+// cover card names what this press unlocks; the postcard what the next Wipe Day does. Later
+// phases add their rows (the Magnet and Pockets in R7, ring 4 in R5, ...). Names: `agenda.{kind}.{id}`.
+{
+  rows: [
+    { at: 1, unlocks: ["ring:1", "ring:2", "feature:glow", "feature:afterglow", "feature:crater", "flight:u_turn"] },
+    { at: 2, unlocks: ["era:hqm", "flight:loop_the_loop", "flight:sputter_drop"] },
+    { at: 3, unlocks: ["hands:3", "ring:3"] },
+    { at: 10, unlocks: ["sign:painted"] },
+    { at: 25, unlocks: ["sign:metal"] },
+    { at: 50, unlocks: ["sign:lit"] },
+  ],
+}

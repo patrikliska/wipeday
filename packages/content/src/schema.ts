@@ -10,7 +10,18 @@
  */
 import { z } from "zod";
 import { CARD_STAT_IDS, type CardStatId, RARITIES, SLOTS } from "./cards";
-import { type Effect, OPS, PERS, STAT_IDS, STATS, type StatId, WHENS } from "./effects";
+import {
+  type Effect,
+  FEATURE_STAT,
+  isFeatureStat,
+  OPS,
+  PERS,
+  SECTOR_PER,
+  STAT_IDS,
+  STATS,
+  type StatId,
+  WHENS,
+} from "./effects";
 import { TIERS, type Tier } from "./tiers";
 
 /** Ids become locale keys and icon file names. */
@@ -34,20 +45,31 @@ export const seconds = z.number().finite().positive();
 
 export const effectSchema = z
   .strictObject({
-    stat: z.enum(STAT_IDS as [StatId, ...StatId[]]),
+    stat: z.union([
+      z.enum(STAT_IDS as [StatId, ...StatId[]]),
+      z.string().regex(FEATURE_STAT, "a feature is `feature:<id>`"),
+    ]),
     op: z.enum(OPS),
     value: z.number().finite(),
     scope: z.string().min(1).max(40).optional(),
-    per: z.enum(PERS).optional(),
+    per: z
+      .union([z.enum(PERS), z.string().regex(SECTOR_PER, "a sector count is `sector:<id>`")])
+      .optional(),
     max: z.number().finite().optional(),
     when: z.enum(WHENS).optional(),
   })
   .refine((effect) => effect.per === undefined || effect.max !== undefined, {
     message: "an effect with `per` needs a `max`",
   })
-  .refine((effect) => (STATS[effect.stat].ops as readonly string[]).includes(effect.op), {
-    message: "this op is not allowed for this stat",
-  })
+  .refine(
+    (effect) =>
+      isFeatureStat(effect.stat)
+        ? effect.op === "unlock"
+        : ((STATS[effect.stat as StatId]?.ops as readonly string[] | undefined)?.includes(
+            effect.op,
+          ) ?? false),
+    { message: "this op is not allowed for this stat" },
+  )
   // Zod types an absent key as `undefined`; it never writes one, so the parsed value is an Effect.
   .transform((effect) => effect as Effect);
 
@@ -152,20 +174,137 @@ export interface LineDef {
   handPrice: number;
 }
 
+/** What a nuke pays beside its glass (D248, 12-feel.md 7.1, 8): a Supply Drop tier and scrap. */
+const nukePaySchema = z.strictObject({
+  drop: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  scrap: z.int().min(0),
+});
+
 export const prestigeSchema = z.strictObject({
   l0: factor,
   exponent: z.number().finite().positive().max(1),
   glowK: z.number().finite().nonnegative(),
   firstNukeGlass: count,
+  /** Later nukes are pressable at this gain (03-the-big-red.md 1.5). */
+  laterNukeGlass: z.int().min(1),
   countShare: z.number().finite().nonnegative().max(1),
+  /** A later Wipe Day's gain is at least this, whatever the share says (D269). */
+  countMinGlass: z.int().min(1),
   afterglow: z.strictObject({
     start: factor,
     halfSeconds: seconds,
     holdSeconds: z.number().finite().nonnegative(),
     endsAfterSeconds: seconds,
   }),
+  /**
+   * The Kettle's stages (03 3.2): the pad at `padAt` lifetime supplies in run 1 (from the start
+   * later); the frame at a gain of `frameFirst` before the first nuke, later at `frameShare` of
+   * glass ever (at least 1); the warhead when the nuke counts; fuel and steam when crowned.
+   */
+  kettle: z.strictObject({
+    padAt: amount,
+    frameFirst: z.int().min(1),
+    frameShare: z.number().finite().positive().max(1),
+  }),
+  /** The crown's "a day's run" rule (03 2.2 rule 4): a counting nuke in a run this old. */
+  crown: z.strictObject({ ageSeconds: seconds }),
+  /**
+   * Nuke news (06-friends.md 2.2): a Wipe Day is news when the last news nuke was `foldMinutes`
+   * ago or more, or its count is a milestone (`milestones`, then every `every`); the rest fold
+   * into the next one.
+   */
+  news: z.strictObject({
+    foldMinutes: factor,
+    milestones: z.array(z.int().min(1)).min(1),
+    every: z.int().min(1),
+  }),
+  /** What each kind of press pays beside glass: a small blast, a Wipe Day, a doubling Wipe Day. */
+  pays: z.strictObject({ small: nukePaySchema, wipeDay: nukePaySchema, doubling: nukePaySchema }),
+  /**
+   * The cinematic's flights (03 7.3), rolled on the run's seed: each from Wipe Day `unlockAt`,
+   * weighed `weight` (unseen ones ×`unseenWeight`); `small` is the one every small blast flies.
+   */
+  flights: z.strictObject({
+    unseenWeight: factor,
+    small: id,
+    variants: z.array(z.strictObject({ id, unlockAt: count, weight: factor })).min(1),
+  }),
 });
 export type Prestige = z.infer<typeof prestigeSchema>;
+
+// --- the Blast Map and the agenda (R4; docs/redesign/04-blast-map.md 9, 03-the-big-red.md 12) --
+
+export const NODE_TYPES = [
+  "small",
+  "notable",
+  "keystone",
+  "unlock",
+  "automation",
+  "completion",
+] as const;
+export type NodeType = (typeof NODE_TYPES)[number];
+
+/** A node of the Blast Map (04 9.1). Ground Zero has no sector and ring 0. */
+export const nodeSchema = z.strictObject({
+  id,
+  sector: id.nullable(),
+  ring: z.int().min(0).max(9),
+  slot: z.int().min(0).max(7),
+  type: z.enum(NODE_TYPES),
+  cost: amount,
+  /** Parents, OR: one owned is enough (a completion needs its whole previous ring). */
+  requires: z.array(id),
+  effects: z.array(effectSchema).min(1),
+  /** Small nodes of one series share a name (`node.<series>.name` with a numeral). */
+  series: id.optional(),
+  /** It changes the island's picture. */
+  scene: z.boolean().optional(),
+  /** Its own Wipe Day gate, at least its ring's. */
+  gate: count.optional(),
+});
+export type NodeDef = z.infer<typeof nodeSchema>;
+
+export const blastMapFileSchema = z.strictObject({
+  /** Clockwise from 12 o'clock. */
+  sectors: z.array(id).min(1),
+  /** Rings up to this wave are drawn, listed and buyable; the rest wait for their phase. */
+  shippedWave: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  rings: z
+    .array(
+      z.strictObject({
+        ring: z.int().min(1).max(9),
+        size: z.int().min(1).max(7),
+        band: z.tuple([amount, amount]),
+      }),
+    )
+    .min(1),
+  /** The one ladder of prices (04 3.1). */
+  prices: z.array(amount).min(1),
+  typeFactor: z.record(z.enum(NODE_TYPES), factor),
+  /** The most all shipped non-keystone nodes may add to a stat together (04 4.2). */
+  ceilings: z.partialRecord(z.enum(STAT_IDS as [StatId, ...StatId[]]), z.number().finite()),
+  nodes: z.array(nodeSchema),
+});
+export type BlastMapFile = z.infer<typeof blastMapFileSchema>;
+
+/** The wave a ring belongs to (04 1.4): 1 for rings 1-3, 2 for 4-6, 3 for 7-9. */
+export const waveOf = (ring: number): 1 | 2 | 3 => (ring <= 3 ? 1 : ring <= 6 ? 2 : 3);
+
+/**
+ * An agenda unlock (03 12), `kind:id`: a `feature` the code reads, a `ring` of the map, an
+ * `era`, a `flight`, a `sign` style, or `hands:<rung>` (hands for lines 1-rung survive nukes).
+ */
+export const AGENDA_KINDS = ["feature", "ring", "era", "flight", "sign", "hands"] as const;
+export type AgendaKind = (typeof AGENDA_KINDS)[number];
+export const SIGN_STYLES = ["plank", "painted", "metal", "lit"] as const;
+export type SignStyle = (typeof SIGN_STYLES)[number];
+const unlock = z.string().regex(/^[a-z]+:[a-z0-9_]+$/, "an unlock is `kind:id`");
+
+export const agendaFileSchema = z.strictObject({
+  /** Each row: at Wipe Day `at`, these unlock. Shipped content only (a check refuses the rest). */
+  rows: z.array(z.strictObject({ at: z.int().min(1), unlocks: z.array(unlock).min(1) })).min(1),
+});
+export type AgendaFile = z.infer<typeof agendaFileSchema>;
 
 export const tapSchema = z.strictObject({
   bucket: z.strictObject({ perSecond: factor, burst: factor }),
@@ -754,6 +893,10 @@ export interface Content {
   quests: QuestsFile;
   /** Scrap: drop prices, the Magpie's pay and the boosts (R3 S2, D258). */
   scrap: ScrapFile;
+  /** The Blast Map: sectors, rings, the price ladder and the nodes in data (R4). */
+  blastMap: BlastMapFile;
+  /** What each counted Wipe Day unlocks (R4). */
+  agenda: AgendaFile;
 }
 
 /** Data files the game needs, in load order. */
@@ -776,6 +919,8 @@ export const DATA_FILES = [
   "orders.json5",
   "quests.json5",
   "scrap.json5",
+  "blastmap.json5",
+  "agenda.json5",
 ] as const;
 export type DataFile = (typeof DATA_FILES)[number];
 
@@ -794,7 +939,9 @@ export type EntityKind =
   | "set"
   | "order"
   | "quest"
-  | "boost";
+  | "boost"
+  | "node"
+  | "sector";
 
 /** The named entities: their file, where `Content` keeps them and their locale namespace. */
 export const FILES = [

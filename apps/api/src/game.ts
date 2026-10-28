@@ -402,6 +402,43 @@ export class Game {
     return changed;
   }
 
+  /**
+   * The admin's full free respec (R4; 04-blast-map.md 5): every base's `respec` in one
+   * transaction, idempotent by `key` (a replay changes nothing). Returns the players changed.
+   */
+  respecAll(key: string): number[] {
+    const now = this.deps.clock.now();
+    const out = outbox();
+    const changed = this.db.transaction((): number[] => {
+      const done = setting(this.db, `respec:${key}`);
+      if (done !== undefined) return [];
+      const rows = this.db.select({ playerId: bases.playerId }).from(bases).all();
+      const players: number[] = [];
+      for (const { playerId } of rows) {
+        const loaded = this.load(playerId, now);
+        if (!loaded.stored) continue;
+        const result = applyCommand(this.deps.content, loaded.state, { type: "respec" }, now);
+        const version = this.save(playerId, loaded, result.state, now);
+        this.log(playerId, loaded.seasonId, result.events, now, out);
+        out.pushes.push({
+          playerId,
+          message: {
+            version,
+            serverNow: now,
+            state: result.state,
+            events: result.events,
+            origin: null,
+          },
+        });
+        players.push(playerId);
+      }
+      putSetting(this.db, `respec:${key}`, String(now));
+      return players;
+    });
+    this.flush(out);
+    return changed;
+  }
+
   /** How many command records a player has (tests: N25). */
   records(playerId: number): number {
     return this.db.select().from(commands).where(eq(commands.playerId, playerId)).all().length;

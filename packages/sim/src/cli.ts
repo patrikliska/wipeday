@@ -52,6 +52,30 @@ function table(life: Life): string {
         `${String(row.scrap).padStart(5)} ${String(row.orders).padStart(6)} ${String(row.quests).padStart(6)}`,
     );
   }
+  // The runs (R4): when each started and ended, what it made, its glass, the Wipe Day it counted
+  // as, the nodes bought after it, the lasting power it added, and when it passed the run before.
+  const runs = life.runs.filter((run) => run.end !== null);
+  if (runs.length > 0) {
+    lines.push(
+      "  run        start          end     hours       made  glass   wd nodes power passed",
+    );
+    const shown = runs.length <= 14 ? runs : [...runs.slice(0, 7), ...runs.slice(-7)];
+    for (const [i, run] of shown.entries()) {
+      if (i === 7 && runs.length > 14) lines.push("  ...");
+      const end = run.end ?? run.start;
+      const previous = life.runs[life.runs.indexOf(run) - 1];
+      const passed =
+        previous?.end !== null && previous?.end !== undefined && run.passedAt !== null
+          ? `${(((run.passedAt - run.start) / (previous.end - previous.start)) * 100).toFixed(0)}%`
+          : "-";
+      lines.push(
+        `  ${String(run.n).padStart(3)} ${dayClock(run.start).padStart(12)} ${dayClock(end).padStart(12)} ` +
+          `${((end - run.start) / 3600).toFixed(1).padStart(9)} ${sci(run.made).padStart(10)} ` +
+          `${String(run.glass).padStart(6)} ${String(run.wipeDay ?? "-").padStart(4)} ${String(run.nodes).padStart(5)} ` +
+          `${run.power.toFixed(2).padStart(5)} ${passed.padStart(6)}`,
+      );
+    }
+  }
   return lines.join("\n");
 }
 

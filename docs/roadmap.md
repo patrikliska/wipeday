@@ -6,7 +6,7 @@ should think, and what "done" means**. It was rewritten in R0 from the approved 
 (`docs/redesign/11-roadmap.md`, which keeps the reasons); the W-phase roadmap and its results are
 in `docs/archive/roadmap-w.md`.
 
-## Where we are (2026-10-27, R3 Cards done)
+## Where we are (2026-10-28, R4 The Big Red S1 done)
 
 - **The live game is the redesign** since 2026-10-19 (D242): the owner had R2 Feel S7 (`redesign`
   at fdc5010) deployed to https://wipeday.patrikliska.dev, bringing the cut-over forward from R4.
@@ -110,10 +110,47 @@ in `docs/archive/roadmap-w.md`.
   D265-D267; results below): twenty late Workshop items, Work Orders pay shards and their set a
   drop, the drops' gate pays its queue first and shows it, N30 and N33 at R3, `shipped: "R3"`,
   the juice pass on R3's features.
-- **Next: R4 The Big Red** (plan mode; the nuke, Crater Glass, the Blast Map's first rings, the
-  Kettle's crown from the fuelled set, the cut-over's remains). Retro Diffusion holds 13.73 USD.
-  R4 tunes against the late tiers' later-runs power (D265: a casual's day-30 lifetime rose from
-  1.6e20 to 1.2e23).
+- **R4 The Big Red's plan was approved on 2026-10-27** (D268): four sessions (S1 domain, data,
+  API and simulator; S2 the show; S3 the Blast Map, the welcome rule, the bot's minimal card v2
+  and the cut-over's remains; S4 the finish), with the owner's answers (news + minimal card v2;
+  Kettle stages + rowboat for ~6-8 USD; admin CLI + founders' gift). Retro Diffusion holds 13.73 USD.
+- **R4 S1, the nuke headless, is done** (2026-10-28; D268, D269; results below): `blastmap.json5`
+  (73 nodes) and `agenda.json5`, the nuke, Glow and Afterglow in play, `buy_node` with paths, the
+  crown's Big Red rules, night, rain and Afterglow in settle, the admin's grant and respec,
+  `/api/status`, the simulator on the real nuke; N1-N3, N7, N11-N14 and 4.10 switched on
+  (`shipped: "R4"`), the first balance round logged.
+- **Next: R4 S2, the show** (the Kettle in the scene, the Big Red chip, the cover card and the
+  hold, the cinematic, the postcard, the landing, Afterglow's pill, the crater and sign; the art
+  job for the Kettle's stages and the rowboat).
+
+### R4 S1 results: domain, data, API, simulator
+- **Built:** content: `blastmap.json5` wave 1 generated from the approved catalog (`fair_winds`
+  for the Tide notable), `agenda.json5`, prestige's Kettle, crown, news, pays and flights,
+  `checkBlastMap` (structure, wiring, reachability, no three smalls, prices on the ladder, the 10%
+  rule, ceilings, gates, registered features) and `checkAgenda`, the effect vocabulary's
+  `feature:<id>` and `per: sector:<id>`, sector and node-type icons, 73 node names and blurbs in
+  the locale with the feed's sentences and the new refusals. Domain: `prestige.ts` (`glassYield`,
+  `nuke`, `kettleStage`, `bigRedCrown`, `rollFlight`, kept hands and start nodes), `blastmap.ts`
+  (`nodeState`, `pathTo`, `nodeEffects`, `nodePick`, `hasFeature`), node effects in the fold with
+  Wipe Day and sector counts and upgrade-kind scopes, night/rain/Afterglow conditions with their
+  cut points, Keep Swinging, Personal Best, Hot Breakfast, `nuke`, `buy_node`, `grant`, `respec`,
+  the Big Red first in `crown()` (waits for buffs and the welcome card), `bigRedGlance`, a
+  `nodes` step in the Multipliers breakdown, `meta.records/flights/news`, `run.peak`. API:
+  `nuke`/`buy_node` on the wire, `/api/admin/grant` and `/respec_all`, `admin-cli.ts`,
+  `/api/status`, the owner's error and stale-copy DMs (`OWNER_DISCORD_ID`). Simulator: the real
+  press by policy, node buying, the per-run table, checks for N1, N2, N11-N14 and 4.10.
+- **Decisions:** D268 the plan, the answers and S1's shape; D269 the first balance round.
+- **Tests:** `prestige.test.ts` (the yield, the 10,000-state nuke invariant N21, the small blast
+  N22, news folding, kept hands and start nodes, flights, the command's refusals, the Kettle's
+  stages, the crown's rules and its waits, Afterglow N20, node states, paths, buying, the pick,
+  grant and respec); the path-independence generator plays with nodes; `pnpm check` passes.
+- **Balance** (`pnpm sim check`, test profile, D269): N1 42:44-45:54, N2 autoclicker 37:25,
+  N3 day 1 21:00, N7 100%, N9 6.4-6.5 (top now 8), N19 casual 5.43 / active 6.57, N12 early
+  ×1.32 / ×1.32 / ×1.56 (mid and late warn until R5), N13 warns (the active's late stretch),
+  N14 first nuke 7-8 nodes, later median 3 / 3 / 11, 4.10 26 Wipe Days by day 30 and 409 glass at
+  day 7; N11 warns (casual 94% early). Every R0-R3 row still passes.
+- **Owner supplies:** the 73 node names (names pass 2, now from the catalog), `OWNER_DISCORD_ID`
+  and `ADMIN_TOKEN` on the VPS before S3's gift.
 
 ### R3 S4 results: Workshop tiers 5-8 and the balance
 - **Built:** `research.json5` tiers 5-8 (D265: twenty items, names proposed in the decision);

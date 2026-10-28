@@ -28,7 +28,12 @@
   },
   "overrides": [
     {
-      "includes": ["apps/discord/src/bin/**", "packages/sim/src/cli.ts", "scripts/**"],
+      "includes": [
+        "apps/discord/src/bin/**",
+        "packages/sim/src/cli.ts",
+        "apps/api/src/admin-cli.ts",
+        "scripts/**"
+      ],
       "linter": {
         "rules": {
           "suspicious": {

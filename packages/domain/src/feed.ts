@@ -12,9 +12,12 @@
 import type { GameEvent } from "./events";
 
 /** Event types that can reach the feed: the server queries the log by these. */
-export const FEED_TYPES = [] as const satisfies readonly GameEvent["type"][];
+export const FEED_TYPES = ["nuked", "era_reached"] as const satisfies readonly GameEvent["type"][];
 
 export type FeedEvent = Extract<GameEvent, { type: (typeof FEED_TYPES)[number] }>;
+
+/** The Armored era's id: reaching it the first time ever is news (06-friends.md 2.1). */
+const ARMORED = "hqm";
 
 /** One line of the feed: who, when, what. `id` orders it (newest has the highest). */
 export interface FeedItem {
@@ -25,9 +28,15 @@ export interface FeedItem {
   event: FeedEvent;
 }
 
-/** Whether an event is worth telling everyone. */
+/**
+ * Whether an event is worth telling everyone (06-friends.md 2.1): a Wipe Day that passed the
+ * news throttle (`news` set by `nuke`), or the player's first Armored era ever (`first`).
+ * Small blasts and held-back Wipe Days never are.
+ */
 export function isFeedWorthy(event: GameEvent): event is FeedEvent {
-  return (FEED_TYPES as readonly string[]).includes(event.type);
+  if (event.type === "nuked") return event.wipeDay !== null && event.news !== null;
+  if (event.type === "era_reached") return event.era === ARMORED && event.first === true;
+  return false;
 }
 
 /** The kinds of notification a player can turn on, in the order the settings list them. */

@@ -124,6 +124,7 @@ describe("the crown (02 11.1)", () => {
         expect(best === null || !best.affordable).toBe(true);
         continue;
       }
+      if (pick.kind === "nuke") continue;
       const within = state.run.supplies + player.income * content.run.advisor.saveSeconds;
       expect(pick.choice.cost).toBeLessThanOrEqual(within);
       if (pick.rule === "best") {

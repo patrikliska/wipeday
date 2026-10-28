@@ -91,6 +91,6 @@ export const SCORED = {
 export type ScoredStat = keyof typeof SCORED;
 
 export function isScored(effect: Effect): effect is Effect & { stat: ScoredStat } {
-  const ops = (SCORED as Partial<Record<StatId, readonly Op[]>>)[effect.stat];
+  const ops = (SCORED as Partial<Record<string, readonly Op[]>>)[effect.stat];
   return ops?.includes(effect.op) ?? false;
 }

@@ -3100,3 +3100,69 @@ tick; the Album's held count and the Odds segment's shard chips pop as they rise
 order's shards fly from the house into the dock's Album, which bumps. Reduced motion already
 covered the reveal (`.reduced .reveal-*`) and the crates' landing; the new flyers and pops are on
 the same switches.
+
+### D268. R4 The Big Red's plan, the owner's answers and S1's shape (owner, 2026-10-27; R4 S1)
+The plan (four sessions: S1 domain, data, API and simulator; S2 the Kettle, the Big Red, the
+press, the cinematic, the postcard and the landing; S3 the Blast Map, the welcome rule, the bot's
+minimal card v2 and the cut-over's remains; S4 the finish) was approved in plan mode. The owner's
+answers: the bot gets Wipe Day news in the feed channel and a minimal card v2 (text, Collect); the
+art is the Kettle's four stages and the rowboat for about 6-8 USD, the rest procedural; the
+cut-over's remains are the admin CLI (`grant` to held only, `respec_all`) and the founders' gift,
+the legacy and hall rows left archived. S1's structural choices:
+- **Data.** `blastmap.json5` holds wave 1 (Ground Zero and rings 1-3, 73 nodes) copied from the
+  approved catalog (`docs/redesign/04b-blast-map.json`), with `shippedWave: 1`; rings 4-9 join the
+  file in their phases (R5's N15 counts them then). The Tide ring-1 notable `lucky_tide` became
+  `fair_winds` ("Fair Winds"): the Lucky Tide boost owns that id. `agenda.json5` holds shipped rows
+  only (#1 rings 1-2, Glow, Afterglow, the crater, U-Turn; #2 Armored, Loop-the-Loop, Sputter and
+  Drop; #3 hands 1-3, ring 3; the sign styles at #10, #25, #50), each unlock `kind:id` checked
+  against the build. `prestige.json5` gained the Kettle's stages, the crown's 20 h rule, the news
+  throttle, what a press pays and the flights. Effects gained two open forms: `feature:<id>` (an
+  unlock the code reads, on unlock, automation and keystone nodes only, from a registered list) and
+  `per: sector:<id>`; `start_era` carries the tier's index as its value and the tier as scope.
+- **Domain.** `prestige.ts` is the nuke module (`glassYield`, `nuke`, `kettleStage`, `bigRedCrown`,
+  `rollFlight`); `blastmap.ts` the map in play (`nodeState`, `pathTo`, `nodeEffects`, `nodePick`).
+  Settle reads night, rain and Afterglow conditions once an owned effect asks for them, cutting at
+  the island's night edges, the weather blocks where rain starts or stops, and the second
+  Afterglow falls under +10%; Keep Swinging chains an unmanned line's cycles while Hustle is
+  above zero, `readyAt` moving to the first chained end past `now`, so settle stays path
+  independent (N24). Personal Best turns on at the first command after the run passes the
+  record, never inside settle. Hot Breakfast starts the Fuel Drum's Rally on a Collect six hours
+  or more away. The crown's Big Red rules need no state: each only ever becomes true inside a run.
+- **The nuke's drop lands at once**, never through the hourly gate (the press is the ritual's
+  reward): tier I for a small blast, II for a Wipe Day, III for a doubling, the first Wipe Day
+  paid as a doubling (its 3 scrap).
+- **`era_reached` carries `first: true`** the first time ever an era is reached (read from the
+  era badges' wall); the feed takes the Armored one. Wipe Day news folds inside 30 minutes and
+  tells milestones at once (`meta.news`), the feed reading the event's `news` flag.
+- **The admin** is two server-only commands (`grant`, `respec`) behind `ADMIN_TOKEN` (development
+  without one), a CLI over loopback (`apps/api/src/admin-cli.ts`), `/api/status` (version, uptime,
+  the last backup, the last off-site copy, errors in 24 h) and the owner's DMs through the bot's
+  stream (`OWNER_DISCORD_ID`): a failed command once an hour per signature, a stale off-site copy
+  once a day.
+- **The simulator** presses the real `nuke` by each archetype's policy (the crown; doubling; the
+  optimal's "past the peak") and buys the map's pick while glass allows; N1, N2, N11-N14 and 4.10
+  gained their checks, with a per-run table in `pnpm sim`.
+
+### D269. R4's first balance round: the Wipe Day floor, k 0.3, the tap anchors, the nuke's scrap, the bands (R4 S1)
+From `pnpm sim check` with the real nuke (seed 11, test profile):
+- **A Wipe Day needs at least 10 glass** (`countMinGlass`), whatever 10% of glass ever says. With
+  the fuelled set crowning the Big Red (D255), the casual pressed twice a day for +2 glass at 11
+  ever, each a counted Wipe Day worth nothing; now the morning press is a small blast the advisor
+  never crowns, and the evening one pays +10-40.
+- **Glow's k 0.25 → 0.3** (10-balance.md 8.1: the balancing weight) and **the nuke pays scrap only
+  on a doubling** (3; the first Wipe Day included): with the daily quests' 5 a day (D248) a scrap
+  on every Wipe Day put the casual at 6.7 and the active at 9.4 a day (N19: 4-6, nobody above 8);
+  now 5.4 / 6.6.
+- **The Grip anchors eased**: Calloused Hands taps +25% (was +50%), Lucky Swing 4% of taps crit
+  ×8 (was 5% ×10). Even so the active hour reads 6.4-6.5 against R2's 4-6: the tree's `tap` ×1.5
+  (10-balance.md 6.1) sits on top of R2's active layer, so **N9's top is 8** from R4 (rain warns).
+- **Bands re-read for the 2 h Night Shift** (P1's model assumed 12 h windows): the casual's week-1
+  glass band is 200-2,000 (measured 409), N12's early power band starts at ×1.25 (measured ×1.32
+  casual, ×1.32 active, ×1.56 optimal; the step is Glow's), N14's later median is at least 1 node
+  a nuke while the shipped map has room (measured 3 casual, 3 active, 11 optimal; the active lights
+  all 73 nodes in a week, as 10-balance.md 4.7 said). **N12's mid and late bands and N13 warn until
+  R5** ships rings 4-6: with wave 1 lit, a nuke adds only Glow's ×1.05-1.13 and the active's late
+  stretch reads flat (×1.28 over five), which is R5's content, not a tuning fault.
+- Measured otherwise: N1 42:44-45:54, N2 autoclicker 37:25, N3 day 1 21:00, N7 100%, the casual
+  26 Wipe Days by day 30 (band 20-40), the first nuke buys 7-8 nodes (N14's 6-10), N11 warns at
+  94% early and 100% mid for the casual (P1's 65% needs the 12 h window too; R9 asserts it).

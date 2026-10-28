@@ -5,6 +5,7 @@
  * the whole list.
  */
 import type { z } from "zod";
+import { checkAgenda, checkBlastMap } from "./blastmap";
 import {
   CARD_STATS,
   type CardEffect,
@@ -18,7 +19,9 @@ import type { Locale } from "./locale";
 import { deriveResearch, isScored, levelEffect, levelsCost, tierEra } from "./research";
 import {
   achievementsFileSchema,
+  agendaFileSchema,
   type BadgeWhen,
+  blastMapFileSchema,
   type Content,
   cardsFileSchema,
   crewSchema,
@@ -43,6 +46,7 @@ import {
   toolSchema,
   upgradesFileSchema,
   WEATHERS,
+  waveOf,
 } from "./schema";
 import { TIERS } from "./tiers";
 import { deriveUpgrades } from "./upgrades";
@@ -118,6 +122,16 @@ export function identities(content: Content): Identity[] {
       file: "scrap.json5",
       kind: "boost" as const,
       id: boost.id,
+    })),
+    ...content.blastMap.nodes.map((node) => ({
+      file: "blastmap.json5",
+      kind: "node" as const,
+      id: node.id,
+    })),
+    ...content.blastMap.sectors.map((sector) => ({
+      file: "blastmap.json5",
+      kind: "sector" as const,
+      id: sector,
     })),
   ];
 }
@@ -202,9 +216,13 @@ export function parseContent(
   const orders = whole("orders.json5", ordersFileSchema);
   const quests = whole("quests.json5", questsFileSchema);
   const scrap = whole("scrap.json5", scrapFileSchema);
+  const blastMap = whole("blastmap.json5", blastMapFileSchema);
+  const agenda = whole("agenda.json5", agendaFileSchema);
 
   if (
     problems.length > 0 ||
+    !blastMap ||
+    !agenda ||
     !linesFile ||
     !prestige ||
     !targets ||
@@ -263,6 +281,8 @@ export function parseContent(
     orders,
     quests,
     scrap,
+    blastMap,
+    agenda,
   };
   problems.push(...crossCheck(content, locale));
   if (problems.length > 0) throw new ContentError(problems);
@@ -283,9 +303,9 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
     const key = `${kind}.${id}.name`;
     if (!locale.has(key)) add(file, id, `missing locale key \`${key}\``);
   }
-  // A shelf row's or a Workshop item's id names nothing else (its locale key stays unambiguous).
+  // A shelf row's, a Workshop item's or a node's id names nothing else (its key stays unambiguous).
   for (const { file, kind, id } of all) {
-    if (kind !== "upgrade" && kind !== "research") continue;
+    if (kind !== "upgrade" && kind !== "research" && kind !== "node") continue;
     if (all.some((other) => other.kind !== kind && other.id === id))
       add(file, id, `this ${kind} id must not be used by any other entity`);
   }
@@ -321,6 +341,9 @@ export function crossCheck(content: Content, locale: Locale): Problem[] {
   problems.push(...checkOrders(content));
   problems.push(...checkQuests(content));
   problems.push(...checkScrap(content));
+  problems.push(...checkBlastMap(content, locale));
+  problems.push(...checkAgenda(content, locale));
+  problems.push(...checkPrestige(content));
 
   // The tap (N10, N9).
   const { tap } = content;
@@ -587,7 +610,15 @@ export function tapCoefficient(content: Content): number {
     op: CARD_STATS[effect.stat].op as string,
     value: effect.value,
   }));
-  const top = [...content.research.map((def) => levelEffect(def.effect, def.levels)), ...cards];
+  // The Blast Map's shipped non-keystone nodes all owned (R4): the tree's whole tap power.
+  const nodes = content.blastMap.nodes
+    .filter((node) => node.type !== "keystone" && waveOf(node.ring) <= content.blastMap.shippedWave)
+    .flatMap((node) => node.effects);
+  const top = [
+    ...content.research.map((def) => levelEffect(def.effect, def.levels)),
+    ...cards,
+    ...nodes,
+  ];
   const grip = content.tools.flatMap((tool) => tool.effects);
   const sum = (stat: string, op: string, effects = top) =>
     effects.filter((e) => e.stat === stat && e.op === op).reduce((a, e) => a + e.value, 0);
@@ -722,6 +753,29 @@ function checkQuests(content: Content): Problem[] {
       { file: "quests.json5", id: "", message: `${quests.length} quests, a day needs ${perDay}` },
     ];
   return [];
+}
+
+/** The nuke's numbers (R4): the flights are distinct and the small blast's is one of them. */
+function checkPrestige(content: Content): Problem[] {
+  const problems: Problem[] = [];
+  const add = (id: string, message: string) =>
+    problems.push({ file: "prestige.json5", id, message });
+  const { flights, kettle, news } = content.prestige;
+  const seen = new Set<string>();
+  for (const flight of flights.variants) {
+    if (seen.has(flight.id)) add(flight.id, "a flight is listed once");
+    seen.add(flight.id);
+  }
+  if (seen.has(flights.small)) add(flights.small, "the small blast's flight is its own");
+  if (!flights.variants.some((flight) => flight.unlockAt <= 1))
+    add("", "a flight must be open from the first Wipe Day");
+  if (kettle.frameFirst >= content.prestige.firstNukeGlass)
+    add("", "the frame comes before the first nuke's glass");
+  for (const [index, at] of news.milestones.entries()) {
+    const before = news.milestones[index - 1];
+    if (before !== undefined && !(at > before)) add("", "news milestones must rise");
+  }
+  return problems;
 }
 
 /** Scrap (D258): the tide's slots fit its length; a boost's buff is its own. */

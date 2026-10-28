@@ -63,6 +63,7 @@ import type { Game } from "./game";
 import type { EventHub } from "./hub";
 import type { Notifier } from "./push";
 import { RateLimiter } from "./rateLimit";
+import type { Status } from "./status";
 import type { Db } from "./store/db";
 import { players } from "./store/schema";
 
@@ -75,6 +76,8 @@ export interface AppDeps {
   /** Null when Discord login is not configured (development without secrets). */
   discord: DiscordAuth | null;
   notifier: Notifier;
+  /** The server's health for `/api/status` and the owner's error DMs (R4). */
+  status: Status;
 }
 
 /** Keeps idle proxies from closing the event stream. */
@@ -90,7 +93,7 @@ const discordUserSchema = z.object({
 });
 
 export function createApp(deps: AppDeps): Hono<Env> {
-  const { db, game, hub, clock, config, discord, notifier } = deps;
+  const { db, game, hub, clock, config, discord, notifier, status } = deps;
   const app = new Hono<Env>();
   const limiter = new RateLimiter();
   const cookieBase = { httpOnly: true, secure: config.production, sameSite: "Lax" as const };
@@ -196,7 +199,13 @@ export function createApp(deps: AppDeps): Hono<Env> {
         );
       }
       const { key, command } = parsed.data;
-      return c.json(game.command(playerId, key, command, true));
+      try {
+        return c.json(game.command(playerId, key, command, true));
+      } catch (error) {
+        // A rule that threw is a bug: counted, and the owner hears once an hour per signature.
+        status.error(`${command.type}: ${(error as Error).message}`, clock.now());
+        throw error;
+      }
     });
 
     authed.get("/feed", (c) => {
@@ -350,6 +359,43 @@ export function createApp(deps: AppDeps): Hono<Env> {
   asPlayer.route("/", playerRoutes());
   bot.route("/", asPlayer);
   app.route("/api/bot", bot);
+
+  // The admin (R4; docs/redesign/09-architecture.md 9.6): a bearer token, or development without
+  // one. `grant` and `respec_all` are ordinary idempotent commands keyed by the caller, so a
+  // retried call returns the stored outcome; `/status` is what the owner's `/status` checks.
+  const admin = new Hono<Env>();
+  admin.use(async (c, next) => {
+    const token = config.adminToken;
+    const allowed = token ? bearer(c) === token : config.devLogin;
+    if (!allowed) return c.json({ error: "forbidden" }, 403);
+    await next();
+  });
+  const grantSchema = z.strictObject({
+    key: z.string().min(8).max(64),
+    playerId: z.int().min(1),
+    glass: z.int().min(0).max(1e6),
+    skin: z.string().min(2).max(32).nullable(),
+    note: z.string().min(1).max(200),
+  });
+  admin.post("/grant", async (c) => {
+    const parsed = grantSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "bad_request" }, 400);
+    const { key, playerId, glass, skin, note } = parsed.data;
+    const result = game.command(playerId, key, { type: "grant", glass, skin, note }, false);
+    return c.json({ ok: result.ok, version: result.version, replay: result.replay === true });
+  });
+  const respecSchema = z.strictObject({ key: z.string().min(8).max(64), note: z.string().min(1) });
+  admin.post("/respec_all", async (c) => {
+    const parsed = respecSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "bad_request" }, 400);
+    const { key } = parsed.data;
+    const players = game.respecAll(key);
+    return c.json({ ok: true, players });
+  });
+  app.route("/api/admin", admin);
+
+  /** What the owner's `/status` reads: version, uptime, the last backup and off-site copy, errors. */
+  app.get("/api/status", (c) => c.json(status.report(clock.now())));
 
   const web = new Hono<Env>();
   web.use(async (c, next) => {

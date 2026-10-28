@@ -94,6 +94,10 @@ export interface RunState {
    * `last` is the slot caught latest (−1: none), as for the crows.
    */
   tide: { boost: string; from: number; until: number; last: number } | null;
+  /** The run's best glass an hour (the Big Red's readout, 03-the-big-red.md 2.1), sampled per command. */
+  peak: number;
+  /** The second this run's supplies made passed the best run's (Personal Best, R4), or null. */
+  personalBestAt: number | null;
 }
 
 export interface Meta {
@@ -155,6 +159,15 @@ export interface Meta {
   scrap: number;
   /** The day's quests (D257). */
   quests: Quests;
+  /** Records (R4): the most supplies a finished run made, and the biggest Wipe Day's gain. */
+  records: { bestRun: Amount; bestBlast: Amount };
+  /** Flight variants seen, in first-seen order (the Logbook backfills from it, R6). */
+  flights: string[];
+  /**
+   * Nuke news (06-friends.md 2.2): when the last news nuke was, how many Wipe Days folded into
+   * the next one since and their glass in all.
+   */
+  news: { at: number | null; folded: number; glass: Amount };
 }
 
 export interface Quests {
@@ -214,6 +227,9 @@ export const KEEP_ON_CROSSING: Record<keyof Meta, boolean> = {
   drops: true,
   scrap: true,
   quests: true,
+  records: true,
+  flights: true,
+  news: true,
 };
 
 /** Every lifetime counter at zero. */
@@ -253,6 +269,9 @@ export function newMeta(): Meta {
     drops: newDrops(),
     scrap: 0,
     quests: newQuests(),
+    records: { bestRun: 0, bestBlast: 0 },
+    flights: [],
+    news: { at: null, folded: 0, glass: 0 },
   };
 }
 
@@ -306,6 +325,8 @@ export function newRun(content: Content, meta: Meta, baseSeed: number, now: numb
     buffs: [],
     orders: { ids: rollOrders(content, baseSeed, meta.nukes + 1), claimed: [], fuelledAt: null },
     tide: null,
+    peak: 0,
+    personalBestAt: null,
   };
 }
 

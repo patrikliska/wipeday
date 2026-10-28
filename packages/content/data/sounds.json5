@@ -275,6 +275,11 @@
     // Seen on the welcome card instead.
     night_shift_over: null,
     base_reset: null,
+    // R4 S2 maps the press, the map's buys and the admin's gifts to their cues.
+    nuked: null,
+    node_bought: null,
+    granted: null,
+    respecced: null,
     // What the scene and the panels notice.
     milestone: { cue: "milestone", buzz: [15, 40, 15] },
     roster: { cue: "roster" },

@@ -22,6 +22,7 @@
 import type { Content } from "@wipe-day/content/schema";
 import { finite } from "./amount";
 import {
+  afterglowAt,
   buffEffects,
   type Conditions,
   cycleOf,
@@ -36,6 +37,8 @@ import { rng, SEED, seedOf } from "./rng";
 import { cyclePayout } from "./settle";
 import type { BaseState } from "./state";
 
+export { afterglowAt };
+
 export interface TapsBatch {
   count: number;
   from: number;
@@ -45,16 +48,6 @@ export interface TapsBatch {
 /** Hustle's multiplier at meter value `h` (0..cap). */
 export function hustleFactor(h: number, cap: number, peak: number): number {
   return 1 + (Math.min(h, cap) / cap) * (peak - 1);
-}
-
-/** Afterglow on taps at `t`: 1 in run 1, then ×start halving every halfSeconds (N20). */
-export function afterglowAt(content: Content, state: BaseState, t: number): number {
-  const from = state.run.afterglowFrom;
-  if (state.meta.nukes === 0 || from === null) return 1;
-  const { start, halfSeconds, holdSeconds, endsAfterSeconds } = content.prestige.afterglow;
-  const elapsed = t - from;
-  if (elapsed >= endsAfterSeconds) return 1;
-  return 1 + (start - 1) * 2 ** (-Math.max(0, elapsed - holdSeconds) / halfSeconds);
 }
 
 /** The folds of a tap that change only with the state's effects and the buffs running. */

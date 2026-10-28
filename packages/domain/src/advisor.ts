@@ -24,7 +24,8 @@ import type { Command } from "./commands";
 import type { Conditions, Effect } from "./effects";
 import { foldParts, rates, unitRate } from "./effects";
 import { costFactor, costOf, eraOpen, handPriceOf, lineOf } from "./lines";
-import { levelOf, levelsCost, workshopOpen } from "./research";
+import { type BigRedRule, bigRedCrown } from "./prestige";
+import { levelOf, levelsCost, mkFactor, workshopOpen } from "./research";
 import { bought, eraCost, eraGate, nextEra, upgradeCost, upgradeGate } from "./shelf";
 import type { BaseState } from "./state";
 import { tapParts } from "./taps";
@@ -164,7 +165,7 @@ export function choices(
       continue;
     offer(
       { type: "buy_research", item: def.id, count: 1 },
-      levelsCost(def, n, 1),
+      levelsCost(def, n, 1) * mkFactor(content, state, def),
       researchGain(workshop, def),
     );
   }
@@ -328,7 +329,9 @@ export function anythingAffordable(content: Content, state: BaseState, now: numb
 /**
  * The state the crown scores (D200): its lasting rates, every timed buff (Frenzy, Rally,
  * Adrenaline) left out, so the crown never jumps to another card while a buff runs. Every number
- * on screen still shows the buffs.
+ * on screen still shows the buffs. The Big Red reads the buffs to wait for them, so `crown`
+ * takes the real state's `buffs` through the lasting one (`run.buffs` stays, only the rates
+ * ignore it).
  */
 export function lasting(state: BaseState): BaseState {
   return state.run.buffs.length === 0 ? state : { ...state, run: { ...state.run, buffs: [] } };
@@ -347,8 +350,17 @@ export interface Player {
 /** Which rule of 02-the-run.md 11.1 crowned a purchase. */
 export type CrownRule = "era" | "hand" | "best";
 
-/** The advisor's pick inside a run: a purchase, or the tap hint (rule 7). */
-export type Pick = { kind: "purchase"; rule: CrownRule; choice: Choice } | { kind: "tap" };
+/** The advisor's pick inside a run: the Big Red (R4), a purchase, or the tap hint (rule 7). */
+export type Pick =
+  | { kind: "nuke"; rule: BigRedRule }
+  | { kind: "purchase"; rule: CrownRule; choice: Choice }
+  | { kind: "tap" };
+
+/** What makes the crown pass the Big Red down the list for now (03 2.2). */
+export interface CrownOptions {
+  /** The welcome-back card is open: its one action is Collect, never the nuke (rule 6.3.10). */
+  welcomeOpen?: boolean;
+}
 
 /** Lower score first; a tie goes to the cheaper purchase (02 11.1). */
 export function byScore(a: Choice, b: Choice): number {
@@ -371,6 +383,10 @@ export function byScore(a: Choice, b: Choice): number {
  *    cheaper is crowned, or a crown-follower would spend every supply on small rows and never
  *    reach the next era (D177; 02 11.1 had "best payback affordable now").
  * 7. Otherwise the tap hint.
+ *
+ * 1. (R4) The Big Red comes first (`bigRedCrown`: the guided first nuke, a doubling, a fuelled
+ *    set, a day's run). It waits while a timed buff runs (the scored state is `lasting`, so the
+ *    caller passes the real one's buffs through `buffs`) and while the welcome card is open.
  */
 export function crown(
   content: Content,
@@ -378,7 +394,13 @@ export function crown(
   now: number,
   player: Player,
   offered = choices(content, state, now, player.income, player.tapShare, player.tapRate),
+  options: CrownOptions = {},
 ): Pick {
+  const buffRunning = state.run.buffs.some((buff) => buff.until > now);
+  if (!options.welcomeOpen && !buffRunning) {
+    const rule = bigRedCrown(content, state, now);
+    if (rule !== null) return { kind: "nuke", rule };
+  }
   const within = state.run.supplies + player.income * content.run.advisor.saveSeconds;
   const era = offered.find((choice) => choice.command.type === "buy_era");
   if (era && era.cost <= within) return { kind: "purchase", rule: "era", choice: era };

@@ -64,12 +64,29 @@ export const commandSchema = z.discriminatedUnion("type", [
     run: z.int().min(1).max(1e9),
     k: z.int().min(0).max(1e9),
   }),
+  // R4: the Big Red and the Blast Map (a path of at most a sector's 45 nodes).
+  z.strictObject({ type: z.literal("nuke"), run: z.int().min(1).max(1e9) }),
+  z.strictObject({ type: z.literal("buy_node"), path: z.array(id).min(1).max(45) }),
+]) satisfies z.ZodType<Command>;
+
+/** The admin's commands (09-architecture.md 9.6), never on the player route. */
+export const adminCommandSchema = z.discriminatedUnion("type", [
+  z.strictObject({
+    type: z.literal("grant"),
+    glass: z.int().min(0).max(1e6),
+    skin: id.nullable(),
+    note: z.string().min(1).max(200),
+  }),
+  z.strictObject({ type: z.literal("respec") }),
 ]) satisfies z.ZodType<Command>;
 
 /** Fails to compile while a domain command has no shape above (the error names it). */
 type NoneMissing<T extends never> = T;
 export type EveryCommand = NoneMissing<
-  Exclude<Command["type"], z.infer<typeof commandSchema>["type"]>
+  Exclude<
+    Command["type"],
+    z.infer<typeof commandSchema>["type"] | z.infer<typeof adminCommandSchema>["type"]
+  >
 >;
 
 export const commandRequestSchema = z.strictObject({

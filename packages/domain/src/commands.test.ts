@@ -221,6 +221,6 @@ describe("prestige (N21)", () => {
     // 10 glass needs about 50 billion supplies made.
     expect(lifetimeFor(content, 10)).toBe(5e10);
     expect(glassLevel(content, 5e10)).toBe(10);
-    expect(glow(content, 100)).toBeCloseTo(3.5, 12);
+    expect(glow(content, 100)).toBeCloseTo(1 + content.prestige.glowK * 10, 12);
   });
 });

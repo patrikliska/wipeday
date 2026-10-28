@@ -17,6 +17,7 @@
  *
  * Idempotent: a current state passes through unchanged.
  */
+import { nodeOf } from "@wipe-day/content/blastmap";
 import type { Content } from "@wipe-day/content/schema";
 import { orderOf, rollOrders } from "./orders";
 import { type BaseState, type Meta, newBase } from "./state";
@@ -65,9 +66,15 @@ export function normalizeState(content: Content, stored: unknown): BaseState | n
     claimed: state.run.orders.claimed.filter((id) => rolled.includes(id)),
     fuelledAt: state.run.orders.fuelledAt,
   };
+  // R4: nodes the map no longer lists are dropped (a respec refunds them first, D268).
+  const nodes = state.meta.nodes.filter((id) => nodeOf(content, id) !== undefined);
   return {
     ...state,
-    meta: { ...state.meta, cards: cardsOf(content, state.meta.cards) },
+    meta: {
+      ...state.meta,
+      cards: cardsOf(content, state.meta.cards),
+      nodes: nodes.length === state.meta.nodes.length ? state.meta.nodes : nodes,
+    },
     run: {
       ...state.run,
       lines: keep(state.run.lines),
