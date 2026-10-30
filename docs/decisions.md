@@ -3166,3 +3166,34 @@ From `pnpm sim check` with the real nuke (seed 11, test profile):
 - Measured otherwise: N1 42:44-45:54, N2 autoclicker 37:25, N3 day 1 21:00, N7 100%, the casual
   26 Wipe Days by day 30 (band 20-40), the first nuke buys 7-8 nodes (N14's 6-10), N11 warns at
   94% early and 100% mid for the casual (P1's 65% needs the 12 h window too; R9 asserts it).
+
+### D270. R4 S2, the show: the Kettle's spot, the film inside the view, the postcard's one button, the keyed press (R4 S2)
+The Big Red's show as built (03-the-big-red.md 3-10; 08-screens.md 2.4-2.7):
+- **The Kettle stands on the back terrace at {136, 75}** (art px), left of the car, the rowboat
+  on blocks at {111, 75} at the camp's edge; Armored's shipbreaker pushes them to {96, 75} and
+  {129, 93}. It rises behind the Lone Pine on a phone and reads whole on a desktop. Its drum is
+  procedural (the 14 px takes were blobs); the pad, frame, warhead and fuel stages are Retro
+  Diffusion's `rd_pro__platformer` takes (2.52 USD), each with its pad baked in, so the pad flies
+  with the rocket.
+- **The film keeps the camera's whole-pixel zoom** (D188): instead of the plan's camera ease-out
+  the flight is designed inside the view (`frameAt` takes the view's rectangle), the U-Turn's
+  apex at the view's upper left. `frameAt(variant, seed, ms, geometry)` is pure; the scene draws
+  the island as it stood before the press (`filmBase`) until the impact, the crater after; the
+  blast's puffs and the fireball are pooled sprites; the flash is a CSS overlay reading
+  `--flash`; the shake and the zoom punch ride on the camera about the screen's centre.
+- **The postcard's one button is Rebuild in S2**; "Open the Blast Map" for Wipe Day #1 joins in
+  S3 with the map itself (never a button to nothing). `postcardSvg` lives in `apps/web` until
+  R8's bot needs it.
+- **The press mints one key per hold**, kept in `sessionStorage` with the run number until the
+  answer; a reload resends it under `resent`, whose answer's events play (the postcard without
+  the film) and whose refusal is quiet; a fresh refusal cuts the film to "That launch didn't go
+  through" with Show island; another tab's `nuked` push offers its postcard from a sticky note.
+- **The crown waits for buffs through `CrownOptions.buffRunning`**: the web scores a buff-stripped
+  copy (D200), so it tells the advisor the real base's buffs.
+- **The crater is an ellipse round the target's feet** (the camera looks down), `6 × √N` units
+  deep in rows, the sign on its left rim with screen-space lettering ("#N" under 70 CSS px).
+- **The quick simulator profile reads the run-to-run checks' early band only** (7 days; the mid
+  and late bands are `--full`'s, warn-only until R5 anyway) and plays the active a month (N9's
+  day 60 is `--full`'s). Even so the real nuke loop puts the profile at about 21 s, over
+  CLAUDE.md 9's 10 s: the test holds a 25 s line until R4 S4 brings it back (the active's 43 runs
+  in 60 days cost 16 s; settle per command is the lever).

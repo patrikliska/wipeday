@@ -146,15 +146,20 @@ class Sound {
     return boost;
   }
 
-  play(id: string, options: CueOptions = {}): void {
+  /**
+   * Plays `id`; returns a stop for the few cues that must end early (the siren when the hold
+   * is let go): it fades the cue out over 60 ms. A no-op when nothing played.
+   */
+  play(id: string, options: CueOptions = {}): () => void {
+    const none = () => {};
     const { ctx, master, noise } = this;
-    if (!this.enabled || !ctx || !master || !noise || ctx.state !== "running") return;
+    if (!this.enabled || !ctx || !master || !noise || ctx.state !== "running") return none;
     const cue = sounds.cues[id];
-    if (!cue) return;
+    if (!cue) return none;
     const isFast = (cue.perSecond ?? 0) >= 10;
-    if (this.live >= MAX_VOICES || (isFast && this.fast >= MAX_FAST_VOICES)) return;
+    if (this.live >= MAX_VOICES || (isFast && this.fast >= MAX_FAST_VOICES)) return none;
     const boost = this.admit(id, cue);
-    if (boost === null) return;
+    if (boost === null) return none;
     const out = ctx.createGain();
     out.gain.value = cue.gain * boost;
     out.connect(master);
@@ -175,20 +180,27 @@ class Sound {
       const voice = VOICES[cue.voice as keyof typeof VOICES];
       if (!voice) {
         out.disconnect();
-        return;
+        return none;
       }
       seconds = voice({ ctx, out, noise, at: ctx.currentTime }, options);
     }
     this.live += 1;
     if (isFast) this.fast += 1;
-    window.setTimeout(
-      () => {
-        this.live -= 1;
-        if (isFast) this.fast -= 1;
-        out.disconnect();
-      },
-      seconds * 1000 + 50,
-    );
+    let ended = false;
+    const end = () => {
+      if (ended) return;
+      ended = true;
+      this.live -= 1;
+      if (isFast) this.fast -= 1;
+      out.disconnect();
+    };
+    const timer = window.setTimeout(end, seconds * 1000 + 50);
+    return () => {
+      if (ended) return;
+      window.clearTimeout(timer);
+      out.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.02);
+      window.setTimeout(end, 80);
+    };
   }
 
   setEnabled(enabled: boolean): void {

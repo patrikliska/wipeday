@@ -5,10 +5,13 @@
 
 import { TIERS } from "@wipe-day/content/tiers";
 import { badgeMet } from "@wipe-day/domain/badges";
+import type { NukedEvent } from "@wipe-day/domain/events";
 import { arrivalKind } from "@wipe-day/domain/flotsam";
 import { crossing, gullAt } from "@wipe-day/domain/gulls";
 import { questOf } from "@wipe-day/domain/quests";
 import { islandDay, weatherAt } from "@wipe-day/domain/weather";
+import { filmLength, type Variant } from "./scene/cinematic";
+import { HOLD_MS, useBigRed } from "./state/bigred";
 import { demoClocks, wall } from "./state/clocks";
 import { seedPace } from "./state/pace";
 import { useReveal } from "./state/reveal";
@@ -53,6 +56,19 @@ interface DebugHook {
   fillBadges: (at: number, except?: string[]) => void;
   /** Opens a held drop of `tier` through the reveal (D261), as a tap on the crates does. */
   openDrop: (tier: 1 | 2 | 3) => void;
+  /**
+   * The Big Red's show (R4, D270; 03-the-big-red.md 7.5): `open` the card as the drum would;
+   * `hold` the lid up with the ring at `fraction`; `pin` the film at `ms` for a variant (null
+   * unpins); `postcard` after a press (the event's fields overriding a Wipe Day #1 sample);
+   * `land` the landing at `ms` on the fresh island.
+   */
+  bigRed: {
+    open: () => void;
+    hold: (fraction: number) => void;
+    pin: (variant: Variant, ms: number | null, event?: Partial<NukedEvent>) => void;
+    postcard: (event?: Partial<NukedEvent>, flipped?: boolean) => void;
+    land: (ms: number | null) => void;
+  };
   /** Turns card `index` of the open reveal over, as a tap on it would. */
   reveal: (index: number) => void;
   /**
@@ -149,6 +165,27 @@ export function installDebug(): void {
     },
     openDrop: (tier) => useReveal.getState().start(tier),
     reveal: (index) => useReveal.getState().flip(index),
+    bigRed: {
+      open: () => useBigRed.getState().openCard(),
+      hold: (fraction) => {
+        const big = useBigRed.getState();
+        big.openCard();
+        big.flipLid();
+        useBigRed.setState({ holdSince: wall.nowMs() - fraction * HOLD_MS });
+      },
+      pin: (variant, ms, event) => useBigRed.getState().pin(variant, ms, event),
+      postcard: (event = {}, flipped = false) => {
+        const big = useBigRed.getState();
+        // The film's last frame first, so the island behind the card is the crater.
+        const variant = (event.flight as Variant | undefined) ?? "u_turn";
+        big.pin(variant, filmLength(variant, false) - 1, event);
+        window.__wipeDay?.fastForward?.(1 / 60);
+        if (!useBigRed.getState().film) return;
+        useBigRed.getState().filmEnded();
+        if (flipped) useBigRed.getState().flipPostcard();
+      },
+      land: (ms) => useBigRed.getState().pinLanding(ms),
+    },
     fillBadges: (at, except = []) => {
       const current = useWorld.getState().base;
       if (!current) return;

@@ -34,8 +34,20 @@ export const HOUSE_SPOT: YardSpot = yard.house;
 
 /** `spot` in `era`: Armored's wider camp moves some things round the Crashed Plane (S3). */
 function inEra(id: string, spot: YardSpot, era: string): YardSpot {
-  const x = viewFor(era) === yard.wide ? yard.wideX[id] : undefined;
-  return x === undefined ? spot : { ...spot, x };
+  const wide = viewFor(era) === yard.wide;
+  const x = wide ? yard.wideX[id] : undefined;
+  const y = wide ? yard.wideY[id] : undefined;
+  return { x: x ?? spot.x, y: y ?? spot.y };
+}
+
+/** The Kettle's spot in `era` (R4): the back terrace, pushed left by Armored's shipbreaker. */
+export function kettleSpotFor(era: string): YardSpot {
+  return inEra("kettle", yard.kettle, era);
+}
+
+/** The rowboat's spot in `era` (R4). */
+export function rowboatSpotFor(era: string): YardSpot {
+  return inEra("rowboat", yard.rowboat, era);
 }
 
 /** Each outside line's spot in `era`. */

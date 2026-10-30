@@ -1420,6 +1420,19 @@ order (D192): the groups once tagged R2-R7 are R4-R9.
 | `r3s4_{phone,desktop}_album_onway` | the Album's plate with a drop on its way (nothing held; one held) | R3 |
 | `r3s4_{phone,desktop}_album_gate` | the Odds segment with the gate's rule under the pity bars | R3 |
 
+### 8.3d R4 S2's shots (the show)
+
+| Shot | Shows | Phase |
+| --- | --- | --- |
+| `phone_kettle_pad`, `phone_kettle_frame`, `phone_kettle_card` | the pad at 600M made with the chip "+4 of 10 glass"; the frame at a gain of 5; the taped-shut card at minute 10 | R4 |
+| `phone_bigred_chip`, `phone_bigred_chip_night`, `desktop_bigred_chip` | the first launch crowned: the fuelled Kettle steaming with its gull, the chip's crown mark and readout, the drum's lid open | R4 |
+| `phone_cover_first`, `phone_cover_small` | Wipe Day #1's cover (the first-launch paragraph, KEPT/LOST); a +5-of-84 small blast with its note | R4 |
+| `phone_bigred_hold` | the lid up: the dome's hazard ring at 60%, the one-liner | R4 |
+| `cine_scramble` … `cine_settle`, `cine_flight_{u_turn,loop_the_loop,sputter_drop}`, `cine_fizzle`, `cine_{flash,cloud}_{night,rain}`, `desktop_cine_{fireball,cloud}`, `cine_reduced` | every phase and variant, pinned through `cinematic: {variant, at}` | R4 |
+| `phone_postcard_front`, `phone_postcard_back`, `desktop_postcard_back`, `phone_postcard_small` | Wipe Day #1's card both sides; the Puddle of Glass | R4 |
+| `phone_rebuild_plain`, `phone_afterglow`, `desktop_afterglow` | the landing at 1.4 s; the green sky with ash, the pill frozen at ×3 and counting down | R4 |
+| `phone_crater_27` | the bowl and the metal sign at Wipe Day #27 | R4 |
+
 ### 8.4 The `docs/ui-review.md` checklist, adapted
 
 The review loop of CLAUDE.md 6.4 stays; the checklist becomes:

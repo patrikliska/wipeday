@@ -25,6 +25,11 @@ export interface Entry {
   openedMs: number;
   /** No more taps merge into it. Every entry but an open taps tail is closed. */
   closed: boolean;
+  /**
+   * Resent after a reload under its old key (the Big Red's press, 03 7.7): nothing was
+   * predicted for it, so the answer's events are played and a refusal is quiet.
+   */
+  resent?: boolean;
 }
 
 export const isOpenTail = (entry: Entry | undefined): boolean =>

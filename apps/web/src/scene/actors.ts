@@ -274,6 +274,26 @@ export class Hands {
     return started;
   }
 
+  /**
+   * The scramble (R4, 03 7.2): every hand drops their work and walks to `post(i)` (the rowboat)
+   * from where they stand now. Reduced motion: they are there at once.
+   */
+  scramble(post: (index: number) => Post): void {
+    let i = 0;
+    for (const hand of this.hands.values()) {
+      const c = hand.figure.container;
+      hand.from = { x: c.x, y: c.y, scale: hand.to.scale, faceX: hand.to.faceX };
+      hand.to = post(i);
+      hand.walk = reducedMotion() ? 1 : 0;
+      i += 1;
+    }
+  }
+
+  /** How many hands stand on the island. */
+  get count(): number {
+    return this.hands.size;
+  }
+
   /** Where a hand is now (world units), for the pop over their head. */
   headOf(line: string): { x: number; y: number } | null {
     const hand = this.hands.get(line);

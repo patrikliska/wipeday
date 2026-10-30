@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 import { BadgeToast } from "./hud/BadgeToast";
+import { BigRedChip, BigRedSheet } from "./hud/BigRed";
+import { Cinematic } from "./hud/Cinematic";
 import { Credits } from "./hud/Credits";
 import { DemoDrawer } from "./hud/DemoDrawer";
 import { Dock } from "./hud/Dock";
@@ -10,6 +12,7 @@ import { Multipliers } from "./hud/Multipliers";
 import { Odds } from "./hud/Odds";
 import { OrdersSheet } from "./hud/Orders";
 import { Panels } from "./hud/Panels";
+import { PostcardSheet } from "./hud/Postcard";
 import { RevealSheet } from "./hud/Reveal";
 import { RoomBar } from "./hud/RoomBar";
 import { ScrapSheet } from "./hud/Scrap";
@@ -21,6 +24,7 @@ import { Welcome } from "./hud/Welcome";
 import { Scene } from "./scene/Scene";
 import { startSound } from "./sound/director";
 import { startAdvisor, useAdvisor } from "./state/advisor";
+import { resendPending, useBigRed, watchAnswers } from "./state/bigred";
 import { useColumn } from "./state/layout";
 import { useWorld } from "./state/store";
 import { closeTop, installBack, useUi } from "./state/ui";
@@ -35,6 +39,9 @@ export function App() {
   const motion = useUi((state) => state.motion);
   const column = useColumn();
   const shop = useAdvisor((state) => shopOpen(state.view));
+  // The show (R4, D270): the film and the postcard hide the HUD; the landing brings it back.
+  const show = useBigRed((state) => state.phase);
+  const showing = show === "film" || show === "postcard";
 
   useEffect(() => {
     void useWorld.getState().boot();
@@ -43,6 +50,14 @@ export function App() {
     const stopAdvisor = startAdvisor();
     const stopSound = startSound();
     const stopUiEvents = startUiEvents();
+    const stopAnswers = watchAnswers();
+    // A press the last page load never saw answered goes again once the island is in (03 7.7).
+    let resent = false;
+    const stopResend = useWorld.subscribe((state) => {
+      if (resent || state.phase !== "playing" || !state.base) return;
+      resent = true;
+      resendPending();
+    });
     const removeBack = installBack();
     document.addEventListener("keydown", onKey);
     return () => {
@@ -50,6 +65,8 @@ export function App() {
       stopAdvisor();
       stopSound();
       stopUiEvents();
+      stopAnswers();
+      stopResend();
       removeBack();
       document.removeEventListener("keydown", onKey);
     };
@@ -65,7 +82,7 @@ export function App() {
 
   return (
     <div
-      className={`app${motion === "reduced" ? " reduced" : ""}${column && shop ? " has-column" : ""}${welcome ? " welcome-open" : ""}`}
+      className={`app${motion === "reduced" ? " reduced" : ""}${column && shop ? " has-column" : ""}${welcome ? " welcome-open" : ""}${showing ? " showing" : ""}${show === "landing" ? " landing" : ""}`}
     >
       <div className="scene" ref={host} />
       <div className="vignette" />
@@ -74,17 +91,22 @@ export function App() {
           <>
             {/* Under a panel, a sheet or the welcome card the rest of the HUD is inert: one view,
                 one crown (6.3 rule 1). The dock stays live under a panel: it is the way between
-                destinations (D187). */}
-            <div className="hud-main" inert={panel !== null || sheet !== null || welcome}>
+                destinations (D187). The film has no HUD at all. */}
+            <div
+              className="hud-main"
+              inert={panel !== null || sheet !== null || welcome || show !== "idle"}
+            >
               <TopBar />
               <TapHint />
               <RoomBar />
               <Shop />
+              {/* The Big Red's chip on a phone: above the drawer (the column carries its own). */}
+              {column ? null : <BigRedChip />}
             </div>
-            <div className="panel-layer" inert={sheet !== null || welcome}>
+            <div className="panel-layer" inert={sheet !== null || welcome || show !== "idle"}>
               <Panels />
             </div>
-            <div className="dock-layer" inert={sheet !== null || welcome}>
+            <div className="dock-layer" inert={sheet !== null || welcome || show !== "idle"}>
               <Dock />
             </div>
             <Multipliers />
@@ -96,6 +118,9 @@ export function App() {
             <RevealSheet />
             <SurvivorSheet />
             <GearSheet />
+            <BigRedSheet />
+            <PostcardSheet />
+            <Cinematic />
             <Toasts />
             <BadgeToast />
             <Welcome />

@@ -304,7 +304,317 @@ const SKIES = [
  */
 const PHONE_SHORT = [390, 664];
 
+/** R4 S2 (D270): the Stone run at minute 10 with the Kettle's pad just up (500M made, E2). */
+const KETTLE_PAD = { ...STONE_RUN, made: 6e8, supplies: 1e7 };
+/** ...with the rocket taking shape (a gain of 5). */
+const KETTLE_FRAME = { ...STONE_RUN, made: 2.2e9, supplies: 1e7 };
+/** The first launch ready: 58B made, the formula's delta at 10 (03 2.3), crowned "first". */
+const FIRST_NUKE = { ...STONE_RUN, runAge: 2880, made: 5.8e10, supplies: 3.1e9, taps: 9000 };
+/** A later island, four presses in, where the press pays +6 of 84 glass: a small blast. */
+const SMALL_BLAST_META = {
+  nukes: 3,
+  wipeDays: 3,
+  lifetime: 2.95e15,
+  glass: { ever: 84, held: 40, level: 84, spent: 44 },
+  nodes: ["ground_zero", "go_bag", "beachcomber_kit"],
+  flights: ["u_turn", "loop_the_loop"],
+};
+/** The fresh island after Wipe Day #1: run 2, nothing built, 10 glass ever. */
+const AFTER_FIRST_META = {
+  nukes: 1,
+  wipeDays: 1,
+  lifetime: 5.8e10,
+  glass: { ever: 10, held: 10, level: 10, spent: 0 },
+  nodes: ["ground_zero"],
+  flights: ["u_turn"],
+  records: { bestRun: 5.8e10, bestBlast: 10 },
+};
+const FRESH_RUN = {
+  n: 2,
+  lines: {},
+  hands: [],
+  upgrades: [],
+  research: {},
+  supplies: 0,
+  made: 0,
+  taps: 0,
+  era: "twig",
+  target: { taps: 0, felled: 0 },
+};
+/** The first Wipe Day's `nuked` event, as the postcard reads it. */
+const FIRST_EVENT = {
+  n: 1,
+  wipeDay: 1,
+  gain: 10,
+  ever: 10,
+  glowBefore: 1,
+  glowAfter: 1.95,
+  doubling: true,
+  flight: "u_turn",
+  summary: {
+    seconds: 2880,
+    made: 5.8e10,
+    era: "stone",
+    flotsam: 7,
+    gulls: 2,
+    orders: 3,
+    taps: 9000,
+    bestLine: { id: "furnace", share: 0.41 },
+  },
+};
+/** The named phases of the U-Turn (03 7.5; impact 4,100 ms). */
+const U_TURN = {
+  scramble: 600,
+  ignite: 1100,
+  liftoff: 1500,
+  flight: 2800,
+  whistle: 3700,
+  flash: 4140,
+  fireball: 4500,
+  cloud: 5500,
+  settle: 6600,
+};
+const cine = (name, variant, ms, extra = {}) => ({
+  name,
+  viewport: PHONE,
+  state: {
+    time: at(1, 10.5),
+    wall: WALL,
+    weather: "clear",
+    ...FIRST_NUKE,
+    cinematic: { variant, at: ms, ...(extra.event ? { event: extra.event } : {}) },
+    ...extra.state,
+  },
+  ...extra.shot,
+});
+
 const SHOTS = [
+  // --- R4 S2: the Kettle, the Big Red, the film, the postcard, the landing (08 8.3) ---
+  {
+    name: "phone_kettle_pad",
+    viewport: PHONE,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...KETTLE_PAD },
+  },
+  {
+    name: "phone_kettle_frame",
+    viewport: PHONE,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...KETTLE_FRAME },
+  },
+  {
+    name: "phone_kettle_card",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...KETTLE_PAD,
+      bigRed: { card: true },
+    },
+  },
+  {
+    name: "phone_bigred_chip",
+    viewport: PHONE,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...FIRST_NUKE },
+    ff: 1.3,
+  },
+  {
+    name: "phone_bigred_chip_night",
+    viewport: PHONE,
+    state: { time: at(1, 23), wall: WALL, weather: "clear", ...FIRST_NUKE },
+    ff: 1.3,
+  },
+  {
+    name: "desktop_bigred_chip",
+    viewport: DESKTOP,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...FIRST_NUKE },
+    ff: 1.3,
+  },
+  {
+    name: "phone_cover_first",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FIRST_NUKE,
+      bigRed: { card: true },
+    },
+  },
+  {
+    name: "phone_cover_small",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      n: 4,
+      made: 1e12,
+      afterglowFrom: at(1, 10.5) - 3000,
+      meta: SMALL_BLAST_META,
+      bigRed: { card: true },
+    },
+  },
+  {
+    name: "phone_bigred_hold",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FIRST_NUKE,
+      bigRed: { hold: 0.6 },
+    },
+  },
+  cine("cine_scramble", "u_turn", U_TURN.scramble),
+  cine("cine_ignite", "u_turn", U_TURN.ignite),
+  cine("cine_liftoff", "u_turn", U_TURN.liftoff),
+  cine("cine_flight_u_turn", "u_turn", U_TURN.flight),
+  cine("cine_flight_loop_the_loop", "loop_the_loop", 3000),
+  cine("cine_flight_sputter_drop", "sputter_drop", 2200),
+  cine("cine_fizzle", "fizzle", 2100, { event: { wipeDay: null, gain: 6, flight: "fizzle" } }),
+  cine("cine_whistle", "u_turn", U_TURN.whistle),
+  cine("cine_flash", "u_turn", U_TURN.flash),
+  cine("cine_fireball", "u_turn", U_TURN.fireball),
+  cine("cine_cloud", "u_turn", U_TURN.cloud),
+  cine("cine_settle", "u_turn", U_TURN.settle),
+  cine("cine_flash_night", "u_turn", U_TURN.flash, { state: { time: at(1, 23) } }),
+  cine("cine_cloud_night", "u_turn", U_TURN.cloud, { state: { time: at(1, 23) } }),
+  cine("cine_flash_rain", "u_turn", U_TURN.flash, { state: { weather: "rain" } }),
+  cine("cine_cloud_rain", "u_turn", U_TURN.cloud, { state: { weather: "rain" } }),
+  cine("desktop_cine_fireball", "u_turn", U_TURN.fireball, { shot: { viewport: DESKTOP } }),
+  cine("desktop_cine_cloud", "u_turn", U_TURN.cloud, { shot: { viewport: DESKTOP } }),
+  cine("cine_reduced", "u_turn", 1200, { state: { ui: { motion: "reduced" } } }),
+  {
+    name: "phone_postcard_front",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      meta: AFTER_FIRST_META,
+      postcard: { event: FIRST_EVENT },
+    },
+  },
+  {
+    name: "phone_postcard_back",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      meta: AFTER_FIRST_META,
+      postcard: { event: FIRST_EVENT, flipped: true },
+    },
+  },
+  {
+    name: "desktop_postcard_back",
+    viewport: DESKTOP,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      meta: AFTER_FIRST_META,
+      postcard: { event: FIRST_EVENT, flipped: true },
+    },
+  },
+  {
+    name: "phone_postcard_small",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      n: 5,
+      meta: {
+        ...SMALL_BLAST_META,
+        nukes: 4,
+        lifetime: 2.951e15,
+        glass: { ever: 90, held: 46, level: 90, spent: 44 },
+      },
+      postcard: {
+        event: {
+          ...FIRST_EVENT,
+          n: 4,
+          wipeDay: null,
+          gain: 6,
+          ever: 90,
+          glowBefore: 3.75,
+          glowAfter: 3.85,
+          doubling: false,
+          flight: "fizzle",
+        },
+        flipped: true,
+      },
+    },
+  },
+  {
+    name: "phone_rebuild_plain",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      createdAt: at(1, 10.5) - 5,
+      meta: AFTER_FIRST_META,
+      landing: 1400,
+    },
+  },
+  {
+    name: "phone_afterglow",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      createdAt: at(1, 10.5) - 20,
+      afterglowFrom: null,
+      meta: AFTER_FIRST_META,
+    },
+    ff: 0.6,
+  },
+  {
+    name: "desktop_afterglow",
+    viewport: DESKTOP,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      createdAt: at(1, 10.5) - 400,
+      afterglowFrom: at(1, 10.5) - 400,
+      lines: { beachcomber: 3 },
+      made: 900,
+      supplies: 400,
+      meta: AFTER_FIRST_META,
+    },
+    ff: 0.6,
+  },
+  {
+    name: "phone_crater_27",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      n: 28,
+      meta: {
+        nukes: 27,
+        wipeDays: 27,
+        lifetime: 1e20,
+        glass: { ever: 2400, held: 100, level: 2400, spent: 2300 },
+        nodes: ["ground_zero"],
+        flights: ["u_turn", "loop_the_loop", "sputter_drop"],
+      },
+    },
+  },
   {
     name: "phone_first_tap",
     viewport: PHONE,
@@ -3491,6 +3801,9 @@ async function main() {
         until: buff.until + state.time - asked,
       }));
     if (state.frenzy) state.frenzy = { ...state.frenzy, at: state.frenzy.at + state.time - asked };
+    // R4: a run's birth and Afterglow's first tap are game seconds too (the afterglow sky).
+    if (state.createdAt !== undefined) state.createdAt += state.time - asked;
+    if (typeof state.afterglowFrom === "number") state.afterglowFrom += state.time - asked;
     await page.evaluate(
       ([state, before]) => {
         const { store, clocks, ui: uiStore } = window.__wipeDay;
@@ -3514,6 +3827,10 @@ async function main() {
           quests,
           tide,
           albumNew,
+          bigRed,
+          cinematic,
+          postcard,
+          landing,
           ...run
         } = state;
         // R3 S2: the set completed a minute ago; a Lucky Tide bought `fromAgo` seconds ago.
@@ -3614,6 +3931,15 @@ async function main() {
           store.getState().checkAway();
           if (collect) store.getState().collect();
         }
+        // R4 S2 (D270): the Big Red's card (`bigRed: {card: true}`), the lid up with the ring at
+        // `hold`; the film pinned (`cinematic: {variant, at, event?}`); the postcard (`postcard:
+        // {event?, flipped?}`); the landing at `landing` ms. All on the wall clock, pinned.
+        const big = window.__wipeDay.bigRed;
+        if (bigRed?.card) big.open();
+        if (bigRed?.hold !== undefined) big.hold(bigRed.hold);
+        if (cinematic) big.pin(cinematic.variant, cinematic.at, cinematic.event);
+        if (postcard) big.postcard(postcard.event, postcard.flipped === true);
+        if (landing !== undefined) big.land(landing);
       },
       [state, shot.before ?? null],
     );

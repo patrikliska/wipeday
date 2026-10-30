@@ -282,7 +282,70 @@ export const SKIN = 0xe5c39c;
 export const CLOTHES = [0x4a5d6e, 0x6e5a4a, 0x55684a, 0x6b4a5d];
 /** The Big Red's dome and crater glass (docs/redesign/03-the-big-red.md 3.3, 3.4); icons use them first. */
 export const BIG_RED = 0xd8262b;
+export const BIG_RED_LIGHT = 0xff6a5a;
+export const BIG_RED_DARK = 0x8e1418;
 export const GLASS = 0x6fd0a0;
+/** The crater's glassy rim, and the ash that falls after a blast (03 9.3, 10.3). */
+export const GLASS_RIM = 0x2f6a5a;
+export const ASH = [0xb8b8b0, 0x8a919c] as const;
+/** The Kettle (03 3.3): hazard tape, the cone, the boiler's rust, the drum, the lid. */
+export const HAZARD = 0xf2c230;
+export const HAZARD_DARK = 0x1b1a18;
+export const CONE = 0xf26a1b;
+export const REFLECTIVE = 0xf4f1e8;
+export const KETTLE_RUST = 0xa0643a;
+export const KETTLE_RUST_DARK = 0x7a4a2a;
+export const DRUM = 0x3f5f7a;
+export const LID = 0xe9e4d6;
+export const STEEL = 0x8e949a;
+export const STEEL_DARK = 0x5d6368;
+/** The firebox, the beacon and the pilot light on the `lights` layer (03 3.4, 4.1). */
+export const FIREBOX = 0xff8f5a;
+export const BEACON = 0xffb765;
+export const PILOT = 0xff3a2a;
+/** The fireball's three glows and the cloud's colours (03 7.2). */
+export const FIREBALL = [0xfff3d0, 0xffb765, 0xff6f3c] as const;
+export const CLOUD_HOT = 0xffb765;
+export const CLOUD_COLD = 0x6f7883;
+export const BURNT = 0xd86a4a;
+export const ASH_TINT = 0x8a6f7e;
+
+/** The afterglow sky (03 9.3): what the palette mixes toward in the minutes after a landing. */
+const AFTERGLOW = {
+  skyTop: 0x1f4a3a,
+  skyMid: 0x6fae6a,
+  skyHorizon: 0xcfe8a0,
+  haze: 0x8fbf7a,
+  cloud: 0xb8d8a0,
+  ambient: 0xd8f0c0,
+} as const;
+
+/**
+ * Afterglow's green over the hour's palette by `amount` (0 untouched): at night the mix is
+ * ×0.6, a dark sky with a teal glow on the horizon. Presentation only; the tap multiplier keeps
+ * its own clock.
+ */
+export function afterglowSky(palette: Palette, amount: number): Palette {
+  const t = clamp(amount, 0, 1) * lerp(0.6, 1, clamp(palette.light * 2, 0, 1));
+  if (t <= 0) return palette;
+  return {
+    ...palette,
+    skyTop: lerpColor(palette.skyTop, AFTERGLOW.skyTop, t),
+    skyMid: lerpColor(palette.skyMid, AFTERGLOW.skyMid, t),
+    skyHorizon: lerpColor(palette.skyHorizon, AFTERGLOW.skyHorizon, t),
+    haze: lerpColor(palette.haze, AFTERGLOW.haze, t),
+    cloud: lerpColor(palette.cloud, AFTERGLOW.cloud, t),
+    ambient: lerpColor(palette.ambient, AFTERGLOW.ambient, t * 0.5),
+  };
+}
+
+/** The blast's tint over the ambient (03 7.2): burnt orange, then ash, then the green of 9.3. */
+export function blastTint(palette: Palette, burnt: number, ash: number): Palette {
+  if (burnt <= 0 && ash <= 0) return palette;
+  let ambient = lerpColor(palette.ambient, BURNT, clamp(burnt, 0, 1) * 0.7);
+  ambient = lerpColor(ambient, ASH_TINT, clamp(ash, 0, 1) * 0.55);
+  return { ...palette, ambient };
+}
 /** The Hustle arc (08-screens.md 1.3): pale at 0, ember at the cap. */
 export const HUSTLE_LO = 0xe8d9a8;
 export const HUSTLE_HI = 0xff6f3c;

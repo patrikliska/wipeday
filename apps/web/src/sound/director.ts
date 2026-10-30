@@ -41,11 +41,19 @@ export function cueOf(event: GameEvent): { cue: string; buzz?: readonly number[]
   return entry.buzz ? { cue, buzz: entry.buzz } : { cue };
 }
 
+/** The siren's stop (R4): letting go of the Big Red, or the launch itself, ends it early. */
+let stopSiren: (() => void) | null = null;
+
 function hear(event: GameEvent): void {
   if (event.type === "tap_at") sound.start();
+  if (event.type === "hold_cancelled" || event.type === "nuked") {
+    stopSiren?.();
+    stopSiren = null;
+  }
   const played = cueOf(event);
   if (!played) return;
-  sound.play(played.cue, optionsFor(event));
+  const stop = sound.play(played.cue, optionsFor(event));
+  if (event.type === "hold_started") stopSiren = stop;
   if (played.buzz) haptics.buzz(played.buzz);
 }
 

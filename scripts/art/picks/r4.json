@@ -1,0 +1,19 @@
+{
+  "//": "R4 S2, the Kettle (D270): the agent's provisional picks from preview/art/r4-kettle-sheet.png (2026-10-29); the owner swaps any by its number and runs `pnpm art install scripts/art/picks/r4.json`. The Big Red's drum stays procedural (the 14 px takes were blobs); the pad is the pro retake (the first pad's slab was knocked out as background).",
+  "prop/kettle_pad": {
+    "from": "preview/art/r4-kettle/kettle_pad_pro_0.png"
+  },
+  "prop/kettle_frame": {
+    "from": "preview/art/r4-kettle/kettle_frame_0.png"
+  },
+  "prop/kettle_warhead": {
+    "from": "preview/art/r4-kettle/kettle_warhead_0.png"
+  },
+  "prop/kettle_fuel": {
+    "from": "preview/art/r4-kettle/kettle_fuel_0.png"
+  },
+  "prop/rowboat": {
+    "from": "preview/art/r4-kettle/rowboat_1.png",
+    "outline": true
+  }
+}

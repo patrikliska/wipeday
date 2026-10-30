@@ -230,6 +230,33 @@
       perSecond: 12,
     },
     refuse: { voice: "refuse", files: ["kenney_interface/error_004"], gain: 0.5, perSecond: 4 },
+
+    // R4 S2, the Big Red (D270; 03-the-big-red.md 6-9; 08-screens.md 5.2): the hold's siren
+    // rising over 2 s and winding down when let go; the launch's clunk; liftoff's roar; the
+    // whistle home; the boom (low-passed noise and a 48 Hz sine); the sign's thunk; the
+    // postcard's paper swish; the landing's oars and hop; the Kettle's stages (a plank, a
+    // clank, a crate thud, the hiss of steam); the yield's quiet glass chime (one every 2 s);
+    // Afterglow's warm shimmer. Procedural voices: no pack has a siren or a boom that fits.
+    siren_rise: { voice: "siren_rise", gain: 0.5 },
+    siren_down: { voice: "siren_down", gain: 0.5 },
+    launch: { voice: "launch", files: ["kenney_impact/impactMetal_heavy_000"], gain: 0.7 },
+    liftoff: { voice: "liftoff", gain: 0.6 },
+    whistle: { voice: "whistle", gain: 0.45 },
+    boom: { voice: "boom", gain: 0.9 },
+    sign_thunk: { voice: "fell", files: ["kenney_impact/impactWood_heavy_002"], gain: 0.6 },
+    postcard: { voice: "postcard", files: ["kenney_rpg/bookFlip2"], gain: 0.6 },
+    landing: { voice: "landing", files: ["kenney_rpg/cloth2"], gain: 0.6 },
+    kettle_pad: { voice: "buy", files: ["kenney_impact/impactPlank_medium_000"], gain: 0.6 },
+    kettle_frame: { voice: "buy", files: ["kenney_impact/impactMetal_medium_000"], gain: 0.6 },
+    kettle_warhead: { voice: "milestone", files: ["kenney_impact/impactWood_heavy_001"], gain: 0.6 },
+    kettle_fuel: { voice: "steam", gain: 0.5 },
+    glass_chime: {
+      voice: "glass",
+      files: ["kenney_impact/impactGlass_light_002", "kenney_impact/impactGlass_light_003"],
+      gain: 0.35,
+      perSecond: 1,
+    },
+    afterglow: { voice: "glass", files: ["kenney_interface/confirmation_002"], gain: 0.45 },
   },
 
   events: {
@@ -275,11 +302,24 @@
     // Seen on the welcome card instead.
     night_shift_over: null,
     base_reset: null,
-    // R4 S2 maps the press, the map's buys and the admin's gifts to their cues.
-    nuked: null,
-    node_bought: null,
+    // R4 (D270): the press is the hold's end (the launch clunk and a 120 ms buzz); the film's
+    // beats play from the scene on the wall clock; a node bought chimes; the admin's gifts are
+    // quiet (a card says it).
+    nuked: { cue: "launch", buzz: [120] },
+    node_bought: { cue: "glass_chime" },
     granted: null,
     respecced: null,
+    hold_started: { cue: "siren_rise" },
+    hold_cancelled: { cue: "siren_down" },
+    cine_liftoff: { cue: "liftoff" },
+    cine_whistle: { cue: "whistle" },
+    cine_boom: { cue: "boom", buzz: [300] },
+    cine_sign: { cue: "sign_thunk" },
+    postcard_shown: { cue: "postcard" },
+    landed: { cue: "landing" },
+    kettle_stage: { cue: "kettle_{stage}", buzz: [20] },
+    yield_rose: { cue: "glass_chime" },
+    afterglow_started: { cue: "afterglow" },
     // What the scene and the panels notice.
     milestone: { cue: "milestone", buzz: [15, 40, 15] },
     roster: { cue: "roster" },

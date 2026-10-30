@@ -248,6 +248,12 @@ export class House {
       this.particles.spawn("dust", this.container.x, this.container.y - 10, 26, 0xc9b78a);
   }
 
+  /** The lean-to pops up on the fresh island (R4's landing, 03 9.2): squash and dust again. */
+  popIn(): void {
+    this.buildAnim = 1;
+    this.particles.spawn("dust", this.container.x, this.container.y - 10, 26, 0xc9b78a);
+  }
+
   /** The door, in world units: hands walk out from here. */
   get door(): { x: number; y: number } {
     return { x: this.container.x, y: this.container.y };

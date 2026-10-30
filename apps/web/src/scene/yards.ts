@@ -52,10 +52,19 @@ export interface Yard {
   target: YardSpot;
   stockpile: YardSpot;
   house: YardSpot;
+  /**
+   * The Kettle (R4, D270): the homemade rocket on the back terrace, left of the car, with the
+   * Big Red's drum at its right foot; it rises behind the Lone Pine on a phone.
+   */
+  kettle: YardSpot;
+  /** The rowboat on blocks (R4, 03-the-big-red.md 7.1): the escape plan, visible all along. */
+  rowboat: YardSpot;
   /** Each outside line's spot. */
   spots: Readonly<Record<string, YardSpot>>;
   /** Armored's camp in the wider view: x overrides (the plane is 60 px wide). */
   wideX: Readonly<Record<string, number>>;
+  /** ...and the one thing that changes band in the wider view (the rowboat). */
+  wideY: Readonly<Record<string, number>>;
   /** Props standing in the yard's gaps, smaller ones toward the back. */
   props: readonly YardProp[];
   /** Where an airdrop hangs at its float's end (x, art px; y follows `back`). */
@@ -76,6 +85,10 @@ export const yard: Yard = {
   target: { x: 166, y: 112 },
   stockpile: { x: 190, y: 112 },
   house: { x: 238, y: 112 },
+  // 28 px wide: between the rowboat and the car (39 px wide at 172); Armored's shipbreaker
+  // (38 px wide at 128) pushes both to the camp's left edge.
+  kettle: { x: 136, y: 75 },
+  rowboat: { x: 111, y: 75 },
   spots: {
     beachcomber: { x: 112, y: 112 },
     campfire: { x: 134, y: 112 },
@@ -98,7 +111,11 @@ export const yard: Yard = {
     shipbreaker: 128,
     house: 254,
     stockpile: 203,
+    kettle: 96,
+    rowboat: 129,
   },
+  // In the wider view the rowboat moves down a band, into the gap between the dock and the kiln.
+  wideY: { rowboat: 93 },
   props: [
     { id: "car", x: 172, y: 75 },
     { id: "barrel", x: 178, y: 93 },

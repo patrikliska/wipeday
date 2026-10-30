@@ -362,6 +362,11 @@ export class Floaters {
     return n;
   }
 
+  /** Every floater ends now: the island they rose from is gone (the blast). */
+  clear(): void {
+    for (const float of this.pool) if (float.live) this.retire(float);
+  }
+
   /** The world's screen transform; the scene sets it every frame. */
   setCamera(x: number, y: number, scale: number, viewWidth = 0): void {
     this.cameraX = x;
@@ -387,6 +392,7 @@ export class Floaters {
     nowMs: number,
     size: number,
     icon?: { icon: string; iconColor: number },
+    color?: number,
   ): void {
     const running = this.running;
     if (running?.live && running.kind === "tap" && nowMs - running.touched < MERGE_MS) {
@@ -396,7 +402,11 @@ export class Floaters {
       this.setText(running, `+${this.format(running.amount)}`);
       return;
     }
-    const float = this.add("tap", x, y, `+${this.format(gain)}`, nowMs, { size, ...icon });
+    const float = this.add("tap", x, y, `+${this.format(gain)}`, nowMs, {
+      size,
+      ...icon,
+      ...(color !== undefined ? { color } : {}),
+    });
     if (!float) return;
     float.amount = gain;
     float.fadeAt = nowMs + HOLD_MS;
@@ -595,13 +605,19 @@ export class Glow {
   }
 }
 
-/** Rain streaks and drifting fog, in screen space. */
+/** Ash flakes after a blast (03 9.3): grey, 70 on a phone and 140 on a desktop, 20-40 px/s. */
+const ASH_FLAKES = 140;
+const ASH_COLORS = [0xb8b8b0, 0x8a919c];
+
+/** Rain streaks, drifting fog and, after a blast, falling ash, in screen space. */
 export class Weather {
   readonly container = new Container();
   private readonly drops: Graphics[] = [];
   private readonly fogs: Sprite[] = [];
+  private readonly flakes: { sprite: Graphics; speed: number; sway: number }[] = [];
   private rain = 0;
   private fog = 0;
+  private ash = 0;
   private targetRain = 0;
   private targetFog = 0;
 
@@ -609,6 +625,16 @@ export class Weather {
     private width: number,
     private height: number,
   ) {
+    for (let i = 0; i < ASH_FLAKES; i++) {
+      const size = rand(1.5, 3);
+      const flake = new Graphics()
+        .rect(0, 0, size, size)
+        .fill({ color: ASH_COLORS[i % 2] ?? 0xb8b8b0, alpha: 0.8 });
+      flake.position.set(rand(-100, width + 100), rand(-100, height));
+      flake.visible = false;
+      this.flakes.push({ sprite: flake, speed: rand(20, 40), sway: rand(0, Math.PI * 2) });
+      this.container.addChild(flake);
+    }
     for (let i = 0; i < 160; i++) {
       const drop = new Graphics()
         .moveTo(0, 0)
@@ -655,9 +681,29 @@ export class Weather {
     }
   }
 
+  /** Ash falling, 0..1 (the minutes after a blast); rain keeps drawing under it. */
+  setAsh(amount: number): void {
+    this.ash = clamp(amount, 0, 1);
+  }
+
   update(dt: number, wind: number, darkness: number): void {
     this.rain = lerp(this.rain, this.targetRain, Math.min(1, dt * 0.8));
     this.fog = lerp(this.fog, this.targetFog, Math.min(1, dt * 0.5));
+    // Ash: half the flakes on a narrow screen; they drift down and sway a little.
+    const flakes = Math.floor((this.width < 600 ? ASH_FLAKES / 2 : ASH_FLAKES) * this.ash);
+    for (const [i, flake] of this.flakes.entries()) {
+      const sprite = flake.sprite;
+      sprite.visible = i < flakes;
+      if (!sprite.visible) continue;
+      flake.sway += dt * 1.3;
+      sprite.y += flake.speed * dt;
+      sprite.x += (Math.sin(flake.sway) * 8 + wind * 2) * dt;
+      sprite.alpha = 0.5 + 0.3 * this.ash;
+      if (sprite.y > this.height + 10) {
+        sprite.y = rand(-60, -10);
+        sprite.x = rand(-100, this.width + 100);
+      }
+    }
     const visible = Math.floor(this.drops.length * this.rain);
     for (const [i, drop] of this.drops.entries()) {
       drop.visible = i < visible;

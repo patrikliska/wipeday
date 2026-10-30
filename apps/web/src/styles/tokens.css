@@ -71,12 +71,18 @@
   --success: #9ee6a0;
   --warning: #f2b134;
   --danger: #e03a2f;
-  /* The Big Red's dome and glyph only (R4); never a button colour. */
+  /* The Big Red's dome and glyph, and the danger style's fill (R4, D270): hazard bands around a
+     red fill, used by nothing but the Big Red (6.3 rule 1's destructive exception). */
   --big-red: #d8261c;
   --big-red-hi: #ff4a3d;
+  --big-red-lo: #8e1418;
   --red-band: #cd412b;
   --hazard: #ffd21f;
   --hazard-ink: #1b1a18;
+  /* Crater glass: the nuke's gain, the Afterglow pill, the glass plate (one colour, D141). */
+  --glass: #6fd0a0;
+  --glass-hi: #a8f0c8;
+  --glass-lo: #2f6a5a;
   --hustle-lo: #ffe7a8;
   --hustle-hi: #ff8c2a;
   --buff: #ffc95c;

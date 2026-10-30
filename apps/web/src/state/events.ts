@@ -43,7 +43,24 @@ export type GameEvent =
   /** The welcome card's Collect: `gain` flies into the counter. */
   | { type: "collected"; gain: number }
   /** A card turned over in the reveal (D261): the flip, then its rarity's sting. */
-  | { type: "card_flipped"; rarity: Rarity };
+  | { type: "card_flipped"; rarity: Rarity }
+  /** R4 (D270): the Big Red's hold began (the siren rises) or was let go early (it winds down). */
+  | { type: "hold_started" }
+  | { type: "hold_cancelled" }
+  /** The cinematic's beats on the wall clock: liftoff's roar, the whistle home, the boom, the sign's thunk. */
+  | { type: "cine_liftoff" }
+  | { type: "cine_whistle" }
+  | { type: "cine_boom" }
+  | { type: "cine_sign" }
+  /** The postcard slid up; the rowboat landed on the fresh island. */
+  | { type: "postcard_shown" }
+  | { type: "landed" }
+  /** The Kettle grew a stage (the pad, the frame, the warhead, fuel and steam). */
+  | { type: "kettle_stage"; stage: "pad" | "frame" | "warhead" | "fuel" }
+  /** The press's gain rose by a whole glass while watched: the "+1" and its chime. */
+  | { type: "yield_rose"; gain: number }
+  /** Afterglow started counting down: the run's first tap after a nuke. */
+  | { type: "afterglow_started" };
 
 export type UiAction = "open" | "close" | "switch";
 
@@ -101,6 +118,17 @@ export const EVENT_TYPES = Object.keys({
   node_bought: 1,
   granted: 1,
   respecced: 1,
+  hold_started: 1,
+  hold_cancelled: 1,
+  cine_liftoff: 1,
+  cine_whistle: 1,
+  cine_boom: 1,
+  cine_sign: 1,
+  postcard_shown: 1,
+  landed: 1,
+  kettle_stage: 1,
+  yield_rose: 1,
+  afterglow_started: 1,
 } satisfies Record<GameEvent["type"], 1>) as GameEvent["type"][];
 
 /** A sheet opened or closed, a switch flipped: the panels say so, the sound answers. */

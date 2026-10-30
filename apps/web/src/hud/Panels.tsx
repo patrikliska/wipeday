@@ -270,6 +270,8 @@ function SettingsPanel() {
   const setScientific = useUi((state) => state.setScientific);
   const motion = useUi((state) => state.motion);
   const setMotion = useUi((state) => state.setMotion);
+  const holdTwice = useUi((state) => state.holdTwice);
+  const setHoldTwice = useUi((state) => state.setHoldTwice);
   const openSheet = useUi((state) => state.openSheet);
   const player = useWorld((state) => state.player);
   const mode = useWorld((state) => state.mode);
@@ -344,6 +346,14 @@ function SettingsPanel() {
             ]}
             onChange={setMotion}
           />
+        </div>
+        {/* Accessibility (03-the-big-red.md 5.5): every hold becomes tap to arm, tap to launch. */}
+        <div className="setting">
+          <span>
+            {t("settings.hold_twice")}
+            <small>{t("settings.hold_twice_sub")}</small>
+          </span>
+          <Toggle on={holdTwice} label={t("settings.hold_twice")} onChange={setHoldTwice} />
         </div>
         <Notifications demo={mode === "demo"} />
         {player && mode === "server" ? (

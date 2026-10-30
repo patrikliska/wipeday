@@ -1,4 +1,4 @@
-import { buffEffects, rates } from "@wipe-day/domain/effects";
+import { afterglowAt, afterglowRules, buffEffects, rates } from "@wipe-day/domain/effects";
 import { shownRate } from "@wipe-day/domain/glance";
 import { suppliesAt } from "@wipe-day/domain/settle";
 import { useEffect, useRef } from "react";
@@ -185,11 +185,35 @@ function BuffPills() {
     tide && (tide.until > second || ending.current.get(tide.boost) === tide.until)
       ? content.scrap.boosts.find((row) => row.id === tide.boost)
       : undefined;
-  if (live.length === 0 && !tideBoost) return null;
-  const shown = live.slice(0, 3);
+  const afterglow = useAfterglow(second);
+  if (live.length === 0 && !tideBoost && !afterglow) return null;
+  const shown = live.slice(0, afterglow ? 2 : 3);
   const hidden = live.length - shown.length;
   return (
     <div className="buffs" aria-live="off">
+      {afterglow ? (
+        // Afterglow (03 10.1): green, frozen at ×3 until the first tap, then counting down.
+        <span
+          key="afterglow"
+          className="plate buff afterglow"
+          role="img"
+          aria-label={t("hud.afterglow_label", {
+            factor: fmtFactor(afterglow.factor),
+            time: duration(afterglow.left),
+          })}
+        >
+          <Icon kind="ui" id="afterglow" size={18} />
+          <span className="num">
+            {afterglow.waiting
+              ? t("hud.afterglow_waiting", { factor: fmtFactor(afterglow.factor) })
+              : t("hud.afterglow", {
+                  factor: fmtFactor(afterglow.factor),
+                  time: duration(afterglow.left),
+                })}
+          </span>
+          <i style={{ transform: `scaleX(${afterglow.fill})` }} />
+        </span>
+      ) : null}
       {shown.map((buff) => {
         const over = buff.until <= second;
         // Frenzy (D237) is one number on screen: taps and lines ×mult.
@@ -254,6 +278,30 @@ function BuffPills() {
       ) : null}
     </div>
   );
+}
+
+/**
+ * Afterglow's pill (03 10.1): from run 2 on, until the fade ends. Before the run's first tap it
+ * waits, frozen at the start factor; after, it counts down on the game clock (taps are commands
+ * at game seconds, so the pill and the gain agree).
+ */
+function useAfterglow(
+  second: number,
+): { factor: number; left: number; fill: number; waiting: boolean } | null {
+  const base = useWorld((state) => state.base);
+  if (!base || base.meta.nukes === 0) return null;
+  const rules = afterglowRules(content, base);
+  const total = rules.hold + rules.ends;
+  const from = base.run.afterglowFrom;
+  if (from === null) return { factor: rules.start, left: total, fill: 1, waiting: true };
+  const elapsed = Math.max(0, second - from);
+  if (elapsed >= total) return null;
+  return {
+    factor: afterglowAt(content, base, second),
+    left: total - elapsed,
+    fill: (total - elapsed) / total,
+    waiting: false,
+  };
 }
 
 /**

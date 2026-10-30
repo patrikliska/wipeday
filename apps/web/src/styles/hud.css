@@ -4555,3 +4555,656 @@
 .shard-chip .num.pop {
   animation: badge-pop 300ms var(--ease-back, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
+
+/* --- R4 S2, the Big Red (D270; 03-the-big-red.md 4-9; 08-screens.md 2.4-2.7) --- */
+
+/* The danger style (4.2): hazard bands round a red fill. Used by nothing but the Big Red. */
+.btn.danger {
+  color: #fff;
+  background: linear-gradient(180deg, var(--big-red-hi), var(--big-red));
+  border-color: var(--hazard);
+  box-shadow:
+    0 3px 0 var(--big-red-lo),
+    0 0 0 2px var(--hazard-ink),
+    0 0 16px rgba(216, 38, 28, 0.45);
+  text-shadow: 0 1px 0 var(--big-red-lo);
+}
+
+.btn.danger:active:not(:disabled) {
+  box-shadow:
+    0 1px 0 var(--big-red-lo),
+    0 0 0 2px var(--hazard-ink);
+}
+
+/* The chip (4.4): hazard frame, the Big Red's glyph, two lines. Phone: above the drawer on
+   the left; desktop: the top of the column. It breathes when crowned, never pulses orange. */
+.bigred-chip {
+  position: absolute;
+  left: 10px;
+  bottom: calc(var(--hint-floor) + 10px);
+  z-index: 2;
+  display: inline-flex;
+  min-height: 48px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  animation: chip-arrive 360ms var(--ease-back, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+.bigred-chip.in-column {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  margin: 0 14px 10px;
+  width: calc(100% - 28px);
+}
+
+@keyframes chip-arrive {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+}
+
+.bigred-chip-face {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 4px 12px 4px 8px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #2c2318, #1b150d);
+  /* Hazard tape as the frame (4.2): a striped border image, nothing else uses it. */
+  border: 4px solid transparent;
+  border-image: repeating-linear-gradient(135deg, var(--hazard) 0 8px, var(--hazard-ink) 8px 16px) 4;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+
+.bigred-chip-icon {
+  color: var(--big-red-hi);
+  flex: 0 0 auto;
+}
+
+.bigred-chip-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bigred-chip-gain {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: 900 17px / 1 var(--display);
+  color: var(--glass);
+  white-space: nowrap;
+}
+
+.bigred-chip-crown {
+  color: var(--primary-hi);
+}
+
+.bigred-chip-rate {
+  font: 600 11px / 1.1 var(--body);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.bigred-chip-bar {
+  display: block;
+  width: 120px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--sunk);
+  overflow: hidden;
+}
+
+.bigred-chip-bar > i {
+  display: block;
+  height: 100%;
+  background: var(--glass);
+  transform-origin: left;
+}
+
+.bigred-chip.crowned .bigred-chip-face {
+  animation: chip-breathe 2s ease-in-out infinite;
+}
+
+@keyframes chip-breathe {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.bigred-chip:hover .bigred-chip-face {
+  filter: brightness(1.08);
+}
+
+.bigred-chip:active .bigred-chip-face {
+  transform: translateY(1px);
+}
+
+.reduced .bigred-chip.crowned .bigred-chip-face,
+.reduced .bigred-chip {
+  animation: none;
+}
+
+/* The Kettle's tap area over the drum and the rocket (03 3.1). */
+.kettle-hit {
+  position: absolute;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.kettle-hit:focus {
+  outline: none;
+}
+
+.kettle-hit:focus-visible,
+.kettle-hit:hover {
+  outline: 2px dashed rgba(244, 234, 211, 0.6);
+  outline-offset: 2px;
+}
+
+/* The card (5.1): hazard tape along the top; glass green for the gain; two columns. */
+.bigred-sheet {
+  max-height: 88%;
+  border-top: 8px solid transparent;
+  background-clip: padding-box;
+}
+
+.bigred-sheet:not(.locked)::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: -2px;
+  right: -2px;
+  height: 8px;
+  border-radius: 18px 18px 0 0;
+  background: repeating-linear-gradient(135deg, var(--hazard) 0 10px, var(--hazard-ink) 10px 20px);
+}
+
+.bigred-cover,
+.bigred-hold {
+  padding: 4px 18px 12px;
+}
+
+.bigred-caps {
+  margin: 8px 0 2px;
+  font: 700 11px / 1 var(--body);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.bigred-gain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font: 900 28px / 1 var(--display);
+  color: var(--glass);
+}
+
+.bigred-glow {
+  margin: 6px 0 0;
+  font: 600 16px / 1.2 var(--body);
+  color: var(--text);
+}
+
+.bigred-readout {
+  margin: 2px 0 0;
+  font: 500 13px / 1.3 var(--body);
+  color: var(--text-2);
+}
+
+.bigred-unlocks {
+  margin: 8px 0 0;
+  font: 600 14px / 1.3 var(--body);
+}
+
+.bigred-counts {
+  margin: 2px 0 0;
+  font: 500 13px / 1.3 var(--body);
+  color: var(--text-2);
+}
+
+.bigred-wait,
+.bigred-small {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(242, 177, 52, 0.12);
+  border: 1px solid rgba(242, 177, 52, 0.4);
+  font: 500 13px / 1.35 var(--body);
+  color: var(--warning);
+}
+
+.bigred-first {
+  margin: 8px 0 0;
+  font: 500 14px / 1.4 var(--body);
+}
+
+.bigred-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--edge-soft);
+}
+
+.bigred-columns ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 500 14px / 1.35 var(--body);
+}
+
+.bigred-columns li {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.bigred-columns .lost {
+  color: var(--text-2);
+}
+
+.bigred-columns .minus {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.bigred-notes {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  font: 500 13px / 1.35 var(--body);
+  color: var(--warning);
+}
+
+.bigred-quip {
+  margin: 12px 0 0;
+  font: italic 500 14px / 1.35 var(--body);
+  color: var(--text-2);
+}
+
+.bigred-relief {
+  margin: 8px 0 0;
+  font: 600 14px / 1.3 var(--body);
+  color: var(--success);
+}
+
+.bigred-foot .btn.secondary {
+  flex: 1 1 0;
+}
+
+/* The locked card (5.4): the Kettle's art, the yield bar labelled "+3 of 10 glass". */
+.bigred-locked-art {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 4px;
+}
+
+.bigred-locked-text {
+  margin: 8px 18px 0;
+  font: 500 15px / 1.4 var(--body);
+}
+
+.bigred-bar {
+  margin: 12px 18px 0;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--sunk);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+.bigred-bar > i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(180deg, var(--glass-hi), var(--glass));
+  transform-origin: left;
+}
+
+.bigred-bar-label {
+  margin: 6px 18px 0;
+  font: 700 13px / 1.2 var(--body);
+  color: var(--glass);
+}
+
+.bigred-sheet.locked .bigred-quip {
+  margin: 12px 18px 8px;
+}
+
+/* The hold (6; 08 2.5): the 120 px dome inside its hazard ring, the ring filling over 2 s. */
+.bigred-gain-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  font: 700 15px / 1.2 var(--body);
+  color: var(--glass);
+  text-align: center;
+}
+
+.bigred-dome-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 6px;
+}
+
+.bigred-dome {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bigred-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.bigred-ring .track {
+  fill: none;
+  stroke: var(--hazard-ink);
+  stroke-width: 8;
+}
+
+.bigred-ring .fill {
+  fill: none;
+  stroke: var(--hazard);
+  stroke-width: 8;
+  stroke-linecap: butt;
+}
+
+.bigred-dome-face {
+  position: absolute;
+  inset: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  background: radial-gradient(
+    circle at 40% 30%,
+    var(--big-red-hi),
+    var(--big-red) 55%,
+    var(--big-red-lo)
+  );
+  box-shadow:
+    0 6px 0 var(--big-red-lo),
+    0 10px 20px rgba(0, 0, 0, 0.5),
+    inset 0 2px 0 rgba(255, 255, 255, 0.25);
+  transition:
+    transform var(--t-fast) ease,
+    box-shadow var(--t-fast) ease;
+}
+
+.bigred-dome.down .bigred-dome-face,
+.bigred-dome:active .bigred-dome-face {
+  transform: translateY(6px);
+  box-shadow:
+    0 0 0 var(--big-red-lo),
+    0 4px 10px rgba(0, 0, 0, 0.5),
+    inset 0 2px 0 rgba(255, 255, 255, 0.15);
+}
+
+.bigred-dome:focus-visible {
+  outline: 2px dashed rgba(244, 234, 211, 0.7);
+  outline-offset: 4px;
+}
+
+.bigred-hold-label {
+  margin: 4px 0 0;
+  text-align: center;
+  font: 900 20px / 1 var(--display);
+  letter-spacing: 0.04em;
+}
+
+.bigred-hold-helper {
+  margin: 4px 0 0;
+  text-align: center;
+  font: 500 13px / 1.3 var(--body);
+  color: var(--text-2);
+}
+
+.bigred-run {
+  margin: 10px 0 0;
+  text-align: center;
+  font: 500 12px / 1.2 var(--body);
+  color: var(--muted);
+}
+
+/* The screen's edge pulses red as the hold fills (6): --hold 0..1 from the hold view's frame. */
+.hold-pulse {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: var(--hold, 0);
+  box-shadow: inset 0 0 calc(30px + 60px * var(--hold, 0)) rgba(216, 38, 28, 0.55);
+  animation: hold-pulse 1s ease-in-out infinite;
+}
+
+@keyframes hold-pulse {
+  50% {
+    box-shadow: inset 0 0 calc(10px + 40px * var(--hold, 0)) rgba(216, 38, 28, 0.35);
+  }
+}
+
+.reduced .hold-pulse {
+  display: none;
+}
+
+/* The film (7): the HUD fades out; the flash is a CSS overlay; Skip top right from Wipe Day #2. */
+.app.showing .hud-main,
+.app.showing .dock-layer,
+.app.showing .panel-layer {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease;
+}
+
+.app.landing .hud-main,
+.app.landing .dock-layer {
+  opacity: 1;
+  transition: opacity 400ms ease 2s;
+}
+
+.film-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: var(--flash, 0);
+}
+
+.film-skip {
+  position: absolute;
+  top: calc(12px + var(--safe-top));
+  right: calc(12px + var(--column-w));
+  pointer-events: auto;
+  animation: fade 300ms ease;
+}
+
+.film-saving {
+  position: absolute;
+  left: 12px;
+  bottom: calc(12px + var(--safe-bottom));
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+  font: 600 12px / 1.2 var(--body);
+  color: var(--text-2);
+}
+
+/* The postcard (8): a 3:2 card that flips to its back; the sheet is the card and Rebuild. */
+.postcard-sheet {
+  width: min(420px, 100%);
+}
+
+.postcard-scroll {
+  padding: 12px 16px 8px;
+}
+
+.postcard {
+  perspective: 1200px;
+}
+
+.postcard-flip {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: transform 620ms var(--ease);
+}
+
+.postcard.flipped .postcard-flip {
+  transform: rotateY(180deg);
+}
+
+.postcard-front,
+.postcard-back {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.postcard-front {
+  border: 3px solid #f4ead3;
+  background: #f4ead3;
+}
+
+.postcard-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.postcard-art svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.postcard-back {
+  transform: rotateY(180deg);
+  padding: 10px 12px;
+  gap: 4px;
+  text-align: left;
+  color: var(--ink);
+  background: #f4ead3;
+  font: 500 12px / 1.25 var(--body);
+}
+
+.postcard.reduced .postcard-flip {
+  transition: none;
+}
+
+.postcard-head {
+  font: 900 15px / 1 var(--display);
+  letter-spacing: 0.02em;
+  color: #2f6a5a;
+}
+
+.postcard-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.postcard-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px dotted rgba(26, 18, 8, 0.25);
+}
+
+.postcard-label {
+  color: #5a4a36;
+}
+
+.postcard-value {
+  font-weight: 700;
+  text-align: right;
+}
+
+.postcard-message {
+  margin-top: 2px;
+  font: italic 500 12px / 1.25 var(--body);
+}
+
+.postcard-next {
+  margin-top: auto;
+  font: 700 12px / 1.25 var(--body);
+  color: #8e1418;
+}
+
+@media (max-width: 400px) {
+  .postcard-back {
+    font-size: 11px;
+    padding: 8px 10px;
+  }
+}
+
+/* Afterglow's pill (10.1): green, counting down; frozen at ×3 until the first tap. */
+.buff.afterglow {
+  color: var(--glass);
+}
+
+.buff.afterglow > i {
+  background: var(--glass);
+}
+
+/* The film has no HUD at all: the demo's own toggle and drawer go too. */
+.app.showing .demo-toggle,
+.app.showing .demo {
+  opacity: 0;
+  pointer-events: none;
+}

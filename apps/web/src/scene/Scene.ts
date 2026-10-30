@@ -12,16 +12,20 @@
  * the waterline and is caught through a button of its own (`flotsam.ts`). Animation runs on the
  * `wall` clock, never the game clock, so a demo jump moves no animation (rule 6.3.9).
  */
+import { signStyle } from "@wipe-day/content/blastmap";
 import { tideAt } from "@wipe-day/domain/boosts";
+import { afterglowAt } from "@wipe-day/domain/effects";
 import { afloat, crateMinutes, floatSeconds } from "@wipe-day/domain/flotsam";
 import { type FrenzyView, frenzyAt } from "@wipe-day/domain/frenzy";
 import { lineOf } from "@wipe-day/domain/lines";
+import { glassYield, kettleStage } from "@wipe-day/domain/prestige";
 import type { BaseState } from "@wipe-day/domain/state";
 import { hustleFactor, tapParts } from "@wipe-day/domain/taps";
 import { islandHour, weatherAt } from "@wipe-day/domain/weather";
-import { Application, Container, Graphics } from "pixi.js";
+import { Application, BitmapText, Container, Graphics, Sprite } from "pixi.js";
 import { countFrame, isFrozen, registerScene } from "../debug";
 import { useAdvisor } from "../state/advisor";
+import { filmMs, landingLength, sinceLanding, useBigRed } from "../state/bigred";
 import { wall } from "../state/clocks";
 import { emit, type GameEvent, on } from "../state/events";
 import { insets, phoneCover } from "../state/layout";
@@ -46,6 +50,8 @@ import {
 } from "../state/world";
 import { Hands, type Post } from "./actors";
 import { House } from "./base";
+import { type Frame, frameAt } from "./cinematic";
+import { Crater } from "./crater";
 import { Crates } from "./crates";
 import { Floaters, type Glow, Particles, Weather } from "./effects";
 import { Flotsam } from "./flotsam";
@@ -55,7 +61,9 @@ import {
   HOUSE_SPOT,
   houseSpotFor,
   INSIDE,
+  kettleSpotFor,
   ROOM,
+  rowboatSpotFor,
   STOCKPILE_SPOT,
   stageSpot,
   stockpileSpotFor,
@@ -64,17 +72,30 @@ import {
   type View,
   viewFor,
 } from "./island";
+import { Kettle } from "./kettle";
 import { Landscape } from "./landscape";
 import { Lines, layoutFor, ROOM_LAYOUT } from "./lines";
-import { gloom, paletteAt, warm } from "./palette";
+import {
+  afterglowSky,
+  blastTint,
+  CLOUD_COLD,
+  CLOUD_HOT,
+  FIREBALL,
+  GLASS,
+  gloom,
+  paletteAt,
+  warm,
+} from "./palette";
 import { ART, loadArt } from "./pixel";
 import { placeProps } from "./props";
 import { milestoneCrossed } from "./reveal";
 import { Room } from "./room";
+import { Rowboat } from "./rowboat";
 import { Sky } from "./sky";
 import { Stockpile } from "./stockpile";
 import { Target, type TargetKind } from "./target";
-import { clamp, reducedMotion } from "./util";
+import { glowTexture, puffTexture } from "./textures";
+import { clamp, easeInOutSine, lerp, lerpColor, reducedMotion } from "./util";
 import { yard } from "./yards";
 
 /** Design space: a 16:9 stage, the ground line a little below centre. */
@@ -220,6 +241,38 @@ export class Scene {
     quiet: () => !this.flotsam.hint.hidden || !this.crates.hint.hidden,
   });
   private readonly house = new House(this.particles);
+  /** The Kettle on the back terrace (R4, D270); a tap opens the Big Red's card. */
+  private readonly kettle = new Kettle(this.particles, {
+    open: () => useBigRed.getState().openCard(),
+  });
+  /** The crater under the camp, deepening with every Wipe Day, and its sign (03 10.3). */
+  private readonly crater = new Crater();
+  /** The rowboat on blocks at the camp's edge: its own layer, so it outlives the blast. */
+  private readonly rowboat = new Rowboat();
+  private readonly shore = new Container();
+  /** The blast (03 7.2): the shockwave and the cloud's puffs in the world, the fireball on `lights`. */
+  private readonly blast = new Container();
+  private readonly shock = new Graphics();
+  private readonly puffs: Sprite[] = [];
+  private readonly fireballs: Sprite[] = [];
+  /** The sign's lettering in screen space (D46). */
+  private readonly signOverlay = new Container();
+  private readonly signLabel: BitmapText;
+  /** The island as it stood before the press, drawn until the impact. */
+  private filmBase: BaseState | null = null;
+  /** The film's beats sounded so far (per film), and the landing's steps played. */
+  private beats = new Set<string>();
+  private landingSteps = new Set<string>();
+  private smokeDue = 0;
+  /** The Kettle's state, read once a second; the yield's "+1"s merge for 2 s. */
+  private kettleSecond = -1;
+  private kettleMood = { crowned: false, pressable: false, rain: 0 };
+  private lastGain: number | null = null;
+  private yieldPending = 0;
+  private yieldAt = Number.NEGATIVE_INFINITY;
+  /** The crater's count as drawn this frame (a pinned film's event may raise it). */
+  private craterN = 0;
+  private kettlePatches = -1;
   private readonly lines: Lines;
   private readonly hands: Hands;
   /** The house's room (D206): the crafting lines and their hands, shown when it is open. */
@@ -330,21 +383,60 @@ export class Scene {
     this.house.container.zIndex = HOUSE.y;
     this.stockpile.place(PILE.x, PILE.y);
     this.crates.place(HOUSE.x - CRATES_LEFT * ART, HOUSE.y);
+    const kettleSpot = stageSpot(kettleSpotFor("twig"));
+    this.kettle.place(kettleSpot.x, GROUND + kettleSpot.y);
+    const boatSpot = stageSpot(rowboatSpotFor("twig"));
+    this.rowboat.place(boatSpot.x, GROUND + boatSpot.y);
+    this.shore.addChild(this.rowboat.container);
     this.props.addChild(
       this.house.container,
       this.target.container,
       this.stockpile.container,
       this.crates.container,
+      this.kettle.container,
     );
+    // The blast's pooled sprites (03 7.6): 28 puffs for the cloud, three glows for the fireball.
+    for (let i = 0; i < 28; i++) {
+      const puff = new Sprite(puffTexture(128));
+      puff.anchor.set(0.5);
+      puff.visible = false;
+      this.puffs.push(puff);
+    }
+    this.blast.addChild(this.shock, ...this.puffs);
+    this.blast.visible = false;
+    for (const color of FIREBALL) {
+      const ball = new Sprite(glowTexture());
+      ball.anchor.set(0.5);
+      ball.blendMode = "add";
+      ball.tint = color;
+      ball.visible = false;
+      this.fireballs.push(ball);
+    }
+    this.signLabel = new BitmapText({
+      text: "",
+      style: { fontFamily: "wipeday-floater", fontSize: 14 },
+    });
+    this.signLabel.anchor.set(0.5, 0.5);
+    this.signLabel.visible = false;
+    this.signOverlay.addChild(this.signLabel);
     this.world.addChild(
       this.sky.container,
       this.terrain.back,
       this.terrain.ground,
+      this.shore,
       this.props,
       this.particles.container,
+      this.blast,
       this.terrain.front,
     );
-    this.lights.addChild(this.house.lights, this.lines.lights, this.target.light);
+    this.lights.addChild(
+      this.house.lights,
+      this.lines.lights,
+      this.target.light,
+      this.kettle.light,
+      this.crater.light,
+      ...this.fireballs,
+    );
     this.button = document.createElement("button");
     this.button.type = "button";
     this.button.className = "target-hit";
@@ -364,6 +456,8 @@ export class Scene {
     });
     await Promise.all([loadProductIcons(), loadArt()]);
     this.terrain.build();
+    // The crater lies over the painted ground, under everything that stands.
+    this.terrain.ground.addChild(this.crater.container);
     this.propGlows = placeProps(this.props, this.lights, GROUND, yard.props);
     if (this.destroyed) {
       this.app.destroy(true, { children: true });
@@ -380,6 +474,7 @@ export class Scene {
     this.host.appendChild(this.gulls.hint);
     this.host.appendChild(this.houseButton);
     this.host.appendChild(this.houseHint);
+    this.host.appendChild(this.kettle.button);
     this.app.stage.addChild(
       this.world,
       this.ambient,
@@ -392,6 +487,7 @@ export class Scene {
       this.flotsam.overlay,
       this.gulls.overlay,
       this.target.overlay,
+      this.signOverlay,
       this.holdRing,
       this.floaters.container,
     );
@@ -405,11 +501,13 @@ export class Scene {
         const flotsam = this.flotsam.hitBox;
         const gull = this.gulls.hitBox;
         const crates = this.crates.hitBox;
+        const kettle = this.kettle.hitBox;
         return [
           { name: "target", ...this.box },
           ...(flotsam ? [{ name: "flotsam", ...flotsam }] : []),
           ...(gull ? [{ name: "gull", ...gull }] : []),
           ...(crates ? [{ name: "crates", ...crates }] : []),
+          ...(kettle ? [{ name: "kettle", ...kettle }] : []),
         ];
       },
       counts: () => ({ floaters: this.floaters.count, particles: this.particles.count }),
@@ -431,6 +529,7 @@ export class Scene {
     this.crates.hint.remove();
     this.gulls.button.remove();
     this.gulls.hint.remove();
+    this.kettle.button.remove();
     if (!this.ready) return;
     this.ready = false;
     window.removeEventListener("pointermove", this.onPointerMove);
@@ -621,7 +720,21 @@ export class Scene {
     store.tick();
     const base = store.base;
     const now = gameSeconds();
-    if (base) this.follow(base, store.patches, nowMs);
+    // The show (R4, D270): the film draws the island as it stood before the press until the
+    // impact (`filmBase`), the crater after it; the landing brings the fresh island back.
+    const show = useBigRed.getState();
+    if (base && show.film && this.filmBase === null) {
+      // The island before the press: the last base followed (a pinned film never pressed, so
+      // its patched base is the island).
+      this.filmBase = show.pinnedMs !== null ? base : (this.seen ?? base);
+      this.beats.clear();
+    }
+    const frame = base && show.film ? this.filmFrame(show, nowMs) : null;
+    const landing =
+      base && show.phase === "landing" && show.landingMs !== null ? nowMs - show.landingMs : null;
+    const busy = frame !== null || landing !== null;
+    const drawn = frame && !frame.crater ? (this.filmBase ?? base) : base;
+    if (base && drawn) this.follow(drawn, store.patches, nowMs, busy);
 
     const second = Math.floor(now);
     const fraction = islandHour(content, second) / 24;
@@ -638,7 +751,11 @@ export class Scene {
         ? clamp((now - (frenzy.until - frenzy.seconds)) / 0.5, 0, 1) *
           clamp((frenzy.until - now) / 1.5, 0, 1)
         : 0;
-    const palette = warm(gloom(paletteAt(fraction), rain * 0.85 + fog * 0.6), heat);
+    let palette = warm(gloom(paletteAt(fraction), rain * 0.85 + fog * 0.6), heat);
+    // Afterglow's green sky in the minutes after a landing (03 9.3), and the blast's tints.
+    const green = base && !frame ? this.afterglowAmount(base, now, nowMs) : 0;
+    if (green > 0) palette = afterglowSky(palette, green);
+    if (frame) palette = afterglowSky(blastTint(palette, frame.burnt, frame.ash), frame.green);
     const darkness = clamp(1 - palette.light, 0, 1);
     this.wind = 1 + Math.sin(this.time * 0.23) * 0.8 + rain * 1.5;
     this.parallax += (this.parallaxTarget - this.parallax) * Math.min(1, dt * 3);
@@ -654,14 +771,28 @@ export class Scene {
       ? (SHAKE[Math.floor(((nowMs - this.shakeAt) / SHAKE_MS) * SHAKE.length)] ?? [0, 0])
       : [0, 0];
     const unit = ART * this.scale;
-    this.world.position.set(
-      px(-left * this.scale - this.parallax * 6 + sx * unit),
-      px(-this.top * this.scale + sy * unit),
-    );
+    // The blast's shake and zoom punch (03 7.2) ride on top, about the screen's centre.
+    const punch = frame?.punch ?? 1;
+    const blastX = (frame?.shake.x ?? 0) * this.scale;
+    const blastY = (frame?.shake.y ?? 0) * this.scale;
+    const worldX = -left * this.scale - this.parallax * 6 + sx * unit + blastX;
+    const worldY = -this.top * this.scale + sy * unit + blastY;
+    if (punch !== 1) {
+      const cx = (this.viewW - this.insetRight) / 2;
+      const cy = this.viewH / 2;
+      this.world.position.set(
+        px(worldX * punch + cx * (1 - punch)),
+        px(worldY * punch + cy * (1 - punch)),
+      );
+      this.world.scale.set(this.scale * punch);
+    } else {
+      this.world.position.set(px(worldX), px(worldY));
+      this.world.scale.set(this.scale);
+    }
     this.floaters.setCamera(
       this.world.position.x,
       this.world.position.y,
-      this.scale,
+      this.world.scale.x,
       this.viewW - this.insetRight,
     );
     this.lights.position.copyFrom(this.world.position);
@@ -676,14 +807,18 @@ export class Scene {
     this.stockpile.update(dt);
     this.hands.update(dt);
     this.particles.update(dt, this.wind);
+    this.weather.setAsh(frame ? frame.ashFall : green);
     this.weather.update(dt, this.wind, darkness);
     this.ambient.tint = palette.ambient;
-    if (base) {
+    if (base && drawn) {
       // While a Frenzy runs the lines' machinery turns faster, as their cycles do.
       const spin = frenzy?.until != null ? content.tap.frenzy.speed : 1;
-      this.lines.update(base, now, nowMs, dt * spin, darkness);
-      this.lines.syncLights();
-      this.lines.place(base, this.world.position.x, this.world.position.y, this.scale);
+      // The lines stop with the island: nothing floats up from a crater.
+      if (!frame?.crater) {
+        this.lines.update(drawn, now, nowMs, dt * spin, darkness);
+        this.lines.syncLights();
+        this.lines.place(drawn, this.world.position.x, this.world.position.y, this.world.scale.x);
+      }
       this.drawHustle(base, now);
       if (frenzy) this.drawFrenzy(base, frenzy, now, nowMs);
       this.flotsam.update(base, now, nowMs, dt, this.camera(), Math.max(darkness, fog), jump > 5);
@@ -696,16 +831,382 @@ export class Scene {
         Math.max(darkness, fog),
         jump > 5,
       );
-      this.updateRoom(base, now, nowMs, dt);
-      this.crates.update(base, nowMs, this.camera(), this.viewW - this.insetRight, this.roomOpen);
+      this.updateRoom(base, now, nowMs, dt, busy);
+      this.crates.update(
+        base,
+        nowMs,
+        this.camera(),
+        this.viewW - this.insetRight,
+        this.roomOpen || busy,
+      );
+      this.kettleTick(base, now, nowMs, rain, busy);
+      // The crater remembers (03 10.3): every counted Wipe Day so far; the film deepens it at
+      // the impact, so until then it shows the count before the press.
+      // A pinned film (a shot) never pressed: its event's count stands in for the state's.
+      const pinned = show.pinnedMs !== null ? (show.film?.event.wipeDay ?? 0) : 0;
+      const n = frame
+        ? frame.crater
+          ? Math.max(base.meta.wipeDays, pinned)
+          : (this.filmBase?.meta.wipeDays ?? 0)
+        : base.meta.wipeDays;
+      this.craterN = n;
+      this.crater.set(n, signStyle(content, n), TARGET.x, GROUND);
+      if (!frame) this.crater.setDrop(1);
     }
+    if (frame && base) this.drawFilm(show, frame, dt);
+    else this.clearFilm();
+    if (landing !== null && base) this.drawLanding(landing, base);
+    this.crater.update(dt, darkness);
+    this.placeSignLabel(base);
+    this.kettle.update(dt, darkness, this.kettleMood, this.camera(), this.roomOpen || busy);
     this.placeButton();
+    this.button.style.visibility = busy || this.roomOpen ? "hidden" : "";
     this.drawHoldRing(nowMs);
     this.floaters.update(nowMs);
   }
 
-  /** Follows the run: era (target and house), hands, wear, milestones. */
-  private follow(base: BaseState, patches: number, nowMs: number): void {
+  // --- the show (R4, D270) ---------------------------------------------------------------------
+
+  /** The world's rectangle on screen (world units), for the film's geometry. */
+  private viewRect(): { left: number; right: number; top: number; bottom: number } {
+    const visibleW = (this.viewW - this.insetRight) / this.scale;
+    const left = this.centerX - visibleW / 2;
+    return {
+      left,
+      right: left + visibleW,
+      top: this.top,
+      bottom: this.top + this.viewH / this.scale,
+    };
+  }
+
+  /** The film's frame now (pinned films hold still). */
+  private filmFrame(show: ReturnType<typeof useBigRed.getState>, nowMs: number): Frame | null {
+    const film = show.film;
+    if (!film) return null;
+    const ms = filmMs(film, show.pinnedMs, nowMs);
+    return frameAt(
+      film.variant,
+      film.seed,
+      ms,
+      { pad: this.kettle.pad, base: { x: TARGET.x, y: GROUND }, view: this.viewRect() },
+      { reduced: film.reduced, wipeDay: film.event.wipeDay !== null },
+    );
+  }
+
+  /**
+   * How green the sky is (03 9.3): `1 − t / 600`, eased, `t` in real seconds since the landing
+   * on this page, or since the run began after a reload. Nothing before the first nuke.
+   */
+  private afterglowAmount(base: BaseState, now: number, nowMs: number): number {
+    if (base.meta.nukes === 0) return 0;
+    const since =
+      sinceLanding(useBigRed.getState(), nowMs) ?? Math.max(0, now - base.run.createdAt);
+    return easeInOutSine(clamp(1 - since / 600, 0, 1));
+  }
+
+  /** Where the crew scramble to: a spot in the rowboat for each hand. */
+  private boatPost(index: number): Post {
+    const spot = this.rowboat.spot;
+    const x = spot.x + ((index % 4) - 1.5) * 3 * ART;
+    return { x, y: spot.y - 2 * ART - Math.floor(index / 4) * ART, scale: 1, faceX: spot.x - 100 };
+  }
+
+  /** A film beat, once per film: the bus hears it (the sound), the scene remembers it. */
+  private beat(id: string, due: boolean, event: GameEvent): void {
+    if (!due || this.beats.has(id)) return;
+    this.beats.add(id);
+    emit(event);
+  }
+
+  /** Draws the film's frame (03 7.2): the flight, the flash, the fireball, the cloud, the crater. */
+  private drawFilm(show: ReturnType<typeof useBigRed.getState>, frame: Frame, dt: number): void {
+    const B = { x: TARGET.x, y: GROUND };
+    const pad = this.kettle.pad;
+    const reduced = show.film?.reduced === true;
+    // Beats on the wall clock; a pinned frame plays none.
+    if (show.pinnedMs === null && !reduced) {
+      if (frame.phase === "scramble" && frame.ms >= 300)
+        this.beat("scramble", true, { type: "ui", action: "switch" });
+      this.beat("liftoff", frame.ms >= 1400, { type: "cine_liftoff" });
+      this.beat("whistle", frame.phase === "whistle" || frame.crater, { type: "cine_whistle" });
+      this.beat("boom", frame.crater, { type: "cine_boom" });
+      this.beat("sign", frame.sign > 0, { type: "cine_sign" });
+    } else if (show.pinnedMs === null && reduced) {
+      this.beat("boom", frame.crater, { type: "cine_boom" });
+    }
+    // The crew: at the scramble every hand walks to the boat, which rocks while they row.
+    if (frame.crew !== "look" && !this.beats.has("crew")) {
+      this.beats.add("crew");
+      this.hands.scramble((i) => this.boatPost(i));
+    }
+    const spot = this.rowboat.spot;
+    if (frame.crew === "rowing" || frame.crater)
+      this.rowboat.setMotion(spot.x, spot.y, Math.sin(frame.ms / 110) * 0.04);
+    // The Kettle: shudders on its pad, then flies; the exhaust glows under its feet.
+    if (frame.kettle.visible) {
+      const k = frame.kettle;
+      this.kettle.setVisible(true);
+      // Over the crater (reduced motion) it must outlive the props layer: it rides the blast's.
+      if (frame.crater && this.kettle.container.parent !== this.blast)
+        this.blast.addChild(this.kettle.container);
+      if (frame.ms < 1400 && !reduced) this.kettle.setFlight(pad.x + frame.shudder, pad.y, 0);
+      else this.kettle.setFlight(k.x, k.y, k.rotation);
+      this.kettle.container.alpha = k.alpha;
+      this.kettle.setExhaust(
+        frame.exhaust,
+        frame.ms < 1400 ? pad.x : k.x,
+        (frame.ms < 1400 ? pad.y : k.y) + 2 * ART,
+      );
+      if (frame.cough) this.particles.spawn("smoke", pad.x, pad.y - 2 * ART, 3, 0x9a9a9a);
+      if (frame.smoke && !reducedMotion()) {
+        this.smokeDue += dt;
+        while (this.smokeDue >= 0.04) {
+          this.smokeDue -= 0.04;
+          this.particles.spawn("smoke", k.x, k.y, 1, 0xd8d2c8);
+        }
+      }
+    } else this.kettle.setVisible(false);
+    // The island becomes the crater under full white (03 7.2): everything that stood is gone.
+    if (frame.crater) {
+      if (this.props.visible) this.floaters.clear();
+      this.props.visible = false;
+      this.lines.overlay.visible = false;
+      // Under reduced motion the Kettle hangs mid-air over the crater while it cross-fades.
+      if (!frame.kettle.visible) this.kettle.setVisible(false);
+      this.crater.setDrop(frame.sign);
+    }
+    document.documentElement.style.setProperty("--flash", frame.flash.toFixed(3));
+    // The fireball: three additive glows on `lights`; the cloud's underside glow after it.
+    for (const [i, ball] of this.fireballs.entries()) {
+      const fire = frame.fireball;
+      const glow = frame.cloud?.glow ?? 0;
+      if (fire && fire.alpha > 0.01) {
+        const r = fire.r * (1 - i * 0.28);
+        ball.visible = true;
+        ball.position.set(B.x, B.y - r * 0.2);
+        ball.width = r * 2;
+        ball.height = r * 2;
+        ball.alpha = fire.alpha * (1 - i * 0.1);
+      } else if (i === 2 && glow > 0 && frame.cloud) {
+        ball.visible = true;
+        ball.position.set(B.x, B.y - 60);
+        ball.width = 320;
+        ball.height = 200;
+        ball.alpha = glow * 0.5;
+      } else ball.visible = false;
+    }
+    this.shock.clear();
+    if (frame.shock && frame.shock.alpha > 0.01)
+      this.shock
+        .circle(B.x, B.y, frame.shock.r)
+        .stroke({ width: 6, color: 0xfff3d0, alpha: frame.shock.alpha });
+    if (frame.dust > 0 && !reducedMotion())
+      this.particles.spawn("dust", B.x + (Math.random() - 0.5) * 500, B.y, frame.dust, 0xb9a98a);
+    // The cloud's puffs, white to hot to cold.
+    this.blast.visible = true;
+    const puffs = frame.cloud ? [...frame.cloud.stem, ...frame.cloud.cap] : [];
+    for (const [i, sprite] of this.puffs.entries()) {
+      const puff = puffs[i];
+      if (!puff || puff.alpha <= 0.01) {
+        sprite.visible = false;
+        continue;
+      }
+      sprite.visible = true;
+      sprite.position.set(puff.x, puff.y);
+      sprite.width = puff.r * 2;
+      sprite.height = puff.r * 2;
+      sprite.alpha = puff.alpha;
+      sprite.tint =
+        puff.heat < 1
+          ? lerpColor(0xffffff, CLOUD_HOT, puff.heat)
+          : lerpColor(CLOUD_HOT, CLOUD_COLD, puff.heat - 1);
+    }
+    if (frame.done && show.pinnedMs === null) useBigRed.getState().filmEnded();
+  }
+
+  /** No film: the blast's layers rest, the Kettle is back on its pad. */
+  private clearFilm(): void {
+    if (this.filmBase === null) return;
+    this.filmBase = null;
+    this.beats.clear();
+    this.smokeDue = 0;
+    this.blast.visible = false;
+    for (const puff of this.puffs) puff.visible = false;
+    for (const ball of this.fireballs) ball.visible = false;
+    this.shock.clear();
+    document.documentElement.style.setProperty("--flash", "0");
+    this.kettle.endFlight();
+    this.kettle.container.alpha = 1;
+    if (this.kettle.container.parent !== this.props) this.props.addChild(this.kettle.container);
+    this.kettle.resetLights();
+    this.rowboat.endMotion();
+  }
+
+  /**
+   * The landing (03 9.2): the rowboat paddles in across the dry ground, the sapling pokes out
+   * of the crater, the lean-to pops up, the kept hands walk to their lines. Reduced motion: all
+   * at once under a short cross-fade.
+   */
+  private drawLanding(ms: number, base: BaseState): void {
+    const reduced = reducedMotion();
+    const at = (step: string, from: number): boolean => {
+      if (this.landingSteps.has(step)) return false;
+      if (!reduced && ms < from) return false;
+      this.landingSteps.add(step);
+      return true;
+    };
+    const spot = this.rowboat.spot;
+    if (at("start", 0)) {
+      this.props.visible = true;
+      this.lines.overlay.visible = true;
+      this.target.container.visible = false;
+      this.house.container.visible = false;
+      this.stockpile.container.visible = false;
+      this.crates.container.visible = false;
+      this.kettle.setVisible(false);
+      this.hands.sync(new Map(), this.houseDoor(), false);
+      this.lastGain = null;
+    }
+    if (!reduced && ms < 1200) {
+      const view = this.viewRect();
+      const t = easeInOutSine(ms / 1200);
+      this.rowboat.setMotion(
+        lerp(view.left - 120, spot.x, t),
+        spot.y + Math.sin(ms / 90) * 2 * ART * (1 - t),
+        Math.sin(ms / 140) * 0.05 * (1 - t),
+      );
+    }
+    if (at("land", 1200)) {
+      this.rowboat.endMotion();
+      emit({ type: "landed" });
+    }
+    if (at("sapling", 1300)) {
+      this.target.container.visible = true;
+      this.target.popIn();
+      this.stockpile.container.visible = true;
+    }
+    if (at("house", 1700)) {
+      this.house.container.visible = true;
+      this.house.popIn();
+    }
+    if (at("hands", 2100)) {
+      const boat: Post = { x: spot.x, y: spot.y + 2, scale: 1, faceX: spot.x };
+      this.hands.sync(this.postsFor(base).posts, boat, !reduced);
+      this.crates.container.visible = true;
+      this.kettle.setVisible(true);
+    }
+    if (ms >= landingLength()) {
+      this.landingSteps.clear();
+      useBigRed.getState().landingEnded();
+    }
+  }
+
+  /** The "WIPE DAY #N" lettering over the sign's board (D46), short when the board is narrow. */
+  private placeSignLabel(base: BaseState | null): void {
+    const label = this.signLabel;
+    const n = this.craterN;
+    if (!base || !this.crater.shown || !this.crater.landed || this.roomOpen || n <= 0) {
+      label.visible = false;
+      return;
+    }
+    const anchor = this.crater.labelAnchor;
+    const scale = this.world.scale.x;
+    const width = this.crater.boardWidth * scale;
+    label.text = t(width < 70 ? "scene.sign_short" : "scene.sign", { n });
+    label.style.fontSize = Math.round(clamp(width * 0.14, 8, 15));
+    label.position.set(
+      Math.round(this.world.position.x + anchor.x * scale),
+      Math.round(this.world.position.y + anchor.y * scale),
+    );
+    label.visible = anchor.y < GROUND + 10;
+  }
+
+  /** The house's door as a post, for hands walking out. */
+  private houseDoor(): Post {
+    return { x: HOUSE.x, y: HOUSE.y + 2, scale: HOUSE.scale, faceX: HOUSE.x };
+  }
+
+  /**
+   * The Kettle once a second (03 3.2): its stage from the domain, the drum's mood from the
+   * advisor's crown, and the yield's "+1" floater when the gain's integer rises (merged, at
+   * most one every 2 s). Quiet while the film or the landing runs.
+   */
+  private kettleTick(
+    base: BaseState,
+    now: number,
+    nowMs: number,
+    rain: number,
+    quiet: boolean,
+  ): void {
+    const second = Math.floor(now);
+    const view = useAdvisor.getState().view;
+    const crowned = view?.pick.kind === "nuke";
+    // A demo patch rewrote the run: nothing it put there rises as a "+1" (as `follow` does).
+    const patches = useWorld.getState().patches;
+    if (patches !== this.kettlePatches) {
+      this.kettlePatches = patches;
+      this.lastGain = null;
+      this.yieldPending = 0;
+    }
+    if (second !== this.kettleSecond) {
+      this.kettleSecond = second;
+      const stage = kettleStage(content, base, second, crowned);
+      const y = glassYield(content, base, second);
+      const first = this.lastGain === null;
+      const changed = this.kettle.setStage(stage, !first && !quiet);
+      if (changed && stage !== "hidden" && !first && !quiet) emit({ type: "kettle_stage", stage });
+      this.kettleMood = { crowned, pressable: y.pressable, rain };
+      if (
+        !first &&
+        !quiet &&
+        stage !== "hidden" &&
+        this.lastGain !== null &&
+        y.gain > this.lastGain
+      )
+        this.yieldPending += y.gain - this.lastGain;
+      this.lastGain = y.gain;
+    }
+    if (this.yieldPending > 0 && nowMs - this.yieldAt >= 2000 && !quiet && this.kettle.shown) {
+      const pad = this.kettle.pad;
+      this.floaters.add("event", pad.x, pad.y - 44 * ART, `+${this.yieldPending}`, nowMs, {
+        size: this.floatSize(0.7),
+        color: GLASS,
+        icon: "glass",
+        iconColor: GLASS,
+        holdMs: 900,
+      });
+      emit({ type: "yield_rose", gain: this.yieldPending });
+      this.yieldPending = 0;
+      this.yieldAt = nowMs;
+    }
+  }
+
+  /**
+   * The hands' posts: one per manned line, at their line's work point; the crafting lines'
+   * hands work inside the house, in its room.
+   */
+  private postsFor(base: BaseState): {
+    posts: Map<string, { hand: string; post: Post }>;
+    inside: Map<string, { hand: string; post: Post }>;
+  } {
+    const posts = new Map<string, { hand: string; post: Post }>();
+    const inside = new Map<string, { hand: string; post: Post }>();
+    for (const id of base.run.hands) {
+      const line = lineOf(content, id);
+      const indoors = INSIDE.has(id);
+      const point = (indoors ? this.roomLines : this.lines).workPoint(id);
+      const spot = indoors ? ROOM_LAYOUT[id] : this.lines.spotOf(id);
+      if (line && point && spot)
+        (indoors ? inside : posts).set(id, { hand: line.hand, post: { ...point, faceX: spot.x } });
+    }
+    return { posts, inside };
+  }
+
+  /**
+   * Follows the run: era (target and house), hands, wear, milestones. While the show runs
+   * (`busy`: the film or the landing) the hands are the show's and nothing is celebrated.
+   */
+  private follow(base: BaseState, patches: number, nowMs: number, busy = false): void {
     const previous = this.seen;
     const fresh =
       !previous || previous.run.n !== base.run.n || previous.run.createdAt !== base.run.createdAt;
@@ -727,6 +1228,10 @@ export class Scene {
         this.house.container.position.set(HOUSE.x, HOUSE.y);
         this.crates.place(HOUSE.x - CRATES_LEFT * ART, HOUSE.y);
         this.stockpile.place(stageSpot(stockpileSpotFor(era)).x, PILE.y);
+        const kettleSpot = stageSpot(kettleSpotFor(era));
+        this.kettle.place(kettleSpot.x, GROUND + kettleSpot.y);
+        const boatSpot = stageSpot(rowboatSpotFor(era));
+        this.rowboat.place(boatSpot.x, GROUND + boatSpot.y);
       }
       this.button.setAttribute(
         "aria-label",
@@ -735,25 +1240,22 @@ export class Scene {
     }
     const fell = content.targets.find((target) => target.era === era)?.fellTaps ?? 40;
     this.target.setProgress(base.run.target.taps / fell);
+    // Afterglow starts with the run's first tap after a nuke (03 10.1): the pill starts counting.
+    if (
+      previous &&
+      !fresh &&
+      previous.run.afterglowFrom === null &&
+      base.run.afterglowFrom !== null &&
+      base.meta.nukes > 0
+    )
+      emit({ type: "afterglow_started" });
 
-    // Hands: one per manned line, at their line's work point; the crafting lines' hands work
-    // inside the house, in its room.
-    const posts = new Map<string, { hand: string; post: Post }>();
-    const inside = new Map<string, { hand: string; post: Post }>();
-    for (const id of base.run.hands) {
-      const line = lineOf(content, id);
-      const indoors = INSIDE.has(id);
-      const point = (indoors ? this.roomLines : this.lines).workPoint(id);
-      const spot = indoors ? ROOM_LAYOUT[id] : this.lines.spotOf(id);
-      if (line && point && spot)
-        (indoors ? inside : posts).set(id, { hand: line.hand, post: { ...point, faceX: spot.x } });
-    }
-    const door = { x: HOUSE.x, y: HOUSE.y + 2, scale: HOUSE.scale, faceX: HOUSE.x };
+    const { posts, inside } = this.postsFor(base);
+    const door = this.houseDoor();
     const roomDoor = { x: ROOM.door * ART, y: ROOM.floor * ART + 2, scale: 1, faceX: 0 };
-    const walking = [
-      ...this.hands.sync(posts, door, !fresh),
-      ...this.roomHands.sync(inside, roomDoor, !fresh),
-    ];
+    const walking = busy
+      ? []
+      : [...this.hands.sync(posts, door, !fresh), ...this.roomHands.sync(inside, roomDoor, !fresh)];
     // A hire is one hand at a time; several at once are a load or a demo patch (D161).
     for (const id of walking.length === 1 ? walking : []) {
       const line = lineOf(content, id);
@@ -774,7 +1276,7 @@ export class Scene {
     // A demo patch rewrites the run: nothing it put there is celebrated.
     const patched = patches !== this.patches;
     this.patches = patches;
-    if (!fresh && !patched && previous) {
+    if (!fresh && !patched && previous && !busy) {
       // Milestones crossed by purchases since the last frame; two at most at once.
       let shown = 0;
       for (const line of [...content.lines].reverse()) {
@@ -848,7 +1350,7 @@ export class Scene {
    * island at the island's zoom, its floor on the island's ground line; the target, flotsam and
    * the island's badges step back until it closes.
    */
-  private updateRoom(base: BaseState, now: number, nowMs: number, dt: number): void {
+  private updateRoom(base: BaseState, now: number, nowMs: number, dt: number, busy = false): void {
     const opens = this.houseOpens(base);
     const open = opens && useUi.getState().house;
     if (!opens && useUi.getState().house) useUi.setState({ house: false });
@@ -856,15 +1358,18 @@ export class Scene {
     this.room.setTier(base.run.era);
     this.room.container.visible = open;
     this.dim.visible = open;
-    this.lines.overlay.visible = !open;
+    // The show (R4) hides the island's buttons and badges too: the film has no HUD.
+    const hide = open || busy;
+    this.lines.overlay.visible = !hide;
     this.roomLines.overlay.visible = open;
-    this.target.overlay.visible = !open;
-    this.flotsam.overlay.visible = !open;
-    this.gulls.overlay.visible = !open;
-    this.button.style.visibility = open ? "hidden" : "";
-    this.flotsam.button.style.visibility = open ? "hidden" : "";
-    this.gulls.button.style.visibility = open ? "hidden" : "";
-    this.gulls.hint.style.visibility = open ? "hidden" : "";
+    this.target.overlay.visible = !hide;
+    this.flotsam.overlay.visible = !hide;
+    this.gulls.overlay.visible = !hide;
+    this.button.style.visibility = hide ? "hidden" : "";
+    this.flotsam.button.style.visibility = hide ? "hidden" : "";
+    this.gulls.button.style.visibility = hide ? "hidden" : "";
+    this.gulls.hint.style.visibility = hide ? "hidden" : "";
+    this.flotsam.hint.style.visibility = hide ? "hidden" : "";
     const res = this.app.renderer.resolution;
     const px = (value: number) => Math.round(value * res) / res;
     const size = this.room.size(this.scale);
@@ -878,7 +1383,7 @@ export class Scene {
     this.roomLines.syncLights();
     this.roomLines.place(base, x, y, this.scale);
     this.roomHands.update(dt);
-    this.placeHouse(base, opens && !open);
+    this.placeHouse(base, opens && !hide);
   }
 
   /** The house button over the house's drawing, and its one-line hint until opened twice. */
@@ -1235,8 +1740,20 @@ export class Scene {
         const from = this.target.chipPoint(at.y);
         this.stockpile.chip(from.x, from.y, Math.min(event.count, FELL_CHIPS));
         const point = this.target.floatPoint;
+        // Under Afterglow (03 10.1) taps shed green sparks and their numbers are tinted.
+        const base = useWorld.getState().base;
+        const glowing = base ? afterglowAt(content, base, Math.floor(gameSeconds())) > 1.02 : false;
+        if (glowing) this.particles.spawn("sparks", at.x, at.y - 10, 5, GLASS);
         if (event.gain > 0)
-          this.floaters.tap(point.x, point.y, event.gain, nowMs, this.floatSize(), SUPPLIES_ICON);
+          this.floaters.tap(
+            point.x,
+            point.y,
+            event.gain,
+            nowMs,
+            this.floatSize(),
+            SUPPLIES_ICON,
+            glowing ? 0xc8f0a0 : undefined,
+          );
         break;
       }
       case "felled": {

@@ -17,6 +17,9 @@ const urls = import.meta.glob<string>(
     "../../../../packages/content/art/scene/bust/*.png",
     "../../../../packages/content/art/scene/gear/*.png",
     "../../../../packages/content/art/scene/prop/drop_*.png",
+    // R4 (D270): the Kettle's stages on the Big Red's card, the rowboat on the postcard.
+    "../../../../packages/content/art/scene/prop/kettle_*.png",
+    "../../../../packages/content/art/scene/prop/rowboat.png",
   ],
   { query: "?url", import: "default", eager: true },
 );

@@ -17,6 +17,8 @@ export const TEMPLATE_VALUES: Record<string, readonly string[]> = {
   kind: content.flotsam.kinds.map((kind) => kind.id),
   action: UI_ACTIONS,
   rarity: RARITIES,
+  // The Kettle's shown stages (R4): `kettle_{stage}`.
+  stage: ["pad", "frame", "warhead", "fuel"],
 };
 
 function load(): Sounds {

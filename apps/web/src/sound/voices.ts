@@ -321,6 +321,175 @@ const badge: Play = (voice) => {
   return 0.8;
 };
 
+// --- R4, the Big Red (D270; 03-the-big-red.md 6-9; 08-screens.md 5.2) ----------------------
+
+/** A detuned pair of saws gliding `from` → `to` Hz over `length` s, with a crank wobble. */
+function saws(
+  voice: Voice,
+  from: number,
+  to: number,
+  length: number,
+  peak: number,
+  attack: number,
+): void {
+  const { ctx, out, at } = voice;
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(600, at);
+  filter.frequency.exponentialRampToValueAtTime(2400, at + length);
+  filter.connect(out);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(peak, at + attack);
+  gain.gain.setValueAtTime(peak, at + length - 0.05);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + length);
+  gain.connect(filter);
+  // The crank's wobble: a slow LFO on the pitch.
+  const lfo = ctx.createOscillator();
+  lfo.frequency.value = 6;
+  const depth = ctx.createGain();
+  depth.gain.value = 8;
+  lfo.connect(depth);
+  for (const cents of [-7, 7]) {
+    const osc = ctx.createOscillator();
+    osc.type = "sawtooth";
+    osc.detune.value = cents;
+    osc.frequency.setValueAtTime(from, at);
+    osc.frequency.exponentialRampToValueAtTime(to, at + length);
+    depth.connect(osc.frequency);
+    osc.connect(gain);
+    osc.start(at);
+    osc.stop(at + length + 0.05);
+  }
+  lfo.start(at);
+  lfo.stop(at + length + 0.05);
+}
+
+/** The siren rising over the 2 s hold: two saws 180 → 760 Hz. */
+const sirenRise: Play = (voice) => {
+  saws(voice, 180, 760, 2.0, 0.16, 0.15);
+  return 2.05;
+};
+
+/** Let go early: the siren winds down over 500 ms. */
+const sirenDown: Play = (voice) => {
+  saws(voice, 520, 160, 0.5, 0.12, 0.02);
+  return 0.55;
+};
+
+/** The launch: the siren's clunk, a 70 Hz thump and a short metal clank. */
+const launch: Play = (voice) => {
+  const { at } = voice;
+  tone(voice, "sine", 90, 50, at, 0.25, 0.5);
+  noiseBurst(voice, at, 0.12, 0.35, (filter) => {
+    filter.type = "bandpass";
+    filter.frequency.value = 1800;
+    filter.Q.value = 1.2;
+  });
+  return 0.3;
+};
+
+/** Liftoff: a roar of noise, its lowpass opening 200 Hz → 1.5 kHz over 1.8 s. */
+const liftoff: Play = (voice) => {
+  const { ctx, out, noise, at } = voice;
+  const source = ctx.createBufferSource();
+  source.buffer = noise;
+  source.loop = true;
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(200, at);
+  filter.frequency.exponentialRampToValueAtTime(1500, at + 1.2);
+  filter.frequency.exponentialRampToValueAtTime(400, at + 2.4);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(0.5, at + 0.25);
+  gain.gain.setValueAtTime(0.5, at + 1.4);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + 2.4);
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(out);
+  source.start(at);
+  source.stop(at + 2.45);
+  return 2.45;
+};
+
+/** The whistle home: a sine 1.8 kHz → 500 Hz over 700 ms. */
+const whistle: Play = (voice) => {
+  tone(voice, "sine", 1800, 500, voice.at, 0.7, 0.12);
+  return 0.72;
+};
+
+/** The boom: low-passed noise over 1.8 s plus a 48 Hz sine over 1.2 s. */
+const boom: Play = (voice) => {
+  const { ctx, out, noise, at } = voice;
+  const source = ctx.createBufferSource();
+  source.buffer = noise;
+  source.loop = true;
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(900, at);
+  filter.frequency.exponentialRampToValueAtTime(120, at + 1.8);
+  const gain = envelope(ctx, at, 0.9, 0.01, 1.8);
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(out);
+  source.start(at);
+  source.stop(at + 1.85);
+  tone(voice, "sine", 48, 40, at, 1.2, 0.6);
+  return 1.9;
+};
+
+/** The postcard lands: a 50 ms paper flick and a two-note rise. */
+const postcard: Play = (voice) => {
+  const { at } = voice;
+  noiseBurst(voice, at, 0.05, 0.25, (filter) => {
+    filter.type = "highpass";
+    filter.frequency.value = 3000;
+  });
+  tone(voice, "triangle", 784, 784, at + 0.04, 0.12, 0.1);
+  tone(voice, "triangle", 1047, 1047, at + 0.14, 0.2, 0.1);
+  return 0.4;
+};
+
+/** The rowboat lands: two soft oar knocks and a splash of dust. */
+const landing: Play = (voice) => {
+  const { at } = voice;
+  for (const start of [0, 0.16]) tone(voice, "sine", 320, 220, at + start, 0.1, 0.18);
+  noiseBurst(voice, at + 0.3, 0.2, 0.2, (filter) => {
+    filter.type = "bandpass";
+    filter.frequency.value = 1200;
+    filter.Q.value = 0.7;
+  });
+  return 0.55;
+};
+
+/** Steam: a hiss of highpassed noise swelling for a second. */
+const steam: Play = (voice) => {
+  const { ctx, out, noise, at } = voice;
+  const source = ctx.createBufferSource();
+  source.buffer = noise;
+  const filter = ctx.createBiquadFilter();
+  filter.type = "highpass";
+  filter.frequency.value = 2500;
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(0.22, at + 0.3);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + 1.1);
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(out);
+  source.start(at, 0.2);
+  source.stop(at + 1.15);
+  return 1.15;
+};
+
+/** Glass: two sines, 2,093 and 3,136 Hz, decaying over half a second. */
+const glass: Play = (voice) => {
+  tone(voice, "sine", 2093, 2093, voice.at, 0.5, 0.08);
+  tone(voice, "sine", 3136, 3136, voice.at + 0.01, 0.45, 0.05);
+  return 0.55;
+};
+
 export const VOICES = {
   tap,
   buy,
@@ -340,6 +509,16 @@ export const VOICES = {
   caw,
   gull_caught: gullCaught,
   badge,
+  siren_rise: sirenRise,
+  siren_down: sirenDown,
+  launch,
+  liftoff,
+  whistle,
+  boom,
+  postcard,
+  landing,
+  steam,
+  glass,
 } satisfies Record<string, Play>;
 
 export type VoiceId = keyof typeof VOICES;

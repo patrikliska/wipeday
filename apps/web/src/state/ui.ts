@@ -21,7 +21,10 @@ export type Sheet =
   | "scrap"
   | "reveal"
   | "survivor"
-  | "gear";
+  | "gear"
+  // R4 (D270): the Big Red's card (locked, the cover, the hold) and the postcard after a nuke.
+  | "big_red"
+  | "postcard";
 export type AlbumTab = "crew" | "gear" | "odds";
 export type Motion = "device" | "reduced" | "full";
 
@@ -42,6 +45,11 @@ export interface UiState {
   house: boolean;
   scientific: boolean;
   motion: Motion;
+  /**
+   * Accessibility (03-the-big-red.md 5.5): "Tap twice instead of holding" turns the Big Red's
+   * 2 s hold into "tap to arm, tap again within 3 s".
+   */
+  holdTwice: boolean;
   /** The hands the Crew sheet last showed, per run: the dock's Crew badge counts the rest. */
   crewSeen: { run: number; hands: number };
   /** The Workshop items open when its tab last showed, per run: the dock's badge counts the rest. */
@@ -69,6 +77,7 @@ interface UiActions {
   toggleBought(): void;
   setScientific(on: boolean): void;
   setMotion(motion: Motion): void;
+  setHoldTwice(on: boolean): void;
   /** The Crew sheet was shown with `hands` on shift in the run started at `run`. */
   seeCrew(run: number, hands: number): void;
   /**
@@ -168,6 +177,7 @@ export const useUi = create<UiState & UiActions>((set, get) => {
     house: false,
     scientific: read("wipeday.scientific") === "1",
     motion: storedMotion(),
+    holdTwice: read("wipeday.hold_twice") === "1",
     crewSeen: storedCrewSeen(),
     workshopSeen: storedWorkshopSeen(),
     badgesSeen: storedBadgesSeen(),
@@ -229,6 +239,10 @@ export const useUi = create<UiState & UiActions>((set, get) => {
     setMotion(motion) {
       write("wipeday.motion", motion);
       set({ motion });
+    },
+    setHoldTwice(on) {
+      write("wipeday.hold_twice", on ? "1" : "0");
+      set({ holdTwice: on });
     },
     seeCrew(run, hands) {
       const seen = get().crewSeen;

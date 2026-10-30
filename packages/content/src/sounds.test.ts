@@ -14,6 +14,8 @@ const values = {
   kind: content.flotsam.kinds.map((kind) => kind.id),
   action: ["open", "close", "switch"],
   rarity: [...RARITIES],
+  // The Kettle's shown stages (R4).
+  stage: ["pad", "frame", "warhead", "fuel"],
 };
 
 describe("sounds.json5", () => {

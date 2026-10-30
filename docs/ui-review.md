@@ -2062,3 +2062,58 @@ on its way; the Album's plate with a drop on its way; the Odds segment's gate ru
   comes from the sheet (the flyer lands on the dock's Album place, which is visible on desktop
   beside the sheet and under it on a phone); a surplus of Common and Rare shards piles up once
   the gear is complete (a sink is R6's).
+
+## R4 S2: the Kettle, the Big Red, the film, the postcard, the landing (2026-10-29/30)
+
+Shots (08-screens.md 8.3, 8.3d): `phone_kettle_pad`, `phone_kettle_frame`, `phone_kettle_card`,
+`phone_bigred_chip` (day, night, desktop), `phone_cover_first`, `phone_cover_small`,
+`phone_bigred_hold`, `cine_*` (every phase of the U-Turn, one mid-flight frame per variant, the
+fizzle, flash and cloud at night and in rain, desktop fireball and cloud, the reduced-motion
+midpoint), `phone_postcard_front` / `_back` / `desktop_postcard_back` / `_small`,
+`phone_rebuild_plain`, `phone_afterglow`, `desktop_afterglow`, `phone_crater_27`.
+
+### Iteration 1
+- **The chip's hazard frame painted over its own text:** the striped pseudo-element landed in
+  the button's stacking context above the face. It is a `border-image` now; the two lines read.
+- **The locked card said "that comes at 1.56B"** (the next whole glass) where run 1 must name the
+  first launch's threshold: it names 50.0B made in run 1 and the next glass later.
+- **The readout read "13/s/h now · peak 13/s/h":** the glass rate went through the per-second
+  formatter. A glass-an-hour formatter: one decimal under 10, the shared one above.
+- **The airdrop note printed `[[flotsam.[object Object].name]]`:** the arrival's kind is a
+  definition, not an id.
+- **The rocket flew nose-down:** the climb's control point sat above the apex, so the curve
+  arrived descending; the lean is now read from a step behind to a step ahead and the control
+  sits below the apex. **Under the flash it snapped back to its pad** for 80 ms: it holds its
+  last flight point until the white swallows it.
+- **The sign dropped off-screen:** stage units passed to an art-pixel helper (96 art px left).
+- **The cloud was a dust devil** (radii in units, not art px): three times the size, it reads as
+  a mushroom on both devices.
+- **"+4" glass floaters after a demo patch** (the yield's rise is gated on patches, as hires are)
+  and **line floaters rising from a crater** (the lines stop with the island).
+- **`phone_hold` already named the hold-to-work shot** and overwrote the Big Red's: it is
+  `phone_bigred_hold`. The harness's weather pick moves the shot's time by days: a run's
+  `createdAt` and `afterglowFrom` now move with it (the afterglow sky showed plain).
+- *Fine:* the Kettle's stages on the back terrace (desktop zoom 7 shows the crate face, the cone,
+  the gull, the firebox and the open-lidded drum); steam puffs; the cover card's gain, Glow,
+  unlocks, KEPT/LOST with the minus marks, the one-liner; the hold's ring and dome; the postcard
+  front (title, stamp, postmark, rowboat, dotted flight) and back; the green sky with ash and the
+  pill frozen at ×3; Skip only on a small blast or from Wipe Day #2.
+
+### Iteration 2
+- **The crater did not read:** rows drawn below the front edge vanished into the dark near ground.
+  It is an ellipse round the target's feet now (half on the walkable surface), dark earth stepping
+  in, the glass sheen on its near side, the rim along its far edge; at #27 the bowl is plain under
+  the outcrop. The sign stands on its left rim with the "#N" lettering once it has landed (the
+  lettering showed before the board dropped).
+- **Reduced motion lost the Kettle:** it hid with the props at the crater swap; it rides the blast
+  layer and hangs mid-air at half alpha over the still cloud, as 03 7.4 asks.
+- **The postcard's "WIPE DAY #1" overran its board:** a wider board and fitted lettering.
+- **"a new flight: Loop-the-Loop, a new flight: Sputter and Drop"** on NEXT: the agenda's flight
+  names are "the Loop-the-Loop flight".
+- Clean: no audit problems and no console errors on all 36 shots; one crowned thing per view
+  (the chip's crown mark on the island, Rebuild or Back to work on a card, nothing orange on the
+  cover).
+- *Left:* the chip above the phone's drawer covers the crater's left rim (the sign) and touches
+  the house hint; the generated stages carry their pad, so the pad flies with the rocket (a
+  separate pad sprite would stay); the hands scramble toward the rowboat but a 2 s walk is long
+  for the far lines; the scene's film has no camera ease-out (D270); the drum is procedural.

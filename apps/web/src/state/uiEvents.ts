@@ -22,6 +22,7 @@ const SWITCHES = [
   "bulk",
   "scientific",
   "motion",
+  "holdTwice",
 ] as const satisfies readonly (keyof UiState)[];
 
 export function startUiEvents(): () => void {

@@ -24,6 +24,8 @@
     active: {
       sessions: ["07:00+10m", "09:00+10m", "12:00+10m", "15:00+10m", "17:00+10m", "19:00+10m", "21:00+10m", "23:00+10m"],
       tapsPerSecond: 6,
+      // The quick profile plays the active a month (N9's day 60 is `--full`'s; R4 S2, D270).
+      quickDays: 30,
       catches: 1,
       nuke: "crown",
       spend: "boosts",

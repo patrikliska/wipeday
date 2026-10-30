@@ -6,7 +6,7 @@ should think, and what "done" means**. It was rewritten in R0 from the approved 
 (`docs/redesign/11-roadmap.md`, which keeps the reasons); the W-phase roadmap and its results are
 in `docs/archive/roadmap-w.md`.
 
-## Where we are (2026-10-28, R4 The Big Red S1 done)
+## Where we are (2026-10-30, R4 The Big Red S2 done)
 
 - **The live game is the redesign** since 2026-10-19 (D242): the owner had R2 Feel S7 (`redesign`
   at fdc5010) deployed to https://wipeday.patrikliska.dev, bringing the cut-over forward from R4.
@@ -119,9 +119,34 @@ in `docs/archive/roadmap-w.md`.
   crown's Big Red rules, night, rain and Afterglow in settle, the admin's grant and respec,
   `/api/status`, the simulator on the real nuke; N1-N3, N7, N11-N14 and 4.10 switched on
   (`shipped: "R4"`), the first balance round logged.
-- **Next: R4 S2, the show** (the Kettle in the scene, the Big Red chip, the cover card and the
-  hold, the cinematic, the postcard, the landing, Afterglow's pill, the crater and sign; the art
-  job for the Kettle's stages and the rowboat).
+- **R4 S2, the show, is done** (2026-10-30; D270; results below): the Kettle on the back terrace
+  with its four generated stages and the procedural drum, the Big Red chip and card (taped shut,
+  the cover, the 2 s hold with the siren and "tap twice"), the pure cinematic with four flights,
+  the postcard, the landing, Afterglow's pill with the green sky and ash, the crater and sign,
+  the sounds, 36 shots.
+- **Next: R4 S3, the map and the edges** (the Blast Map panel as a dock place, the welcome rule,
+  the bot's minimal card v2, the admin gift; the postcard's "Open the Blast Map" for Wipe Day #1).
+
+### R4 S2 results: the show
+- **Built:** `scene/kettle.ts` (stages from `kettleStage`, the drum's taped / open / rattling
+  lid, the firebox, beacon and pilot light on `lights`, steam, the gull, a 56 px button),
+  `scene/cinematic.ts` (pure `frameAt` for `u_turn`, `loop_the_loop`, `sputter_drop`, `fizzle`,
+  named phases, reduced motion's 2.5 s cross-fade), `scene/crater.ts` (the bowl and the sign in
+  four styles), `scene/rowboat.ts`, the Scene's film (flash, fireball, shockwave, pooled cloud,
+  shake, zoom punch, tints, the crater swap, the sign's drop) and landing (the rowboat in, the
+  sapling, the lean-to, the kept hands from the boat), `state/bigred.ts` (card, hold, film,
+  postcard, landing; the keyed press, resend, the other-tab note), `hud/BigRed.tsx` (chip and
+  card), `hud/Cinematic.tsx`, `hud/Postcard.tsx` + `postcardSvg.ts`, the Afterglow pill, the
+  "Tap twice" setting, `--glass` and `.btn.danger`, ten cues with procedural voices
+  (`siren_rise`, `siren_down`, `launch`, `liftoff`, `whistle`, `boom`, `postcard`, `landing`,
+  `steam`, `glass`), the `__wipeDay.bigRed` hook and 36 shots (`docs/ui-review.md`).
+- **Art:** `scripts/art/jobs/r4-kettle.json`, picks `scripts/art/picks/r4.json`: the pad (the pro
+  retake; the first pad's slab was knocked out as background), frame, warhead, fuel and the
+  rowboat (18 px, two 502s before it passed); 2.52 USD, balance about 11.2 USD.
+- **Decisions:** D270. **N-values:** unchanged from S1 (`pnpm sim check` passes with N11, N12
+  mid/late and N13 warning until R5); the quick profile's budget is held at 25 s (D270) for S4.
+- **Owner supplies:** playtest 2 (the first nuke end to end on a phone), the art picks to keep
+  or swap (`preview/art/r4-kettle-sheet.png`), later the R4 icons.
 
 ### R4 S1 results: domain, data, API, simulator
 - **Built:** content: `blastmap.json5` wave 1 generated from the approved catalog (`fair_winds`

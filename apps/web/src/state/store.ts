@@ -45,6 +45,7 @@ import {
   retryWait,
   sendable,
 } from "./taps";
+import { closeAll } from "./ui";
 import { content, t } from "./world";
 
 type Phase = "boot" | "login" | "offline" | "playing";
@@ -88,7 +89,14 @@ interface Actions {
   devLogin(slot: number): Promise<void>;
   /** `count` taps at the screen point `x, y`; returns the predicted gain. */
   tap(count: number, x: number, y: number): number;
-  send(command: Command): void;
+  /**
+   * Queues a command (predicted at once). `key` fixes its idempotency key (the Big Red mints
+   * one per hold, 03 7.7); `resent` marks a reload's resend: no prediction toasts, the answer's
+   * events played.
+   */
+  send(command: Command, options?: { key?: string; resent?: boolean }): void;
+  /** A sticky note with one button (another tab's Wipe Day: "See the postcard"). */
+  notice(text: string, label: string, run: () => void): void;
   /** Once a frame: closes a ripe taps tail, sends, pings, publishes the second. */
   tick(): void;
   /** The tab hid or showed: a hidden tab closes its tail at once. */
@@ -176,9 +184,17 @@ export const useWorld = create<Store>((set, get) => {
   };
 
   /** A refusal's one sentence; short of supplies, its button goes to the target (rule 6.3.5). */
-  const refuse = (refusal: Refusal): void => {
+  const refuse = (refusal: Refusal, command?: Command): void => {
     const base = get().base;
     const target = base ? targetOf(base) : null;
+    // A press on a run that already ended (another tab's, 03 7.7): its own line and a way back.
+    if (command?.type === "nuke" && refusal.reason === "stale_run") {
+      toast(t("big_red.not_through"), "warning", false, {
+        label: t("big_red.show_island"),
+        run: () => closeAll(),
+      });
+      return;
+    }
     const action =
       refusal.reason === "supplies" && target
         ? {
@@ -257,14 +273,19 @@ export const useWorld = create<Store>((set, get) => {
       queue: rest,
       base: rebase(confirmed, rest),
     });
-    if (!response.ok) {
+    if (entry.resent) {
+      // A reload's resend (03 7.7): nothing was predicted, so the answer's events play now (the
+      // `nuked` one shows the postcard); a refusal is quiet (the run moved on without it).
+      if (response.ok) for (const event of response.events) emit(event);
+    } else if (!response.ok) {
       if (
         entry.command.type === "claim_flotsam" ||
         entry.command.type === "claim_gull" ||
         entry.command.type === "claim_tide"
       )
         lostClaim(entry.command, response.refusal);
-      else refuse(response.refusal);
+      // The Big Red's refusal cuts the film with its own line (`bigred.ts` watches the queue).
+      else if (entry.command.type !== "nuke") refuse(response.refusal);
     }
     if (entry.key) sentKeys.set(entry.key, wall.nowMs());
   };
@@ -441,14 +462,26 @@ export const useWorld = create<Store>((set, get) => {
       return gain;
     },
 
-    send(command) {
+    send(command, options = {}) {
       const state = get();
       if (!state.confirmed) return;
       const now = nowSecond();
-      const queue = enqueue(state.queue, command, now, wall.nowMs());
+      let queue = enqueue(state.queue, command, now, wall.nowMs());
+      const last = queue.at(-1);
+      if (last && (options.key !== undefined || options.resent)) {
+        queue = [
+          ...queue.slice(0, -1),
+          { ...last, key: options.key ?? last.key, ...(options.resent ? { resent: true } : {}) },
+        ];
+      }
       const result = applyCommand(content, state.base ?? state.confirmed, command, now);
       set({ queue, base: rebase(state.confirmed, queue) });
       lastCommandAt = now;
+      if (options.resent) {
+        // Nothing to predict: the server's answer (or its replay) says what happened.
+        void flush();
+        return;
+      }
       if (result.ok) for (const event of result.events) emit(event);
       else if (
         command.type === "claim_flotsam" ||
@@ -457,10 +490,14 @@ export const useWorld = create<Store>((set, get) => {
       )
         lostClaim(command, result.refusal);
       else {
-        refuse(result.refusal);
+        refuse(result.refusal, command);
         emit({ type: "refused" });
       }
       void flush();
+    },
+
+    notice(text, label, run) {
+      toast(text, "neutral", true, { label, run });
     },
 
     tick() {

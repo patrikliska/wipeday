@@ -360,6 +360,11 @@ export type Pick =
 export interface CrownOptions {
   /** The welcome-back card is open: its one action is Collect, never the nuke (rule 6.3.10). */
   welcomeOpen?: boolean;
+  /**
+   * A timed buff runs on the real base: the web scores a `lasting` copy (buffs stripped, D200)
+   * and passes this, so the Big Red still waits for the Rally to end (03 2.2).
+   */
+  buffRunning?: boolean;
 }
 
 /** Lower score first; a tie goes to the cheaper purchase (02 11.1). */
@@ -396,7 +401,7 @@ export function crown(
   offered = choices(content, state, now, player.income, player.tapShare, player.tapRate),
   options: CrownOptions = {},
 ): Pick {
-  const buffRunning = state.run.buffs.some((buff) => buff.until > now);
+  const buffRunning = options.buffRunning ?? state.run.buffs.some((buff) => buff.until > now);
   if (!options.welcomeOpen && !buffRunning) {
     const rule = bigRedCrown(content, state, now);
     if (rule !== null) return { kind: "nuke", rule };

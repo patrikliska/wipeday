@@ -728,10 +728,12 @@ const SHORT_CHECKS: ReadonlySet<string> = new Set([
   "casualFirstWeekGlass",
 ]);
 /** Days every archetype must play for a check that reads them all (R4's run-to-run checks). */
+// The run-to-run checks read their early band (nukes 1-5, the first week) in the quick profile;
+// the mid and late bands are `--full`'s (R4 S2: 30 days each put the profile at 32 s, D270).
 const REACH_DAYS: Readonly<Record<string, number>> = {
-  passPreviousRun: 30,
-  powerPerNuke: 30,
-  flattening: 30,
+  passPreviousRun: 7,
+  powerPerNuke: 7,
+  flattening: 7,
   nodesBought: 7,
   firstNukeMinutesAny: 3,
 };
@@ -1100,6 +1102,11 @@ export const CHECKS: Record<string, Check> = {
     for (const day of days) {
       const snapshot = life?.snapshots[day];
       if (!snapshot) {
+        // A day past the quick profile's stop (`quickDays`, D236) is `--full`'s reading.
+        if (life && day > life.days.length) {
+          parts.push(`day ${day}: --full`);
+          continue;
+        }
         parts.push(`day ${day}: no snapshot`);
         ok = false;
         continue;

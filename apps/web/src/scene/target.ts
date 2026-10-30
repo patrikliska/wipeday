@@ -589,6 +589,11 @@ export class Target {
     this.pop = animate ? 0 : 1;
   }
 
+  /** The sapling pokes out of the crater (R4's landing, 03 9.2): the pop plays again. */
+  popIn(): void {
+    this.pop = 0;
+  }
+
   /** Taps so far toward the next fell, as a fraction: shown as 0-4 steps of wear. */
   setProgress(fraction: number): void {
     const level = clamp(Math.floor(fraction * 5), 0, 4);

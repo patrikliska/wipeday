@@ -304,6 +304,10 @@ describe("the crown (03 2.2, D255)", () => {
     expect(crown(content, state, T0, player, undefined, { welcomeOpen: true }).kind).not.toBe(
       "nuke",
     );
+    // The web scores a buff-stripped copy and says so (D270): the Big Red still waits.
+    expect(crown(content, state, T0, player, undefined, { buffRunning: true }).kind).not.toBe(
+      "nuke",
+    );
   });
 });
 

@@ -162,6 +162,19 @@ are what is kept.
 - Spend for S3: 5.76 the busts (with retakes), 8.46 the gear, 0.36 the crates: 13.86 USD.
   Balance after: about 13.73 USD.
 
+### What R4 S2 learned (2026-10-29)
+
+- **Tall props in the pro style with the barrel, the car and a crate as references** (28×40 and
+  28×48): the boiler on stilts, the crate-faced warhead and the fuelled rocket came out right on
+  both takes; the owner picks by number from `preview/art/r4-kettle-sheet.png`.
+- **A grey slab on a white background is background to the remover:** the pad's first takes
+  kept only three hazard dashes. "Dark charcoal concrete" with the stripes named passed.
+- **14 px is too small for a drum with a button and a lid** (two blobs): the Big Red's drum is
+  drawn in code. The rowboat at 18×12 needed three submissions (two 502s, reworded) and is
+  borderline at 16×10 installed.
+- Spend for R4 S2: 1.80 the batch, 0.36 the pad retake, 0.36 the rowboat: 2.52 USD. Balance
+  after: about 11.2 USD.
+
 ## 5. Animation
 
 Retro Diffusion animates an existing sprite: `rd_advanced_animation__idle` and `__walking` take

@@ -13,6 +13,7 @@ import { insets, useColumn } from "../state/layout";
 import { useWorld } from "../state/store";
 import { BULKS, type Bulk, reducedMotion, type Tab, useUi } from "../state/ui";
 import { content, t } from "../state/world";
+import { BigRedChip } from "./BigRed";
 import { Icon, ResourceIcon } from "./Icon";
 import { OrdersCard } from "./Orders";
 import { PixelArt } from "./PixelArt";
@@ -204,6 +205,8 @@ function Column({ view }: { view: AdvisorView }) {
 
   return (
     <aside ref={ref} className="column" aria-label={t("drawer.shop")}>
+      {/* The Big Red's chip at the top of the column (03 4.4), from the Kettle's pad on. */}
+      <BigRedChip />
       <div className="shop-bar">
         <Tabs view={view} />
       </div>
