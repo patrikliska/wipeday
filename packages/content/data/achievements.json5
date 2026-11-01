@@ -1,0 +1,89 @@
+// The Logbook's first pages: badges (12-feel.md 9.1; D198, D239). Each is earned once, after
+// the command that meets its `when` (never inside settle, never on a refusal), and raises
+// Morale by moralePer. Only what a player can reach in this phase is listed (D140): nothing for
+// Armored, crits, nukes, drops or the Blast Map yet. Names and how-to lines live in
+// `badge.{id}.name` and `.how`, the chapters in `logbook.chapter.{chapter}`. `when` kinds:
+//   { stat, gte }              a lifetime counter (meta.stats)
+//   { state, gte | eq, era? }  a predicate on the state after the command (`era`: the run's era
+//                              on the ladder, Twig 0, so a run past it earns it at once)
+//   { event, field: value, fieldLte | fieldGte, weather?, night? }  an event of the command
+//   { buffs: [kind, ...] }     buffs running at once
+{
+  moralePer: 0.01,
+  badges: [
+    // Eras
+    { id: "timber_era", chapter: "eras", icon: "tier/wood", when: { state: "era", gte: 1 } },
+    { id: "stone_era", chapter: "eras", icon: "tier/stone", when: { state: "era", gte: 2 } },
+    { id: "metal_era", chapter: "eras", icon: "tier/metal", when: { state: "era", gte: 3 } },
+    { id: "timber_sprint", chapter: "eras", icon: "tier/wood", when: { event: "era_reached", era: "wood", atLte: 60 } },
+    { id: "stone_sprint", chapter: "eras", icon: "tier/stone", when: { event: "era_reached", era: "stone", atLte: 600 } },
+    // Lines
+    { id: "first_line", chapter: "lines", icon: "line/beachcomber", when: { stat: "units", gte: 1 } },
+    { id: "ten_of_a_kind", chapter: "lines", icon: "line/beachcomber", when: { state: "line_max_owned", gte: 10 } },
+    { id: "roster_25", chapter: "lines", icon: "ui/roster", when: { state: "lines_min_owned", gte: 25 } },
+    { id: "bit_of_everything", chapter: "lines", icon: "ui/roster", when: { state: "lines_min_owned", gte: 100 } },
+    { id: "twig_hundreds", chapter: "lines", icon: "line/campfire", when: { state: "lines_min_owned", era: "twig", gte: 100 } },
+    { id: "timber_hundreds", chapter: "lines", icon: "line/loom", when: { state: "lines_min_owned", era: "wood", gte: 100 } },
+    { id: "stone_hundreds", chapter: "lines", icon: "line/furnace", when: { state: "lines_min_owned", era: "stone", gte: 100 } },
+    { id: "metal_hundreds", chapter: "lines", icon: "line/radio_mast", when: { state: "lines_min_owned", era: "metal", gte: 100 } },
+    { id: "bronze_pennant", chapter: "lines", icon: "ui/roster", when: { state: "line_max_owned", gte: 200 } },
+    { id: "silver_pennant", chapter: "lines", icon: "ui/roster", when: { state: "line_max_owned", gte: 300 } },
+    { id: "units_1k", chapter: "lines", icon: "ui/buy_max", when: { stat: "units", gte: 1000 } },
+    { id: "units_10k", chapter: "lines", icon: "ui/buy_max", when: { stat: "units", gte: 10000 } },
+    // Hands
+    { id: "first_hand", chapter: "hands", icon: "ui/hand", when: { stat: "hands", gte: 1 } },
+    { id: "twig_crew", chapter: "hands", icon: "crew/mara", when: { state: "hands_working", era: "twig", gte: 3 } },
+    { id: "timber_crew", chapter: "hands", icon: "crew/rook", when: { state: "hands_working", era: "wood", gte: 3 } },
+    { id: "stone_crew", chapter: "hands", icon: "crew/wren", when: { state: "hands_working", era: "stone", gte: 3 } },
+    { id: "metal_crew", chapter: "hands", icon: "crew/pike", when: { state: "hands_working", era: "metal", gte: 3 } },
+    { id: "six_on_shift", chapter: "hands", icon: "ui/hand", when: { state: "hands_working", gte: 6 } },
+    { id: "twelve_on_shift", chapter: "hands", icon: "ui/hand", when: { state: "hands_working", gte: 12 } },
+    // Taps
+    { id: "first_fell", chapter: "taps", icon: "target/tree", when: { stat: "felled", gte: 1 } },
+    { id: "felled_100", chapter: "taps", icon: "target/stone", when: { stat: "felled", gte: 100 } },
+    { id: "felled_1000", chapter: "taps", icon: "target/ore", when: { stat: "felled", gte: 1000 } },
+    { id: "sulfur_fell", chapter: "taps", icon: "target/sulfur", when: { event: "felled", target: "sulfur" } },
+    { id: "taps_1k", chapter: "taps", icon: "ui/finger", when: { stat: "taps", gte: 1000 } },
+    { id: "taps_10k", chapter: "taps", icon: "ui/finger", when: { stat: "taps", gte: 10000 } },
+    { id: "taps_100k", chapter: "taps", icon: "ui/finger", when: { stat: "taps", gte: 100000 } },
+    { id: "full_hustle", chapter: "taps", icon: "ui/hustle", when: { state: "hustle", gte: 100 } },
+    // Frenzy
+    { id: "first_frenzy", chapter: "frenzy", icon: "ui/frenzy", when: { stat: "frenzies", gte: 1 } },
+    { id: "frenzies_10", chapter: "frenzy", icon: "ui/frenzy", when: { stat: "frenzies", gte: 10 } },
+    { id: "frenzies_100", chapter: "frenzy", icon: "ui/frenzy", when: { stat: "frenzies", gte: 100 } },
+    { id: "frenzy_rally", chapter: "frenzy", icon: "flotsam/fuel_drum", when: { buffs: ["frenzy", "rally"] } },
+    { id: "frenzy_adrenaline", chapter: "frenzy", icon: "flotsam/adrenaline", when: { buffs: ["frenzy", "adrenaline"] } },
+    // Crows
+    { id: "first_gull", chapter: "gulls", icon: "ui/gull", when: { stat: "gulls", gte: 1 } },
+    { id: "gulls_25", chapter: "gulls", icon: "ui/gull", when: { stat: "gulls", gte: 25 } },
+    { id: "gulls_250", chapter: "gulls", icon: "ui/gull", when: { stat: "gulls", gte: 250 } },
+    { id: "first_magpie", chapter: "gulls", icon: "ui/gull", when: { event: "gull_caught", elite: true } },
+    { id: "night_crow", chapter: "gulls", icon: "ui/gull", when: { event: "gull_caught", night: true } },
+    // Airdrops
+    { id: "first_catch", chapter: "airdrops", icon: "flotsam/crate", when: { stat: "flotsam", gte: 1 } },
+    { id: "flotsam_25", chapter: "airdrops", icon: "flotsam/crate", when: { stat: "flotsam", gte: 25 } },
+    { id: "flotsam_100", chapter: "airdrops", icon: "flotsam/crate", when: { stat: "flotsam", gte: 100 } },
+    { id: "first_rally", chapter: "airdrops", icon: "flotsam/fuel_drum", when: { event: "flotsam_claimed", kind: "fuel_drum" } },
+    { id: "first_adrenaline", chapter: "airdrops", icon: "flotsam/adrenaline", when: { event: "flotsam_claimed", kind: "adrenaline" } },
+    { id: "rain_catch", chapter: "airdrops", icon: "flotsam/crate", when: { event: "flotsam_claimed", weather: "rain" } },
+    { id: "night_catch", chapter: "airdrops", icon: "flotsam/crate", when: { event: "flotsam_claimed", night: true } },
+    // Workshop
+    { id: "first_research", chapter: "workshop", icon: "nav/workshop", when: { stat: "research", gte: 1 } },
+    { id: "research_100", chapter: "workshop", icon: "nav/workshop", when: { stat: "research", gte: 100 } },
+    { id: "research_500", chapter: "workshop", icon: "nav/workshop", when: { stat: "research", gte: 500 } },
+    { id: "research_maxed", chapter: "workshop", icon: "ui/upgrade", when: { state: "research_maxed", gte: 1 } },
+    { id: "research_maxed_5", chapter: "workshop", icon: "ui/upgrade", when: { state: "research_maxed", gte: 5 } },
+    // Night Shift
+    { id: "first_collect", chapter: "night_shift", icon: "ui/night_shift", when: { stat: "collects", gte: 1 } },
+    { id: "collects_25", chapter: "night_shift", icon: "ui/night_shift", when: { stat: "collects", gte: 25 } },
+    { id: "slept_through", chapter: "night_shift", icon: "ui/night_shift", when: { event: "night_shift_collected", full: true } },
+    { id: "long_window", chapter: "night_shift", icon: "ui/night_shift", when: { state: "window_hours", gte: 4 } },
+    // Supplies
+    { id: "made_1m", chapter: "supplies", icon: "currency/supplies", when: { state: "made_ever", gte: 1e6 } },
+    { id: "made_1b", chapter: "supplies", icon: "currency/supplies", when: { state: "made_ever", gte: 1e9 } },
+    { id: "made_1t", chapter: "supplies", icon: "currency/supplies", when: { state: "made_ever", gte: 1e12 } },
+    { id: "lucky_sevens", chapter: "supplies", icon: "currency/supplies", when: { state: "supplies_digits", eq: 777 } },
+    { id: "not_found", chapter: "supplies", icon: "currency/supplies", when: { state: "supplies_digits", eq: 404 } },
+    { id: "elite_heap", chapter: "supplies", icon: "currency/supplies", when: { state: "supplies_digits", eq: 1337 } },
+  ],
+}

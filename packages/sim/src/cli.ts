@@ -1,109 +1,196 @@
 /**
- * `pnpm sim [days]`         per-day table for every archetype, plus CSV in var/sim/
- * `pnpm sim check [days]`   assert the pacing targets; exit 1 on failure
- * `pnpm sim rtp [spins]`    the casino's measured return per bet option against its exact odds
+ * `pnpm sim [days]`            every archetype and scenario: per-day tables, CSV in var/sim/
+ * `pnpm sim check [--full] [--phase R1]`
+ *                              judge `pacing.json5` (the test profile, or 365 days × 3 seeds);
+ *                              exit 1 when a switched-on assertion fails or has no check.
+ *                              `--phase` also judges a later phase's assertions, to see them
+ *                              before it ships (only the shipped ones set the exit code)
+ * `pnpm sim window [days]`     what the Night Shift's 2 h window costs on day 1 against R1's 12 h,
+ *                              with and without the Workshop (12-feel.md 15)
+ * `pnpm sim caps`              the Blast Map's price cuts by stat and scope against errata E25's
+ *                              caps: the shipped wave's product, every node's, the room left
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadContent, loadLocale } from "@wipe-day/content/load";
 import { contentPaths } from "@wipe-day/content/paths";
-import { measureAll } from "./rtp";
-import { ARCHETYPES, checkPacing, type Run, simulate, simulatePair } from "./sim";
+import { PHASES, type Phase } from "@wipe-day/content/schema";
+import {
+  checkPacing,
+  dayClock,
+  type Life,
+  phaseIndex,
+  priceCuts,
+  simulateAll,
+  type WindowRow,
+  windowReport,
+} from "./sim";
 
 /** CSV output goes to `var/sim/` at the repo root, next to the other local runtime state. */
 const repoRoot = resolve(fileURLToPath(new URL(".", import.meta.url)), "../../..");
 const content = loadContent(contentPaths.data, loadLocale());
 
 const args = process.argv.slice(2);
-const check = args[0] === "check";
-const rtp = args[0] === "rtp";
-const days = Number(args[check || rtp ? 1 : 0] ?? 35);
+const sci = (value: number): string =>
+  value === 0 ? "0" : value < 1e4 ? value.toFixed(0) : value.toExponential(2);
 
-function table(run: Run): string {
+/** The days worth a row: the first week, then the checkpoints the targets read. */
+const SHOWN = new Set([1, 2, 3, 4, 5, 6, 7, 14, 21, 30, 45, 60, 90, 120, 180, 270, 365]);
+
+function table(life: Life): string {
   const lines = [
-    `${run.archetype}  (reached: ${Object.entries(run.reached)
-      .map(([tier, day]) => `${tier} d${day}`)
-      .join(", ")}; first trips: ${Object.entries(run.firstTrip)
-      .map(([tier, day]) => `t${tier} d${day}`)
-      .join(
-        ", ",
-      )}; first job d${run.firstJob ?? "-"}; first raid d${run.firstRaid ?? "-"}; last site d${run.firstSite.offshore_platform ?? "-"}; signal ${run.signalGiven ?? 0} (stage ${run.signalStage ?? 0}))`,
-    "day  tier   tool             fill                cap   ingots    fuel   scrap  items  parts  bldgs  crew  known  build  den-  den+  bet   won   def  chg  raid    loss camp  pvp+  pvp-",
+    `${life.name}: first hand ${life.firstHandSeconds === null ? "-" : `${life.firstHandSeconds}s`}, ` +
+      `largest ${sci(life.largest)}, ${life.runs.length} run(s), ${life.steps} commands`,
+    "  day  run   supplies       made   lifetime  owned hands  glass nukes      taps drops cards  base  owed stars shards craft scrap orders quests",
   ];
-  for (const row of run.rows) {
+  for (const row of life.days.filter((row) => SHOWN.has(row.day) || row === life.days.at(-1))) {
     lines.push(
-      `${String(row.day).padStart(3)}  ${row.tier.padEnd(6)} ${row.tool.padEnd(16)} ` +
-        `${row.fill.padEnd(18)} ${String(row.cap).padStart(6)} ${String(row.ingots).padStart(8)} ` +
-        `${String(row.fuel).padStart(7)} ${String(row.scrap).padStart(7)}  ${String(row.items).padStart(5)}  ${String(row.parts).padStart(5)}  ${String(row.buildings).padStart(5)}  ${String(row.crew).padStart(4)}  ${String(row.known).padStart(5)}  ${(row.building ? "yes" : "").padEnd(5)} ${String(row.denSpent).padStart(4)}  ${String(row.denEarned).padStart(4)}  ${String(row.wagered).padStart(4)}  ${String(row.won).padStart(4)}` +
-        `  ${String(row.defence).padStart(4)} ${String(row.charges).padStart(4)}  ${(row.raids ? `${row.raidsHeld}/${row.raids}` : "").padEnd(4)}` +
-        `  ${String(row.raidLoss || "").padStart(5)} ${String(row.camps || "").padStart(4)}  ${String(row.pvpTake || "").padStart(4)}  ${String(row.pvpLoss || "").padStart(4)}`,
+      `  ${String(row.day).padStart(3)} ${String(row.run).padStart(4)} ${sci(row.supplies).padStart(10)} ` +
+        `${sci(row.made).padStart(10)} ${sci(row.lifetime).padStart(10)} ${String(row.owned).padStart(6)} ` +
+        `${String(row.hands).padStart(5)} ${String(row.glassEver).padStart(6)} ${String(row.nukes).padStart(5)} ` +
+        `${String(row.taps).padStart(9)} ${String(row.drops).padStart(5)} ${String(row.cards).padStart(5)} ` +
+        `${String(row.baseSet).padStart(5)} ${String(row.owed).padStart(5)} ${String(row.stars).padStart(5)} ` +
+        `${String(row.shards).padStart(6)} ${String(row.crafted).padStart(5)} ` +
+        `${String(row.scrap).padStart(5)} ${String(row.orders).padStart(6)} ${String(row.quests).padStart(6)}`,
     );
+  }
+  // The runs (R4): when each started and ended, what it made, its glass, the Wipe Day it counted
+  // as, the nodes bought after it, the lasting power it added, and when it passed the run before.
+  const runs = life.runs.filter((run) => run.end !== null);
+  if (runs.length > 0) {
+    lines.push(
+      "  run        start          end     hours       made  glass   wd nodes power passed",
+    );
+    const shown = runs.length <= 14 ? runs : [...runs.slice(0, 7), ...runs.slice(-7)];
+    for (const [i, run] of shown.entries()) {
+      if (i === 7 && runs.length > 14) lines.push("  ...");
+      const end = run.end ?? run.start;
+      const previous = life.runs[life.runs.indexOf(run) - 1];
+      const passed =
+        previous?.end !== null && previous?.end !== undefined && run.passedAt !== null
+          ? `${(((run.passedAt - run.start) / (previous.end - previous.start)) * 100).toFixed(0)}%`
+          : "-";
+      lines.push(
+        `  ${String(run.n).padStart(3)} ${dayClock(run.start).padStart(12)} ${dayClock(end).padStart(12)} ` +
+          `${((end - run.start) / 3600).toFixed(1).padStart(9)} ${sci(run.made).padStart(10)} ` +
+          `${String(run.glass).padStart(6)} ${String(run.wipeDay ?? "-").padStart(4)} ${String(run.nodes).padStart(5)} ` +
+          `${run.power.toFixed(2).padStart(5)} ${passed.padStart(6)}`,
+      );
+    }
   }
   return lines.join("\n");
 }
 
-if (rtp) {
-  const spins = Number(args[1] ?? 1_000_000);
-  console.log(`game   option      exact   measured   diff  (${spins} rounds each)`);
-  for (const row of measureAll(content, spins)) {
-    const pct = (value: number) => `${(value * 100).toFixed(2)}%`.padStart(8);
+/** The window report: one block per archetype, a row per variant, against the 12 h one. */
+function windowTable(rows: WindowRow[]): string {
+  const out: string[] = [];
+  const names = [...new Set(rows.map((row) => row.archetype))];
+  for (const name of names) {
+    const mine = rows.filter((row) => row.archetype === name);
+    const base = mine.find((row) => row.variant.startsWith("12 h")) ?? mine[0];
+    if (name === "firstHour") {
+      out.push("firstHour (continuous play): the first nuke");
+      for (const row of mine) {
+        const at = row.firstNuke === null ? "never" : clockOf(row.firstNuke);
+        out.push(`  ${row.variant.padEnd(22)} ${at}`);
+      }
+      continue;
+    }
+    const times = (base?.checkIns ?? []).map((c) => dayClock(c.at).slice(6));
+    out.push(`${name}: lifetime made at each day-1 check-in, at day 1's end, and the first nuke`);
+    out.push(
+      `  ${"".padEnd(22)} ${times.map((t) => t.padStart(9)).join(" ")}   day end   vs 12 h   first nuke`,
+    );
+    for (const row of mine) {
+      const loss = base && base.dayEnd > 0 ? row.dayEnd / base.dayEnd - 1 : 0;
+      out.push(
+        `  ${row.variant.padEnd(22)} ${row.checkIns.map((c) => sci(c.made).padStart(9)).join(" ")} ` +
+          `${sci(row.dayEnd).padStart(9)} ${`${(loss * 100).toFixed(0)}%`.padStart(9)}   ` +
+          `${row.firstNuke === null ? "not yet" : dayClock(row.firstNuke)}`,
+      );
+    }
+  }
+  return out.join("\n");
+}
+
+const clockOf = (seconds: number): string =>
+  `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, "0")}`;
+
+if (args[0] === "window") {
+  const days = Number(args[1] ?? 3);
+  console.log(windowTable(windowReport(content, days)));
+} else if (args[0] === "caps") {
+  console.log(
+    `  ${"stat".padEnd(14)} ${"scope".padEnd(10)} ${"shipped".padStart(8)} ${"all".padStart(8)} ${"cap".padStart(6)}   room`,
+  );
+  for (const row of priceCuts(content)) {
+    const room = row.cap === null ? "" : `×${(row.shipped / row.cap).toFixed(2)} to the cap`;
     console.log(
-      `${row.game.padEnd(6)} ${(row.option ?? "-").padEnd(10)} ${pct(row.exact)} ${pct(row.measured)} ${((row.measured - row.exact) * 100).toFixed(2).padStart(6)}` +
-        (row.jackpots !== undefined ? `  jackpots ${row.jackpots}` : ""),
+      `  ${row.stat.padEnd(14)} ${row.scope.padEnd(10)} ${`×${row.shipped.toFixed(3)}`.padStart(8)} ` +
+        `${`×${row.all.toFixed(3)}`.padStart(8)} ${(row.cap === null ? "—" : `×${row.cap}`).padStart(6)}   ${room}`,
     );
   }
-} else if (check) {
-  const results = checkPacing(content, days);
-  for (const result of results)
-    console.log(`${result.warning ? "WARN" : "FAIL"}  ${result.message}`);
-  const failures = results.filter((result) => !result.warning);
-  console.log(
-    failures.length === 0 ? "OK: pacing targets met" : `${failures.length} pacing check(s) failed`,
+} else if (args[0] === "check") {
+  const profile = args.includes("--full") ? "full" : "test";
+  const asked = args[args.indexOf("--phase") + 1];
+  const upTo: Phase =
+    args.includes("--phase") && PHASES.includes(asked as Phase)
+      ? (asked as Phase)
+      : content.pacing.shipped;
+  const started = performance.now();
+  const verdicts = checkPacing(content, profile, upTo);
+  for (const verdict of verdicts) {
+    const label = verdict.status.toUpperCase().padEnd(7);
+    console.log(
+      `${label} ${verdict.n.padEnd(5)} ${verdict.on}  ${verdict.check}${verdict.detail ? `: ${verdict.detail}` : ""}`,
+    );
+  }
+  const shipped = phaseIndex(content.pacing.shipped);
+  const bad = verdicts.filter(
+    (verdict) =>
+      (verdict.status === "fail" || verdict.status === "missing") &&
+      phaseIndex(verdict.on) <= shipped,
   );
-  process.exitCode = failures.length === 0 ? 0 : 1;
+  console.log(
+    `${bad.length === 0 ? "OK" : `${bad.length} failed`}: shipped ${content.pacing.shipped}, ` +
+      `profile ${profile}, ${((performance.now() - started) / 1000).toFixed(1)} s`,
+  );
+  process.exitCode = bad.length === 0 ? 0 : 1;
 } else {
+  const days = Number(args[0] ?? 30);
   const outDir = join(repoRoot, "var", "sim");
   mkdirSync(outDir, { recursive: true });
-  const pair = simulatePair(content, days);
-  const runs: [string, Run][] = [
-    ...ARCHETYPES.map((archetype): [string, Run] => [
-      archetype,
-      simulate(content, archetype, days),
-    ]),
-    ["raider_pvp", pair.raider],
-    ["casual_raided", pair.target],
-  ];
-  for (const [name, run] of runs) {
-    if (name.includes("_")) console.log(`PvP pair: ${name}`);
-    console.log(`${table(run)}\n`);
+  for (const life of simulateAll(content, days)) {
+    console.log(`${table(life)}\n`);
     const csv = [
-      "day,tier,tool,fill,cap,ingots,fuel,scrap,items,buildings,building,defence,charges,raids,raidsHeld,raidLoss,camps,pvpTake,pvpLoss",
-      ...run.rows.map((row) =>
+      "day,run,supplies,made,lifetime,owned,hands,glassEver,nukes,taps,drops,cards,scrap,orders,quests,baseSet,owed,stars,shards,crafted",
+      ...life.days.map((row) =>
         [
           row.day,
-          row.tier,
-          row.tool,
-          row.fill,
-          row.cap,
-          row.ingots,
-          row.fuel,
+          row.run,
+          row.supplies,
+          row.made,
+          row.lifetime,
+          row.owned,
+          row.hands,
+          row.glassEver,
+          row.nukes,
+          row.taps,
+          row.drops,
+          row.cards,
           row.scrap,
-          row.items,
-          row.buildings,
-          row.building,
-          row.defence,
-          row.charges,
-          row.raids,
-          row.raidsHeld,
-          row.raidLoss,
-          row.camps,
-          row.pvpTake,
-          row.pvpLoss,
+          row.orders,
+          row.quests,
+          row.baseSet,
+          row.owed,
+          row.stars,
+          row.shards,
+          row.crafted,
         ].join(","),
       ),
     ].join("\n");
-    writeFileSync(join(outDir, `${name}.csv`), `${csv}\n`);
+    writeFileSync(join(outDir, `${life.name}.csv`), `${csv}\n`);
   }
   console.log(`csv: ${outDir}`);
 }

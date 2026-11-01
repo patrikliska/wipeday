@@ -1,0 +1,399 @@
+[
+  {
+    "id": "furnace_1",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 901,
+    "palette": true,
+    "prompt": "a small smelting furnace of piled stones with a glowing orange mouth and a clay crucible beside it, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "furnace_2",
+    "prompt_style": "rd_plus__low_res",
+    "width": 20,
+    "height": 20,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 902,
+    "palette": true,
+    "prompt": "a stone and clay smelting furnace with a short chimney and fire glowing inside, an anvil and two metal ingots beside it, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "furnace_3",
+    "prompt_style": "rd_plus__low_res",
+    "width": 24,
+    "height": 24,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 903,
+    "palette": true,
+    "prompt": "a big brick furnace with a tall chimney, molten metal glowing in its mouth, a stack of grey metal ingots beside it, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "tannery_1",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 911,
+    "palette": true,
+    "prompt": "a small wooden frame of sticks with one brown animal hide stretched on it to dry, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "tannery_2",
+    "prompt_style": "rd_plus__low_res",
+    "width": 20,
+    "height": 20,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 912,
+    "palette": true,
+    "prompt": "a wooden tanning tub and a rack with two brown hides hanging to dry, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "tannery_3",
+    "prompt_style": "rd_plus__low_res",
+    "width": 24,
+    "height": 24,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 913,
+    "palette": true,
+    "prompt": "two wooden tanning vats, brown hides hanging on a tall rack and a pile of folded leather, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "press_1",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 921,
+    "palette": true,
+    "prompt": "a small wooden screw press with a clay jar under its spout, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "press_2",
+    "prompt_style": "rd_plus__low_res",
+    "width": 20,
+    "height": 20,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 922,
+    "palette": true,
+    "prompt": "a wooden oil press with a big wooden screw and a lever, oil dripping into a small barrel, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "press_3",
+    "prompt_style": "rd_plus__low_res",
+    "width": 24,
+    "height": 24,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 923,
+    "palette": true,
+    "prompt": "a large timber and iron oil press with a long lever, two oil barrels and a lamp oil can, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "dock_1",
+    "prompt_style": "rd_plus__low_res",
+    "width": 20,
+    "height": 20,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 931,
+    "palette": true,
+    "prompt": "a grey tarp stretched on four poles as a funnel over a blue plastic barrel to catch rain water, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "dock_2",
+    "prompt_style": "rd_plus__low_res",
+    "width": 24,
+    "height": 24,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 932,
+    "palette": true,
+    "prompt": "a rain catcher: a wide grey tarp funnel on a wooden frame draining through a pipe into two blue water barrels, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "dock_3",
+    "prompt_style": "rd_plus__low_res",
+    "width": 32,
+    "height": 32,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 933,
+    "palette": true,
+    "prompt": "a tall rain catcher: a big tarp funnel on a rusty metal frame over a water tank on legs, a tap and two jerrycans below, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "generator_1",
+    "prompt_style": "rd_plus__low_res",
+    "width": 20,
+    "height": 20,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 941,
+    "palette": true,
+    "prompt": "a small rusty petrol generator on the ground with a cable to a car battery, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "generator_2",
+    "prompt_style": "rd_plus__low_res",
+    "width": 24,
+    "height": 24,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 942,
+    "palette": true,
+    "prompt": "a rusty diesel generator on a wooden pallet with an exhaust pipe, cables and a few car batteries, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "generator_3",
+    "prompt_style": "rd_plus__low_res",
+    "width": 32,
+    "height": 32,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 943,
+    "palette": true,
+    "prompt": "a big rusty generator under a small tin roof with two exhaust stacks, a fuel drum and a rack of charging batteries, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "radio_mast_1",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 24,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 951,
+    "palette": true,
+    "prompt": "a short radio antenna on a pole with guy wires and a small radio box at its foot, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "radio_mast_2",
+    "prompt_style": "rd_plus__low_res",
+    "width": 20,
+    "height": 32,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 952,
+    "palette": true,
+    "prompt": "a radio mast of scaffold poles with an antenna on top and a wooden crate holding a radio, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "radio_mast_3",
+    "prompt_style": "rd_plus__low_res",
+    "width": 24,
+    "height": 44,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 953,
+    "palette": true,
+    "prompt": "a tall thin lattice radio mast with a red light on top, guy wires, a small dish and a tiny radio shack at its foot, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "shipbreaker_1",
+    "prompt_style": "rd_plus__low_res",
+    "width": 20,
+    "height": 20,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 961,
+    "palette": true,
+    "prompt": "a small pile of rusty scrap metal sheets with a gas bottle and a cutting torch, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "shipbreaker_2",
+    "prompt_style": "rd_plus__low_res",
+    "width": 28,
+    "height": 24,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 962,
+    "palette": true,
+    "prompt": "a heap of rusty car parts and scrap metal sheets, a gas bottle and a cutting torch, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "shipbreaker_3",
+    "prompt_style": "rd_plus__low_res",
+    "width": 36,
+    "height": 32,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 963,
+    "palette": true,
+    "prompt": "a scrapyard: a small yellow crane with a magnet over a heap of rusty scrap, stacked metal plates beside it, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "reactor_1",
+    "prompt_style": "rd_plus__low_res",
+    "width": 20,
+    "height": 20,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 971,
+    "palette": true,
+    "prompt": "a small metal box with glowing green tubes and cables, a makeshift power cell rig, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "reactor_2",
+    "prompt_style": "rd_plus__low_res",
+    "width": 24,
+    "height": 24,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 972,
+    "palette": true,
+    "prompt": "a makeshift reactor: a riveted metal drum with glowing green windows, pipes and cables, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "reactor_3",
+    "prompt_style": "rd_plus__low_res",
+    "width": 32,
+    "height": 32,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 973,
+    "palette": true,
+    "prompt": "a jury-rigged reactor: a big riveted steel tank with glowing green vents, cooling pipes, yellow and black warning stripes and cables, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "target_ore",
+    "prompt_style": "rd_pro__platformer",
+    "width": 40,
+    "height": 32,
+    "num_images": 2,
+    "seed": 980,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/target/stone.png",
+      "packages/content/art/scene/target/tree.png"
+    ],
+    "prompt": "a large dark grey rock outcrop streaked with rusty orange iron ore veins, a few cracks, loose ore chunks at its foot, strict side view, light from the upper left, on a plain white background",
+    "remove_bg": true
+  },
+  {
+    "id": "target_sulfur",
+    "prompt_style": "rd_pro__platformer",
+    "width": 40,
+    "height": 32,
+    "num_images": 2,
+    "seed": 981,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/target/stone.png",
+      "packages/content/art/scene/target/tree.png"
+    ],
+    "prompt": "a crusty pale rock mound with bright yellow sulfur crystals growing out of its top and cracks, yellow powder and small stones at its foot, strict side view, light from the upper left, on a plain white background",
+    "remove_bg": true
+  },
+  {
+    "id": "target_wreck",
+    "prompt_style": "rd_pro__platformer",
+    "width": 64,
+    "height": 36,
+    "num_images": 2,
+    "seed": 982,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/target/stone.png",
+      "packages/content/art/scene/target/tree.png"
+    ],
+    "prompt": "the wreck of a small crashed propeller plane lying nose down in the ground, one broken wing sticking up, torn grey metal panels, a bent propeller, dented and rusty, strict side view, light from the upper left, on a plain white background",
+    "remove_bg": true
+  },
+  {
+    "id": "house_stone",
+    "prompt_style": "rd_pro__platformer",
+    "width": 36,
+    "height": 32,
+    "num_images": 2,
+    "seed": 990,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/house/wood.png",
+      "packages/content/art/scene/house/twig.png"
+    ],
+    "prompt": "a small survivor's hut of rough stacked grey stones with a slanted plank roof, a sturdy wooden door, a small lit window and a stone chimney, strict side view, light from the upper left, on a plain white background",
+    "remove_bg": true
+  },
+  {
+    "id": "house_metal",
+    "prompt_style": "rd_pro__platformer",
+    "width": 40,
+    "height": 34,
+    "num_images": 2,
+    "seed": 991,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/house/wood.png",
+      "packages/content/art/scene/house/twig.png"
+    ],
+    "prompt": "a survivor's shack of rusty corrugated sheet metal panels bolted together, a sloped metal roof, a metal door, a small barred lit window and a chimney pipe, strict side view, light from the upper left, on a plain white background",
+    "remove_bg": true
+  },
+  {
+    "id": "house_hqm",
+    "prompt_style": "rd_pro__platformer",
+    "width": 44,
+    "height": 34,
+    "num_images": 2,
+    "seed": 992,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/house/wood.png",
+      "packages/content/art/scene/house/twig.png"
+    ],
+    "prompt": "a squat armoured survivor bunker of thick riveted dark steel plates, a heavy steel door, narrow lit window slits, sandbags at its foot and a radio antenna on the roof, strict side view, light from the upper left, on a plain white background",
+    "remove_bg": true
+  },
+  {
+    "id": "room_stone",
+    "prompt_style": "rd_pro__platformer",
+    "width": 132,
+    "height": 72,
+    "num_images": 2,
+    "seed": 1000,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/room/wood.png",
+      "packages/content/art/scene/line/workbench_3.png",
+      "packages/content/art/scene/house/wood.png"
+    ],
+    "prompt": "the inside of a small rough stone hut seen as a cut-away side view, filling the whole picture: a back wall of stacked grey stones with mortar, a small window showing a hazy desert, a stone fireplace with a low fire, wooden shelves with jars, ingots and hand tools, a plank floor across the bottom, a hanging lamp glowing warm, the floor in front left empty, strict side view, light from the upper left"
+  },
+  {
+    "id": "room_metal",
+    "prompt_style": "rd_pro__platformer",
+    "width": 132,
+    "height": 72,
+    "num_images": 1,
+    "seed": 1001,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/room/wood.png",
+      "packages/content/art/scene/line/workbench_3.png"
+    ],
+    "prompt": "the inside of a sheet metal shack seen as a cut-away side view, filling the whole picture: back walls of rusty corrugated metal panels with bolts, a small window showing a hazy desert, pipes and cables along the walls, metal shelves with jars, cans and tools, a workbench lamp, strict side view, light from the upper left"
+  },
+  {
+    "id": "room_hqm",
+    "prompt_style": "rd_pro__platformer",
+    "width": 132,
+    "height": 72,
+    "num_images": 1,
+    "seed": 1002,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/room/wood.png",
+      "packages/content/art/scene/line/workbench_3.png"
+    ],
+    "prompt": "the inside of an armoured steel bunker seen as a cut-away side view, filling the whole picture: back walls of riveted dark steel plates, pipes along the ceiling, a caged lamp, metal lockers, a narrow window slit, shelves with crates and tools, strict side view, light from the upper left"
+  }
+]

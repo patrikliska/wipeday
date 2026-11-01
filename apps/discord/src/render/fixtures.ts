@@ -1,16 +1,17 @@
 /**
  * Sample answers from the API for `pnpm preview` and the tests: real bases from the shared
- * domain (`newBase`), pushed into the states worth looking at. Time is fixed, so the
- * previews and snapshots never drift.
+ * domain (`newBase`), patched by hand (no rule runs here, `boundary.test.ts`). Time is fixed,
+ * so the previews and snapshots never drift.
  */
 import type { Content } from "@wipe-day/content/schema";
-import { type BaseState, newBase, storageCap } from "@wipe-day/domain/base";
+import type { FeedItem } from "@wipe-day/domain/feed";
+import type { BaseState } from "@wipe-day/domain/state";
+import { newBase } from "@wipe-day/domain/state";
 import type { BotHome, DmNote } from "@wipe-day/domain/wire";
 import type { Last } from "../ui/home";
 
 /** A Wednesday evening, UTC. */
 export const NOW = 1_791_406_800;
-const DAY = 86_400;
 /** Discord's longest display name: 32 characters. */
 export const LONGEST_NAME = "Wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww";
 
@@ -20,20 +21,29 @@ export interface HomeFixture {
   last?: Last;
 }
 
-function home(base: BaseState, name: string, change: Partial<BotHome> = {}): BotHome {
+type Patch = {
+  run?: Partial<BaseState["run"]>;
+  meta?: Partial<BaseState["meta"]>;
+  stats?: Partial<BaseState["meta"]["stats"]>;
+};
+
+function home(
+  content: Content,
+  name: string,
+  patch: Patch = {},
+  change: Partial<BotHome> = {},
+): BotHome {
+  const base = newBase(content, NOW - 600, 7);
+  const state: BaseState = {
+    ...base,
+    run: { ...base.run, activeAt: NOW - 60, ...patch.run },
+    meta: { ...base.meta, ...patch.meta, stats: { ...base.meta.stats, ...patch.stats } },
+  };
   return {
     serverNow: NOW,
     version: 12,
     player: { id: 1, name, avatarUrl: null },
-    seasonStartedAt: NOW - 5 * DAY - 3600,
-    season: {
-      number: 1,
-      startedAt: NOW - 5 * DAY - 3600,
-      endsAt: null,
-      modifier: null,
-      next: null,
-    },
-    state: base,
+    state,
     welcomeBack: null,
     discordDm: true,
     loginUrl: "https://wipeday.example/api/auth/link?t=preview",
@@ -41,168 +51,151 @@ function home(base: BaseState, name: string, change: Partial<BotHome> = {}): Bot
   };
 }
 
+/** The Stone run at minute 48 with six hands: what the shots call FIRST_NUKE. */
+const STONE_RUN: Partial<BaseState["run"]> = {
+  era: "stone",
+  startedAt: NOW - 2880,
+  firstBuyAt: NOW - 2870,
+  afterglowFrom: NOW - 2870,
+  supplies: 3.1e9,
+  made: 5.8e10,
+  madeAtActive: 5.8e10,
+  taps: 9000,
+  lines: {
+    beachcomber: 62,
+    campfire: 48,
+    garden: 36,
+    loom: 26,
+    workbench: 14,
+    kiln: 9,
+    furnace: 2,
+  },
+  hands: ["beachcomber", "campfire", "garden", "loom", "workbench", "kiln"],
+  upgrades: ["stone_tools", "sorting_tables", "iron_tools"],
+};
+
+/** A player past onboarding: the lifetime counters the Stone run implies. */
+const STONE_STATS: Partial<BaseState["meta"]["stats"]> = { units: 197, hands: 6, eras: 2 };
+
 export function homeFixtures(content: Content): HomeFixture[] {
-  const fresh = newBase(content, NOW - 600, 7);
-
-  // Day 2, timber: a few hours away, the store filling up, Gather cooling down.
-  const timber: BaseState = {
-    ...newBase(content, NOW - DAY, 7),
-    tier: "wood",
-    stock: { timber: 1840, stone: 1210, ore: 320, fibre: 410, scrap: 260, food: 90 },
-    lastCollectedAt: NOW - 5 * 3600,
-    lastGatherAt: NOW - 120,
-  };
-
-  // Day 6, stone: builders, a station, a party and a scout out, raiders sighted.
-  const stone: BaseState = {
-    ...newBase(content, NOW - 6 * DAY, 7),
-    tier: "stone",
-    stock: {
-      timber: 6200,
-      stone: 4300,
-      ore: 1800,
-      ingots: 420,
-      sulfur_ore: 230,
-      fibre: 2100,
-      hide: 320,
-      fat: 140,
-      food: 800,
-      scrap: 3150,
-      planks: 40,
-    },
-    buildings: { workbench: 2, furnace: 1, campfire: 1, warehouse: 2, loom: 1, watchtower: 1 },
-    lastCollectedAt: NOW - 1800,
-    lastGatherAt: NOW - 30,
-    construction: [
-      {
-        target: { kind: "building", building: "walls", level: 1 },
-        startedAt: NOW - 3600,
-        endsAt: NOW + 2 * 3600 + 900,
-      },
-    ],
-    production: {
-      workbench: [
-        { recipe: "planks", count: 12, done: 4, unitSeconds: 300, startedAt: NOW - 1200 },
-      ],
-      loom: [{ recipe: "rope", count: 6, done: 0, unitSeconds: 600, startedAt: NOW - 120 }],
-    },
-    missions: [
-      {
-        id: "m7",
-        kind: "trip",
-        target: "cannery",
-        crew: ["mara", "dax"],
-        startedAt: NOW - 3600,
-        endsAt: NOW + 3 * 3600,
-        seed: 1,
-        odds: {
-          success: 60,
-          partial: 90,
-          injury: [5],
-          minutes: 240,
-          rolls: 3,
-          loot: 0,
-          blueprint: 0,
-          fragment: 0,
-          events: {},
-        },
-      },
-      {
-        id: "m8",
-        kind: "scout",
-        target: "quarry_hills",
-        crew: ["ivo"],
-        startedAt: NOW - 600,
-        endsAt: NOW + 1500,
-        seed: 2,
-        odds: {
-          success: 100,
-          partial: 100,
-          injury: [0],
-          minutes: 35,
-          rolls: 0,
-          loot: 0,
-          blueprint: 0,
-          fragment: 0,
-          events: {},
-        },
-      },
-    ],
-    raid: { at: NOW + 2 * 3600, seed: 5, n: 1, warned: true },
-  };
-
-  // The store is full: nothing accrues, and Collect says why it cannot help.
-  const cap = storageCap(content, timber);
-  const full: BaseState = {
-    ...timber,
-    stock: { timber: cap, stone: cap, ore: 900, fibre: 600, scrap: 500, food: 120 },
-    lastCollectedAt: NOW - 3600,
-    lastGatherAt: NOW - 3 * 3600,
-  };
-
-  // The longest name, seven-digit numbers, every resource.
-  const rich: BaseState = {
-    ...stone,
-    tier: "hqm",
-    stock: Object.fromEntries(
-      content.resources
-        .filter((resource) => resource.kind !== "part")
-        .map((resource, index) => [resource.id, 1_234_567 + index * 911_000]),
-    ),
-    construction: [],
-    production: {},
-    missions: [],
-    raid: null,
-  };
-
   return [
-    { state: "new", home: home(fresh, "Nia") },
-    { state: "waiting", home: home(timber, "Nia") },
-    // About to fill: the advisor says bank it, and Collect is the one obvious action.
+    // Run 1, minute 1: nobody on shift, nothing runs; Open the game leads, the tap hint.
+    { state: "first_minute", home: home(content, "Nia") },
+    // The first launch crowned (made 58B, the delta at 10): the Big Red's line and next step.
     {
-      state: "filling",
-      home: home({ ...timber, stock: { ...timber.stock, timber: cap - 40 } }, "Nia"),
+      state: "crowned",
+      home: home(content, "Nia", { run: STONE_RUN, stats: STONE_STATS }),
     },
+    // Away three hours on a 2 h window: stalled, Collect leads.
     {
-      state: "banked",
-      home: home({ ...timber, lastCollectedAt: NOW }, "Nia"),
-      last: { kind: "banked", gained: { timber: 214, stone: 80, ore: 12 } },
-    },
-    {
-      state: "busy",
-      home: home(stone, "Nia", {
-        season: {
-          number: 1,
-          startedAt: NOW - 5 * DAY,
-          endsAt: NOW + 6 * DAY,
-          modifier: null,
-          next: "storm_season",
+      state: "stalled",
+      home: home(content, "Nia", {
+        run: { ...STONE_RUN, made: 6.1e10, activeAt: NOW - 3 * 3600 },
+        stats: STONE_STATS,
+        meta: {
+          wipeDays: 3,
+          nukes: 3,
+          lifetime: 2.95e15,
+          glass: { ever: 240, held: 100, level: 240, spent: 140 },
+          nodes: ["ground_zero", "packed_crate", "hot_coals"],
         },
       }),
     },
-    { state: "full", home: home(full, "Nia", { discordDm: false }) },
+    // A third of the window used, nothing crowned: the running line, Open the game leads.
     {
-      state: "cooldown",
-      home: home(timber, "Nia"),
-      last: { kind: "cooldown", readyAt: NOW + 240 },
+      state: "running",
+      home: home(content, "Nia", {
+        run: { ...STONE_RUN, made: 1e9, madeAtActive: 9e8, activeAt: NOW - 40 * 60 },
+        stats: STONE_STATS,
+        meta: {
+          wipeDays: 12,
+          nukes: 12,
+          lifetime: 3e16,
+          glass: { ever: 2154, held: 320, level: 2154, spent: 1834 },
+          nodes: ["ground_zero", "packed_crate", "hot_coals", "steady_hands"],
+        },
+      }),
     },
-    { state: "long", home: home(rich, LONGEST_NAME) },
+    // A 7-digit glass chip and the longest name.
+    {
+      state: "rich",
+      home: home(content, LONGEST_NAME, {
+        run: STONE_RUN,
+        stats: STONE_STATS,
+        meta: {
+          wipeDays: 240,
+          nukes: 261,
+          lifetime: 1e30,
+          glass: { ever: 9_876_543, held: 1_234_567, level: 9_876_543, spent: 8_641_976 },
+          nodes: ["ground_zero", "packed_crate"],
+        },
+      }),
+    },
+    // After a Collect: what the hands worked and made.
+    {
+      state: "collected",
+      home: home(content, "Nia", { run: { ...STONE_RUN, activeAt: NOW }, stats: STONE_STATS }),
+      last: { kind: "collected", seconds: 2 * 3600, gain: 4.2e12, hands: 6 },
+    },
+    {
+      state: "dm_off",
+      home: home(content, "Nia", {}, { discordDm: false }),
+      last: { kind: "dm", on: false },
+    },
+    { state: "stale", home: home(content, "Nia"), last: { kind: "stale" } },
   ];
 }
 
 export const NOTES: DmNote[] = [
   {
     discordId: "123456789012345678",
-    kind: "party_back",
-    title: "Your party is back",
-    body: "Cannery: a success. Come and see the haul.",
-    url: "https://wipeday.example/?report=m7",
+    kind: "night_shift_over",
+    title: "The Night Shift is over",
+    body: "Your hands have stopped. Check in to start the next shift.",
+    url: "https://wipeday.example/",
   },
+];
+
+const nuked = (
+  id: number,
+  playerName: string,
+  n: number,
+  gain: number,
+  extra: Partial<Extract<FeedItem["event"], { type: "nuked" }>> = {},
+): FeedItem => ({
+  id,
+  at: NOW - 120,
+  playerId: id,
+  playerName,
+  event: {
+    type: "nuked",
+    n,
+    wipeDay: n,
+    gain,
+    ever: gain * 4,
+    glowBefore: 1.5,
+    glowAfter: 1.8,
+    doubling: false,
+    flight: "u_turn",
+    pays: { drop: 1, scrap: 0 },
+    news: { folded: 0, glass: 0 },
+    summary: {} as never,
+    ...extra,
+  },
+});
+
+/** Every kind of feed line (06-friends.md 2.3): first, plain, folded, a new flight, a milestone, Armored. */
+export const FEED: FeedItem[] = [
+  nuked(1, "Mira", 1, 10),
+  nuked(2, "Patrik", 4, 144),
+  nuked(3, "Ivo", 5, 86, { news: { folded: 2, glass: 200 } }),
+  nuked(4, "Patrik", 2, 30, { flight: "loop_the_loop" }),
+  nuked(5, "Mira", 50, 61_000),
   {
-    discordId: "123456789012345678",
-    kind: "raided",
-    title: "Raiders!",
-    body: "They got in and took 420 Timber, 180 Stone, 60 Ore.",
-    url: "https://wipeday.example/?report=r3",
+    id: 6,
+    at: NOW - 3600,
+    playerId: 3,
+    playerName: "Ivo",
+    event: { type: "era_reached", era: "hqm", at: 86_400, first: true },
   },
 ];

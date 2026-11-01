@@ -1,0 +1,8 @@
+ring totals (glass): ['28', '193', '1.74k', '17.5k', '191k', '2.32M', '23.2M', '268M', '2.68B'] tree total 2.97B nodes 361
+ring node costs min/max: [('1', '4'), ('4', '18'), ('25', '140'), ('200', '1134'), ('2000', '17k'), ('20k', '164k'), ('200k', '1.64M'), ('2M', '16.3M'), ('20M', '163M')]
+lifetime supplies for glass ever G: L = L0 * G^5 -> {10: '50B', 100: '5Qa', 1000.0: '500Qi', 10000.0: '50Sp', 100000.0: '5No', 1000000.0: '500Dc', 10000000.0: '5.00e+40', 100000000.0: '5.00e+45', 1000000000.0: '5.00e+50', 3000000000.0: '1.21e+53'}
+casual   d180 E 655k nukes 51 lit 47% | d240 E 963k nukes 55 lit 49% | d300 E 1.42M nukes 59 lit 52% | d365 E 3.78M nukes 69 lit 57% | full None | largest number 3.44e+37
+optimal  d180 E 948k nukes 34 lit 49% | d240 E 1.57M nukes 39 lit 53% | d300 E 4.72M nukes 49 lit 58% | d365 E 6.91M nukes 53 lit 60% | full None | largest number 6.41e+38
+active   d180 E 798k nukes 53 lit 48% | d240 E 1.29M nukes 58 lit 51% | d300 E 2.81M nukes 66 lit 56% | d365 E 5.53M nukes 73 lit 59% | full None | largest number 2.68e+38
+idler    d180 E 353k nukes 13 lit 42% | d240 E 353k nukes 13 lit 42% | d300 E 353k nukes 13 lit 42% | d365 E 706k nukes 14 lit 42% | full None | largest number 15.4Dc
+21s

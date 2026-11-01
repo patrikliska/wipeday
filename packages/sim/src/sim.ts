@@ -1,1200 +1,1612 @@
 /**
- * Headless balance simulator: drives `@wipe-day/domain` with a manual clock and
- * scripted players. `pnpm sim` prints a per-day table (and CSV), `pnpm sim
- * check` asserts the pacing targets in `data/pacing.json5`.
+ * Simulator v2 (D144; docs/redesign/10-balance.md 7): lifetimes of runs played through the real
+ * domain, so there is no second economy: if a number differs from the game, the domain is wrong.
  *
- * Archetypes are decision policies run at each check-in; the domain does the
- * rest. Deterministic: every roll is seeded from the check-in time.
+ * Each archetype (`pacing.json5`) checks in on its sessions, taps as the client sends taps
+ * (batches of 1 s for the first 10 online minutes of a run, then 5 s, through the token bucket),
+ * buys what the crown picks (`advisor.ts` `crown()`, weighed by its own pace as the client
+ * weighs the player's; D178), catches its share of the flotsam that floats while it is online,
+ * and is away in between, where settle runs in closed form. Deterministic: seeds only, no clock
+ * reads.
+ *
+ * R4: the real `nuke` through `applyCommand`, pressed by each archetype's policy (the crown,
+ * doubling, or the optimal's "past the peak"), and after every press the Blast Map's pick bought
+ * while glass allows (`nodePick`, D268), so N11-N14 and 4.10 read the game as shipped.
+ *
+ * R3's cards (D252): every archetype opens its drops at once, buys each star its shards pay
+ * for, crafts the first missing gear its rarity shards buy, and after a hire or a new card puts
+ * the strongest production gear on the hired survivors whose lines make the most.
+ *
+ * R3 S2: every archetype claims the Work Orders and the daily quests it has met (after each
+ * batch), catches Lucky Tide crates by its flotsam share, and spends scrap by its `spend` policy
+ * at a session's start: boosts (Overdrive, Double Time while it taps, the tide while it catches),
+ * tier-II drops, or none.
  */
-import type { Amounts, Content, Site } from "@wipe-day/content/schema";
-import { TIERS, type Tier } from "@wipe-day/content/tiers";
-import {
-  type BaseState,
-  canAfford,
-  furnaceReady,
-  furnaceSlots,
-  isEmpty,
-  newBase,
-  nextTier,
-  nextTool,
-  shortfall,
-  smeltable,
-  storageCap,
-  storageFill,
-  tierOf,
-  toolUnlocked,
-  total,
-  upkeepOf,
-} from "@wipe-day/domain/base";
-import { buildingCount, buildStatus, nextBuild } from "@wipe-day/domain/buildings";
-import { casinoLimit, wagerLeft } from "@wipe-day/domain/casino";
-import { manualClock } from "@wipe-day/domain/clock";
+
+import { RARITIES, SLOTS } from "@wipe-day/content/cards";
+import type { Archetype, Assertion, Content, Phase } from "@wipe-day/content/schema";
+import { PHASES } from "@wipe-day/content/schema";
+import { choices, crown, lasting, type Player } from "@wipe-day/domain/advisor";
+import { assertFiniteState } from "@wipe-day/domain/amount";
+import { type NodeDef, nodeEffects, nodePick, shippedNodes } from "@wipe-day/domain/blastmap";
+import { tideAt } from "@wipe-day/domain/boosts";
 import { applyCommand, type Command } from "@wipe-day/domain/commands";
-import { deliverStatus } from "@wipe-day/domain/contracts";
-import { boostPercent, craftStatus, maxBatch, queueOf } from "@wipe-day/domain/craft";
-import {
-  guardScoreOf,
-  type Job,
-  nodeJobRates,
-  stationWorker,
-  traitsOf,
-} from "@wipe-day/domain/crew";
-import { denBuyStatus, denOpen, lotsLeft, offerOf, offerPrice } from "@wipe-day/domain/den";
+import { dropsOnWay } from "@wipe-day/domain/drops";
+import { foldStat, fullRate, glow, rates, unitRate } from "@wipe-day/domain/effects";
 import type { GameEvent } from "@wipe-day/domain/events";
-import { held, isCapped } from "@wipe-day/domain/goods";
-import { jobStatus, tiredWorkers } from "@wipe-day/domain/jobs";
-import type { Carry } from "@wipe-day/domain/legacy";
-import {
-  atSea,
-  canSteer,
-  isFit,
-  partyLimit,
-  scoutStatus,
-  siteOf,
-  sitesIn,
-  tripOdds,
-  tripStatus,
-} from "@wipe-day/domain/missions";
-import { nodeStatus } from "@wipe-day/domain/nodes";
-import {
-  defenceOf,
-  hitOf,
-  npcOdds,
-  pvpOpen,
-  pvpStatus,
-  raidWarned,
-  repairStatus,
-  scrapWorth,
-  takeRaid,
-} from "@wipe-day/domain/raids";
-import { expandNeeds, type Need, partsToMake, stations } from "@wipe-day/domain/recipes";
-import { rng, seedOf } from "@wipe-day/domain/rng";
-import { settleAll } from "@wipe-day/domain/settle";
-import { addGift, newSignal, seasonDay, stillNeeded } from "@wipe-day/domain/signal";
+import { claimUntil, flotsamAt } from "@wipe-day/domain/flotsam";
+import { gullAt } from "@wipe-day/domain/gulls";
+import { fuelled, orderClaimed, orderMet, ordersOf } from "@wipe-day/domain/orders";
+import { bigRedCrown, glassYield, runAge } from "@wipe-day/domain/prestige";
+import { questClaimed, questMet, questsOf } from "@wipe-day/domain/quests";
+import { workshopOpensAt } from "@wipe-day/domain/research";
+import { rng, SEED, seedOf } from "@wipe-day/domain/rng";
+import { mannedRate, settle } from "@wipe-day/domain/settle";
+import { type BaseState, type Meta, newBase } from "@wipe-day/domain/state";
+import { tapParts } from "@wipe-day/domain/taps";
+import { weatherAt } from "@wipe-day/domain/weather";
 
-export const ARCHETYPES = ["casual", "active", "optimal", "gambler", "raider", "veteran"] as const;
-export type Archetype = (typeof ARCHETYPES)[number];
+/** Day 1 starts at this UTC midnight. */
+export const DAY0 = 1_699_920_000;
+const DAY = 86_400;
+/** Batches are 1 s for this long into a run's online time, then 5 s (`10-balance.md` 7.3). */
+const FINE_SECONDS = 600;
+/** A batch holds at most this many taps (the client's tail, D134). */
+const MAX_BATCH = 30;
+/** The runs N5 and N6 look at. */
+const EARLY_RUNS = 5;
 
-/**
- * Check-in moments within a day, in hours. The gambler is a casual player who also plays;
- * the raider (W6) an active player who raids other holdfasts and bandit camps.
- */
-const ACTIVE_HOURS = [7, 9, 12, 15, 17, 19, 21, 23];
-const SCHEDULE: Record<Archetype, number[]> = {
-  casual: [8, 13, 21],
-  gambler: [8, 13, 21],
-  active: ACTIVE_HOURS,
-  optimal: Array.from({ length: 24 }, (_, hour) => hour),
-  raider: ACTIVE_HOURS,
-  // W7: an optimal player in a later season, with every perk at its top rank.
-  veteran: Array.from({ length: 24 }, (_, hour) => hour),
-};
+export interface Session {
+  /** Seconds after midnight (UTC). */
+  start: number;
+  seconds: number;
+}
 
-/** Below this chance to hold an announced raid, a player posts a guard (W6). */
-const GUARD_BELOW = 80;
-
-const HOUR = 3600;
-const DAY = 86400;
+/** "08:00+5m" → one session a day; "hourly+5m" → 24. */
+export function sessionsOf(archetype: Archetype): Session[] {
+  const out: Session[] = [];
+  for (const spec of archetype.sessions) {
+    const [when = "", length = "0m"] = spec.split("+");
+    const seconds = Number.parseInt(length, 10) * 60;
+    if (when === "hourly") {
+      for (let hour = 0; hour < 24; hour++) out.push({ start: hour * 3600, seconds });
+    } else {
+      const [h = "0", m = "0"] = when.split(":");
+      out.push({ start: Number(h) * 3600 + Number(m) * 60, seconds });
+    }
+  }
+  return out.sort((a, b) => a.start - b.start);
+}
 
 export interface DayRow {
   day: number;
-  tier: Tier;
-  tool: string;
-  /** Fullest resource and its fill, what the storage bar would show. */
-  fill: string;
-  cap: number;
-  ingots: number;
-  fuel: number;
+  run: number;
+  supplies: number;
+  made: number;
+  lifetime: number;
+  owned: number;
+  hands: number;
+  glassEver: number;
+  nukes: number;
+  /** Counted Wipe Days (R4). */
+  wipeDays: number;
+  taps: number;
+  /** Supply Drops opened so far, and cards owned (R3). */
+  drops: number;
+  cards: number;
+  /** Scrap ever earned, Work Orders and quests claimed so far (R3 S2). */
   scrap: number;
-  items: number;
-  /** Part units in stock, all kinds together. */
-  parts: number;
-  /** Survivors in the crew. */
-  crew: number;
-  /** Scrap the Den took and gave today (W5): stock buys, fees, contracts, the tables. */
-  denSpent: number;
-  denEarned: number;
-  /** Scrap wagered and won today. */
-  wagered: number;
-  won: number;
-  /** Regions known. */
-  known: number;
-  /** Buildings standing (level 1 or more). */
-  buildings: number;
-  building: boolean;
-  /** Raids (W6): the defence score, charges held, NPC raids today and how many held, their
-   * loss in scrap at reference prices, PvP takes and losses, and trips to bandit camps. */
-  defence: number;
-  charges: number;
-  raids: number;
-  raidsHeld: number;
-  raidLoss: number;
-  pvpTake: number;
-  pvpLoss: number;
-  camps: number;
+  orders: number;
+  quests: number;
+  /** The Album's pace (R3 S4, N33): Common and Rare cards owned (the base set), drops promised
+   * and not yet paid by the gate, stars above 1, gear shards held, gear crafted. */
+  baseSet: number;
+  owed: number;
+  stars: number;
+  shards: number;
+  crafted: number;
 }
 
-export interface Run {
-  archetype: Archetype;
-  rows: DayRow[];
-  /** Season day on which each tier was first reached. */
-  reached: Partial<Record<Tier, number>>;
-  /** Season day on which each recipe output first landed. */
-  firstMade: Record<string, number>;
-  /** Season day on which each station first finished something. */
-  stationsWorked: Record<string, number>;
-  /** Season day of the first trip to a site of each tier, and to each site. */
-  firstTrip: Partial<Record<number, number>>;
-  firstSite: Record<string, number>;
-  /** Season day on which each tool was first held. */
-  tools: Record<string, number>;
-  /** Season day a survivor first took a job at home. */
-  firstJob: number | null;
-  /** Season day the first NPC raid landed, and of the first trip to a bandit camp (W6). */
-  firstRaid: number | null;
-  firstCamp: number | null;
-  /** W7: what this player gave the Signal (scrap at reference prices) and the stage reached. */
-  signalGiven?: number;
-  signalStage?: number;
+export interface RunRow {
+  n: number;
+  /** Seconds after DAY0. */
+  start: number;
+  end: number | null;
+  made: number;
+  glass: number;
+  /** Work Orders claimed in the run, and whether the set was fuelled (R3 S2). */
+  orders: number;
+  fuelled: boolean;
+  /** R4: the Wipe Day it counted as (null: a small blast), the nodes bought right after the press,
+   * the lasting power the press and those nodes added (N12), and when the run passed the one
+   * before it (N11; seconds after DAY0, null if never). */
+  wipeDay: number | null;
+  nodes: number;
+  /** Shipped nodes lit after the shopping (N14 reads later nukes while the map has room). */
+  lit: number;
+  power: number;
+  passedAt: number | null;
 }
 
-/** Where a run's events go while it plays (the first-made days are read from them). */
-let listener: ((event: GameEvent) => void) | null = null;
-
-/**
- * The server's side: the casino's seeded rolls and shared jackpot, and the island's Signal
- * (W7), fed by whoever plays.
- */
-const house = { random: rng(1), jackpot: 0, signal: newSignal(), given: 0 };
-
-/** Applies one command the way the server would; a refusal keeps the settled state. */
-function act(content: Content, state: BaseState, command: Command, now: number): BaseState {
-  const world =
-    command.type === "slots_spin" || command.type === "dice_roll"
-      ? { seed: house.random.int(0, 2 ** 31 - 1), jackpot: house.jackpot }
-      : command.type === "signal_give"
-        ? { signal: { ...house.signal, open: true } }
-        : undefined;
-  const result = applyCommand(content, state, command, now, world);
-  for (const event of result.events) {
-    if (event.type === "wager") house.jackpot += event.feed;
-    if (event.type === "jackpot_won") house.jackpot = 0;
-    if (event.type === "signal_gift") {
-      house.signal = addGift(content, house.signal, event.good, event.amount, now);
-      house.given += event.worth;
-    }
-  }
-  if (listener) for (const event of result.events) listener(event);
-  return result.state;
-}
-
-/** Nodes an active player works after a gather, most valuable first. */
-const NODE_PREFERENCE = ["ore_1", "sulfur_1", "stone_1", "tree_1"];
-
-/** One check-in: collect, gather, work a node, then spend greedily. Every step is a command. */
-export function checkIn(
-  content: Content,
-  state: BaseState,
-  now: number,
-  archetype: Archetype,
-  options: { pvp?: boolean } = {},
-): BaseState {
-  let s = act(content, state, { type: "collect" }, now);
-  // PvP (W6): the raider joins as soon as it may; a casual target only when asked to.
-  if ((archetype === "raider" || options.pvp) && pvpOpen(content, s) && !s.pvp.on)
-    s = act(content, s, { type: "set_pvp", on: true }, now);
-  // Eat before gathering, so the boost counts: the best meal in the cupboard.
-  if (boostPercent(s, now) === 0) {
-    const meal = content.items
-      .filter((item) => item.category === "meal" && (s.items[item.id] ?? 0) > 0)
-      .sort((a, b) => (b.boostPercent ?? 0) - (a.boostPercent ?? 0))[0];
-    if (meal) s = act(content, s, { type: "serve", meal: meal.id }, now);
-  }
-  const gathered = applyCommand(content, s, { type: "gather" }, now);
-  if (listener) for (const event of gathered.events) listener(event);
-  s = gathered.state;
-  // Active players work a node after every gather, perfectly.
-  if (gathered.ok && archetype !== "casual") {
-    const node = NODE_PREFERENCE.find((id) => nodeStatus(content, s, id, now).code === "ready");
-    if (node) {
-      for (let hit = 1; hit <= content.active.node.maxHits; hit++) {
-        s = act(content, s, { type: "hit_node", node, run: `sim-${now}`, hit }, now + hit);
-      }
-    }
-  }
-  if (s.barrel) s = act(content, s, { type: "break_barrel" }, now);
-  if (!isEmpty(furnaceReady(s, now))) s = act(content, s, { type: "take_out" }, now);
-
-  // Spend, most valuable first. Loop because one purchase can enable another.
-  for (let guard = 0; guard < 8; guard++) {
-    const before = s;
-
-    s = act(content, s, { type: "build", what: "tier" }, now);
-    // A raid broke the defences: mend them while it is cheap to (W6).
-    if (repairStatus(content, s).code === "ok") s = act(content, s, { type: "repair" }, now);
-
-    // Keep the base fed: never spend below the next 24 h of upkeep (48 h for casual).
-    const reserveHours = archetype === "casual" ? 48 : 24;
-    const spendable = { ...s.stock };
-    for (const [id, perHour] of Object.entries(upkeepOf(content, s))) {
-      spendable[id] = (spendable[id] ?? 0) - perHour * reserveHours;
-    }
-    const affordable = (what: string): boolean => {
-      const next = nextBuild(content, s, what);
-      return (
-        next !== null &&
-        buildStatus(content, s, what).code === "ok" &&
-        canAfford(next.cost, spendable)
-      );
-    };
-
-    const tool = nextTool(content, s);
-    if (tool && toolUnlocked(s, tool) && canAfford(tool.cost, spendable))
-      s = act(content, s, { type: "upgrade_tool" }, now);
-
-    // Furnace: build it as soon as ore is being gathered; upgrade when affordable.
-    const gathersOre = Object.keys(s.stock).some((id) =>
-      content.resources.some((resource) => resource.id === id && resource.smeltsInto),
-    );
-    if (gathersOre && affordable("furnace"))
-      s = act(content, s, { type: "build", what: "furnace" }, now);
-    // The workbench next (it opens crafting), then the cheapest other building a builder can take.
-    if (affordable("workbench")) s = act(content, s, { type: "build", what: "workbench" }, now);
-    // Other buildings only from what is left after saving for the next tier: half its cost
-    // while it is far off, all of it once it is within reach (70% affordable).
-    const saving = { ...spendable };
-    const upcoming = nextBuild(content, s, "tier");
-    if (upcoming && !s.construction.some((job) => job.target.kind === "tier")) {
-      const nearlyThere = Object.entries(upcoming.cost).every(
-        ([id, amount]) => (s.stock[id] ?? 0) >= amount * 0.7,
-      );
-      for (const [id, amount] of Object.entries(upcoming.cost)) {
-        saving[id] = (saving[id] ?? 0) - (nearlyThere ? amount : amount / 2);
-      }
-    }
-    const spare = (what: string): boolean => {
-      const next = nextBuild(content, s, what);
-      return (
-        next !== null && buildStatus(content, s, what).code === "ok" && canAfford(next.cost, saving)
-      );
-    };
-    // Once raiders have come, defence goes first (W6): what a player does after a breach.
-    const raided = s.raidReports.some((report) => report.kind === "npc");
-    const defends = (id: string): number =>
-      raided &&
-      content.buildings.some((b) => b.id === id && b.levels.some((l) => l.effects.defence))
-        ? 0
-        : 1;
-    const others = content.buildings
-      .map((building) => building.id)
-      .filter((id) => id !== "furnace" && id !== "workbench" && spare(id))
-      .sort(
-        (a, b) =>
-          defends(a) - defends(b) ||
-          total(nextBuild(content, s, a)?.cost ?? {}) - total(nextBuild(content, s, b)?.cost ?? {}),
-      );
-    const cheapest = others[0];
-    if (cheapest) s = act(content, s, { type: "build", what: cheapest }, now);
-
-    // Parts: what the next tier and tool wait on, then the cheapest building that only lacks
-    // parts. A station that is missing or too low for a part gets built or upgraded first.
-    const partsFor = (cost: Amounts, depth = 0): void => {
-      for (const { recipe, units } of partsToMake(content, s.stock, cost)) {
-        const status = craftStatus(content, s, recipe.output);
-        if (status.code === "station" || status.code === "workbench") {
-          if (depth > 0) continue;
-          if (affordable(recipe.station)) {
-            s = act(content, s, { type: "build", what: recipe.station }, now);
-          } else {
-            const next = nextBuild(content, s, recipe.station);
-            if (next && buildStatus(content, s, recipe.station).code === "unaffordable")
-              partsFor(next.cost, depth + 1);
-          }
-          continue;
-        }
-        if (status.code !== "ok") continue;
-        let count = Math.min(units, maxBatch(content, s, recipe.output));
-        // Never into the upkeep reserve.
-        for (const [id, amount] of Object.entries(recipe.cost)) {
-          const reserve = (upkeepOf(content, s)[id] ?? 0) * reserveHours;
-          count = Math.min(count, Math.floor(((s.stock[id] ?? 0) - reserve) / amount));
-        }
-        if (count > 0) s = act(content, s, { type: "craft", recipe: recipe.output, count }, now);
-      }
-    };
-    if (upcoming && !s.construction.some((job) => job.target.kind === "tier"))
-      partsFor(upcoming.cost);
-    if (tool && toolUnlocked(s, tool)) partsFor(tool.cost);
-    const rawOnly = (cost: Amounts): Amounts =>
-      Object.fromEntries(
-        Object.entries(cost).filter(([id]) =>
-          content.resources.some((resource) => resource.id === id && resource.kind !== "part"),
-        ),
-      );
-    const waiting = content.buildings
-      .map((building) => building.id)
-      .filter((id) => {
-        const next = nextBuild(content, s, id);
-        return (
-          next !== null &&
-          buildStatus(content, s, id).code === "unaffordable" &&
-          canAfford(rawOnly(next.cost), saving)
-        );
-      })
-      .sort(
-        (a, b) =>
-          total(nextBuild(content, s, a)?.cost ?? {}) - total(nextBuild(content, s, b)?.cost ?? {}),
-      )[0];
-    if (waiting) partsFor(nextBuild(content, s, waiting)?.cost ?? {});
-
-    // A roast or stew in the cupboard for tomorrow's gathers.
-    const meals = content.items.filter((item) => item.category === "meal");
-    if (meals.every((meal) => (s.items[meal.id] ?? 0) === 0)) {
-      const best = meals
-        .filter((meal) => craftStatus(content, s, meal.id).code === "ok")
-        .sort((a, b) => (b.boostPercent ?? 0) - (a.boostPercent ?? 0))[0];
-      const station = best ? content.recipes.find((r) => r.output === best.id)?.station : undefined;
-      if (best && station && queueOf(s, station).length === 0)
-        s = act(
-          content,
-          s,
-          { type: "craft", recipe: best.id, count: Math.min(3, maxBatch(content, s, best.id)) },
-          now,
-        );
-    }
-    // A curious player makes one of each piece of gear once, when it is cheap to.
-    for (const item of content.items) {
-      if (!["weapon", "armor", "med"].includes(item.category)) continue;
-      if ((s.items[item.id] ?? 0) > 0) continue;
-      const recipe = content.recipes.find((r) => r.output === item.id);
-      if (!recipe || queueOf(s, recipe.station).some((job) => job.recipe === item.id)) continue;
-      if (craftStatus(content, s, item.id).code === "ok" && canAfford(recipe.cost, saving))
-        s = act(content, s, { type: "craft", recipe: item.id, count: 1 }, now);
-    }
-
-    if (storageFill(content, s, now).fraction > 0.7) {
-      const crates = content.items
-        .filter((item) => item.category === "storage")
-        .sort((a, b) => (b.capacity ?? 0) - (a.capacity ?? 0));
-      const crate = crates.find((item) => craftStatus(content, s, item.id).code === "ok");
-      if (crate) s = act(content, s, { type: "craft", recipe: crate.id, count: 1 }, now);
-    }
-
-    if (s === before) break;
-  }
-
-  s = charges(content, s, now, archetype);
-  s = feedSignal(content, s, now);
-  // The raider keeps a raid's worth of charges for other holdfasts; camps get the rest.
-  const reserve = archetype === "raider" && s.pvp.on ? (content.raids.pvp.charges.hqm ?? 0) : 0;
-  s = expeditions(content, s, now, reserve);
-  s = den(content, s, now, archetype);
-
-  // Smelt whatever ore is waiting, the ore the next tier needs first.
-  const wanted = nextTier(s.tier)
-    ? Object.keys(tierOf(content, nextTier(s.tier) ?? s.tier).cost)
-    : [];
-  const ores = content.resources
-    .filter((resource) => resource.smeltsInto)
-    .sort(
-      (a, b) =>
-        Number(wanted.includes(b.smeltsInto ?? "")) - Number(wanted.includes(a.smeltsInto ?? "")),
-    );
-  for (const ore of ores) {
-    while (s.furnaceJobs.length < furnaceSlots(content, s) && smeltable(content, s, ore.id) > 0) {
-      const result = applyCommand(content, s, { type: "smelt", ore: ore.id }, now);
-      s = result.state;
-      if (!result.ok) break;
-    }
-  }
-  return s;
+export interface Life {
+  name: string;
+  days: DayRow[];
+  runs: RunRow[];
+  /** Seconds from run 1's first tap to its first hand, if any. */
+  firstHandSeconds: number | null;
+  /**
+   * Run 1's moments, in seconds after its first tap: `era_<tier>`, `hand` (the first),
+   * `flotsam` (the first caught), each shelf row by id the first time, `research` (the first
+   * Workshop level) and each Workshop item by id, and `nuke`.
+   */
+  beats: Record<string, number>;
+  /** Runs 1-5: the longest online stretch with nothing affordable, early (first 10 online minutes) and at all. */
+  stuck: { early: number; online: number };
+  /**
+   * Every check-in: its day, when it started (seconds after DAY0), the lifetime made when it
+   * started (glass's measure) and whether it bought anything.
+   */
+  checkIns: { day: number; at: number; made: number; bought: boolean }[];
+  /**
+   * Run 1's income: minute 0-1 (what taps drove, taps and the unmanned cycles they ran, against
+   * all made), and from minute 10 outside buffs (the taps and fells alone, against all made).
+   */
+  income: {
+    firstMinute: { tapDriven: number; made: number };
+    later: { direct: number; made: number };
+  };
+  /** The state at the start of the days asked for (N9's hours). */
+  snapshots: Record<number, BaseState>;
+  /** The largest number any state held (N23). */
+  largest: number;
+  /** Commands applied. */
+  steps: number;
 }
 
 /**
- * The Den (W5), once it deals with the base. Every archetype:
- * - delivers a contract when the goods are surplus: a capped resource that stays above
- *   60% of storage afterwards, or a part held twice over;
- * - buys from the Den's counter the parts the next tier or tool is short of, keeping the
- *   scrap the next tool needs plus a small reserve for scouting.
- * The gambler then plays dice and slots with the biggest bet until the daily cap.
+ * Whether the archetype presses the Big Red now (R4): `crown` when the advisor crowns it (the
+ * four rules, waiting out buffs), `double` at a gain of at least glass ever, `best` (the optimal
+ * player) at a counting press once this run's glass an hour has fallen under 80% of its peak
+ * ten minutes in, or at the first nuke.
  */
-function den(content: Content, state: BaseState, now: number, archetype: Archetype): BaseState {
-  let s = state;
-  if (!denOpen(content, s)) return s;
-  const cap = storageCap(content, s);
-  for (const id of s.contracts.ids) {
-    const status = deliverStatus(content, s, id);
-    if (status.code !== "ok") continue;
-    const { good, amount } = status.terms;
-    const left = held(content, s, good) - amount;
-    const surplus = isCapped(content, good) ? left >= cap * 0.6 : left >= amount;
-    if (surplus) s = act(content, s, { type: "deliver", contract: id }, now);
-  }
-  const tool = nextTool(content, s);
-  const scrapReserve = 150 + (tool && toolUnlocked(s, tool) ? (tool.cost.scrap ?? 0) : 0);
-  const goals: Amounts[] = [];
-  const tier = nextTier(s.tier);
-  if (tier && !s.construction.some((job) => job.target.kind === "tier"))
-    goals.push(tierOf(content, tier).cost);
-  if (tool && toolUnlocked(s, tool)) goals.push(tool.cost);
-  for (const cost of goals) {
-    const short = shortfall(cost, s.stock);
-    for (const id of s.den.offers) {
-      const offer = offerOf(content, id);
-      const missing = offer ? (short[offer.good] ?? 0) : 0;
-      if (!offer || missing <= 0) continue;
-      const price = offerPrice(content, offer);
-      const affordable = Math.floor(((s.stock.scrap ?? 0) - scrapReserve) / price);
-      const lots = Math.min(lotsLeft(s, offer), Math.ceil(missing / offer.lot), affordable);
-      if (lots > 0 && denBuyStatus(content, s, id, lots, now).code === "ok")
-        s = act(content, s, { type: "den_buy", offer: id, lots }, now);
-    }
-  }
-  // Comforts a person buys when the Den has them: a meal when the cupboard is bare, a first
-  // aid kit when someone is hurt and there is none.
-  const bare = content.items.every(
-    (item) => item.category !== "meal" || (s.items[item.id] ?? 0) === 0,
+function pressesNow(content: Content, state: BaseState, now: number, rule: Archetype["nuke"]) {
+  const y = glassYield(content, state, now);
+  if (!y.pressable) return false;
+  if (rule === "double") return y.first || y.gain >= Math.max(1, state.meta.glass.ever);
+  if (rule === "best")
+    return y.first || (y.counts && runAge(state, now) >= 600 && y.rateNow < 0.8 * y.peak);
+  return (
+    !state.run.buffs.some((buff) => buff.until > now) &&
+    bigRedCrown(content, state, now, y) !== null
   );
-  const hurt = s.crew.some((member) => member.injuredUntil !== null && member.injuredUntil > now);
-  for (const id of s.den.offers) {
-    const offer = offerOf(content, id);
-    const item = offer ? content.items.find((candidate) => candidate.id === offer.good) : undefined;
-    const wanted =
-      (item?.category === "meal" && bare) ||
-      (item?.category === "med" && hurt && (s.items[item.id] ?? 0) === 0);
-    if (!offer || !wanted || (s.stock.scrap ?? 0) < offerPrice(content, offer) + scrapReserve)
-      continue;
-    if (denBuyStatus(content, s, id, 1, now).code === "ok")
-      s = act(content, s, { type: "den_buy", offer: id, lots: 1 }, now);
-  }
-  if (archetype === "gambler") {
-    const limit = casinoLimit(content, s);
-    for (let spin = 0; limit && spin < 40; spin++) {
-      const bet = Math.min(limit.maxBet, wagerLeft(content, s, now));
-      if (bet < content.den.casino.betStep || (s.stock.scrap ?? 0) < bet + 100) break;
-      const command: Command =
-        spin % 2 === 0
-          ? { type: "slots_spin", amount: bet }
-          : { type: "dice_roll", option: "seven", amount: bet };
-      s = act(content, s, command, now);
-    }
-  }
-  return s;
 }
 
 /**
- * The node kind whose resource the next tier lacks most, in hours of the tool's rate
- * (refined resources count as their ore). Timber when nothing is missing.
+ * The lasting power `meta` gives a fresh run (N12): Glow times the map's all-line output fold.
+ * Scoped nodes (a line, an era) are left out: a cheap, monotone measure of what a nuke added.
  */
-function neededNode(content: Content, s: BaseState): string {
-  const next = nextTier(s.tier);
-  const cost = next ? rawCost(content, tierOf(content, next).cost) : {};
-  let best = { kind: "tree", hours: -1 };
-  for (const kind of content.nodeKinds) {
-    for (const id of Object.keys(kind.yields)) {
-      // Ore counts for the ingots the tier asks for too.
-      const refined = content.resources.find((resource) => resource.id === id)?.smeltsInto;
-      const wanted = (cost[id] ?? 0) + (refined ? (cost[refined] ?? 0) : 0);
-      const need = wanted - (s.stock[id] ?? 0);
-      const rate = content.tools.find((tool) => tool.id === s.toolId)?.rates[id] ?? 0;
-      if (rate <= 0) continue;
-      const hours = need / rate;
-      if (hours > best.hours) best = { kind: kind.id, hours };
+function metaPower(content: Content, meta: Meta): number {
+  const effects = nodeEffects(content, meta);
+  const k = foldStat("glow_k", effects, content.prestige.glowK);
+  const counts = { nukes: meta.wipeDays, hands: 14, sectors: {} };
+  const output = foldStat("output", effects, 1, {}, { online: true }, counts);
+  return glow(content, meta.glass.ever, k) * output;
+}
+
+/** A rough gain per node for the pick's "best income per glass" (04 8.4), deterministic. */
+function nodeGain(content: Content, node: NodeDef): number {
+  let gain = 0;
+  for (const effect of node.effects) {
+    const share =
+      effect.scope === undefined || effect.scope === "all"
+        ? 1
+        : content.lines.some((line) => line.id === effect.scope)
+          ? 1 / content.lines.length
+          : 0.25;
+    const v = effect.value;
+    switch (effect.stat) {
+      case "output":
+      case "speed":
+        gain += (effect.op === "more" ? v - 1 : v) * share * (effect.when ? 0.3 : 1);
+        break;
+      case "tap":
+      case "tap_share":
+        gain += 0.3 * v;
+        break;
+      case "glass_gain":
+        gain += 0.5 * (effect.op === "more" ? v - 1 : v);
+        break;
+      case "glow_k":
+        gain += 2 * v;
+        break;
+      case "night_shift":
+        gain += 0.05 * v;
+        break;
+      case "line_cost":
+      case "hand_cost":
+      case "upgrade_cost":
+      case "era_cost":
+        gain += 0.5 * (1 - v);
+        break;
+      case "keep_hand":
+      case "start_owned":
+      case "start_era":
+      case "start_upgrade":
+        gain += 0.2;
+        break;
+      default:
+        gain += effect.stat.startsWith("feature:") ? 0.1 : 0.05;
     }
   }
-  return best.kind;
+  return gain;
+}
+
+const largestOf = (state: BaseState): number =>
+  Math.max(state.run.supplies, state.run.made, state.meta.lifetime, state.meta.glass.ever);
+
+const PURCHASES = new Set<Command["type"]>([
+  "buy_line",
+  "hire_hand",
+  "buy_upgrade",
+  "buy_research",
+  "buy_era",
+]);
+const ONLINE = { online: true } as const;
+
+/** Whether `archetype` catches flotsam arrival `k` of its run (a seeded share of them). */
+function catches(archetype: Archetype, seed: number, run: number, k: number): boolean {
+  if (archetype.catches >= 1) return true;
+  return archetype.catches > 0 && rng(seedOf(seed, run, k)).next() < archetype.catches;
+}
+
+/** The flotsam floating at `t`, if the cursor's arrival is in its claim window. */
+function floating(content: Content, state: BaseState, t: number): number | null {
+  const cursor = flotsamAt(content, state, t);
+  if (cursor.at === null || cursor.at > t || t > claimUntil(content, state, cursor.at)) return null;
+  return cursor.k;
 }
 
 /**
- * Work at home: the cook takes the campfire and the tinkerer the busiest station once
- * they stand; everyone else works the node the next tier needs most (W4b). Jobs stay
- * while someone is out on a trip.
+ * When a life may stop before its last day: once calendar day `day` is played, run 1 has ended
+ * and run `runs` has started (the quick profile, D236).
  */
-function jobs(content: Content, state: BaseState, now: number): BaseState {
-  let s = state;
-  const node = neededNode(content, s);
-  // Raiders announced and the walls would likely not hold: the best guard at home stands
-  // watch until they have been (W6).
-  const odds = raidWarned(content, s, now) ? npcOdds(content, s, now) : null;
-  const watch =
-    odds && odds.chance < GUARD_BELOW
-      ? s.crew
-          .filter((member) => member.away === null && isFit(member, now))
-          .sort(
-            (a, b) =>
-              Number(b.job?.kind === "guard") - Number(a.job?.kind === "guard") ||
-              guardScoreOf(content, b.id) - guardScoreOf(content, a.id),
-          )[0]?.id
-      : undefined;
-  for (const member of s.crew) {
-    let job: Job = { kind: "node", node };
-    if (member.id === watch) {
-      if (member.job?.kind !== "guard")
-        s = act(content, s, { type: "assign", survivor: member.id, job: { kind: "guard" } }, now);
-      continue;
-    }
-    for (const trait of traitsOf(content, member.id)) {
-      for (const station of Object.keys(trait.craft ?? {})) {
-        const target =
-          station === "any"
-            ? (["workbench", "loom", "campfire"].find((id) => queueOf(s, id).length > 0) ??
-              "workbench")
-            : station;
-        const taken = stationWorker(s, target);
-        if ((s.buildings[target] ?? 0) > 0 && (!taken || taken.id === member.id))
-          job = { kind: "station", station: target };
-      }
-    }
-    if (job.kind === "node" && Object.keys(nodeJobRates(content, s, member.id, node)).length === 0)
-      continue;
-    if (jobStatus(content, s, member.id, job) !== null) continue;
-    s = act(content, s, { type: "assign", survivor: member.id, job }, now);
-  }
-  if (tiredWorkers(s, now).length > 0) s = act(content, s, { type: "rest_tired" }, now);
-  return s;
+export interface Stop {
+  day: number;
+  runs: number;
+  /** Stop inside a session too (a scenario's one long day), not only at a day's end. */
+  inSession?: boolean;
 }
 
-/**
- * The crew's turn: gear up, treat the hurt, send one scout toward the nearest unknown
- * region, and send the rest in parties to the best site they can do with even odds or
- * better (the highest tier, then the shortest trip). Keeps a day of rations for scouting.
- * Whoever stays home goes to work, and the tired rest.
- */
-function expeditions(
-  content: Content,
-  state: BaseState,
-  now: number,
-  reserveCharges = 0,
-): BaseState {
-  let s = state;
-  // Gear: the strongest weapon and armour owned go to whoever has none.
-  for (const slot of ["weapon", "armor"] as const) {
-    const best = content.items
-      .filter((item) => item.category === slot && (s.items[item.id] ?? 0) > 0)
-      .sort((a, b) => (b.power ?? b.protection ?? 0) - (a.power ?? a.protection ?? 0));
-    for (const item of best) {
-      const bare = s.crew.find((member) => member.away === null && member.gear[slot] === null);
-      if (!bare) break;
-      s = act(content, s, { type: "equip", survivor: bare.id, slot, item: item.id }, now);
-    }
-  }
-  for (const member of s.crew) {
-    if (member.injuredUntil === null || member.injuredUntil <= now) continue;
-    const kit = ["first_aid_kit", "bandage"].find((id) => (s.items[id] ?? 0) > 0);
-    if (kit) s = act(content, s, { type: "treat", survivor: member.id, item: kit }, now);
-  }
-  // One scout at a time, toward the cheapest region that is open to scouting (a navigator
-  // for the sea).
-  if (!s.missions.some((mission) => mission.kind === "scout")) {
-    const options = content.regions
-      .flatMap((region) => {
-        const scout = s.crew.find(
-          (member) =>
-            isFit(member, now) && scoutStatus(content, s, region.id, now, member.id).code === "ok",
-        );
-        return scout ? [{ region, scout }] : [];
-      })
-      .sort(
-        (a, b) =>
-          a.region.ring - b.region.ring || total(a.region.scout.cost) - total(b.region.scout.cost),
-      );
-    const pick = options[0];
-    if (pick)
-      s = act(content, s, { type: "scout", region: pick.region.id, survivor: pick.scout.id }, now);
-  }
-  // Parties: the strongest fit survivors first.
-  for (let guard = 0; guard < 6; guard++) {
-    const fit = s.crew
-      .filter((member) => isFit(member, now))
-      .sort((a, b) => b.level - a.level)
-      .map((member) => member.id);
-    if (fit.length === 0) break;
-    // A site is worth the highest tier it opens: its own, or that of a known site whose
-    // keycode it finds while the base has none (half a tier more: opening beats a tie).
-    const wantedKeys = new Map<string, number>();
-    for (const site of s.known.flatMap((region) => sitesIn(content, region))) {
-      if (site.keycode && !(s.items[site.keycode] ?? 0))
-        wantedKeys.set(site.keycode, Math.max(wantedKeys.get(site.keycode) ?? 0, site.tier));
-    }
-    const worth = (site: Site): number =>
-      site.camp
-        ? site.tier - 0.5
-        : Math.max(
-            site.tier,
-            ...(site.finds ?? []).map((find) =>
-              wantedKeys.has(find.item) ? (wantedKeys.get(find.item) ?? 0) + 0.5 : 0,
-            ),
-          );
-    // Curiosity: of two equal sites, the one not seen lately.
-    const visited = (site: Site): number =>
-      s.reports.some((report) => report.target === site.id) ? 1 : 0;
-    const options = s.known
-      .flatMap((region) => sitesIn(content, region))
-      .map((site) => {
-        const party = fit.slice(0, partyLimit(content, site));
-        // At sea, a navigator takes the last place if nobody in the party can steer.
-        if (atSea(content, site.region) && !party.some((id) => canSteer(content, id))) {
-          const navigator = fit.find((id) => canSteer(content, id));
-          if (navigator && party.length > 0) party[party.length - 1] = navigator;
-        }
-        return { site, party, odds: tripOdds(content, s, site, party) };
-      })
-      .filter(
-        ({ site, party, odds }) =>
-          odds.success >= 50 &&
-          tripStatus(content, s, site.id, party, now).code === "ok" &&
-          (!site.camp || (s.stock.charge ?? 0) - (site.rations.charge ?? 0) >= reserveCharges),
-      )
-      .sort(
-        (a, b) =>
-          worth(b.site) - worth(a.site) ||
-          b.site.tier - a.site.tier ||
-          visited(a.site) - visited(b.site) ||
-          a.site.minutes - b.site.minutes,
-      );
-    const best = options[0];
-    // Rations a better site is waiting on (fuel, mostly): make them for the next check-in.
-    const blocked = s.known
-      .flatMap((region) => sitesIn(content, region))
-      .filter((site) => !site.camp && worth(site) > (best ? worth(best.site) : 0))
-      .sort((a, b) => worth(b) - worth(a))[0];
-    if (blocked && guard === 0) {
-      for (const [id, missing] of Object.entries(shortfall(blocked.rations, s.stock))) {
-        const recipe = content.recipes.find((candidate) => candidate.output === id);
-        if (!recipe || queueOf(s, recipe.station).length > 0) continue;
-        const count = Math.min(Math.ceil(missing / recipe.amount), maxBatch(content, s, id));
-        if (count > 0) s = act(content, s, { type: "craft", recipe: id, count }, now);
-      }
-    }
-    if (!best) break;
-    s = act(content, s, { type: "send_trip", site: best.site.id, crew: best.party }, now);
-  }
-  return jobs(content, s, now);
-}
-
-/**
- * The Signal (W7): once it is open, give what the next tier and tool do not need: capped
- * goods above a fifth of the storage, parts beyond the goals.
- */
-function feedSignal(content: Content, state: BaseState, now: number): BaseState {
-  let s = state;
-  if (seasonDay(s.season, now) < content.seasons.signal.opensOnDay) return s;
-  const cap = storageCap(content, s);
-  const goals: Amounts = {};
-  const tier = nextTier(s.tier);
-  const tool = nextTool(content, s);
-  for (const cost of [tier ? tierOf(content, tier).cost : {}, tool ? tool.cost : {}]) {
-    for (const [id, amount] of Object.entries(cost)) goals[id] = (goals[id] ?? 0) + amount;
-  }
-  for (const [good, left] of Object.entries(stillNeeded(content, house.signal))) {
-    const keep = isCapped(content, good) ? Math.max(cap / 5, goals[good] ?? 0) : (goals[good] ?? 0);
-    const spare = Math.floor((s.stock[good] ?? 0) - keep - (upkeepOf(content, s)[good] ?? 0) * 48);
-    if (spare >= 1)
-      s = act(content, s, { type: "signal_give", good, amount: Math.min(spare, left) }, now);
-  }
-  return s;
-}
-
-/** Every perk at its top rank, every blueprint known, the whole crew at level 5. */
-function veteranCarry(content: Content, start: number): Carry {
-  return {
-    season: { number: 2, startedAt: start, modifier: null },
-    blueprints: content.recipes.filter((recipe) => recipe.blueprint).map((recipe) => recipe.output),
-    veterans: Object.fromEntries(
-      content.crew.map((member) => [member.id, { level: 5, xp: content.crewRules.levels[3] ?? 0 }]),
-    ),
-    perks: Object.fromEntries(content.legacy.perks.map((perk) => [perk.id, perk.cost.length])),
-    skin: null,
-  };
-}
-
-/**
- * Charges (W6), kept up to what the dearest known bandit camp asks (and, for the raider, a
- * raid on an Armored base on top): made from sulfur nothing else wants, gunpowder first.
- */
-function charges(content: Content, state: BaseState, now: number, archetype: Archetype): BaseState {
-  let s = state;
-  const camps = s.known.flatMap((region) => sitesIn(content, region)).filter((site) => site.camp);
-  let want = Math.max(0, ...camps.map((site) => site.rations.charge ?? 0));
-  if (archetype === "raider" && pvpOpen(content, s)) want += content.raids.pvp.charges.hqm ?? 0;
-  if ((s.stock.charge ?? 0) >= want) return s;
-  for (const { recipe, units } of partsToMake(content, s.stock, { charge: want })) {
-    if (queueOf(s, recipe.station).some((job) => job.recipe === recipe.output)) continue;
-    if (craftStatus(content, s, recipe.output).code !== "ok") continue;
-    let count = Math.min(units, maxBatch(content, s, recipe.output));
-    for (const [id, amount] of Object.entries(recipe.cost)) {
-      const reserve = (upkeepOf(content, s)[id] ?? 0) * 24;
-      count = Math.min(count, Math.floor(((s.stock[id] ?? 0) - reserve) / amount));
-    }
-    if (count > 0) s = act(content, s, { type: "craft", recipe: recipe.output, count }, now);
-  }
-  return s;
-}
-
-/** Everything a run records while it plays, and the day rows it ends up with. */
-interface Runner {
-  run: Run;
-  state: BaseState;
-  /** Sees every event of this player's commands and settles. */
-  record: (event: GameEvent) => void;
-  /** Starts season day `day`. */
-  startDay: (day: number) => void;
-  /** Settles to the end of the day and writes its row. */
-  endDay: (day: number, endOfDay: number) => void;
-}
-
-function runner(
-  content: Content,
-  archetype: Archetype,
-  start: number,
-  seed: number,
-  onEvent?: (event: GameEvent, day: number, state: () => BaseState) => void,
-): Runner {
-  let denDay = { denSpent: 0, denEarned: 0, wagered: 0, won: 0 };
-  let raidDay = { raids: 0, raidsHeld: 0, raidLoss: 0, pvpTake: 0, pvpLoss: 0, camps: 0 };
-  let today = 1;
-  const run: Run = {
-    archetype,
-    rows: [],
-    reached: { twig: 1 },
-    firstMade: {},
-    stationsWorked: {},
-    firstTrip: {},
-    firstSite: {},
-    tools: {},
-    firstJob: null,
-    firstRaid: null,
-    firstCamp: null,
-  };
-  const self: Runner = {
-    run,
-    state: newBase(
-      content,
-      start,
-      seed,
-      archetype === "veteran" ? veteranCarry(content, start) : undefined,
-    ),
-    record: (event) => {
-      onEvent?.(event, today, () => self.state);
-      if (event.type === "den_bought") denDay.denSpent += event.price;
-      if (event.type === "listed") denDay.denSpent += event.fee;
-      if (event.type === "contract_done") denDay.denEarned += event.pay;
-      if (event.type === "wager") {
-        denDay.wagered += event.bet;
-        denDay.won += event.payout;
-      }
-      if (event.type === "raid_landed") {
-        run.firstRaid ??= today;
-        raidDay.raids += 1;
-        if (event.report.outcome === "held") raidDay.raidsHeld += 1;
-        raidDay.raidLoss += scrapWorth(content, event.report.lost);
-      }
-      if (event.type === "raid_launched")
-        raidDay.pvpTake += scrapWorth(content, event.report.gained);
-      if (event.type === "raided") raidDay.pvpLoss += scrapWorth(content, event.report.lost);
-      if (event.type === "assigned" && event.job !== null) run.firstJob ??= today;
-      if (event.type === "trip_started") {
-        const site = siteOf(content, event.site);
-        // Bandit camps are the charges' sink, not the site chain the targets measure.
-        if (site?.camp) {
-          raidDay.camps += 1;
-          run.firstCamp ??= today;
-          return;
-        }
-        run.firstTrip[site?.tier ?? 0] ??= today;
-        run.firstSite[event.site] ??= today;
-        return;
-      }
-      if (event.type !== "crafted") return;
-      // A unit that landed before the check-in counts for the day it landed on.
-      const day = Math.min(today, Math.floor((event.at - start) / DAY) + 1);
-      run.firstMade[event.recipe] ??= day;
-      run.stationsWorked[event.station] ??= day;
-    },
-    startDay: (day) => {
-      today = day;
-    },
-    endDay: (day, endOfDay) => {
-      const settled = settleAll(content, self.state, endOfDay);
-      for (const event of settled.events) self.record(event);
-      // Kept, so what landed this evening (a raid) is recorded on its day, once.
-      self.state = settled.state;
-      const s = settled.state;
-      run.tools[s.toolId] ??= day;
-      if (run.reached[s.tier] === undefined) run.reached[s.tier] = day;
-      const fill = storageFill(content, s, endOfDay);
-      run.rows.push({
-        day,
-        tier: s.tier,
-        tool: s.toolId,
-        fill: `${Math.round(fill.fraction * 100)}% ${fill.resource}`,
-        cap: storageCap(content, s),
-        ingots: s.stock.ingots ?? 0,
-        fuel: s.stock.fuel ?? 0,
-        scrap: s.stock.scrap ?? 0,
-        items: Object.values(s.items).reduce((sum, count) => sum + count, 0),
-        parts: content.resources
-          .filter((resource) => resource.kind === "part")
-          .reduce((sum, resource) => sum + (s.stock[resource.id] ?? 0), 0),
-        crew: s.crew.length,
-        ...denDay,
-        known: s.known.length,
-        buildings: buildingCount(s),
-        building: s.construction.length > 0,
-        defence: defenceOf(content, s, endOfDay).total,
-        charges: s.stock.charge ?? 0,
-        ...raidDay,
-      });
-      denDay = { denSpent: 0, denEarned: 0, wagered: 0, won: 0 };
-      raidDay = { raids: 0, raidsHeld: 0, raidLoss: 0, pvpTake: 0, pvpLoss: 0, camps: 0 };
-    },
-  };
-  return self;
-}
-
-const SEASON_START = 1_700_000_000;
-
-/** `onEvent` sees every event as it happens, with its season day (for debugging balance). */
+/** One archetype's life up to calendar day `days`, from its `startDay` (a late joiner: day 30). */
 export function simulate(
   content: Content,
+  name: string,
   archetype: Archetype,
   days: number,
-  onEvent?: (event: GameEvent, day: number, state: () => BaseState) => void,
-): Run {
-  const clock = manualClock(SEASON_START);
-  house.random = rng(seedOf(7, ARCHETYPES.indexOf(archetype)));
-  house.jackpot = 0;
-  house.signal = newSignal();
-  house.given = 0;
-  const player = runner(content, archetype, SEASON_START, 1, onEvent);
-  listener = player.record;
-  for (let day = 1; day <= days; day++) {
-    player.startDay(day);
-    for (const hour of SCHEDULE[archetype]) {
-      clock.set(SEASON_START + (day - 1) * DAY + hour * HOUR);
-      player.state = checkIn(content, player.state, clock.now(), archetype);
-      if (player.run.reached[player.state.tier] === undefined)
-        player.run.reached[player.state.tier] = day;
+  seed = 11,
+  snapshotDays: readonly number[] = [],
+  stop: Stop | null = null,
+): Life {
+  const sessions = sessionsOf(archetype);
+  const startDay = archetype.startDay ?? 1;
+  const baseSeed = seedOf(seed, ...[...name].map((char) => char.charCodeAt(0)));
+  let state = newBase(content, DAY0 + (startDay - 1) * DAY, baseSeed);
+  const life: Life = {
+    name,
+    days: [],
+    runs: [],
+    firstHandSeconds: null,
+    beats: {},
+    stuck: { early: 0, online: 0 },
+    checkIns: [],
+    income: { firstMinute: { tapDriven: 0, made: 0 }, later: { direct: 0, made: 0 } },
+    snapshots: {},
+    largest: 0,
+    steps: 0,
+  };
+  let runStart = 0;
+  let runOnline = 0;
+  let stuck = 0;
+  let bought = false;
+  /** The run before this one: its made (N11 reads when this run passes it). */
+  let previousMade = 0;
+  let passedAt: number | null = null;
+
+  /** Run 1's moments, from the events of each command. */
+  const beat = (key: string, at: number) => {
+    if (state.meta.nukes === 0 && life.beats[key] === undefined) life.beats[key] = at;
+  };
+  const since = (now: number) => now - (state.run.startedAt ?? now);
+  const record = (events: GameEvent[], now: number) => {
+    for (const event of events) {
+      if (event.type === "era_reached") beat(`era_${event.era}`, event.at);
+      if (event.type === "hand_hired") beat("hand", since(now));
+      if (event.type === "flotsam_claimed") beat("flotsam", since(now));
+      if (event.type === "upgraded") beat(event.upgrade, since(now));
+      if (event.type === "frenzy_tripped") beat("frenzy", since(now));
+      if (event.type === "gull_caught") beat("gull", since(now));
+      if (event.type === "badge_unlocked") beat("badge", since(now));
+      if (event.type === "drop_opened") beat("drop", since(now));
+      if (event.type === "hand_hired" || event.type === "drop_earned") tending = true;
+      if (event.type === "researched") {
+        beat("research", since(now));
+        beat(event.item, since(now));
+      }
     }
-    player.endDay(day, SEASON_START + day * DAY - 1);
+  };
+
+  /** A hire or an earned drop since the cards were last tended. */
+  let tending = false;
+  let crafted = 0;
+
+  /** The Blast Map's pick, bought while glass allows (R4, 04 8.4): every nuke's shopping. */
+  const buyNodes = (now: number): number => {
+    let count = 0;
+    for (let i = 0; i < 400; i++) {
+      const pick = nodePick(content, state, (node) => nodeGain(content, node));
+      if (pick?.state.kind !== "affordable") break;
+      if (!step({ type: "buy_node", path: [pick.node.id] }, now).ok) break;
+      count += 1;
+    }
+    return count;
+  };
+
+  /** The Big Red, by the archetype's policy (R4): the press, then the map. */
+  const maybeNuke = (now: number): boolean => {
+    if (!pressesNow(content, state, now, archetype.nuke)) return false;
+    const before = metaPower(content, state.meta);
+    const made = state.run.made;
+    const orders = state.run.orders.claimed.length;
+    const wasFuelled = fuelled(content, state);
+    const n = state.run.n;
+    // Run 1's beat is read before the press: `beat` only records while no nuke has happened.
+    if (pressesNow(content, state, now, archetype.nuke)) beat("nuke", since(now));
+    const result = step({ type: "nuke", run: n }, now);
+    if (!result.ok) return false;
+    const nuked = result.events.find((event) => event.type === "nuked");
+    const nodes = buyNodes(now);
+    tending = true;
+    life.runs.push({
+      n,
+      start: runStart,
+      end: now - DAY0,
+      made,
+      glass: nuked?.type === "nuked" ? nuked.gain : 0,
+      orders,
+      fuelled: wasFuelled,
+      wipeDay: nuked?.type === "nuked" ? nuked.wipeDay : null,
+      nodes,
+      lit: state.meta.nodes.length,
+      power: metaPower(content, state.meta) / before,
+      passedAt,
+    });
+    previousMade = made;
+    passedAt = null;
+    runStart = now - DAY0;
+    runOnline = 0;
+    stuck = 0;
+    waiting = null;
+    return true;
+  };
+
+  /** The Work Orders and quests met and not yet claimed (R3 S2): a player taps Claim. */
+  const claims = (now: number) => {
+    for (const order of ordersOf(content, state))
+      if (!orderClaimed(state, order.id) && orderMet(content, state, order))
+        step({ type: "claim_order", run: state.run.n, id: order.id }, now);
+    for (const quest of questsOf(content, state))
+      if (!questClaimed(state, quest.id) && questMet(state, quest))
+        step({ type: "claim_quest", day: state.meta.quests.day, id: quest.id }, now);
+  };
+
+  /** Scrap by the archetype's policy, at a session's start. */
+  const spend = (now: number) => {
+    if (archetype.spend === "boosts") {
+      for (const boost of content.scrap.boosts) {
+        if (boost.id === "double_time" && archetype.tapsPerSecond === 0) continue;
+        if (boost.tide && archetype.catches === 0) continue;
+        if (state.meta.scrap >= boost.cost) step({ type: "buy_boost", boost: boost.id }, now);
+      }
+    } else if (archetype.spend === "drops") {
+      while (state.meta.scrap >= content.scrap.drops[2]) {
+        if (!step({ type: "buy_drop", tier: 2 }, now).ok) break;
+        tending = true;
+      }
+    }
+  };
+
+  const step = (command: Command, now: number): ReturnType<typeof applyCommand> => {
+    const result = applyCommand(content, state, command, now);
+    state = result.state;
+    life.steps += 1;
+    life.largest = Math.max(life.largest, largestOf(state));
+    if (result.ok) {
+      record(result.events, now);
+      if (PURCHASES.has(command.type)) bought = true;
+      if (command.type === "craft_gear") crafted += 1;
+    }
+    if (
+      command.type === "hire_hand" &&
+      result.ok &&
+      life.firstHandSeconds === null &&
+      state.meta.nukes === 0 &&
+      state.run.startedAt !== null
+    ) {
+      life.firstHandSeconds = now - state.run.startedAt;
+    }
+    return result;
+  };
+
+  /**
+   * The player as the client's crown sees them (`state/pace.ts`, D165): tapping all the time at
+   * `tapsPerSecond` while they tap, not at all otherwise; income is what runs (unmanned lines
+   * too while tapping) plus the taps.
+   */
+  const pace = (calm: BaseState, now: number, tapsPerSecond: number): Player => {
+    const tapShare = tapsPerSecond > 0 ? 1 : 0;
+    const manned = mannedRate(content, calm, now);
+    const running = manned + tapShare * (fullRate(content, calm, now, ONLINE) - manned);
+    const income = running + tapsPerSecond * tapParts(content, calm, now).base;
+    return { income, tapShare, tapRate: tapsPerSecond };
+  };
+
+  /**
+   * The crown's last pick while it still holds: it saves for a purchase out of reach, and among
+   * those the ranking does not depend on the supplies held (the wait shifts every score alike;
+   * what is affordable only falls behind), so the pick changes only when prices or the pace
+   * change, the supplies reach the next price or the Workshop opens. The crown scores lasting
+   * rates, so buffs never move it (D200).
+   */
+  let waiting: {
+    rates: object;
+    pace: number;
+    next: number;
+    until: number;
+    any: boolean;
+  } | null = null;
+
+  /** Buys the crown's pick while it is affordable; says whether anything at all was. */
+  const buy = (now: number, tapsPerSecond: number): boolean => {
+    if (
+      waiting &&
+      waiting.rates === rates(content, state) &&
+      waiting.pace === tapsPerSecond &&
+      state.run.supplies < waiting.next &&
+      now < waiting.until
+    ) {
+      return waiting.any;
+    }
+    for (let i = 0; i < 100; i++) {
+      const calm = lasting(state);
+      const player = pace(calm, now, tapsPerSecond);
+      const offered = choices(content, calm, now, player.income, player.tapShare, player.tapRate);
+      const pick = crown(content, calm, now, player, offered);
+      if (pick.kind !== "purchase" || !pick.choice.affordable) {
+        const supplies = state.run.supplies;
+        let next = Number.POSITIVE_INFINITY;
+        for (const choice of offered)
+          if (choice.cost > supplies) next = Math.min(next, choice.cost);
+        const any = offered.some((choice) => choice.affordable);
+        const opens = workshopOpensAt(content, state);
+        waiting = {
+          rates: rates(content, state),
+          pace: tapsPerSecond,
+          next,
+          until: opens !== null && opens > now ? opens : Number.POSITIVE_INFINITY,
+          any,
+        };
+        return any;
+      }
+      // A Workshop level: as many as the supplies reach, the tile's Max (D229, D235); one level
+      // at a time made the late tiers' 500 levels a run the quick profile's cost (R3 S4).
+      const command = pick.choice.command;
+      step(command.type === "buy_research" ? { ...command, count: "max" } : command, now);
+    }
+    return true;
+  };
+
+  /** The cards, as a player would keep them: open, star, craft, then wear the best (D252). */
+  const tend = (now: number) => {
+    tending = false;
+    for (const tier of [1, 2, 3] as const)
+      while (state.meta.drops.held[tier] > 0)
+        if (!step({ type: "open_drop", tier, pull: state.meta.drops.pulls }, now).ok) break;
+    const { stars, shards } = content.cards;
+    for (const row of content.cards.survivors) {
+      for (
+        let n = state.meta.cards.survivors[row.id];
+        n !== undefined && n <= stars.costs.length;
+        n++
+      ) {
+        if ((state.meta.drops.shards.crew[row.id] ?? 0) < (stars.costs[n - 1] ?? Infinity)) break;
+        if (!step({ type: "star_up", survivor: row.id, to: n + 1 }, now).ok) break;
+      }
+    }
+    for (const rarity of RARITIES) {
+      for (const row of content.cards.gear) {
+        if (row.rarity !== rarity || row.id in state.meta.cards.gear) continue;
+        if (state.meta.drops.shards.gear[rarity] < shards.craft[rarity]) break;
+        step({ type: "craft_gear", gear: row.id }, now);
+      }
+    }
+    // The hired survivors, the line that makes most first; production gear, strongest first.
+    const hired = content.lines
+      .filter((line) => state.run.hands.includes(line.id))
+      .filter((line) => state.meta.cards.survivors[line.hand] !== undefined)
+      .map((line) => ({
+        hand: line.hand,
+        rate: (state.run.lines[line.id] ?? 0) * unitRate(content, state, line, now, ONLINE),
+      }))
+      .sort((a, b) => b.rate - a.rate);
+    const power = (stat: string, value: number) =>
+      stat === "output" || stat === "speed" ? value : 1;
+    for (const slot of SLOTS) {
+      const owned = content.cards.gear
+        .filter((row) => row.slot === slot && row.id in state.meta.cards.gear)
+        .sort(
+          (a, b) => power(b.effect.stat, b.effect.value) - power(a.effect.stat, a.effect.value),
+        );
+      for (const [i, survivor] of hired.entries()) {
+        const gear = owned[i];
+        if (!gear) break;
+        if (state.meta.cards.gear[gear.id] !== survivor.hand)
+          step({ type: "equip_gear", gear: gear.id, survivor: survivor.hand }, now);
+      }
+    }
+  };
+
+  const wanted = new Set(snapshotDays);
+  for (let day = startDay; day <= days; day++) {
+    const midnight = DAY0 + (day - 1) * DAY;
+    if (wanted.has(day)) life.snapshots[day] = settle(content, state, midnight).state;
+    for (const session of sessions) {
+      let t = midnight + session.start;
+      const end = t + session.seconds;
+      bought = false;
+      const checkIn = { at: t - DAY0, made: settle(content, state, t).state };
+      step({ type: "ping" }, t);
+      claims(t);
+      spend(t);
+      // A check-in finds a run that grew while away: the record may have fallen (N11), and the
+      // crown may already say press (the casual's evening nuke).
+      if (passedAt === null && previousMade > 0 && state.run.made >= previousMade)
+        passedAt = t - DAY0;
+      maybeNuke(t);
+      while (t < end) {
+        const idle = state.run.hands.length === 0;
+        const rate = archetype.tapsPerSecond + (idle ? (archetype.tapsWhileNothingRuns ?? 0) : 0);
+        // As the client batches (D134): 1 s at first, then 5 s, never more than 30 taps.
+        const wide = runOnline < FINE_SECONDS ? 1 : 5;
+        const fits = Math.max(1, Math.floor(MAX_BATCH / Math.max(rate, 1)));
+        const length = Math.min(wide, fits, end - t);
+        const count = Math.round(rate * length);
+        const to = t + length - 1;
+        const before = state.run.made;
+        const buffed = state.run.buffs.some((buff) => buff.until > t);
+        // What the manned lines make over run 1's first minute: everything else the taps drove.
+        const manned =
+          state.meta.nukes === 0 && runOnline < 60 ? mannedRate(content, state, t) * length : 0;
+        // Not tapping, the player still watches the counter rise: the state settles (D178).
+        if (count === 0) state = settle(content, state, to).state;
+        if (count > 0) {
+          const result = step({ type: "taps", count, from: t, to }, to);
+          const tapped = result.events.find((event) => event.type === "tapped");
+          // A batch that trips a Frenzy is part of the burst too (N8's "outside bursts").
+          const burst = buffed || result.events.some((event) => event.type === "frenzy_tripped");
+          if (state.meta.nukes === 0 && tapped?.type === "tapped") {
+            const made = state.run.made - before;
+            if (runOnline < 60) {
+              life.income.firstMinute.tapDriven += Math.max(0, made - manned);
+              life.income.firstMinute.made += made;
+            } else if (runOnline >= FINE_SECONDS && !burst) {
+              life.income.later.direct += tapped.direct;
+              life.income.later.made += made;
+            }
+          }
+        }
+        const k = floating(content, state, to);
+        if (k !== null && catches(archetype, baseSeed, state.run.n, k))
+          step({ type: "claim_flotsam", run: state.run.n, k }, to);
+        // Crows, by the same share as flotsam on their own stream (D238).
+        const crow = gullAt(content, state, to);
+        if (crow && catches(archetype, seedOf(baseSeed, SEED.gull), state.run.n, crow.k))
+          step({ type: "claim_gull", run: state.run.n, k: crow.k }, to);
+        // Lucky Tide crates, by the same share on their own stream.
+        const tide = tideAt(content, state, to);
+        if (tide && catches(archetype, seedOf(baseSeed, SEED.tide), state.run.n, tide.k))
+          step({ type: "claim_tide", run: state.run.n, k: tide.k }, to);
+        const affordable = buy(to, rate);
+        claims(to);
+        if (tending) tend(to);
+        if (state.run.n <= EARLY_RUNS) {
+          stuck = affordable ? 0 : stuck + length;
+          life.stuck.online = Math.max(life.stuck.online, stuck);
+          if (runOnline < FINE_SECONDS) life.stuck.early = Math.max(life.stuck.early, stuck);
+        }
+        if (passedAt === null && previousMade > 0 && state.run.made >= previousMade)
+          passedAt = to - DAY0;
+        maybeNuke(to);
+        runOnline += length;
+        t += length;
+        // A scenario's session ends with the press nothing due reads past (`quickRuns`, D272).
+        if (stop?.inSession && day >= stop.day && life.runs.length > 0 && state.run.n > stop.runs)
+          break;
+      }
+      // Every number still finite (D130), checked once a session: `finite()` guards each gain.
+      assertFiniteState(state);
+      // A stretch with nothing affordable ends with the session.
+      stuck = 0;
+      life.checkIns.push({
+        day,
+        at: checkIn.at,
+        made: checkIn.made.meta.lifetime + checkIn.made.run.made,
+        bought,
+      });
+    }
+    // The day's end, settled in closed form.
+    state = settle(content, state, midnight + DAY - 1).state;
+    life.largest = Math.max(life.largest, largestOf(state));
+    life.days.push({
+      day,
+      run: state.run.n,
+      supplies: state.run.supplies,
+      made: state.run.made,
+      lifetime: state.meta.lifetime + state.run.made,
+      owned: Object.values(state.run.lines).reduce((sum, n) => sum + n, 0),
+      hands: state.run.hands.length,
+      glassEver: state.meta.glass.ever,
+      nukes: state.meta.nukes,
+      wipeDays: state.meta.wipeDays,
+      taps: state.meta.stats.taps,
+      drops: state.meta.stats.drops,
+      cards:
+        Object.keys(state.meta.cards.survivors).length + Object.keys(state.meta.cards.gear).length,
+      scrap: state.meta.stats.scrap,
+      orders: state.meta.stats.orders,
+      quests: state.meta.stats.quests,
+      baseSet: baseSetOwned(content, state),
+      owed: dropsOnWay(content, state),
+      stars: Object.values(state.meta.cards.survivors).reduce((sum, n) => sum + n - 1, 0),
+      shards: Object.values(state.meta.drops.shards.gear).reduce((sum, n) => sum + n, 0),
+      crafted,
+    });
+    if (stop && day >= stop.day && life.runs.length > 0 && state.run.n > stop.runs) break;
   }
-  listener = null;
-  return { ...player.run, signalGiven: house.given, signalStage: house.signal.stage };
+  life.runs.push({
+    n: state.run.n,
+    start: runStart,
+    end: null,
+    made: state.run.made,
+    glass: 0,
+    orders: state.run.orders.claimed.length,
+    fuelled: fuelled(content, state),
+    wipeDay: null,
+    nodes: 0,
+    lit: state.meta.nodes.length,
+    power: 1,
+    passedAt,
+  });
+  return life;
 }
 
-const RAIDER = { id: 1, name: "Raider" };
-const TARGET = { id: 2, name: "Casual" };
+/** Every archetype of the pacing file, alone (`stops`: each one's early stop, if any). */
+export function simulateArchetypes(
+  content: Content,
+  days: number,
+  seed = 11,
+  snapshotDays: readonly number[] = [],
+  stops: Readonly<Record<string, Stop>> = {},
+): Life[] {
+  return Object.entries(content.pacing.archetypes).map(([name, a]) =>
+    simulate(content, name, a, days, seed, snapshotDays, stops[name] ?? null),
+  );
+}
 
 /**
- * PvP (W6): the raider against a casual player who opted in, on the same clock. The raider
- * strikes at every check-in the limits allow; the server's two halves are played out the
- * same way (`raid_player` on the raider, `takeRaid` on the target).
+ * The checks whose reach is known: what they read from each archetype is named by their `days`
+ * (or `day`) and `archetype`, run 1's end, or runs 1-5. With any other check due, every life
+ * plays to the profile's last day.
  */
-export function simulatePair(content: Content, days: number): { raider: Run; target: Run } {
-  const clock = manualClock(SEASON_START);
-  house.random = rng(seedOf(7, ARCHETYPES.indexOf("raider")));
-  house.jackpot = 0;
-  house.signal = newSignal();
-  house.given = 0;
-  const raider = runner(content, "raider", SEASON_START, 1);
-  const target = runner(content, "casual", SEASON_START, 2);
-  for (let day = 1; day <= days; day++) {
-    raider.startDay(day);
-    target.startDay(day);
-    const hours = [...new Set([...SCHEDULE.raider, ...SCHEDULE.casual])].sort((a, b) => a - b);
-    for (const hour of hours) {
-      clock.set(SEASON_START + (day - 1) * DAY + hour * HOUR);
-      const now = clock.now();
-      if (SCHEDULE.casual.includes(hour)) {
-        listener = target.record;
-        target.state = checkIn(content, target.state, now, "casual", { pvp: true });
+const SHORT_CHECKS: ReadonlySet<string> = new Set([
+  "prestigeShape",
+  "magnitude",
+  "firstHandSeconds",
+  "nothingAffordableEarly",
+  "nothingAffordableOnline",
+  "casualCheckInsWithPurchase",
+  "tapShare",
+  "activeHour",
+  "run1Made",
+  "firstHourBeats",
+  "casualFirstNuke",
+  "scrap",
+  "casualDropsPerDay",
+  "casualAlbumBase",
+  "casualAlbumFull",
+  "ordersReachable",
+  "firstNukeMinutes",
+  "firstNukeMinutesAny",
+  "passPreviousRun",
+  "powerPerNuke",
+  "flattening",
+  "nodesBought",
+  "casualWipeDaysByDay30",
+  "casualFirstWeekGlass",
+]);
+/** Days every archetype must play for a check that reads them all (R4's run-to-run checks). */
+// The run-to-run checks read their early band (nukes 1-5, the first week) in the quick profile;
+// the mid and late bands are `--full`'s (R4 S2: 30 days each put the profile at 32 s, D270).
+const REACH_DAYS: Readonly<Record<string, number>> = {
+  passPreviousRun: 7,
+  powerPerNuke: 7,
+  flattening: 7,
+  nodesBought: 7,
+  firstNukeMinutesAny: 3,
+};
+/** N19's window: a 7-day average from day 2 (12-feel.md 11), so everyone plays to day 8. */
+const SCRAP_FROM_DAY = 2;
+const SCRAP_DAYS = 7;
+
+/** Each archetype's early stop for the due assertions, or null when one reaches further. */
+export function earlyStops(
+  content: Content,
+  due: readonly Assertion[],
+): Record<string, Stop> | null {
+  if (due.some((assertion) => !SHORT_CHECKS.has(assertion.check))) return null;
+  const stops: Record<string, Stop> = {};
+  for (const [name, archetype] of Object.entries(content.pacing.archetypes)) {
+    const startDay = archetype.startDay ?? 1;
+    let day = startDay;
+    for (const assertion of due) {
+      // N19 reads everyone's first week from day 2, and the casual to its day-30 total.
+      if (assertion.check === "scrap") {
+        day = Math.max(day, startDay + SCRAP_FROM_DAY + SCRAP_DAYS - 2);
+        if (name === str(assertion.archetype, "casual"))
+          day = Math.max(day, num(assertion.byDay, 30));
+        continue;
       }
-      if (SCHEDULE.raider.includes(hour)) {
-        listener = raider.record;
-        raider.state = checkIn(content, raider.state, now, "raider");
-        raider.state = strike(content, raider, target, now);
-      }
-      for (const player of [raider, target]) {
-        if (player.run.reached[player.state.tier] === undefined)
-          player.run.reached[player.state.tier] = day;
-      }
+      const reach = REACH_DAYS[assertion.check];
+      if (reach !== undefined) day = Math.max(day, startDay + reach - 1);
+      const reads =
+        assertion.check === "activeHour"
+          ? str(assertion.archetype, "active")
+          : assertion.check.startsWith("casual")
+            ? str(assertion.archetype, "casual")
+            : null;
+      if (reads !== name) continue;
+      const days = Array.isArray(assertion.days)
+        ? assertion.days.map((d) => num(d, 1))
+        : [num(assertion.days ?? assertion.day, 1)];
+      day = Math.max(day, ...days);
     }
-    raider.endDay(day, SEASON_START + day * DAY - 1);
-    target.endDay(day, SEASON_START + day * DAY - 1);
+    stops[name] = {
+      day: Math.min(day, archetype.quickDays ?? Number.POSITIVE_INFINITY),
+      runs: EARLY_RUNS,
+    };
   }
-  listener = null;
-  return { raider: raider.run, target: target.run };
+  return stops;
 }
 
-/** The raider's PvP turn: raid the target when every limit allows it. */
-function strike(content: Content, raider: Runner, target: Runner, now: number): BaseState {
-  const s = raider.state;
-  if (!s.pvp.on) return s;
-  const settled = settleAll(content, target.state, now);
-  for (const event of settled.events) target.record(event);
-  target.state = settled.state;
-  const view = { ...TARGET, state: target.state };
-  if (pvpStatus(content, s, RAIDER.id, view, now).code !== "ok") return s;
-  const result = applyCommand(content, s, { type: "raid_player", target: TARGET.id }, now, {
-    seed: house.random.int(0, 2 ** 31 - 1),
-    self: RAIDER.id,
-    selfName: RAIDER.name,
-    target: view,
-  });
-  for (const event of result.events) raider.record(event);
-  const launched = result.events.find((event) => event.type === "raid_launched");
-  if (launched?.type === "raid_launched") {
-    const taken = takeRaid(
-      content,
-      target.state,
-      hitOf(launched.report, RAIDER.id, RAIDER.name),
-      now,
-    );
-    for (const event of taken.events) target.record(event);
-    target.state = taken.state;
-  }
-  return result.state;
+/**
+ * Every scenario of the pacing file: one long session, so a single day covers it. The quick
+ * profile (`early`) ends a scenario's session with its `quickRuns`th press (D272).
+ */
+export function simulateScenarios(content: Content, seed = 11, early = false): Life[] {
+  return Object.entries(content.pacing.scenarios).map(([name, a]) =>
+    simulate(content, name, a, 1, seed, [], scenarioStop(a, early)),
+  );
 }
 
-/** `cost` with every part broken down into what it is made of, down to gathered resources. */
-function rawCost(content: Content, cost: Amounts): Amounts {
-  const out: Amounts = {};
-  const leaves = (needs: Need[]) => {
-    for (const need of needs) {
-      if (need.make) leaves(need.parts);
-      else out[need.id] = (out[need.id] ?? 0) + need.need;
+/** Where the quick profile stops a scenario, or null to play its session out. */
+export function scenarioStop(scenario: Archetype, early: boolean): Stop | null {
+  return early && scenario.quickRuns !== undefined
+    ? { day: 1, runs: scenario.quickRuns, inSession: true }
+    : null;
+}
+
+/** Every archetype and scenario of the pacing file, alone. */
+export function simulateAll(
+  content: Content,
+  days: number,
+  seed = 11,
+  snapshotDays: readonly number[] = [],
+): Life[] {
+  return [
+    ...simulateArchetypes(content, days, seed, snapshotDays),
+    ...simulateScenarios(content, seed),
+  ];
+}
+
+/**
+ * Supplies made in one online hour from `start`: tapping `tapsPerSecond` and catching every
+ * flotsam and crow, or idle (a ping every 5 minutes, so the player counts as online). Nothing is bought,
+ * so the hour measures what activity adds, not what it compounds into (N9).
+ */
+export function hourMade(
+  content: Content,
+  from: BaseState,
+  start: number,
+  tapsPerSecond: number,
+): number {
+  let state = applyCommand(content, from, { type: "ping" }, start).state;
+  const made = state.run.made;
+  for (let t = start; t < start + 3600; t += 5) {
+    const to = t + 4;
+    if (tapsPerSecond > 0) {
+      state = applyCommand(
+        content,
+        state,
+        { type: "taps", count: Math.round(tapsPerSecond * 5), from: t, to },
+        to,
+      ).state;
+      const k = floating(content, state, to);
+      if (k !== null)
+        state = applyCommand(
+          content,
+          state,
+          { type: "claim_flotsam", run: state.run.n, k },
+          to,
+        ).state;
+      const crow = gullAt(content, state, to);
+      if (crow)
+        state = applyCommand(
+          content,
+          state,
+          { type: "claim_gull", run: state.run.n, k: crow.k },
+          to,
+        ).state;
+    } else if ((t - start) % 300 === 0) {
+      state = applyCommand(content, state, { type: "ping" }, t).state;
     }
-  };
-  leaves(expandNeeds(content, {}, cost));
+  }
+  return settle(content, state, start + 3600).state.run.made - made;
+}
+
+type HourRatios = { weighted: number; clear: number; rain: number };
+
+/** N9's hours per snapshot: its weighted and rain rows read the same hours. */
+const hours = new WeakMap<BaseState, Map<number, HourRatios>>();
+
+/**
+ * N9 at a day's snapshot: active ÷ idle online hours, from six hour starts on six flotsam seeds,
+ * three starting in rain and three not, weighted by the island's rain share (errata E13).
+ */
+export function activeHour(
+  content: Content,
+  snapshot: BaseState,
+  tapsPerSecond: number,
+): HourRatios {
+  const known = hours.get(snapshot)?.get(tapsPerSecond);
+  if (known) return known;
+  const ratios = { clear: [] as number[], rain: [] as number[] };
+  // Hours start at noon on the snapshot's day, then every 30-minute block after it.
+  let start = snapshot.run.settledAt + 12 * 3600;
+  for (let k = 0; ratios.clear.length < 3 || ratios.rain.length < 3; k++) {
+    const rainy = weatherAt(content, start) === "rain";
+    const list = rainy ? ratios.rain : ratios.clear;
+    if (list.length < 3) {
+      const seeded = { ...snapshot, run: { ...snapshot.run, seed: seedOf(snapshot.run.seed, k) } };
+      const active = hourMade(content, seeded, start, tapsPerSecond);
+      const idle = hourMade(content, seeded, start, 0);
+      list.push(active / Math.max(idle, 1e-9));
+    }
+    start += content.islandClock.weather.blockMinutes * 60;
+    if (k > 2000) break;
+  }
+  const mean = (list: number[]) => list.reduce((a, b) => a + b, 0) / Math.max(1, list.length);
+  const rainShare = content.islandClock.weather.rain / 100;
+  const clear = mean(ratios.clear);
+  const rain = mean(ratios.rain);
+  const result = { weighted: (1 - rainShare) * clear + rainShare * rain, clear, rain };
+  const byRate = hours.get(snapshot) ?? new Map<number, HourRatios>();
+  byRate.set(tapsPerSecond, result);
+  hours.set(snapshot, byRate);
+  return result;
+}
+
+// --- the assertions (`pacing.json5` v2) ----------------------------------------------------
+
+export type Status = "pass" | "warn" | "fail" | "pending" | "missing";
+
+export interface Verdict {
+  n: string;
+  check: string;
+  on: Phase;
+  status: Status;
+  detail: string;
+}
+
+interface Context {
+  content: Content;
+  lives: Life[];
+}
+
+type Check = (assertion: Assertion, context: Context) => { ok: boolean; detail: string };
+
+const num = (value: unknown, fallback: number): number =>
+  typeof value === "number" ? value : fallback;
+const str = (value: unknown, fallback: string): string =>
+  typeof value === "string" ? value : fallback;
+const pair = (value: unknown, fallback: [number, number]): [number, number] =>
+  Array.isArray(value) && value.length === 2 ? [num(value[0], 0), num(value[1], 0)] : fallback;
+const clock = (seconds: number): string =>
+  `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, "0")}`;
+const pct = (value: number): string => `${(value * 100).toFixed(1)}%`;
+/** Seconds after DAY0 as "day 2 08:03". */
+export const dayClock = (seconds: number): string => {
+  const day = Math.floor(seconds / DAY) + 1;
+  const inDay = seconds - (day - 1) * DAY;
+  const hh = String(Math.floor(inDay / 3600)).padStart(2, "0");
+  const mm = String(Math.floor((inDay % 3600) / 60)).padStart(2, "0");
+  return `day ${day} ${hh}:${mm}`;
+};
+
+/** The lives of an archetype or scenario by name (one per seed). */
+const named = (lives: Life[], name: string): Life[] => lives.filter((life) => life.name === name);
+
+/** The archetypes N11-N13 judge (the idler's doubling runs sit outside the bands by design). */
+const RUN_ARCHETYPES = ["casual", "active", "optimal"] as const;
+/** Early is runs 1-5, mid later runs ending by day 30, late runs ending by day 180 (03 13.1). */
+type RunPhase = "early" | "mid" | "late";
+const phaseOf = (run: RunRow): RunPhase | null => {
+  if (run.end === null) return null;
+  if (run.n <= EARLY_RUNS) return "early";
+  const day = Math.floor(run.end / DAY) + 1;
+  return day <= 30 ? "mid" : day <= 180 ? "late" : null;
+};
+const median = (values: number[]): number => {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const a = sorted[mid - 1];
+  const b = sorted[mid];
+  if (b === undefined) return Number.NaN;
+  return sorted.length % 2 === 0 && a !== undefined ? (a + b) / 2 : b;
+};
+const geomean = (values: number[]): number =>
+  values.length === 0
+    ? Number.NaN
+    : Math.exp(values.reduce((sum, v) => sum + Math.log(Math.max(v, 1e-12)), 0) / values.length);
+/** Per archetype and phase, `pick` over every finished run pair or run. */
+function byPhase(
+  lives: Life[],
+  pick: (run: RunRow, previous: RunRow | undefined, life: Life) => number | null,
+): Map<string, Map<RunPhase, number[]>> {
+  const out = new Map<string, Map<RunPhase, number[]>>();
+  for (const name of RUN_ARCHETYPES) {
+    const phases = new Map<RunPhase, number[]>();
+    for (const life of named(lives, name)) {
+      for (const [i, run] of life.runs.entries()) {
+        const phase = phaseOf(run);
+        if (phase === null) continue;
+        const value = pick(run, life.runs[i - 1], life);
+        if (value === null || !Number.isFinite(value)) continue;
+        phases.set(phase, [...(phases.get(phase) ?? []), value]);
+      }
+    }
+    out.set(name, phases);
+  }
   return out;
 }
+const PHASES_IN_ORDER: RunPhase[] = ["early", "mid", "late"];
 
-export interface CheckFailure {
-  message: string;
-  /** Advisory: printed, but does not fail the check. */
-  warning?: boolean;
+/** Common and Rare cards owned: the Album's base set (N33, D266). */
+function baseSetOwned(content: Content, state: BaseState): number {
+  const base = (rarity: string) => rarity === "common" || rarity === "rare";
+  const cards = state.meta.cards;
+  return (
+    content.cards.survivors.filter(
+      (row) => base(row.rarity) && cards.survivors[row.id] !== undefined,
+    ).length + content.cards.gear.filter((row) => base(row.rarity) && row.id in cards.gear).length
+  );
 }
 
-/** Asserts `data/pacing.json5` against fresh runs. Empty result = pass. */
-export function checkPacing(content: Content, days = 35): CheckFailure[] {
-  const failures: CheckFailure[] = [];
-  const casual = simulate(content, "casual", days);
-  const optimal = simulate(content, "optimal", days);
-  const gambler = simulate(content, "gambler", days);
-  const pair = simulatePair(content, days);
-  const veteran = simulate(content, "veteran", days);
-  const { pacing } = content;
-
-  // W7: the legacy layer may help a veteran, never past the floors or by more than the cap.
-  const vetHqm = veteran.reached.hqm;
-  if (vetHqm !== undefined && vetHqm < pacing.optimal.hqmNotBeforeDay) {
-    failures.push({
-      message: `the veteran reached hqm on day ${vetHqm}, must not be before day ${pacing.optimal.hqmNotBeforeDay}`,
-    });
-  }
-  const vetLast = veteran.firstSite[pacing.optimal.lastSite.id];
-  if (vetLast !== undefined && vetLast < pacing.optimal.lastSite.notBeforeDay) {
-    failures.push({
-      message: `the veteran first went to ${pacing.optimal.lastSite.id} on day ${vetLast}, must not be before day ${pacing.optimal.lastSite.notBeforeDay}`,
-    });
-  }
-  for (const tier of ["metal", "hqm"] as const) {
-    const fast = veteran.reached[tier];
-    const base = optimal.reached[tier];
-    const floor = base === undefined ? 0 : Math.floor(base / (1 + content.legacy.capPercent / 100));
-    if (fast !== undefined && fast < floor) {
-      failures.push({
-        message: `the veteran reached ${tier} on day ${fast}, more than ${content.legacy.capPercent}% faster than optimal (day ${base})`,
-      });
-    }
-  }
-  if ((casual.signalStage ?? 0) < pacing.casual.signalStages) {
-    failures.push({
-      message: `casual filled ${casual.signalStage ?? 0} Signal stages, target at least ${pacing.casual.signalStages}`,
-    });
-  }
-
-  // W6: raids. NPC raiders come and a casual defence holds some; charges reach the camps;
-  // PvP happens without stopping the raided player.
-  const raidTarget = pacing.casual.raids;
-  if (casual.firstRaid === null || casual.firstRaid > raidTarget.firstByDay) {
-    failures.push({
-      message: `casual's first raid landed on ${casual.firstRaid === null ? "no day" : `day ${casual.firstRaid}`}, target by day ${raidTarget.firstByDay}`,
-    });
-  }
-  const until = casual.rows.slice(0, raidTarget.day);
-  const landed = until.reduce((sum, row) => sum + row.raids, 0);
-  const held = until.reduce((sum, row) => sum + row.raidsHeld, 0);
-  if (landed > 0 && (held * 100) / landed < raidTarget.heldPercent) {
-    failures.push({
-      message: `casual held ${held} of ${landed} raids by day ${raidTarget.day}, target at least ${raidTarget.heldPercent}%`,
-    });
-  }
-  if (casual.firstCamp === null || casual.firstCamp > pacing.casual.firstCampByDay) {
-    failures.push({
-      message: `casual's first bandit camp on ${casual.firstCamp === null ? "no day" : `day ${casual.firstCamp}`}, target by day ${pacing.casual.firstCampByDay}`,
-    });
-  }
-  const raidsWon = pair.raider.rows.filter((row) => row.pvpTake > 0).length;
-  if (raidsWon < pacing.pvp.minRaids) {
-    failures.push({
-      message: `the raider got in ${raidsWon} times, target at least ${pacing.pvp.minRaids}`,
-    });
-  }
-  const targetHqm = pair.target.reached.hqm;
-  if (targetHqm === undefined || targetHqm > pacing.pvp.targetHqmByDay) {
-    failures.push({
-      message: `the raided casual reached hqm on ${targetHqm === undefined ? "no day" : `day ${targetHqm}`}, target by day ${pacing.pvp.targetHqmByDay}`,
-    });
-  }
-
-  // W5: the economy. Scrap rises slowly for the casual player; the gambler stays solvent
-  // and the daily wager cap holds every day.
-  const scrapTarget = pacing.casual.scrap;
-  const scrapThen = casual.rows[scrapTarget.day - 1]?.scrap ?? 0;
-  if (scrapThen < scrapTarget.min || scrapThen > scrapTarget.max) {
-    failures.push({
-      message: `casual holds ${scrapThen} scrap on day ${scrapTarget.day}, target ${scrapTarget.min}-${scrapTarget.max}`,
-    });
-  }
-  for (const row of gambler.rows) {
-    const cap = content.den.casino.limits[row.tier]?.dailyWager ?? 0;
-    if (row.scrap < 0)
-      failures.push({ message: `gambler's scrap went negative on day ${row.day}` });
-    if (row.wagered > cap) {
-      failures.push({
-        message: `gambler wagered ${row.wagered} on day ${row.day}, over the ${row.tier} cap of ${cap}`,
-      });
-    }
-  }
-  if (gambler.rows.every((row) => row.wagered === 0)) {
-    failures.push({ message: "the gambler never played: the casino did not open" });
-  }
-
-  for (const tier of ["stone", "metal", "hqm"] as const) {
-    const window = pacing.casual[tier];
-    const day = casual.reached[tier];
-    if (day === undefined) {
-      failures.push({
-        message: `casual never reached ${tier} in ${days} days (target day ${window.earliestDay}-${window.latestDay})`,
-      });
-    } else if (day < window.earliestDay || day > window.latestDay) {
-      failures.push({
-        message: `casual reached ${tier} on day ${day}, target day ${window.earliestDay}-${window.latestDay}`,
-      });
-    }
-  }
-  const { day: buildDay, count: buildTarget } = pacing.casual.buildings;
-  const built = casual.rows[buildDay - 1]?.buildings ?? 0;
-  if (built < buildTarget) {
-    failures.push({
-      message: `casual has ${built} buildings on day ${buildDay}, target at least ${buildTarget}`,
-    });
-  }
-  for (const [output, byDay] of Object.entries(pacing.casual.firstMade)) {
-    const day = casual.firstMade[output];
-    if (day === undefined || day > byDay) {
-      failures.push({
-        message: `casual first made ${output} on ${day === undefined ? "no day" : `day ${day}`}, target by day ${byDay}`,
-      });
-    }
-  }
-  const workedBy = pacing.casual.stationsWorkedByDay;
-  for (const station of stations(content)) {
-    const day = casual.stationsWorked[station];
-    if (day === undefined || day > workedBy) {
-      failures.push({
-        message: `casual's ${station} first worked on ${day === undefined ? "no day" : `day ${day}`}, target by day ${workedBy}`,
-      });
-    }
-  }
-  const firstTrip = Math.min(...Object.values(casual.firstTrip).filter((day) => day !== undefined));
-  if (!(firstTrip <= pacing.casual.firstTripByDay)) {
-    failures.push({
-      message: `casual's first trip left on day ${Number.isFinite(firstTrip) ? firstTrip : "never"}, target by day ${pacing.casual.firstTripByDay}`,
-    });
-  }
-  const tierThree = casual.firstTrip[3];
-  if (tierThree === undefined || tierThree > pacing.casual.tierThreeSiteByDay) {
-    failures.push({
-      message: `casual first went to a tier-3 site on ${tierThree === undefined ? "no day" : `day ${tierThree}`}, target by day ${pacing.casual.tierThreeSiteByDay}`,
-    });
-  }
-  const crewTarget = pacing.casual.crew;
-  const crewThen = casual.rows[crewTarget.day - 1]?.crew ?? 0;
-  if (crewThen < crewTarget.count) {
-    failures.push({
-      message: `casual has ${crewThen} survivors on day ${crewTarget.day}, target at least ${crewTarget.count}`,
-    });
-  }
-  const toolDay = casual.tools[pacing.casual.tool.id];
-  if (toolDay === undefined || toolDay > pacing.casual.tool.byDay) {
-    failures.push({
-      message: `casual got ${pacing.casual.tool.id} on ${toolDay === undefined ? "no day" : `day ${toolDay}`}, target by day ${pacing.casual.tool.byDay}`,
-    });
-  }
-  if (casual.firstJob === null || casual.firstJob > pacing.casual.jobsByDay) {
-    failures.push({
-      message: `casual first put someone to work on ${casual.firstJob === null ? "no day" : `day ${casual.firstJob}`}, target by day ${pacing.casual.jobsByDay}`,
-    });
-  }
-  for (const [tier, byDay] of [
-    [4, pacing.casual.tierFourSiteByDay],
-    [5, pacing.casual.tierFiveSiteByDay],
-  ] as const) {
-    const day = casual.firstTrip[tier];
-    if (day === undefined || day > byDay) {
-      failures.push({
-        message: `casual first went to a tier-${tier} site on ${day === undefined ? "no day" : `day ${day}`}, target by day ${byDay}`,
-      });
-    }
-  }
-  const last = pacing.optimal.lastSite;
-  const optimalLast = optimal.firstSite[last.id];
-  if (optimalLast !== undefined && optimalLast < last.notBeforeDay) {
-    failures.push({
-      message: `optimal first went to ${last.id} on day ${optimalLast}, must not be before day ${last.notBeforeDay}`,
-    });
-  }
-  const optimalThree = optimal.firstTrip[3];
-  if (optimalThree !== undefined && optimalThree < pacing.optimal.tierThreeSiteNotBeforeDay) {
-    failures.push({
-      message: `optimal went to a tier-3 site on day ${optimalThree}, must not be before day ${pacing.optimal.tierThreeSiteNotBeforeDay}`,
-    });
-  }
-  const optimalHqm = optimal.reached.hqm;
-  if (optimalHqm !== undefined && optimalHqm < pacing.optimal.hqmNotBeforeDay) {
-    failures.push({
-      message: `optimal reached hqm on day ${optimalHqm}, must not be before day ${pacing.optimal.hqmNotBeforeDay}`,
-    });
-  }
-
-  // Tier cost ratio, in resource-hours at the tool tier a player has when buying it.
-  const hours = (tierId: Tier, toolIndex: number): number => {
-    const cost = rawCost(content, tierOf(content, tierId).cost);
-    const tool = content.tools[toolIndex];
-    if (!tool) return 0;
-    let sum = 0;
-    for (const [id, amount] of Object.entries(cost)) {
-      // Refined resources come from ore 1:1; value them at the ore's rate.
-      const ore = content.resources.find((resource) => resource.smeltsInto === id)?.id ?? id;
-      const rate = tool.rates[ore] ?? 1;
-      sum += amount / rate;
-    }
-    return sum;
+/** How many cards the base set and the whole Album hold. */
+function albumSizes(content: Content): { base: number; all: number } {
+  const rows = [...content.cards.survivors, ...content.cards.gear];
+  return {
+    base: rows.filter((row) => row.rarity === "common" || row.rarity === "rare").length,
+    all: rows.length,
   };
-  const costHours = TIERS.slice(1).map((tier, index) =>
-    hours(tier, Math.min(index + 1, content.tools.length - 1)),
+}
+
+/** Values per name, in order of first appearance: "47s", or "45:39-51:24" over several seeds. */
+function perName(
+  rows: (readonly [string, number | undefined])[],
+  show: (value: number) => string,
+): string {
+  const byName = new Map<string, (number | undefined)[]>();
+  for (const [name, value] of rows) byName.set(name, [...(byName.get(name) ?? []), value]);
+  return [...byName].map(([name, values]) => `${name} ${range(values, show)}`).join(", ");
+}
+
+function range(values: (number | undefined)[], show: (value: number) => string): string {
+  if (values.some((value) => value === undefined)) return "never";
+  const known = values as number[];
+  const low = Math.min(...known);
+  const high = Math.max(...known);
+  return low === high ? show(low) : `${show(low)}-${show(high)}`;
+}
+
+/** The checks implemented so far, by name. A shipped assertion without one fails. */
+export const CHECKS: Record<string, Check> = {
+  // N21: the prestige shape in data is the one the owner chose (decision 9).
+  prestigeShape: (assertion, { content }) => {
+    const p = content.prestige;
+    const want = {
+      exponent: num(assertion.exponent, Number.NaN),
+      l0: num(assertion.l0, Number.NaN),
+      glowK: num(assertion.glowK, Number.NaN),
+      firstNukeGlass: num(assertion.firstNukeGlass, Number.NaN),
+    };
+    const ok =
+      p.exponent === want.exponent &&
+      p.l0 === want.l0 &&
+      p.glowK === want.glowK &&
+      p.firstNukeGlass === want.firstNukeGlass;
+    return {
+      ok,
+      detail: `exponent ${p.exponent}, l0 ${p.l0}, glowK ${p.glowK}, first nuke ${p.firstNukeGlass}`,
+    };
+  },
+  // N23: every number stays finite (the simulator asserts it every step) and below the ceiling.
+  magnitude: (assertion, { lives }) => {
+    const largest = Math.max(...lives.map((life) => life.largest));
+    const max = num(assertion.max, 1e150);
+    return {
+      ok: Number.isFinite(largest) && largest < max,
+      detail: `largest ${largest.toExponential(3)}`,
+    };
+  },
+  // N4: the first hand comes within `max` seconds of the first tap, for everyone who plays.
+  firstHandSeconds: (assertion, { lives }) => {
+    const times = lives.map((life) => [life.name, life.firstHandSeconds] as const);
+    const worst = Math.max(...times.map(([, s]) => s ?? Number.POSITIVE_INFINITY));
+    return {
+      ok: worst <= num(assertion.max, 120),
+      detail: perName(
+        times.map(([name, s]) => [name, s ?? undefined] as const),
+        (s) => `${s}s`,
+      ),
+    };
+  },
+  // N5: in runs 1-5's first 10 online minutes, never more than maxSeconds with nothing to buy.
+  nothingAffordableEarly: (assertion, { lives }) => {
+    const worst = Math.max(...lives.map((life) => life.stuck.early));
+    return { ok: worst <= num(assertion.maxSeconds, 30), detail: `longest ${worst}s` };
+  },
+  // N6: online in runs 1-5, never more than maxSeconds with nothing affordable.
+  nothingAffordableOnline: (assertion, { lives }) => {
+    const worst = Math.max(...lives.map((life) => life.stuck.online));
+    const who = lives.find((life) => life.stuck.online === worst)?.name ?? "";
+    return { ok: worst <= num(assertion.maxSeconds, 120), detail: `longest ${worst}s (${who})` };
+  },
+  // N7: the casual buys something at (at least) `min` of their check-ins over the first days.
+  casualCheckInsWithPurchase: (assertion, { lives }) => {
+    const days = num(assertion.days, 1);
+    const checkIns = named(lives, str(assertion.archetype, "casual")).flatMap((life) =>
+      life.checkIns.filter((checkIn) => checkIn.day <= days),
+    );
+    const share =
+      checkIns.filter((checkIn) => checkIn.bought).length / Math.max(1, checkIns.length);
+    return {
+      ok: share >= num(assertion.min, 1),
+      detail: `${pct(share)} of ${checkIns.length} check-ins`,
+    };
+  },
+  // N8: what taps drive in run 1's first minute, and the taps' own share from minute 10.
+  tapShare: (assertion, { lives }) => {
+    const scenario = named(lives, str(assertion.scenario, "firstHour"));
+    const sum = (pick: (life: Life) => number) =>
+      scenario.reduce((total, life) => total + pick(life), 0);
+    const first =
+      sum((l) => l.income.firstMinute.tapDriven) / sum((l) => l.income.firstMinute.made);
+    const later = sum((l) => l.income.later.direct) / sum((l) => l.income.later.made);
+    const [low, high] = pair(assertion.fromMinute10, [0.05, 0.25]);
+    return {
+      ok: first >= num(assertion.firstMinuteMin, 0.5) && later >= low && later <= high,
+      detail: `minute 0-1 tap-driven ${pct(first)}, from minute 10 direct ${pct(later)}`,
+    };
+  },
+  // N9: an active hour against an idle online hour, at the active archetype's checkpoints.
+  activeHour: (assertion, { content, lives }) => {
+    const days = Array.isArray(assertion.days) ? assertion.days.map((d) => num(d, 0)) : [];
+    const life = named(lives, str(assertion.archetype, "active"))[0];
+    const min = num(assertion.min, 1.5);
+    const max = num(assertion.max, 3);
+    const parts: string[] = [];
+    let ok = true;
+    for (const day of days) {
+      const snapshot = life?.snapshots[day];
+      if (!snapshot) {
+        // A day past the quick profile's stop (`quickDays`, D236) is `--full`'s reading.
+        if (life && day > life.days.length) {
+          parts.push(`day ${day}: --full`);
+          continue;
+        }
+        parts.push(`day ${day}: no snapshot`);
+        ok = false;
+        continue;
+      }
+      const hour = activeHour(content, snapshot, num(assertion.tapsPerSecond, 6));
+      const value = assertion.rain === true ? hour.rain : hour.weighted;
+      ok &&= value >= min && value <= max;
+      parts.push(
+        assertion.rain === true
+          ? `day ${day}: rain ${hour.rain.toFixed(2)}`
+          : `day ${day}: ${hour.weighted.toFixed(2)} (clear ${hour.clear.toFixed(2)}, rain ${hour.rain.toFixed(2)})`,
+      );
+    }
+    return { ok, detail: parts.join("; ") };
+  },
+  // N23 (R1): run 1 ends between min and max supplies made.
+  run1Made: (assertion, { lives }) => {
+    const made = lives.flatMap((life) => {
+      const first = life.runs[0];
+      return first && first.end !== null ? [first.made] : [];
+    });
+    const low = Math.min(...made);
+    const high = Math.max(...made);
+    return {
+      ok: made.length > 0 && low >= num(assertion.min, 0) && high <= num(assertion.max, 1e300),
+      detail: `${made.length} run 1s, ${low.toExponential(2)} to ${high.toExponential(2)}`,
+    };
+  },
+  // N3 (guardrail 1): the casual's first nuke lands by the end of the check-in starting at `by`
+  // on day `day`.
+  casualFirstNuke: (assertion, { content, lives }) => {
+    const name = str(assertion.archetype, "casual");
+    const archetype = content.pacing.archetypes[name];
+    const [h = "21", m = "0"] = str(assertion.by, "21:00").split(":");
+    const start = Number(h) * 3600 + Number(m) * 60;
+    const session = archetype
+      ? sessionsOf(archetype).find((row) => row.start === start)
+      : undefined;
+    const by = (num(assertion.day, 1) - 1) * DAY + start + (session?.seconds ?? 0);
+    const ends = named(lives, name).map((life) => life.runs[0]?.end ?? undefined);
+    const ok = ends.length > 0 && ends.every((end) => end !== undefined && end <= by);
+    return { ok, detail: `first nuke ${range(ends, dayClock)} (want by ${dayClock(by)})` };
+  },
+  // 10-balance.md 4.2 (errata E1): run 1's beats, each in its band.
+  firstHourBeats: (assertion, { lives }) => {
+    const scenario = named(lives, str(assertion.scenario, "firstHour"));
+    const bands = (assertion.beats ?? {}) as Record<string, unknown>;
+    const parts: string[] = [];
+    let ok = scenario.length > 0;
+    for (const [key, band] of Object.entries(bands)) {
+      const [low, high] = pair(band, [0, 0]);
+      const times = scenario.map((life) => life.beats[key]);
+      const inside = times.every((s) => s !== undefined && s >= low && s <= high);
+      ok &&= inside;
+      parts.push(
+        `${key} ${range(times, clock)}${inside ? "" : ` (want ${clock(low)}-${clock(high)})`}`,
+      );
+    }
+    return { ok, detail: parts.join(", ") };
+  },
+  // N19 (12-feel.md 11): scrap a day for a casual, a 7-day average from day 2, in its band;
+  // at least `casualByDay30` ever by day 30; nobody's average above `anyMeanMax`.
+  scrap: (assertion, { lives }) => {
+    const [low, high] = pair(assertion.casualMean, [4, 6]);
+    const byDay = num(assertion.byDay, 30);
+    const casualName = str(assertion.archetype, "casual");
+    const means = lives
+      .filter((life) => life.days.length >= SCRAP_FROM_DAY + SCRAP_DAYS - 1)
+      .map((life) => {
+        const first = life.days[0]?.day ?? 1;
+        const earned = (day: number) =>
+          life.days.find((row) => row.day === day)?.scrap ?? Number.NaN;
+        const from = first + SCRAP_FROM_DAY - 1;
+        return [
+          life.name,
+          (earned(from + SCRAP_DAYS - 1) - earned(from - 1)) / SCRAP_DAYS,
+        ] as const;
+      });
+    const casual = means.filter(([name]) => name === casualName).map(([, mean]) => mean);
+    const totals = named(lives, casualName).map(
+      (life) => life.days.find((row) => row.day === byDay)?.scrap,
+    );
+    const worst = Math.max(...means.map(([, mean]) => mean));
+    const ok =
+      casual.length > 0 &&
+      casual.every((mean) => mean >= low && mean <= high) &&
+      totals.every((total) => total !== undefined && total >= num(assertion.casualByDay30, 100)) &&
+      worst <= num(assertion.anyMeanMax, 8);
+    return {
+      ok,
+      detail: `${perName(means, (mean) => mean.toFixed(2))} a day; ${casualName} by day ${byDay} ${range(totals, (n) => String(n))}`,
+    };
+  },
+  // N30: the casual opens at least `min` drops every day of days 1-`days`, `casualMean` a day
+  // over them (D248: 2-4), and nobody averages more than `anyMeanMax` (D266).
+  casualDropsPerDay: (assertion, { lives }) => {
+    const days = num(assertion.days, 30);
+    const min = num(assertion.min, 1);
+    const [low, high] = pair(assertion.casualMean, [0, Number.POSITIVE_INFINITY]);
+    const anyMax = num(assertion.anyMeanMax, Number.POSITIVE_INFINITY);
+    const casualName = str(assertion.archetype, "casual");
+    let worst = Number.POSITIVE_INFINITY;
+    let where = "";
+    for (const life of named(lives, casualName)) {
+      let before = 0;
+      for (const row of life.days) {
+        if (row.day > days) break;
+        const opened = row.drops - before;
+        before = row.drops;
+        if (opened < worst) {
+          worst = opened;
+          where = `day ${row.day}`;
+        }
+      }
+    }
+    // A mean over at least a week (a life the quick profile cuts shorter is `--full`'s).
+    const means = lives
+      .filter((life) => life.days.length >= 7)
+      .map((life) => {
+        const first = life.days[0]?.day ?? 1;
+        const last = life.days.find((row) => row.day === first + days - 1) ?? life.days.at(-1);
+        return [life.name, (last?.drops ?? 0) / ((last?.day ?? first) - first + 1)] as const;
+      });
+    const casual = means.filter(([name]) => name === casualName).map(([, mean]) => mean);
+    const ok =
+      worst >= min &&
+      casual.every((mean) => mean >= low && mean <= high) &&
+      means.every(([, mean]) => mean <= anyMax);
+    return {
+      ok,
+      detail: `fewest in a day ${worst} (${where}); ${perName(means, (mean) => mean.toFixed(2))} a day`,
+    };
+  },
+  // N33 (D266): the casual owns the Album's base set (every Common and Rare) by day `days`, and
+  // not before day `notBefore` (a flood would empty the goal).
+  casualAlbumBase: (assertion, { content, lives }) => {
+    const days = num(assertion.days, 14);
+    const notBefore = num(assertion.notBefore, 1);
+    const want = albumSizes(content).base;
+    const whens = named(lives, str(assertion.archetype, "casual")).map(
+      (life) => life.days.find((row) => row.baseSet >= want)?.day,
+    );
+    const ok = whens.every((day) => day !== undefined && day <= days && day >= notBefore);
+    return {
+      ok,
+      detail: `base set (${want} cards) complete on day ${range(whens, (n) => String(n))} (want days ${notBefore}-${days})`,
+    };
+  },
+  // N33: the whole Album (the Legendaries by pity) is not complete before day `notBefore`.
+  casualAlbumFull: (assertion, { content, lives }) => {
+    const notBefore = num(assertion.notBefore, 45);
+    const want = albumSizes(content).all;
+    const whens = named(lives, str(assertion.archetype, "casual")).map(
+      (life) => life.days.find((row) => row.cards >= want)?.day,
+    );
+    const ok = whens.every((day) => day === undefined || day >= notBefore);
+    return {
+      ok,
+      detail: `Album (${want} cards) complete on day ${range(whens, (n) => String(n))} (want not before ${notBefore})`,
+    };
+  },
+  // N1 (guardrail 1): the first-hour scenario's first nuke, minutes after its first tap.
+  firstNukeMinutes: (assertion, { lives }) => {
+    const scenario = named(lives, str(assertion.scenario, "firstHour"));
+    const minutes = scenario.map((life) =>
+      life.beats.nuke === undefined ? undefined : life.beats.nuke / 60,
+    );
+    const low = num(assertion.min, 40);
+    const high = num(assertion.max, 60);
+    const ok = minutes.length > 0 && minutes.every((m) => m !== undefined && m >= low && m <= high);
+    return {
+      ok,
+      detail: `first nuke ${range(minutes, (m) => clock(m * 60))} (want ${low}-${high} min)`,
+    };
+  },
+  // N2: no first nuke under `min` minutes on the wall clock from the first tap, for anyone.
+  firstNukeMinutesAny: (assertion, { lives }) => {
+    const rows = lives.map(
+      (life) =>
+        [life.name, life.beats.nuke === undefined ? undefined : life.beats.nuke / 60] as const,
+    );
+    const known = rows.filter((row): row is readonly [string, number] => row[1] !== undefined);
+    const worst = Math.min(...known.map(([, m]) => m));
+    return {
+      ok: known.length === rows.length && worst >= num(assertion.min, 25),
+      detail: perName(rows, (m) => clock(m * 60)),
+    };
+  },
+  // N11: the time run N+1 needs to pass run N's supplies made, as a share of run N's length;
+  // the median per phase at most `early` / `mid` / `late`.
+  passPreviousRun: (assertion, { lives }) => {
+    const shares = byPhase(lives, (run, previous) => {
+      if (!previous || previous.end === null || run.passedAt === null) return null;
+      const length = previous.end - previous.start;
+      return length > 0 ? (run.passedAt - run.start) / length : null;
+    });
+    const parts: string[] = [];
+    let ok = true;
+    for (const [name, phases] of shares) {
+      const words: string[] = [];
+      for (const phase of PHASES_IN_ORDER) {
+        const values = phases.get(phase);
+        if (!values || values.length === 0) continue;
+        const m = median(values);
+        const limit = num(assertion[phase], 1);
+        ok &&= m <= limit;
+        words.push(`${phase} ${pct(m)} (${values.length})`);
+      }
+      if (words.length > 0) parts.push(`${name}: ${words.join(", ")}`);
+    }
+    return { ok, detail: parts.join("; ") || "no finished run pairs" };
+  },
+  // N12: the lasting power a nuke adds (Glow and the map), geometric mean per phase in its band.
+  powerPerNuke: (assertion, { lives }) => {
+    const powers = byPhase(lives, (run) => run.power);
+    const parts: string[] = [];
+    let ok = true;
+    for (const [name, phases] of powers) {
+      const words: string[] = [];
+      for (const phase of PHASES_IN_ORDER) {
+        const values = phases.get(phase);
+        if (!values || values.length === 0) continue;
+        const g = geomean(values);
+        const [low, high] = pair(assertion[phase], [0, Number.POSITIVE_INFINITY]);
+        ok &&= g >= low && g <= high;
+        words.push(`${phase} ×${g.toFixed(2)} (${values.length})`);
+      }
+      if (words.length > 0) parts.push(`${name}: ${words.join(", ")}`);
+    }
+    return { ok, detail: parts.join("; ") || "no finished runs" };
+  },
+  // N13: five consecutive nukes whose power product is under `minProduct`, with nothing on the
+  // agenda in the next `unlockLookahead` Wipe Days, is a flat stretch: the build fails.
+  flattening: (assertion, { content, lives }) => {
+    const window = num(assertion.window, 5);
+    const minProduct = num(assertion.minProduct, 1.3);
+    const lookahead = num(assertion.unlockLookahead, 3);
+    const alarms: string[] = [];
+    for (const life of lives) {
+      const finished = life.runs.filter((run) => run.end !== null);
+      for (let i = window - 1; i < finished.length; i++) {
+        let product = 1;
+        for (let j = i - window + 1; j <= i; j++) product *= finished[j]?.power ?? 1;
+        if (product >= minProduct) continue;
+        const wipeDay = finished[i]?.wipeDay ?? 0;
+        const opens = content.agenda.rows.some(
+          (row) => row.at > wipeDay && row.at <= wipeDay + lookahead,
+        );
+        if (!opens)
+          alarms.push(
+            `${life.name} runs ${finished[i - window + 1]?.n}-${finished[i]?.n} ×${product.toFixed(2)}`,
+          );
+      }
+    }
+    return {
+      ok: alarms.length === 0,
+      detail: alarms.length ? alarms.join("; ") : "no flat stretch",
+    };
+  },
+  // N14: 6-10 nodes bought at the first nuke; later a median of at least `laterMedianMin` a nuke.
+  nodesBought: (assertion, { content, lives }) => {
+    const [low, high] = pair(assertion.first, [6, 10]);
+    const laterMin = num(assertion.laterMedianMin, 2);
+    const firsts = lives.map(
+      (life) => [life.name, life.runs.find((run) => run.end !== null)?.nodes] as const,
+    );
+    // Later nukes count while the shipped map still had room before the shopping.
+    const total = shippedNodes(content).length;
+    const laters = lives
+      .map((life) => {
+        const finished = life.runs.filter((run) => run.end !== null);
+        const room = finished.slice(1).filter((run) => run.lit - run.nodes < total);
+        return [
+          life.name,
+          room.length >= 2 ? median(room.map((run) => run.nodes)) : undefined,
+        ] as const;
+      })
+      .filter((row): row is readonly [string, number] => row[1] !== undefined);
+    const ok =
+      firsts.every(([, n]) => n !== undefined && n >= low && n <= high) &&
+      laters.every(([, m]) => m >= laterMin);
+    return {
+      ok,
+      detail: `first nuke ${perName(firsts, (n) => String(n))}; later median ${perName(laters, (m) => m.toFixed(1))}`,
+    };
+  },
+  // 4.10 (errata E14): the casual's counted Wipe Days by day 30 in the month-1 band.
+  casualWipeDaysByDay30: (assertion, { lives }) => {
+    const day = num(assertion.day, 30);
+    const counts = named(lives, str(assertion.archetype, "casual")).map(
+      (life) => life.days.find((row) => row.day === day)?.wipeDays,
+    );
+    const ok = counts.every(
+      (n) => n !== undefined && n >= num(assertion.min, 20) && n <= num(assertion.max, 40),
+    );
+    return { ok, detail: `Wipe Days by day ${day}: ${range(counts, (n) => String(n))}` };
+  },
+  // 4.10: the casual's glass ever at the end of the first week.
+  casualFirstWeekGlass: (assertion, { lives }) => {
+    const day = num(assertion.day, 7);
+    const glass = named(lives, str(assertion.archetype, "casual")).map(
+      (life) => life.days.find((row) => row.day === day)?.glassEver,
+    );
+    const ok = glass.every(
+      (g) => g !== undefined && g >= num(assertion.min, 300) && g <= num(assertion.max, 2000),
+    );
+    return {
+      ok,
+      detail: `glass ever at day ${day}: ${range(glass, (g) => String(Math.round(g)))}`,
+    };
+  },
+  // N32 (D255): five Work Orders are reachable in every run 1, for every archetype.
+  ordersReachable: (assertion, { content, lives }) => {
+    const fuel = num(assertion.fuel, content.orders.fuel);
+    const rows = lives.map((life) => [life.name, life.runs[0]?.orders ?? 0] as const);
+    const ok = rows.every(([, claimed]) => claimed >= fuel);
+    return { ok, detail: `run 1 claims ${perName(rows, (n) => String(n))} (want ${fuel})` };
+  },
+};
+
+export const phaseIndex = (phase: Phase): number => PHASES.indexOf(phase);
+
+/**
+ * Runs the profile and judges every assertion of `pacing.json5` switched on by `upTo` (the
+ * shipped phase unless asked for a later one, to see its numbers before it ships).
+ */
+export function checkPacing(
+  content: Content,
+  profile: "test" | "full" = "test",
+  upTo: Phase = content.pacing.shipped,
+): Verdict[] {
+  const { days, seeds, scenarioSeeds, early } = content.pacing.profiles[profile] ?? {
+    days: 90,
+    seeds: [11],
+  };
+  const limit = phaseIndex(upTo);
+  const due = content.pacing.assertions.filter((assertion) => phaseIndex(assertion.on) <= limit);
+  // Snapshots only for the days an N9 check due now reads.
+  const snapshotDays = due.flatMap((assertion) =>
+    assertion.check === "activeHour" && Array.isArray(assertion.days)
+      ? assertion.days.map((day) => num(day, 0))
+      : [],
   );
-  for (let index = 1; index < costHours.length; index++) {
-    const ratio = (costHours[index] ?? 0) / Math.max(1, costHours[index - 1] ?? 1);
-    const tier = TIERS[index + 1];
-    if (ratio < pacing.tierCostRatio.min || ratio > pacing.tierCostRatio.max) {
-      failures.push({
-        warning: true,
-        message: `${tier} costs ${ratio.toFixed(1)}x the previous tier in resource-hours (guideline ${pacing.tierCostRatio.min}-${pacing.tierCostRatio.max}x); the day targets are the gate`,
+  const stops = early ? earlyStops(content, due) : null;
+  const lives = [
+    ...seeds.flatMap((seed) => simulateArchetypes(content, days, seed, snapshotDays, stops ?? {})),
+    ...(scenarioSeeds ?? seeds).flatMap((seed) => simulateScenarios(content, seed, early === true)),
+  ];
+  return content.pacing.assertions.map((assertion): Verdict => {
+    const base = { n: assertion.n, check: assertion.check, on: assertion.on };
+    if (phaseIndex(assertion.on) > limit) return { ...base, status: "pending", detail: "" };
+    const check = CHECKS[assertion.check];
+    if (!check) return { ...base, status: "missing", detail: "no implementation" };
+    const { ok, detail } = check(assertion, { content, lives });
+    return { ...base, status: ok ? "pass" : assertion.warn ? "warn" : "fail", detail };
+  });
+}
+
+// --- what the Night Shift's window costs (12-feel.md 15) ------------------------------------
+
+/** One configuration of the window report: a name and the content it plays. */
+export interface WindowVariant {
+  name: string;
+  content: Content;
+}
+
+/** R1's base output (`lines.json5` before R2 Feel S6 lowered it for the Workshop). */
+const R1_RATE_BASE = 1.5;
+
+/**
+ * The variants `pnpm sim window` compares: R1 as it shipped (12 h, its base output, no Workshop
+ * tiers), the shipped economy with a 12 h window, and the shipped content (2 h). Built in
+ * memory, so the content checks of the shipped data do not refuse the 12 h windows.
+ */
+export function windowVariants(content: Content): WindowVariant[] {
+  const window = (c: Content, windowHours: number, maxHours: number): Content => ({
+    ...c,
+    run: { ...c.run, nightShift: { ...c.run.nightShift, windowHours, maxHours } },
+  });
+  const scale = R1_RATE_BASE / content.formula.rateBase;
+  const r1: Content = {
+    ...content,
+    formula: { ...content.formula, rateBase: R1_RATE_BASE },
+    lines: content.lines.map((line) => ({ ...line, rate: line.rate * scale })),
+    research: content.research.filter((def) => def.kind === "mk"),
+  };
+  return [
+    { name: "R1: 12 h, no Workshop", content: window(r1, 12, 48) },
+    { name: "12 h + Workshop", content: window(content, 12, 48) },
+    { name: "2 h + Workshop", content },
+  ];
+}
+
+export interface WindowRow {
+  variant: string;
+  archetype: string;
+  /** Lifetime made at the start of each day-1 check-in, then at the end of day 1. */
+  checkIns: { at: number; made: number }[];
+  dayEnd: number;
+  /** Seconds after DAY0, if run 1 ended inside the days played. */
+  firstNuke: number | null;
+}
+
+/** Day 1 and the first nuke for each archetype under each variant (`days` played, one seed). */
+export function windowReport(content: Content, days = 3, seed = 11): WindowRow[] {
+  const rows: WindowRow[] = [];
+  for (const variant of windowVariants(content)) {
+    for (const name of ["idler", "casual", "active"]) {
+      const archetype = variant.content.pacing.archetypes[name];
+      if (!archetype) continue;
+      const life = simulate(variant.content, name, archetype, days, seed);
+      rows.push({
+        variant: variant.name,
+        archetype: name,
+        checkIns: life.checkIns.filter((c) => c.day === 1).map(({ at, made }) => ({ at, made })),
+        dayEnd: life.days[0]?.lifetime ?? 0,
+        firstNuke: life.runs[0]?.end ?? null,
+      });
+    }
+    for (const name of Object.keys(variant.content.pacing.scenarios)) {
+      const archetype = variant.content.pacing.scenarios[name];
+      if (!archetype || name !== "firstHour") continue;
+      const life = simulate(variant.content, name, archetype, 1, seed);
+      rows.push({
+        variant: variant.name,
+        archetype: name,
+        checkIns: [],
+        dayEnd: life.days[0]?.lifetime ?? 0,
+        firstNuke: life.beats.nuke ?? null,
       });
     }
   }
-  return failures;
+  return rows;
+}
+
+/**
+ * Errata E25's caps on the Blast Map's price cuts: what every shelf kind's `upgrade_cost` and the
+ * eras' `era_cost` may fall to once every node that cuts them is lit (R4 S4, D272). Line and
+ * hand prices have no cap in the plan; they are measured beside them.
+ */
+export const PRICE_CAPS: Readonly<Record<string, number>> = { upgrade_cost: 0.25, era_cost: 0.5 };
+const PRICE_STATS: ReadonlySet<string> = new Set([
+  "upgrade_cost",
+  "era_cost",
+  "line_cost",
+  "hand_cost",
+]);
+
+export interface PriceCutRow {
+  stat: string;
+  scope: string;
+  /** The product of the shipped nodes' cuts, and of every node in the data (later waves too). */
+  shipped: number;
+  all: number;
+  cap: number | null;
+}
+
+/** The map's price cuts by stat and scope, measured against E25's caps (`pnpm sim caps`). */
+export function priceCuts(content: Content): PriceCutRow[] {
+  const rows = new Map<string, PriceCutRow>();
+  const fold = (nodes: readonly NodeDef[], key: "shipped" | "all") => {
+    for (const node of nodes) {
+      for (const effect of node.effects) {
+        if (!PRICE_STATS.has(effect.stat) || effect.op !== "more") continue;
+        const scope = effect.scope ?? "all";
+        const id = `${effect.stat}|${scope}`;
+        let row = rows.get(id);
+        if (!row) {
+          row = {
+            stat: effect.stat,
+            scope,
+            shipped: 1,
+            all: 1,
+            cap: PRICE_CAPS[effect.stat] ?? null,
+          };
+          rows.set(id, row);
+        }
+        row[key] *= effect.value;
+      }
+    }
+  };
+  fold(shippedNodes(content), "shipped");
+  fold(content.blastMap.nodes, "all");
+  return [...rows.values()].sort(
+    (a, b) => a.stat.localeCompare(b.stat) || a.scope.localeCompare(b.scope),
+  );
 }

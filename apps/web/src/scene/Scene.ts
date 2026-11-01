@@ -1,259 +1,449 @@
 /**
- * Owns the Pixi application and the camera, stacks the layers, and turns
- * store state and events into motion. Game state only ever changes through
- * store actions; the scene reads it once per frame.
+ * Owns the Pixi application and the camera, stacks the layers, and turns store state and events
+ * into motion. Game state only ever changes through store actions; the scene reads it once per
+ * frame (docs/redesign/09-architecture.md 10.3).
+ *
+ * The island (D203): a pixel-art side view on one grid (D188), the sea on the left, the era's
+ * target on the beach in the middle, the Twig lines beside it and each later era's lines on the
+ * terrace above, the house at the end of the first terrace, every hand at their line. The camera
+ * keeps a whole number of device pixels per art pixel. Taps go through a DOM button held over the
+ * target at a fixed screen size (D48, N27), so keyboards and screen readers reach it too; a
+ * press held still for a moment counts 4 taps a second (hold to work). Flotsam drifts in on
+ * the waterline and is caught through a button of its own (`flotsam.ts`). Animation runs on the
+ * `wall` clock, never the game clock, so a demo jump moves no animation (rule 6.3.9).
  */
-
-import type { Amounts } from "@wipe-day/content/schema";
-import { denWorthIt } from "@wipe-day/domain/advisor";
-import { type BaseState, furnaceOf, furnaceSlots, jobProgress } from "@wipe-day/domain/base";
-import { isAsleep } from "@wipe-day/domain/crew";
-import { denOpen } from "@wipe-day/domain/den";
-import { nodeKindOf } from "@wipe-day/domain/nodes";
-import { raidsOpen, raidWarned } from "@wipe-day/domain/raids";
-import { Application, Container, Graphics, type Ticker } from "pixi.js";
-import { countFrame, isFrozen } from "../debug";
-import { MapView } from "../map/MapView";
-import { type GameEvent, on } from "../state/events";
-import { seasonTime, useWorld } from "../state/store";
+import { signStyle } from "@wipe-day/content/blastmap";
+import { tideAt } from "@wipe-day/domain/boosts";
+import { afterglowAt } from "@wipe-day/domain/effects";
+import { afloat, crateMinutes, floatSeconds } from "@wipe-day/domain/flotsam";
+import { type FrenzyView, frenzyAt } from "@wipe-day/domain/frenzy";
+import { lineOf } from "@wipe-day/domain/lines";
+import { glassYield, kettleStage } from "@wipe-day/domain/prestige";
+import type { BaseState } from "@wipe-day/domain/state";
+import { hustleFactor, tapParts } from "@wipe-day/domain/taps";
+import { islandHour, weatherAt } from "@wipe-day/domain/weather";
+import { Application, BitmapText, Container, Graphics, Sprite } from "pixi.js";
+import { countFrame, isFrozen, registerScene } from "../debug";
+import { useAdvisor } from "../state/advisor";
+import { filmMs, landingLength, sinceLanding, useBigRed } from "../state/bigred";
+import { wall } from "../state/clocks";
+import { emit, type GameEvent, on } from "../state/events";
+import { insets, phoneCover } from "../state/layout";
+import { useReveal } from "../state/reveal";
+import { gameSeconds, useWorld } from "../state/store";
+import { heldTaps } from "../state/taps";
+import { closeAll, useUi } from "../state/ui";
 import {
-  abbrev,
+  buffName,
   content,
-  dayFraction,
+  crewName,
   duration,
-  gainLines,
-  nodeName,
-  outputName,
-  survivorLook,
+  fmt,
+  fmtFactor,
+  lineName,
+  researchLevelName,
+  researchName,
+  resourceColor,
+  type Tier,
   t,
-  tierName,
-  toolName,
+  upgradeName,
 } from "../state/world";
-import { Actors, type Post } from "./actors";
-import { Base } from "./base";
-import { Skiff } from "./den";
-import { type Float, Floaters, Particles, Weather } from "./effects";
-import { Barrel, type Depleted, MAX_HITS, type NodeCallbacks, type NodeDef, Nodes } from "./nodes";
-import { gloom, paletteAt } from "./palette";
-import { DefenceBadge, RaiderTorches, type ShieldState } from "./raids";
-import { SignalTower } from "./signal";
+import { Hands, type Post } from "./actors";
+import { House } from "./base";
+import { type Frame, frameAt } from "./cinematic";
+import { Crater } from "./crater";
+import { Crates } from "./crates";
+import { Floaters, type Glow, Particles, Weather } from "./effects";
+import { Flotsam } from "./flotsam";
+import { Gulls } from "./gulls";
+import { loadProductIcons } from "./icons";
+import {
+  HOUSE_SPOT,
+  houseSpotFor,
+  INSIDE,
+  kettleSpotFor,
+  ROOM,
+  rowboatSpotFor,
+  STOCKPILE_SPOT,
+  stageSpot,
+  stockpileSpotFor,
+  TARGET_SPOT,
+  VIEW,
+  type View,
+  viewFor,
+} from "./island";
+import { Kettle } from "./kettle";
+import { Landscape } from "./landscape";
+import { Lines, layoutFor, ROOM_LAYOUT } from "./lines";
+import {
+  afterglowSky,
+  blastTint,
+  CLOUD_COLD,
+  CLOUD_HOT,
+  FIREBALL,
+  GLASS,
+  gloom,
+  paletteAt,
+  warm,
+} from "./palette";
+import { ART, loadArt } from "./pixel";
+import { placeProps } from "./props";
+import { milestoneCrossed } from "./reveal";
+import { Room } from "./room";
+import { Rowboat } from "./rowboat";
 import { Sky } from "./sky";
-import { Terrain } from "./terrain";
-import { clamp, lerp } from "./util";
+import { Stockpile } from "./stockpile";
+import { Target, type TargetKind } from "./target";
+import { glowTexture, puffTexture } from "./textures";
+import { clamp, easeInOutSine, lerp, lerpColor, reducedMotion } from "./util";
+import { yard } from "./yards";
 
 /** Design space: a 16:9 stage, the ground line a little below centre. */
 const W = 1600;
 const H = 900;
 const HORIZON = 520;
 const GROUND = 560;
-/** Radius of the progress ring over a working station, in CSS pixels. */
-const WORK_RING_PX = 9;
-const SHORE_X = 540;
-const BASE_X = 1000;
 /** Sky and ground continue this far past the stage so no screen shape shows an edge. */
 const EXTEND = 800;
-/** Narrow screens always see at least this many world units across... */
-const MIN_VISIBLE_W = 880;
-/** ...centred here, so the base and the shore both fit on a phone. */
-const FOCUS_X = 915;
-
-const BACK_NODES: NodeDef[] = [
-  { id: "tree_1", kind: "tree", x: 834, y: GROUND + 2, scale: 1, fall: -1 },
-  { id: "tree_2", kind: "tree", x: 1240, y: GROUND + 2, scale: 1.15 },
-  { id: "tree_3", kind: "tree", x: 1470, y: GROUND + 6, scale: 0.95 },
-  { id: "tree_4", kind: "tree", x: 1560, y: GROUND + 2, scale: 1.05 },
+/** Every screen shows at least the camp (`viewFor(era)`, art px), centred on it. */
+const viewSize = (view: View) => ({
+  width: (view.right - view.left) * ART,
+  height: (view.bottom - view.top) * ART,
+  focus: ((view.left + view.right) / 2) * ART,
+});
+/** The most CSS px per art pixel: big screens show more sky and sea, not bigger pixels. */
+const MAX_ZOOM = 7;
+const TARGET = { x: stageSpot(TARGET_SPOT).x, y: GROUND + stageSpot(TARGET_SPOT).y };
+/** The house's place; Armored's wider camp moves it right (`houseSpotFor`). */
+const HOUSE = { x: stageSpot(HOUSE_SPOT).x, y: GROUND + stageSpot(HOUSE_SPOT).y, scale: 1 };
+/** The stockpile at the target's foot (D217); Armored's wider camp moves it (`stockpileSpotFor`). */
+const PILE = { x: stageSpot(STOCKPILE_SPOT).x, y: GROUND + stageSpot(STOCKPILE_SPOT).y };
+/** A fell shakes the camera for this long, a whole art pixel at a time (12-feel.md 3.1). */
+const SHAKE_MS = 60;
+/** A Frenzy's end: its bar shows white for this long (ms), held for the first third, then fading. */
+const FRENZY_END_TICK_MS = 360;
+const SHAKE: readonly (readonly [number, number])[] = [
+  [1, 0],
+  [-1, 1],
+  [0, -1],
 ];
-const FRONT_NODES: NodeDef[] = [
-  { id: "ore_1", kind: "ore", x: 660, y: GROUND + 70, scale: 1 },
-  { id: "stone_1", kind: "stone", x: 1150, y: GROUND + 52, scale: 0.8 },
-  { id: "sulfur_1", kind: "sulfur", x: 1296, y: GROUND + 100, scale: 0.85 },
-];
-const BARREL_SPOT = { x: 540, y: GROUND + 62 };
-/** The Den's skiff, pulled up on the beach below the barrel (W5): inside the phone view. */
-const SKIFF_SPOT = { x: 548, y: GROUND + 114 };
+/** A fell lands this many pieces on the stockpile. */
+const FELL_CHIPS = 3;
+/** The tap box: the drawn target padded by this, never smaller than the minimum (CSS px). */
+const HIT_PAD = 12;
+const HIT_MIN = { width: 140, height: 160 };
+/** A press that moves further than this is not a hold (CSS px). */
+const HOLD_SLOP = 12;
+/** The counter bumps at most this often when line floaters land (ms). */
+const BUMP_EVERY_MS = 250;
+/** Gains that are not a product's carry the supplies icon (6.3.7). */
+const SUPPLIES_ICON = { icon: "supplies", iconColor: 0xffd25a } as const;
+/** The rarity colours (tokens.css, D262) for the scene's shard floaters. */
+const RARITY_TINT = {
+  common: 0xa9b1b7,
+  rare: 0x5aa7e0,
+  epic: 0xb06ee6,
+  legendary: 0xff9f2e,
+} as const;
+/** Coins that arc into the counter after Welcome back's Collect (12-feel.md 3.2). */
+const COLLECT_COINS = 7;
+/** ...and after a crate's lump and a crow's catch (D243). */
+const CRATE_COINS = 4;
+const GULL_COINS = { crow: 3, elite: 5 };
+/** They wait until what the catch paid ("+30s of output") has been read. */
+const CATCH_COINS_DELAY_MS = 500;
 
-const ALL_NODES = [...BACK_NODES, ...FRONT_NODES];
-const nodeKind = new Map(ALL_NODES.map((node) => [node.id, node.kind]));
+/** The house's hint ("Tap the cabin to go inside") retires after this many openings. */
+const HOUSE_HINT_OPENS = 2;
+/** The drop crates stand this far left of the house's centre (art px), between it and the pile. */
+const CRATES_LEFT = 22;
 
-function debrisFor(kind: string): { kind: "leaves" | "stone"; color: number } {
-  if (kind === "tree") return { kind: "leaves", color: 0x5c9b4a };
-  if (kind === "fibre") return { kind: "leaves", color: 0xa8c060 };
-  if (kind === "sulfur") return { kind: "stone", color: 0xe3c04f };
-  if (kind === "ore") return { kind: "stone", color: 0xa8603a };
-  return { kind: "stone", color: 0x9aa0a6 };
+function readHint(): string | null {
+  try {
+    return window.localStorage.getItem("wipeday.hint.house");
+  } catch {
+    return null;
+  }
 }
 
-/** The HUD's bands the map must stay clear of: under the top bar, above the dock (CSS px). */
-function hudInsets(viewH: number): { top: number; bottom: number } {
-  const top = document.querySelector(".topbar")?.getBoundingClientRect().bottom ?? 80;
-  const dock = document.querySelector(".dock")?.getBoundingClientRect().top ?? viewH - 100;
-  return { top: top + 8, bottom: Math.max(0, viewH - dock) + 8 };
+function writeHint(value: string): void {
+  try {
+    window.localStorage.setItem("wipeday.hint.house", value);
+  } catch {
+    // Private mode: the hint shows again next time.
+  }
 }
+
+/** Whether the run's era has reached `era`. */
+function eraReached(base: BaseState, era: Tier): boolean {
+  const order = content.eras.map((row) => row.id);
+  return order.indexOf(era) <= order.indexOf(base.run.era);
+}
+
+function targetOf(era: Tier): TargetKind {
+  return (content.targets.find((target) => target.era === era)?.id ?? "tree") as TargetKind;
+}
+
+const color = (hex: string): number => Number.parseInt(hex.slice(1), 16);
 
 export class Scene {
   private readonly app = new Application();
   private readonly world = new Container();
   /** Multiplied over the world: white by day, blue at night. Screen space. */
   private readonly ambient = new Graphics();
-  /** World-aligned top layer: the node markers, above every effect and the weather. */
-  private readonly markers = new Container();
-  /** The crew the actors last showed, so they are only re-cast when it changes. */
-  private crewKey = "";
-  /** A progress ring over each station at work (fixed size on screen, D48). */
-  private readonly workRings = new Map<string, Graphics>();
-  /** Where the last node hit landed, so its gain rises from the cursor. */
-  private lastHit: { x: number; y: number } | null = null;
-  /** The previous hit's text, faded out when the next hit lands so quick hits never pile up. */
-  private hitText: readonly Float[] = [];
   /** World-aligned layer above the ambient tint, for things that emit light. */
   private readonly lights = new Container();
+  /** The island's things, sorted back to front: lines, the house, the target, the hands. */
+  private readonly props = new Container();
+  /** The yard's lamps, lit at night. */
+  private propGlows: Glow[] = [];
   private readonly particles = new Particles();
-  private readonly floaters = new Floaters();
+  private readonly floaters = new Floaters((amount) => fmt(amount, "cost"));
   private readonly weather = new Weather(1200, 800);
   private readonly sky = new Sky(W, HORIZON, EXTEND);
-  private readonly terrain = new Terrain({
-    width: W,
-    height: H,
-    horizon: HORIZON,
-    ground: GROUND,
-    shoreX: SHORE_X,
-    baseX: BASE_X,
-    extend: EXTEND,
+  private readonly terrain = new Landscape({ width: W, height: H, extend: EXTEND });
+  private readonly target = new Target(this.particles);
+  private readonly stockpile = new Stockpile(this.particles);
+  private readonly flotsam = new Flotsam({
+    claim: (run, k, tide) =>
+      useWorld
+        .getState()
+        .send(tide ? { type: "claim_tide", run, k } : { type: "claim_flotsam", run, k }),
+    arrived: () => emit({ type: "flotsam_arrived" }),
+    sank: (x, y, firstRun, nowMs) => this.sank(x, y, firstRun, nowMs),
+    // An airdrop first; a Lucky Tide's crate (D258) when the water is clear.
+    find: (base, now) => {
+      const drop = afloat(content, base, now);
+      if (drop) return drop;
+      const slot = tideAt(content, base, now);
+      return slot
+        ? {
+            k: slot.k,
+            at: slot.at,
+            float: floatSeconds(content, base),
+            until: slot.until,
+            kind: slot.kind,
+            tide: true,
+          }
+        : null;
+    },
   });
-  private readonly base = new Base(this.particles);
-  private readonly backNodes: Nodes;
-  private readonly frontNodes: Nodes;
-  private readonly barrel: Barrel;
-  private readonly skiff: Skiff;
-  /** The shield over the walls and the raiders' torches on the ridge (W6). */
-  private readonly badge: DefenceBadge;
-  private readonly torches: RaiderTorches;
-  /** The island's Signal on the slope behind the holdfast (W7). */
-  private readonly tower: SignalTower;
-  /** The base the skiff's glow was worked out for (the check is not free every frame). */
-  private skiffFor: unknown = null;
-  private readonly actors: Actors;
-  /** The island chart, drawn instead of the base while the map is open. */
-  private readonly map = new MapView({
-    onRegion: (id) => useWorld.getState().focusMap({ kind: "region", id }),
-    onSite: (id) => useWorld.getState().focusMap({ kind: "site", id }),
-    onDen: () => useWorld.getState().openDen(),
+  /** Supply Drops waiting by the house (D261): a tap opens the top tier's reveal. */
+  private readonly crates = new Crates({
+    open: (tier) => useReveal.getState().start(tier),
+    quiet: () => !this.flotsam.hint.hidden,
   });
+  private readonly gulls = new Gulls({
+    claim: (run, k) => useWorld.getState().send({ type: "claim_gull", run, k }),
+    arrived: (elite) => emit({ type: "gull_arrived", elite }),
+    // On a phone the hints would overlap (R3 review, D254): the airdrop's goes first, then the
+    // crate's, then the crow's.
+    quiet: () => !this.flotsam.hint.hidden || !this.crates.hint.hidden,
+  });
+  private readonly house = new House(this.particles);
+  /** The Kettle on the back terrace (R4, D270); a tap opens the Big Red's card. */
+  private readonly kettle = new Kettle(this.particles, {
+    open: () => useBigRed.getState().openCard(),
+  });
+  /** The crater under the camp, deepening with every Wipe Day, and its sign (03 10.3). */
+  private readonly crater = new Crater();
+  /** The rowboat on blocks at the camp's edge: its own layer, so it outlives the blast. */
+  private readonly rowboat = new Rowboat();
+  private readonly shore = new Container();
+  /** The blast (03 7.2): the shockwave and the cloud's puffs in the world, the fireball on `lights`. */
+  private readonly blast = new Container();
+  private readonly shock = new Graphics();
+  private readonly puffs: Sprite[] = [];
+  private readonly fireballs: Sprite[] = [];
+  /** The sign's lettering in screen space (D46). */
+  private readonly signOverlay = new Container();
+  private readonly signLabel: BitmapText;
+  /** The island as it stood before the press, drawn until the impact. */
+  private filmBase: BaseState | null = null;
+  /** The film's beats sounded so far (per film), and the landing's steps played. */
+  private beats = new Set<string>();
+  private landingSteps = new Set<string>();
+  private smokeDue = 0;
+  /** The Kettle's state, read once a second; the yield's "+1"s merge for 2 s. */
+  private kettleSecond = -1;
+  private kettleMood = { crowned: false, pressable: false, rain: 0 };
+  private lastGain: number | null = null;
+  private yieldPending = 0;
+  private yieldAt = Number.NEGATIVE_INFINITY;
+  /** The crater's count as drawn this frame (a pinned film's event may raise it). */
+  private craterN = 0;
+  private kettlePatches = -1;
+  private readonly lines: Lines;
+  private readonly hands: Hands;
+  /** The house's room (D206): the crafting lines and their hands, shown when it is open. */
+  private readonly room = new Room();
+  private readonly roomLines: Lines;
+  private readonly roomHands: Hands;
+  /** Dims the island while the room is open; a tap on it closes the room. Screen space. */
+  private readonly dim = new Graphics();
+  /** The house is a button too: it opens the room once any crafting line's era has opened. */
+  private readonly houseButton: HTMLButtonElement;
+  private readonly houseHint: HTMLDivElement;
+  private roomOpen = false;
+  private houseKey = "";
+  /** The tap area: a transparent button over the target, sized on screen. */
+  private readonly button: HTMLButtonElement;
+  /** Hold to work: a ring round the finger while a held press counts taps (screen space). */
+  private readonly holdRing = new Graphics();
   private unsubscribe: (() => void) | null = null;
   private destroyed = false;
   private ready = false;
   private viewW = 0;
   private viewH = 0;
+  /** CSS px the HUD covers on the right (the desktop column). */
+  private insetRight = 0;
   private scale = 1;
   private centerX = W / 2;
+  /** What the camera must show for the run's era (`island.ts`). */
+  private view: View = VIEW;
   private top = 0;
   private time = 0;
   private wind = 1;
   private parallax = 0;
   private parallaxTarget = 0;
-  private scaffoldTier: string | null = null;
+  private lastMs = wall.nowMs();
+  /** The base the scene last followed, and its run number (a new run redraws at once). */
+  private seen: BaseState | null = null;
+  private era: Tier | null = null;
+  private roster = 0;
+  /** The tap box on screen (CSS px). */
+  private box = { x: 0, y: 0, width: 0, height: 0 };
+  private boxKey = "";
+  /** A press on the target: where, since when (wall ms), and taps counted for it so far. */
+  private held: {
+    x: number;
+    y: number;
+    startX: number;
+    startY: number;
+    since: number;
+    counted: number;
+    still: boolean;
+  } | null = null;
+  /** Frenzy as the HUD draws it, a tenth of a second at a time. */
+  private frenzy: { base: BaseState | null; tenth: number; view: FrenzyView | null } = {
+    base: null,
+    tenth: -1,
+    view: null,
+  };
+  /** The running Frenzy's end (its `until`) while one runs, and when the last one burned out. */
+  private frenzyRun: number | null = null;
+  private frenzyEndMs = -1e9;
+  private hustle = {
+    base: null as BaseState | null,
+    second: -1,
+    hold: 2,
+    drain: 10,
+    cap: 100,
+    peak: 2,
+  };
+  private lastBumpMs = 0;
+  /** When the last fell shook the camera (wall ms). */
+  private shakeAt = -Infinity;
+  /** The store's demo patch count at the last frame. */
+  private patches = 0;
+  /** The game clock at the last frame. */
+  private lastNow = 0;
 
   constructor(private readonly host: HTMLElement) {
-    const callbacks: NodeCallbacks = {
-      onStart: (node) => {
-        const refusal = useWorld.getState().startRun(node.id);
-        if (refusal) {
-          this.floaters.add(
-            node.x,
-            node.y - 70 * node.scale,
-            refusal,
-            0xece8df,
-            this.floatSize(0.85),
-          );
-          return null;
-        }
-        return useWorld.getState().base.wear[node.id] ?? 0;
-      },
-      onHit: (node, hits, x, y) => {
-        const debris = debrisFor(node.kind);
-        this.particles.spawn(debris.kind, x, y, 10, debris.color);
-        this.lastHit = { x, y };
-        // The domain banks the hit (and the perfect bonus on the last one); effects follow its events.
-        useWorld.getState().hitNode(hits);
-      },
-      onRunOver: (_node, { hits, from, done }, x, y) => {
-        // At the marker, where the eye already is; "Perfect!" sits above the bonus gain.
-        this.floaters.retire(this.hitText);
-        if (done && from === 0) {
-          this.floaters.add(
-            x,
-            y - 62 / this.scale,
-            t("hud.perfect"),
-            0xffd25a,
-            this.floatSize(1.2),
-          );
-          this.particles.spawn("coins", x, y, 12);
-        } else if (!done && hits > from) {
-          // The node stays up with its wear: say how far along it is.
-          const text = t("hud.missed_wear", { hits, max: MAX_HITS });
-          this.floaters.add(x, y - 22 / this.scale, text, 0xa49e93, this.floatSize());
-        }
-        useWorld.getState().endRun(done);
-      },
-      onDepletedTap: (node) => {
-        const state = useWorld.getState();
-        const until = state.base.depleted[node.id];
-        if (until === undefined) return;
-        const text = t("hud.node_back_in", {
-          node: nodeName(node.kind),
-          time: duration(Math.ceil(until - state.now)),
-        });
-        this.floaters.add(node.x, node.y - 70 * node.scale, text, 0xece8df, this.floatSize(0.85));
-      },
-      onFelled: (node, x, y) => {
-        if (node.kind !== "tree") return;
-        this.particles.spawn("dust", x, y, 10, 0xc9b78a);
-        this.particles.spawn("leaves", x, y - 20, 16, 0x5c9b4a);
-      },
-    };
-    this.backNodes = new Nodes(BACK_NODES, callbacks);
-    this.frontNodes = new Nodes(FRONT_NODES, callbacks);
-    this.barrel = new Barrel(BARREL_SPOT.x, BARREL_SPOT.y, () => {
-      useWorld.getState().breakBarrel();
-    });
-    this.skiff = new Skiff(SKIFF_SPOT.x, SKIFF_SPOT.y, () => {
-      const state = useWorld.getState();
-      state.openDen(denWorthIt(content, state.base) ? "contracts" : undefined);
-    });
-    this.badge = new DefenceBadge(() => useWorld.getState().openDefence());
-    this.torches = new RaiderTorches(BASE_X, GROUND);
-    this.tower = new SignalTower(BASE_X - 330, GROUND - 120, () =>
-      useWorld.getState().openPanel("signal"),
-    );
-    this.actors = new Actors(GROUND, BASE_X, BASE_X + 340, SHORE_X + 20, {
-      canWork: (node) => this.backNodes.isUp(node) || this.frontNodes.isUp(node),
-      onWork: (node, x, y) => {
-        this.shakeNode(node);
-        const debris = debrisFor(nodeKind.get(node) ?? "stone");
-        this.particles.spawn(debris.kind, x + 12, y, 3, debris.color);
-      },
-      onDeliver: (x, y) => this.particles.spawn("dust", x, y + 50, 4),
-    });
-    this.base.container.position.set(BASE_X, GROUND);
-    this.base.lights.position.set(BASE_X, GROUND);
-    this.lights.addChild(this.tower.light, this.torches.light, this.base.lights, this.skiff.light);
-    this.markers.addChild(this.backNodes.overlay, this.frontNodes.overlay, this.badge.container);
     this.ambient.blendMode = "multiply";
+    this.props.sortableChildren = true;
+    this.lines = new Lines(this.props, GROUND, this.particles, {
+      float: (line, x, y, amount) => this.lineFloater(line.product, x, y, amount),
+    });
+    this.hands = new Hands(this.props);
+    this.roomLines = new Lines(
+      this.room.props,
+      ROOM.floor * ART,
+      this.room.particles,
+      { float: (line, x, y, amount) => this.roomFloater(line.product, x, y, amount) },
+      ROOM_LAYOUT,
+      (ROOM.width * ART) / 2,
+    );
+    this.roomHands = new Hands(this.room.props);
+    this.room.lights.addChild(this.roomLines.lights);
+    this.dim.eventMode = "static";
+    this.dim.on("pointertap", () => useUi.getState().openHouse(false));
+    this.houseButton = document.createElement("button");
+    this.houseButton.type = "button";
+    this.houseButton.className = "house-hit";
+    this.houseButton.hidden = true;
+    this.houseButton.addEventListener("click", () => this.openHouse());
+    this.houseHint = document.createElement("div");
+    this.houseHint.className = "plate house-hint";
+    this.houseHint.setAttribute("role", "status");
+    this.houseHint.hidden = true;
+    this.target.container.position.set(TARGET.x, TARGET.y);
+    this.target.container.zIndex = TARGET.y;
+    this.house.container.position.set(HOUSE.x, HOUSE.y);
+    this.house.container.zIndex = HOUSE.y;
+    this.stockpile.place(PILE.x, PILE.y);
+    this.crates.place(HOUSE.x - CRATES_LEFT * ART, HOUSE.y);
+    const kettleSpot = stageSpot(kettleSpotFor("twig"));
+    this.kettle.place(kettleSpot.x, GROUND + kettleSpot.y);
+    const boatSpot = stageSpot(rowboatSpotFor("twig"));
+    this.rowboat.place(boatSpot.x, GROUND + boatSpot.y);
+    this.shore.addChild(this.rowboat.container);
+    this.props.addChild(
+      this.house.container,
+      this.target.container,
+      this.stockpile.container,
+      this.crates.container,
+      this.kettle.container,
+    );
+    // The blast's pooled sprites (03 7.6): 28 puffs for the cloud, three glows for the fireball.
+    for (let i = 0; i < 28; i++) {
+      const puff = new Sprite(puffTexture(128));
+      puff.anchor.set(0.5);
+      puff.visible = false;
+      this.puffs.push(puff);
+    }
+    this.blast.addChild(this.shock, ...this.puffs);
+    this.blast.visible = false;
+    for (const color of FIREBALL) {
+      const ball = new Sprite(glowTexture());
+      ball.anchor.set(0.5);
+      ball.blendMode = "add";
+      ball.tint = color;
+      ball.visible = false;
+      this.fireballs.push(ball);
+    }
+    this.signLabel = new BitmapText({
+      text: "",
+      style: { fontFamily: "wipeday-floater", fontSize: 14 },
+    });
+    this.signLabel.anchor.set(0.5, 0.5);
+    this.signLabel.visible = false;
+    this.signOverlay.addChild(this.signLabel);
     this.world.addChild(
       this.sky.container,
       this.terrain.back,
-      this.tower.container,
-      this.torches.container,
       this.terrain.ground,
-      this.backNodes.container,
-      this.base.container,
-      this.frontNodes.container,
-      this.actors.container,
-      this.barrel.container,
-      this.skiff.container,
+      this.shore,
+      this.props,
       this.particles.container,
+      this.blast,
       this.terrain.front,
     );
+    this.lights.addChild(
+      this.house.lights,
+      this.lines.lights,
+      this.target.light,
+      this.kettle.light,
+      this.crater.light,
+      ...this.fireballs,
+    );
+    this.button = document.createElement("button");
+    this.button.type = "button";
+    this.button.className = "target-hit";
+    this.button.addEventListener("pointerdown", this.onPress);
+    this.button.addEventListener("keydown", this.onKeyDown);
+    this.button.addEventListener("keyup", this.onKeyUp);
+    this.button.addEventListener("contextmenu", (event) => event.preventDefault());
   }
 
   async init(): Promise<void> {
@@ -264,30 +454,65 @@ export class Scene {
       resolution: Math.min(2, window.devicePixelRatio || 1),
       backgroundAlpha: 0,
     });
+    await Promise.all([loadProductIcons(), loadArt()]);
+    this.terrain.build();
+    // The crater lies over the painted ground, under everything that stands.
+    this.terrain.ground.addChild(this.crater.container);
+    this.propGlows = placeProps(this.props, this.lights, GROUND, yard.props);
     if (this.destroyed) {
       this.app.destroy(true, { children: true });
       return;
     }
     this.ready = true;
     this.host.appendChild(this.app.canvas);
+    this.host.appendChild(this.button);
+    this.host.appendChild(this.flotsam.button);
+    this.host.appendChild(this.flotsam.hint);
+    this.host.appendChild(this.crates.button);
+    this.host.appendChild(this.crates.hint);
+    this.host.appendChild(this.gulls.button);
+    this.host.appendChild(this.gulls.hint);
+    this.host.appendChild(this.houseButton);
+    this.host.appendChild(this.houseHint);
+    this.host.appendChild(this.kettle.button);
     this.app.stage.addChild(
       this.world,
       this.ambient,
       this.lights,
-      this.floaters.container,
       this.weather.container,
-      this.markers,
-      this.map.container,
+      this.dim,
+      this.room.container,
+      this.lines.overlay,
+      this.roomLines.overlay,
+      this.flotsam.overlay,
+      this.gulls.overlay,
+      this.target.overlay,
+      this.signOverlay,
+      this.holdRing,
+      this.floaters.container,
     );
     this.unsubscribe = on((event) => this.handle(event));
-    if (window.__wipeDay) {
-      window.__wipeDay.nodeMarker = () => {
-        const point = this.backNodes.markerPoint ?? this.frontNodes.markerPoint;
-        return point ? this.markers.toGlobal(point) : null;
-      };
-    }
-    this.app.canvas.addEventListener("pointermove", this.onPointer);
-    this.sync();
+    window.addEventListener("pointermove", this.onPointerMove);
+    window.addEventListener("pointerup", this.onRelease);
+    window.addEventListener("pointercancel", this.onRelease);
+    registerScene({
+      target: () => ({ ...this.box }),
+      hitBoxes: () => {
+        const flotsam = this.flotsam.hitBox;
+        const gull = this.gulls.hitBox;
+        const crates = this.crates.hitBox;
+        const kettle = this.kettle.hitBox;
+        return [
+          { name: "target", ...this.box },
+          ...(flotsam ? [{ name: "flotsam", ...flotsam }] : []),
+          ...(gull ? [{ name: "gull", ...gull }] : []),
+          ...(crates ? [{ name: "crates", ...crates }] : []),
+          ...(kettle ? [{ name: "kettle", ...kettle }] : []),
+        ];
+      },
+      counts: () => ({ floaters: this.floaters.count, particles: this.particles.count }),
+      fastForward: (seconds, tick) => this.fastForward(seconds, tick),
+    });
     this.app.ticker.add(this.frame);
   }
 
@@ -295,272 +520,1006 @@ export class Scene {
     this.destroyed = true;
     this.unsubscribe?.();
     this.unsubscribe = null;
+    this.button.remove();
+    this.houseButton.remove();
+    this.houseHint.remove();
+    this.flotsam.button.remove();
+    this.flotsam.hint.remove();
+    this.crates.button.remove();
+    this.crates.hint.remove();
+    this.gulls.button.remove();
+    this.gulls.hint.remove();
+    this.kettle.button.remove();
     if (!this.ready) return;
     this.ready = false;
-    this.app.canvas.removeEventListener("pointermove", this.onPointer);
+    window.removeEventListener("pointermove", this.onPointerMove);
+    window.removeEventListener("pointerup", this.onRelease);
+    window.removeEventListener("pointercancel", this.onRelease);
     this.app.ticker.remove(this.frame);
     this.app.destroy(true, { children: true });
   }
 
-  private readonly onPointer = (event: PointerEvent): void => {
-    if (event.pointerType !== "mouse") return;
-    this.parallaxTarget = (event.clientX / Math.max(1, this.viewW) - 0.5) * 2;
+  // --- input ---------------------------------------------------------------------------------
+
+  private local(event: { clientX: number; clientY: number }): { x: number; y: number } {
+    const rect = this.host.getBoundingClientRect();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+  }
+
+  private readonly onPress = (event: PointerEvent): void => {
+    if (event.button !== 0 && event.pointerType === "mouse") return;
+    event.preventDefault();
+    const { x, y } = this.local(event);
+    this.button.setPointerCapture?.(event.pointerId);
+    this.held = { x, y, startX: x, startY: y, since: wall.nowMs(), counted: 0, still: true };
+    this.tapAt(1, x, y);
   };
 
-  /** Camera: cover the viewport, keep at least MIN_VISIBLE_W across, horizon in the upper half on tall screens. */
+  private readonly onPointerMove = (event: PointerEvent): void => {
+    if (event.pointerType === "mouse") {
+      this.parallaxTarget = (event.clientX / Math.max(1, this.viewW) - 0.5) * 2;
+    }
+    const held = this.held;
+    if (!held) return;
+    const { x, y } = this.local(event);
+    held.x = x;
+    held.y = y;
+    if (Math.hypot(x - held.startX, y - held.startY) > HOLD_SLOP) held.still = false;
+  };
+
+  private readonly onRelease = (): void => {
+    this.held = null;
+  };
+
+  /** Space or Enter taps; holding Space works like holding a finger on it. */
+  private readonly onKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== " " && event.key !== "Enter") return;
+    event.preventDefault();
+    if (event.repeat) return;
+    const x = this.box.x + this.box.width / 2;
+    const y = this.box.y + this.box.height / 2;
+    this.tapAt(1, x, y);
+    if (event.key === " ")
+      this.held = { x, y, startX: x, startY: y, since: wall.nowMs(), counted: 0, still: true };
+  };
+
+  private readonly onKeyUp = (event: KeyboardEvent): void => {
+    if (event.key === " ") this.held = null;
+  };
+
+  private tapAt(count: number, x: number, y: number): void {
+    useWorld.getState().tap(count, x, y);
+  }
+
+  /** Hold to work: a press held still on the target counts 4 taps a second after a moment. */
+  private holdTaps(): void {
+    const held = this.held;
+    if (!held?.still) return;
+    const { holdAfterSeconds, holdTapsPerSecond } = content.tap;
+    const due = heldTaps(wall.nowMs() - held.since, holdAfterSeconds * 1000, holdTapsPerSecond);
+    if (due > held.counted) {
+      this.tapAt(due - held.counted, held.x, held.y);
+      held.counted = due;
+    }
+  }
+
+  // --- camera --------------------------------------------------------------------------------
+
+  /**
+   * The zoom is the largest whole number of device pixels per art pixel that still shows the
+   * whole island (`VIEW`), at most MAX_ZOOM CSS px: a phone sees the island edge to edge, a
+   * desktop more sky around it. The yard's front edge sits low on a desktop and just above the
+   * drawer on a phone (`yard.camera`).
+   */
   private layout(): void {
     const vw = this.app.screen.width;
     const vh = this.app.screen.height;
-    if (vw === this.viewW && vh === this.viewH) return;
+    // The desktop column covers the right: the island centres in what is left (1.7).
+    const right = Math.min(insets.right, vw * 0.5);
+    if (vw === this.viewW && vh === this.viewH && right === this.insetRight) return;
     this.viewW = vw;
     this.viewH = vh;
-    // Desktop: fill the height with a little zoom; phones: never narrower than MIN_VISIBLE_W.
-    this.scale = Math.min(vh / (H - 100), vw / MIN_VISIBLE_W);
-    const visibleW = vw / this.scale;
+    this.insetRight = right;
+    const freeW = vw - right;
+    const res = this.app.renderer.resolution;
+    const view = viewSize(this.view);
+    const fit = Math.min((freeW * res * ART) / view.width, (vh * res * ART) / view.height);
+    const zoom = clamp(Math.floor(fit), 1, Math.round(MAX_ZOOM * res));
+    this.scale = zoom / (res * ART);
     const visibleH = vh / this.scale;
-    this.centerX = visibleW >= W ? W / 2 : clamp(FOCUS_X, visibleW / 2, W - visibleW / 2);
-    // The ground line sits lower on wide screens (more sky) and near the middle on tall ones.
-    const wideness = clamp(vw / vh - 0.6, 0, 1);
-    const groundFraction = lerp(0.66, 0.72, wideness);
-    this.top = clamp(GROUND - groundFraction * visibleH, -EXTEND + 40, H + EXTEND - visibleH - 40);
+    // Centred on the island; the skyline and the ground run on past every screen's edges.
+    this.centerX = view.focus;
+    // The yard (D246): on a desktop the front edge low; on a phone just above the drawer, so
+    // only a strip of ground shows under the front row (the owner, P4).
+    const frame = yard.camera;
+    const top =
+      freeW / vh < 1
+        ? GROUND + frame.phone * ART - (vh - phoneCover(vh)) / this.scale
+        : GROUND - frame.desktop * visibleH;
+    this.top = clamp(top, -EXTEND + 40, H + EXTEND - visibleH - 40);
     this.world.scale.set(this.scale);
     this.ambient.clear().rect(0, 0, vw, vh).fill(0xffffff);
+    this.dim.clear().rect(0, 0, vw, vh).fill({ color: 0x0b0a0d, alpha: 0.62 });
     this.weather.resize(vw, vh);
   }
 
-  /**
-   * Who walks about the base: the crew at home; the hurt rest by the fire, and each
-   * worker keeps to their post (their node, their station, the gate, or their bed).
-   */
-  private syncCrew(base: BaseState, now: number): void {
-    const key = base.crew
-      .map(
-        (member) =>
-          `${member.id}:${member.away ?? ""}:${(member.injuredUntil ?? 0) > now ? 1 : 0}:${JSON.stringify(member.job)}:${isAsleep(member, now) ? 1 : 0}`,
-      )
-      .join(",");
-    if (key === this.crewKey) return;
-    this.crewKey = key;
-    const home = base.crew.filter((member) => member.away === null);
-    const hurt = new Set(
-      home.filter((member) => (member.injuredUntil ?? 0) > now).map((member) => member.id),
-    );
-    const posts = new Map<string, Post>();
-    const perKind = new Map<string, number>();
-    for (const member of home) {
-      const job = member.job;
-      if (isAsleep(member, now)) {
-        posts.set(member.id, { kind: "sleep", x: BASE_X + 340 });
-      } else if (job?.kind === "node") {
-        // Workers of one kind spread over its nodes.
-        const nodes = ALL_NODES.filter((node) => node.kind === job.node);
-        const index = perKind.get(job.node) ?? 0;
-        perKind.set(job.node, index + 1);
-        const node = nodes[index % Math.max(1, nodes.length)];
-        if (node) posts.set(member.id, { kind: "node", x: node.x, node: node.id });
-        else {
-          // A kind with no node drawn (fibre): they work the fields by the loom.
-          const field = this.base.stationPosition("loom") ?? this.base.stationPosition("garden");
-          posts.set(member.id, { kind: "station", x: (field?.x ?? BASE_X + 200) + 30 });
-        }
-      } else if (job?.kind === "station") {
-        const spot = this.base.stationPosition(job.station);
-        if (spot) posts.set(member.id, { kind: "station", x: spot.x + 26 });
-      } else if (job?.kind === "guard") {
-        // By the walls when they stand, else on the path down to the shore.
-        const walls = this.base.buildingPosition("walls");
-        const guards = [...posts.values()].filter((post) => post.kind === "guard").length;
-        posts.set(member.id, { kind: "guard", x: (walls?.x ?? BASE_X - 230) - guards * 34 });
-      }
-    }
-    this.actors.sync(
-      home.map((member) => survivorLook(member.id)),
-      hurt,
-      posts,
+  /** The world point under a screen point (CSS px). */
+  private toWorld(x: number, y: number): { x: number; y: number } {
+    return {
+      x: (x - this.world.position.x) / this.scale,
+      y: (y - this.world.position.y) / this.scale,
+    };
+  }
+
+  /** The tap box: the target's drawn bounds on screen, padded, never under the minimum. */
+  private placeButton(): void {
+    const b = this.target.bounds;
+    const ox = this.world.position.x + this.target.container.x * this.scale;
+    const oy = this.world.position.y + this.target.container.y * this.scale;
+    const left = ox + b.x * this.scale - HIT_PAD;
+    const top = oy + b.y * this.scale - HIT_PAD;
+    const drawnW = b.width * this.scale + HIT_PAD * 2;
+    const drawnH = b.height * this.scale + HIT_PAD * 2;
+    const width = Math.max(HIT_MIN.width, drawnW);
+    const height = Math.max(HIT_MIN.height, drawnH);
+    const box = {
+      x: Math.round(left - (width - drawnW) / 2),
+      y: Math.round(top - (height - drawnH) / 2),
+      width: Math.round(width),
+      height: Math.round(height),
+    };
+    const key = `${box.x},${box.y},${box.width},${box.height}`;
+    this.box = box;
+    if (key === this.boxKey) return;
+    this.boxKey = key;
+    const style = this.button.style;
+    style.left = `${box.x}px`;
+    style.top = `${box.y}px`;
+    style.width = `${box.width}px`;
+    style.height = `${box.height}px`;
+    // The tap hint sits just under the box.
+    document.documentElement.style.setProperty("--target-bottom", `${box.y + box.height}px`);
+    document.documentElement.style.setProperty(
+      "--target-x",
+      `${Math.round(box.x + box.width / 2)}px`,
     );
   }
 
-  /** Rings over the stations at work: how far the current unit is, like the regrow clocks. */
-  private syncWork(base: BaseState, now: number): void {
-    const busy = new Set<string>();
-    for (const [station, jobs] of Object.entries(base.production)) {
-      const job = jobs[0];
-      if (!job || now < job.startedAt) continue;
-      const spot = this.base.stationTop(station);
-      if (!spot) continue;
-      busy.add(station);
-      let ring = this.workRings.get(station);
-      if (!ring) {
-        ring = new Graphics();
-        ring.eventMode = "none";
-        this.markers.addChild(ring);
-        this.workRings.set(station, ring);
-      }
-      const unit = ((now - job.startedAt) % job.unitSeconds) / job.unitSeconds;
-      const r = WORK_RING_PX;
-      const end = -Math.PI / 2 + unit * Math.PI * 2;
-      ring.clear();
-      // A pale rim so the ring holds its shape against the night sky too.
-      ring
-        .circle(0, 0, r * 1.25)
-        .fill({ color: 0x1b1a18, alpha: 0.72 })
-        .stroke({ width: 1.5, color: 0xece8df, alpha: 0.55 });
-      ring
-        .moveTo(0, 0)
-        .lineTo(0, -r)
-        .arc(0, 0, r, -Math.PI / 2, end)
-        .closePath()
-        .fill(0xe3a32f);
-      ring.position.set(spot.x, spot.y - 18 / this.scale);
-      ring.scale.set(1 / this.scale);
-    }
-    for (const [station, ring] of this.workRings) {
-      if (busy.has(station)) continue;
-      ring.destroy();
-      this.workRings.delete(station);
-    }
-    this.base.setBusy(busy);
-  }
+  // --- the frame -----------------------------------------------------------------------------
 
-  /** State-driven visuals, cheap enough to run every frame. */
-  private sync(): void {
-    const state = useWorld.getState();
-    const { base, now } = state;
-    this.syncCrew(base, now);
-    this.base.setTier(base.tier, false, base.skin);
-    // W7: the Signal shows once it opens (or anything was given).
-    const signal = state.signal;
-    if (signal) {
-      const { stage, litAt } = signal.progress;
-      this.tower.set(stage, litAt !== null, signal.open || stage > 0 || litAt !== null);
-    }
-    const tierJob = base.construction.find((job) => job.target.kind === "tier");
-    const scaffold = tierJob?.target.kind === "tier" ? tierJob.target.tier : null;
-    if (scaffold !== this.scaffoldTier) {
-      this.scaffoldTier = scaffold;
-      this.base.showScaffold(scaffold);
-    }
-    const furnace = furnaceOf(content, base);
-    this.base.setStations({
-      buildings: base.buildings,
-      furnaceSlots: Math.max(1, furnaceSlots(content, base)),
-      crates: (base.items.crate ?? 0) + (base.items.large_crate ?? 0),
-      constructing: base.construction.flatMap((job) =>
-        job.target.kind === "building" ? [job.target.building] : [],
-      ),
-      damaged: base.damaged,
-    });
-    // W6: the shield over the walls (from the tier raiders come at) and the torches.
-    const sighted = raidWarned(content, base, now) && base.raid !== null && now < base.raid.at;
-    const shielded = base.pvp.shieldUntil !== null && base.pvp.shieldUntil > now;
-    const shield: ShieldState = sighted
-      ? "sighted"
-      : base.damaged
-        ? "broken"
-        : shielded
-          ? "shielded"
-          : "calm";
-    const tower = this.base.stationTop("watchtower");
-    this.badge.set(
-      raidsOpen(content, base)
-        ? tower
-          ? { x: tower.x + 48, y: tower.y - 6 }
-          : { x: BASE_X - 270, y: GROUND - 100 }
-        : null,
-      shield,
-    );
-    this.torches.set(sighted);
-    this.base.setFurnaceActive(
-      furnace !== null && base.furnaceJobs.some((job) => jobProgress(job, now) < job.amount),
-    );
-    this.barrel.set(base.barrel !== null && now <= base.barrel.expiresAt);
-    if (this.skiffFor !== base) {
-      this.skiffFor = base;
-      this.skiff.set(denOpen(content, base), denWorthIt(content, base));
-    }
-    this.syncWork(base, state.now);
-    const depleted: Record<string, Depleted> = {};
-    for (const [id, until] of Object.entries(base.depleted)) {
-      const kind = nodeKindOf(content, id);
-      if (kind) depleted[id] = { kind: kind.id, at: until - kind.respawnSeconds, until };
-    }
-    // Cracks follow the hits live: the run in progress, else what earlier runs left.
-    const run = base.nodeRun;
-    const wear = run ? { ...base.wear, [run.node]: run.hits } : base.wear;
-    this.backNodes.sync(depleted, now, wear);
-    this.frontNodes.sync(depleted, now, wear);
-    this.weather.set(state.weather);
-  }
-
-  private readonly frame = (ticker: Ticker): void => {
+  private readonly frame = (): void => {
     countFrame();
+    const nowMs = wall.nowMs();
+    const dt = Math.min(0.05, Math.max(0, (nowMs - this.lastMs) / 1000));
+    this.lastMs = nowMs;
     if (isFrozen()) return;
-    const dt = Math.min(0.05, ticker.deltaMS / 1000);
     this.time += dt;
-    this.step(dt);
+    this.step(dt, nowMs);
   };
 
-  private step(dt: number): void {
+  /**
+   * Shots: plays `seconds` in 60 fps steps now, and leaves the wall clock at the end. `tick`
+   * moves the game clock along with each step (the demo's, paused for a shot).
+   */
+  private fastForward(seconds: number, tick?: (dt: number) => void): void {
+    const from = wall.nowMs();
+    const steps = Math.round(seconds * 60);
+    for (let k = 1; k <= steps; k++) {
+      tick?.(1 / 60);
+      this.time += 1 / 60;
+      this.step(1 / 60, from + (k * 1000) / 60);
+    }
+    wall.set((from + seconds * 1000) / 1000);
+    this.lastMs = wall.nowMs();
+  }
+
+  private step(dt: number, nowMs: number): void {
     this.layout();
-    useWorld.getState().tick();
-    const state = useWorld.getState();
-    // The map replaces the base on screen; the base rests (nothing there needs the frames).
-    const onMap = state.view === "map";
-    this.map.show(onMap);
-    for (const layer of [
-      this.world,
-      this.ambient,
-      this.lights,
-      this.floaters.container,
-      this.weather.container,
-      this.markers,
-    ]) {
-      layer.visible = !onMap;
+    this.holdTaps();
+    const store = useWorld.getState();
+    store.tick();
+    const base = store.base;
+    const now = gameSeconds();
+    // The show (R4, D270): the film draws the island as it stood before the press until the
+    // impact (`filmBase`), the crater after it; the landing brings the fresh island back.
+    const show = useBigRed.getState();
+    if (base && show.film && this.filmBase === null) {
+      // The island before the press: the last base followed (a pinned film never pressed, so
+      // its patched base is the island).
+      this.filmBase = show.pinnedMs !== null ? base : (this.seen ?? base);
+      this.beats.clear();
     }
-    if (onMap) {
-      this.map.layout(this.viewW, this.viewH, hudInsets(this.viewH));
-      this.map.setFocus(state.mapFocus?.id ?? null);
-      this.map.update(dt, state.base, state.now);
-      return;
-    }
-    this.sync();
-    const fraction = dayFraction(seasonTime(state));
-    const rain = this.weather.rainAmount;
-    const gloomAmount = clamp(rain + (state.weather === "fog" ? 0.5 : 0), 0, 1);
-    const palette = gloom(paletteAt(fraction), gloomAmount);
-    const darkness = clamp(
-      1 - palette.light + rain * 0.3 + (state.weather === "fog" ? 0.1 : 0),
-      0,
-      1,
-    );
-    this.wind = 1 + Math.sin(this.time * 0.23) * 0.8 + rain * 2;
+    const frame = base && show.film ? this.filmFrame(show, nowMs) : null;
+    const landing =
+      base && show.phase === "landing" && show.landingMs !== null ? nowMs - show.landingMs : null;
+    const busy = frame !== null || landing !== null;
+    const drawn = frame && !frame.crater ? (this.filmBase ?? base) : base;
+    if (base && drawn) this.follow(drawn, store.patches, nowMs, busy);
+
+    const second = Math.floor(now);
+    const fraction = islandHour(content, second) / 24;
+    const sky = weatherAt(content, second);
+    // A jump of the clock (a demo jump, a shot, a tab back after hours) shows its weather at once.
+    const jump = Math.abs(now - this.lastNow);
+    this.weather.set(sky, jump > 60);
+    this.lastNow = now;
+    const { rain, fog } = this.weather.amount;
+    const frenzy = base ? this.frenzyAt(base, now) : null;
+    // A Frenzy warms the sky: in over half a second, out over its last second and a half.
+    const heat =
+      frenzy?.until != null
+        ? clamp((now - (frenzy.until - frenzy.seconds)) / 0.5, 0, 1) *
+          clamp((frenzy.until - now) / 1.5, 0, 1)
+        : 0;
+    let palette = warm(gloom(paletteAt(fraction), rain * 0.85 + fog * 0.6), heat);
+    // Afterglow's green sky in the minutes after a landing (03 9.3), and the blast's tints.
+    const green = base && !frame ? this.afterglowAmount(base, now, nowMs) : 0;
+    if (green > 0) palette = afterglowSky(palette, green);
+    if (frame) palette = afterglowSky(blastTint(palette, frame.burnt, frame.ash), frame.green);
+    const darkness = clamp(1 - palette.light, 0, 1);
+    this.wind = 1 + Math.sin(this.time * 0.23) * 0.8 + rain * 1.5;
     this.parallax += (this.parallaxTarget - this.parallax) * Math.min(1, dt * 3);
 
-    const visibleW = this.viewW / this.scale;
+    const visibleW = (this.viewW - this.insetRight) / this.scale;
     const left = this.centerX - visibleW / 2;
-    this.world.position.set(-left * this.scale - this.parallax * 6, -this.top * this.scale);
-    this.floaters.setCamera(this.world.position.x, this.world.position.y, this.scale);
+    // Whole device pixels only, so the art grid stays sharp (D188).
+    const res = this.app.renderer.resolution;
+    const px = (value: number) => Math.round(value * res) / res;
+    // A fell's shake: a whole art pixel each way for a few frames (none with reduced motion).
+    const shaking = nowMs - this.shakeAt < SHAKE_MS && !reducedMotion();
+    const [sx, sy] = shaking
+      ? (SHAKE[Math.floor(((nowMs - this.shakeAt) / SHAKE_MS) * SHAKE.length)] ?? [0, 0])
+      : [0, 0];
+    const unit = ART * this.scale;
+    // The blast's shake and zoom punch (03 7.2) ride on top, about the screen's centre.
+    const punch = frame?.punch ?? 1;
+    const blastX = (frame?.shake.x ?? 0) * this.scale;
+    const blastY = (frame?.shake.y ?? 0) * this.scale;
+    const worldX = -left * this.scale - this.parallax * 6 + sx * unit + blastX;
+    const worldY = -this.top * this.scale + sy * unit + blastY;
+    if (punch !== 1) {
+      const cx = (this.viewW - this.insetRight) / 2;
+      const cy = this.viewH / 2;
+      this.world.position.set(
+        px(worldX * punch + cx * (1 - punch)),
+        px(worldY * punch + cy * (1 - punch)),
+      );
+      this.world.scale.set(this.scale * punch);
+    } else {
+      this.world.position.set(px(worldX), px(worldY));
+      this.world.scale.set(this.scale);
+    }
+    this.floaters.setCamera(
+      this.world.position.x,
+      this.world.position.y,
+      this.world.scale.x,
+      this.viewW - this.insetRight,
+    );
     this.lights.position.copyFrom(this.world.position);
     this.lights.scale.copyFrom(this.world.scale);
-    this.markers.position.copyFrom(this.world.position);
-    this.markers.scale.copyFrom(this.world.scale);
 
-    this.sky.update(dt, fraction, palette, this.wind, gloomAmount);
+    this.sky.update(dt, fraction, palette, this.wind, 0, Math.max(rain, fog));
     this.terrain.update(dt, palette, this.wind, this.parallax);
-    this.base.update(dt, darkness, this.wind);
-    this.backNodes.update(dt, this.wind);
-    this.frontNodes.update(dt, this.wind);
-    this.barrel.update(dt, darkness);
-    this.skiff.update(dt, darkness, this.scale);
-    this.badge.update(dt, this.scale);
-    this.torches.update(dt, darkness);
-    this.tower.update(dt, darkness);
-    this.actors.setNight(fraction < 0.23 || fraction > 0.8);
-    this.actors.update(dt, this.wind);
+    this.house.update(dt, darkness);
+    for (const glow of this.propGlows) glow.update(darkness);
+    this.target.crowned = useAdvisor.getState().view?.tapHint === true;
+    this.target.update(dt, this.wind, darkness, fog);
+    this.stockpile.update(dt);
+    this.hands.update(dt);
     this.particles.update(dt, this.wind);
-    this.floaters.update(dt);
+    this.weather.setAsh(frame ? frame.ashFall : green);
     this.weather.update(dt, this.wind, darkness);
     this.ambient.tint = palette.ambient;
+    if (base && drawn) {
+      // While a Frenzy runs the lines' machinery turns faster, as their cycles do.
+      const spin = frenzy?.until != null ? content.tap.frenzy.speed : 1;
+      // The lines stop with the island: nothing floats up from a crater.
+      if (!frame?.crater) {
+        this.lines.update(drawn, now, nowMs, dt * spin, darkness);
+        this.lines.syncLights();
+        this.lines.place(drawn, this.world.position.x, this.world.position.y, this.world.scale.x);
+      }
+      this.drawHustle(base, now);
+      if (frenzy) this.drawFrenzy(base, frenzy, now, nowMs);
+      this.flotsam.update(base, now, nowMs, dt, this.camera(), Math.max(darkness, fog), jump > 5);
+      this.gulls.update(
+        base,
+        now,
+        nowMs,
+        this.viewW - this.insetRight,
+        this.camera(),
+        Math.max(darkness, fog),
+        jump > 5,
+      );
+      this.updateRoom(base, now, nowMs, dt, busy);
+      this.crates.update(
+        base,
+        nowMs,
+        this.camera(),
+        this.viewW - this.insetRight,
+        this.roomOpen || busy,
+      );
+      this.kettleTick(base, now, nowMs, rain, busy);
+      // The crater remembers (03 10.3): every counted Wipe Day so far; the film deepens it at
+      // the impact, so until then it shows the count before the press.
+      // A pinned film (a shot) never pressed: its event's count stands in for the state's.
+      const pinned = show.pinnedMs !== null ? (show.film?.event.wipeDay ?? 0) : 0;
+      const n = frame
+        ? frame.crater
+          ? Math.max(base.meta.wipeDays, pinned)
+          : (this.filmBase?.meta.wipeDays ?? 0)
+        : base.meta.wipeDays;
+      this.craterN = n;
+      this.crater.set(n, signStyle(content, n), TARGET.x, GROUND);
+      if (!frame) this.crater.setDrop(1);
+    }
+    if (frame && base) this.drawFilm(show, frame, dt);
+    else this.clearFilm();
+    if (landing !== null && base) this.drawLanding(landing, base);
+    this.crater.update(dt, darkness);
+    this.placeSignLabel(base);
+    this.kettle.update(dt, darkness, this.kettleMood, this.camera(), this.roomOpen || busy);
+    this.placeButton();
+    this.button.style.visibility = busy || this.roomOpen ? "hidden" : "";
+    this.drawHoldRing(nowMs);
+    this.floaters.update(nowMs);
+  }
+
+  // --- the show (R4, D270) ---------------------------------------------------------------------
+
+  /** The world's rectangle on screen (world units), for the film's geometry. */
+  private viewRect(): { left: number; right: number; top: number; bottom: number } {
+    const visibleW = (this.viewW - this.insetRight) / this.scale;
+    const left = this.centerX - visibleW / 2;
+    return {
+      left,
+      right: left + visibleW,
+      top: this.top,
+      bottom: this.top + this.viewH / this.scale,
+    };
+  }
+
+  /** The film's frame now (pinned films hold still). */
+  private filmFrame(show: ReturnType<typeof useBigRed.getState>, nowMs: number): Frame | null {
+    const film = show.film;
+    if (!film) return null;
+    const ms = filmMs(film, show.pinnedMs, nowMs);
+    return frameAt(
+      film.variant,
+      film.seed,
+      ms,
+      { pad: this.kettle.pad, base: { x: TARGET.x, y: GROUND }, view: this.viewRect() },
+      { reduced: film.reduced, wipeDay: film.event.wipeDay !== null },
+    );
+  }
+
+  /**
+   * How green the sky is (03 9.3): `1 − t / 600`, eased, `t` in real seconds since the landing
+   * on this page, or since the run began after a reload. Nothing before the first nuke.
+   */
+  private afterglowAmount(base: BaseState, now: number, nowMs: number): number {
+    if (base.meta.nukes === 0) return 0;
+    const since =
+      sinceLanding(useBigRed.getState(), nowMs) ?? Math.max(0, now - base.run.createdAt);
+    return easeInOutSine(clamp(1 - since / 600, 0, 1));
+  }
+
+  /** Where the crew scramble to: a spot in the rowboat for each hand. */
+  private boatPost(index: number): Post {
+    const spot = this.rowboat.spot;
+    const x = spot.x + ((index % 4) - 1.5) * 3 * ART;
+    return { x, y: spot.y - 2 * ART - Math.floor(index / 4) * ART, scale: 1, faceX: spot.x - 100 };
+  }
+
+  /** A film beat, once per film: the bus hears it (the sound), the scene remembers it. */
+  private beat(id: string, due: boolean, event: GameEvent): void {
+    if (!due || this.beats.has(id)) return;
+    this.beats.add(id);
+    emit(event);
+  }
+
+  /** Draws the film's frame (03 7.2): the flight, the flash, the fireball, the cloud, the crater. */
+  private drawFilm(show: ReturnType<typeof useBigRed.getState>, frame: Frame, dt: number): void {
+    const B = { x: TARGET.x, y: GROUND };
+    const pad = this.kettle.pad;
+    const reduced = show.film?.reduced === true;
+    // Beats on the wall clock; a pinned frame plays none.
+    if (show.pinnedMs === null && !reduced) {
+      if (frame.phase === "scramble" && frame.ms >= 300)
+        this.beat("scramble", true, { type: "ui", action: "switch" });
+      this.beat("liftoff", frame.ms >= 1400, { type: "cine_liftoff" });
+      this.beat("whistle", frame.phase === "whistle" || frame.crater, { type: "cine_whistle" });
+      this.beat("boom", frame.crater, { type: "cine_boom" });
+      this.beat("sign", frame.sign > 0, { type: "cine_sign" });
+    } else if (show.pinnedMs === null && reduced) {
+      this.beat("boom", frame.crater, { type: "cine_boom" });
+    }
+    // The crew: at the scramble every hand walks to the boat, which rocks while they row.
+    if (frame.crew !== "look" && !this.beats.has("crew")) {
+      this.beats.add("crew");
+      this.hands.scramble((i) => this.boatPost(i));
+    }
+    const spot = this.rowboat.spot;
+    if (frame.crew === "rowing" || frame.crater)
+      this.rowboat.setMotion(spot.x, spot.y, Math.sin(frame.ms / 110) * 0.04);
+    // The Kettle: shudders on its pad, then flies; the exhaust glows under its feet.
+    if (frame.kettle.visible) {
+      const k = frame.kettle;
+      this.kettle.setVisible(true);
+      // Over the crater (reduced motion) it must outlive the props layer: it rides the blast's.
+      if (frame.crater && this.kettle.container.parent !== this.blast)
+        this.blast.addChild(this.kettle.container);
+      if (frame.ms < 1400 && !reduced) this.kettle.setFlight(pad.x + frame.shudder, pad.y, 0);
+      else this.kettle.setFlight(k.x, k.y, k.rotation);
+      this.kettle.container.alpha = k.alpha;
+      this.kettle.setExhaust(
+        frame.exhaust,
+        frame.ms < 1400 ? pad.x : k.x,
+        (frame.ms < 1400 ? pad.y : k.y) + 2 * ART,
+      );
+      if (frame.cough) this.particles.spawn("smoke", pad.x, pad.y - 2 * ART, 3, 0x9a9a9a);
+      if (frame.smoke && !reducedMotion()) {
+        this.smokeDue += dt;
+        while (this.smokeDue >= 0.04) {
+          this.smokeDue -= 0.04;
+          this.particles.spawn("smoke", k.x, k.y, 1, 0xd8d2c8);
+        }
+      }
+    } else this.kettle.setVisible(false);
+    // The island becomes the crater under full white (03 7.2): everything that stood is gone.
+    if (frame.crater) {
+      if (this.props.visible) this.floaters.clear();
+      this.props.visible = false;
+      this.lines.overlay.visible = false;
+      // Under reduced motion the Kettle hangs mid-air over the crater while it cross-fades.
+      if (!frame.kettle.visible) this.kettle.setVisible(false);
+      this.crater.setDrop(frame.sign);
+    }
+    document.documentElement.style.setProperty("--flash", frame.flash.toFixed(3));
+    // The fireball: three additive glows on `lights`; the cloud's underside glow after it.
+    for (const [i, ball] of this.fireballs.entries()) {
+      const fire = frame.fireball;
+      const glow = frame.cloud?.glow ?? 0;
+      if (fire && fire.alpha > 0.01) {
+        const r = fire.r * (1 - i * 0.28);
+        ball.visible = true;
+        ball.position.set(B.x, B.y - r * 0.2);
+        ball.width = r * 2;
+        ball.height = r * 2;
+        ball.alpha = fire.alpha * (1 - i * 0.1);
+      } else if (i === 2 && glow > 0 && frame.cloud) {
+        ball.visible = true;
+        ball.position.set(B.x, B.y - 60);
+        ball.width = 320;
+        ball.height = 200;
+        ball.alpha = glow * 0.5;
+      } else ball.visible = false;
+    }
+    this.shock.clear();
+    if (frame.shock && frame.shock.alpha > 0.01)
+      this.shock
+        .circle(B.x, B.y, frame.shock.r)
+        .stroke({ width: 6, color: 0xfff3d0, alpha: frame.shock.alpha });
+    if (frame.dust > 0 && !reducedMotion())
+      this.particles.spawn("dust", B.x + (Math.random() - 0.5) * 500, B.y, frame.dust, 0xb9a98a);
+    // The cloud's puffs, white to hot to cold.
+    this.blast.visible = true;
+    const puffs = frame.cloud ? [...frame.cloud.stem, ...frame.cloud.cap] : [];
+    for (const [i, sprite] of this.puffs.entries()) {
+      const puff = puffs[i];
+      if (!puff || puff.alpha <= 0.01) {
+        sprite.visible = false;
+        continue;
+      }
+      sprite.visible = true;
+      sprite.position.set(puff.x, puff.y);
+      sprite.width = puff.r * 2;
+      sprite.height = puff.r * 2;
+      sprite.alpha = puff.alpha;
+      sprite.tint =
+        puff.heat < 1
+          ? lerpColor(0xffffff, CLOUD_HOT, puff.heat)
+          : lerpColor(CLOUD_HOT, CLOUD_COLD, puff.heat - 1);
+    }
+    if (frame.done && show.pinnedMs === null) useBigRed.getState().filmEnded();
+  }
+
+  /** No film: the blast's layers rest, the Kettle is back on its pad. */
+  private clearFilm(): void {
+    if (this.filmBase === null) return;
+    this.filmBase = null;
+    this.beats.clear();
+    this.smokeDue = 0;
+    this.blast.visible = false;
+    for (const puff of this.puffs) puff.visible = false;
+    for (const ball of this.fireballs) ball.visible = false;
+    this.shock.clear();
+    document.documentElement.style.setProperty("--flash", "0");
+    this.kettle.endFlight();
+    this.kettle.container.alpha = 1;
+    if (this.kettle.container.parent !== this.props) this.props.addChild(this.kettle.container);
+    this.kettle.resetLights();
+    this.rowboat.endMotion();
+  }
+
+  /**
+   * The landing (03 9.2): the rowboat paddles in across the dry ground, the sapling pokes out
+   * of the crater, the lean-to pops up, the kept hands walk to their lines. Reduced motion: all
+   * at once under a short cross-fade.
+   */
+  private drawLanding(ms: number, base: BaseState): void {
+    const reduced = reducedMotion();
+    const at = (step: string, from: number): boolean => {
+      if (this.landingSteps.has(step)) return false;
+      if (!reduced && ms < from) return false;
+      this.landingSteps.add(step);
+      return true;
+    };
+    const spot = this.rowboat.spot;
+    if (at("start", 0)) {
+      this.props.visible = true;
+      this.lines.overlay.visible = true;
+      this.target.container.visible = false;
+      this.house.container.visible = false;
+      this.stockpile.container.visible = false;
+      this.crates.container.visible = false;
+      this.kettle.setVisible(false);
+      this.hands.sync(new Map(), this.houseDoor(), false);
+      this.lastGain = null;
+    }
+    if (!reduced && ms < 1200) {
+      const view = this.viewRect();
+      const t = easeInOutSine(ms / 1200);
+      this.rowboat.setMotion(
+        lerp(view.left - 120, spot.x, t),
+        spot.y + Math.sin(ms / 90) * 2 * ART * (1 - t),
+        Math.sin(ms / 140) * 0.05 * (1 - t),
+      );
+    }
+    if (at("land", 1200)) {
+      this.rowboat.endMotion();
+      emit({ type: "landed" });
+    }
+    if (at("sapling", 1300)) {
+      this.target.container.visible = true;
+      this.target.popIn();
+      this.stockpile.container.visible = true;
+    }
+    if (at("house", 1700)) {
+      this.house.container.visible = true;
+      this.house.popIn();
+    }
+    if (at("hands", 2100)) {
+      const boat: Post = { x: spot.x, y: spot.y + 2, scale: 1, faceX: spot.x };
+      this.hands.sync(this.postsFor(base).posts, boat, !reduced);
+      this.crates.container.visible = true;
+      this.kettle.setVisible(true);
+    }
+    if (ms >= landingLength()) {
+      this.landingSteps.clear();
+      useBigRed.getState().landingEnded();
+    }
+  }
+
+  /** The "WIPE DAY #N" lettering over the sign's board (D46), short when the board is narrow. */
+  private placeSignLabel(base: BaseState | null): void {
+    const label = this.signLabel;
+    const n = this.craterN;
+    if (!base || !this.crater.shown || !this.crater.landed || this.roomOpen || n <= 0) {
+      label.visible = false;
+      return;
+    }
+    const anchor = this.crater.labelAnchor;
+    const scale = this.world.scale.x;
+    const width = this.crater.boardWidth * scale;
+    label.text = t(width < 70 ? "scene.sign_short" : "scene.sign", { n });
+    label.style.fontSize = Math.round(clamp(width * 0.14, 8, 15));
+    label.position.set(
+      Math.round(this.world.position.x + anchor.x * scale),
+      Math.round(this.world.position.y + anchor.y * scale),
+    );
+    label.visible = anchor.y < GROUND + 10;
+  }
+
+  /** The house's door as a post, for hands walking out. */
+  private houseDoor(): Post {
+    return { x: HOUSE.x, y: HOUSE.y + 2, scale: HOUSE.scale, faceX: HOUSE.x };
+  }
+
+  /**
+   * The Kettle once a second (03 3.2): its stage from the domain, the drum's mood from the
+   * advisor's crown, and the yield's "+1" floater when the gain's integer rises (merged, at
+   * most one every 2 s). Quiet while the film or the landing runs.
+   */
+  private kettleTick(
+    base: BaseState,
+    now: number,
+    nowMs: number,
+    rain: number,
+    quiet: boolean,
+  ): void {
+    const second = Math.floor(now);
+    const view = useAdvisor.getState().view;
+    const crowned = view?.pick.kind === "nuke";
+    // A demo patch rewrote the run: nothing it put there rises as a "+1" (as `follow` does).
+    const patches = useWorld.getState().patches;
+    if (patches !== this.kettlePatches) {
+      this.kettlePatches = patches;
+      this.lastGain = null;
+      this.yieldPending = 0;
+    }
+    if (second !== this.kettleSecond) {
+      this.kettleSecond = second;
+      const stage = kettleStage(content, base, second, crowned);
+      const y = glassYield(content, base, second);
+      const first = this.lastGain === null;
+      const changed = this.kettle.setStage(stage, !first && !quiet);
+      if (changed && stage !== "hidden" && !first && !quiet) emit({ type: "kettle_stage", stage });
+      this.kettleMood = { crowned, pressable: y.pressable, rain };
+      if (
+        !first &&
+        !quiet &&
+        stage !== "hidden" &&
+        this.lastGain !== null &&
+        y.gain > this.lastGain
+      )
+        this.yieldPending += y.gain - this.lastGain;
+      this.lastGain = y.gain;
+    }
+    if (this.yieldPending > 0 && nowMs - this.yieldAt >= 2000 && !quiet && this.kettle.shown) {
+      const pad = this.kettle.pad;
+      this.floaters.add("event", pad.x, pad.y - 44 * ART, `+${this.yieldPending}`, nowMs, {
+        size: this.floatSize(0.7),
+        color: GLASS,
+        icon: "glass",
+        iconColor: GLASS,
+        holdMs: 900,
+      });
+      emit({ type: "yield_rose", gain: this.yieldPending });
+      this.yieldPending = 0;
+      this.yieldAt = nowMs;
+    }
+  }
+
+  /**
+   * The hands' posts: one per manned line, at their line's work point; the crafting lines'
+   * hands work inside the house, in its room.
+   */
+  private postsFor(base: BaseState): {
+    posts: Map<string, { hand: string; post: Post }>;
+    inside: Map<string, { hand: string; post: Post }>;
+  } {
+    const posts = new Map<string, { hand: string; post: Post }>();
+    const inside = new Map<string, { hand: string; post: Post }>();
+    for (const id of base.run.hands) {
+      const line = lineOf(content, id);
+      const indoors = INSIDE.has(id);
+      const point = (indoors ? this.roomLines : this.lines).workPoint(id);
+      const spot = indoors ? ROOM_LAYOUT[id] : this.lines.spotOf(id);
+      if (line && point && spot)
+        (indoors ? inside : posts).set(id, { hand: line.hand, post: { ...point, faceX: spot.x } });
+    }
+    return { posts, inside };
+  }
+
+  /**
+   * Follows the run: era (target and house), hands, wear, milestones. While the show runs
+   * (`busy`: the film or the landing) the hands are the show's and nothing is celebrated.
+   */
+  private follow(base: BaseState, patches: number, nowMs: number, busy = false): void {
+    const previous = this.seen;
+    const fresh =
+      !previous || previous.run.n !== base.run.n || previous.run.createdAt !== base.run.createdAt;
+    this.seen = base;
+    const era = base.run.era;
+    if (fresh) this.stockpile.reset();
+    if (era !== this.era) {
+      const animate = !fresh && this.era !== null;
+      this.target.set(targetOf(era), animate);
+      this.stockpile.setKind(targetOf(era), animate);
+      this.house.setTier(era, animate);
+      this.era = era;
+      if (viewFor(era) !== this.view) {
+        // Armored's wider camp: the camera pulls back and the lines and the house re-place.
+        this.view = viewFor(era);
+        this.viewW = 0; // the camera lays out again next frame
+        this.lines.relayout(layoutFor(era));
+        HOUSE.x = stageSpot(houseSpotFor(era)).x;
+        this.house.container.position.set(HOUSE.x, HOUSE.y);
+        this.crates.place(HOUSE.x - CRATES_LEFT * ART, HOUSE.y);
+        this.stockpile.place(stageSpot(stockpileSpotFor(era)).x, PILE.y);
+        const kettleSpot = stageSpot(kettleSpotFor(era));
+        this.kettle.place(kettleSpot.x, GROUND + kettleSpot.y);
+        const boatSpot = stageSpot(rowboatSpotFor(era));
+        this.rowboat.place(boatSpot.x, GROUND + boatSpot.y);
+      }
+      this.button.setAttribute(
+        "aria-label",
+        t("scene.tap_target", { target: t(`target.${targetOf(era)}.name`) }),
+      );
+    }
+    const fell = content.targets.find((target) => target.era === era)?.fellTaps ?? 40;
+    this.target.setProgress(base.run.target.taps / fell);
+    // Afterglow starts with the run's first tap after a nuke (03 10.1): the pill starts counting.
+    if (
+      previous &&
+      !fresh &&
+      previous.run.afterglowFrom === null &&
+      base.run.afterglowFrom !== null &&
+      base.meta.nukes > 0
+    )
+      emit({ type: "afterglow_started" });
+
+    const { posts, inside } = this.postsFor(base);
+    const door = this.houseDoor();
+    const roomDoor = { x: ROOM.door * ART, y: ROOM.floor * ART + 2, scale: 1, faceX: 0 };
+    const walking = busy
+      ? []
+      : [...this.hands.sync(posts, door, !fresh), ...this.roomHands.sync(inside, roomDoor, !fresh)];
+    // A hire is one hand at a time; several at once are a load or a demo patch (D161).
+    for (const id of walking.length === 1 ? walking : []) {
+      const line = lineOf(content, id);
+      if (!line) continue;
+      this.floaters.add(
+        "event",
+        door.x,
+        door.y - 70,
+        t("scene.hired", { name: crewName(line.hand) }),
+        nowMs,
+        {
+          size: this.floatSize(),
+          color: 0xffffff,
+        },
+      );
+    }
+
+    // A demo patch rewrites the run: nothing it put there is celebrated.
+    const patched = patches !== this.patches;
+    this.patches = patches;
+    if (!fresh && !patched && previous && !busy) {
+      // Milestones crossed by purchases since the last frame; two at most at once.
+      let shown = 0;
+      for (const line of [...content.lines].reverse()) {
+        const before = previous.run.lines[line.id] ?? 0;
+        const after = base.run.lines[line.id] ?? 0;
+        const milestone = milestoneCrossed(content, before, after);
+        if (milestone && shown < 2) {
+          shown += 1;
+          // A crafting line's milestone rises from the house.
+          const top =
+            this.lines.topOf(line.id) ??
+            (INSIDE.has(line.id) ? { x: HOUSE.x, y: HOUSE.y - 40 * ART } : null);
+          const key = milestone.speed ? "scene.milestone_speed" : "scene.milestone";
+          if (top) {
+            this.floaters.add(
+              "event",
+              top.x,
+              top.y - 10,
+              t(key, { line: lineName(line.id), factor: milestone.factor }),
+              nowMs,
+              {
+                size: this.floatSize(1.05),
+                color: 0xffd25a,
+              },
+            );
+          }
+          emit({ type: "milestone", line: line.id });
+        }
+      }
+      if (base.run.roster > this.roster) {
+        const tier = content.milestones.roster[base.run.roster - 1];
+        const point = this.target.floatPoint;
+        if (tier) {
+          this.floaters.add(
+            "event",
+            point.x,
+            point.y - 40,
+            t("scene.roster", { factor: tier.payout }),
+            nowMs,
+            {
+              size: this.floatSize(1.1),
+              color: 0xffd25a,
+            },
+          );
+        }
+        emit({ type: "roster" });
+      }
+    }
+    this.roster = base.run.roster;
+  }
+
+  // --- the house's room (D206) -----------------------------------------------------------------
+
+  /** Whether the house has a room to open: some crafting line's era has opened. */
+  private houseOpens(base: BaseState): boolean {
+    for (const id of INSIDE) {
+      const line = lineOf(content, id);
+      if (line && eraReached(base, line.era)) return true;
+    }
+    return false;
+  }
+
+  private openHouse(): void {
+    useUi.getState().openHouse(true);
+    const seen = Number(readHint() ?? 0);
+    writeHint(String(seen + 1));
+  }
+
+  /**
+   * The room, the house button and its hint, each frame. Open, the room sits over the dimmed
+   * island at the island's zoom, its floor on the island's ground line; the target, flotsam and
+   * the island's badges step back until it closes.
+   */
+  private updateRoom(base: BaseState, now: number, nowMs: number, dt: number, busy = false): void {
+    const opens = this.houseOpens(base);
+    const open = opens && useUi.getState().house;
+    if (!opens && useUi.getState().house) useUi.setState({ house: false });
+    this.roomOpen = open;
+    this.room.setTier(base.run.era);
+    this.room.container.visible = open;
+    this.dim.visible = open;
+    // The show (R4) hides the island's buttons and badges too: the film has no HUD.
+    const hide = open || busy;
+    this.lines.overlay.visible = !hide;
+    this.roomLines.overlay.visible = open;
+    this.target.overlay.visible = !hide;
+    this.flotsam.overlay.visible = !hide;
+    this.gulls.overlay.visible = !hide;
+    this.button.style.visibility = hide ? "hidden" : "";
+    this.flotsam.button.style.visibility = hide ? "hidden" : "";
+    this.gulls.button.style.visibility = hide ? "hidden" : "";
+    this.gulls.hint.style.visibility = hide ? "hidden" : "";
+    this.flotsam.hint.style.visibility = hide ? "hidden" : "";
+    const res = this.app.renderer.resolution;
+    const px = (value: number) => Math.round(value * res) / res;
+    const size = this.room.size(this.scale);
+    const freeW = this.viewW - this.insetRight;
+    const groundY = this.world.position.y + GROUND * this.scale;
+    const x = px((freeW - size.width) / 2);
+    const y = px(Math.max(8, groundY - ROOM.floor * ART * this.scale));
+    this.room.place(x, y, this.scale);
+    this.room.update(dt, this.wind);
+    this.roomLines.update(base, now, nowMs, dt, 0);
+    this.roomLines.syncLights();
+    this.roomLines.place(base, x, y, this.scale);
+    this.roomHands.update(dt);
+    this.placeHouse(base, opens && !hide);
+  }
+
+  /** The house button over the house's drawing, and its one-line hint until opened twice. */
+  private placeHouse(base: BaseState, shown: boolean): void {
+    this.houseButton.hidden = !shown;
+    const name = t(`house.${base.run.era}`);
+    this.houseButton.setAttribute("aria-label", t("house.open", { house: name }));
+    // One hint at a time (D254): the crate's first, it is the newer thing.
+    const hint = shown && Number(readHint() ?? 0) < HOUSE_HINT_OPENS && this.crates.hint.hidden;
+    this.houseHint.hidden = !hint;
+    if (!shown) return;
+    const b = this.house.container.getBounds();
+    const pad = 6;
+    const width = Math.max(48, b.width + pad * 2);
+    const height = Math.max(48, b.height + pad * 2);
+    const box = {
+      x: Math.round(b.x + b.width / 2 - width / 2),
+      y: Math.round(b.y + b.height / 2 - height / 2),
+      width: Math.round(width),
+      height: Math.round(height),
+    };
+    const key = `${box.x},${box.y},${box.width},${box.height},${name},${hint}`;
+    if (key === this.houseKey) return;
+    this.houseKey = key;
+    Object.assign(this.houseButton.style, {
+      left: `${box.x}px`,
+      top: `${box.y}px`,
+      width: `${box.width}px`,
+      height: `${box.height}px`,
+    });
+    if (hint) {
+      // Centred under the house (the terrace's lines stand above it, D246), never past the edge
+      // of the island's part of the screen and never under the drawer or the dock: on a phone
+      // it rides up over the house's foot.
+      this.houseHint.textContent = t("house.hint", { house: name });
+      const half = this.houseHint.offsetWidth / 2 || 90;
+      const freeW = this.viewW - this.insetRight;
+      const centre = clamp(box.x + box.width / 2, half + 8, freeW - half - 8);
+      this.houseHint.style.left = `${Math.round(centre)}px`;
+      this.houseHint.style.top = `min(${box.y + box.height}px, calc(100% - var(--hint-floor) - 34px))`;
+    }
+  }
+
+  /** A crafting line's floater: from its station while the room is open, from the house if not. */
+  private roomFloater(product: string, x: number, y: number, amount: number): void {
+    if (!this.roomOpen) {
+      this.lineFloater(product, HOUSE.x, HOUSE.y - 24 * ART, amount);
+      return;
+    }
+    const screenX = this.room.container.x + x * this.scale;
+    const screenY = this.room.container.y + y * this.scale;
+    const at = this.toWorld(screenX, screenY);
+    this.lineFloater(product, at.x, at.y, amount);
+  }
+
+  private drawHustle(base: BaseState, now: number): void {
+    const second = Math.floor(now);
+    const cache = this.hustle;
+    if (cache.base !== base || cache.second !== second) {
+      const parts = tapParts(content, base, second);
+      cache.base = base;
+      cache.second = second;
+      cache.hold = parts.hold;
+      cache.drain = parts.drain;
+      cache.cap = parts.hustleCap;
+      cache.peak = parts.hustlePeak;
+    }
+    const idle = Math.max(0, now - base.run.hustle.at - cache.hold);
+    const h = Math.max(0, base.run.hustle.value - cache.drain * idle);
+    const factor = hustleFactor(h, cache.cap, cache.peak);
+    this.target.drawHustle(this.box, h / cache.cap, `×${Math.round(factor * 10) / 10}`);
+  }
+
+  private frenzyAt(base: BaseState, now: number): FrenzyView {
+    const tenth = Math.floor(now * 10);
+    const cache = this.frenzy;
+    if (cache.base !== base || cache.tenth !== tenth || !cache.view) {
+      cache.base = base;
+      cache.tenth = tenth;
+      cache.view = frenzyAt(content, base, now);
+    }
+    return cache.view;
+  }
+
+  /** The Frenzy bar over the target: the meter filling, or the running Frenzy burning down. */
+  private drawFrenzy(base: BaseState, view: FrenzyView, now: number, nowMs: number): void {
+    const running = view.until !== null;
+    // Its timer runs out: the bar's end ticks and a falling sweep plays (12-feel.md 3.2). Not
+    // after a jump of the clock past it (a welcome back): nobody watched it burn.
+    if (running) this.frenzyRun = view.until;
+    else if (this.frenzyRun !== null) {
+      if (now >= this.frenzyRun && now - this.frenzyRun < 2) {
+        this.frenzyEndMs = nowMs;
+        emit({ type: "frenzy_ended" });
+      }
+      this.frenzyRun = null;
+    }
+    const since = (nowMs - this.frenzyEndMs) / FRENZY_END_TICK_MS;
+    const flash = running ? 0 : since < 1 / 3 ? 1 : clamp((1 - since) * 1.5, 0, 1);
+    const left = running ? clamp(((view.until ?? now) - now) / view.seconds, 0, 1) : null;
+    const label = running
+      ? t("frenzy.running", { factor: fmtFactor(view.mult) })
+      : base.meta.stats.frenzies < 2
+        ? t("frenzy.hint")
+        : "";
+    const pulse = running && !reducedMotion() ? (Math.sin(now * 10) + 1) / 2 : 0;
+    this.target.drawFrenzy(
+      this.box,
+      { open: view.open, fill: view.value / view.cap, left, label, flash },
+      pulse,
+    );
+  }
+
+  /** The ring round a held finger: it closes as the hold starts, then pulses with each tap. */
+  private drawHoldRing(nowMs: number): void {
+    const ring = this.holdRing;
+    ring.clear();
+    const held = this.held;
+    if (!held?.still) return;
+    const after = content.tap.holdAfterSeconds * 1000;
+    const elapsed = nowMs - held.since;
+    if (elapsed < 120) return;
+    const r = 30;
+    ring.circle(held.x, held.y, r).stroke({ width: 3, color: 0x1b1a18, alpha: 0.35 });
+    if (elapsed < after) {
+      const fill = elapsed / after;
+      ring
+        .moveTo(held.x, held.y - r)
+        .arc(held.x, held.y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * fill)
+        .stroke({ width: 3, color: 0xffffff, alpha: 0.9, cap: "round" });
+      return;
+    }
+    const beat = ((elapsed - after) / (1000 / content.tap.holdTapsPerSecond)) % 1;
+    ring
+      .circle(held.x, held.y, r + beat * 6)
+      .stroke({ width: 3, color: 0xffffff, alpha: 0.9 - beat * 0.5 });
   }
 
   /** Floating text size in CSS pixels: 22 on phones and laptops, up to 28 on big screens. */
@@ -568,162 +1527,426 @@ export class Scene {
     return Math.round(clamp(22 * this.scale, 22, 28) * multiplier);
   }
 
-  private nodePosition(node: string): { x: number; y: number } {
-    return (
-      this.backNodes.position(node) ?? this.frontNodes.position(node) ?? { x: BASE_X, y: GROUND }
+  /** A line's floater: its product's icon and the amount, flying into the counter. */
+  private lineFloater(product: string, x: number, y: number, amount: number): void {
+    const counter = document.querySelector(".topbar .counter .counter-icon");
+    const host = this.host.getBoundingClientRect();
+    const rect = counter?.getBoundingClientRect();
+    const fly = rect
+      ? {
+          x: rect.left + rect.width / 2 - host.left,
+          y: rect.top + rect.height / 2 - host.top,
+          arrive: () => this.bumpCounter(),
+        }
+      : undefined;
+    this.floaters.add("line", x, y, `+${fmt(amount, "cost")}`, wall.nowMs(), {
+      size: this.floatSize(0.82),
+      icon: product,
+      iconColor: color(resourceColor(product)),
+      ...(fly ? { fly } : {}),
+    });
+  }
+
+  /** The world's transform on screen. */
+  private camera(): { x: number; y: number; scale: number } {
+    return { x: this.world.position.x, y: this.world.position.y, scale: this.scale };
+  }
+
+  /** The counter's icon on screen (CSS px, relative to the scene), where gains fly to. */
+  private counterPoint(): { x: number; y: number } | null {
+    const counter = document.querySelector(".topbar .counter .counter-icon");
+    const rect = counter?.getBoundingClientRect();
+    if (!rect) return null;
+    const host = this.host.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2 - host.left, y: rect.top + rect.height / 2 - host.top };
+  }
+
+  /** The scrap chip bumps as a flyer lands on it (as the counter does). */
+  private bumpScrap(): void {
+    const chip = document.querySelector(".topbar .scrap-plate");
+    if (!chip || reducedMotion()) return;
+    chip.classList.remove("bump");
+    void (chip as HTMLElement).offsetWidth;
+    chip.classList.add("bump");
+  }
+
+  /** A dock place's icon on screen (CSS px), or null while the place has not joined the dock. */
+  private dockPoint(place: string): { x: number; y: number } | null {
+    const item = document.querySelector(`.dock-item[data-place="${place}"] svg`);
+    const rect = item?.getBoundingClientRect();
+    if (!rect) return null;
+    const host = this.host.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2 - host.left, y: rect.top + rect.height / 2 - host.top };
+  }
+
+  /** A dock place bumps as a flyer lands on it (as the counter and the scrap chip do). */
+  private bumpDock(place: string): void {
+    const item = document.querySelector(`.dock-item[data-place="${place}"]`);
+    if (!item || reducedMotion()) return;
+    item.classList.remove("bump");
+    void (item as HTMLElement).offsetWidth;
+    item.classList.add("bump");
+  }
+
+  /** The scrap chip's icon on screen (CSS px), or null before the player has earned any. */
+  private scrapPoint(): { x: number; y: number } | null {
+    const chip = document.querySelector(".topbar .scrap-plate-icon");
+    const rect = chip?.getBoundingClientRect();
+    if (!rect) return null;
+    const host = this.host.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2 - host.left, y: rect.top + rect.height / 2 - host.top };
+  }
+
+  /** A crow caught (predicted): feathers where it flew, its seconds of output to the counter. */
+  private gullCaught(k: number, elite: boolean, value: number, nowMs: number): void {
+    const screen = this.gulls.screenPoint;
+    this.gulls.caught(k);
+    const at = this.toWorld(screen.x, screen.y);
+    this.particles.spawn("coins", at.x, at.y, elite ? 22 : 12);
+    const rules = content.flotsam.gulls;
+    this.floaters.add(
+      "event",
+      at.x,
+      at.y - 40,
+      t(elite ? "gull.paid_elite" : "gull.paid", {
+        time: duration(elite ? rules.eliteSeconds : rules.seconds),
+      }),
+      nowMs,
+      { size: this.floatSize(1.05), color: elite ? 0xffe2a0 : 0xffd25a, holdMs: 1500 },
+    );
+    const counter = this.counterPoint();
+    this.floaters.add("flotsam", at.x, at.y - 10, `+${fmt(value, "cost")}`, nowMs, {
+      size: this.floatSize(1.1),
+      ...SUPPLIES_ICON,
+      ...(counter ? { fly: { ...counter, arrive: () => this.bumpCounter() } } : {}),
+    });
+    this.coinsToCounter(
+      at.x,
+      at.y,
+      elite ? GULL_COINS.elite : GULL_COINS.crow,
+      nowMs,
+      CATCH_COINS_DELAY_MS,
     );
   }
 
-  private shakeNode(node: string): void {
-    this.backNodes.shake(node);
-    this.frontNodes.shake(node);
+  /**
+   * Supplies tokens arc one after another from a world point into the counter, each bumping it
+   * (12-feel.md 3.2): Collect's pour, and a smaller one for a crate's lump and a crow. None under
+   * reduced motion, where the gain's own floater says it.
+   */
+  private coinsToCounter(x: number, y: number, count: number, nowMs: number, delayMs = 90): void {
+    const counter = this.counterPoint();
+    if (!counter || reducedMotion()) return;
+    for (let i = 0; i < count; i++) {
+      this.floaters.add("flotsam", x + (i - (count - 1) / 2) * 14, y - (i % 2) * 12, "", nowMs, {
+        size: this.floatSize(0.8),
+        ...SUPPLIES_ICON,
+        delayMs: delayMs + i * 70,
+        fly: { ...counter, arrive: () => this.bumpCounter() },
+      });
+    }
   }
 
-  /** The biggest few gains, stacked with the biggest on top. */
-  private gains(x: number, y: number, gained: Amounts, limit = 3): void {
-    this.floaters.addStack(x, y, gainLines(gained, limit), 0xffffff, this.floatSize());
+  /** Flotsam caught (predicted): it pops, coins and a splash, and says what it gave. */
+  private flotsamCaught(kind: string, k: number, value: number, nowMs: number): void {
+    this.flotsam.restPoint(this.camera());
+    const screen = this.flotsam.screenPoint;
+    this.flotsam.caught(k);
+    const at = this.toWorld(screen.x, screen.y);
+    this.particles.spawn("splash", at.x, at.y + 6, 10);
+    this.particles.spawn("coins", at.x, at.y - 10, 16);
+    const row = content.flotsam.kinds.find((item) => item.id === kind);
+    if (!row) return;
+    const effect = row.effect;
+    if ("lump" in effect) {
+      const base = useWorld.getState().base;
+      const minutes = base ? crateMinutes(content, base, value, Math.floor(gameSeconds())) : 0;
+      this.floaters.add(
+        "event",
+        at.x,
+        at.y - 70,
+        t("sea.crate_paid", { minutes: Number(minutes.toPrecision(2)) }),
+        nowMs,
+        { size: this.floatSize(1.05), color: 0xffd25a, holdMs: 1500 },
+      );
+      const counter = this.counterPoint();
+      this.floaters.add("flotsam", at.x, at.y - 30, `+${fmt(value, "cost")}`, nowMs, {
+        size: this.floatSize(1.1),
+        ...SUPPLIES_ICON,
+        ...(counter ? { fly: { ...counter, arrive: () => this.bumpCounter() } } : {}),
+      });
+      this.coinsToCounter(at.x, at.y - 20, CRATE_COINS, nowMs, CATCH_COINS_DELAY_MS);
+      return;
+    }
+    if ("drop" in effect) {
+      this.floaters.add(
+        "event",
+        at.x,
+        at.y - 60,
+        t("sea.drop", { tier: t(`drop.tier_${effect.drop}`) }),
+        nowMs,
+        { size: this.floatSize(1.05), color: 0xffd25a, holdMs: 1600 },
+      );
+      return;
+    }
+    let factor = 1;
+    for (const item of effect.effects) if (item.op === "more") factor *= item.value;
+    const output = effect.effects.some((item) => item.stat === "output");
+    this.floaters.add(
+      "event",
+      at.x,
+      at.y - 60,
+      t(output ? "sea.buff_output" : "sea.buff_tap", {
+        name: buffName(effect.buff),
+        factor: fmtFactor(factor),
+        time: duration(effect.seconds),
+      }),
+      nowMs,
+      { size: this.floatSize(1.05), color: 0xffd25a, holdMs: 1600 },
+    );
+  }
+
+  /** It sank uncaught while the page was showing: one quiet line where it went down. */
+  private sank(x: number, y: number, firstRun: boolean, nowMs: number): void {
+    const at = this.toWorld(x, y);
+    this.floaters.add(
+      "event",
+      at.x,
+      at.y - 50,
+      t(firstRun ? "sea.sank_first" : "sea.sank"),
+      nowMs,
+      { size: this.floatSize(0.78), color: 0xffffff, holdMs: 2600 },
+    );
+  }
+
+  /** The counter bumps (scale 1.04) when a line floater lands, at most four times a second. */
+  private bumpCounter(): void {
+    const nowMs = wall.nowMs();
+    if (nowMs - this.lastBumpMs < BUMP_EVERY_MS) return;
+    this.lastBumpMs = nowMs;
+    const counter = document.querySelector<HTMLElement>(".topbar .counter");
+    if (!counter) return;
+    counter.classList.remove("bump");
+    void counter.offsetWidth;
+    counter.classList.add("bump");
   }
 
   private handle(event: GameEvent): void {
+    const nowMs = wall.nowMs();
     switch (event.type) {
-      case "gathered": {
-        // The nearest tree still standing takes the swing; with all of them down, only the gain shows.
-        const standing = this.backNodes.standing("tree")[0];
-        if (standing) {
-          const tree = this.nodePosition(standing);
-          this.particles.spawn("leaves", tree.x, tree.y - 120, 14, 0x5c9b4a);
-          this.shakeNode(standing);
-        }
-        const total: Amounts = { ...event.gained };
-        for (const [id, amount] of Object.entries(event.bonus))
-          total[id] = (total[id] ?? 0) + amount;
-        this.gains(BASE_X, GROUND - 210, total);
+      case "tap_at": {
+        const at = this.toWorld(event.x, event.y);
+        this.target.hit(at.x, at.y);
+        const from = this.target.chipPoint(at.y);
+        this.stockpile.chip(from.x, from.y, Math.min(event.count, FELL_CHIPS));
+        const point = this.target.floatPoint;
+        // Under Afterglow (03 10.1) taps shed green sparks and their numbers are tinted.
+        const base = useWorld.getState().base;
+        const glowing = base ? afterglowAt(content, base, Math.floor(gameSeconds())) > 1.02 : false;
+        if (glowing) this.particles.spawn("sparks", at.x, at.y - 10, 5, GLASS);
+        if (event.gain > 0)
+          this.floaters.tap(
+            point.x,
+            point.y,
+            event.gain,
+            nowMs,
+            this.floatSize(),
+            SUPPLIES_ICON,
+            glowing ? 0xc8f0a0 : undefined,
+          );
         break;
       }
-      case "tool_upgraded":
-        this.particles.spawn("sparks", BASE_X, GROUND - 120, 16, 0xffd25a);
+      case "felled": {
+        const from = this.target.chipPoint(this.target.container.y - 30);
+        this.target.fell();
+        this.stockpile.chip(from.x, from.y, FELL_CHIPS);
+        this.shakeAt = nowMs;
+        const point = this.target.floatPoint;
+        const cry = t(`target.${event.target}.cry`);
         this.floaters.add(
-          BASE_X,
-          GROUND - 270,
-          toolName(event.tool),
-          0xffd25a,
-          this.floatSize(1.2),
-        );
-        break;
-      case "building_started": {
-        const spot = this.base.buildingPosition(event.building) ?? { x: BASE_X, y: GROUND };
-        this.particles.spawn("dust", spot.x, spot.y, 12, 0xc9b78a);
-        break;
-      }
-      case "building_done": {
-        // What's new: dust, sparks and the name rising where it now stands.
-        const spot = this.base.buildingPosition(event.building) ?? { x: BASE_X, y: GROUND };
-        this.particles.spawn("dust", spot.x, spot.y, 18, 0xc9b78a);
-        this.particles.spawn("sparks", spot.x, spot.y - 50, 18, 0xffd25a);
-        const name = t(`building.${event.building}.name`);
-        const label =
-          event.level > 1 ? t("hud.building_level", { building: name, level: event.level }) : name;
-        this.floaters.add(spot.x, spot.y - 110, label, 0xffd25a, this.floatSize(1.1));
-        break;
-      }
-      case "building_decayed":
-        this.particles.spawn("dust", BASE_X, GROUND, 16, 0x8a7a5a);
-        break;
-      case "craft_queued": {
-        const spot = this.base.stationPosition(event.station) ?? { x: BASE_X, y: GROUND };
-        this.particles.spawn("dust", spot.x, spot.y, 6, 0xc9b78a);
-        break;
-      }
-      case "collected":
-        this.gains(BASE_X, GROUND - 210, event.gained);
-        break;
-      case "build_started":
-        this.particles.spawn("dust", BASE_X, GROUND, 20, 0xc9b78a);
-        break;
-      case "build_done": {
-        this.scaffoldTier = null;
-        this.base.setTier(event.tier, true);
-        this.particles.spawn("dust", BASE_X, GROUND, 30, 0xc9b78a);
-        this.particles.spawn("sparks", BASE_X, GROUND - 120, 24, 0xffd25a);
-        this.floaters.add(
-          BASE_X,
-          GROUND - 270,
-          t("hud.tier_base", { tier: tierName(event.tier) }),
-          0xffd25a,
-          this.floatSize(1.3),
+          "event",
+          point.x,
+          point.y - 34,
+          `${cry} +${fmt(event.value, "cost")}`,
+          nowMs,
+          {
+            size: this.floatSize(1.15),
+            color: 0xffd25a,
+            ...SUPPLIES_ICON,
+          },
         );
         break;
       }
-      case "crafted": {
-        // From the station that made it: "+10 Planks" as each unit lands.
-        const spot = this.base.stationPosition(event.station) ?? { x: BASE_X, y: GROUND };
-        this.particles.spawn("sparks", spot.x, spot.y - 44, event.done ? 16 : 6);
-        const text = `+${abbrev(event.amount)} ${outputName(event.recipe)}`;
-        this.floaters.add(spot.x, spot.y - 80, text, 0xffffff, this.floatSize());
-        break;
-      }
-      case "smelt_started": {
-        const spot = this.base.stationPosition("furnace");
-        if (spot) this.particles.spawn("sparks", spot.x, spot.y - 30, 20);
-        break;
-      }
-      case "furnace_out": {
-        const spot = this.base.stationPosition("furnace") ?? { x: BASE_X, y: GROUND };
-        this.gains(spot.x, spot.y - 100, event.gained);
-        break;
-      }
-      case "barrel_spawned":
-        this.particles.spawn("splash", BARREL_SPOT.x, BARREL_SPOT.y, 24);
-        break;
-      case "barrel_broken":
-        this.particles.spawn("stone", BARREL_SPOT.x, BARREL_SPOT.y - 30, 14, 0x4a6b8a);
-        this.particles.spawn("coins", BARREL_SPOT.x, BARREL_SPOT.y - 40, 10);
-        this.gains(BARREL_SPOT.x, BARREL_SPOT.y - 100, event.gained);
-        break;
-      case "node_hit": {
-        // Rises from where the player hit, just clear of the cursor: the gain, then the count.
-        const spot = this.nodePosition(event.node);
-        const at = this.lastHit ?? { x: spot.x, y: spot.y - 60 };
-        const lines = gainLines(event.gained, 1);
-        if (event.hits <= MAX_HITS) lines.push(`${event.hits}/${MAX_HITS}`);
-        this.floaters.retire(this.hitText);
-        this.hitText = this.floaters.addStack(
-          at.x,
-          at.y - 22 / this.scale,
-          lines,
-          0xffffff,
-          this.floatSize(0.85),
-        );
-        break;
-      }
-      case "task_done":
-        this.gains(BASE_X, GROUND - 300, event.reward);
-        break;
-      case "node_depleted": {
-        const spot = this.nodePosition(event.node);
-        const debris = debrisFor(event.kind);
-        if (event.kind === "tree") {
-          this.particles.spawn("leaves", spot.x, spot.y - 110, 10, debris.color);
+      case "upgraded": {
+        // The thing it changed flashes, and its name rises from it.
+        const upgrade = content.upgrades.find((row) => row.id === event.upgrade);
+        if (!upgrade) break;
+        let top: { x: number; y: number } | null = null;
+        if (upgrade.kind === "grip") {
+          this.target.pulse();
+          const point = this.target.floatPoint;
+          top = { x: point.x, y: point.y - 50 };
         } else {
-          // The rock breaks apart: chunks of it, the mineral, and a puff of dust.
-          this.particles.spawn("stone", spot.x, spot.y - 30, 22, 0x9aa0a6);
-          this.particles.spawn(debris.kind, spot.x, spot.y - 30, 12, debris.color);
-          this.particles.spawn("dust", spot.x, spot.y, 10, 0xc9b78a);
+          top = { x: HOUSE.x, y: HOUSE.y - 90 };
         }
+        this.floaters.add("event", top.x, top.y - 10, upgradeName(upgrade.id), nowMs, {
+          size: this.floatSize(0.95),
+          color: 0xffffff,
+        });
         break;
       }
-      case "node_respawned": {
-        const spot = this.nodePosition(event.node);
-        const debris = debrisFor(event.kind);
-        this.particles.spawn("dust", spot.x, spot.y, 6, 0xc9b78a);
-        this.particles.spawn(debris.kind, spot.x, spot.y - 20, 6, debris.color);
+      case "researched": {
+        // A Workshop level: the lines it reaches flash, a tap item pulses the target, and the
+        // item's name (a Line Mk's level by its own name) rises from the first of them.
+        const def = content.research.find((row) => row.id === event.item);
+        if (!def) break;
+        const { effect } = def;
+        const reached = content.lines.filter(
+          (line) =>
+            event.level > 0 &&
+            (effect.stat === "output" || effect.stat === "speed") &&
+            (effect.scope === "all" || effect.scope === line.id || effect.scope === line.era) &&
+            (useWorld.getState().base?.run.lines[line.id] ?? 0) > 0,
+        );
+        for (const line of reached) {
+          this.lines.flashLine(line.id);
+          this.roomLines.flashLine(line.id);
+        }
+        let top: { x: number; y: number };
+        const first = reached[0];
+        if (first) top = this.lines.topOf(first.id) ?? { x: HOUSE.x, y: HOUSE.y - 40 * ART };
+        else if (effect.stat === "tap_flat" || effect.stat === "hustle_max") {
+          this.target.pulse();
+          const point = this.target.floatPoint;
+          top = { x: point.x, y: point.y - 50 };
+        } else top = { x: HOUSE.x, y: HOUSE.y - 90 };
+        const name =
+          def.kind === "mk" ? researchLevelName(def.id, event.level) : researchName(def.id);
+        this.floaters.add("event", top.x, top.y - 10, name, nowMs, {
+          size: this.floatSize(0.95),
+          color: 0xffffff,
+        });
         break;
       }
-      case "weather":
-      case "auto_collect":
-      case "upkeep_paid":
-      case "decayed":
+      case "era_reached": {
+        const point = this.target.floatPoint;
+        const era = content.eras.find((row) => row.id === event.era);
+        const factor = era?.effects.find((effect) => effect.stat === "output")?.value ?? 2;
+        this.floaters.add(
+          "event",
+          point.x,
+          point.y - 70,
+          t("scene.era", { era: t(`base_tier.${event.era}.name`), factor }),
+          nowMs,
+          {
+            size: this.floatSize(1.15),
+            color: 0xffd25a,
+          },
+        );
         break;
+      }
+      case "flotsam_claimed":
+      case "tide_claimed": {
+        this.flotsamCaught(event.kind, event.k, event.value, nowMs);
+        break;
+      }
+      case "scrap_earned": {
+        // Scrap flies from the house to its chip in the top bar (3.2); a first ever earned scrap
+        // has no chip yet, so it rises where it was earned.
+        const plate = this.scrapPoint();
+        this.floaters.add("event", HOUSE.x, HOUSE.y - 90, `+${event.n}`, nowMs, {
+          size: this.floatSize(1.1),
+          color: 0xe3a32f,
+          icon: "scrap",
+          iconColor: 0xe3a32f,
+          holdMs: 900,
+          ...(plate ? { fly: { ...plate, arrive: () => this.bumpScrap() } } : {}),
+        });
+        break;
+      }
+      case "drop_earned": {
+        // A crate lands by the house: dust where it settles (D261, D267).
+        const stack = this.crates.container.position;
+        this.particles.spawn("dust", stack.x + 8 * ART, stack.y, 10);
+        break;
+      }
+      case "drop_opened": {
+        // The crate creaks, then bursts (12-feel.md 3.2): sparks from the stack as the front
+        // crate lifts away.
+        const stack = this.crates.container.position;
+        this.particles.spawn("sparks", stack.x + 8 * ART, stack.y - 10 * ART, 18);
+        this.particles.spawn("dust", stack.x + 8 * ART, stack.y, 8);
+        break;
+      }
+      case "shards_earned": {
+        // Shards fly from the house into the dock's Album, in their rarity's colour (D266).
+        const place = this.dockPoint("album");
+        const color = RARITY_TINT[event.rarity];
+        this.floaters.add("event", HOUSE.x, HOUSE.y - 90, `+${event.n}`, nowMs, {
+          size: this.floatSize(1.1),
+          color,
+          icon: "shard",
+          iconColor: color,
+          holdMs: 900,
+          ...(place ? { fly: { ...place, arrive: () => this.bumpDock("album") } } : {}),
+        });
+        break;
+      }
+      case "frenzy_tripped": {
+        const point = this.target.floatPoint;
+        this.target.pulse();
+        this.particles.spawn("sparks", point.x, point.y + 40, 24);
+        this.floaters.add(
+          "event",
+          point.x,
+          point.y - 70,
+          t("frenzy.tripped", { factor: fmtFactor(content.tap.frenzy.mult) }),
+          nowMs,
+          { size: this.floatSize(1.3), color: 0xffa25c, holdMs: 1400 },
+        );
+        break;
+      }
+      case "gull_caught": {
+        this.gullCaught(event.k, event.elite, event.value, nowMs);
+        break;
+      }
+      case "gull_lost": {
+        this.gulls.lost(event.k);
+        break;
+      }
+      case "flotsam_lost": {
+        this.flotsam.restPoint(this.camera());
+        const screen = this.flotsam.screenPoint;
+        this.flotsam.lost(event.k);
+        const at = this.toWorld(screen.x, screen.y);
+        this.floaters.add("event", at.x, at.y - 50, t("sea.drifted"), nowMs, {
+          size: this.floatSize(0.85),
+          color: 0xffffff,
+          holdMs: 1400,
+        });
+        break;
+      }
+      case "collected": {
+        // Welcome back: the gain flies from the house into the counter, coins arcing after it.
+        if (event.gain <= 0) break;
+        const counter = this.counterPoint();
+        this.floaters.add("event", HOUSE.x, HOUSE.y - 90, `+${fmt(event.gain, "cost")}`, nowMs, {
+          size: this.floatSize(1.25),
+          color: 0xffd25a,
+          ...SUPPLIES_ICON,
+          ...(counter ? { fly: { ...counter, arrive: () => this.bumpCounter() } } : {}),
+        });
+        this.coinsToCounter(HOUSE.x, HOUSE.y - 60, COLLECT_COINS, nowMs);
+        break;
+      }
+      case "go_tap": {
+        // A refusal's button: back to the island, the target blinks and takes the focus.
+        closeAll();
+        this.target.pulse();
+        this.button.focus({ preventScroll: true });
+        break;
+      }
+      // Hires show as the hand walking out (`follow`).
     }
   }
 }

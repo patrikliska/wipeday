@@ -1,0 +1,132 @@
+[
+  {
+    "id": "barrel_1",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 301,
+    "palette": true,
+    "prompt": "one rusty red oil barrel with a dented lid and an iron crowbar leaning against it, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "barrel_2",
+    "prompt_style": "rd_plus__low_res",
+    "width": 20,
+    "height": 20,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 302,
+    "palette": true,
+    "prompt": "two rusty oil barrels standing side by side, one smashed open with its torn metal bent outwards, a crowbar and a few scrap pieces on the dirt, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "barrel_3",
+    "prompt_style": "rd_plus__low_res",
+    "width": 24,
+    "height": 24,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 303,
+    "palette": true,
+    "prompt": "a heap of smashed rusty oil barrels and bent scrap metal beside a small wooden handcart loaded with salvage, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "campfire_1",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 311,
+    "palette": true,
+    "prompt": "a small campfire of crossed logs with tall bright orange flames inside a ring of grey stones, a small black cooking pot hanging over it from a stick, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "garden_1",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 321,
+    "palette": true,
+    "prompt": "a small raised wooden garden bed of dark brown soil with two neat rows of bright green leafy sprouts, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "barrel_1_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 18,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 331,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/house/twig.png"
+    ],
+    "prompt": "one rusty red oil barrel with a dented lid and an iron crowbar leaning against it, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "barrel_2_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 22,
+    "height": 20,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 332,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/house/twig.png"
+    ],
+    "prompt": "two rusty oil barrels side by side, one smashed open with its torn metal bent outwards, a crowbar and scrap pieces on the dirt, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "barrel_3_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 24,
+    "height": 24,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 333,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/house/twig.png"
+    ],
+    "prompt": "a heap of smashed rusty oil barrels and bent scrap metal beside a small wooden handcart loaded with salvage, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "campfire_1_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 18,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 341,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/house/twig.png",
+      "packages/content/art/scene/prop/rock.png"
+    ],
+    "prompt": "a small campfire of crossed logs with tall bright orange flames inside a ring of grey stones, a small black cooking pot hanging over it from a stick, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "garden_1_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 18,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 351,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/house/twig.png",
+      "packages/content/art/scene/prop/rock.png"
+    ],
+    "prompt": "a small raised wooden garden bed of dark brown soil with two neat rows of bright green leafy sprouts, strict side view, light from the upper left, on a plain white background"
+  }
+]

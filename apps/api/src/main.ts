@@ -3,8 +3,8 @@
  * minute scheduler (which also runs once at boot, so everything that ended
  * while the server was down lands at once) and serve HTTP.
  */
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
+
+import { createRequire } from "node:module";
 import { serve } from "@hono/node-server";
 import { loadGame } from "@wipe-day/content/load";
 import { systemClock } from "@wipe-day/domain/clock";
@@ -16,6 +16,7 @@ import { Game } from "./game";
 import { EventHub } from "./hub";
 import { log } from "./log";
 import { Notifier } from "./push";
+import { Status } from "./status";
 import { openDb } from "./store/db";
 
 const TICK_MS = 60_000;
@@ -29,29 +30,29 @@ const hub = new EventHub();
 const subject = config.publicUrl.startsWith("https://")
   ? config.publicUrl
   : "mailto:wipeday@localhost.invalid";
-const notifier = new Notifier(db, locale, log, subject, undefined, (discordId, notes) => {
-  // The Discord bot (W8) sends these as DMs; links open the game where it matters.
-  for (const { kind, title, body, url } of notes)
-    hub.broadcastBot({
-      event: "dm",
-      data: { discordId, kind, title, body, url: `${config.publicUrl}${url}` },
-    });
-});
+const notifier = new Notifier(
+  db,
+  locale,
+  log,
+  subject,
+  undefined,
+  (discordId, notes) => {
+    // The Discord bot (W8) sends these as DMs; links open the game where it matters.
+    for (const { kind, title, body, url } of notes)
+      hub.broadcastBot({
+        event: "dm",
+        data: { discordId, kind, title, body, url: `${config.publicUrl}${url}` },
+      });
+  },
+  // Quiet hours: the island's clock until a browser says otherwise.
+  { clock, defaultOffsetMinutes: content.islandClock.utcOffsetMinutes },
+);
 const game = new Game({
   db,
   content,
   clock,
   hub,
   notify: (playerId, events) => notifier.notify(playerId, events),
-  // The wheel spins on time; a quarter second late, so the round has surely ended.
-  schedule: (at, run) => {
-    setTimeout(run, Math.max(0, at * 1000 - clock.nowMs()) + 250);
-  },
-  // Before a season's reset (W7): an online copy beside the nightly backups.
-  backup: async (name) => {
-    mkdirSync(config.backupDir, { recursive: true });
-    await db.$client.backup(join(config.backupDir, name));
-  },
 });
 const discord = config.discord
   ? discordAuth(
@@ -60,7 +61,28 @@ const discord = config.discord
       `${config.publicUrl}/api/auth/callback`,
     )
   : null;
-const app = createApp({ db, game, hub, clock, config, discord, notifier });
+// The server's health (R4): `/api/status`, and the owner's DMs through the bot's stream.
+const { version } = createRequire(import.meta.url)("../package.json") as { version: string };
+const status = new Status({
+  version,
+  backupDir: config.backupDir,
+  offsiteFile: `${config.backupDir}/../offsite.json`,
+  startedAt: clock.now(),
+  tellOwner: (title, body) => {
+    if (!config.ownerDiscordId) return;
+    hub.broadcastBot({
+      event: "dm",
+      data: {
+        discordId: config.ownerDiscordId,
+        kind: "night_shift_over",
+        title,
+        body,
+        url: config.publicUrl,
+      },
+    });
+  },
+});
+const app = createApp({ db, game, hub, clock, config, discord, notifier, status });
 if (config.production && !config.botToken)
   log.warn("the Discord bot cannot connect: set BOT_API_TOKEN (32+ characters) for both");
 if (!discord)
@@ -70,9 +92,14 @@ const tick = () => {
   try {
     const changed = game.tick();
     if (changed.length > 0) log.info("scheduler: settled bases", { players: changed.length });
+    notifier
+      .flushHeld()
+      .then((sent) => sent > 0 && log.info("quiet hours over: sent held notifications", { sent }))
+      .catch((error: Error) => log.error("held notifications failed", { error: error.message }));
   } catch (error) {
     log.error("scheduler failed", { error: (error as Error).message });
   }
+  if (config.production) status.watch(clock.now());
   if (config.production) {
     backupOnce(db, config.backupDir, clock.now())
       .then((file) => file && log.info("backup written", { file }))
@@ -87,6 +114,6 @@ serve({ fetch: app.fetch, port: config.port }, (info) => {
     port: info.port,
     login: discord ? "discord" : config.devLogin ? "dev only" : "none",
     devLogin: config.devLogin,
-    resources: content.resources.length,
+    lines: content.lines.length,
   });
 });

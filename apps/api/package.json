@@ -8,7 +8,6 @@
     "start": "tsx src/main.ts",
     "dev": "tsx watch src/main.ts",
     "db:generate": "drizzle-kit generate",
-    "season": "tsx src/season-cli.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

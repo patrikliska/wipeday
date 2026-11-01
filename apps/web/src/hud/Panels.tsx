@@ -1,0 +1,510 @@
+import { heldDrops } from "@wipe-day/domain/cards";
+import type { NotifyPrefs } from "@wipe-day/domain/feed";
+import { eraOpen } from "@wipe-day/domain/lines";
+import { nextEra } from "@wipe-day/domain/shelf";
+import { lazy, type ReactNode, Suspense, useEffect, useState } from "react";
+import type { NotifyView } from "../net/backend";
+import { currentSubscription, disablePush, enablePush, pushSupport } from "../net/push";
+import { haptics, sound } from "../sound/audio";
+import { uiEvent } from "../state/events";
+import { useReveal } from "../state/reveal";
+import { currentBackend, useWorld } from "../state/store";
+import { type Motion, type Panel, useUi } from "../state/ui";
+import { content, crewName, lineName, t, tierName } from "../state/world";
+import { AlbumPanel, albumSummary } from "./Album";
+import { Bust, Stars } from "./cards";
+import { Icon } from "./Icon";
+import { LogbookPanel, logbookSummary } from "./Logbook";
+import { tierVar, vars } from "./util";
+
+/** The Blast Map (R4 S3): code-split, since most sessions never open it twice an hour. */
+const BlastMapPanel = lazy(() =>
+  import("./blast/BlastMap").then((module) => ({ default: module.BlastMapPanel })),
+);
+
+/**
+ * Panels as sheets over the scene (12-feel.md 4; D187): Crew, the Logbook and Settings open from
+ * the dock or the settings pill, full height above the dock on a phone, wide and centred on desktop. Each
+ * closes by its (x), by Island, by a click outside, by Escape and by Android back, and has one
+ * primary: Done. The dock stays live under a panel, so another destination is one tap away.
+ */
+export function Panels() {
+  const panel = useUi((state) => state.panel);
+  const openPanel = useUi((state) => state.openPanel);
+  if (!panel) return null;
+  const title = t(
+    panel === "crew"
+      ? "crew_panel.title"
+      : panel === "logbook"
+        ? "logbook.title"
+        : panel === "album"
+          ? "album.title"
+          : panel === "map"
+            ? "map.title"
+            : "settings.title",
+  );
+  return (
+    <div className="sheet-backdrop panel-backdrop">
+      <button
+        type="button"
+        className="backdrop-hit"
+        tabIndex={-1}
+        aria-label={t("settings.close")}
+        onClick={() => openPanel(null)}
+      />
+      <section
+        className={`plate sheet panel-sheet panel-${panel}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
+        <PanelBody panel={panel} />
+      </section>
+    </div>
+  );
+}
+
+export function PanelBody({ panel }: { panel: Panel }) {
+  if (panel === "crew") return <CrewPanel />;
+  if (panel === "logbook") return <LogbookShell />;
+  if (panel === "album") return <AlbumShell />;
+  if (panel === "map")
+    return (
+      <Suspense fallback={<div className="panel-body" />}>
+        <BlastMapPanel />
+      </Suspense>
+    );
+  return <SettingsPanel />;
+}
+
+/** The Album (D260), in the panel's shell: Open while drops wait, else Done. */
+function AlbumShell() {
+  const base = useWorld((state) => state.base);
+  if (!base) return null;
+  const held = heldDrops(base.meta.drops);
+  return (
+    <Shell
+      title={t("album.title")}
+      sub={albumSummary(base)}
+      {...(held > 0
+        ? {
+            primary: {
+              label: t("album.open_n", { n: held }),
+              onClick: () => useReveal.getState().start(),
+            },
+          }
+        : {})}
+    >
+      <AlbumPanel base={base} />
+    </Shell>
+  );
+}
+
+/** The badge wall (D239), in the panel's shell. */
+function LogbookShell() {
+  const base = useWorld((state) => state.base);
+  if (!base) return null;
+  return (
+    <Shell title={t("logbook.title")} sub={logbookSummary(base)}>
+      <LogbookPanel base={base} />
+    </Shell>
+  );
+}
+
+function Shell({
+  title,
+  sub,
+  primary,
+  children,
+}: {
+  title: string;
+  sub?: string;
+  /** In the foot instead of Done: a panel's one natural action (the Album's Open). */
+  primary?: { label: string; onClick: () => void } | undefined;
+  children: ReactNode;
+}) {
+  const openPanel = useUi((state) => state.openPanel);
+  const close = () => openPanel(null);
+  return (
+    <div className="panel-body">
+      <header className="panel-head">
+        <div>
+          <h2>{title}</h2>
+          {sub ? <p className="sub">{sub}</p> : null}
+        </div>
+        <button
+          type="button"
+          className="btn icon-btn"
+          onClick={close}
+          aria-label={t("settings.close")}
+        >
+          <Icon kind="ui" id="close" size={18} />
+        </button>
+      </header>
+      <div className="panel-scroll">{children}</div>
+      <footer className="panel-foot">
+        <button type="button" className="btn primary grow" onClick={primary?.onClick ?? close}>
+          {primary?.label ?? t("settings.done")}
+        </button>
+      </footer>
+    </div>
+  );
+}
+
+/** The roster (08-screens.md 2.3; R1: who is on shift, no ranks yet). */
+function CrewPanel() {
+  const base = useWorld((state) => state.base);
+  const run = base?.run.n ?? 0;
+  const hands = base?.run.hands.length ?? 0;
+  // The dock's Crew badge counts hands hired since this sheet last showed them.
+  useEffect(() => {
+    useUi.getState().seeCrew(run, hands);
+  }, [run, hands]);
+  if (!base) return null;
+  const next = nextEra(content, base);
+  // Hands of the eras reached, then the next era's (their lines show locked in the shop).
+  const shown = content.lines.filter(
+    (line) => eraOpen(base, line) || (next && line.era === next.id && !next.requires),
+  );
+  const on = shown.filter((line) => base.run.hands.includes(line.id)).length;
+  const openSurvivor = useUi.getState().openSurvivor;
+  return (
+    <Shell title={t("crew_panel.title")} sub={t("crew_panel.summary", { on, total: shown.length })}>
+      <ul className="crew-list">
+        {shown.map((line) => {
+          const hired = base.run.hands.includes(line.id);
+          const open = eraOpen(base, line);
+          const owned = base.run.lines[line.id] ?? 0;
+          const stars = base.meta.cards.survivors[line.hand];
+          const status = !open
+            ? t("crew_panel.opens_in", { era: tierName(line.era) })
+            : hired
+              ? t("crew_panel.on_shift")
+              : owned > 0
+                ? t("crew_panel.not_hired")
+                : t("crew_panel.waiting", { line: lineName(line.id) });
+          return (
+            <li
+              key={line.id}
+              className={`crew-row${hired ? " on" : ""}${open ? "" : " locked"}`}
+              style={vars({ "--tier-color": tierVar(line.era) })}
+            >
+              <button
+                type="button"
+                className="crew-hit"
+                aria-label={crewName(line.hand)}
+                onClick={() => openSurvivor(line.hand)}
+              >
+                <span className="portrait">
+                  <Bust id={line.hand} box={44} dim={stars === undefined} />
+                </span>
+                <span className="crew-text">
+                  <span className="crew-name">
+                    {t("crew_panel.line", { name: crewName(line.hand), line: lineName(line.id) })}
+                  </span>
+                  <span className={`crew-status${hired ? " on" : ""}`}>{status}</span>
+                  {stars !== undefined ? <Stars stars={stars} size={11} /> : null}
+                </span>
+                <Icon kind="ui" id="chevron" size={16} className="crew-chevron" />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </Shell>
+  );
+}
+
+function Toggle({
+  on,
+  onChange,
+  label,
+  disabled = false,
+}: {
+  on: boolean;
+  onChange: (on: boolean) => void;
+  label: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      disabled={disabled}
+      className={`switch${on ? " on" : ""}`}
+      onClick={() => {
+        onChange(!on);
+        uiEvent("switch");
+      }}
+    >
+      <span className="knob" />
+      <span className="switch-text">{on ? t("settings.on") : t("settings.off")}</span>
+    </button>
+  );
+}
+
+function Choice<T extends string>({
+  value,
+  options,
+  onChange,
+  label,
+}: {
+  value: T;
+  options: Array<{ id: T; text: string }>;
+  onChange: (value: T) => void;
+  label: string;
+}) {
+  return (
+    <fieldset className="segments small">
+      <legend className="sr-only">{label}</legend>
+      {options.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          aria-pressed={value === option.id}
+          className={`segment${value === option.id ? " on" : ""}`}
+          onClick={() => {
+            if (value === option.id) return;
+            onChange(option.id);
+          }}
+        >
+          {option.text}
+        </button>
+      ))}
+    </fieldset>
+  );
+}
+
+/** Settings (08-screens.md 2.15): sound, numbers, motion, notifications, account, help, odds. */
+function SettingsPanel() {
+  const scientific = useUi((state) => state.scientific);
+  const setScientific = useUi((state) => state.setScientific);
+  const motion = useUi((state) => state.motion);
+  const setMotion = useUi((state) => state.setMotion);
+  const holdTwice = useUi((state) => state.holdTwice);
+  const setHoldTwice = useUi((state) => state.setHoldTwice);
+  const openSheet = useUi((state) => state.openSheet);
+  const player = useWorld((state) => state.player);
+  const mode = useWorld((state) => state.mode);
+  const [soundOn, setSoundOn] = useState(sound.enabled);
+  const [volume, setVolume] = useState(sound.volume);
+  const [buzz, setBuzz] = useState(haptics.enabled);
+  const [how, setHow] = useState(false);
+
+  return (
+    <Shell title={t("settings.title")}>
+      <div className="settings">
+        <div className="setting">
+          <span>{t("settings.sound")}</span>
+          <Toggle
+            on={soundOn}
+            label={t("settings.sound")}
+            onChange={(on) => {
+              sound.setEnabled(on);
+              setSoundOn(on);
+            }}
+          />
+        </div>
+        <label className="setting">
+          <span>{t("settings.volume")}</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={Math.round(volume * 100)}
+            disabled={!soundOn}
+            onChange={(event) => {
+              const next = Number(event.target.value) / 100;
+              sound.setVolume(next);
+              setVolume(next);
+            }}
+          />
+        </label>
+        {haptics.supported ? (
+          <div className="setting">
+            <span>{t("settings.vibration")}</span>
+            <Toggle
+              on={buzz}
+              label={t("settings.vibration")}
+              onChange={(on) => {
+                haptics.setEnabled(on);
+                setBuzz(on);
+              }}
+            />
+          </div>
+        ) : null}
+        <div className="setting stacked">
+          <span>{t("settings.numbers")}</span>
+          <Choice
+            label={t("settings.numbers")}
+            value={scientific ? "sci" : "short"}
+            options={[
+              { id: "short", text: t("settings.numbers_short") },
+              { id: "sci", text: t("settings.numbers_sci") },
+            ]}
+            onChange={(value) => setScientific(value === "sci")}
+          />
+        </div>
+        <div className="setting stacked">
+          <span>{t("settings.motion")}</span>
+          <Choice<Motion>
+            label={t("settings.motion")}
+            value={motion}
+            options={[
+              { id: "device", text: t("settings.motion_device") },
+              { id: "reduced", text: t("settings.motion_reduced") },
+              { id: "full", text: t("settings.motion_full") },
+            ]}
+            onChange={setMotion}
+          />
+        </div>
+        {/* Accessibility (03-the-big-red.md 5.5): every hold becomes tap to arm, tap to launch. */}
+        <div className="setting">
+          <span>
+            {t("settings.hold_twice")}
+            <small>{t("settings.hold_twice_sub")}</small>
+          </span>
+          <Toggle on={holdTwice} label={t("settings.hold_twice")} onChange={setHoldTwice} />
+        </div>
+        <Notifications demo={mode === "demo"} />
+        {player && mode === "server" ? (
+          <div className="setting">
+            <span className="who">{player.name}</span>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                void currentBackend()
+                  .logout()
+                  .finally(() => window.location.reload());
+              }}
+            >
+              {t("settings.logout")}
+            </button>
+          </div>
+        ) : null}
+        <button
+          type="button"
+          className="btn ghost fold"
+          aria-expanded={how}
+          onClick={() => setHow(!how)}
+        >
+          {t("settings.how")}
+          <Icon kind="ui" id="chevron" size={16} className={how ? "up" : "down"} />
+        </button>
+        {how ? (
+          <ol className="how">
+            {["how_1", "how_2", "how_3", "how_4", "how_6"].map((key) => (
+              <li key={key}>{t(`settings.${key}`)}</li>
+            ))}
+          </ol>
+        ) : null}
+        <button type="button" className="btn ghost fold" onClick={() => openSheet("odds")}>
+          {t("settings.odds")}
+          <Icon kind="ui" id="chevron" size={16} />
+        </button>
+        <button type="button" className="btn ghost fold" onClick={() => openSheet("credits")}>
+          {t("settings.credits")}
+          <Icon kind="ui" id="chevron" size={16} />
+        </button>
+      </div>
+    </Shell>
+  );
+}
+
+/**
+ * Notifications on this device (08-screens.md 2.15): the device switch, then each kind. Kinds
+ * ship with their systems: R1 has "Night Shift over" and quiet hours.
+ */
+function Notifications({ demo }: { demo: boolean }) {
+  const [view, setView] = useState<NotifyView | null>(null);
+  const [device, setDevice] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const support = typeof window === "undefined" ? "unsupported" : pushSupport();
+
+  useEffect(() => {
+    if (demo) return;
+    let alive = true;
+    void currentBackend()
+      .notify()
+      .then((answer) => alive && setView(answer))
+      .catch(() => undefined);
+    if (support === "ok")
+      void currentSubscription().then((subscription) => alive && setDevice(subscription !== null));
+    return () => {
+      alive = false;
+    };
+  }, [demo, support]);
+
+  const reason = demo
+    ? t("settings.push_demo")
+    : support === "ios_home_screen"
+      ? t("settings.push_ios")
+      : support === "unsupported"
+        ? t("settings.push_unsupported")
+        : support === "denied"
+          ? t("settings.push_denied")
+          : problem;
+
+  const setPref = (change: Partial<NotifyPrefs>) => {
+    if (!view) return;
+    setView({ ...view, prefs: { ...view.prefs, ...change } });
+    void currentBackend()
+      .setNotify(change)
+      .then((prefs) => setView((old) => (old ? { ...old, prefs } : old)))
+      .catch(() => undefined);
+  };
+  const usable = !demo && support === "ok" && view !== null;
+
+  return (
+    <>
+      <div className="setting">
+        <span className="section">{t("settings.notifications")}</span>
+        <Toggle
+          on={device}
+          disabled={!usable}
+          label={t("settings.notifications")}
+          onChange={(on) => {
+            if (!view) return;
+            const backend = currentBackend();
+            if (on)
+              void enablePush(backend, view.publicKey)
+                .then((ok) => {
+                  setDevice(ok);
+                  setProblem(ok ? null : t("settings.push_failed"));
+                })
+                .catch(() => setProblem(t("settings.push_failed")));
+            else void disablePush(backend).then(() => setDevice(false));
+          }}
+        />
+      </div>
+      {reason ? <p className="setting-note">{reason}</p> : null}
+      <div className="setting">
+        <span>
+          {t("notify.night_shift_over")}
+          <small>{t("settings.notify_night_shift_over")}</small>
+        </span>
+        <Toggle
+          on={view?.prefs.night_shift_over ?? true}
+          disabled={!usable}
+          label={t("notify.night_shift_over")}
+          onChange={(on) => setPref({ night_shift_over: on })}
+        />
+      </div>
+      <div className="setting">
+        <span>
+          {t("settings.quiet")}
+          <small>{t("settings.quiet_sub")}</small>
+        </span>
+        <Toggle
+          on={view?.prefs.quiet ?? true}
+          disabled={!usable}
+          label={t("settings.quiet")}
+          onChange={(on) => setPref({ quiet: on })}
+        />
+      </div>
+    </>
+  );
+}

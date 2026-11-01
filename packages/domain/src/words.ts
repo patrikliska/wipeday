@@ -1,127 +1,182 @@
 /**
- * Words for what happens, shared by every client (W8): the web's feed and the Discord
- * channel tell the same event in the same sentence, and every number on either goes
- * through one formatter. Strings come from the locale; nothing here reads a clock.
+ * Words and numbers for every client (W8, D130): the web and the Discord bot print the same
+ * thing because both call this module. Strings come from the locale; nothing here reads a clock.
+ *
+ * The formatter (docs/redesign/09-architecture.md 2.4; owner decision 20):
+ * - `fmt(x, "held")` for what you hold (floors: never claim what you lack), `fmt(x, "cost")` for
+ *   prices, rates and gains (rounds half up). Below 1,000 a whole number; from 1,000 three
+ *   significant digits with a suffix from `format.suffixes` (k … Dc), trailing zeros kept so a
+ *   ticking counter keeps its width; from 1e36 scientific (`1.23e36`). A mantissa that rounds
+ *   to 1,000 promotes (`999,999` costs `1.00M`).
+ * - `fmtRate`: below 10 up to three significant digits, trimmed (`0.4/s`); from 10 as a cost.
+ * - `fmtCount`: below a million, digits with separators (`2,154`); from there as held.
+ * - Scientific notation (a setting) switches everything from 1e6 to `1.23e6`.
+ * - NaN and Infinity print `—`.
  */
 import type { Locale, LocaleArgs } from "@wipe-day/content/locale";
-import type { Amounts, Content } from "@wipe-day/content/schema";
+import type { Content } from "@wipe-day/content/schema";
 import type { FeedEvent } from "./feed";
+import { newsMilestone } from "./prestige";
 
-/** `12.4k`, `1.2M`: the one number formatter. Rounds toward zero. */
-export function abbrev(amount: number): string {
-  const sign = amount < 0 ? "-" : "";
-  const magnitude = Math.trunc(Math.abs(amount));
-  if (magnitude < 1000) return `${sign}${magnitude}`;
-  const units = ["k", "M", "B"];
-  let divisor = 1000;
-  let unit = 0;
-  while (magnitude / divisor >= 1000 && unit + 1 < units.length) {
-    divisor *= 1000;
-    unit += 1;
-  }
-  const whole = Math.floor(magnitude / divisor);
-  const tenths = Math.floor((magnitude % divisor) / (divisor / 10));
-  return whole >= 100 || tenths === 0
-    ? `${sign}${whole}${units[unit]}`
-    : `${sign}${whole}.${tenths}${units[unit]}`;
+export type FmtMode = "held" | "cost";
+
+export interface NumberFormat {
+  fmt: (value: number, mode?: FmtMode) => string;
+  fmtRate: (value: number) => string;
+  fmtCount: (value: number) => string;
 }
 
-/** `2d 4h`, `3h 20m`, `45s`. */
+const DASH = "—";
+
+/** Three significant digits of `value` (≥ 1): the digits 100-999 and the power of ten. */
+function sig3(value: number, mode: FmtMode): { digits: number; exp: number } {
+  let exp = Math.floor(Math.log10(value));
+  let mantissa = value / 10 ** exp;
+  if (mantissa >= 10) {
+    mantissa /= 10;
+    exp += 1;
+  } else if (mantissa < 1) {
+    mantissa *= 10;
+    exp -= 1;
+  }
+  const scaled = mantissa * 100;
+  // The epsilon absorbs float error at the edges (9.995 × 100 is 999.4999…).
+  let digits = mode === "held" ? Math.floor(scaled + 1e-7) : Math.round(scaled + 1e-7);
+  if (digits >= 1000) {
+    digits = 100;
+    exp += 1;
+  }
+  return { digits, exp };
+}
+
+/** The 3 digits with the decimal point after `whole` of them: (124, 2) → "12.4". */
+function place(digits: number, whole: number): string {
+  const text = String(digits);
+  return whole >= 3 ? text : `${text.slice(0, whole)}.${text.slice(whole)}`;
+}
+
+export function numberFormat(suffixes: readonly string[], scientific = false): NumberFormat {
+  const top = 3 * (suffixes.length + 1);
+  const fmt = (value: number, mode: FmtMode = "held"): string => {
+    if (!Number.isFinite(value)) return DASH;
+    if (value < 0) return `-${fmt(-value, mode)}`;
+    if (value < 1000) {
+      const whole = mode === "held" ? Math.floor(value + 1e-9) : Math.round(value);
+      if (whole < 1000) return String(whole);
+    }
+    const { digits, exp } = sig3(Math.max(value, 1000), mode);
+    if ((scientific && exp >= 6) || exp >= top) return `${place(digits, 1)}e${exp}`;
+    const group = Math.floor(exp / 3);
+    return `${place(digits, exp - 3 * group + 1)}${suffixes[group - 1] ?? ""}`;
+  };
+  const fmtRate = (value: number): string => {
+    if (!Number.isFinite(value)) return DASH;
+    if (value < 0) return `-${fmtRate(-value)}`;
+    if (value === 0) return "0/s";
+    const short = Number(value.toPrecision(3));
+    if (short < 10) return `${short}/s`;
+    return `${fmt(value, "cost")}/s`;
+  };
+  const fmtCount = (value: number): string => {
+    if (!Number.isFinite(value)) return DASH;
+    if (Math.abs(value) >= 1e6) return fmt(value, "held");
+    const whole = Math.trunc(value);
+    return `${whole < 0 ? "-" : ""}${String(Math.abs(whole)).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+  };
+  return { fmt, fmtRate, fmtCount };
+}
+
+/** `2d 4h`, `3h 20m`, `12m`, `2m 10s`, `45s`: seconds under 10 minutes (active timers). */
 export function duration(totalSeconds: number): string {
   const seconds = Math.max(0, Math.trunc(totalSeconds));
   const days = Math.floor(seconds / 86_400);
   const hours = Math.floor(seconds / 3_600) % 24;
   const minutes = Math.floor(seconds / 60) % 60;
+  const rest = seconds % 60;
   if (days > 0) return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
   if (hours > 0) return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-  return minutes > 0 ? `${minutes}m` : `${seconds}s`;
+  if (minutes >= 10 || (minutes > 0 && rest === 0)) return `${minutes}m`;
+  return minutes > 0 ? `${minutes}m ${rest}s` : `${seconds}s`;
 }
 
-export interface Words {
+export interface Words extends NumberFormat {
   t: (key: string, args?: LocaleArgs) => string;
   resourceName: (id: string) => string;
-  itemName: (id: string) => string;
-  /** A recipe's output by name: a part (a resource) or an item. */
-  outputName: (id: string) => string;
+  crewName: (id: string) => string;
+  lineName: (id: string) => string;
   tierName: (id: string) => string;
-  regionName: (id: string) => string;
-  siteName: (id: string) => string;
-  survivorName: (id: string) => string;
-  /** "+214 Timber" lines for the biggest few gains, biggest first. */
-  gainLines: (gained: Amounts, limit: number) => string[];
+  toolName: (id: string) => string;
+  islandName: (id: string) => string;
+  targetName: (id: string) => string;
+  /** A shelf row's name: a Grip rung is its tool. */
+  upgradeName: (id: string) => string;
+  /** A Workshop item's name; a Line Mk's level by its own name (`mk2`, `mk3`). */
+  researchName: (id: string) => string;
+  researchLevelName: (id: string, level: number) => string;
+  flotsamName: (id: string) => string;
+  buffName: (id: string) => string;
   /** One line of the feed, about `who` (a player's name, or "You"). */
   feedLine: (event: FeedEvent, who: string) => string;
 }
 
-export function words(locale: Locale, content: Content): Words {
+/** The suffixes from the locale (`format.suffixes`, space separated). */
+export function suffixesOf(locale: Locale): string[] {
+  return locale.t("format.suffixes").split(/\s+/).filter(Boolean);
+}
+
+export function words(
+  locale: Locale,
+  content: Content,
+  options: { scientific?: boolean } = {},
+): Words {
   const t = (key: string, args?: LocaleArgs): string => locale.t(key, args);
-  const items = new Set(content.items.map((item) => item.id));
-  const resourceName = (id: string) => t(`resource.${id}.name`);
-  const itemName = (id: string) => t(`item.${id}.name`);
-  const outputName = (id: string) => (items.has(id) ? itemName(id) : resourceName(id));
-  const tierName = (id: string) => t(`base_tier.${id}.name`);
-  const regionName = (id: string) => t(`region.${id}.name`);
-  const siteName = (id: string) => t(`site.${id}.name`);
-  const survivorName = (id: string) => t(`crew.${id}.name`);
-
-  const gainLines = (gained: Amounts, limit: number): string[] =>
-    Object.entries(gained)
-      .filter(([, amount]) => amount >= 1)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, limit)
-      .map(([id, amount]) => `+${abbrev(amount)} ${resourceName(id)}`);
-
-  const feedLine = (event: FeedEvent, who: string): string => {
-    switch (event.type) {
-      case "mission_back":
-        return t(`feed.trip_${event.outcome === "success" ? "success" : "partial"}`, {
-          who,
-          site: siteName(event.target),
-        });
-      case "survivor_arrived":
-        return t("feed.rescued", { who, name: survivorName(event.survivor) });
-      case "build_done":
-        return t("feed.tier", { who, tier: tierName(event.tier) });
-      case "level_up":
-        return t("feed.level_up", { who, name: survivorName(event.survivor), level: event.level });
-      case "blueprint_found":
-        return t("feed.blueprint", { who, item: outputName(event.recipe) });
-      case "item_found":
-        return t("feed.found", { who, item: itemName(event.item), site: siteName(event.from) });
-      case "sold":
-        return t("feed.sold", {
-          who,
-          amount: abbrev(event.amount),
-          good: outputName(event.good),
-          price: abbrev(event.price),
-        });
-      case "big_win":
-        return t("feed.big_win", {
-          who,
-          payout: abbrev(event.payout),
-          game: t(`casino.game.${event.game}`),
-        });
-      case "jackpot_won":
-        return t("feed.jackpot", { who, amount: abbrev(event.amount) });
-      case "raid_landed":
-        return t(`feed.raid_${event.report.outcome}`, { who });
-      case "raid_launched":
-        return t(`feed.pvp_${event.report.outcome}`, { who, target: event.targetName });
-      case "signal_lit":
-        return t("feed.signal_lit", { who });
-    }
-  };
-
+  const numbers = numberFormat(suffixesOf(locale), options.scientific ?? false);
   return {
+    ...numbers,
     t,
-    resourceName,
-    itemName,
-    outputName,
-    tierName,
-    regionName,
-    siteName,
-    survivorName,
-    gainLines,
-    feedLine,
+    resourceName: (id) => t(`resource.${id}.name`),
+    crewName: (id) => t(`crew.${id}.name`),
+    lineName: (id) => t(`line.${id}.name`),
+    tierName: (id) => t(`base_tier.${id}.name`),
+    toolName: (id) => t(`tool.${id}.name`),
+    islandName: (id) => t(`island.${id}.name`),
+    targetName: (id) => t(`target.${id}.name`),
+    upgradeName: (id) =>
+      content.tools.some((tool) => tool.id === id) ? t(`tool.${id}.name`) : t(`upgrade.${id}.name`),
+    researchName: (id) => t(`research.${id}.name`),
+    researchLevelName: (id, level) =>
+      locale.has(`research.${id}.mk${level + 1}`)
+        ? t(`research.${id}.mk${level + 1}`)
+        : t(`research.${id}.name`),
+    flotsamName: (id) => t(`flotsam.${id}.name`),
+    buffName: (id) => t(`buff.${id}.name`),
+    feedLine: (event, who) => feedLine(content, t, numbers, event, who),
   };
+}
+
+/**
+ * The feed's sentences (06-friends.md 2.3; D271): a Wipe Day as the first ever, a milestone
+ * count, several folded into one, or plain, plus the flight's line when this press unlocked
+ * it; the first Armored era. The web feed, the ticker and the Discord channel all say this.
+ */
+function feedLine(
+  content: Content,
+  t: (key: string, args?: LocaleArgs) => string,
+  numbers: NumberFormat,
+  event: FeedEvent,
+  who: string,
+): string {
+  if (event.type === "era_reached") return t("feed.first_armored", { who });
+  const n = event.wipeDay ?? 0;
+  const island = t("island.saltmarsh.name");
+  const folded = event.news?.folded ?? 0;
+  const gain = numbers.fmt(event.gain + (event.news?.glass ?? 0), "cost");
+  let line: string;
+  if (n === 1) line = t("feed.nuked_first", { who, gain });
+  else if (folded > 0) line = t("feed.nuked_folded", { who, times: folded + 1, n, gain });
+  else if (newsMilestone(content, n)) line = t("feed.nuked_milestone", { who, n, gain });
+  else line = t("feed.nuked", { who, n, island, gain });
+  const flight = content.prestige.flights.variants.find((row) => row.id === event.flight);
+  if (flight && flight.unlockAt === n && n > 1) line += ` ${t(`feed.flight.${flight.id}`)}`;
+  return line;
 }

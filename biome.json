@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!apps/discord/src/store/migrations", "!preview"]
+    "includes": ["**", "!apps/discord/src/store/migrations", "!preview", "!docs/redesign"]
   },
   "formatter": {
     "indentStyle": "space",
@@ -28,7 +28,12 @@
   },
   "overrides": [
     {
-      "includes": ["apps/discord/src/bin/**", "packages/sim/src/cli.ts"],
+      "includes": [
+        "apps/discord/src/bin/**",
+        "packages/sim/src/cli.ts",
+        "apps/api/src/admin-cli.ts",
+        "scripts/**"
+      ],
       "linter": {
         "rules": {
           "suspicious": {
@@ -42,6 +47,16 @@
       "linter": {
         "rules": {
           "a11y": "off"
+        }
+      }
+    },
+    {
+      "includes": ["packages/content/icons/**/*.svg"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noSvgWithoutTitle": "off"
+          }
         }
       }
     }

@@ -12,7 +12,7 @@ export function Login() {
   if (phase === "offline") {
     return (
       <div className="modal-backdrop">
-        <div className="glass modal login" role="dialog" aria-labelledby="login-title">
+        <div className="plate modal login" role="dialog" aria-labelledby="login-title">
           <h2 id="login-title">{t("login.offline_title")}</h2>
           <p>{t("login.offline")}</p>
           <div className="row">
@@ -31,7 +31,7 @@ export function Login() {
 
   return (
     <div className="modal-backdrop">
-      <div className="glass modal login" role="dialog" aria-labelledby="login-title">
+      <div className="plate modal login" role="dialog" aria-labelledby="login-title">
         <h2 id="login-title">{t("login.title")}</h2>
         <p>{t("login.pitch")}</p>
         {failed ? <p className="line warn">{t("login.failed")}</p> : null}

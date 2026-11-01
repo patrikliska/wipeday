@@ -1,35 +1,22 @@
 /**
- * `/base`: the API's answer turned into the card's props and the message around it. Pure:
- * the base, the time and what the last click did go in, plain data comes out, so tests and
- * `pnpm preview` see exactly what Discord gets.
+ * `/base`: the API's answer turned into the message. Pure: the base and what the last click did
+ * go in, plain data comes out, so tests and `pnpm preview` see exactly what Discord gets.
  *
- * Every number here comes from the shared domain's read-only helpers (what is waiting, the
- * store's fill, the advisor's next step); every change goes through the API's commands.
- * The bot has no rules of its own (W8).
- *
- * The one obvious action (CLAUDE.md 6.3 rule 1) is the advisor's: Collect or Gather when it
- * says so and they would do something, otherwise the link into the game, with the next
- * step written under the card.
+ * Card v2, minimal (docs/redesign/06-friends.md 10.2; R4 S3, D271): text fields only, no
+ * picture: the era and the Wipe Days, the idle rate, the glass chip with Glow, the Night Shift
+ * line, the Big Red's line from the shared glance, and a status line (what the last click did,
+ * else the shift's state or the one next step the advisor would crown). Buttons: Collect leads
+ * when the window is stalled or at least half used, else Open the game; DMs on or off. The bot
+ * has no rules of its own: everything here is a read-only view from `@wipe-day/domain/glance`
+ * and `advisor` (`boundary.test.ts`).
  */
-import { initials, resourceColor, resourceInitials } from "@wipe-day/content/look";
-import type { Amounts, Content } from "@wipe-day/content/schema";
-import { advise } from "@wipe-day/domain/advisor";
-import {
-  accrued,
-  type BaseState,
-  gatherReadyAt,
-  isStorageFull,
-  storageCap,
-  total,
-} from "@wipe-day/domain/base";
-import { jobEndsAt } from "@wipe-day/domain/craft";
-import { raidWarned } from "@wipe-day/domain/raids";
-import { seasonDay } from "@wipe-day/domain/signal";
+import type { Content } from "@wipe-day/content/schema";
+import { crown, tapHintLive } from "@wipe-day/domain/advisor";
+import { bigRedGlance, nightShiftGlance, shownRate } from "@wipe-day/domain/glance";
 import type { BotHome } from "@wipe-day/domain/wire";
 import { duration, type Words } from "@wipe-day/domain/words";
-import type { BaseCardProps, CardResource } from "../render/cards/base";
 import { idOf } from "./customId";
-import type { Button, Screen } from "./screen";
+import type { Screen } from "./screen";
 import { tierColor } from "./theme";
 
 /** What the bot needs to describe a base: the content and the shared words. */
@@ -40,261 +27,110 @@ export interface Lexicon {
 
 /** What the last click did, for the status line (rule 7: feedback on everything). */
 export type Last =
-  | { kind: "banked"; gained: Amounts }
-  | { kind: "gathered"; gained: Amounts }
-  | { kind: "nothing" }
-  | { kind: "full" }
-  | { kind: "cooldown"; readyAt: number }
-  | { kind: "refused" }
   | { kind: "stale" }
-  | { kind: "dm"; on: boolean };
+  | { kind: "dm"; on: boolean }
+  /** Collect went through: the hands worked `seconds` for `gain`, and a fresh window starts. */
+  | { kind: "collected"; seconds: number; gain: number; hands: number };
 
 /** `<t:…:R>`: a countdown each reader's Discord renders and keeps ticking, in their language. */
 export const relative = (at: number): string => `<t:${Math.trunc(at)}:R>`;
 /** `<t:…:f>`: a date and time in each reader's own time zone. */
 export const dateTime = (at: number): string => `<t:${Math.trunc(at)}:f>`;
 
-/** Gathered and smelted resources the base has met, in display order (the web's top bar). */
-function known(content: Content, state: BaseState): string[] {
-  return content.resources
-    .filter((resource) => resource.kind !== "part" && state.stock[resource.id] !== undefined)
-    .map((resource) => resource.id);
-}
+/** Collect leads from half a window used (06 10.3). */
+const COLLECT_LEADS_FROM = 0.5;
 
-function cardResource(words: Words, id: string, amount: number): CardResource {
-  const name = words.resourceName(id);
-  return {
-    id,
-    name,
-    amount,
-    color: resourceColor(id),
-    letters: resourceInitials(id) ?? initials(name),
-  };
-}
-
-export function cardProps({ content, words }: Lexicon, home: BotHome, now: number): BaseCardProps {
-  const { state } = home;
-  const cap = storageCap(content, state);
-  const ids = known(content, state).filter((id) => id !== "scrap");
-  const capped = ids.filter(
-    (id) => content.resources.find((r) => r.id === id)?.kind !== "currency",
-  );
-  let fullest = { name: words.resourceName(capped[0] ?? "timber"), amount: 0 };
-  for (const id of capped) {
-    const amount = state.stock[id] ?? 0;
-    if (amount > fullest.amount) fullest = { name: words.resourceName(id), amount };
-  }
-  const tierName = words.tierName(state.tier);
-  return {
-    playerName: home.player.name,
-    tier: state.tier,
-    subtitle: words.t("discord.card.subtitle", {
-      tier: tierName,
-      day: seasonDay({ startedAt: home.seasonStartedAt }, now),
-      season: home.season.number,
-    }),
-    tierLetters: initials(tierName),
-    scrap: cardResource(words, "scrap", state.stock.scrap ?? 0),
-    cap,
-    fullest,
-    resources: ids.map((id) => cardResource(words, id, state.stock[id] ?? 0)),
-    labels: {
-      storage: words.t("discord.card.storage"),
-      full: words.t("discord.card.full", { resource: fullest.name }),
-      empty: words.t("discord.card.empty"),
-    },
-  };
-}
-
-/** Which button is the one obvious action. */
-type Primary = "collect" | "gather" | "open";
-
-/**
- * The status line, where the eye lands after the title: what the last click did, or else
- * the one obvious next step.
- */
-function statusLine(
-  words: Words,
-  last: Last | undefined,
-  full: boolean,
-  primary: Primary,
-  next: string | null,
-): string {
-  const t = words.t;
-  switch (last?.kind) {
-    case "banked":
-    case "gathered": {
-      const gains = words.gainLines(last.gained, 4);
-      if (gains.length === 0) return t(full ? "discord.status.full" : "discord.status.nothing");
-      return t(`discord.status.${last.kind}`, { gains: gains.join(", ") });
-    }
-    case "nothing":
-      return t("discord.status.nothing");
-    case "full":
-      return t("discord.status.full");
-    case "cooldown":
-      return t("discord.status.cooldown", { when: relative(last.readyAt) });
-    case "refused":
-      return t("discord.status.refused");
-    case "stale":
-      return t("discord.status.stale");
-    case "dm":
-      return t(last.on ? "discord.status.dm_on" : "discord.status.dm_off");
-    default:
-      if (primary !== "open") return t(`discord.status.${primary}`);
-      if (next) return next;
-      return t(full ? "discord.status.full" : "discord.status.default");
-  }
-}
-
-/** What the builders, stations, parties, raiders and the season are doing: one line each. */
-function timers({ content, words }: Lexicon, home: BotHome, now: number): string[] {
-  const { state, season } = home;
-  const t = words.t;
-  const lines: string[] = [];
-
-  const build = state.construction[0];
-  if (build) {
-    const what =
-      build.target.kind === "tier"
-        ? t("discord.building_tier", { tier: words.tierName(build.target.tier) })
-        : t("discord.building_level", {
-            building: t(`building.${build.target.building}.name`),
-            level: build.target.level,
-          });
-    lines.push(t("discord.building", { what, when: relative(build.endsAt) }));
-  }
-
-  // The job each station is on, soonest done first: "8× Planks, 6× Rope".
-  const running = Object.values(state.production)
-    .map((queue) => queue[0])
-    .filter((job) => job !== undefined)
-    .sort((a, b) => jobEndsAt(a) - jobEndsAt(b));
-  const first = running[0];
-  if (first) {
-    const named = running
-      .slice(0, 2)
-      .map((job) => `${job.count - job.done}× ${words.outputName(job.recipe)}`)
-      .join(", ");
-    const what =
-      running.length > 2
-        ? t("discord.crafting_more", { what: named, count: running.length - 2 })
-        : named;
-    lines.push(
-      t(running.length > 1 ? "discord.crafting_many" : "discord.crafting", {
-        what,
-        when: relative(jobEndsAt(first)),
-      }),
-    );
-  }
-
-  for (const mission of [...state.missions].sort((a, b) => a.endsAt - b.endsAt).slice(0, 3)) {
-    const crew = mission.crew.map((id) => words.survivorName(id)).join(", ");
-    lines.push(
-      mission.kind === "trip"
-        ? t("discord.trip", {
-            crew,
-            site: words.siteName(mission.target),
-            when: relative(mission.endsAt),
-          })
-        : t("discord.scout", {
-            crew,
-            region: words.regionName(mission.target),
-            when: relative(mission.endsAt),
-          }),
-    );
-  }
-
-  if (state.raid && raidWarned(content, state, now))
-    lines.push(t("discord.raid", { when: relative(state.raid.at) }));
-  if (season.endsAt !== null)
-    lines.push(t("discord.season_ends", { number: season.number, when: relative(season.endsAt) }));
-  return lines;
-}
-
-/** The `/base` message, without the card's picture (the caller renders and attaches it). */
-export function homeScreen(lexicon: Lexicon, home: BotHome, now: number, last?: Last): Screen {
+/** The `/base` message. */
+export function homeScreen(lexicon: Lexicon, home: BotHome, last?: Last): Screen {
   const { content, words } = lexicon;
   const t = words.t;
   const { state } = home;
-  const waiting = accrued(content, state, now);
-  const hasWaiting = total(waiting) >= 1;
-  const full = !hasWaiting && isStorageFull(content, state, now);
-  const readyAt = gatherReadyAt(content, state);
-  const gatherReady = readyAt <= now;
-  const advice = advise(content, state, now);
-  const primary: Primary =
-    advice === "collect" && hasWaiting
-      ? "collect"
-      : advice === "gather" && gatherReady
-        ? "gather"
-        : "open";
+  const now = home.serverNow;
+  const era = words.tierName(state.run.era);
+  const shift = nightShiftGlance(content, state, now);
+  const hands = state.run.hands.length;
+  const rate = shownRate(content, state, now);
+  const pick = crown(content, state, now, { income: rate, tapShare: 0, tapRate: 0 });
+  const crowned = pick.kind === "nuke";
+  const glance = bigRedGlance(content, state, now, crowned);
 
-  const waitingLine = hasWaiting
-    ? t("discord.waiting", { gains: words.gainLines(waiting, 3).join(" · ") })
-    : full
-      ? t("discord.waiting_full", { resource: cardProps(lexicon, home, now).fullest.name })
-      : t("discord.waiting_none");
+  const details: string[] = [
+    state.meta.wipeDays > 0
+      ? t("discord.card.subtitle", { era, n: state.meta.wipeDays })
+      : t("discord.card.subtitle_first", { era }),
+    rate > 0
+      ? t("discord.card.rate", { rate: words.fmtRate(rate) })
+      : hands > 0
+        ? t("discord.card.rate_stopped")
+        : t("discord.card.rate_none"),
+  ];
+  if (state.meta.wipeDays > 0)
+    details.push(
+      t("discord.card.glass", {
+        glass: words.fmtCount(state.meta.glass.held),
+        glow: fmtFactor(glance.glowBefore),
+      }),
+    );
+  details.push(
+    hands === 0
+      ? t("discord.card.night_shift_nobody")
+      : shift.full
+        ? t("discord.card.night_shift_full", { when: relative(shift.stoppedAt ?? now) })
+        : t("discord.card.night_shift", {
+            used: duration(shift.used),
+            window: duration(shift.window),
+          }),
+  );
+  if (glance.stage !== "hidden") {
+    const made = words.fmt(state.run.made, "held");
+    if (glance.pressable)
+      details.push(
+        t(crowned ? "discord.card.big_red_crowned" : "discord.card.big_red", {
+          glass: words.fmtCount(glance.gain),
+        }),
+      );
+    else
+      details.push(
+        t(glance.first ? "discord.card.big_red_locked" : "discord.card.big_red_later", {
+          threshold: words.fmt(glance.launchAt - state.meta.lifetime, "cost"),
+          made,
+        }),
+      );
+  }
 
-  const collect: Button = {
+  const status = statusLine(lexicon, home, shift, hands, crowned, last);
+  // Collect leads when the shift is over or half used; the game's link otherwise (06 10.3).
+  const collectLeads = hands > 0 && (shift.full || shift.used / shift.window >= COLLECT_LEADS_FROM);
+  const collect = {
     customId: idOf({ screen: "base", action: "collect" }),
-    label: hasWaiting
-      ? t("discord.button.collect")
-      : t(full ? "discord.button.collect_full" : "discord.button.collect_none"),
-    style: primary === "collect" ? "primary" : "secondary",
-    ...(hasWaiting ? {} : { disabled: true }),
+    label: t("discord.button.collect"),
+    style: collectLeads ? ("primary" as const) : ("secondary" as const),
   };
-  const gather: Button = {
-    customId: idOf({ screen: "base", action: "gather" }),
-    label: gatherReady
-      ? t("discord.button.gather")
-      : t("discord.button.gather_wait", { time: duration(readyAt - now) }),
-    style: primary === "gather" ? "primary" : "secondary",
-    ...(gatherReady ? {} : { disabled: true }),
-  };
-  const open: Button = {
+  const open = {
     customId: "",
     url: home.loginUrl,
     label: t("discord.button.open"),
-    style: primary === "open" ? "primary" : "secondary",
+    style: collectLeads ? ("secondary" as const) : ("primary" as const),
   };
-
-  const next =
-    advice !== "collect" && advice !== "gather"
-      ? t("discord.next", { what: t(`discord.next_action.${advice}`) })
-      : null;
-  const status = statusLine(words, last, full, primary, next);
-  const hint = [
-    // The next step is the status line, unless a click's result took its place.
-    ...(next && primary === "open" && status !== next ? [next] : []),
-    t("discord.dm_footer", {
-      state: t(home.discordDm ? "discord.dm_state_on" : "discord.dm_state_off"),
-    }),
-  ].join("\n");
-  // The one obvious action leads its row.
-  const actions = [collect, gather, open].sort(
-    (a, b) => Number(b.style === "primary") - Number(a.style === "primary"),
-  );
-
   return {
     id: "base",
     kind: "root",
     tone: "neutral",
-    accent: tierColor[state.tier],
-    title: t("discord.title", { name: home.player.name }),
+    accent: tierColor[state.run.era],
+    title: t("discord.title", {
+      name: home.player.name,
+      island: words.islandName(state.run.island),
+    }),
     status,
-    details: [waitingLine, ...timers(lexicon, home, now)],
-    hint,
+    details,
+    hint: t("discord.dm_footer", {
+      state: t(home.discordDm ? "discord.dm_state_on" : "discord.dm_state_off"),
+    }),
     rows: [
-      { kind: "buttons", buttons: actions },
       {
         kind: "buttons",
         buttons: [
-          {
-            customId: idOf({ screen: "base", action: "refresh" }),
-            label: t("discord.button.refresh"),
-            style: "secondary",
-          },
+          ...(collectLeads ? [collect, open] : [open, collect]),
           {
             customId: idOf({ screen: "base", action: home.discordDm ? "dm_off" : "dm_on" }),
             label: t(home.discordDm ? "discord.button.dm_off" : "discord.button.dm_on"),
@@ -304,4 +140,38 @@ export function homeScreen(lexicon: Lexicon, home: BotHome, now: number, last?: 
       },
     ],
   };
+}
+
+function statusLine(
+  lexicon: Lexicon,
+  home: BotHome,
+  shift: ReturnType<typeof nightShiftGlance>,
+  hands: number,
+  crowned: boolean,
+  last: Last | undefined,
+): string {
+  const { content, words } = lexicon;
+  const t = words.t;
+  if (last?.kind === "stale") return t("discord.status.stale");
+  if (last?.kind === "dm") return t(last.on ? "discord.status.dm_on" : "discord.status.dm_off");
+  if (last?.kind === "collected")
+    return last.hands === 0
+      ? t("discord.status.collected_nobody")
+      : t("discord.status.collected", {
+          time: duration(last.seconds),
+          gain: words.fmt(last.gain, "cost"),
+          window: duration(shift.window),
+        });
+  // The one next step, only where the game itself would crown it (D244): the Big Red, or the
+  // tap hint while the player is new. No buying advice.
+  if (crowned) return t("discord.next_action.big_red");
+  if (tapHintLive(content, home.state)) return t("discord.next_action.tap");
+  if (hands === 0) return t("discord.status.nobody");
+  if (shift.full) return t("discord.status.stalled");
+  return t("discord.status.running", { when: relative(home.state.run.activeAt + shift.window) });
+}
+
+/** `×2.17`: the web's factor format (08-screens.md 3.5), three significant digits. */
+function fmtFactor(value: number): string {
+  return String(Number(value.toPrecision(3)));
 }

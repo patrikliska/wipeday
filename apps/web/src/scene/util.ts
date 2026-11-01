@@ -62,3 +62,9 @@ export function css(color: number, alpha = 1): string {
 export function shade(color: number, t: number): number {
   return t < 0 ? lerpColor(color, 0x000000, -t) : lerpColor(color, 0xffffff, t);
 }
+
+/**
+ * Reduced motion (08-screens.md 6.2): the Motion setting, or the device under "Match device".
+ * Floaters fade in place, particles drop to a quarter, the target blinks instead of squashing.
+ */
+export { reducedMotion } from "../state/ui";

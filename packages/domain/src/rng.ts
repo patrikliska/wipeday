@@ -1,8 +1,41 @@
 /**
- * Seeded randomness for the domain. Every roll takes a seed, so a click can
- * be replayed in a test and the simulator is deterministic. mulberry32:
- * small, fast, good enough for loot tables.
+ * Seeded randomness for the domain. Every roll takes a seed, so a tap can be replayed in a
+ * test, the client predicts what the server rolls, and the simulator is deterministic.
+ * mulberry32: small, fast, good enough for games.
+ *
+ * Every roll is `rng(seedOf(run.seed, SEED.<tag>, index))`: numbers only, never a clock value
+ * (docs/redesign/09-architecture.md 3.1).
  */
+
+/** The tags that keep each kind of roll on its own stream. */
+export const SEED = {
+  /** A run's seed from the base's seed and the nuke count. */
+  run: 0x52554e,
+  /** Whether tap number k crits. */
+  crit: 0xc417,
+  /** The gap before flotsam arrival k. */
+  flotsam: 0xf107,
+  /** Which kind arrival k is. */
+  kind: 0x4b1d,
+  /** Which line a Drowned Drone boosts. */
+  drone: 0xd403,
+  /** The nuke's flight variant. */
+  flight: 0xf119,
+  /** The island's weather per block (on the island's seed: the same for every friend). */
+  weather: 0x3e47,
+  /** Crow slot j's offset and whether it is a Magpie. */
+  gull: 0x6011,
+  /** The Magnet's hauls (on the base's seed: they span runs). */
+  magnet: 0x3a6e,
+  /** Supply Drop card k's rarity and pick (on the base's seed: pity spans runs). */
+  drop: 0xd209,
+  /** Run n's Work Orders (on the base's seed and the run number). */
+  order: 0x04de4,
+  /** The island day's quests (on the island's seed: the same for every friend). */
+  quest: 0x9e57,
+  /** A Lucky Tide's crate k. */
+  tide: 0x71de,
+} as const;
 
 export interface Rng {
   /** Uniform in [0, 1). */
@@ -24,6 +57,15 @@ export function rng(seed: number): Rng {
     next,
     int: (min, max) => min + Math.floor(next() * (max - min + 1)),
   };
+}
+
+/** `rng(seed).next()` without the closure: the one draw a crit or a weather block makes. */
+export function roll(seed: number): number {
+  const state = ((seed >>> 0) + 0x6d2b79f5) >>> 0;
+  let t = state;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
 /** Mixes several integers into one seed (order matters). */

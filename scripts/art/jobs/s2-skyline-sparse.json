@@ -1,0 +1,24 @@
+[
+  {
+    "id": "sparse_mid",
+    "prompt_style": "rd_plus__environment",
+    "width": 512,
+    "height": 128,
+    "num_images": 3,
+    "remove_bg": true,
+    "seed": 701,
+    "palette": true,
+    "prompt": "an empty wasteland desert horizon with only two or three ruined buildings standing far apart, one broken water tower, wide empty flat ground between them, strict side view, no sun, no moon, no clouds, no sky, on a plain white background"
+  },
+  {
+    "id": "sparse_near",
+    "prompt_style": "rd_plus__environment",
+    "width": 512,
+    "height": 64,
+    "num_images": 3,
+    "remove_bg": true,
+    "seed": 702,
+    "palette": true,
+    "prompt": "a few small wasteland props scattered far apart on flat empty ground: one leaning wooden power pole, one small rusted car wreck, a short broken fence, mostly empty space, strict side view, no sun, no moon, no clouds, no sky, on a plain white background"
+  }
+]

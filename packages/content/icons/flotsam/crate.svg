@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="currentColor">
+  <path d="M5 17C7 8 15 3 24 3S41 8 43 17C40 15 37 15 34 17 31 15 27 15 24 17 21 15 17 15 14 17 11 15 8 15 5 17Z"/>
+  <path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" d="M7 18 15 28M41 18 33 28M24 18V27"/>
+  <path fill-rule="evenodd" d="M11 27H37V45H11ZM14.5 30.5V41.5H21.5V30.5ZM26.5 30.5V41.5H33.5V30.5Z"/>
+  <rect fill="#cd412b" x="21.5" y="27" width="5" height="18"/>
+</svg>

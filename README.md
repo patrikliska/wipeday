@@ -1,19 +1,23 @@
 # Wipe Day
 
-An idle survival game for a handful of friends: a living base on a wrecked island, played in the
-browser, with a Discord bot as a companion. Private, single-server.
+An incremental idle game for a handful of friends: tap, build production lines, hire hands, then
+nuke your own island for Crater Glass and grow the Blast Map. Played in the browser, with a
+Discord bot as a companion. Private, single-server.
 
 - Spec: [CLAUDE.md](CLAUDE.md). Design: [docs/game-design.md](docs/game-design.md). Next phases:
   [docs/roadmap.md](docs/roadmap.md). Why things are the way they are:
   [docs/decisions.md](docs/decisions.md).
-- Current state: **W8** (the Discord companion); see the roadmap for what is deployed. Play at
-  https://wipeday.patrikliska.dev (Discord login). Locally, `pnpm dev` runs the API and the
+- Current state: the **redesign** (phases R0-R9, on the `redesign` branch) replaces the W-phase
+  game, which is still live on `main` (W8) at https://wipeday.patrikliska.dev until the cut-over
+  at the end of R4 The Big Red; see the roadmap. Locally, `pnpm dev` runs the API and the
   web client with dev test players. The Discord bot (`apps/discord`) is a thin client of the
   API: `/base`, DMs and the feed channel.
 
 ## Start here (a new computer)
 
 Where the project stands and what comes next: **[docs/roadmap.md, "Where we are"](docs/roadmap.md)**.
+Until the cut-over (end of R4) the work happens on the **`redesign`** branch (`git switch
+redesign`); `main` is the frozen live game, which gets emergency fixes only (D145).
 The rules for working on it (for you and for Claude Code): [CLAUDE.md](CLAUDE.md).
 
 1. Install **Node 24** (the server runs `node:24`; 22+ works), **Git**, and on Windows **Git
@@ -39,7 +43,8 @@ The rules for working on it (for you and for Claude Code): [CLAUDE.md](CLAUDE.md
    listening, D89), use two terminals instead: `pnpm api` (plain, restart it by hand after
    rule changes) and `pnpm web`. `http://localhost:5173/?demo` needs no API at all.
    No `.env` is needed for local play; copy `.env.example` to `.env` only for Discord login or
-   the bot.
+   the bot. Generating art needs `RETRO_DIFFUSION_API_KEY` in `.env` (copied by hand, never
+   through git); the pipeline and its setup are in `docs/redesign/art/README.md`.
 5. Deploying needs SSH access to the VPS from this computer: see
    [docs/deploy.md, "From a new computer"](docs/deploy.md). The old computer's key stays there.
    Working on one computer and deploying from the other: work on a branch per phase and merge
@@ -115,8 +120,8 @@ No privileged intents are needed.
 
 | Where | What |
 | --- | --- |
-| `/base` | Your holdfast, privately: the card, what is waiting, timers, **Collect**, **Gather**, a one-time link into the game, DMs on or off |
-| DMs | "Your party is back", "Raiders!" and the other kinds you turned on in the game, with your base and the game one tap away |
-| The feed channel | What happens on the island, in the web feed's words, and the season's end and reset |
+| `/base` | Privately: a one-time link into the game and DMs on or off (card v2 with Collect comes in R4) |
+| DMs | The notifications you turned on in the game ("Night Shift over" by default), with the game one tap away |
+| The feed channel | What happens on the island, in the web feed's words |
 
 The bot needs no art: the card draws the same placeholder tiles as the web.

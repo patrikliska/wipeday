@@ -1,0 +1,41 @@
+[
+  {
+    "id": "comber_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 24,
+    "height": 24,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 41,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/target/tree.png",
+      "packages/content/art/scene/house/twig.png",
+      "docs/redesign/art/mock-scene/img/bench.png"
+    ],
+    "prompt": "a beachcomber's drying rack on the sand: a small frame of bleached driftwood poles with a fishing net, a few planks and shells hung on it, a wooden bucket beside it, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "comber_low",
+    "prompt_style": "rd_plus__low_res",
+    "width": 24,
+    "height": 24,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 41,
+    "palette": true,
+    "prompt": "a beachcomber's drying rack on the sand: a small frame of bleached driftwood poles with a fishing net, a few planks and shells hung on it, a wooden bucket beside it, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "hand_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 24,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 7,
+    "palette": true,
+    "refs": ["packages/content/art/scene/hand/survivor.png"],
+    "prompt": "a lone island survivor in a worn olive green jacket with a small backpack and a pale bandana, standing, strict side view facing right, light from the upper left, on a plain white background"
+  }
+]

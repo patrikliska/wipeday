@@ -1,0 +1,344 @@
+/**
+ * What the HUD shows, apart from the game: the drawer, its tab and bulk size, the open panel or
+ * sheet, where the crown is in the shop, and the player's display settings (numbers, motion). Settings live in localStorage
+ * (per device), like sound (D162); nothing here reaches the server.
+ *
+ * Back (08-screens.md 1.8): opening the expanded drawer, the house, a panel or a sheet pushes a history
+ * entry, so Android's back button closes the top layer; Escape does the same. A layer opened by
+ * the shots harness (a plain `setState`) pushes nothing and closes without touching history.
+ */
+import { create } from "zustand";
+import { useMap } from "./map";
+
+/** "next": up to the line's next milestone (the Blast Map's Bulk Buttons, R4 S3). */
+export type Bulk = 1 | 10 | 100 | "max" | "next";
+export type Tab = "lines" | "upgrades" | "research";
+export type Panel = "crew" | "logbook" | "settings" | "album" | "map";
+export type Sheet =
+  | "multipliers"
+  | "odds"
+  | "credits"
+  | "era"
+  | "orders"
+  | "scrap"
+  | "reveal"
+  | "survivor"
+  | "gear"
+  // R4 (D270): the Big Red's card (locked, the cover, the hold) and the postcard after a nuke.
+  | "big_red"
+  | "postcard";
+export type AlbumTab = "crew" | "gear" | "odds";
+export type Motion = "device" | "reduced" | "full";
+
+export const BULKS: readonly Bulk[] = [1, 10, 100, "max"];
+
+export interface UiState {
+  /** The phone drawer: three rows, or the whole shop. */
+  expanded: boolean;
+  tab: Tab;
+  bulk: Bulk;
+  /** A destination of the nav row over the island (Island is none). */
+  panel: Panel | null;
+  /** A small sheet over everything (the Multipliers sheet, the Odds sheet, the next era). */
+  sheet: Sheet | null;
+  /** "Bought this run" unfolded on the Upgrades tab. */
+  boughtOpen: boolean;
+  /** The house is open: its room, with the crafting lines inside (D206), over the island. */
+  house: boolean;
+  scientific: boolean;
+  motion: Motion;
+  /**
+   * Accessibility (03-the-big-red.md 5.5): "Tap twice instead of holding" turns the Big Red's
+   * 2 s hold into "tap to arm, tap again within 3 s".
+   */
+  holdTwice: boolean;
+  /** The hands the Crew sheet last showed, per run: the dock's Crew badge counts the rest. */
+  crewSeen: { run: number; hands: number };
+  /** The Workshop items open when its tab last showed, per run: the dock's badge counts the rest. */
+  workshopSeen: { run: number; items: number };
+  /** Badges earned when the Logbook last showed (they last for good): the dock counts the rest. */
+  badgesSeen: number;
+  /** Cards owned when the Album last showed (D260): the dock's Album badge counts the rest. */
+  albumSeen: number;
+  /** The Album's segment (D260): Crew, Gear or Odds. */
+  albumTab: AlbumTab;
+  /** The survivor whose sheet is open, and the gear card whose sheet is open. */
+  survivorSheet: string | null;
+  gearSheet: string | null;
+}
+
+interface UiActions {
+  expand(open: boolean): void;
+  setTab(tab: Tab): void;
+  setBulk(bulk: Bulk): void;
+  /** Opens a nav destination; null goes back to the island. */
+  openPanel(panel: Panel | null): void;
+  openSheet(sheet: Sheet | null): void;
+  /** Opens or closes the house's room. */
+  openHouse(open: boolean): void;
+  toggleBought(): void;
+  setScientific(on: boolean): void;
+  setMotion(motion: Motion): void;
+  setHoldTwice(on: boolean): void;
+  /** The Crew sheet was shown with `hands` on shift in the run started at `run`. */
+  seeCrew(run: number, hands: number): void;
+  /**
+   * The dock's Workshop (D199): the shop on its Workshop tab, the drawer expanded on a phone. A
+   * panel open over the island gives its place (and its history entry) to the drawer.
+   */
+  openWorkshop(column: boolean): void;
+  /** The Workshop tab showed `items` open items in run `run`. */
+  seeWorkshop(run: number, items: number): void;
+  /** The Logbook showed `count` badges earned. */
+  seeBadges(count: number): void;
+  /** The Album showed `count` cards owned. */
+  seeAlbum(count: number): void;
+  setAlbumTab(tab: AlbumTab): void;
+  /** A survivor's or a gear card's sheet (D260): over the Album, the Crew panel or the reveal. */
+  openSurvivor(id: string): void;
+  openGear(id: string): void;
+  /** Closes the top layer (sheet, then panel, then the expanded drawer); false when none. */
+  back(): boolean;
+}
+
+function read(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function write(key: string, value: string): void {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Private mode: the setting lasts for this page.
+  }
+}
+
+const storedBulk = (): Bulk => {
+  const value = read("wipeday.bulk");
+  if (value === "max" || value === "next") return value;
+  return value === "10" ? 10 : value === "100" ? 100 : 1;
+};
+
+const storedCrewSeen = (): { run: number; hands: number } => {
+  const [run, hands] = (read("wipeday.crew_seen") ?? "").split(":").map(Number);
+  return Number.isFinite(run) && Number.isFinite(hands)
+    ? { run: run ?? 0, hands: hands ?? 0 }
+    : { run: 0, hands: 0 };
+};
+
+const storedWorkshopSeen = (): { run: number; items: number } => {
+  const [run, items] = (read("wipeday.workshop_seen") ?? "").split(":").map(Number);
+  return Number.isFinite(run) && Number.isFinite(items)
+    ? { run: run ?? 0, items: items ?? 0 }
+    : { run: 0, items: 0 };
+};
+
+const storedBadgesSeen = (): number => {
+  const value = Number(read("wipeday.badges_seen") ?? "0");
+  return Number.isFinite(value) ? value : 0;
+};
+
+const storedAlbumSeen = (): number => {
+  const value = Number(read("wipeday.album_seen") ?? "0");
+  return Number.isFinite(value) ? value : 0;
+};
+
+const storedMotion = (): Motion => {
+  const value = read("wipeday.motion");
+  return value === "reduced" || value === "full" ? value : "device";
+};
+
+/** History entries this page pushed for open layers, so a close can pop its own. */
+let pushed = 0;
+
+function pushLayer(): void {
+  if (typeof history === "undefined") return;
+  history.pushState({ wipeDayLayer: true }, "");
+  pushed += 1;
+}
+
+export const useUi = create<UiState & UiActions>((set, get) => {
+  /** Closes the top layer through history when this page pushed one, so back stays in step. */
+  const close = (apply: () => void): void => {
+    if (pushed > 0) {
+      history.back();
+      return;
+    }
+    apply();
+  };
+  return {
+    expanded: false,
+    tab: "lines",
+    bulk: storedBulk(),
+    panel: null,
+    sheet: null,
+    boughtOpen: false,
+    house: false,
+    scientific: read("wipeday.scientific") === "1",
+    motion: storedMotion(),
+    holdTwice: read("wipeday.hold_twice") === "1",
+    crewSeen: storedCrewSeen(),
+    workshopSeen: storedWorkshopSeen(),
+    badgesSeen: storedBadgesSeen(),
+    albumSeen: storedAlbumSeen(),
+    albumTab: "crew",
+    survivorSheet: null,
+    gearSheet: null,
+
+    expand(open) {
+      if (open === get().expanded) return;
+      if (open) {
+        pushLayer();
+        set({ expanded: true });
+      } else close(() => set({ expanded: false }));
+    },
+    setTab(tab) {
+      set({ tab });
+    },
+    setBulk(bulk) {
+      write("wipeday.bulk", String(bulk));
+      set({ bulk });
+    },
+    openPanel(panel) {
+      const current = get().panel;
+      if (panel === current) return;
+      if (panel === null) {
+        close(() => set({ panel: null }));
+        return;
+      }
+      // Switching destinations replaces the panel: one history entry for the panel layer.
+      if (current === null) pushLayer();
+      set({ panel, expanded: false });
+    },
+    openSheet(sheet) {
+      const current = get().sheet;
+      if (sheet === current) return;
+      if (sheet === null) {
+        close(() => set({ sheet: null }));
+        return;
+      }
+      // One sheet at a time: a sheet opened from another replaces it (one history entry).
+      if (current === null) pushLayer();
+      set({ sheet });
+    },
+    openHouse(open) {
+      if (open === get().house) return;
+      if (open) {
+        pushLayer();
+        set({ house: true });
+      } else close(() => set({ house: false }));
+    },
+    toggleBought() {
+      set({ boughtOpen: !get().boughtOpen });
+    },
+    setScientific(on) {
+      write("wipeday.scientific", on ? "1" : "0");
+      set({ scientific: on });
+    },
+    setMotion(motion) {
+      write("wipeday.motion", motion);
+      set({ motion });
+    },
+    setHoldTwice(on) {
+      write("wipeday.hold_twice", on ? "1" : "0");
+      set({ holdTwice: on });
+    },
+    seeCrew(run, hands) {
+      const seen = get().crewSeen;
+      if (seen.run === run && seen.hands === hands) return;
+      write("wipeday.crew_seen", `${run}:${hands}`);
+      set({ crewSeen: { run, hands } });
+    },
+    openWorkshop(column) {
+      const state = get();
+      if (state.panel !== null) {
+        // The panel's history entry now stands for the expanded drawer (one layer, one entry).
+        set({ panel: null, tab: "research", expanded: !column || state.expanded });
+        return;
+      }
+      set({ tab: "research" });
+      if (!column) get().expand(true);
+    },
+    seeWorkshop(run, items) {
+      const seen = get().workshopSeen;
+      if (seen.run === run && seen.items === items) return;
+      write("wipeday.workshop_seen", `${run}:${items}`);
+      set({ workshopSeen: { run, items } });
+    },
+    seeBadges(count) {
+      if (get().badgesSeen === count) return;
+      write("wipeday.badges_seen", String(count));
+      set({ badgesSeen: count });
+    },
+    seeAlbum(count) {
+      if (get().albumSeen === count) return;
+      write("wipeday.album_seen", String(count));
+      set({ albumSeen: count });
+    },
+    setAlbumTab(tab) {
+      set({ albumTab: tab });
+    },
+    openSurvivor(id) {
+      set({ survivorSheet: id });
+      get().openSheet("survivor");
+    },
+    openGear(id) {
+      set({ gearSheet: id });
+      get().openSheet("gear");
+    },
+    back() {
+      const state = get();
+      if (state.sheet) set({ sheet: null });
+      // The map's node sheet closes before the map does (it pushes no history entry).
+      else if (state.panel === "map" && useMap.getState().node) useMap.getState().openNode(null);
+      else if (state.panel) set({ panel: null });
+      else if (state.expanded) set({ expanded: false });
+      else if (state.house) set({ house: false });
+      else return false;
+      return true;
+    },
+  };
+});
+
+/** Android back and the browser's back button close the top layer this page opened. */
+export function installBack(): () => void {
+  const onPop = () => {
+    if (pushed > 0) pushed -= 1;
+    useUi.getState().back();
+  };
+  window.addEventListener("popstate", onPop);
+  return () => window.removeEventListener("popstate", onPop);
+}
+
+/** Escape closes the top layer (through history when it pushed one). */
+export function closeTop(): boolean {
+  const state = useUi.getState();
+  if (state.sheet) state.openSheet(null);
+  else if (state.panel === "map" && useMap.getState().node) useMap.getState().openNode(null);
+  else if (state.panel) state.openPanel(null);
+  else if (state.expanded) state.expand(false);
+  else if (state.house) state.openHouse(false);
+  else return false;
+  return true;
+}
+
+/** Back to the island at once: every layer closes (a refusal's "Tap the ore seam"). */
+export function closeAll(): void {
+  useUi.setState({ sheet: null, panel: null, expanded: false, house: false });
+}
+
+const deviceReduced =
+  typeof window !== "undefined" && typeof window.matchMedia === "function"
+    ? window.matchMedia("(prefers-reduced-motion: reduce)")
+    : null;
+
+/** Reduced motion (08-screens.md 6.2): the setting, or the device when it says "Match device". */
+export function reducedMotion(): boolean {
+  const motion = useUi.getState().motion;
+  if (motion !== "device") return motion === "reduced";
+  return deviceReduced?.matches === true;
+}

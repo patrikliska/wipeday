@@ -21,12 +21,15 @@
     "db:generate": "pnpm --filter @wipe-day/api db:generate",
     "sim": "pnpm --filter @wipe-day/sim sim",
     "api": "pnpm --filter @wipe-day/api start",
-    "season": "pnpm --filter @wipe-day/api season",
     "web": "pnpm --filter @wipe-day/web dev",
     "web:build": "pnpm --filter @wipe-day/web build",
     "web:typecheck": "pnpm --filter @wipe-day/web typecheck",
     "web:shots": "pnpm --filter @wipe-day/web shots",
-    "api:dev": "pnpm --filter @wipe-day/api dev"
+    "web:perf": "pnpm --filter @wipe-day/web perf",
+    "api:dev": "pnpm --filter @wipe-day/api dev",
+    "icons": "pnpm --filter @wipe-day/discord icons",
+    "art": "node scripts/art/art.mjs",
+    "sounds": "node scripts/sounds/build.mjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

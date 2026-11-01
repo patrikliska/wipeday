@@ -1,0 +1,46 @@
+// The nuke's numbers (D132, N21; docs/redesign/03-the-big-red.md 1, 10-balance.md 4.1).
+// Glass level over lifetime supplies L: G(L) = floor((L / l0)^exponent). A nuke pays the rise in
+// G since the last one, times the glass multipliers. Glow, the boost from glass ever earned:
+// 1 + glowK × √(glass ever). The first nuke needs firstNukeGlass; later ones laterNukeGlass.
+// A nuke that adds at least countShare to glass ever is a counted Wipe Day, else a small blast.
+{
+  l0: 5e5,
+  exponent: 0.2,
+  // k 0.25 → 0.3 (D269): the balancing weight, raised so the casual's first week reaches the band.
+  glowK: 0.3,
+  firstNukeGlass: 10,
+  laterNukeGlass: 1,
+  // A Wipe Day needs countShare of glass ever, and at least countMinGlass (D269: a +2 press at
+  // 11 glass ever is a small blast, so the fuelled set never crowns a nuke worth nothing).
+  countShare: 0.1,
+  countMinGlass: 10,
+  // Afterglow (N20): taps × (1 + (start − 1) × 2^(−max(0, t − holdSeconds) / halfSeconds)) for
+  // t seconds after the run's first tap, from run 2 on, until endsAfterSeconds.
+  afterglow: { start: 3, halfSeconds: 300, holdSeconds: 0, endsAfterSeconds: 1800 },
+  // The Kettle (03 3.2): the pad at 5e8 made in run 1 (about minute 9-10), the frame at a gain
+  // of 5 (later 1% of glass ever), the warhead when the nuke counts, fuel when crowned.
+  kettle: { padAt: 5e8, frameFirst: 5, frameShare: 0.01 },
+  // The crown's rule 4 (03 2.2, D255): a counting nuke once the run is 20 h old.
+  crown: { ageSeconds: 72000 },
+  // Nuke news (06-friends.md 2.2): one every 30 minutes, or a milestone count; the rest fold.
+  news: { foldMinutes: 30, milestones: [1, 10, 25, 50], every: 50 },
+  // What a press pays beside glass (D248; 12-feel.md 7.1, 8): a drop tier and scrap.
+  pays: {
+    small: { drop: 1, scrap: 0 },
+    // Scrap only on a doubling (the first Wipe Day included): 12-feel.md said 3 and 10, but the
+    // daily quests already pay a casual 5 a day (D248), so N19's 4-6 band leaves no room (D269).
+    wipeDay: { drop: 2, scrap: 0 },
+    doubling: { drop: 3, scrap: 3 },
+  },
+  // The flights (03 7.3): U-Turn from the first Wipe Day, two more from the second; unseen ones
+  // weigh ×3; a small blast always fizzles. The rest arrive with the Logbook (R6).
+  flights: {
+    unseenWeight: 3,
+    small: "fizzle",
+    variants: [
+      { id: "u_turn", unlockAt: 1, weight: 1 },
+      { id: "loop_the_loop", unlockAt: 2, weight: 1 },
+      { id: "sputter_drop", unlockAt: 2, weight: 1 },
+    ],
+  },
+}

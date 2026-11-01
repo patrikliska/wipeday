@@ -1350,3 +1350,1961 @@ The image now installs the bot too; `deploy/compose.yml` runs it as `wipeday-bot
 `DISCORD_GUILD_ID` and `BOT_API_TOKEN`, so a deploy before the owner's setup still works.
 `pnpm preview` draws every message from the payload the bot sends, in Discord's dark theme at
 phone and desktop width (`preview/discord/`), because the agent cannot open Discord.
+
+## R0 (foundations: the redesign)
+
+Approved by the owner on 2026-10-10. The plan is `docs/redesign/` (README, `01`-`11`, and
+`working/` with the canon and, overriding it in this order, its amendments, resolutions and
+errata v3). D127-D145 follow canon section 16's order. Old entries are never edited: D137 lists
+every decision the redesign overturns or modifies, so a reader of an old entry finds what
+replaced it.
+
+### D127. The redesign: an incremental idle game with a personal nuke
+Wipe Day becomes an incremental game on Saltmarsh *(proposal)*: tap for Supplies, buy 14
+production lines, hire a hand per line, climb five eras, then press the Big Red and nuke your own
+island for Crater Glass, which boosts everything (Glow) and buys nodes on the Blast Map, a
+permanent 361-node tree. The owner's brief ("whole game should be idle", "MASSIVE tree", "funny
+red button", "scrap more rare") and the evidence against the W-phase loop (a check-in game of
+about 62 purchases a season against 84 check-ins, caps as the real wall) are in
+`docs/redesign/01-vision.md`. The plan supersedes the old `docs/game-design.md` (archived as
+`docs/archive/game-design-v1.md`) and CLAUDE.md sections 1, 4, 6.3 and 8, which R0 rewrote.
+`docs/redesign/09-architecture.md` is the engineering spec. *Revisit* only through a new decision.
+
+### D128. Seasons are not a reset
+No monthly wipe: the nuke is the only reset and each player chooses when. One season row lives
+forever; "month" survives as a board window that resets nobody. Season 1 runs untouched on the
+old build (nobody plays it now, owner decision 7) and ends once, quietly, at the cut-over with one
+`pnpm season end`; the Hall keeps it as "the old world". The four season modifiers return as
+Dares with the same ids (R7). Two resets would fight for one emotion, a calendar punishes whoever
+joins late, and a monthly wipe would take either the Blast Map (meant to last months) or only the
+run (which players wipe themselves). *Revisit* only if the tree saturates; the answer then is the
+Crossing (a personal second layer), not a calendar.
+
+### D129. The guardrails
+Eleven guardrails replace CLAUDE.md section 8, each asserted by canon numbers N1-N27 as amended
+(`10-balance.md` 4.9, resolutions section 2, errata v3):
+
+1. The first nuke comes on day 1: N1 first-hour archetype (6 taps/s) 40-60 min; N2 any
+   archetype at least 25 min on the wall clock; N3 casual by the day-1 21:00 check-in.
+2. Active play is a bonus: N8 tap-driven income (taps plus unmanned lines) at least 50% in run
+   1's first minute, direct taps 5-25% from minute 10 outside bursts; N9 an active hour 1.5-3×
+   an idle online hour on the weather-weighted hour (rain hours warn, E13); N10 taps credited at
+   most 15 a second with a burst of 45, hold counts 4 a second.
+3. Friends stay in one race: N16 glass ever at days 30 and 90, active at most 2×, optimal at
+   most 2.5×, idler at least 0.5× the casual, asserted in the group of five with Late Tide (solo
+   gaps and the doubling idler's trough warn, E11); N17 a late joiner reaches the day-30
+   casual's glass ever within 12 days, asserted for two players (five warn, E16).
+4. Always something to buy: N4 first hand by 2 min; N5 nothing affordable for at most 30 s in
+   the first 10 online minutes of runs 1-5; N6 at most 120 s online with nothing affordable; N7
+   at least 90% of casual check-ins in days 1-30 hold a purchase.
+5. Every nuke feels faster: N11 run N+1 passes run N's gain in at most 65 / 95 / 100% of its
+   time (medians; warn-only until R7); N12 combined power per nuke ×1.5-2.5 / ×1.15-1.6 /
+   ×1.1-1.5; N13 five consecutive nukes together under ×1.3 with nothing opening in the next
+   three fails.
+6. The tree lasts months: N14 6-10 nodes at the first nuke, later median at least 2; N15 optimal
+   at most 45% lit by day 30, 100% not before day 90; casual at least 45% at day 180 (warning).
+7. Absence never hurts: N18 the Night Shift is 12 h at the start, 48 h at most, 100% inside; a
+   full window stops accrual and destroys nothing.
+8. Precious things are never at risk: glass and scrap are never traded, gifted, wagered, stolen
+   or sold; no casino. N19 scrap: casual 0.8-2 a day (7-day averages from day 2, one-offs
+   excluded), at least 25 by day 30, nobody above 2.5 (single windows warn, E15).
+9. Randomness is visible: odds printed in the game (an Odds sheet in Settings from R1, the
+   Logbook from R4); no hidden catch-up (Late Tide is labelled to its player); N20 timers and
+   meters (flotsam every 4-10 min for 13 s, Afterglow, Hustle ×1-×2 on real seconds, the
+   Magnet).
+10. Numbers stay meaningful: N21 the prestige shape (D132) in data; N22 the 10% rule; N23 run 1
+    ends at 1e10-1e12 supplies made, under 1e150 over 180 days, always finite.
+11. Respect the clock: active timers are real seconds, idle timers run on the game clock (D138);
+    N24 settle path independence 1e-9 and the tick oracle 1e-6; N25 tap batches of at most 1 s
+    or 30 taps, slim records for 1 h, a ping every 5 min; N26 the Blast Map's bands and mix;
+    N27 touch targets at least 44 CSS px, the tap target at least 120 px tall on a phone.
+
+Retired: the 25% legacy cap and its four enforcements, "8 check-ins ≈ 1.6×", the day-14 and
+day-18 floors, storage caps as the check-in driver, the casino and PvP rules. `pacing.json5` v2
+marks each assertion with the phase that switches it on. *Revisit* a band only with simulator
+output for every archetype and a decision.
+
+### D130. Finite doubles behind `Amount`
+Supplies reach about 1e39 in a year, far past 2^53, so amounts are finite doubles behind an
+`Amount` alias (`packages/domain/src/amount.ts`): `finite()` wraps every sum that can grow
+without bound, and `assertFiniteState` runs after every simulated step and in the API's `save()`
+(where `JSON.stringify` would write `Infinity` as `null`). Counts (owned units, hands, nukes,
+scrap, taps) stay integers; glass is a whole-valued double. Fractional remainders stay in state
+(display floors), so many small settles equal one big one. Content amounts are
+`z.number().finite().nonnegative()`. Amends CLAUDE.md 4's "Integers in state" and D19.
+*Revisit* with a mantissa/exponent type behind `Amount` if numbers ever approach 1e300.
+
+### D131. The currencies
+Supplies, the one run currency (owner decision 0): each line sells what it makes; products are
+drawn and badged (amendment A1) but never stocked or spent. Crater Glass (`glass`): glass ever
+drives Glow and is never spent; glass held buys Blast Map nodes. Scrap: rare and persistent,
+small integers, about 1-2 a day, never lost on a nuke (`05-meta-layers.md`). Sea Charts:
+reserved for the Crossing. *Revisit* materials only if R1's screenshots read as "a number going
+up in a Rust skin" (`07-what-changes.md` section 1's fallback).
+
+### D132. The prestige shape
+`G(L) = floor((L / L0)^(1/5))` with `L0` 5e5 over lifetime supplies; a nuke pays
+`(G(L) − level) × multipliers` into glass ever and held (Late Tide applied after it, from R6).
+Glow is `1 + k × √(glass ever)` with `k` 0.25. The first nuke needs 10 glass, later ones a gain
+of 1. A nuke adding at least 10% to glass ever (the first always) is a counted Wipe Day; one
+below is a small blast that pays quietly. Granted glass goes to held only and never moves Glow.
+The constants live in `packages/content/data/prestige.json5`. The cube root of canon v1 ran away
+in the model (first nuke at 22 min, the optimal player 287,000× the casual at day 30); the fifth
+root (owner decision 9) holds N1-N3 and N16. *Revisit* the exponent last, and never above 1/5
+without a group-simulation proof.
+
+### D133. Meta in the base document; `nuke` is pure
+`state.meta` (glass, nodes, Wipe Days, records, stats, scrap, Logbook) lives in the same
+`bases.state_json` as the run, so one transaction, one version and one prediction cover a nuke.
+`nuke(state, now)` is an ordinary command: settle, pay cycles in flight, fold the run into
+`meta`, start `newRun`; the same `bases` row is overwritten and `version` keeps rising. `World`
+inputs are copied into `meta.world`; tree buys and the nuke are predicted on the client. The
+state carries canon 9's reserved `island` and `KEEP_ON_CROSSING`. A stored base with `v !== 2`
+loads as fresh, saved in place with the version raised (the cut-over's safety net). Modifies
+D61, D98, D115, D116. *Revisit* if a base outgrows 24 KB on day 180 (a simulator test).
+
+### D134. The slim taps transport
+Taps travel in batches of at most 1 s or 30 taps (`{count, from, to}`, whole seconds). The
+server credits them through a token bucket of 15 a second with a burst of 45 (N10) and clamps
+the times to its own clock, so over any interval it credits at most `45 + 15 × elapsed` whatever
+a client claims; an honest tapper is never clamped. Every command stores an outcome-only record
+(no state): taps and pings for 1 hour, with no `event_log` row and a version-only push to other
+tabs; every other command for 7 days. A replay returns the stored outcome with the current
+state. The client never drops a predicted tap: it retries with the same key. Amends D59.
+*Revisit* if one tab's hour ever stores more than 3,700 slim records.
+
+### D135. Effects as data
+Every bonus is `{stat, op: add | inc | more | set | unlock, value, scope?, per?, max?, when?}`
+with one registered vocabulary (`09-architecture.md` 5.1) and one evaluator folding in a fixed
+order: base, add, milestones, (1 + Σinc), Πmore, Glow, Morale, transient buffs, offline. Each
+stat has a direction, so tests prove monotonicity (adding a non-keystone source never makes a
+stat worse) and per-stat bounds. Replaces `modifiers()` and the 25% cap's enforcements.
+*Revisit* if a mechanic cannot be expressed; it then gets a `feature:<id>` unlock, budgeted per
+phase.
+
+### D136. No autobuyer inside settle
+Settle never buys: it is closed-form and path-independent only because purchases happen in
+commands. The Foreman buys through ordinary `buy_line` commands while a page is open, and its
+one pass on Collect runs inside the `collect` command; Dead Hand sends `nuke` from the client.
+The server never nukes. *Revisit* never: offline automation would need buying inside settle.
+
+### D137. The cut list
+Removed on `redesign` (history at the `pre-redesign` tag): Gather and its cooldown, the daily
+node haul, construction timers and builders, upkeep and decay, storage caps, 22 of 23 stocked
+resources, the crafting web, blueprints, items, crew jobs, tiredness, bonds and gear, daily
+tasks, the Den counter, contracts, the player market, the casino, NPC raids, defence, bandit
+camps, PvP, monthly seasons, the Signal, the 25% legacy cap. Parked (deleted from the build, may
+return as a sea layer): expeditions, the map and fog, sites, regions, keycodes, trip events,
+report cards. Reworked: buildings as lines, base tiers as eras, tools as Grip, crew as hands,
+barrels as flotsam, the node game as the era target, legacy as `meta` and the Blast Map, the
+season card as the postcard, leaderboards as scale-free boards. Kept: the advisor, welcome back,
+weather (now domain data), the feed, Web Push, the Discord companion, commands, SSE, prediction,
+the clock. Owner decision 5 accepted the whole list.
+
+- **Overturned:** D17 and D19 (D130, D137), D25 (D144), D26 and D33 (the Night Shift), D27,
+  D72, D28, D71, D29, D34, D76, D37, D38, D62, D87, D63 (D134), D74, D82, D97, D104, D112
+  (D144), D77-D80, D83, D84, D90-D92, D99-D102, D106-D111, D113, D114 (D128, D145), D117 (D139,
+  D129), D119 (D142).
+- **Parked:** D85, D86, D88, D89 (its map half; the dev-API half stays true), D93, D94, D95.
+- **Modified:** D36 (flotsam), D42 and D75 (the phone reframe, D138), D45 (the drawer and five
+  nav items, D138), D51 (the 1× demo clock and `wall`, D138), D54 (the off-server copy, D143),
+  D56 (D144), D59 (D134), D61 (D133), D67 (advisor v2), D69 and D70 (lines with formulas,
+  D135), D81 (D139), D96 (D138, D142), D98 (D133), D103 and D105 (D142), D115 and D116 (D133),
+  D118 (Dares), D120 (the postcard), D121 and D125 (D142).
+- **Kept:** D1-D3, D7, D11, D13-D15, D21, D23, D40, D41, D43, D44, D46-D50, D52, D53, D58, D60,
+  D64-D66, D68, D73, D122-D124, D126. The rest is history.
+
+*Revisit* a removed system only with a scale-free design that keeps guardrails 7 and 8.
+
+### D138. The 6.3 amendments and the orange primary
+CLAUDE.md 6.3 changes: rule 1, exactly one crowned thing per view, signal orange, and the Big Red
+is never primary-styled (today's red would blur it; owner decision 11, with the contrast fixes
+in R1: `--muted` #b5afa4, panel alpha 0.86); rule 8, the shop drawer plus five nav items
+(Island, Blast Map, Crew, Logbook, Friends), the nav row hidden until its first destination
+unlocks; rule 9, production cycles may be seconds, idle timers (Night Shift, Magnet, cooldowns,
+Freighter) run on the game clock and active timers (Hustle, flotsam, buffs, felling, the
+cinematic) on real seconds; rule 10, welcome back's one primary is Collect, never the nuke; rule
+11, only "Night Shift over" on by default, with quiet hours 22:00-08:00 in the browser's time
+zone; new, never tease unshipped content (D140). The demo game clock runs at 1× with jumps
+(+1 h, +6 h, the next 08:00), not 240×, and a `wall` clock returns beside it, so shots pin game
+time and animation time separately (amends D51). A jump is time passing for everything the
+domain times, and never moves a real-second animation. *Revisit* the 1× clock only if reviewing
+idle timers by jumping proves too slow.
+
+### D139. The Blast Map
+361 permanent nodes in 8 sectors × 9 rings around Ground Zero, shipped in waves: 73 in R2 (rings
+1-3), 178 / 191 / 201 across R3-R5 as their systems ship, 361 in R7 (rings 7-9 in data from R3,
+hidden). Six node types (187 small, 70 notable, 16 keystone, 36 unlock, 36 automation, 16
+completion), exactly three keystone slots (Wipe Days 10, 20, 40), drawn in React DOM and SVG, no
+respec except a free one after a tree patch (`respec_all`, with a decision). The authoritative
+power budget is `10-balance.md` section 6, checked per ring, column and sector. Replaces the
+legacy perks and their cap (D117); modifies D81 and D120. *Revisit* the outer rings with the
+late-wall choice before R7.
+
+### D140. Never tease unshipped content
+A locked thing shows only a real, reachable reason; nothing in the game names a system that has
+not shipped. The client derives what to show from content (no data, no nav item); the agenda
+lists shipped content only; the Blast Map's later waves are in data but hidden until their
+phase. The common contract checks it every phase. *Revisit* never.
+
+### D141. Icon namespaces
+Icons live in `packages/content/icons/<kind>/<id>.svg`, shared by the web and the bot, with the
+kinds `currency`, `product`, `line`, `tier`, `tool`, `target`, `flotsam`, `crew`, `toolbelt`,
+`sector`, `node_type`, `node`, `dare`, `skin`, `ui`, `nav` (ids collide across kinds). A square
+48 viewBox, `currentColor` with at most one fixed accent, no raster, text, filters, gradients
+or `id`s, legible at 16 px. A content test fails on a malformed file, prints the missing ids and
+falls back to today's lettered tile, so a missing icon never blocks a phase; the loader comes
+with R1's icons. *Revisit* if the bot's renderer cannot inline a valid file.
+
+### D142. The social rules
+Players meet through counts, times, ratios and each player's own scale: nuke news, Blowback
+(crates washed onto friends' shores, never taken from anyone), the Island Count, the Freighter
+(each load costs the loader one hour of their own output), Late Tide (catch-up labelled to its
+player only), scale-free boards and Visit. No trading, gifting, PvP or shared absolute goals;
+no command writes another player's base. The bot only collects (owner decision 18: no nuke from
+Discord). Notifications: only "Night Shift over" on by default, quiet hours on. Replaces D119
+(the Island Count takes the Signal's job); modifies D96, D103, D105, D121, D125. *Revisit* with
+the R6 playtest.
+
+### D143. Backups and `event_log` safety
+An off-server copy comes before any wipe. R0 set up `deploy/offsite.sh`: rclone into a `crypt`
+remote over the owner's Google Drive (the owner's own OAuth client, scope `drive.file`), `pre/`
+kept forever and the nightly copies for 30 days, copy only, from `vpsuser`'s crontab at 04:30,
+with a restore drill in `docs/deploy.md`. Its status file is `var/offsite.json`, not
+`var/backups/offsite.json` as planned, because the container owns the backups folder and the
+host user cannot write there. The `event_log` id sequence is never reset, not even at the
+cut-over (the bot's feed cursor and the Blowback cursors depend on it); rows are never updated,
+and taps, pings and purchases write none (they roll up into the run summaries). Modifies D54.
+*Revisit* the retention when the database passes 200 MB (R7).
+
+### D144. Simulator v2
+The simulator plays lifetimes of runs through the real domain (no second economy) over 30, 90
+and 180 days (365 with `--full`), with five archetypes (idler, casual, active, optimal, late
+joiner), the first-hour and autoclicker scenarios, and from R6 a lockstep group of five. The
+idler taps only while nothing runs by itself. `pacing.json5` v2 holds the targets with the phase
+that switches each on; the `test` profile runs inside `pnpm test` in under 10 s, and
+`pnpm sim check --full` runs before R2, R3 and R7 ship. The casino's RTP check goes with the
+casino. Overturns D25, D74, D82, D97, D104, D112; modifies D56. *Revisit* by dropping the test
+horizon to 60 days, before any assertion is weakened, if the profile grows past 10 s.
+
+### D145. The `redesign` branch and the frozen old game
+The redesign is built on `redesign`, branched from the `pre-redesign` tag on `main` after R0's
+backup landed (2026-10-10). `main` is frozen: nothing lands there beyond R0's backup except an
+emergency fix if the live server or the backup breaks, which is committed, deployed and pushed
+on `main` and merged into `redesign` at once (keeping deletions). The cut-over at the end of R2
+tags the old game `season-1-final`, ends season 1 once, wipes run state only
+(`09-architecture.md` 13) and merges `redesign` with `--no-ff`. After it `main` is live again
+and each phase gets its own branch. *Revisit* never: shipping pieces early would mix two games
+in one image.
+
+### D146. R0's client: the land is the tap surface until the tree stands
+R0 ships "no visuals beyond a bare island" (`11-roadmap.md` 6.1), yet the taps transport has to
+be played end to end. So the island's land (on or below the ground line, east of the surf) counts
+taps and holds (4 a second after 0.35 s), with a "+N" rising from the finger, and a pulsing "Tap
+the island" pill is the one thing to do until the first tap. R1 replaces both with the era
+target and "Tap the tree." The counter shows its `/s` line only once something runs by itself,
+so a fresh island shows one number. The demo starts on day 1 at 08:00 UTC; shots render in UTC;
+the sky follows the browser's time zone until R1's island clock (UTC+1, `island.json5`).
+*Revisit* in R1, where all of it is replaced.
+
+### D147. Outcomes on replay, saves on change, and a rate limit
+A replayed key answers its stored outcome with the base as it is now, flagged `replay`; a record
+past its time runs again (a taps batch then credits only tokens left; from R2 a `nuke` refuses
+`stale_run`). `GET /state` and the scheduler save a base only when settling moved something
+beyond time (an event, a buff that ran out, a new or reset base): settle is path-independent, so
+pure accrual needs no write and no push. `POST /api/commands` allows 10 a second per player,
+burst 30, then `429 slow_down` with the wait (`09-architecture.md` 9.7), which the client retries
+under the same key. The bot's command route answers `403 not_on_discord` until R2 lets it
+Collect. *Revisit* the limit if an honest client ever meets it.
+
+### D148. The effect vocabulary lives in content; buffs are content
+`packages/content/src/effects.ts` registers every stat, op, `per` and `when` (`09` 5.1), because
+the data's validation needs it; the domain only folds. Timed buffs carry a kind, and what a kind
+does is `content.buffs` (filled from `flotsam.json5` in R1, empty in R0), so Rally's ×4 and
+Adrenaline's ×100 stay in data. Buffs multiply with everything, each other included (two drones
+on one line make it ×144), and tap buffs count in a tap's value. *Revisit* if a buff ever needs a
+rule an effect cannot express.
+
+### D149. `pacing.json5` v2 is a list of assertions, each switched on by a phase
+The pacing file holds the archetypes and scenarios as data and a flat list of assertions, each
+with its canon number (`n`), the phase that switches it on (`on`), the check's name and its
+numbers. `shipped` names the last shipped phase: an assertion switched on by then must pass, and
+one without an implementation fails the test (`missing`); later ones print `pending`, so the
+whole plan of targets is visible in one place. Until R2's `nuke`, the simulator presses a stub
+that folds the run into `meta` by the prestige formula, and it batches taps as the client does
+(1 s, then 5 s, never more than 30 taps). *Revisit* when R2's real `nuke` replaces the stub.
+
+### D150. Icons: a half tone of `currentColor`, and no `<title>`
+Icons may draw a second tone as `currentColor` at `opacity=".5"` (a crate's top and side, a
+woodpile's log bodies, a plank's end grain, the back figure in `nav/friends`), so depth survives
+any tint without spending the one fixed accent; overlapping half-tone shapes sit in one
+`<g opacity>` so they never double up. Files carry no `<title>`: they are inlined next to a label,
+where a title would only add a tooltip that repeats it, so the R1 loader sets `aria-hidden` or a
+label; `biome.json` turns `noSvgWithoutTitle` off for `packages/content/icons` only. `pnpm icons`
+lints each file against D141 and renders the review sheet into `preview/icons/` with resvg (the
+bot's renderer, so a file the sheet draws is one the bot can draw). The string rules and the list
+of allowed accents live in `@wipe-day/content/icons` (`lintIcon`, `ICON_ACCENTS`): the content
+test fails on a malformed file and lists every id the content names without an icon as a todo;
+a web test keeps each accent in `palette.ts` or `tokens.css`. Extends D141.
+
+### D151. R2's icons are drawn ahead, with R2's two colours
+The 24 R2 icons (`07-what-changes.md` 8.5) are drawn on `icons-r1`, where nothing shows them
+(D140). `palette.ts` gains `BIG_RED` (`0xd8262b`) and `GLASS` (`0x6fd0a0`) now, the values
+`03-the-big-red.md` 3.3 and 3.4 name, because an icon's accent must come from the palette or the
+tokens (D141). There are six node-type frames, not five: `04-blast-map.md` 2.1 lists `stat`,
+`notable`, `keystone`, `unlock`, `automation` and `completion`, and the frame file is named by the
+type's data id. `sector/works` is a factory roof, so a works node in the automation frame is not
+a cog inside a cog. *Revisit* if R2's Kettle art changes a stage's look.
+
+### D152. R1's data: one next step per shelf ladder, and 09's names
+R1's data files follow `02-the-run.md` 13 in content and `09-architecture.md` in names: effects
+use the one vocabulary (`output`, `tap_share`, `tap`, not 02's drafts `line_output`,
+`tap_rate_share`, `tap_value`), and a target fells after `fellTaps`. The shelf shows one next
+step per ladder: a Grip rung needs the rung before, an island upgrade the one before, and Mk III
+needs Mk II (02 only says "50 owned"; Mk II costs a ten-thousandth of Mk III, so nothing real is
+lost and each line shows one Mk row). Out of order, the server refuses with a `previous` gate.
+`content.upgrades` is the derived shelf (Grip after Rock, then the 28 generated Mk rows, then
+the island upgrades); era names keep their `base_tier.*` keys. *Revisit* if Pockets (R5) want a
+Mk III without its Mk II.
+
+### D153. Eras, roster and the tap's global fold in the domain
+`activeEffects` now gathers the run's sources: the eras reached, each line's milestones (one
+payout and one speed effect per line, from its owned count; the every-100 tail in closed form),
+the roster tiers in `run.roster`, and the shelf rows in `run.upgrades`. The flat part of a tap is
+multiplied only by eras, island upgrades and roster tiers (× Glow × Morale, errata E23), cached as
+`rates().tapGlobal`, so a Rally or a Line Mk never inflates it; R0 folded every `output` effect
+there. A roster tier is checked after each `buy_line` and kept for the run, so buying an era (three
+lines at 0) never lowers income. Buying an era resets the fell count to 0 for the new target; the
+old target's last fall is the scene's animation and pays nothing (02 6.2 leaves it open).
+`era_reached {era, at}` is logged, `at` in seconds after the run's first tap or purchase.
+`commandSchema.ts` now fails the typecheck when a domain command has no wire shape (`satisfies`
+alone accepted a shorter list).
+
+### D154. Flotsam starts at the first tap, and its schedule is a cursor
+The flotsam schedule starts with the run's clock (`startedAt`, the first taps or purchase), not at
+`createdAt` as `09-architecture.md` 6.4 says: run 1's guaranteed crate is timed "3:00" from the
+first tap (errata E1, `10-balance.md` 4.2), and time on the title or rebuild screen costs
+nothing. Rain shortens the gap drawn at the arrival before it (`weatherAt` of that arrival's
+second), so the schedule is a pure function of the state and settle stays path independent; settle
+moves the cursor past arrivals whose window closed, and a claim moves it to the next arrival after
+the caught one's own time, whenever it was caught. The cursor keeps `last` (the latest caught
+index), so a double claim reads "already caught", not "drifted off". A crate's "output" is every
+owned line as if manned, with every multiplier but buffs (02 8.1): 06's idle-rate reading would pay
+almost nothing in run 1, where most lines are unmanned. `flotsam_claimed` is logged. Weather
+(`weather.ts`) only times flotsam in R1; settle cuts at weather blocks once an effect with `when:
+rain` exists. A fell pays `fellBonusTaps` taps at the felling tap's Hustle, without a crit.
+
+### D155. Welcome back, Collect and quiet hours on the server
+`GET /api/state` answers `welcomeBack` once the last command is at least `welcomeAfterMinutes`
+(60) back: the seconds away, the gain since that command (`made − madeAtActive`), the Night Shift
+worked against its window and whether it ran out, the hands manned (none: nobody was on shift),
+and the events settle found. `collect` is a standard command that does nothing else, so it
+restarts the window like any command and the card goes away; the welcome-back screen and its
+copy are R1's S4. The "away" line stays at 330 s (the 5-minute ping plus 30 s grace, R0's code
+and `09-architecture.md` 4.2), not 02's rounded "6 minutes". Quiet hours (errata E19): a
+notification due between 22:00 and 08:00 the player's time is held, one per kind, on the player
+row and sent by the scheduler at 08:00, Discord DMs included (a DM buzzes the same phone). The
+player's offset comes from the browser with the push subscription (`tzOffsetMinutes`, migration
+0006); until one arrives the island's clock (UTC+1) stands in. `quiet` is a notify preference,
+on by default; its Settings row comes with R1's UI.
+
+### D156. The R1 buyer, the simulator's R1 checks and their cost
+The advisor (`advisor.ts`, the simulator's buyer and R1's crown) offers the shelf and the next era
+alongside lines and hands, each scored in closed form by what it adds: a Line Mk ×3 twice its
+line's income, an island upgrade every line and the flat tap once more, a Grip rung the flat tap
+again plus its share of the full rate, and an era its doubling and as much again for the three
+lines it opens (02 6.2 crowns the era before the hand). Rows shut by a gate other than the price
+are not offered. Archetypes catch a share of the flotsam floating while they are online
+(`catches` in `pacing.json5`: active, optimal and the scenarios all, casual and late joiner half,
+idler none). The R1 checks are implemented (N4-N9, N23, and `firstHourBeats` for `10-balance.md`
+4.2's E1 column); N9's rain hour is its own warn-only row (errata E13). `pnpm sim check --phase
+R1` judges them before R1 ships; `shipped` stays R0 until S5 tunes them. To keep the simulator
+inside `pnpm test`'s 10 s (errata E4) the domain memoises per state what does not change between
+commands (each line's buff-free unit rate and cycle, the full and manned rates, price folds, a
+tap's folds), and the buyer scores again only when prices or buffs change or the supplies reach
+the next price (among purchases not yet affordable the ranking does not depend on the supplies).
+
+### D157. Names pass 1, the first two: Go Bag and Tinned Fish
+The owner approved two names on 2026-10-10. Works 1.1 (`packed_crate`) is the **Go Bag**, not
+"Starter Kit", a Cookie Clicker upgrade name (errata E27); it ships with R2's Blast Map, so the
+rename lives in the docs until then. The Dock's product (`food`) is **Tinned Fish**, not "Fish
+Crates", so the two fish products read apart (Smoked Fish on the skewer, tins on the jetty); its
+placeholder tile letters are `TF`. Ids and icons stay. The rest of names pass 1 is still open.
+
+### D158. The target is tapped through a button over it, sized on screen
+The era's target stands on a rise at world x 870 (`scene/target.ts`, replacing `nodes.ts`). Its
+tap area is a transparent DOM button the scene keeps over it each frame: the drawn bounds on
+screen padded by 12 px, never under 140 × 160 CSS px (D48, N27). Measured: 140-180 × 160-174 on a
+390 px phone (the pine's box centred at 41% of the height), 209-421 × 235-405 on a 1600 × 900
+desktop. Being a button, it carries the label ("Tap the Lone Pine"), takes Space and Enter
+(holding Space is hold to work, `08-screens.md` 6.5) and is what the 44 px audit sees. A press
+held still for 0.35 s counts 4 taps a second with a ring round the finger (02 7.5); moving more
+than 12 px ends the hold. The tap hint sits under the box (`--target-bottom`). The scene no
+longer takes taps on the bare land.
+
+### D159. The island's layout: one table, three rows
+Phones keep 880 world units across centred on x 870 with the ground line at 52% of the height
+(`08-screens.md` 1.1's proposal). The waterline sits at about x 600, so a phone shows a sea strip
+of about 75 px. The 14 lines stand in `LAYOUT` (`scene/lines.ts`): the dock, the beached Ship
+Breaker and the Beachcomber on the shore; the Campfire, the Kiln and the Furnace left of the
+rise; the Tannery, the Garden, the Workbench and the Loom round the house; the Press, the Radio
+Mast, the Generator and the Reactor up the hill, each row smaller (0.75 to 0.42). The house is
+drawn at 0.4 of the W-phase size. Count badges in screen space step up when they would cover one
+already placed. Layout is presentation, so the table lives in the scene, not in `data/`.
+
+### D160. Plots, products and line floaters
+- A line not yet owned shows a staked plot with a price sign once its era is open. Twig's three
+  appear one by one, as the run first makes each price, so run 1 opens on the beach and the pine
+  alone (rule 6.3.6); a later era's three appear together when it is bought (02 6.2).
+- Every completed cycle pops the line's product icon (`icons/product`, tinted its colour) onto a
+  pile, at most twice a second; 3 to a stack, a second stack from 10 owned; a full pile is carted
+  off in a puff of dust; 40 sprites at most across the island.
+- Line floaters follow `08-screens.md` 4.2 rather than 02 1.2: the four lines with the biggest
+  payout per cycle send one at most every 2 s, cycles merged, carrying the product icon on a dark
+  badge, flying 700 ms into the counter, which bumps (at most four times a second). 02's "cycles
+  of 2 s or more only" would leave the first minutes, where every line is fast, without any.
+- The cycle bar under the badge: a manned line loops; a manned line under a second shows full
+  and steady instead of flickering; an unmanned one fills only while a cycle is in flight.
+
+### D161. Fells, milestones and other celebrations
+The store predicts a taps batch's fells (the change in `target.felled`) and takes the fell's
+bonus out of the tap's running number (estimated as fells × fellBonus × a tap at the batch's
+Hustle), so "Timber! +17" and "+2" never count the same supplies twice. A milestone crossed by a
+purchase floats "Beachcomber ×2" (or "×2 speed") over its line, at most two in one frame; the
+roster floats "All lines ×2"; an era floats "Stone era · ×2" while the old target is felled one
+last time and the new one pops up. A demo patch rewrites the run and is not celebrated (the
+store counts patches), so shots and the demo drawer show no false milestones.
+
+### D162. Sound and haptics until Settings exists
+R1's procedural voices ship (`apps/web/src/sound`): tap (per target, rising with Hustle, at most
+15 a second, louder rather than stacked), buy (a third note for bulk), milestone, fell (per
+target), the UI ticks and refuse. One AudioContext from the first touch, a compressor, 8 voices
+at most, suspended while hidden; `navigator.audioSession` set to ambient where it exists. An
+owner file `public/sound/<cue>.ogg` replaces its cue once it decodes. Sound (on, 70%) and haptics
+(on) are kept in localStorage (`wipeday.sound`, `wipeday.volume`, `wipeday.haptics`) until S3's
+Settings shows them; reduced motion follows the device until then. Vibration: fell 20 ms,
+milestone 15-40-15, era 30-50-30, never on taps.
+
+### D163. Shots play time, audit, and the frame check runs on the GPU
+- A demo patch now takes the backend's version (`LocalBackend.currentVersion`): before, an
+  answer already in flight (a ping) carried the same version and overwrote the patch.
+- `__wipeDay.fastForward(s)` plays the scene in 60 fps steps at once and moves the demo's game
+  clock along, so a shot can show a hand mid-walk, a fell mid-fall or piles that have filled;
+  shots pick their weather by moving whole days at the same hour (`weather: "rain"`).
+- Each shot is audited: buttons and scene tap areas under 44 px on a phone, a target box under
+  120 px (N27), more than one crowned element; any problem is listed on the contact sheet and
+  fails the run.
+- `pnpm web:perf` taps 15 a second for 30 s on a busy Stone run in Chromium on the machine's GPU
+  and reads the frame counter: 60 fps (5th percentile 60) with 12 floaters and 126 particles at
+  most on the dev PC, and 60 fps with the CPU slowed 4× (`--throttle 4`). The owner's phone stays
+  the acceptance (`08-screens.md` 4.6).
+
+### D164. Names pass 1 closes: the proposals stand
+The owner kept every other pass-1 name as proposed (2026-10-10): Supplies; the Beachcomber, the
+Ship Breaker and the Reactor; Gus and Vera; the five targets (Lone Pine, Outcrop, Ore Seam,
+Sulfur Vent, the Wreck) and their fell cries; Hustle; Hold to work; the Night Shift; the Drift
+Crate, the Fuel Drum, Rally and the Adrenaline Kit; the hands; Grip; the products (with D157's
+Tinned Fish). The eras keep the five Rust grades: Twig, Timber, Stone, Sheet Metal, Armored. The
+locale already holds these strings, so nothing in the game changes; their *(proposal)* marks go.
+Passes 2 (R2) and 3 (R4) remain.
+
+### D165. The crown on screen: the advisor's rules and the player's own pace
+`crown()` (`packages/domain/src/advisor.ts`) is 02-the-run.md 11.1 in R1: the next era when it is
+affordable within `advisor.saveSeconds` (30, `lines.json5`) at the current income, then the hand
+of the top-earning unmanned line on the same terms, then the best payback affordable now (price ÷
+added income; ties to the cheaper), otherwise the tap hint. The Big Red, Blowback crates and the
+Toolbelt join with their phases. The client weighs taps by the player's own pace over the last
+minute on the wall clock (`state/pace.ts`): taps a second, and the share of seconds with a tap
+in them, so an idle player is never crowned an unmanned line or a Grip rung; its income for "in
+42s" is the top bar's `/s` plus that pace times a tap's value. One store (`state/advisor.ts`)
+recomputes the pick on every change of the base and once a second, and the drawer, the hint pill,
+the target's glow and the keyboard's B all read it. The simulator keeps its own buyer (best score
+with waiting) over the same `choices()`; whether it should follow the crown's rules is S5's
+balance question.
+
+### D166. The shop: three rows, two tabs, one crown per view
+- The drawer appears when the run first holds the price of its first line; the collapsed drawer
+  shows the crowned row and the next two by score (two under 740 px tall), reordered at most
+  every 2 s and never within 600 ms of a touch.
+- The expanded drawer is a view of its own (resolution 3.25): each tab crowns exactly one row,
+  the island's pick when it is on that tab, otherwise the tab's best score. The desktop column
+  has no collapsed mode but shares the island's view: it pins the island's crowned purchase
+  over its tabs (and leaves it out of the list below), so the one crown is in sight whichever
+  tab is open; while the crown is on the tap hint, nothing is pinned.
+- Lines lists the era row first, then the open lines in order, each followed by its hand row
+  until the hand is hired, then the next era's three lines locked with their real price and
+  "Opens in the Stone era". The Armored era, gated by Wipe Day #2, is not listed in R1 (D140).
+- Upgrades lists the next step of each ladder by price; a Line Mk shows once its line is owned
+  (locked with "Needs 25 Furnaces (12 now)" until then), so a fresh era does not fill the tab
+  with rows nobody can act on. "Bought this run" folds what was bought.
+- The bulk toggle (×1, ×10, ×100, Max; kept per device) exists from the run's second hand and
+  applies to line rows; the crown is scored per unit, and Max buys as many as the supplies
+  allow (the button reads "Buy 37").
+- A buy button is 104 × 56: its action over the price; short of it, the time to afford ("in
+  42s", "in 3h 10m", "tap to earn" at zero income), disabled. A crowned purchase still saving
+  up (the era within 30 s) keeps its orange.
+
+### D167. Signal orange, the contrast fixes and the 44 px rule ship together
+`--primary` (`#f27a1a`, a gradient from `#ff9a3c` to `#e46c12`, ink text) replaces the red
+`--accent`; `--muted` is `#b5afa4` and the glass panel 0.86, so muted text stays above 4.5:1 over
+the brightest sky (08-screens.md 6.3). Selected tabs and segments are neutral, so orange means
+only the crown. `#cd412b` stays as `--red-band`, an icon accent (D141). Every HUD button is at
+least 44 × 44 (toggles 76 × 44, the toast's button 44 tall, the panel close 44 × 44).
+
+### D168. The layout: the drawer, the column, the nav row, the hint pill
+- Phones: the top bar (the counter block, which opens the Multipliers sheet, and the menu,
+  which opens Settings), buff pills under it, the drawer over the lower part of the island and
+  the nav row at the foot. The camera is unchanged: the target already stands at about 40%.
+- The column layout (`COLUMN_QUERY`, `state/layout.ts`; the same media query sets
+  `--column-w` in `tokens.css`): 1024 px and wider at 6:5 or wider gets a 420 px right column;
+  landscape phones 520 px tall or less get a 320 px one. The column measures itself into
+  `insets.right` and the scene recentres the island in what is left.
+- The nav row of an R1 build is Island and Crew; it appears with the first hand ever hired.
+  Crew lists the hands of the eras reached and of the next one, with who is on shift.
+- The hint pill sits under the target's tap box, never lower than 52 px above the drawer.
+- Layers and back: the expanded drawer, a panel and a sheet each push a history entry, so
+  Android's back closes the top one; Escape does too. Under a sheet the rest of the HUD is
+  `inert`, and the shots' crown audit counts only what is not inert.
+
+### D169. Settings, kept per device, and notifications back on the web
+Sound, volume, vibration (Android), Numbers (`1.23Qa` or `1.23e15`) and Motion (Match device,
+Reduced, Full) live in localStorage (D162's keys plus `wipeday.scientific`, `wipeday.motion`,
+`wipeday.bulk`). The Numbers setting switches the one formatter everywhere at once
+(`state/world.ts`). R0 cut the web's push code with the old systems; R1 restores it
+(`net/push.ts`): the device switch, "Night Shift over" and quiet hours, each a real server
+preference (`/api/notify`), the subscription carrying the browser's time-zone offset. Where push
+cannot work the switch stays visible, disabled, with the reason (iPhone without the Home Screen
+install, blocked, unsupported, demo mode). How it works shows lines 1-4 and 6; line 5 waits for
+the Big Red (R2).
+
+### D170. The Multipliers sheet and the top bar's rate
+`glance.ts` (domain, read-only) takes the full rate apart in the evaluator's order: the lines'
+base output, then milestones, the shelf (Line Mks and island upgrades), eras, roster tiers,
+Glow and buffs. Each step's factor is the ratio of the total with and without it, so the steps
+multiply out to `fullRate` exactly (a test over 1,000 seeded states, 1e-9), and a later phase's
+source no step names lands in "Other" rather than vanishing. The sheet's header is the top bar's
+`/s`, which now counts unmanned lines while a cycle runs (02-the-run.md 3.2), and the table ends
+with "Every line running". Durations show seconds under 10 minutes (`2m 10s`), as 08-screens.md
+3.5 asked of R0. A refusal's toast carries one button to the target ("Tap the ore seam"), which
+closes every layer and makes the target blink (rule 6.3.5); toasts are two at most.
+
+### D171. Flotsam on screen: the state's schedule, a button over it, quiet when missed
+The scene draws the domain's `afloat()` of the base (`packages/domain/src/flotsam.ts`), so a
+reload or a second tab shows the same arrival at the same age. It drifts in from the screen's
+left edge over 2.5 s and rests at world (540, 576), just off the beach, bobbing; it is drawn in
+screen space at a fixed 50 px with a glow above the night tint (D47), so it reads at night and in
+fog, and caught through a 64 px round button kept over it (D48, 08-screens.md 1.3). A pie ring
+drains its float, warm in the last 4 s. It sinks over 1.2 s after its float and can still be
+caught meanwhile, inside the server's 3 s grace. The hint "Something's drifting in. Tap it before
+it floats off." sits above it, over the sea and the sky where it hides no line, until two catches
+(`meta.stats.flotsam`, 02-the-run.md 11.2). A catch is predicted: the icon pops with 16 coins and
+a splash; a crate floats "+2 min of supplies" (the minutes are the domain's `crateMinutes`) and
+its amount flies into the counter; a buff floats "Rally! All lines ×4 · 1m" (the pill's format).
+A late claim is quiet, as 02 8.4 asks: no toast, "It drifted off." where it was, and it never
+shows again. One that sinks while the page is visible says "It sank. More drifts in every few
+minutes." (run 1: "...within 3 minutes."); one missed while hidden, or across a jump of the clock,
+says nothing.
+
+### D172. Flotsam's sounds ship with flotsam
+`flotsam_in` (a bell panned toward the sea), `flotsam_claim` (a splash and the buy chime) and
+`rally` (a saw revving 80 to 160 Hz with a tremolo) ship in R1, not R2 as 08-screens.md 5.2's
+table has them: flotsam itself ships in R1, and every catch must answer (rule 6.3.7). The catch
+vibrates 15 ms on Android (08 5.4). Owner files may replace all three, like R1's other cues.
+
+### D173. The welcome-back card
+- **What it says.** The gain is the card's big figure (the supplies icon and "+26.8B"), where the
+  eye lands first; the Night Shift line under it no longer repeats the number ("Your hands
+  worked the whole time." / "...the Night Shift (12 h of it)." with "They stopped yesterday at
+  08:30." on this browser's clock). With nobody on shift the card still shows, with "Back to
+  work" (08-screens.md 2.14's third case and its `phone_welcome_nohands` shot), not 02-the-run.md
+  10.2's "no card": a player back after hours deserves to hear why nothing happened.
+- **Where it comes from.** On load, from `GET /api/state` (D155); when a tab hidden for an hour
+  shows again, from the client's own `welcomeBack()` over the settled base, before its next
+  ping. While the card is up no ping is sent and the load's ping waits, so a ping never eats the
+  card; Collect is the command that restarts the window. A push whose state has another
+  `activeAt` (another tab acted) ends the card.
+- **How it behaves.** One button; the backdrop and Escape collect too; the nav is hidden and the
+  HUD behind is inert. The counter keeps its old value until Collect, then releases the gain
+  over 0.9 s while it flies from the house into the counter.
+
+### D174. The Odds sheet
+`odds()` gives each shipped kind's share of the weights; the sheet prints it to one decimal
+(49.5%, 44.0%, 6.6%) with what the kind gives, written from its data ("Rally: all lines ×4 for
+1m"), then the schedule (every 4-10 minutes while the page is open, 1.5× as often in rain, 13 s
+to catch, after `flotsam_float`), run 1's guaranteed crates while they last (guardrail 9: no
+hidden catch-up), and that a missed one costs nothing. It opens from Settings ("Odds", under How
+it works) and from the Multipliers sheet. One sheet at a time: a sheet opened from another
+replaces it under the same history entry.
+
+### D175. One crown per view, to the eye as well
+Under a sheet or the welcome card the HUD is inert (D168) and now also loses its orange: the
+drawer's crowned button turns secondary and the tap hint stops pulsing, so the dimmed view never
+shows a second orange button beside the sheet's primary. Floaters keep 8 px inside the screen's
+edges, so a sentence floated at the shore ("It sank...") is never cut off.
+
+### D176. A taps batch covers its last second: unmanned lines run as if manned while tapped
+Times are whole seconds, so a 1 s batch arrives with `from == to` and R1 S1's
+`k = floor((to − start) / t) + 1` started one cycle a batch: a 0.6 s Beachcomber ran 60% of the
+time at 6 taps a second, not "exactly as if manned" (02-the-run.md 3.1). The batch now covers
+`[from, to + 1)`: `k = min(credited, ceil((to + 1 − start) / t))`, a line busy past `to + 1` takes
+none. The state keeps one `readyAt` a line, so when new cycles follow one still in flight, every
+cycle but the last is paid at once (at most a second early, valued at its own end, as a hire
+finishes the cycle in flight) and only the last waits for settle. Tests: 60 s of 6 taps a second
+runs and pays 100 Beachcomber cycles; a tap a second still runs the 19 s Kiln once per 19 s; over
+500 seeded sequences a line takes cycles only if it was free before the batch's last second. The
+client predicts with the same function, so the top bar's `/s` no longer flickers for unmanned
+lines while tapping. Run 1: Timber 1:02 → 0:46 and Stone 7:07 → 6:21 with nothing else changed.
+
+### D177. The crown saves, scores over the player's day, and leads to hands
+Emulated, a player who follows R1 S3's crown never reached Sheet Metal in run 1: rule 4 crowned
+the best payback *affordable now*, so every supply went on small rows and the era rule's "within
+30 s" never fired for 2e10 (a longer `saveSeconds` only made it worse). Three changes in
+`advisor.ts`, with 02-the-run.md 11.1 read as the intent:
+- **Rule 4 is the best score** (the wait to afford it plus price ÷ added income, ties to the
+  cheaper): crowned when affordable; while it is out of reach the crown goes to the tap hint and
+  nothing cheaper is crowned, so the player saves. The collapsed drawer leads with that row
+  unpainted ("in 2s"); the expanded drawer crowns it as before (S3's `sheetPick`). A fresh island
+  still opens on "Tap the tree.", and Timber still comes before Mara.
+- **Purchases are scored over the player's day** (`advisor.away`, 0.5 in `lines.json5`): the
+  pace weighs what taps drive, times the half of the day the player is present, so unmanned lines
+  and Grip count half and a hand counts the rest even while the player taps. With pace alone a
+  tapping player scored every hand at zero; the active archetype left its Reactors unmanned and
+  its active hour ran 3.92× an idle one at day 14 (N9's ceiling is 3). Swept: 0.25 still fails
+  N9; 0.5 passes everything; 0.75 puts Sheet Metal at the band's edge; 0.9 fails the beats.
+- **A line nobody owns or mans also counts as the way to its hand**: its first unit is scored at
+  a unit's income for the unit's price plus the hand's (the better of that and the tapping
+  value). Without it, a player who does not tap was never crowned a second line and could never
+  hire a second hand; the idler made 22 glass by day 30 instead of 818.
+Tests: a saving state crowns the hint with a cheaper row affordable; over 2,000 seeded states the
+hint means the best score is out of reach, and rule 4 crowns exactly the best score; an idle
+player is crowned a first Campfire (at unit plus hand) but never a fourth unmanned Beachcomber.
+Playtest 1 asks whether saving feels dead (the longest gap between purchases in run 1 is about
+10 minutes, information only in 10-balance.md 4.3).
+
+### D178. The simulator plays what the crown says
+The simulator's buyer is now `crown()` itself (D165 left this to S5), weighed by the archetype's
+pace as the client weighs the player's (tapping now: pace 1 at its taps a second; not tapping:
+0), so the simulator and the game cannot disagree about what a player is told to buy. Before, it
+scored taps by the archetype's share of the whole day, 0.125 for the first-hour scenario's 3 h
+session, so it never bought a Furnace in run 1 and bought Sheet Metal at 39B made. A batch with
+no taps now settles the state: the idler, not tapping once Mara was hired, saw its supplies frozen
+for the rest of the session, which was N5 and N6's 152 s (now 20 s). The scenarios play their own
+seeds (`scenarioSeeds` per profile): 12 in `--full` (R1's "Done when"), 4 in the test profile,
+which must stay inside `pnpm test`'s 10 s; checks print one range per archetype instead of a
+value per seed.
+
+### D179. Run 1's economy: Handcarts at 5e9; taps and flotsam unchanged
+10-balance.md 8.1 in order, each from `pnpm sim check --full` over 12 scenario seeds after
+D176-D178. **Run economy:** with 02's prices, Sheet Metal fell at 45:39-51:24 (3 of 12 seeds past
+the band's 50:00) and the first nuke at 47:09-52:59. Single levers swept:
+
+| Lever | Sheet Metal | First nuke | N9 weighted (days 14/30/60) |
+| --- | --- | --- | --- |
+| none | 45:39-51:24 | 47:09-52:59 | 2.62 / 2.70 / 2.56 |
+| Sheet Metal 1.5e10 | 43:14-48:59 | 45:49-51:39 | 2.55 / 2.21 / 2.07 |
+| Sheet Metal 1.2e10 | 38:29-46:34 | 47:44-56:54 | 2.62 / 2.81 / 2.31 |
+| output ×4.85 per rung | 44:14-50:04 | 45:44-51:34 | 2.25 / 2.33 / 2.29 |
+| output ×5 per rung | 38:59-47:34 | 40:14-48:09 | 2.23 / 2.36 / 2.26 |
+| **Handcarts 5e9** | **40:24-48:14** | **42:54-49:04** | 2.66 / 2.23 / 2.22 |
+
+A cheaper Sheet Metal comes earlier but slows the nuke (its three new lines soak up the spend);
+output per rung moves every later phase. Handcarts (the second island upgrade, 02 5.4) at 5e9
+instead of 1e10 centres both bands with one price. **Taps and flotsam:** N8 70.6% in minute 0-1
+(≥ 50%) and 13.9% direct from minute 10 (5-25%), N9 2.22-2.66 weighted and 2.39-2.81 in rain
+(1.5-3): mid-band, so p, Hustle, Rally, Adrenaline, the crate cap and the weather stay as they
+are.
+
+### D180. R1 ships in the pacing file
+`pacing.json5` says `shipped: "R1"`; every R1 assertion passes (`pnpm sim check --full`: N4
+47-54 s, N5 and N6 20 s, N7 100% on day 1, N8, N9 and N23 above, run 1's beats on 12 seeds: Timber
+0:33, Mara 0:47, the crate 3:00, Sorting Tables 3:59, Stone 5:44). N18 and N20 are asserted
+outside the simulator, as 10-balance.md 7.4's table has them: N18 by the content check (the Night
+Shift 12-48 h) and the API's welcome-back tests; N20 by `flotsam.test.ts` (gaps of 4-10 minutes,
+13 s afloat) and a new `taps.test.ts` case (a tap ×1 on an empty Hustle meter, ×2 on a full one;
+the ceiling is a content check). R2's N7 over 30 days already reads 99.6%; its other rows have no
+checks until R2 builds them.
+
+### D181. Cards, Supply Drops and the Album (owner, 2026-10-17)
+Survivor and gear cards collected from Supply Drops (chests) earned in play and bought with
+scrap; an Album with sets, odds and pity printed; no pull is blank (duplicates pay shards). Crew
+ranks go; stars from shards take their job. The run is never gated by a card: hands hire with
+Supplies as before. Guardrail 8's blanket "no casino" is reworded to "randomness is paid for in
+play and always printed". Detail: `docs/redesign/12-feel.md` 7.
+
+### D182. Scrap is the premium currency; the purchase switch is the last phase (owner, 2026-10-17)
+Scrap is earned in play (4-6 a day for a casual) and spent on drops, boosts and Pockets. A store
+that sells scrap for money ships only in the last phase, with a payment provider and a legal
+check on loot boxes first; nothing else changes when it flips. CLAUDE.md 1's "no real-money
+anything" is deferred to that phase, not deleted now. `12-feel.md` 8.
+
+### D183. The Night Shift starts at 2 h and grows to 24 h (owner, 2026-10-17)
+2 h from the last command; Lamp Oil research +20 min × 6 per run; Bunker nodes, Wipe Days #10,
+#20, #40 and Long Night to a ceiling of 24 h. The 48 h ceiling goes. N18 is rewritten; guardrail 1
+(first nuke on day 1) is retuned around it. `12-feel.md` 6.
+
+### D184. Taps stay relevant: active 4-6× idle, physical taps, Frenzy (owner, 2026-10-17)
+Every tap chips a thing onto a visible stockpile; Hustle's meter becomes Frenzy with a visible
+tripped state (×3 taps for 15 s at 100). N9's band becomes 4-6×, N8's from-minute-10 band 10-30%;
+the bucket does not move. `12-feel.md` 3.
+
+### D185. Research (the Workshop) from minute two (owner, 2026-10-17)
+A per-run tree of 40 items in 8 tiers, 5-25 levels each, priced in Supplies (`b_k × 1.35^n`,
+`b_k = 40 × 20^(k−1)`), reset by the nuke. The shelf's Mk II/III rows move into it. Hosts the
+offline research. `12-feel.md` 5.
+
+### D186. The shop never reorders (owner, 2026-10-17)
+The owner hates the crowned purchase jumping to the top. Fixed order by rung forever; the crown
+highlights its card in place; a Best buy chip scrolls to it. The advisor's rules are unchanged;
+D165-D170's "the row leads the drawer" is withdrawn. `12-feel.md` 4.
+
+### D187. One bottom dock on every device; painted 2D; salvaged HUD (owner, 2026-10-17)
+Island, Research, Crew, Album, Logbook as one dock component on phone, tablet and desktop
+(centred on desktop); panels open as sheets over the scene; the shop stays a right column on
+desktop. The scene becomes painted 2D layers with procedural life (not pixel art, not 3D); the HUD
+uses the Feel Board's tokens (plywood and steel panels, Big Shoulders Display and Barlow, signal
+orange primary). Desktop 1440 designed first, 390 px right after. Paid assets allowed up to 100
+USD total. The phases are reordered: R2 Feel, R3 Cards, R4 The Big Red (`12-feel.md` 12).
+
+### D188. Pixel art, the HUD approved, the names fixed, the image model behind an API key (owner, 2026-10-17)
+The owner approved the Feel Board's HUD direction and chose pixel art over D187's painted 2D,
+anchored on 0-mem0ry's *Post Apocalyptic Workshop Set* (free, commercial use allowed, no
+redistribution, no AI use). Side view stays; one grid (1 art px = 5 stage units, integer zoom 2-5
+in device pixels, nearest-neighbour); one palette of at most 48 colours in `scene/palette.ts`;
+text and HUD stay crisp CSS. D141 amended: item icons are 16×16 pixel PNGs, UI glyphs stay
+currentColor SVG, one format per kind. Licensed packs are committed under
+`packages/content/art/<pack>/` with their licence; CLAUDE.md 2's "third-party game assets" means
+ripped assets (D43). Names fixed as recommended: Workshop, Supply Drop, Album, Frenzy, Lamp Oil.
+The scene art is generated through a pay-per-image API (Gemini first) whose key lives in `.env`
+and which the agent runs from a repo script; the owner only supplies the key. Figma's Weave is
+not the path (no AI flag on the org, no linked Weave account). `12-feel.md` 2.1, 2.2, 14.
+
+### D189. Chunky pixel confirmed; Retro Diffusion first, OpenAI as backup, Gemini dropped (owner, 2026-10-17)
+Shown three looks under one HUD (chunky pixel, dense pixel, painted; the Pixel or Painted page,
+private), the owner chose chunky pixel: D188's grid stands (1 art px = 5 stage units, zoom 2-5).
+The image tooling in D188 changes: Retro Diffusion (pixel-specific, true grid, alpha, palettes,
+animations, pay per image, hosted MCP server) generates sprites, props, tiles, targets, hands and
+busts; OpenAI gpt-image-2.5 with `background: "transparent"` covers the large parallax layers;
+Gemini is dropped (no alpha channel, poor past results). The owner supplies two keys in `.env`;
+the agent runs everything through `pnpm art`. `12-feel.md` 2.2.
+
+### D190. The art pipeline's shape, after the scene mock (owner, 2026-10-18)
+The owner loaded 10 USD on Retro Diffusion, the key went into `.env` and the MCP server into
+Claude Code, and the agent generated fifteen assets (2.16 USD) into one island scene under the
+approved HUD, day, night and phone (the Saltmarsh Scene Mock, private; everything in
+`docs/redesign/art/`). The owner approved the look. Fixed by it: `rd_pro__platformer` for every
+sprite (targets, props, hands, busts), `rd_plus__low_res` for props under 40 px; bands from the
+palette gradient plus small pieces or tiles, never from landscape renders; the 48-colour palette
+and one light direction in every real prompt; characters animated from their finished sprite
+with the advanced-animation styles (0.14 USD a cycle), PixelLab only if those disappoint. The
+scripts stay in `docs/redesign/art/` until R2 Feel folds them into `pnpm art`. `12-feel.md` 2.2.
+
+### D191. R2 Feel's plan: seven sessions, the pixel scene in the middle, the palette from the mock (owner, 2026-10-18)
+The owner approved R2 Feel's plan in plan mode. S1 groundwork (docs, the phases renumbered, the
+simulator's time, the new state fields; no balance change), S2 the Workshop and the 2 h Night
+Shift, S3 Frenzy, gulls and badges, S4 the HUD (tokens, the dock, the card shop in fixed order),
+S5 and S6 the pixel scene and the hero tap, S7 sound, juice and the finish. Asked where the pixel
+scene goes, the owner chose the middle of the phase: after the rules and the HUD, before the
+tap's juice, so nothing in the scene is drawn twice. Asked where the 48 colours come from, the
+owner chose the approved Saltmarsh Scene Mock plus the five era colours, not 0-mem0ry's pack:
+nothing to download, and D188's pack stays the inspiration only (no file of it is used). The art
+pass needs about 25 USD more credit before S5. `docs/roadmap.md` R2 Feel.
+
+### D192. The phases renumbered R0-R9 (agent, 2026-10-18)
+`12-feel.md` 12's order is now the code's: `PHASES` runs R0-R9 and `pacing.json5` moved every
+later tag (old R2→R4, R3→R5, R4→R6, R5→R7, R6→R8, R7→R9), as did the comments that name a phase. N19
+moves to R3 Cards, where scrap becomes the premium currency, in `12-feel.md` 11's band (a casual
+4-6 a day, 100 by day 30, nobody above 8); N30 (a casual opens a drop a day, days 1-30) joins it.
+N16's friends' gaps keep their mechanical R5 tag until R8 Friends' plan revisits them. The plan
+files `01`-`11` keep the numbers they were approved with, under a note at the top of
+`11-roadmap.md` and the redesign README; `docs/roadmap.md` is the live copy. `12-feel.md` 12.
+
+### D193. The simulator buys back time with two cache layers (agent, 2026-10-18)
+`pnpm test`'s pacing check took 9.4-9.6 s of its 10 s. A profile showed every unit bought threw
+away the whole effects cache, and the memo keys were built as strings on every hit. `rates()`
+now has two layers: the effects in force (keyed per run on `run.upgrades`, checked against the
+milestone factors, glass, nodes, era, roster, Workshop levels and badges), shared by every state
+with the same effects, and the totals over units and hands (`totals`), one per `run.lines`.
+Line-scoped folds have their own small memo per line; `eraOpen` reads a table; the simulator
+checks finiteness once a session instead of after every command. Every verdict of
+`pnpm sim check --phase R7` is identical before and after; the check takes 5.4-5.9 s.
+`09-architecture.md` 5.
+
+### D194. The Line Mks move into the Workshop, one item per line; Quick Count is dropped (agent, 2026-10-18)
+`12-feel.md` 5 moves the shelf's Mk rows into research tier items, but tiers 1-4 open with Twig
+and Timber only, so Stone, Sheet Metal and Armored lines would lose their ×9 until R3. Instead
+each line gets one Workshop item `{line}_mk` of two levels (each `output more 3`, priced ×1e4 and
+×1e8 of the line's cost, opened at 25 and 50 owned), listed under the line's era: real and
+reachable, so nothing teases (D140). The shelf keeps Grip, the eras and the island upgrades.
+Quick Count (buy ×10 unlocked) is dropped: it duplicates `bulkAfterHands`, and an unlock adds no
+income the advisor could score, so it would never be crowned. `12-feel.md` 5.
+
+### D195. The Workshop's offline item adds hours (agent, 2026-10-18)
+`12-feel.md` 5 lists "`set` on offline hours" among research effects. A `set` would not stack with
+the Bunker nodes (R4) and the Wipe Day steps that also lengthen the window, so the item (Spare
+Wicks, D201) is `night_shift add 1/3` a level (six levels, +2 h, the window 2 h → 4 h per run).
+`rates()` already caps the sum at the 24 h ceiling. `12-feel.md` 6.
+
+### D196. Frenzy has its own meter; a trip is taps ×3 and lines ×1.5 for 15 real seconds (agent, 2026-10-18)
+Hustle (×1 to ×2, capped at 2.25 by N9's guard) stays the tap's base. Frenzy is a second meter,
+`run.frenzy`, filled by credited taps and draining while idle (it would trip in 17 s on Hustle's
+gain; the first trip belongs near 12:00). At its cap it trips a `frenzy` buff for 15 real
+seconds: taps `more 3` and lines `speed more 1.5`, so "the lines spin faster" on screen is true.
+The trip is resolved in closed form inside its taps batch (the taps after the trip take the
+buff); a content check `multCeiling` bounds the folded tap multiplier as `peakCeiling` bounds
+Hustle. The simulator may drop the speed part or retune both in S3 (D144). `12-feel.md` 3.1.
+
+### D197. Gulls fly on a seeded grid; an elite pays minutes of output until scrap has a use (agent, 2026-10-18)
+A gull's slot `j` starts every 180 s from the run's first line, at a seeded offset in [0, 60 s],
+so gaps fall in 2-4 minutes and none is under 120 s; whether it is elite (1 in 20) is seeded too.
+No cursor, nothing in settle (N24 untouched): `claim_gull {run, k}` checks the slot and its
+crossing window, and pays 30 s of output, 180 s for an elite. `12-feel.md` 9.3 pays an elite 1
+scrap; scrap has no use until R3 Cards, and a currency that buys nothing would tease (D140), so
+the elite pays output in R2 and gains its scrap in R3. The odds are printed with the flotsam's.
+`12-feel.md` 9.3.
+
+### D198. Badges are earned by commands, count only shipped things, and each is Morale +1% (agent, 2026-10-18)
+The achievements wall's badges (`12-feel.md` 9.1) are checked after every successful command and
+never inside settle: a badge raises Morale, and a rate that changed mid-interval would break
+settle's path independence (N24). Their counters are the lifetime stats (taps, fells, crits,
+flotsam, gulls, Frenzies, hands, units, Workshop levels, eras, supplies made); nothing counts
+nukes or drops until those ship (D140). Each badge is Morale +1% (`05` 1's formula at 0.01 until
+the Logbook phase raises it); `badge_unlocked` is logged. `12-feel.md` 9.1.
+
+### D199. The dock in R2 Feel: Island, Workshop, Crew, Logbook (agent, 2026-10-18)
+The dock (D187) shows what is shipped: Island from 0:00, Workshop when research opens (2:00),
+Crew at the first hand, Logbook at the first badge. Album waits for R3 Cards, hidden, not
+locked (D140). Workshop is one surface with two doors: the dock tab opens the shop on its
+Research tab (the drawer expanded on a phone, the column's tab on desktop), so research is never
+in two places. `12-feel.md` 4.
+
+### D200. The crown ignores timed buffs (agent, 2026-10-18)
+With Frenzy, Rally and the drone running much of an active player's time, a crown that weighed
+the buffs would jump to another card every 15 s, which is D186's complaint in another form. The
+advisor scores purchases on the state's lasting rates (from S3, with Frenzy); buffs still show in every number on
+screen. `02` 11; D186.
+
+### D201. The Workshop's offline item is Spare Wicks, not Lamp Oil (agent, 2026-10-18)
+D188 named the Night Shift's research "Lamp Oil", but Lamp Oil is already the Oil Press's
+product (`resource.fuel`), and one name for two things breaks the one-icon, one-name rule
+(CLAUDE.md 6.2). Recommended: **Spare Wicks** (a spare wick keeps the lamp burning longer, the
+Night Shift's lamp bar; no clash in the locale). The owner may veto it in the next report; a
+rename is a locale edit. `12-feel.md` 5, 6.
+
+### D202. The look first: R2 Feel's sessions reordered (owner, 2026-10-18)
+After S1 the owner asked to see the game look like a real game first, to start showing it
+around. The pixel scene (old S5-S6) becomes S2-S3, the HUD stays S4, sound and juice become S5,
+then the Workshop and the 2 h window (S6), the active layer with Frenzy, gulls and badges (S7) and
+the finish (S8). Nothing is drawn twice: the scene's grid, palette, targets, lines, house and
+hands depend on no new rule, and the Frenzy meter, gulls, the Workshop tab and the badge wall are
+drawn in the sessions that ship their rules. Advertising implies a public launch, which CLAUDE.md
+1 lists as a non-goal; that change waits for the owner's explicit decision and its own plan.
+`docs/roadmap.md` R2 Feel.
+
+### D203. The terraced island (owner, 2026-10-18)
+The pixel scene cannot keep the R1 island's wide strip: on a phone fourteen lines, the target
+and the house on one ground line come out about 20 px tall, and the approved mock's props need
+a row each. Asked, the owner chose a terraced island over a wide strip to swipe: a side view of
+Saltmarsh rising from the beach in terraces, one per era. The Twig lines (beachcomber, campfire,
+garden) stand on the beach either side of the target, with the sea lines (dock, shipbreaker) in
+the shallows; Timber, Stone and Sheet Metal/Armored each build on the terrace above, and the
+house stands at the right end of the first terrace. Everything owned is on screen at once (rule
+6.2), and the island visibly grows up the hill as the run climbs. The layout is one table in
+`apps/web/src/scene/island.ts` (art pixels, rows at 112, 94, 76 and 58). `docs/roadmap.md` R2
+Feel S2.
+
+### D204. The pixel camera: whole device pixels per art pixel, the island always in view (agent, 2026-10-18)
+The camera picks the largest whole number of device pixels per art pixel that still shows the
+island's 156 × 126 art px (`VIEW`), at most 5 CSS px (a 1440 desktop shows sky and sea around the
+island, not bigger pixels); the world's position is rounded to whole device pixels, sprites stand
+on whole art pixels (an odd width's anchor leans left), nearest-neighbour throughout. A 390 px
+phone at DPR 2 gets exactly 5 device px (2.5 CSS px) per art pixel; the ground line sits at 53% of
+a phone's height so the collapsed drawer never covers the beach row. The procedural stand-ins
+stay as fallbacks for whatever has no art yet (the Stone and later eras until S3), so the island
+never breaks while the art arrives. D188's "zoom 2 on a phone, 4 on a desktop" becomes this rule.
+`apps/web/src/scene/Scene.ts`.
+
+### D205. The art pipeline in the game: `pnpm art`, low-res lines, outlines, the picks on record (agent, 2026-10-18)
+The scripts moved to `scripts/art/` behind `pnpm art` (palette, seed, plain, gen, sheet, clean,
+install); the game's art is `packages/content/art/` (the 48-colour palette, extracted from the
+Scene Mock with the era, fire, red, sea and ridge colours pinned, D191; and
+`scene/<kind>/<id>.png`, loaded by `scene/pixel.ts`). Measured in S2: at 16-24 px the cheap
+`rd_plus__low_res` draws clearer lines than the pro style, so the lines use it (0.06 a take)
+with a 1-px dark outline added at install; heroes, houses and hands use `rd_pro__platformer`
+with the mock's sprites as references. The hands are a 12×18 survivor (the mock's 23×40 one
+dwarfed the 20-px lines) with 8-frame idle and walk cycles. Each session's choices live in
+`scripts/art/picks/*.json`; the agent makes a first pass so the work never waits, and the owner
+may swap any take by number from the contact sheet. S2 spent 4.52 USD; 3.45 is left.
+`docs/redesign/art/README.md` 4.
+
+### D206. The crafting lines work inside the house, which opens as a room (owner, 2026-10-18)
+After the first pixel island the owner asked for less outside and the furnace and the workbench
+inside the house, opened by tapping it. Asked, the owner chose all five crafting lines inside
+(loom, workbench, furnace, tannery, press; outside stay the beachcomber, campfire, garden, kiln,
+dock, generator, radio mast, ship breaker and reactor) and a pixel room cut-away over a panel.
+The island loses a terrace (the beach, the yard with the kiln and the house, the hill). Tapping
+the house opens its room (`scene/room.ts`) at the island's zoom over the dimmed island, its floor
+on the island's ground line: the crafting lines on five floor slots in era order, their hands
+working there (a second `Lines` and `Hands` inside the room). Back, Escape and a tap on the
+dimmed island close it; it is a history layer like a panel (`useUi.house`). Closed, the room's
+lines float their gains from the house and their milestones rise from it. The house is a door
+from Timber on (the Twig tent has no crafting line) with the one-line hint "Tap the cabin to go
+inside" until it has been opened twice (6.3 rule 6). The room's art per house tier is
+`room/<tier>` (the cabin's generated in S2; a plank stand-in otherwise). A "smelt" action, if the
+game gets one, opens the same room. `docs/game-design.md` 4.
+
+### D207. A wide screen keeps a strip of sea and plain dirt below the beach (owner, 2026-10-18)
+The owner's desktop screenshot showed the sea taking 40% of the width and the earth repeating the
+tile's sand and grass in bands. The camera now centres the island but never shows more than 30
+art px of sea left of it; the rest of a wide screen goes to the hill on the right. Below the beach
+tile the earth is a seeded dirt texture in the tile's own colours, darkening in bands; the plain
+tile's dirt rows lose the grass blades. The tap hint follows the target's x, since the island is
+no longer centred on wide screens. `apps/web/src/scene/Scene.ts`, `landscape.ts`.
+
+### D208. The ground is painted whole, never tiled; big screens zoom in (owner, 2026-10-18)
+On the owner's 2k monitor the island's ground showed its repeat: one 176-px tile of sand and dirt
+on every terrace (three identical waves stacked) and a 48-px dirt square whose five pebbles formed
+a grid, under a screen that was half dirt. The ground is now painted once per piece
+(`apps/web/src/scene/ground.ts`): each terrace, and the beach with the earth below it, from seeded
+noise in the mock tile's own colours and layers (a sand edge, pale specked sand that thickens and
+thins, its shadow, a reddish wet edge, a near-black lip, dirt darkening to bedrock by dithering,
+scattered pebbles and a few embedded stones), so nothing has a period at any width. The ground
+tiles are gone from the art folder. The zoom cap rises from 5 to 7 CSS px per art pixel, so a
+large screen shows the island larger instead of more dirt and sky. New shots
+`desktop_tall_rain` (1700×1340) and `desktop_2k` (2560×1440). `docs/ui-review.md`.
+
+### D209. The wasteland: one ground, two rows, a ruined skyline, airdrops instead of the sea (owner, 2026-10-18)
+The terraces (D203) put half the screen into ground. The owner preferred the comparison page's
+chunky look A (a hazy ruined skyline over one strip of ground, no water) and noted that no sea is
+less work. Asked, the owner chose one ground with two rows, airdrops now, and generated skyline
+layers. The scene is now one flat stretch: the front row on the ground's edge (the target, the
+beachcomber, campfire and garden, the house), a back row nine art px behind (the kiln, then the
+dock, generator, radio mast, ship breaker and reactor); the ground is about a fifth of the screen
+(the desktop ground line at 80-84% of the height). The skyline is three layers of
+`rd_plus__environment` art (far, mid, near; 0.06 a take, cleaner and cheaper than the pro
+style here), downscaled by 2 and 3 with Retro Diffusion's free k-centroid tool (alpha rebuilt
+from the originals, since the tool flattens onto white), laid in a seeded order of variants and
+mirrors so a 2k screen shows no repeat (D208), each with the dusty haze baked in by distance; the
+day sky is warmed to match. Flotsam keeps every rule and odd but comes down from the sky under a
+striped parachute, sinks slowly over the left of the scene during its float, and the wind takes
+it if missed; its strings say "drops in" and "the wind took it". Still to re-theme: the dock and
+the ship breaker (sea lines) and Armored's Wreck, in their art and in the names pass; the crate's
+icon still shows waves. `apps/web/src/scene/island.ts`, `landscape.ts`, `flotsam.ts`.
+
+### D210. An open wasteland with a few buildings; nothing in the background outsizes the camp (owner, 2026-10-18)
+The owner still preferred the comparison page's open wasteland with only a few buildings, and
+caught a wrecked car in the background bigger than the tent (a browser still showing the first,
+full-size layers, but the dense city was too busy all the same). The mid and near layers are now
+sparse generated pieces (a lone house and a water tower on empty desert, a water tower alone;
+power poles, a fence, small wrecks), downscaled by 3 and 4 so the background props sit well
+under the camp's size; the dense city stays only as a faint far silhouette (haze 0.84). Rule for
+every background layer: its props are drawn smaller than the front row's (D209's layers were
+not). After replacing art with the same file name, a running dev server can keep showing the old
+image: hard-refresh the page or restart `pnpm web`. `apps/web/src/scene/landscape.ts`.
+
+### D211. The far city is the smallest, palest layer, standing on a hazy plain (owner, 2026-10-18)
+The owner saw an empty band of sky between the far city and the ground, and the city reading as
+the nearest layer. It was the largest thing behind the camp (downscaled only by 2). It is now
+downscaled by 4 (about 20-24 art px tall), seated on the horizon, and a three-row strip of hazy
+desert lies in front of its foot down to the ground's far edge, so no sky shows under it and the
+size order is far city < water towers and poles < the camp. `apps/web/src/scene/landscape.ts`.
+
+### D212. The dead gnarled tree, and the sea lines renamed for land (owner, 2026-10-18)
+Shown eight trees in the scene beside the tent (a wind-bent pine, a dead gnarled tree, a desert
+tree, a half-burnt pine; two takes each), the owner picked the dead gnarled tree (take 0) as
+Twig's target; the mock's pine leaves the seed list. The owner approved the land names for the
+three sea-themed things: the Dock becomes the **Rain Catcher**, the Ship Breaker the
+**Scrapyard**, Armored's Wreck **The Crashed Plane** (a rename is a locale edit; ids, icons and
+data stay). Their art comes with their eras. `scripts/art/picks/s2.json`.
+
+### D213. Dead Oak and Clean Water (owner, 2026-10-18)
+The owner approved two names that follow D212: Twig's target is the **Dead Oak** (it was the Lone
+Pine), and the Rain Catcher's product is **Clean Water** (it was Tinned Fish, D157). Locale edits;
+the product's icon still shows a fish and is redrawn with the Rain Catcher's art.
+
+
+### D214. Stone to Armored in pixel art (R2 Feel S3, 2026-10-18)
+Generated with `scripts/art/jobs/s3-eras.json` and one retake (`s3-retake.json`), picked by the
+agent in `scripts/art/picks/s3.json` (the owner may swap any take from `preview/art/s3-sheet.png`):
+the furnace, tannery and oil press at three stages (16-24 px, `rd_plus__low_res`, outlined, the
+loom's sizes); the back-row lines a size up (20-36 px, the radio mast 24×44) so they read over the
+front row: the Rain Catcher (a tarp funnel over blue barrels, then a tank on legs), the generator,
+the radio mast, the Scrapyard (scrap heaps, then a yellow crane with a magnet) and the reactor;
+the targets Ore (rusty veins), Sulfur (yellow crystals) and The Crashed Plane (a rusty propeller
+plane nose-down, 60×34); the stone hut, the sheet-metal shack and the armoured bunker; the rooms
+of the stone hut (hearth and window), the shack and the bunker (`room/<tier>`, 132×72, pro style
+with the cabin's room as reference: right first time, as in S2). 6.12 USD; 4.39 left. The icons
+that still showed the sea follow the land names (D212, D213): Clean Water is a bottle with a drop,
+the Rain Catcher a funnel over a barrel under rain, the Scrapyard a crane over a heap, The Crashed
+Plane a plane nosed into the ground; the airdrop crate hangs under a parachute and the other
+flotsam kinds lose their waves. The dock's Island icon keeps its waves until the S4 dock.
+
+### D215. The back row stands deeper; Armored's camp is wider (R2 Feel S3, 2026-10-18)
+The back row stood 9 art px behind the front, so the front row's 22-24 px lines, the target and
+the house covered it (the kiln vanished behind Timber's boulder). It now stands 22 px behind
+(`ROWS.back` 90, the ground's far edge at 86, ten rows more ground): the front row's lines never
+reach it, and each back-row spot keeps clear of the target's and the house's tops (the radio mast
+stands behind the house and shows over it). The back row's six structures are 168 px across and
+the phone's view 156: they cannot all fit beside the front row. So Armored, when the Scrapyard and
+the reactor arrive, gets a wider view (`VIEW_WIDE`, 194 art px: a 390 px phone at 4 device px per
+art px instead of 5) and its own spots: the front row spreads round the 60 px Crashed Plane, the
+bunker moves right, the kiln stands behind the plane's low middle (21 px tall there). The camera,
+the lines and the hands re-place when the era changes (`viewFor`, `spotsFor`, `Lines.relayout`).
+Twig to Sheet Metal keep the close 156 px view. `apps/web/src/scene/island.ts`.
+
+### D216. Wear on the pixel targets is drawn on the grid from the art's own pixels (R2 Feel S3)
+The pixel targets showed no wear (the vector cracks were for the stand-ins). `scene/wear.ts` now
+draws up to four steps on the art grid, in palette colours shaded from the pixel underneath:
+rocks crack (a seeded seam 3-5 px down with a pale lip, one more per step), the plane's plates
+tear (a dark hole under a bright bent edge), the dead tree takes a notch on its fall side, up to
+60% through the trunk. Marks land only on interior pixels of the sprite, so they never leave the
+silhouette, and a target always wears the same way. Tested in `wear.test.ts`.
+
+### D217. The hero tap: the stockpile, the chips, squash on the step grid, the fell's shake (R2 Feel S3)
+Every tap chips a piece off the target that arcs onto a **stockpile** at the target's right foot
+(`12-feel.md` 3.1): a log, a stone, an ore nugget, a lump of sulfur, a hull plate. The pieces and
+the pallet are hand-pixelled in the palette (`scripts/art/chips.py`, 6-7 px: too small for a
+generator to help) into `art/scene/chip/<target>.png` and `prop/pallet.png`. The pile holds nine
+pieces in a 4-3-2 heap, wider than tall, nudged a pixel per slot; a full pile sells its top piece for each new
+one (it hops and turns into coins); a pile left alone 6 s is carted off a piece every 2.5 s, so
+tapping keeps it high. The counter credits at once, as before: the pile is only its picture. A
+fell lands three pieces and shakes the camera a whole art pixel for 60 ms; the squash is 2, then
+1 art px wider and shorter, then 1 px taller, then rest over 120 ms (whole pixels, D188). The
+pallet is laid by a run's first chip, so the first screen is still the tree and its hint. Reduced
+motion: pieces appear in their slot and leave without the hop; no shake. The front row on a
+phone had no room for it (156 art px, every piece touching), so the row moved: the target 172 to
+166, the beachcomber 120 to 112, the campfire 142 to 134, the garden 200 to 211, the house 232 to
+238, the stockpile at 190; in Armored's wide view the plane at 166, the pile at 203, the garden
+222, the bunker 254, the kiln 166. The Hustle multiplier moved from the arc's end (on the pile) to
+its open bottom. `tap_at` carries the taps' `count` (at most three chips per event).
+`apps/web/src/scene/stockpile.ts`, `target.ts`, `island.ts`.
+
+### D218. Pixel clouds, seeded one by one (R2 Feel S3)
+The sky's soft puff clouds are replaced by pixel clouds generated in code (`scene/clouds.ts`): a
+row of round bumps on a flat base, a bright rim on the lit top, the underside and the right edge
+in shade, three greys tinted by the hour's cloud colour. Each of the 18 clouds has its own seed,
+so no two match and a 2k screen shows no repeat (D208); the high ones are bigger and faster, the
+low ones small and pale. A clear sky shows 11, rain and fog all 18, more opaque. They move in
+whole art pixels. No generated art was spent (Retro Diffusion balance unchanged, about 4.39 USD).
+
+### D219. The Feel Board's tokens and fonts in the HUD (R2 Feel S4)
+`styles/tokens.css` now holds the Feel Board's salvaged materials (D187): a warm charcoal base,
+plywood plates with a brass lip, steel edges, signal orange as the only primary, gold for
+Supplies; every HUD surface is a `.plate`, every button has depth and a press. Numbers, titles and
+card names are **Big Shoulders Display** (one variable woff2, 700-900), text is **Barlow**
+(400-700), both self-hosted as Latin subsets with their OFL beside them in
+`apps/web/public/fonts/` and a line in `docs/credits.md`; Roboto Condensed left the web (the bot
+keeps its own copy until R4's card v2 restyles it). The scene's floaters and badges use Big
+Shoulders 900. Bulk sizes stay in Barlow: the display face's `1` reads as an `l`. The era colours
+stay as they are in the scene, the HUD and the bot (one colour per era everywhere); the Feel
+Board's red Armored is not taken, but Armored's teal is close to the Board's scrap teal, so R3
+picks scrap's colour against it.
+
+### D220. The shop as cards in a fixed order; the hire on its line's card; the Best buy chip (R2 Feel S4)
+Each shop row is now a **card** (`12-feel.md` 4): the line's own pixel art at the stage the island
+shows (whole-number zoom, `hud/PixelArt.tsx`), the level badge, the hand's portrait (or the finger
+while unmanned), the cycle as a strip along the art's foot, the name, the rate, a bar from the last
+milestone to the next, and one Buy. **A hand is no longer a row of its own**: its hire is a second,
+smaller button on its line's card, where the milestone line was ("Hire Mara 1.80k"), and the crown
+lights it there. The Lines tab keeps one order forever (D186): the lines of the eras reached by
+rung, then the next era's card, then that era's lines, locked; the era card moved from the top to
+its rung, so buying it unlocks its lines where they already stand. The Shelf (the tab is renamed
+from Upgrades) is ordered by price, which never moves. The collapsed phone drawer shows the same
+list (with its tabs) as a window of two cards and a peek; that window alone follows the island's
+crown, calmly, and never within 4 s of a touch; the desktop column and the expanded drawer never
+scroll by themselves. The column no longer pins the crowned row over its tabs: it lights the card
+in place. The **Best buy** chip (gold, never orange) shows only while the crowned card is out of
+sight (scrolled away, or on the other tab, which also wears a small crown mark); pressed, it
+switches the tab, scrolls the card to the middle and pulses it once. It sits in the counter plate
+on desktop and beside the lamp on a phone, and hides under a panel, a sheet, the room and the
+expanded drawer (which crowns its own card). The harness checks the order across three purchases
+(`s4_phone_order_kept`).
+
+### D221. The dock, and panels as sheets with the dock live under them (R2 Feel S4)
+The nav row and the column's foot are replaced by one **dock** (D187, D199): a bar along the
+bottom of a phone, a plate centred under the island on desktop. Island from 0:00, Crew from the
+first hand ever hired; Workshop and Logbook join with S6 and S7, Album with R3. Crew's **badge**
+counts hands hired since the Crew sheet last showed them this run (per device, like the other
+display settings). Settings stays a pill at the top right, not a dock place: it is not a
+destination of the game. **Crew and Settings open as sheets** over the scene: full height between
+the top and the dock on a phone, 760 px wide and centred over the dimmed island and column on
+desktop; Escape, back, a click outside, (x), Done and Island all close them. The dock stays live
+under a panel (another place is one tap away); under a small sheet (Multipliers, Odds) and the
+welcome card it is inert like the rest.
+
+### D222. The lamp: the Night Shift you would get if you left now (R2 Feel S4)
+The lamp in the counter row (`12-feel.md` 6) shows `activeAt + window − now` of the window: full
+while the player plays (taps and pings move `activeAt`), burning down only while nothing is sent.
+It shows once a hand is on shift (before that nobody works the night); a phone shows the bar and
+the time, desktop adds "Night Shift" and "of 12h". The welcome card draws the same bar for what
+was left of the window when the player came back: "7h of 12h still in the lamp", or an empty,
+dashed lamp and "The lamp burnt out". The window is still 12 h until S6 sets it to 2 h.
+
+### D223. The news ticker (R2 Feel S4)
+Thirty lines in `en.json` under `ticker`, each key naming when it is true: `any`, a weather
+(`clear` only between 07:00 and 19:00: they are sun lines), `night` (21:00-06:00), an era, or a
+hand's id (while that hand is on shift). Only true lines show, so the ticker never names what the
+player has not reached (D140); friends' Wipe Days join when there is a feed to read them from. A
+line every 9 s of real time (the wall clock: an active timer, rule 6.3.9), a seeded shuffle per
+pass so nothing repeats before the rest have shown. Under the dock on desktop, in the drawer's
+handle on a phone. `hud/tickerLines.ts` (pure, tested), `hud/Ticker.tsx`.
+
+### D224. Sound: one map, the event bus, the first tap, Kenney's CC0 packs (R2 Feel S5)
+`packages/content/data/sounds.json5` is the one map (`12-feel.md` 3.3): `events` names every
+event on the client's bus with its cue and vibration, or `null` for a chosen silence; `cues` give
+each cue its files (one picked at random per play), the procedural voice that plays until a file
+has decoded (or alone: the hire's whistle, the era's rise, the fuel drum's rev), a gain, a random
+detune and a rate cap (taps 15 a second, the bucket's rate; faster taps make the next one louder).
+A cue template is filled from its event (`tap_{target}`, `fell_{target}`, `claim_{kind}`,
+`ui_{action}`), and a test fills every template with every target, airdrop kind and UI action.
+The game rules never read it, so it is not part of `Content`; the web client validates it on
+start (`sound/map.ts`) and a web test holds it to the bus's full event list (`EVENT_TYPES`, kept
+complete by the compiler), every voice and every file on disk. **Nothing plays from a
+component**: `sound/director.ts` is the only caller of the engine; the panels' openings and
+closings are read from the stores (`state/uiEvents.ts`), so Escape, back and a click outside
+sound like the (x); a switch emits `ui switch`; the scene emits `milestone`, `roster` and
+`flotsam_arrived`, the store `crit` (from the predicted crit counter). The vibration patterns
+moved from `audio.ts` into the map. **Sound starts with the first tap** (inside its gesture, so
+iOS allows it); before it no AudioContext exists and no file loads. A flag remembers the first
+tap, so on a later visit any press starts it. Turning the switch on starts it too. **Files:**
+Kenney's Impact Sounds, Interface Sounds and RPG Audio (CC0), 52 of them, built by `pnpm sounds`
+(`scripts/sounds/build.mjs`: downloads each pack once into `var/sound-packs/`, trims leading
+silence, levels to −18 dB mean under a −1 dB peak, cuts to the cue's `trim` with a 40 ms fade,
+mono) into `apps/web/public/sound/<pack>/` as Ogg Vorbis and MP3 (Safari before 17 has no
+Vorbis), with each pack's licence beside its files (700 KB in all). The owner's
+`public/sound/<cue>.ogg` override (owner decision 15) is replaced by editing a cue's files. The
+picks are by name and length, not by ear: the owner's ears are the review (swap any line and run
+`pnpm sounds`).
+
+### D225. The juice checklist on everything so far (R2 Feel S5)
+`12-feel.md` 3.2 applied to R1-S4's features. **A purchase:** its sound; on the island the line
+flashes bright for 240 ms in three steps (bright, half, off: a brightness filter only while it
+lasts) and pops on the step grid (a pixel narrower and two taller, one taller, a pixel of settle,
+rest; `popStep`, replacing R1's smooth 8% swell), its count badge swells a step; on the card a
+gold flash (held for a third, then fading over 520 ms) and the level badge pops. A Mk flashes its
+line, a Grip rung its target, and the upgrade's name rises from it; a hire pops the hand's face
+on the card. **A bar's end ticks:** a line's cycle bar on the island shows full and bright for
+140 ms when the cycle pays; the cards' cycle strips flare at their end. **Gains** that are not a
+product's (taps, fells, crates, Collect) carry the supplies icon on their floater, as line gains
+carry their product's. **Collect:** seven supplies tokens arc from the house into the counter one
+after another, each bumping it, behind the big number. **Presses:** tabs, bulk sizes, dock
+places and switches move and brighten under a finger, as buttons did. **Reduced motion** keeps
+the flashes and the bar ticks (they fade, nothing moves) and drops the pops and the coins.
+Cards flipping, drops creaking and the stings per rarity come with R3's cards.
+
+### D226. The Credits sheet (R2 Feel S5)
+A sheet from Settings ("Credits", under Odds): fonts with their licence, the art's origin, and
+every sound pack `sounds.json5` uses with its licence; a pack's whole row is the link to its page
+(a 44 px target), and a last line says every other sound is synthesised by the game. The strings
+are under `credits` in `en.json`; a content test fails if a pack the map uses has no credit line.
+`docs/credits.md` keeps the same lines for the repo.
+
+### D227. The Workshop's twenty items: one effect each, only what the crown can score (R2 Feel S6)
+`packages/content/data/research.json5` holds tiers 1-4 (`12-feel.md` 5): Sharper Hooks, Dry
+Kindling, Raised Beds (+5% a level on the three Twig lines, 25 levels), Spare Wicks (Night Shift
++20 min, 6), Calloused Thumbs (taps +1, 10); Camp Routine (Twig lines +4%), Greased Axles (Twig
+lines 1% faster, 20), Banked Coals (+5% while away, 10), Tally Sticks (every line +1%), Steady
+Rhythm (Hustle's peak +0.05, 5, up to its 2.25 ceiling); Tarred Twine, Sharp Chisels, Turf Lids
+(+5% on the Timber lines), Oiled Pulleys (Timber lines 1% faster), Tool Ledger (every line +1%);
+Timber Frames (Timber lines +5%), Camp Kitchen (Twig lines +3%), Hide Mitts (taps +1), Crew
+Rations (every line +1%), Storm Shutters (+5% while away). A level adds the effect once more (add
+and inc sum, more compounds). Every effect must be one the crown scores in closed form
+(`content/src/research.ts` `SCORED`: output inc/more, speed more, tap_flat, hustle_max,
+night_shift, offline); a content check refuses any other. Left out on purpose: `tap`,
+`tap_share`, crits and fells, because the tap's steady coefficient `c ≤ 0.6` is spent by Grip and
+the Blast Map (a new content check, `tapCoefficient`, now holds it); `flotsam_effect`, which pays
+only crates and depends on what the player holds, so it cannot be scored; Frenzy's gain, until S7
+ships Frenzy (D140). Cost cuts have their ×0.6 check for R3. Names are proposals, as the owner
+asked.
+
+### D228. The Line Mks are Workshop items; stored Mk rows migrate (R2 Feel S6)
+D194 as built: `research.json5` `lineMk` derives `{line}_mk` for every line, two levels of
+output ×3 at the line's price × 1e4 (25 owned) and × 1e8 (50 owned), listed under the line's
+era; the level's own name (`research.{line}_mk.mk2` / `mk3`, the old shelf names) is the tile's
+title and the floater. The shelf (`upgrades.json5`) keeps Grip and the island upgrades. A stored
+base with `{line}_mk2/_mk3` in `run.upgrades` becomes that many levels of `{line}_mk`
+(`normalizeState`, tested); unknown Workshop ids drop and levels clamp to the item's. The Rain
+Catcher's levels lost their sea names from before D212: Tarp Funnels and Cistern. R4 note: the
+Scrapyard sector's `start_upgrade` nodes name `{line}_mk2`; they will grant `{line}_mk` level 1.
+
+### D229. The Workshop opens two minutes after the run's clock starts (R2 Feel S6)
+`opensAfterSeconds: 120` from `run.startedAt` (the first tap or purchase), on the game clock: the
+tab, the dock's place and every tile appear then, never before (a `buy_research` sooner is
+refused with the `opens` gate and its time). Tier `k` opens with era `ceil(k/2)`; a Line Mk's
+next level needs its units. `buy_research {item, count: 1 | "max"}` buys one level or as many as
+the supplies reach (closed form for tier items, checked against brute force); it writes a new
+`run.research`, counts `meta.stats.research` and emits `researched` (feedback only, not logged).
+
+### D230. The crown scores a Workshop level in closed form, per stat (R2 Feel S6)
+`advisor.ts` offers each open item one level at a time and scores it like any purchase (`02` 11,
+rule 4). Gains, one function per stat in a `Record` over `SCORED`, so the compiler demands one
+for every stat an item may use: an inc adds `income × Δ ÷ (1 + Σinc)` over the lines it reaches
+(the line's income over the player's day plus the share a tap takes of it); a more or a speed
+adds `income × (m − 1)`; a flat tap adds what Grip's does; Hustle's peak adds until its ceiling;
+a wick adds manned output while away over the extra minutes that fall inside one 12-hour absence
+a day (`advisor.away`); an away factor adds manned output × (m − 1) over the window's part of
+that absence. A test holds each gain to the numeric change in income.
+
+### D231. The Night Shift is 2 h, up to 24 h; the away stat cuts settle (R2 Feel S6)
+D183 as data: `lines.json5` `nightShift` 2 h with a 24 h ceiling, N18's content check rewritten
+(at least 2 h, at most 24 h, the Workshop's hours at most 2 h and under the ceiling with the
+window). The lamp, the welcome card and the Multipliers sheet already read the window from
+`rates()`. Found on the way: `hasOnlineEffects` ignored the `offline` stat, so an away-only item
+without a `when` would not have cut settle where the player goes away; it does now, and the tick
+oracle and path-independence tests run with random Workshop levels, away items included.
+
+### D232. The Night Shift starts when the page is hidden (owner, 2026-10-18)
+Asked how the 2 h window should treat a player who checks in twice a day, the owner answered
+that it should start when they turn the app off, stay 2 h at first and grow by upgrades (Spare
+Wicks) and later by the nuke's currency. The window ran from the last command, and a visible tab
+pings every 5 minutes, so it started up to 5 minutes early. Now a tab going hidden sends one more
+`ping` (with `keepalive`, so a closing page still delivers it): the window starts the moment the
+page goes away. Not over the welcome card, whose Collect restarts it instead.
+
+### D233. Base output ×0.28: the Workshop earns the run back (R2 Feel S6)
+`pnpm sim` showed the Workshop as drafted would end run 1 at 15 minutes instead of 46: in run 1
+the whole tree costs a few billion against the 5e10 a first nuke needs, so it is bought within
+minutes and acts as a flat multiplier, and the Twig and Timber lines it lifts snowball the early
+game (era prices are no brake: the nuke comes at a lifetime, so dearer eras only move it before
+Sheet Metal). Kept readable numbers (+5% a level) and moved the base instead: `rateBase` 1.5 →
+0.42. Without the Workshop the first nuke would take 87-90 minutes; with it, continuous play
+nukes at 41:49-48:19 over 12 seeds (inside N1's 40-60), the Workshop is the run's second engine,
+and the beats move: Timber 0:52, Mara 1:13, the Workshop 2:00, Sorting Tables 7:03, Stone
+8:22-9:03, Sheet Metal and the nuke about 43-48 (`pacing.json5`'s beats retuned). The away items
+went from +3% to +5% a level so day 1 holds under 2 h: the casual (08:00, 13:00, 21:00) still
+nukes at the day-1 21:00 check-in (guardrail 1; N3 is now an R2 warn row and passes) and the
+idler keeps R1's day 2 21:00. The owner, asked whether the casual's day-1 nuke or the active
+player's 40-60 minutes should give, deferred; neither had to. `pnpm sim window` (D234) shows the
+2 h window costing the idler and the casual about half of day 1's output against 12 h, first
+nukes unchanged. N4-N8, N9 (R1 band) and N23 pass; the pacing check takes 4.2-4.6 s of its 10 (D236).
+
+### D234. `pnpm sim window`: what the window costs (R2 Feel S6)
+`12-feel.md` 15 asked whether 2 h is too tight on day 1. `pnpm sim window [days]` plays the
+idler, the casual and the active player under R1 as shipped (12 h, base 1.5, no Workshop), the
+current economy with a 12 h window, and the shipped content (2 h), and prints the lifetime at
+each day-1 check-in, at day 1's end, the loss against 12 h and the first nuke; plus continuous
+play's first nuke. Built in memory, so the shipped content checks do not refuse the 12 h
+variants.
+
+### D235. The Workshop tab: tiles by era, ×1 or Max, icons of what they improve (R2 Feel S6)
+The shop's third tab, **Workshop** (the dock's name, one name for one place, D199), shows from
+2:00. Tiles two to a row in era groups in a fixed order (tier items by tier, then the era's Line
+Mks by rung); the next era's group is shown locked with its reason once, over the group. A tile:
+its icon in a ring the era colour fills as levels are bought, `n/levels`, the name (a Mk's level
+name with a "Mk II" chip), what one level does ("+5% Beachcomber", "Night Shift +20m"), what it
+adds (`+4.25/s`, or the window "2h 20m → 2h 40m"), and one button; a maxed tile says "All 25
+levels" and Done. The bulk control offers ×1 and Max there. No new icon kind: a tile uses the
+icon of what it improves (the line's, the era's, `roster` for every line, `night_shift`,
+`finger`, `hustle`), one icon per thing (D141); the dock's place has its own glyph,
+`nav/workshop`. The dock's Workshop opens the shop on that tab (the drawer expanded on a phone; a
+panel open over the island gives the drawer its history entry); its badge counts items opened
+since the tab last showed. A one-line hint heads the tab until two levels are bought. A purchase
+flashes the tile and pops its level, flashes the lines it reaches on the island and raises its
+name; its sound is the upgrade's.
+
+### D236. The quick profile stops each life when its checks are read; Stone Tools cost 100 (R2 Feel S6)
+The Workshop makes the simulator dearer (hundreds more purchases a run, each re-scored): back to
+back on the same machine the pacing check took 4.8 s at S5 and 7.2 s with the Workshop, and the
+machine's own speed swings by half between runs, so the 10 s budget inside `pnpm test` had no
+margin left. The test profile (`early: true`) now plays each archetype only as long as a due
+assertion reads it: to the day its checks name (the active player to N9's day 60, the casual to
+N7's), past run 1's end and into run 6 (N5, N6, N23's run 1), at most 90 days; with any check
+whose reach is unknown due, every life plays to the end (`earlyStops`, tested). The optimal
+player, the dearest life, stops within days instead of playing 60. Every verdict is identical
+and the check takes 4.2-4.6 s; `--full` still plays 365 days for everyone. The crown also inlines
+the Workshop's gates (and skips them all while it is shut). Found in the shots' tests: with base output 0.42 the crown saved for Stone Tools (60)
+before the first Beachcomber (6), so a new player's first card came uncrowned; Stone Tools costs
+100 now and the first Beachcomber is crowned again ("the drawer slides up with one crowned card").
+
+### D237. Frenzy is everything ×6 for 15 s, open from 0:40 of the run (owner, R2 Feel S7)
+D196's Frenzy (taps ×3, lines speed ×1.5) could not reach N9's 4-6: it runs about a sixth of an
+active player's time, so it lifts the active hour by about a quarter, and the simulator read
+2.9×. The owner picked "everything ×7" (Cookie Clicker's Frenzy); the simulator then settled it
+at **×6 on taps and lines** (lines as speed ×1.5, visibly faster, and output ×4, so a line makes
+exactly ×6), with the meter at +0.25 a credited tap to 100 (400 taps, about 70 s at six a
+second), holding 3 s after the last tap and draining 2 a second, and the buff for 15 real
+seconds. The first trip could not stay at 12:00 (`12-feel.md` 10): Morale, crows and an early
+Frenzy together brought Sheet Metal to 0:20 and the first nuke with it, and slowing the economy
+to pay for it pushed the casual's first nuke to day 2. Asked, the owner chose **Frenzy opening
+40 minutes into a run** (a time on the run's clock, like the Workshop's 2:00), so it arrives just
+before Sheet Metal; crows (8:00) and the first badges are the first session's new things. The
+trip is stepped tap by tap inside the batch (the taps spread evenly over its seconds): the tap
+that fills the meter trips it, the taps after it take the buff; the meter stays empty until the
+buff ends. A batch that reaches the server after its Frenzy ended is settled past it first, so
+it is calm on both sides (the client predicts the same). Content checks: Hustle's ceiling ×
+Frenzy within `multCeiling` (20), and the speed part never above the multiplier.
+
+### D238. Crows: the gull id, named Crow and Magpie, from 8:00 (owner, R2 Feel S7)
+The island has no sea since D209, so the sky's tap-to-catch bird is a **Crow**, and the one in
+twenty is a **Magpie** (owner's pick of the recommended names); the id stays `gull` (D197's
+command, state and stats). Slots start 8:00 into the run's clock (the `12-feel.md` beat; D197's
+"from the first line" would put the first beside the Workshop at 2:00 and the crate at 3:00),
+then every 180 s plus a seeded 0-60 s, so gaps are 2-4 minutes and never under 120 s (a content
+check). A crow crosses in 8 s, a Magpie in 5; the claim stays open a second after. A catch pays
+30 s of output, a Magpie 180 s (buffs aside, like the crate). Drawn like the airdrop's parachute,
+in chunky screen pixels (a 15 × 8 bird at 5 CSS px, three flap frames, a Magpie black and white
+with a gold glint) with a glow that reads on any sky; the 64 px button flies with it; every
+other crow flies the other way, each at its own height. The hint ("A crow! Tap it before it flies
+off.") sits fixed under the top bar until two are caught: a line moving with the bird could not
+be read. The three decorative vector gulls went: in the sky, a bird is something you can tap.
+The Odds sheet prints the Magpie's 5% under its new title, "Odds".
+
+### D239. Badges: 64 in `achievements.json5`, the Logbook panel and its toast (R2 Feel S7)
+64 badges in ten chapters (Eras, Lines, Hands, Taps, Frenzy, Crows, Airdrops, Workshop, Night
+Shift, Supplies), drawn from `05b`'s catalog where shipped and renamed for the wasteland where it
+named the sea; none for Armored, crits, nukes, drops or the Blast Map (unreachable or unshipped,
+D140), and **no secrets** in R2 (they come with their hints in the Logbook phase). Each `when` is
+one of four kinds: a lifetime counter, a named predicate on the state after the command (`era`,
+lines and hands per era, Hustle, the supplies' leading digits, made ever, Workshop items maxed,
+the window's hours), an event of the command with field filters (`atLte`, `weather`, `night`
+from the island's clock), or buffs at once. Badges read **the command's own events, never
+settle's**: an earlier settle can swallow a settle event, and the path-independence test caught
+"Slept Through It" earned on one path only; it now comes from Collect after a full window. The
+plain era badges read the era reached, so a run already past an era earns it at its next
+command. Morale = 1 + `moralePer` (0.01, data) × badges earned, on every line and tap. The
+**Logbook** is a dock panel from the first badge (D199), with a count of badges new since it last
+showed: chapters in a fixed order, every badge visible, earned ones lit with their date, locked
+ones with what earns them and a bar when they count. A badge earned shows one toast under the
+top bar (its icon, its name, "Morale ×1.09 → ×1.10"; badges within 2 s merge, "3 badges") whose
+button opens the Logbook, and a chime. `badge_unlocked` is logged to `event_log`, taps batches
+included (D143's one exception). New counter `collects`.
+
+### D240. Base output 0.34 × 4.5 a rung; N8 and N9 in R2's bands (R2 Feel S7)
+With Morale, crows and Frenzy an active first hour ran faster again. A flat ×0.65 on output put
+it back but made Stone Tools outrank the first Beachcomber (the crown saved for the tool) and the
+early waits swing (N5 24-45 s with the tool's price); a flatter ladder does it instead:
+`rateBase` 0.42 → 0.34 and `rateRatio` 4.75 → 4.5, so the first minutes stay as S6 had them and
+the mid-game slows. `pacing.json5` moves to `shipped: "R2"` with N8 (10-30% direct from minute
+10, outside bursts: a buff running or the batch that trips Frenzy) and N9 (4-6, rain warns) in
+their R2 bands, replacing R1's rows. Measured (test profile, 4.7 s): N4 77-105 s, N5 19 s, N7
+100%, N8 100% / 15.5%, **N9 5.10 / 5.63 / 5.16** at days 14 / 30 / 60 (rain 5.47 / 5.73 / 5.38),
+N23 run 1 at 5.0e10-9.2e11, beats Timber 0:55, Mara 1:17, the first crow 8:13-8:59, Stone
+8:45-9:44, Frenzy 41:09, Sheet Metal 41:19-44:09, the nuke 42:34-45:14, the casual's first nuke
+day 1 21:00 (N3). The full profile (365 days × 3 seeds, 97 s) passes too, N9 5.43-5.61. The crown
+scores lasting rates (D200, now built): the advisor sees the state without timed buffs, on the
+client and in the simulator.
+
+### D241. The Frenzy bar sits over the target, not under it (R2 Feel S7)
+`12-feel.md` 3.1 draws the meter under the target. On a phone the drawer starts right under the
+target's foot (Hustle's own label already sits at its edge), and on a 810 px desktop the dock
+does, so a bar there was hidden. It sits just over the Hustle arc instead, like a boss's bar:
+ten chunky segments filling pale to ember, "Keep tapping: Frenzy" beside it for the first two
+Frenzies; tripped, the segments burn down as the buff's timer beside "FRENZY ×6", the sky warms
+toward the dusk palette (night stays night), the lines' machinery runs 1.5× faster, sparks and a
+"FRENZY! ×6" pop at the target, a sting plays, and the buff's pill shows under the counter.
+Reduced motion keeps the colours and the labels and drops the pulse.
+
+### D242. The redesign goes live after R2 Feel S7 (owner, 2026-10-19)
+The owner asked for S7 on the VPS. Told that it replaces the live season-1 game (every stored
+island the old shape, so each player starts fresh, and season 1 without its planned quiet ending),
+with a preview site beside it as the alternative, the owner chose to replace it now. Before the
+deploy the live database was copied to `wipeday-pre-r2s7.db` and sent off the server with the
+others (`offsite.json`: 32 files); then `redesign` at fdc5010 was deployed: health ok, the four
+sites 200, the API on Discord login with dev login off, the bot started. The old islands give way
+on each player's first look (`base_reset` logged, D133's safety net). From here deploys ship
+`redesign`, `main` keeps the old code, and R4's cut-over runbook shrinks to what is left (the
+legacy rows and the hall of fame from the saved database, if wanted).
+
+### D243. The juice checklist on the Workshop and the active layer (R2 Feel S8)
+`12-feel.md` 3.2 applied to S6-S7's features, completing D225. Already in place: a Workshop
+level's sound, its tile's gold flash and level pop, the lines it reaches flashing and its name
+rising (D235); Frenzy's sting, sparks, "FRENZY! ×6" and warm sky (D241); a crow's caw, its catch's
+coins, "+30s of output" and the gain flying to the counter (D238); the badge's chime and toast
+(D239). Added: **a bar's end ticks** where S6-S7 had bars without one: a Frenzy that burns out
+shows its ten segments white for a beat (held a third of 360 ms, then fading) with a falling
+sweep (`frenzy_ended`, a client-noticed event like `flotsam_lost`, cue `frenzy_end`, Kenney's
+`minimize_008`; not after a jump of the clock past it); a Workshop item's last level flares its
+full ring once in the era's colour. **The thing it changed flashes:** Spare Wicks lengthening the
+window flash the lamp and pop its time. **Counts pop:** a dock badge pops each time its count
+rises, and a place that joins the dock mid-game (the Workshop at 2:00, the Logbook at the first
+badge) rises into it with a gold glow; the toast's Morale pops once it has landed. **Coins arc
+into the counter** for a crate's lump and a crow's catch too (three tokens, five for a Magpie,
+four for a crate), through the one helper Collect uses. Reduced motion keeps the flashes and the
+end ticks and drops the pops, the arrivals' rise (a fade) and the coins.
+
+### D244. No buying advice after onboarding (owner, R2 playtest, 2026-10-19)
+The owner, after playing R2 Feel: "I still hate how the game suggests best buy." D186 had stopped
+the crowned card moving and added a gold Best buy chip; the advice itself was the complaint. Asked
+how far to go, the owner chose to remove the chip and the pulse. Now **the game advises only while
+a kind of purchase is new**: `firstUse` (domain `advisor.ts`) is true while the player has bought
+that kind fewer than `advisor.hintUses` (2, `lines.json5`) times in their life, counted by
+`meta.stats` (units, hands, research, eras, and a new `upgrades` counter, which also reads the
+run's own for an older save). The advisor's pick is lit (its Buy or Hire orange, its card's
+border) only then; "Tap the tree." and the target's glow only until the first two units. After
+that every affordable button looks alike, at any tab, collapsed or expanded. Gone: the Best buy
+chip, the crown's 2.2 s pulse, the crown marks on tabs, the expanded drawer's "always crowns one"
+(resolution 3.25), the card pulse, and the **B** key (no key buys for the player). Kept: the
+domain's `crown()`/`choices()` (the simulator buys through them, so balance is untouched; the
+cards' "in 42s" read the same scores), the fixed order (D186), at most one orange per view, and
+the collapsed drawer keeping the lit card in its two-card window during onboarding. CLAUDE.md 6.3
+rule 1 is rewritten to match. The shots gain `crowns: 0 | 1` (an exact count) and `p1_*`.
+
+### D245. The era plate: the next era leaves the shop for the top bar (owner, R2 playtest, P2)
+The owner, after R2 Feel: the eras ("tiers") belong outside the shop list. Asked where, the owner
+chose a plate centred in the top bar (phone: beside the lamp) that opens a sheet with cost,
+result and Build. Now: the Lines tab lists the lines of the eras reached, then the next era's
+lines locked with "Opens in the X era"; no era card. **The plate** (`hud/Era.tsx`, data
+`eraPlate()` in `hud/rows.ts`) shows from the shop's first card, as the card did: the era's icon,
+its name (the era alone on a phone), "in 3h 12m" (or "tap to earn") and a bar in the era's colour
+along its foot, gliding once a second; affordable, "Build" and the price, its frame lit in the
+era's colour (a status, not advice: never orange after onboarding). It never buys: a purchase
+this size shows cost and outcome first (6.3 rule 4), so it opens **the era sheet**: the price,
+then what you have and what is left after (or what is still needed and when at this pace),
+written each frame from the settle like the counter so the two never disagree; then what it
+brings: the lines it opens (with their art), every line ×2, the new target (its art), the house
+it becomes (its art), and the Workshop items it opens (counted only once the Workshop is open);
+then **Build the X era**, disabled while saving with "Need 3.4M more" as its label and enabled in
+place when the supplies arrive. Build sends `buy_era` and closes the sheet, so the island's era
+pop and sound are seen; the next era's plate drops in. The sheet closes itself if its era goes
+(bought on another tab). **Placement:** on a phone in the row under the counter, the lamp and the
+plate 36 px tall (the lamp's bar 52 px, 40 under 375 px wide); on desktop the top bar is a
+three-column grid, so the plate stands centred when the row has room and just after the lamp
+otherwise (at 1440-1600 the counter and the lamp take more than half the row). **Onboarding**
+(D244): the plate is the view's one orange while eras are new and the era is the advisor's pick;
+`crownPlace` returns null for an era, since the plate is always in sight. **Juice:** `era_ready`,
+a client event fired by the advisor's watcher when the next era turns affordable while watched,
+once per era a run and never on arrival or after a jump of the clock: the plate's flash and a
+two-note chime (cue `era_ready`, Kenney's `confirmation_002`). Reduced motion keeps the flash
+and drops the drop-in (a fade) and the bar's glide. Armored stays hidden before its Wipe Day
+(D140): at Sheet Metal there is no plate. The domain is unchanged (`buy_era`, the advisor and
+the simulator), so balance is untouched.
+
+### D246. The yard is P3's Terrace, framed above the phone's drawer (owner, P4)
+The owner picked the "Terrace" mock (P3), with less of the ground under the front row on a phone,
+and the 2k zoom left at 7. `scene/yards.ts` is now one yard: R2's front row on the front edge, two
+raised steps (risers at 93 and 75, the far edge at 62) carrying the Timber to Armored lines, the
+barrel, car, rock and lamp props in the gaps; the flat camp, the Camp mock and the dev switches
+(`?yard=`, `?zoom=`) are gone. **The camera:** a desktop keeps the front edge at 85% of the
+height; a phone puts the front edge 10 art px above the top of the dock and the collapsed drawer
+(`phoneCover()` in `state/layout.ts`, kept in step with `--dock-h` and `--drawer-h`), so about
+25 CSS px of ground shows under the front row instead of about 150 (P3 framed the target's middle
+at 35%). The phone shows more sky instead; the tap target stays over 120 px (N27). The camera does
+not wait for the drawer: before the first line is affordable (a few taps) the ground runs to the
+dock, so the near ground is now textured (dark earth with pebbles) instead of fading to one flat
+colour. `ground.ts` paints only the deep yard (no cliff, no lip). The lamp prop's bulb glows at
+night on the `lights` layer. The house's hint ("Tap the shed to go inside") moved from above the
+house, where the terrace's lines and badges now stand, to under it, held above the drawer and
+the dock by CSS `min()` with `--hint-floor`. *Revisit* if the phone's sky reads as empty to the
+owner (then frame a few px lower and accept more ground), or if the drawer's collapsed height
+changes (`phoneCover` must follow).
+
+### D247. The Barrel Smasher, Salvage, Heavier Crowbars and Jerky; the picked art (owner, P4)
+Names (locale only; ids and the data stay): Beachcomber → **Barrel Smasher**, Driftwood →
+**Salvage** (the `timber` product), Sharper Hooks → **Heavier Crowbars**, and its Mk's levels
+Driftwood Hooks → **Pry Bars**, Beach Sledges → **Sledgehammers** (agent's names, nothing on the
+beach is left). Smoked Fish → **Jerky** (the `roast` product) is in (offered for veto; the owner kept it
+on 2026-10-19); Dax's ticker line follows it. Icons: a rename keeps ids and icons, but three icons drew the old
+names (a rake over waves, a log pile, a fish on a skewer), so `line/beachcomber` is now a barrel
+with a crowbar, `product/timber` a pipe on a corrugated sheet and `product/roast` strips hanging
+from a rail (`pnpm icons` clean). Art from the P3 takes, the owner's numbers:
+04 → `line/beachcomber_2`, 11 → `line/campfire_1`, 17 → `line/garden_1`, installed through
+`scripts/art/picks/p4.json` (pixel-identical to the numbered takes). The owner picked one barrel
+take for three stages; rather than spend on new takes, stage 1 (the red barrel alone on its dirt)
+and stage 3 (the two barrels and the grey one mirrored on a widened patch, 30 px) are cut from
+take 04 by hand, so the three stages are one set. The campfire's earlier stages 2-3 stay. The
+art campfire gets its flame and glow (`ART_FIRES` in `scene/lines.ts`): three pixel frames at 8
+fps above the drawn fire on the `lights` layer (one still frame under reduced motion), the glow
+the procedural campfire had, and smoke from above the flame. The owner approved P4 and kept Jerky
+(2026-10-19). *Revisit* if the owner wants generated stage-1/3 barrels.
+
+## R3 (Cards)
+
+### D248. R3 Cards' plan and the owner's answers (owner, 2026-10-19)
+The plan in `docs/roadmap.md` R3 (four sessions: cards and drops in the domain, scrap with boosts
+and quests, the Album and the reveal, Workshop tiers 5-8 with the balance) was approved in plan
+mode. The owner's answers, from the R2 playtest and this session:
+- A survivor's trait, like everything its card does, works only while its hand is hired.
+- All three gear slots (hand, head, pack) open at once.
+- The nuke's drop tier follows the glass gained (built in R4).
+- The Magpie pays 3 min of output and 1 scrap (S2).
+- One drop per 10 badges and 1 scrap per 5 badges (the R2 badges replace "pages").
+- **Scrap comes from the daily quests:** each pays 1 scrap, all three a tier-I drop and 2 more,
+  about 5 a day for a casual (N19's 4-6 band counted the Magnet and the nuke, which come in R7
+  and R4); retuned in R4 when the nuke pays scrap.
+- **The Album fills in about two weeks:** a casual opens 2-4 drops a day in days 1-30.
+- **Art:** about 15 USD of Retro Diffusion before S3, for busts and gear.
+
+### D249. Where Supply Drops come from in R3, and how fast
+- **Felling:** a tier-I drop at the 5th lifetime fell, then every 25th, **at most one an hour and
+  three an island day**; marks passed while that gate is shut pay nothing later. 12-feel.md 7.1's
+  "every 5th fell in run 1, every 10th after" would flood: until R4 everyone stays in run 1, and
+  an active player fells about eight times as often as a casual one (the simulator: 206 drops in
+  30 days for the active archetype against 35 for the casual under a plain fell count). The gate
+  also keeps run 1's first hour as R2 tuned it: with more drops early, the cards sped the
+  first-hour scenario's Sheet Metal to 30-37 min and its nuke to 31-38 min (bands 30-50 and
+  40-60), and Frenzy (opening at 40:00) never showed in run 1.
+- **Badges:** one tier-I drop per 10 badges, through the same hourly gate; they wait their turn
+  instead of lapsing (there are six in all). R2's badges come fast in the first hour, and paid at
+  once they alone moved the first-hour nuke to 35-44 min.
+- **The Sealed Locker:** an airdrop kind of weight 1 (1.1% of airdrops) that gives a Supply Drop
+  II instead of supplies; its icon is a locker with a red padlock, tinted gold in the sky.
+- From S2: the third daily quest (tier I) and scrap (30 for II, 120 for III); from R4 the nuke.
+- Measured (seed 11, before S2's quests): the casual opens 1 drop on day 1, 13 by day 7, 23 by
+  day 14 and 44 by day 30 (1.5 a day; the quests add about one a day, inside the owner's 2-4)
+  and owns 30 of the 44 cards by day 14; the active archetype 103 by day 30; the idler 3 (it
+  barely taps: S2's quests and S4 look at it).
+*Revisit* in S4 with the quests in: the gap, the cap and `every` are data (`cards.json5`).
+
+### D250. Supply Drops roll on the base's seed; the first card is Mara; pity is conditional
+Card k of a player's lifetime rolls on `seedOf(base seed, SEED.drop, k)`: the rarity from its
+tier's printed odds, then a card of that rarity uniformly (survivors and gear together, content
+order). Pity counts cards in a row without a Rare, an Epic and a Legendary across tiers and runs
+(`meta.drops.pity`); when a counter reaches its printed limit less one, the next card's rarity is
+drawn from the odds of the rarities from the forced one up, renormalised (a tier without them
+gives the forced rarity). The first card ever is Mara, printed on the odds page (12-feel.md 10's
+"first survivor reveal"). The seed is in the state the client gets, so the client predicts the
+reveal and shows it at once, like every other roll (09-architecture.md 3.1); since the order is
+fixed by the card count, knowing the next card changes nothing a player can choose except which
+tier to open first, which no money touches before R9. A duplicate pays shards: a survivor's own
+(its stars), or, at five stars, gear shards of its rarity; a duplicate gear card pays shards of
+its rarity, and rarity shards buy any gear card of that rarity, so nothing drawn is ever blank
+(N28). `open_drop` names `meta.drops.pulls` as the client saw it, so a second click is refused as
+`stale` instead of opening a second drop. *Revisit* at R9's scrap store: then a server-only seed
+(D98's `World`) and a pending reveal.
+
+### D251. Count-based rewards are paid from counters after every command
+Drops from felling and badges (and from S2 the badges' scrap) are paid by `credit` in
+`applyCommand`, after `earnBadges`, from `meta.stats.felled` and the badge count against
+`meta.drops.paid`, never from events: one taps batch of 30 pays what 30 single taps would, a
+refusal pays nothing, settle pays nothing (N24), and nothing is ever taken back. At most one
+such drop comes per command and per hour (D249). A base from before R3 gets its first on its first
+command, and the badges it already holds pay theirs one an hour after, which is the R3 welcome.
+
+### D252. What a card does, in the effects vocabulary
+- Stars, gear and the kit are each one `more` on the line (5★ = ×2), so the Workshop's output
+  `inc`s never dilute them (an `inc` would make five stars read about ×1.2).
+- A card names a stat and a value (`{stat, value}`); the op and the most each rarity may give
+  come from `CARD_STATS` in `content/src/cards.ts`: output and speed reach the holder's own line
+  (the domain fills in the scope), the rest the whole island. Gear may give up to its rarity's
+  share of a stat's Legendary top (Common 1/3, Rare 1/2, Epic 3/4), a trait up to +25% output's
+  share; the content check holds every card to that, every hand to one survivor card, every
+  rarity to a non-empty pool, odds to 100, pity rising, and the Night Shift with every card's
+  hours under its ceiling.
+- Card effects join `activeEffects`, never `globalEffects` (E23: no card multiplies the flat
+  tap). The effects layer now keys on `meta.cards` and `run.hands` too; `meta.cards` holds only
+  owned survivors with stars and owned gear with its wearer, so shards, drops and pity never
+  rebuild it. The crew sets' Morale multiplies the badges' Morale.
+- The advisor's hire gain multiplies the line by its survivor's card (`hireFactor`).
+- `normalizeState` drops unknown cards, clamps stars to 1-5, and keeps gear only on an owned
+  survivor, one card a slot.
+
+### D253. Cards give production only; the simulator keeps its cards
+- A card's stat is output, speed or offline (the line's output while away), on the holder's own
+  line, or Night Shift hours. The first set also had tap, crit, fell bonus, Frenzy time and
+  airdrop stats: together they lifted N9's active hour to 7.5-8.6× an idle one (band 4-6); no one
+  of them alone did, and halving them still left 6-6.6×. Without them N9 reads 4.9-5.3. Cards
+  make the crew work harder, the taps stay the taps' own (guardrail 2). Traits and gear were
+  re-statted accordingly (names unchanged; `cards.json5`).
+- The simulator (`tend` in `sim.ts`): after a hire or an earned drop, every archetype opens its
+  drops, buys each star its shards pay for, crafts the first missing gear its rarity shards buy,
+  and puts the strongest production gear on the hired survivors whose lines make the most, slot
+  by slot. Its day rows and CSV add `drops` (opened) and `cards` (owned); run 1's beats add
+  `drop` (the first opened: 0:33 for the first-hour scenario, which fells every 7 s).
+- Result: every R0-R2 assertion passes with cards in play (N9 4.94-5.27, rain warns to 6.08; 4.2
+  Sheet Metal 41:14-44:04, Frenzy 41:09, nuke 42:14-45:14; N3 day 1 21:00), and the test
+  profile takes 7.0 s of its 10.
+
+### D254. One scene hint at a time
+On a phone the crow's hint ("A crow! Tap it before it flies off.") and the airdrop's ("Something's
+dropping in...") overlapped when both arrived together (seen in R3 S1's locker shot; an R2 bug).
+The crow's hint now waits while the airdrop's is up (`quiet` in `scene/gulls.ts`); the airdrop
+lasts 13 s, so the crow's shows after it if the crow is still in the sky.
+
+### D255. Work Orders per run beside the daily quests (the missions pick)
+From the missions mocks (`docs/redesign/13-adventure.md`, `?mock=`), the owner picked on
+2026-10-26: **C, both.** Eight **Work Orders** a run (the name is approved, no longer a proposal),
+rolled from a pool per era on the base's seed, each a predicate on the run in the badges' `when`
+vocabulary so the list is data (`orders.json5`, `claim_order`). **Any five fuel the Kettle, and the
+fuelled set crowns the Big Red**: it lights it and the advisor recommends it, and it never locks
+it (pillar 3: the glass formula is unchanged and the press stays free). Each order pays a drop or
+scrap when claimed; the orders card sits at the top of the shop and never reorders (D186); the
+three daily quests stay (`12-feel.md` 9.2), listed under "Today" in the orders sheet and in the
+Logbook. **Cards carry about as much power as Glow** across runs (the postcard's two columns,
+Glow from glass and Crew from cards, roughly even for equal play; the Blast Map stays glass).
+Consequences: R3 S2 builds the orders with scrap, boosts and quests, and the scrap sources are
+re-split so a casual still sees 4-6 a day (N19); a new assertion **N32**, five orders are
+reachable in every run 1, for every archetype; R4's crown rule 3 (the slowing run) becomes "the
+set is fuelled", and the Kettle's fuel stage follows the five orders; R3 S4 and R4 measure the
+cards-against-Glow setting. The mocks (`hud/mocks`) are deleted when S2 ships, as P3's yards were.
+
+### D256. Work Orders: the roll, the run-scoped predicates, the drops through the gate
+`orders.json5` holds pools per era; at the start of every run `rollOrders` draws the `spread` of
+each era's pool on `seedOf(base seed, SEED.order, run number)` (the client predicts the list, nothing
+re-rolls it), at most `activeMax` (3) orders that need the player at the screen and at least
+`idleMin` (5) marked `idle` (eras reached, supplies made, a first pair of hands: what any player
+reaches given time), so an idler can always complete the set (N32, measured: the idler claims 5 in
+run 1). Run 1's spread is 3 Twig, 3 Timber, 2 Stone: run 1 ends in Sheet Metal about a minute
+after reaching it, so Sheet Metal orders would be unreachable; later runs' spreads follow their
+start era (R4). An order is a state predicate in the badges' vocabulary, which gained run-scoped
+states (`run_taps`, `run_felled`, `run_flotsam`, `run_gulls`, `run_frenzies`, `run_made`,
+`line_owned` with its `line`) and `run.frenzy.trips`. The list never reorders (era, then pool
+order; D186). `claim_order` pays the order's drop as a mark the drops' hourly gate pays
+(`meta.drops.owed`, after felling's, before the badges', D251), so the Album's pace stays bounded;
+scrap would pay at once (none ships, D259). The fifth claim sets `run.orders.fuelledAt` and emits
+`orders_fuelled`; `fuelled(state)` is what R4's crown rule 3 and the Kettle's fuel stage read.
+Until R4 the UI calls it "the set" and never names the Kettle or the Big Red (D140): the strings
+switch when they ship. A stored run without orders gets its own run's roll in `normalizeState`.
+
+### D257. Daily quests: one roll for the island, lazy, paid at the roll
+`quests.json5`: three a day drawn on `seedOf(island seed, SEED.quest, island day)`, so every friend
+has the same three (like the weather). Each is a lifetime counter that must grow by `n` since the
+roll: `meta.quests.snapshot` keeps `meta.stats` at the roll, and progress is the difference, so
+counters already high count for nothing. The roll is lazy and lives at the top of `applyCommand`
+after settle and before the rule (never inside settle, N24): when the island day moved it pays the
+old day's met, unclaimed quests and the set's bonus, then draws the new day; a refused command rolls
+too (the roll is time's). Nothing is lost by not clicking; `claim_quest {day, id}` is for the number
+pop and refuses `stale` when the day moved under it. The set pays the owner's D248 numbers (1 scrap
+each, all three a tier-I drop and 2 more), the drop through the same gate as an order's.
+Two quests were eased for the casual (catch one airdrop, catch one crow; one Frenzy): the sim's
+casual missed a set most days otherwise and fell under N19's band.
+
+### D258. Boosts: buffs on real seconds, the Lucky Tide as a grid, refused while running
+`scrap.json5` holds the boosts. Overdrive (lines ×3 for 10 min, 15 scrap) and Double Time (taps ×5
+for 2 min, 10) are ordinary `run.buffs` entries whose effects register in `content.buffs`, so
+settle's cut points, the rates, the tap folds and the buff pills already handle them. The Lucky
+Tide (20 scrap, 5 min) is its own seeded grid like the crows': `run.tide {boost, from, until, last}`,
+slot k at `from + 15 + 90k`, its kind from the flotsam weights without the locker, caught with
+`claim_tide {run, k}` through the airdrop's own button when no airdrop is on the water (the scene's
+`find`). Buying a boost that still runs is refused `running {until}` (no accidental restart: the
+Scrap sheet's Buy reads "Running" with the time left, 6.3 rule 3). A boost dies with the run at the
+nuke: R4's `newRun` must carry running boosts over, and the cover card says a boost is running.
+`buy_drop {tier}` buys a Supply Drop II or III for 30 or 120.
+
+### D259. Scrap's sources: quests and the Magpie; orders pay drops; the plate and the sheet now
+`meta.scrap` (held) and `meta.stats.scrap` (ever earned, what N19 reads), both kept on a Crossing.
+The simulator at R3 (test and `--full`, three seeds) settled the sources: a per-run scrap source
+(orders paying scrap) put the active player at 10.4 a day and the optimal at 12.4, past N19's cap
+of 8, because runs a day vary 1-5 across archetypes while the band is tight. So the shipped
+orders pay tier-I drops only (`pays` stays general), scrap comes from the day's quests (1 each, +2
+the set) and the Magpie (1), and the badges' 1 per 5 of D248 is not built (D255 said the orders
+replace it; the quests do). Measured: casual 4.6-5.0 a day, active 5.4-6.4, optimal 5.9-6.9,
+late joiner 4.1-5.0, idler 1.1-1.3; the casual holds 136-151 by day 30. Scrap falls only by the
+owner's own `buy_boost` or `buy_drop` (a 10,000-command property test). The scrap chip (gold,
+once any was ever earned) and a plain Scrap sheet (boosts and drops with price, effect and what is
+missing; where scrap comes from) ship in S2 so earned scrap is never a dead end; S3 keeps the
+reveal and the pills' polish. The sim's archetypes spend by a `spend` policy (casual: tier-II
+drops; active and optimal: boosts at a session's start). N23's run-1 band rose to 2e12: the
+idler nukes at a check-in and overshoots the nuke point by one Night Shift window of Sheet Metal
+output (1.06e12 with the orders' drops in play).
+
+### D260. The Album in the dock, as three segments (R3 S3)
+The Album joins the dock when the first Supply Drop is earned, held or opened (`albumShown`;
+12-feel.md 4), fifth place between Crew and Logbook; its badge counts the drops waiting plus the
+cards owned since the Album last showed (`albumSeen`, per device like `badgesSeen`). The panel is
+one head ("23 of 44 cards", the drops to open with Open) and three segments, the owner's pick over
+one long page: **Crew** (the 14 survivors as portraits, greyed until found, five star pips under
+each, the on-shift dot; the three sets under them with a bar), **Gear** (the 30 cards by slot,
+the wearer's bust on a worn piece), **Odds** (the shard balances, the printed odds per card and
+tier, the three pity bars "Rare or better within 10 cards · 3 of 10", the first-card note, a
+button to the airdrops' and crows' odds; guardrail 9). Tapping a card opens its sheet. The Crew
+panel stays (R7 gives it the Foreman, Dead Hand and Pockets); its rows gained the bust, the stars
+and a tap to the survivor sheet, so the roster and the collection never disagree.
+
+### D261. Where a drop opens, and the reveal (R3 S3)
+Held drops stand as **crates by the house**, between it and the stockpile (`scene/crates.ts`: one
+sprite per tier, the highest tier in front, at most three drawn, a count on the button past one;
+a 64 px tap area at a fixed screen size, D48; a landing bounce, a lift when opened). Tapping a
+crate, Open in the Album's head, or Open beside a drop just bought in the Scrap sheet opens the
+**reveal**, so a bought drop is never a dead end (6.3 rule 2). The reveal is a sheet: three cards
+face down; a tap on any card, or "Flip the next", turns one over, the rarity's strap and glow
+first, then the face (bust or gear, name, slot, NEW or "+5 shards"); "To the Album" is always
+present, the secondary until the last card, when the primary becomes "Open the next" while
+another drop waits, else "To the Album". The cards are the client's own prediction: `open_drop`
+carries `pull` as the client saw it (a second click is `stale`, D250), and the predicted
+`drop_opened` fills the reveal store (`state/reveal.ts`); the rarity sounds on the flip, not the
+open, so a Legendary rings when it is seen (`card_flipped`). Reduced motion shows the faces
+without the turn. The crate's hint ("A Supply Drop! Tap the crate to open it.") shows until two
+drops were opened and takes the one-hint channel after the airdrop's and before the house's and
+the crow's (D254).
+
+### D262. Rarity colours (R3 S3)
+Four HUD tokens (`--rarity-common` steel grey, `--rarity-rare` sea blue, `--rarity-epic` violet,
+`--rarity-legendary` amber) read as `--rarity` on every card surface: the tile's strap and border,
+the reveal's strap and glow, the sheets' tag, the Odds table's heads, the shard chips and the pity
+bars. Legendary's amber is warmer than scrap's gold so the two never read as one.
+
+### D263. Busts and gear art as pixel PNGs under `art/scene/` (R3 S3)
+Survivors have 24×24 busts (`packages/content/art/scene/bust/<id>.png`, `rd_pro__platformer`
+with the hand sprite as reference and the palette, "head and shoulders, facing the viewer"),
+gear cards 16×16 (`art/scene/gear/<id>.png`; two `rd_plus__low_res` takes and one pro take each,
+as P3 did) and the drop crates 16×16 (`prop/drop_1..3.png`). The HUD draws them through
+`PixelArt` at a whole zoom; the crew SVG glyph and the slot glyph stand in while a file is
+missing, so no pick blocks anything. This is D188's "item icons become pixel PNGs" landing for
+its first kinds: they live under `art/scene/`, where `pnpm art install` and the palette own them,
+and `icons/` stays `currentColor` SVG for glyphs (`nav/album`, `ui/star`, `ui/shard`, the three
+slot glyphs). The gen script now fetches a pending task by id when it has fallen off the API's
+50-task list (a 60-job batch did).
+
+### D264. Provisional art picks (owner, 2026-10-27)
+The owner chose, for S3, that the agent installs its recommended take per sprite
+(`scripts/art/picks/r3.json`) rather than leaving placeholders until the owner picks (P3's rule).
+The contact sheets stay in `preview/art/r3-busts-sheet.png`, `r3-gear-sheet.png` and
+`r3-crates-sheet.png`; a swap is a number in the picks file and `pnpm art install
+scripts/art/picks/r3.json`. Spend: 13.86 USD (busts 5.76 with retakes, gear 8.46, crates 0.36,
+every 502 uncharged); balance after 13.73 USD.
+
+### D265. Workshop tiers 5-8: twenty late items on the same shape; the late tree is a later-runs engine (R3 S4)
+`research.json5` gained tiers 5-6 (Stone) and 7-8 (Sheet Metal), five items each, on D227's rules
+(one scorable effect, 5-25 levels, `40 × 20^(k−1) × 1.35^n`): tier 5 Fire Brick, Bark Liquor,
+Iron Screws (+5% a level on the Furnace, the Tannery, the Press, 25), Bellows (Stone lines 1%
+faster, 20), Quota Board (every line +1%, 25); tier 6 Quarry Rails (Stone lines +5%), Seasoned
+Timber (Timber lines +3%), Wrapped Grips (taps +1, 10), Tar Paper (+5% while away, 10), Shift
+Bell (every line +1%); tier 7 Mooring Winch, Copper Windings, Guy Wires (+5% on the Dock, the
+Generator, the Radio Mast), Drive Belts (Sheet Metal lines 1% faster), Work Rota (every line
++1%); tier 8 Welded Frames (Sheet Metal lines +5%), Brick Lining (Stone lines +3%), Assembly Line
+(every line ×1.02 a level, 10: the late tree's one compounding item), Blackout Cloth (+5% while
+away), Steel Toecaps (taps +1). The Night Shift's 2 h Workshop budget (Spare Wicks) and Hustle's
+ceiling (Steady Rhythm) are spent, so the late tiers never touch them. Names are proposals. The
+whole tree costs about 1.4e15 (the check's 1e18 holds); nothing else changed: `tierEra`, the era
+gate, the tab's groups, the advisor and the checks already took eight tiers. Measured: run 1 is
+untouched (tier 5 opens at Stone from 6.4M against a 5e10 lifetime: the first-hour beats stay
+Stone 8:32-8:59, Sheet Metal 42:29-45:09, Frenzy 41:09, the nuke 42:34-45:19; the casual still
+nukes at day 1 21:00), but from run 2 the late tiers are bought out within a run and act as a
+×6-×9 on the Stone and Sheet Metal lines: the casual's lifetime at day 30 rose from 1.6e20 to
+1.2e23, the optimal's from 2.7e24 to 1.4e26. That is the power R4's nuke rows (N11-N13, the
+glass formula, the Blast Map budget) will be tuned against; nothing R3 asserts moved. The
+simulator buys a Workshop level with the tile's Max (D235): one level at a time, the 500 new
+levels a run put the quick profile past its 10 s.
+
+### D266. Work Orders pay shards; the set pays a drop; the gate pays its queue first and shows it (R3 S4)
+`pnpm sim` showed the orders' drops never arriving: each of the eight orders a run paid a drop
+through the hourly gate (D256), the casual claimed about 185 in 30 days, and the gate (one an
+hour, three sessions) opened 94, so about 100 promised drops sat for ever in an invisible queue;
+with about a run a day, orders alone exceed the owner's 2-4 drops a day (D248), so no tuning
+could keep the promise. The owner picked: **each order pays gear shards of its era's rarity at
+once** (Twig 3 Common, Timber 6 Rare, Stone 10 Epic; `pays: [{ shards: { rarity, n } }]`, a new
+`Pay` kind `pay()` credits to `meta.drops.shards.gear` with a `shards_earned` event), and **the
+fifth claim, the set, pays a tier-I drop** (`orders.json5` `set`, through the gate as the quest
+set's does). The gate now pays its queue (the quest set's and the order sets' marks, the badges')
+**before** felling's marks: the queue's marks are few by construction and must arrive; felling's
+are elastic and lapse when the hour is taken (D249). Felling's mark moved to every 30th fell (a
+casual session fells about 30 times, so a session never comes up empty) and the quest set's drop
+stays gated. The queue is shown: the Album's plate and the Orders sheet's set box say "1 on its
+way · next in 42 min" (`dropsOnWay`, `nextDropAt`), the Odds segment prints the gate's rule, and
+the reward chips show the shard in its rarity's colour with its number flying into the dock's
+Album. Measured (test profile): the casual opens 2.4 a day, never none, the queue at most 1, the
+base set (every Common and Rare, 31 of 44, the owner's "Album in about two weeks") complete on
+day 10, the whole Album never inside 30 days (the four Legendaries by pity over months); the
+idler 0.6, the active 5.2, the late joiner 3.1; the optimal about 9-10 in its first week (an
+hourly player with seven runs a day; the gate's ceiling is 24). **N30** now asserts the casual's
+2-4 mean and nobody above 12; **N33** asserts the base set on days 7-14 and warns if the Album
+completes before day 45. The optimal archetype's first week is `--full`'s (`quickDays: 1`).
+`12-feel.md` 7.1's "orders pay drops" and D259 are superseded; 13-adventure.md B stands with
+"a drop or scrap" read as "shards, and the set a drop".
+
+### D267. The juice checklist on R3's features (R3 S4)
+As D225 and D243 did for R2: a Supply Drop landing has its own thud (`drop_land`, Kenney wood
+impacts), a completed quest set and a fuelled order set their own confirmation (`set_done`), a
+bought boost its own ignition (`boost`), earned shards a glass clink (`shards`); a bought boost's
+or the Lucky Tide's pill lingers a beat as it runs out with its line white and a `boost_ended`
+tick; the Album's held count and the Odds segment's shard chips pop as they rise; a claimed
+order's shards fly from the house into the dock's Album, which bumps. Reduced motion already
+covered the reveal (`.reduced .reveal-*`) and the crates' landing; the new flyers and pops are on
+the same switches.
+
+### D268. R4 The Big Red's plan, the owner's answers and S1's shape (owner, 2026-10-27; R4 S1)
+The plan (four sessions: S1 domain, data, API and simulator; S2 the Kettle, the Big Red, the
+press, the cinematic, the postcard and the landing; S3 the Blast Map, the welcome rule, the bot's
+minimal card v2 and the cut-over's remains; S4 the finish) was approved in plan mode. The owner's
+answers: the bot gets Wipe Day news in the feed channel and a minimal card v2 (text, Collect); the
+art is the Kettle's four stages and the rowboat for about 6-8 USD, the rest procedural; the
+cut-over's remains are the admin CLI (`grant` to held only, `respec_all`) and the founders' gift,
+the legacy and hall rows left archived. S1's structural choices:
+- **Data.** `blastmap.json5` holds wave 1 (Ground Zero and rings 1-3, 73 nodes) copied from the
+  approved catalog (`docs/redesign/04b-blast-map.json`), with `shippedWave: 1`; rings 4-9 join the
+  file in their phases (R5's N15 counts them then). The Tide ring-1 notable `lucky_tide` became
+  `fair_winds` ("Fair Winds"): the Lucky Tide boost owns that id. `agenda.json5` holds shipped rows
+  only (#1 rings 1-2, Glow, Afterglow, the crater, U-Turn; #2 Armored, Loop-the-Loop, Sputter and
+  Drop; #3 hands 1-3, ring 3; the sign styles at #10, #25, #50), each unlock `kind:id` checked
+  against the build. `prestige.json5` gained the Kettle's stages, the crown's 20 h rule, the news
+  throttle, what a press pays and the flights. Effects gained two open forms: `feature:<id>` (an
+  unlock the code reads, on unlock, automation and keystone nodes only, from a registered list) and
+  `per: sector:<id>`; `start_era` carries the tier's index as its value and the tier as scope.
+- **Domain.** `prestige.ts` is the nuke module (`glassYield`, `nuke`, `kettleStage`, `bigRedCrown`,
+  `rollFlight`); `blastmap.ts` the map in play (`nodeState`, `pathTo`, `nodeEffects`, `nodePick`).
+  Settle reads night, rain and Afterglow conditions once an owned effect asks for them, cutting at
+  the island's night edges, the weather blocks where rain starts or stops, and the second
+  Afterglow falls under +10%; Keep Swinging chains an unmanned line's cycles while Hustle is
+  above zero, `readyAt` moving to the first chained end past `now`, so settle stays path
+  independent (N24). Personal Best turns on at the first command after the run passes the
+  record, never inside settle. Hot Breakfast starts the Fuel Drum's Rally on a Collect six hours
+  or more away. The crown's Big Red rules need no state: each only ever becomes true inside a run.
+- **The nuke's drop lands at once**, never through the hourly gate (the press is the ritual's
+  reward): tier I for a small blast, II for a Wipe Day, III for a doubling, the first Wipe Day
+  paid as a doubling (its 3 scrap).
+- **`era_reached` carries `first: true`** the first time ever an era is reached (read from the
+  era badges' wall); the feed takes the Armored one. Wipe Day news folds inside 30 minutes and
+  tells milestones at once (`meta.news`), the feed reading the event's `news` flag.
+- **The admin** is two server-only commands (`grant`, `respec`) behind `ADMIN_TOKEN` (development
+  without one), a CLI over loopback (`apps/api/src/admin-cli.ts`), `/api/status` (version, uptime,
+  the last backup, the last off-site copy, errors in 24 h) and the owner's DMs through the bot's
+  stream (`OWNER_DISCORD_ID`): a failed command once an hour per signature, a stale off-site copy
+  once a day.
+- **The simulator** presses the real `nuke` by each archetype's policy (the crown; doubling; the
+  optimal's "past the peak") and buys the map's pick while glass allows; N1, N2, N11-N14 and 4.10
+  gained their checks, with a per-run table in `pnpm sim`.
+
+### D269. R4's first balance round: the Wipe Day floor, k 0.3, the tap anchors, the nuke's scrap, the bands (R4 S1)
+From `pnpm sim check` with the real nuke (seed 11, test profile):
+- **A Wipe Day needs at least 10 glass** (`countMinGlass`), whatever 10% of glass ever says. With
+  the fuelled set crowning the Big Red (D255), the casual pressed twice a day for +2 glass at 11
+  ever, each a counted Wipe Day worth nothing; now the morning press is a small blast the advisor
+  never crowns, and the evening one pays +10-40.
+- **Glow's k 0.25 → 0.3** (10-balance.md 8.1: the balancing weight) and **the nuke pays scrap only
+  on a doubling** (3; the first Wipe Day included): with the daily quests' 5 a day (D248) a scrap
+  on every Wipe Day put the casual at 6.7 and the active at 9.4 a day (N19: 4-6, nobody above 8);
+  now 5.4 / 6.6.
+- **The Grip anchors eased**: Calloused Hands taps +25% (was +50%), Lucky Swing 4% of taps crit
+  ×8 (was 5% ×10). Even so the active hour reads 6.4-6.5 against R2's 4-6: the tree's `tap` ×1.5
+  (10-balance.md 6.1) sits on top of R2's active layer, so **N9's top is 8** from R4 (rain warns).
+- **Bands re-read for the 2 h Night Shift** (P1's model assumed 12 h windows): the casual's week-1
+  glass band is 200-2,000 (measured 409), N12's early power band starts at ×1.25 (measured ×1.32
+  casual, ×1.32 active, ×1.56 optimal; the step is Glow's), N14's later median is at least 1 node
+  a nuke while the shipped map has room (measured 3 casual, 3 active, 11 optimal; the active lights
+  all 73 nodes in a week, as 10-balance.md 4.7 said). **N12's mid and late bands and N13 warn until
+  R5** ships rings 4-6: with wave 1 lit, a nuke adds only Glow's ×1.05-1.13 and the active's late
+  stretch reads flat (×1.28 over five), which is R5's content, not a tuning fault.
+- Measured otherwise: N1 42:44-45:54, N2 autoclicker 37:25, N3 day 1 21:00, N7 100%, the casual
+  26 Wipe Days by day 30 (band 20-40), the first nuke buys 7-8 nodes (N14's 6-10), N11 warns at
+  94% early and 100% mid for the casual (P1's 65% needs the 12 h window too; R9 asserts it).
+
+### D270. R4 S2, the show: the Kettle's spot, the film inside the view, the postcard's one button, the keyed press (R4 S2)
+The Big Red's show as built (03-the-big-red.md 3-10; 08-screens.md 2.4-2.7):
+- **The Kettle stands on the back terrace at {136, 75}** (art px), left of the car, the rowboat
+  on blocks at {111, 75} at the camp's edge; Armored's shipbreaker pushes them to {96, 75} and
+  {129, 93}. It rises behind the Lone Pine on a phone and reads whole on a desktop. Its drum is
+  procedural (the 14 px takes were blobs); the pad, frame, warhead and fuel stages are Retro
+  Diffusion's `rd_pro__platformer` takes (2.52 USD), each with its pad baked in, so the pad flies
+  with the rocket.
+- **The film keeps the camera's whole-pixel zoom** (D188): instead of the plan's camera ease-out
+  the flight is designed inside the view (`frameAt` takes the view's rectangle), the U-Turn's
+  apex at the view's upper left. `frameAt(variant, seed, ms, geometry)` is pure; the scene draws
+  the island as it stood before the press (`filmBase`) until the impact, the crater after; the
+  blast's puffs and the fireball are pooled sprites; the flash is a CSS overlay reading
+  `--flash`; the shake and the zoom punch ride on the camera about the screen's centre.
+- **The postcard's one button is Rebuild in S2**; "Open the Blast Map" for Wipe Day #1 joins in
+  S3 with the map itself (never a button to nothing). `postcardSvg` lives in `apps/web` until
+  R8's bot needs it.
+- **The press mints one key per hold**, kept in `sessionStorage` with the run number until the
+  answer; a reload resends it under `resent`, whose answer's events play (the postcard without
+  the film) and whose refusal is quiet; a fresh refusal cuts the film to "That launch didn't go
+  through" with Show island; another tab's `nuked` push offers its postcard from a sticky note.
+- **The crown waits for buffs through `CrownOptions.buffRunning`**: the web scores a buff-stripped
+  copy (D200), so it tells the advisor the real base's buffs.
+- **The crater is an ellipse round the target's feet** (the camera looks down), `6 × √N` units
+  deep in rows, the sign on its left rim with screen-space lettering ("#N" under 70 CSS px).
+- **The quick simulator profile reads the run-to-run checks' early band only** (7 days; the mid
+  and late bands are `--full`'s, warn-only until R5 anyway) and plays the active a month (N9's
+  day 60 is `--full`'s). Even so the real nuke loop puts the profile at about 21 s, over
+  CLAUDE.md 9's 10 s: the test holds a 25 s line until R4 S4 brings it back (the active's 43 runs
+  in 60 days cost 16 s; settle per command is the lever).
+
+### D271. R4 S3, the map and the edges: the map as a dock place, the pick only while new, the postcard's buttons, bulk Next, card v2, the gift (R4 S3)
+The Blast Map and the edges as built (04-blast-map.md 8; 08-screens.md 2.9-2.11; 06-friends.md 10):
+- **The Blast Map is a sixth dock place, "Map"**, from Wipe Day #1, with the affordable nodes as
+  its badge (04 8.4); a tree of 73 nodes (361 later) deserves a door of its own, not a chip. The
+  glass plate in the top bar ("1,240", with "Glow ×2.17" on a desktop) opens it too. The panel
+  forgets where it was on close, so it always opens on the disk.
+- **The map advises only while node buying is new** (D244 applied to the map): the pick pulses
+  orange and its card sits at the disk's foot while the player has bought fewer than
+  `hintUses` (2) nodes themselves (Ground Zero is granted); after that the foot is a quiet
+  summary ("24 affordable · 100 glass") and nothing on the map glows. The simulator and the
+  bot keep `nodePick`; `nodeGain` (the pick's weights) moved from the simulator into the domain
+  so the three agree.
+- **A shut ring's gate reads in the header's sub line**, not on the disk: a pill at the ring's top
+  sat on the sector labels; the ring itself is dashed, and the ladder's ring head says it.
+- **The ladder draws no stub to Ground Zero**: ring 1 hangs free at the bottom, where the
+  ladder sits when it is shorter than its box; with a node's sheet open the ladder gets room
+  below and the node scrolls to the centre.
+- **The node sheet's numbers** come from `nodeGlance` in `glance.ts`: the state folded with and
+  without the node, read by kind (income under this moment's conditions, or under the node's
+  own condition marked "At night"; a tap's value; the Night Shift; the next press's glass; Glow;
+  any other stat as an amount from its base or a factor from 1). An owned node reads the same
+  way, so "Lit" sheets still say what the node does.
+- **The postcard's buttons**: Wipe Day #1 has one, **Open the Blast Map** ("10 glass to spend");
+  it lands the boat first (the landing plays as Rebuild's does) and then opens the map on its
+  disk, so the map never shows a crater with no island under it and "< Island" needs no special
+  case (errata E6's "< Rebuild"). From #2: Rebuild primary, "Blast Map · n affordable" (or "·
+  {held} glass" when nothing is affordable) the quiet second way, the same landing-then-map.
+- **Armored's plate stays visible behind its Wipe Day count** ("Wipe Day #2 · 1 to go", a lock
+  glyph, no bar) and its sheet keeps the figures with "Opens after Wipe Day #2 (1 to go)" as
+  the disabled primary (6.3 rule 3; D140 is kept: the count is real and reachable).
+- **Bulk Next**: the map's Bulk Buttons add a fifth size, "Next", up to the line's next milestone
+  (`nextMilestone` in `effects.ts`: the listed steps, then the every-100 grid); it travels as
+  `count: "next"` so the server computes the same k. A stored "Next" without the node reads as
+  ×1.
+- **The welcome rule** is three guards: the advisor's `welcomeOpen` (S1), the Big Red's card never
+  opening over the welcome card (`openCard`), and the chip stepping aside under the phone's
+  expanded drawer (it covered the cards). Tested in `welcome.test.ts`: the crown is the nuke
+  before and after the card, never while it is open.
+- **The bot's card v2 is text** (the owner's "minimal"): era and Wipe Days, the rate, the glass chip
+  with Glow, the Night Shift line, the Big Red's line from `bigRedGlance` (crowned, or "first
+  launch at 50B made (31M now)" from the yield's new `launchAt`), a status line (the last click;
+  else the Big Red crowned or the tap hint, where the game would crown them, D244; else the
+  shift's state). Collect leads when the window is stalled or half used, else Open the game.
+  `boundary.test.ts` is an allowlist (`glance`, `advisor`, `words`, `clock`; the fixtures'
+  `newBase`), and `BOT_COMMANDS = ["collect"]`: the API refuses the rest with `not_on_discord`,
+  and a Collect from Discord never marks the player seen (D121). `nightShiftGlance` joined
+  `glance.ts` so the bot reads the window without `effects`.
+- **The feed's sentences** live in `words.feedLine` (first, plain, folded "{times} times
+  lately", milestone, the new flight's line, the first Armored era), so the channel and the web
+  say the same thing; the folded line no longer names a clock time the event does not carry.
+- **The founders' gift** is `scripts/founders-gift.sh`, run on the VPS: the season-1 player ids
+  from `wipeday-pre-r2s7.db`, one `grant --glass 5 --skin founder` each under `founders:<id>`,
+  so it is safe to run twice. It waits for the owner's `ADMIN_TOKEN` (docs/deploy.md).
+
+### D272. R4 S4, the finish: the quick profile's budget, the scenarios' first press, the Album's day 6, the price cuts measured, Afterglow's tick (R4 S4)
+The finish of R4 as built (the plan's S4; `docs/roadmap.md` "R4 S4 results"):
+- **The simulator's quick profile is back under its budget** by making the domain faster with
+  every number identical (the fingerprint: the active's 30 days made 4.8568e26 and 18,374 glass
+  before and after). The unit-rate memo lives in the effects layer, keyed by line, conditions,
+  the buff kinds running on the line (`buffMask`; a kind running twice at once falls back to the
+  plain fold, which keeps settle path independent) and the line's own count only when an effect
+  counts units: before, every purchase threw the memo away whenever a `per` effect was in force,
+  so the active's 77k single-unit buys a month each re-folded 14 lines. `holds` is a switch, not
+  a record; `milestoneFactors` and each `run.lines`' milestone signature are memoised; `statOf`
+  keys on the stat alone at base 1 and keeps a per-kind memo; `incOf` and the Night Shift's
+  parts fold once a layer; `rates()` takes a fast path for the same state object and remembers a
+  chain hit; `roll(seed)` draws a crit or a weather block without an `Rng` closure; `badgeCount`
+  is memoised per badges object; settle's cut points allocate nothing on a span with none; the
+  per-command peak sample reads `glassRateNow` (the readout's rate alone, the same arithmetic as
+  `glassYield`) and `bigRedCrown` takes a yield already computed. Measured on the owner's machine
+  while a game held about a third of its cores: the quick profile 34 s → 12 s (tsx), the pacing
+  test 12 s in vitest; an idle machine should read about 7-8 s. The test's bound is back at
+  CLAUDE.md's 10 s (D270's 25 s is gone). Two profile knobs in the spirit of D236: the active's
+  quick stop is day 14 (N9's first reading; days 30 and 60 are `--full`'s), and a scenario's
+  session ends with its first press (`quickRuns: 1` on both; every due check reads a scenario's
+  run 1, and N5/N6 read the archetypes' runs 1-5 as well). The determinism test plays two days.
+  Not taken, both measured: bulk buys in the simulator (the crown buys one unit a command, as a
+  player with ×1 does; a ×10 model would change every number for a third of the time) and stable
+  gear wear (gear must follow the top line as the eras climb; without the re-dress at each hire
+  the active makes eight times less, so the 6.5k equips a month stay).
+- **N33's lower bound is day 6.** `--full` showed the casual's base set complete on day 6-7
+  (seeds 7, 11, 23) where R3 read 8-10: R4's nuke drops (D269, from the owner's R3 answer) add
+  about a drop a day to a casual with a Wipe Day a day. Days 7-14 were the agent's reading of
+  "about two weeks" (D266); the full Album stays past day 45 (57-183). The owner decides whether
+  the gate or the nuke's drop tier should tighten instead.
+- **The price cuts are measured at their caps (errata E25).** `pnpm sim caps` folds the map's
+  `more` cuts by stat and scope, for the shipped wave and for every node in the data: wave 1 cuts
+  `upgrade_cost` to ×0.689 (grip), ×0.720 (island) and ×0.650 (line_mk) against the ×0.25 cap,
+  so waves 2-3 have ×2.6-2.9 of room per kind; `line_cost` ×0.810 and `hand_cost` ×0.769 have no
+  cap in the plan; no shipped node cuts `era_cost` yet (cap ×0.5). A test keeps every shipped cut
+  at or above its cap, so R5's wave cannot overshoot.
+- **N13's flat fixture** is a test: five nukes at ×1.05 (×1.28 together) at Wipe Days 60-64,
+  where the agenda lists nothing, fail `flattening`; ×1.06 passes.
+- **Afterglow ends with a tick.** The pill lingers two seconds, empty, as `ending`, and the bus
+  hears `afterglow_ended` (the `frenzy_end` tick, as a boost's end does, D267): every bar a tick
+  at its end (12-feel.md 3.2). The rest of the juice checklist on R4 was met by S2 and S3 and
+  checked here: the press's siren, launch, whistle, boom and sign; `glass_chime` on a node bought
+  and on the yield's rise, with the "+N" glass floater from the Kettle; the glass plate's pop and
+  flash; the Kettle's stage pops; the postcard's flip; a bought node's fill and lit edges; and
+  reduced motion covers the chip, the hold's pulse, the postcard's flip, the map's pick and
+  `just` and the film's cross-fade.
+- **Shots in four weathers.** 08-screens 8.3 asks four skies of R2's shots and the cinematic's
+  night and rain; S4 adds the lasting R4 states in dusk, night and rain (24 `r4s4_*` shots,
+  8.3f). Two fixes from them: the second island's fixture carries a first run's stats, so the
+  onboarding hint no longer sits under the Kettle's chip and the dock is full, as on a real
+  second island; and the airdrop hint's centre never rises above 150 px, so it no longer covers
+  the top bar's plates while a crate is still high.
+- **The cut-over's remains are done** (D242, D271's gift): R4 is complete. `main` keeps shipping
+  from `redesign` until R5 starts, when each phase gets its own branch again (11-roadmap).
+- **Playtest 2** did not arrive during R4; its fixes open R5 (owner screenshots are bugs first).

@@ -6,6 +6,13 @@
 import type { Command } from "@wipe-day/domain/commands";
 import type { BotHome, CommandResponse } from "@wipe-day/domain/wire";
 
+/**
+ * The commands the bot may send (06-friends.md 10.3; D271): Collect, and nothing else. The
+ * API refuses the rest with `not_on_discord`; `boundary.test.ts` holds this list to one.
+ */
+export const BOT_COMMANDS = ["collect"] as const;
+export type BotCommand = Extract<Command, { type: (typeof BOT_COMMANDS)[number] }>;
+
 /** The Discord user a call acts for: the API makes their player on first use. */
 export interface DiscordUser {
   id: string;
@@ -26,8 +33,8 @@ export class ApiError extends Error {
 export interface Api {
   /** The base settled to now, the DM switch and a fresh one-time login link. */
   home(user: DiscordUser): Promise<BotHome>;
-  /** One idempotent command: the same `key` twice runs once. */
-  command(user: DiscordUser, key: string, command: Command): Promise<CommandResponse>;
+  /** One idempotent command (Collect): the same `key` twice runs once. */
+  command(user: DiscordUser, key: string, command: BotCommand): Promise<CommandResponse>;
   setDm(user: DiscordUser, on: boolean): Promise<void>;
   /** The feed channel has every item up to `id`. */
   ackFeed(id: number): Promise<void>;

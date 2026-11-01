@@ -1,51 +1,136 @@
-// Targets the simulator asserts (`pnpm sim check`). Days are season days
-// (day 1 = the first 24 hours). docs/game-design.md section 6; tiers are Stone, Sheet Metal (metal), Armored (hqm).
+// Simulator v2's archetypes and the targets it asserts (`pnpm sim check`; the `test` profile
+// runs inside `pnpm test`). D129, D144; docs/redesign/10-balance.md 7.4. Times are wall clock
+// from the player's first tap; "day N" is the N-th calendar day of play (UTC).
+//
+// Every assertion names its canon number and the phase that switches it on (`on`). Assertions
+// on or before `shipped` must pass (a test fails if one has no implementation); later ones are
+// listed so the plan is visible in one place. `warn: true` prints WARN instead of failing.
 {
-  // Casual player, 3 check-ins a day.
-  casual: {
-    stone: { earliestDay: 3, latestDay: 4 },
-    metal: { earliestDay: 12, latestDay: 14 },
-    hqm: { earliestDay: 15, latestDay: 28 },
-    // The base fills up: buildings standing by the end of the first week (roadmap W2).
-    buildings: { day: 7, count: 6 },
-    // Crafting throughput (roadmap W3): the first of each made by this season day...
-    firstMade: { planks: 2, bow: 4, leather: 9, plates: 10, springs: 18 },
-    // ...and every station has made something by this day.
-    stationsWorkedByDay: 14,
-    // Expeditions (roadmap W4a): the first party out, the first tier-3 site, the crew growing,
-    // and site scrap paying for the salvaged tools.
-    firstTripByDay: 2,
-    tierThreeSiteByDay: 14,
-    // W4b: someone on a job early, and the far north and the sea within the season.
-    jobsByDay: 3,
-    tierFourSiteByDay: 26,
-    tierFiveSiteByDay: 31,
-    crew: { day: 10, count: 5 },
-    tool: { id: "salvaged_tools", byDay: 18 },
-    // W5: scrap rises slowly. On this day the casual player holds between min and max:
-    // enough to use the Den, not a pile with nothing to buy.
-    scrap: { day: 28, min: 800, max: 4000 },
-    // W6: raiders come in the second week, and a casual defence holds some of them off.
-    raids: { firstByDay: 8, day: 28, heldPercent: 30 },
-    // Charges get made and spent on a bandit camp within the season's first half.
-    firstCampByDay: 16,
-    // W7: the Signal takes real goods: from surplus alone, one casual player fills a stage.
-    signalStages: 1,
+  shipped: "R4",
+  // The scenarios play 12 flotsam draws in full (R1's "Done when"; 10-balance.md 8.1 step 1), 4
+  // inside `pnpm test`'s 10 s. The test profile plays each archetype only as long as a due
+  // assertion reads it (`early`: to N9's day 60 for the active player, past run 5 and run 1's end
+  // for everyone), up to 90 days; R2 Feel S6's Workshop made each day dearer (D236).
+  profiles: {
+    test: { days: 90, early: true, seeds: [11], scenarioSeeds: [1, 2, 3, 4] },
+    full: { days: 365, seeds: [7, 11, 23], scenarioSeeds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
   },
-  // W7: the veteran (an optimal player with every perk at its top rank, every blueprint and
-  // the crew at level 5) is held to the optimal floors below, and to at most 25% faster.
-  // W6: the raider (active, raids at every chance the limits allow) against a casual player
-  // who opted in: PvP happens, and the raided player still reaches Armored.
-  pvp: { minRaids: 3, targetHqmByDay: 28 },
-  // W5: the gambler plays the biggest bet up to the daily cap at every check-in. Its scrap
-  // never goes negative and no day's wagers pass that day's cap (asserted in the check).
-  // The greedy planner with hourly check-ins must not beat these.
-  optimal: {
-    hqmNotBeforeDay: 14,
-    tierThreeSiteNotBeforeDay: 7,
-    // The end of the site chain (the season's peak) never before this day.
-    lastSite: { id: "offshore_platform", notBeforeDay: 18 },
+  // Sessions: "HH:MM+Nm" every day (UTC), or "hourly+Nm". Taps a second while a session runs;
+  // `tapsWhileNothingRuns` taps only while no line runs by itself (the idler); `catches` is the
+  // share of the flotsam floating while online that it catches.
+  archetypes: {
+    idler: { sessions: ["08:00+3m", "21:00+3m"], tapsPerSecond: 0, tapsWhileNothingRuns: 4, nuke: "double" },
+    casual: { sessions: ["08:00+5m", "13:00+5m", "21:00+5m"], tapsPerSecond: 4, catches: 0.5, nuke: "crown", spend: "drops" },
+    active: {
+      sessions: ["07:00+10m", "09:00+10m", "12:00+10m", "15:00+10m", "17:00+10m", "19:00+10m", "21:00+10m", "23:00+10m"],
+      tapsPerSecond: 6,
+      // The quick profile plays the active two weeks: N9's day 14; days 30 and 60 are `--full`'s
+      // (R4 S4, D272; a month was the profile's half, D270).
+      quickDays: 14,
+      catches: 1,
+      nuke: "crown",
+      spend: "boosts",
+    },
+    // Hourly sessions and seven runs a day make the optimal player the dearest life: the quick
+    // profile plays its run 1 only (N19's and N30's "nobody above" read it in `--full`).
+    optimal: { sessions: ["hourly+5m"], tapsPerSecond: 6, catches: 1, nuke: "best", spend: "boosts", quickDays: 1 },
+    lateJoiner: { sessions: ["08:00+5m", "13:00+5m", "21:00+5m"], tapsPerSecond: 4, catches: 0.5, nuke: "crown", startDay: 30, spend: "drops" },
   },
-  // Each tier costs roughly this much more than the previous one (by resource-hours).
-  tierCostRatio: { min: 3, max: 6 },
+  // One long session from the first tap. Everything due reads a scenario's run 1 (N1, N2, N8,
+  // N32, the first-hour beats; N5 and N6 read runs 1-5 of the archetypes too), so the quick
+  // profile ends each session with its first press (`quickRuns`, D272); `--full` plays the three
+  // hours.
+  scenarios: {
+    firstHour: { sessions: ["00:00+180m"], tapsPerSecond: 6, catches: 1, nuke: "crown", quickRuns: 1 },
+    autoclicker: { sessions: ["00:00+180m"], tapsPerSecond: 15, catches: 1, nuke: "crown", quickRuns: 1 },
+  },
+  assertions: [
+    // R0: the shape of the numbers.
+    { n: "N21", on: "R0", check: "prestigeShape", exponent: 0.2, l0: 5e5, glowK: 0.3, firstNukeGlass: 10 },
+    { n: "N23", on: "R0", check: "magnitude", max: 1e150 },
+    // R1: the run.
+    { n: "N4", on: "R1", check: "firstHandSeconds", max: 120 },
+    { n: "N5", on: "R1", check: "nothingAffordableEarly", maxSeconds: 30, runs: 5, onlineMinutes: 10 },
+    { n: "N6", on: "R1", check: "nothingAffordableOnline", maxSeconds: 120, runs: 5 },
+    { n: "N7", on: "R1", check: "casualCheckInsWithPurchase", min: 1, days: 1 },
+    // N8 and N9 in R2 Feel's bands (12-feel.md 11; R1's were 5-25% and 1.5-3): outside bursts
+    // (a buff running, or the batch that trips a Frenzy) direct taps are 10-30% from minute 10;
+    // an active hour is 4-6× an idle online hour on the weather-weighted hour (D240).
+    { n: "N8", on: "R2", check: "tapShare", firstMinuteMin: 0.5, fromMinute10: [0.1, 0.3] },
+    // N9 on the weather-weighted hour; a rain hour alone only warns (errata E13).
+    // R4 raised the top to 8 (D269): the Blast Map's Grip anchors are the tree's whole tap power
+    // (10-balance.md 6.1: `tap` ×1.5 lit in week 1), on top of R2's 4-6.
+    { n: "N9", on: "R2", check: "activeHour", days: [14, 30, 60], min: 4, max: 8 },
+    { n: "N9", on: "R2", check: "activeHour", days: [14, 30, 60], rain: true, min: 4, max: 8, warn: true },
+    // The idler nukes at a check-in, so its run 1 overshoots the nuke point by one Night Shift
+    // window of Sheet Metal output (about 1e12 since R3 S2's orders pay drops; was 1e12).
+    { n: "N23", on: "R1", check: "run1Made", min: 1e10, max: 2e12 },
+    // Run 1's script (10-balance.md 4.2, errata E1's column), seconds after the first tap. R2 Feel
+    // S6 retuned it around the Workshop (base output ×0.28, earned back from 2:00), S7 around
+    // Morale, crows and Frenzy (×0.65 more, D240): Timber about 0:57, Mara 1:24, the Workshop
+    // 2:00, the crate 3:00, the first crow 8:00-9:00, Sorting Tables about 8:00, Stone about 10:00,
+    // Frenzy from 40:00, Sheet Metal and the first nuke about 42-46 minutes (N1's 40-60 is R4's).
+    {
+      n: "4.2",
+      on: "R1",
+      check: "firstHourBeats",
+      scenario: "firstHour",
+      beats: {
+        era_wood: [30, 90],
+        hand: [30, 120],
+        research: [120, 150],
+        flotsam: [180, 185],
+        gull: [480, 560],
+        sorting_tables: [240, 600],
+        era_stone: [360, 720],
+        era_metal: [1800, 3000],
+        frenzy: [2400, 2700],
+        nuke: [2400, 3600],
+      },
+    },
+    // R2 Feel: guardrail 1 under the 2 h Night Shift, watched until R4 asserts it.
+    { n: "N3", on: "R2", check: "casualFirstNuke", day: 1, by: "21:00", warn: true },
+    // R3 Cards: scrap as the premium currency (12-feel.md 8, 11; D182) and the Supply Drops.
+    { n: "N19", on: "R3", check: "scrap", casualMean: [4, 6], casualByDay30: 100, anyMeanMax: 8 },
+    // N30: the casual opens 2-4 a day (D248) and at least one every day; the hourly gate's ceiling
+    // is 24, so an hourly player with many short runs may average up to half of it.
+    { n: "N30", on: "R3", check: "casualDropsPerDay", min: 1, days: 30, casualMean: [2, 4], anyMeanMax: 12 },
+    // N33 (D248, D266): the Album's base set (every Common and Rare) in about two weeks for the
+    // casual, never in under a week; the whole Album (the Legendaries by pity) takes months.
+    // R4's nuke drops (D269) bring the base set to day 6 on some seeds (`--full`, R4 S4; D272).
+    { n: "N33", on: "R3", check: "casualAlbumBase", days: 14, notBefore: 6 },
+    { n: "N33", on: "R3", check: "casualAlbumFull", notBefore: 45, days: 30, warn: true },
+    // N32 (D255, D256): five Work Orders are reachable in every run 1, for every archetype.
+    { n: "N32", on: "R3", check: "ordersReachable" },
+    // R4: the nuke (the old R2; 12-feel.md 12 reordered the phases).
+    { n: "N1", on: "R4", check: "firstNukeMinutes", scenario: "firstHour", min: 40, max: 60 },
+    { n: "N2", on: "R4", check: "firstNukeMinutesAny", min: 25 },
+    { n: "N3", on: "R4", check: "casualFirstNuke", day: 1, by: "21:00" },
+    { n: "N7", on: "R4", check: "casualCheckInsWithPurchase", min: 0.9, days: 30 },
+    { n: "N11", on: "R4", check: "passPreviousRun", early: 0.65, mid: 0.95, late: 1, warn: true },
+    // N12 and N13 judge wave 1 only until R5 ships rings 4-6 (D269): the early band is asserted,
+    // mid and late read out as warnings, and a flat late stretch warns.
+    // The early band starts at ×1.25, not P1's ×1.5 (D269): under the 2 h Night Shift a daily
+    // casual nuke pays +10-40 glass, and Glow's step with it is ×1.3-1.4.
+    { n: "N12", on: "R4", check: "powerPerNuke", early: [1.25, 2.5] },
+    { n: "N12", on: "R4", check: "powerPerNuke", early: [1.25, 2.5], mid: [1.15, 1.6], late: [1.1, 1.5], warn: true },
+    { n: "N13", on: "R4", check: "flattening", window: 5, minProduct: 1.3, unlockLookahead: 3, warn: true },
+    { n: "N12", on: "R5", check: "powerPerNuke", early: [1.5, 2.5], mid: [1.15, 1.6], late: [1.1, 1.5] },
+    { n: "N13", on: "R5", check: "flattening", window: 5, minProduct: 1.3, unlockLookahead: 3 },
+    // Later nukes: a median of at least 1 node while the shipped map has room (P1 said 2 with
+    // 12 h windows; D269), read on lives with two or more such nukes.
+    { n: "N14", on: "R4", check: "nodesBought", first: [6, 10], laterMedianMin: 1 },
+    { n: "4.10", on: "R4", check: "casualWipeDaysByDay30", day: 30, min: 20, max: 40 },
+    // Week 1 under the 2 h Night Shift: 200-2,000 glass (P1 said 300-2,000 with 12 h windows; D269).
+    { n: "4.10", on: "R4", check: "casualFirstWeekGlass", day: 7, min: 200, max: 2000 },
+    // R5 on: the tree, the gaps, the slow layer, friends.
+    { n: "N15", on: "R5", check: "treeHorizon", optimalLitDay30Max: 0.45, fullNotBeforeDay: 90 },
+    { n: "N15", on: "R5", check: "casualLitDay180", min: 0.45, warn: true },
+    { n: "N16", on: "R5", check: "gaps", profile: "g5", days: [30, 90], activeMax: 2, optimalMax: 2.5, idlerMin: 0.5 },
+    { n: "N16", on: "R5", check: "gapsAlone", days: [30, 90], activeMax: 2, optimalMax: 2.5, idlerMin: 0.5, warn: true },
+    { n: "5.7", on: "R5", check: "casualRunDaysAfterDay30", max: 3, warn: true },
+    { n: "N17", on: "R8", check: "lateJoiner", withinDays: 12 },
+    // R9: N11 becomes a failing assertion.
+    { n: "N11", on: "R9", check: "passPreviousRun", early: 0.65, mid: 0.95, late: 1 },
+  ],
 }

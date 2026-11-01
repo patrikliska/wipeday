@@ -1,0 +1,468 @@
+[
+  {
+    "id": "old_friend", "sector": "crew", "ring": 1, "slot": 1, "type": "automation",
+    "name": "Old Friends",
+    "text": "Mara stays hired through every Wipe Day and rows back in with you",
+    "effects": [
+      {"stat": "keep_hand", "op": "unlock", "value": 1, "scope": "beachcomber"}
+    ],
+    "cost": 2, "requires": ["ground_zero"], "wave": "R2",
+    "anchor": true,
+    "scene": "Mara rows in with the crew at every landing and walks straight to the tideline"
+  },
+  {
+    "id": "fair_pay_1", "sector": "crew", "ring": 1, "slot": 2, "type": "small",
+    "name": "Fair Pay I",
+    "series": "fair_pay",
+    "text": "Hands cost ×0.95",
+    "effects": [
+      {"stat": "hand_cost", "op": "more", "value": 0.95}
+    ],
+    "cost": 1, "requires": ["ground_zero"], "wave": "R2"
+  },
+  {
+    "id": "hiring_board", "sector": "crew", "ring": 2, "slot": 1, "type": "notable",
+    "name": "Hiring Board",
+    "text": "Dax stays hired through every Wipe Day too, and every hand costs ×0.9",
+    "effects": [
+      {"stat": "keep_hand", "op": "unlock", "value": 1, "scope": "campfire"},
+      {"stat": "hand_cost", "op": "more", "value": 0.9}
+    ],
+    "cost": 9, "requires": ["old_friend"], "wave": "R2",
+    "scene": "a hiring board by the cabin, one painted name per kept hand"
+  },
+  {
+    "id": "work_gang_1", "sector": "crew", "ring": 2, "slot": 2, "type": "small",
+    "name": "Work Gang I",
+    "series": "work_gang",
+    "text": "Twig-era lines +25%",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.25, "scope": "twig"}
+    ],
+    "cost": 5, "requires": ["old_friend", "fair_pay_1"], "wave": "R2"
+  },
+  {
+    "id": "pep_talk", "sector": "crew", "ring": 2, "slot": 3, "type": "notable",
+    "name": "Pep Talk",
+    "text": "All lines +1% a hand on shift (up to +5%), twice that while Afterglow lasts",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.01, "per": "hands", "max": 0.05},
+      {"stat": "output", "op": "inc", "value": 0.01, "per": "hands", "max": 0.05, "when": "afterglow"}
+    ],
+    "cost": 11, "requires": ["fair_pay_1"], "wave": "R2"
+  },
+  {
+    "id": "work_gang_2", "sector": "crew", "ring": 3, "slot": 1, "type": "small",
+    "name": "Work Gang II",
+    "series": "work_gang",
+    "text": "Timber-era lines +30%",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "scope": "wood"}
+    ],
+    "cost": 25, "requires": ["hiring_board"], "wave": "R2"
+  },
+  {
+    "id": "old_crew_1", "sector": "crew", "ring": 3, "slot": 2, "type": "automation",
+    "name": "Old Crew I",
+    "text": "Hands for lines 1-6 stay hired through every Wipe Day",
+    "effects": [
+      {"stat": "keep_hand", "op": "unlock", "value": 1, "scope": "twig"},
+      {"stat": "keep_hand", "op": "unlock", "value": 1, "scope": "wood"}
+    ],
+    "cost": 33, "requires": ["hiring_board", "work_gang_1"], "wave": "R2",
+    "anchor": true
+  },
+  {
+    "id": "fair_wages", "sector": "crew", "ring": 3, "slot": 3, "type": "notable",
+    "name": "Fair Wages",
+    "text": "Hands cost ×0.9, and each hand on shift adds +0.5% to all lines (up to +5%)",
+    "effects": [
+      {"stat": "hand_cost", "op": "more", "value": 0.9},
+      {"stat": "output", "op": "inc", "value": 0.005, "per": "hands", "max": 0.05}
+    ],
+    "cost": 66, "requires": ["work_gang_1", "pep_talk"], "wave": "R2"
+  },
+  {
+    "id": "crew_kit_1", "sector": "crew", "ring": 3, "slot": 4, "type": "small",
+    "name": "Crew Kit I",
+    "series": "crew_kit",
+    "text": "Runs start with 10 Looms, at work as soon as Timber opens",
+    "effects": [
+      {"stat": "start_owned", "op": "set", "value": 10, "scope": "loom"}
+    ],
+    "cost": 44, "requires": ["pep_talk"], "wave": "R2"
+  },
+  {
+    "id": "pay_day", "sector": "crew", "ring": 4, "slot": 1, "type": "unlock",
+    "name": "Pay Day",
+    "text": "Ring the bell by the cabin once a run: manned lines ×3 for 5 minutes",
+    "effects": [
+      {"stat": "feature:pay_day", "op": "unlock", "value": 1}
+    ],
+    "counts_as": [
+      {"stat": "output", "op": "more", "value": 1.02, "scope": "all"}
+    ],
+    "cost": 333, "requires": ["work_gang_2"], "wave": "R3",
+    "feature": "feature:pay_day",
+    "scene": "a rusty bell on a post by the cabin; rung, the crew cheer and toss their caps for 5 minutes (a scene object, never a Toolbelt button)"
+  },
+  {
+    "id": "crew_kit_2", "sector": "crew", "ring": 4, "slot": 2, "type": "small",
+    "name": "Crew Kit II",
+    "series": "crew_kit",
+    "text": "Runs start with 10 Workbenches, at work as soon as Timber opens",
+    "effects": [
+      {"stat": "start_owned", "op": "set", "value": 10, "scope": "workbench"}
+    ],
+    "cost": 222, "requires": ["work_gang_2", "old_crew_1"], "wave": "R3"
+  },
+  {
+    "id": "full_crew", "sector": "crew", "ring": 4, "slot": 3, "type": "completion",
+    "name": "Full Crew",
+    "text": "All of Crew's ring 3 lit: hands cost ×0.85",
+    "effects": [
+      {"stat": "hand_cost", "op": "more", "value": 0.85}
+    ],
+    "cost": 555, "requires": ["work_gang_2", "old_crew_1", "fair_wages", "crew_kit_1"], "wave": "R3"
+  },
+  {
+    "id": "work_gang_3", "sector": "crew", "ring": 4, "slot": 4, "type": "small",
+    "name": "Work Gang III",
+    "series": "work_gang",
+    "text": "Stone-era lines +30%",
+    "effects": [
+      {"stat": "output", "op": "inc", "value": 0.3, "scope": "stone"}
+    ],
+    "cost": 333, "requires": ["fair_wages", "crew_kit_1"], "wave": "R3"
+  },
+  {
+    "id": "roll_call", "sector": "crew", "ring": 4, "slot": 5, "type": "automation",
+    "name": "Roll Call",
+    "text": "A Roll Call button hires every hand you can afford, keeping the crown's price",
+    "effects": [
+      {"stat": "feature:roll_call", "op": "unlock", "value": 1}
+    ],
+    "cost": 444, "requires": ["crew_kit_1"], "wave": "R3",
+    "feature": "feature:roll_call"
+  },
+  {
+    "id": "fair_pay_2", "sector": "crew", "ring": 5, "slot": 1, "type": "small",
+    "name": "Fair Pay II",
+    "series": "fair_pay",
+    "text": "Hands cost ×0.85",
+    "effects": [
+      {"stat": "hand_cost", "op": "more", "value": 0.85}
+    ],
+    "cost": 2222, "requires": ["pay_day"], "wave": "R3"
+  },
+  {
+    "id": "old_crew_2", "sector": "crew", "ring": 5, "slot": 2, "type": "automation",
+    "name": "Old Crew II",
+    "text": "Hands for lines 1-10 stay hired through every Wipe Day",
+    "effects": [
+      {"stat": "keep_hand", "op": "unlock", "value": 1, "scope": "twig"},
+      {"stat": "keep_hand", "op": "unlock", "value": 1, "scope": "wood"},
+      {"stat": "keep_hand", "op": "unlock", "value": 1, "scope": "stone"},
+      {"stat": "keep_hand", "op": "unlock", "value": 1, "scope": "dock"}
+    ],
+    "cost": 3333, "requires": ["crew_kit_2"], "wave": "R3"
+  },
+  {
+    "id": "skeleton_crew", "sector": "crew", "ring": 5, "slot": 3, "type": "keystone",
+    "name": "Skeleton Crew",
+    "text": "Hands cost nothing and manned lines pay ×2, but only five hands work at once",
+    "effects": [
+      {"stat": "hand_cap", "op": "set", "value": 5},
+      {"stat": "hand_cost", "op": "more", "value": 0},
+      {"stat": "feature:skeleton_crew", "op": "unlock", "value": 1}
+    ],
+    "cost": 7777, "requires": ["full_crew"], "wave": "R3",
+    "feature": "feature:skeleton_crew",
+    "conflicts": ["lone_wolf"]
+  },
+  {
+    "id": "bunkhouse", "sector": "crew", "ring": 5, "slot": 4, "type": "notable",
+    "name": "Bunkhouse",
+    "text": "Rested hands: all lines cycle ×1.3 faster; the bunkhouse stands from the start",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 1.3}
+    ],
+    "cost": 4444, "requires": ["work_gang_3"], "wave": "R3",
+    "scene": "a bunkhouse with a stove pipe and a washing line stands by the cabin from the first second of every run"
+  },
+  {
+    "id": "crew_spirit_1", "sector": "crew", "ring": 5, "slot": 5, "type": "small",
+    "name": "Crew Spirit I",
+    "series": "crew_spirit",
+    "text": "All lines +1.5% a hand on shift (up to ×1.21)",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.015, "per": "hands", "max": 1.21}
+    ],
+    "cost": 3333, "requires": ["roll_call"], "wave": "R3"
+  },
+  {
+    "id": "crew_spirit_2", "sector": "crew", "ring": 6, "slot": 1, "type": "small",
+    "name": "Crew Spirit II",
+    "series": "crew_spirit",
+    "text": "All lines +2% a hand on shift (up to ×1.28)",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.02, "per": "hands", "max": 1.28}
+    ],
+    "cost": 22200, "requires": ["fair_pay_2"], "wave": "R3"
+  },
+  {
+    "id": "foremans_mate", "sector": "crew", "ring": 6, "slot": 2, "type": "automation",
+    "name": "Foreman's Mate",
+    "text": "The Foreman also buys units for lines with no hand on shift",
+    "effects": [
+      {"stat": "feature:foreman_unmanned", "op": "unlock", "value": 1}
+    ],
+    "cost": 33300, "requires": ["fair_pay_2", "old_crew_2"], "wave": "R5", "gate": 20,
+    "feature": "feature:foreman_unmanned"
+  },
+  {
+    "id": "old_crew_3", "sector": "crew", "ring": 6, "slot": 3, "type": "automation",
+    "name": "Old Crew III",
+    "text": "Every hand stays hired through every Wipe Day",
+    "effects": [
+      {"stat": "keep_hand", "op": "unlock", "value": 1, "scope": "all"}
+    ],
+    "cost": 44400, "requires": ["old_crew_2", "skeleton_crew"], "wave": "R3"
+  },
+  {
+    "id": "work_gang_4", "sector": "crew", "ring": 6, "slot": 4, "type": "small",
+    "name": "Work Gang IV",
+    "series": "work_gang",
+    "text": "Armored-era lines ×1.5",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "hqm"}
+    ],
+    "cost": 33300, "requires": ["skeleton_crew", "bunkhouse"], "wave": "R3"
+  },
+  {
+    "id": "crew_charter", "sector": "crew", "ring": 6, "slot": 5, "type": "notable",
+    "name": "Crew Charter",
+    "text": "All lines +3% for every Crew node you own (up to ×1.75)",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.03, "per": "sector:crew", "max": 1.75}
+    ],
+    "cost": 77700, "requires": ["bunkhouse", "crew_spirit_1"], "wave": "R3"
+  },
+  {
+    "id": "square_meals_1", "sector": "crew", "ring": 6, "slot": 6, "type": "small",
+    "name": "Square Meals I",
+    "series": "square_meals",
+    "text": "All lines ×1.15",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.15, "scope": "all"}
+    ],
+    "cost": 22200, "requires": ["crew_spirit_1"], "wave": "R3"
+  },
+  {
+    "id": "scar_tissue", "sector": "crew", "ring": 7, "slot": 1, "type": "notable",
+    "name": "Scar Tissue",
+    "text": "All lines +0.5% for every Wipe Day your crew has lived through (up to ×1.25)",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.005, "per": "nukes", "max": 1.25}
+    ],
+    "cost": 555000, "requires": ["crew_spirit_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "work_gang_5", "sector": "crew", "ring": 7, "slot": 2, "type": "small",
+    "name": "Work Gang V",
+    "series": "work_gang",
+    "text": "Armored-era lines ×1.5",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "hqm"}
+    ],
+    "cost": 333000, "requires": ["foremans_mate"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "square_meals_2", "sector": "crew", "ring": 7, "slot": 3, "type": "small",
+    "name": "Square Meals II",
+    "series": "square_meals",
+    "text": "All lines ×1.1",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 222000, "requires": ["old_crew_3"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "crew_spirit_3", "sector": "crew", "ring": 7, "slot": 4, "type": "small",
+    "name": "Crew Spirit III",
+    "series": "crew_spirit",
+    "text": "All lines +2% a hand on shift (up to ×1.28)",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.02, "per": "hands", "max": 1.28}
+    ],
+    "cost": 333000, "requires": ["work_gang_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "square_meals_3", "sector": "crew", "ring": 7, "slot": 5, "type": "small",
+    "name": "Square Meals III",
+    "series": "square_meals",
+    "text": "All lines ×1.1",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 222000, "requires": ["crew_charter"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "crew_photo", "sector": "crew", "ring": 7, "slot": 6, "type": "unlock",
+    "name": "Crew Photo",
+    "text": "All lines ×1.4 until this run out-earns your crew photo; then it's retaken",
+    "effects": [
+      {"stat": "feature:crew_photo", "op": "unlock", "value": 1}
+    ],
+    "counts_as": [
+      {"stat": "output", "op": "more", "value": 1.4, "scope": "all"}
+    ],
+    "cost": 444000, "requires": ["square_meals_1"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:crew_photo",
+    "scene": "a framed photo of your best run's crew on the cabin wall; a camera flash and a fresh photo when a run beats it"
+  },
+  {
+    "id": "crew_spirit_4", "sector": "crew", "ring": 8, "slot": 1, "type": "small",
+    "name": "Crew Spirit IV",
+    "series": "crew_spirit",
+    "text": "All lines +2% a hand on shift (up to ×1.28)",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.02, "per": "hands", "max": 1.28}
+    ],
+    "cost": 2220000, "requires": ["scar_tissue"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "square_meals_4", "sector": "crew", "ring": 8, "slot": 2, "type": "small",
+    "name": "Square Meals IV",
+    "series": "square_meals",
+    "text": "All lines ×1.1",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 2220000, "requires": ["scar_tissue", "work_gang_5"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "time_and_motion", "sector": "crew", "ring": 8, "slot": 3, "type": "notable",
+    "name": "Time and Motion",
+    "text": "All lines cycle ×1.7 faster",
+    "effects": [
+      {"stat": "speed", "op": "more", "value": 1.7}
+    ],
+    "cost": 5550000, "requires": ["work_gang_5", "square_meals_2"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "lone_wolf", "sector": "crew", "ring": 8, "slot": 4, "type": "keystone",
+    "name": "Lone Wolf",
+    "text": "Taps ×50, but no hands at all: lines run only while you tap (ranks still count)",
+    "effects": [
+      {"stat": "tap", "op": "more", "value": 50},
+      {"stat": "hand_cap", "op": "set", "value": 0}
+    ],
+    "cost": 7770000, "requires": ["square_meals_2", "crew_spirit_3"], "wave": "R7", "data_from": "R3",
+    "conflicts": ["archivist", "bunker_mentality", "skeleton_crew"],
+    "anchor": true
+  },
+  {
+    "id": "standing_crew", "sector": "crew", "ring": 8, "slot": 5, "type": "automation",
+    "name": "Standing Crew",
+    "text": "Each kept hand brings 10 units of their line, on top of any kit",
+    "effects": [
+      {"stat": "feature:standing_crew", "op": "unlock", "value": 1}
+    ],
+    "cost": 3330000, "requires": ["crew_spirit_3", "square_meals_3"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:standing_crew"
+  },
+  {
+    "id": "work_gang_6", "sector": "crew", "ring": 8, "slot": 6, "type": "small",
+    "name": "Work Gang VI",
+    "series": "work_gang",
+    "text": "Armored-era lines ×1.5",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "hqm"}
+    ],
+    "cost": 3330000, "requires": ["square_meals_3", "crew_photo"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "square_meals_5", "sector": "crew", "ring": 8, "slot": 7, "type": "small",
+    "name": "Square Meals V",
+    "series": "square_meals",
+    "text": "All lines ×1.1",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 2220000, "requires": ["crew_photo"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "square_meals_6", "sector": "crew", "ring": 9, "slot": 1, "type": "small",
+    "name": "Square Meals VI",
+    "series": "square_meals",
+    "text": "All lines ×1.1",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 22200000, "requires": ["crew_spirit_4"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "relief_crew", "sector": "crew", "ring": 9, "slot": 2, "type": "unlock",
+    "name": "Relief Crew",
+    "text": "Each line takes a second hand at ×10 the price: that line ×1.5",
+    "effects": [
+      {"stat": "feature:relief_crew", "op": "unlock", "value": 1}
+    ],
+    "counts_as": [
+      {"stat": "output", "op": "more", "value": 1.5, "scope": "all"}
+    ],
+    "cost": 33300000, "requires": ["square_meals_4"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:relief_crew",
+    "scene": "a second figure works beside each hand; the pair swap places when the bell rings"
+  },
+  {
+    "id": "square_meals_7", "sector": "crew", "ring": 9, "slot": 3, "type": "small",
+    "name": "Square Meals VII",
+    "series": "square_meals",
+    "text": "All lines ×1.1",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 1.1, "scope": "all"}
+    ],
+    "cost": 22200000, "requires": ["time_and_motion"], "wave": "R7", "data_from": "R3"
+  },
+  {
+    "id": "crew_legends", "sector": "crew", "ring": 9, "slot": 4, "type": "completion",
+    "name": "Crew Legends",
+    "text": "All of Crew's ring 8 lit: all lines ×2",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 2, "scope": "all"}
+    ],
+    "cost": 55500000, "requires": ["crew_spirit_4", "square_meals_4", "time_and_motion", "lone_wolf", "standing_crew", "work_gang_6", "square_meals_5"], "wave": "R7", "data_from": "R3",
+    "scene": "every hand's name burned into a driftwood sign over the base door"
+  },
+  {
+    "id": "campfire_stories", "sector": "crew", "ring": 9, "slot": 5, "type": "notable",
+    "name": "Campfire Stories",
+    "text": "All lines +0.1% for every Logbook page (up to ×1.15)",
+    "effects": [
+      {"stat": "output", "op": "more", "value": 0.001, "per": "entries", "max": 1.15}
+    ],
+    "cost": 77700000, "requires": ["standing_crew"], "wave": "R7", "data_from": "R4"
+  },
+  {
+    "id": "lifers", "sector": "crew", "ring": 9, "slot": 6, "type": "automation",
+    "name": "Lifers",
+    "text": "Kept hands keep their line's Line Mk III through the blast",
+    "effects": [
+      {"stat": "feature:lifers", "op": "unlock", "value": 1}
+    ],
+    "cost": 33300000, "requires": ["work_gang_6"], "wave": "R7", "data_from": "R3",
+    "feature": "feature:lifers"
+  },
+  {
+    "id": "fair_pay_3", "sector": "crew", "ring": 9, "slot": 7, "type": "small",
+    "name": "Fair Pay III",
+    "series": "fair_pay",
+    "text": "Hands cost ×0.85 (second hands too)",
+    "effects": [
+      {"stat": "hand_cost", "op": "more", "value": 0.85}
+    ],
+    "cost": 22200000, "requires": ["square_meals_5"], "wave": "R7", "data_from": "R3"
+  }
+]

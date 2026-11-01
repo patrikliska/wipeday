@@ -1,0 +1,281 @@
+missing []
+===== 01-vision
+I wrote 01-vision.md, about 5,000 words. It expands the canon and the amendments and does not contradict them.
+
+Sections:
+1. **The brief, ask by ask.** An 11-row table: what was asked, how the plan answers it, and which file holds the detail. The direct answers:
+   - Seasons are removed as a reset. Two resets would fight for one emotion, the reset costs no SQL to remove, "month" stays as a board window, and season 1 ends as a ceremony at cut-over.
+   - The removed, parked, reworked and kept systems are listed.
+   - Scrap becomes rare through the Magnet.
+   - "Blueprint Fragments" is a real Rust item (D43), so its job goes to Crater Glass and Pockets.
+2. **What is wrong with today's loop.** Ten problems, each with evidence from the code survey, and an honest list of what is good and stays. The evidence covers the 62 purchases a season, ×30 growth, additive modifiers, caps as the real wall, the daily haul (D63), timers, punished absence, the 1.6× and 25% guardrails, the shared `refPer100` economy and the 2^53 / "B" limits.
+3. **Pitch and the five pillars,** each with what it rules out, plus the three currencies and where Rust lives.
+4. **The experience over time:** the canon first-ten-minutes script, the first active hour, a casual day 1 (08:00, 13:00, 21:00), the first nuke, run 2, week 1, month 1, month 3, and the return after two days away.
+5. **Three friends in one week** (an idler, a casual and an active player). It covers nuke news, Blowback, the Freighter, the Island Count, the boards and Late Tide, and gives five reasons with numbers why nobody falls hopelessly behind.
+6. **The main views at a glance,** pointing to 08-screens.md.
+7. **One page on the build plan (R0-R7, about 26 sessions) and the owner's decisions.** The one-currency-versus-materials decision comes first, per amendment A2.
+
+Numbers that are not canon are marked illustrative.
+OPEN QUESTIONS:
+  - The original brief was not among my inputs. Section 1 paraphrases it as the research and proposals quote it ("click like crazy", "MASSIVE tree", "make scrap RARE", "blueprint fragments", the seasons question, "remove other stuff"). The orchestrator should check the rows against the owner's actual words and add any ask I missed.
+  - Canon 13.9 defines the idler archetype as 'never taps', but it cannot start run 1: the first supplies come only from taps, and unmanned lines run only while you tap. A later run without kept hands or Old Friends cannot start either. Suggest the idler taps only until its first hand each run, or until it owns Old Friends. 10-balance.md should settle this.
+  - Canon lists '3 scrap for the first nuke' as a scrap source, but scrap ships in R5, long after R2's first nukes. Suggest that R5 grants 3 scrap to every player with at least one Wipe Day, under the canon rule 'players past a gate get it at once'. 05-meta-layers.md should confirm.
+  - An idler who checks in at 08:00 and 21:00 has a 13-hour gap. That is one hour past the 12-hour base Night Shift, until Deep Cellars (1 glass) is bought after the first nuke. This fits canon, which promises to cover only the casual player's night. If the owner wants the idler covered from day 1, the base window would need to be 13 hours, which changes N18.
+===== 02-the-run
+02-the-run.md is written: the full design of one run, about 7,900 words outside code. Mostly tables, with constants marked (sim) and names marked (proposal).
+
+- **Products (A1):** the line-to-product mapping is final. Eleven reuse old ids (timber, roast, fibre, rope, planks, charcoal, ingots, leather, fuel, food, plates). Three are new: `battery`, `broadcast` and `cell`. Each product appears in the shop row, in the floater that flies into the counter, and in the scene. Icons live under `product/`.
+- **Lines:** all 14 lines with the formulas and drawings at 1, 25 and 100 owned. Includes unit costs for the 10th, 25th, 50th and 100th unit, closed-form buy-k and buy-max with worked examples, and the bulk-buy toggle.
+- **Manned and unmanned lines:** exact rules. The canon formula has `from` clamped to a per-line `readyAt`, and a cycle pays when its bar fills. The section also covers what the row shows and 11 edge cases.
+- **Milestones and the shelf:** per-line and roster milestones with their scene changes. The shelf is 44 items: 5 Grip rungs (Rock is the free start), 28 Line Mks with subtitles and prices, 8 island upgrades with props, and 4 eras. 40 can go in a Pocket.
+- **Eras and the tap:** era targets with fell counts, cries and the Wreck. The tap formula gets worked examples at minutes 1, 10 and 30 and in run 2. Also exact rules for Hustle, the token bucket, hold to work, felling, crits and the click-share identity.
+- **Flotsam:** odds per phase, the schedule built from seed, run and index, the 3:00 crate guarantee, the claim window, the odds sheet and hidden tabs.
+- **The rest:** the 14 hands and what keeps them through a nuke, the automation ladder, Night Shift rules and welcome-back numbers, the advisor's crown conditions and 20 hints, the start of a run after a nuke and how run 2 differs, and JSON5 sketches of the data files with their content checks.
+
+10 open questions are listed below.
+OPEN QUESTIONS:
+  - Radio Mast product id: this file finalises a new `broadcast` instead of A1's `signal`, because `signal` is the removed season system's id (D119), with its own locale namespace and stage icons on the stop list. 07-what-changes.md section 8.5 still lists `signal` and should follow.
+  - Unmanned crediting needs per-line state (`readyAt`, `pending`). Read literally, canon 4.5's formula credits a full cycle in every batch even while the previous cycle is still running, so one tap a second on the 19-s Kiln would pay 19 times its rate. 09-architecture.md should confirm the state, payment when the bar fills, and the property tests.
+  - Tap formula 'then the global fold': Glow and Morale are applied only to the flat 2^grip part, because p × fullRate already carries them (otherwise a Glow of ×117 would be counted twice). Tap nodes apply to the whole tap value.
+  - N8 conflicts with the canon constants. With p = 1% per Grip rung, the active archetype's tap share is about 22% at Iron Tools, 29% at Salvaged Tools and 35% at Power Tools, against a 25% ceiling. A rough model also gives about 20% tap share in the first minute, against a 50% floor. 10-balance.md should tune p (for example 0.5% per rung), r_1 or the early flat tap. N8 stays.
+  - Canon 4.9 hires Mara at 1:42 before Timber at 2:00, but canon 12.5 crowns the era before a hand, and Timber (1.5k) is cheaper than Mara (1.8k). Proposed: keep 12.5, so the script reads Timber about 1:30, Mara about 1:50 (the simulator owns the times).
+  - Weather must become deterministic game state for rain ×1.5 on flotsam to be checked by the server. Today it is client-only demo state (store.ts setWeather). Proposed: one shared function of UTC time in 30-minute blocks (70% clear, 20% rain, 10% fog, sim).
+  - Canon's 'about 50' shelf purchases: its own list adds up to 44 (4 Grip, 28 Mk, 8 island, 4 eras). No filler is proposed; with the 14 hands a run has 58 one-off purchases.
+  - Roster milestones: a tier, once reached, is kept for the run, so buying an era (which adds three lines at 0) never takes away a ×2. This clarifies canon's 'every unlocked line'.
+  - Run 1's guaranteed crate pays a flat 15 minutes of full rate (no 15%-of-held cap) and comes back every 3 minutes until caught, so a new player who holds almost nothing still gets canon's '+15 min of supplies' moment.
+  - When the same buff is caught again its timer restarts; it never stacks. Natural spawns never overlap a Rally (the shortest gap, 2:40 in rain, is longer than 60 s), so Rally plus Adrenaline combos need the Flare (R5) or Tide nodes. This clarifies 'buffs multiply'.
+===== 03-the-big-red
+I wrote 03-the-big-red.md, about 6,300 words of prose. Everything is marked as a proposal.
+
+- **Formula:** the delta is taken from the formula level already paid, with modifiers applied after, so bonuses are never clawed back. Worked tables cover the reference levels, a five-nuke first week and a farming check, plus a cube-root versus square-root comparison that recommends cube root.
+- **Small blasts:** the 10% rule splits counted Wipe Days from small blasts. Only counted nukes move the agenda, the sign, the news and Blowback.
+- **Late Tide and data:** Late Tide is one modifier and never moves the first nuke's timing. All keys live in prestige.json5.
+- **When to press:** the readout is defined (the run's average glass per hour and its peak). There are three crown rules, sticky, with waits during buffs, welcome back and unmet Dares. The first nuke is guided, and Dead Hand gets limits and a 5 s cancel toast.
+- **Kettle and Big Red:** the Kettle sits in the Signal's spot (Scene.ts:225), with stage triggers, shapes and colours by day and night and a yield floater. The Big Red has both lids, its states and the phone chip.
+- **Cover card, hold and film:** the cover card has a wireframe, copy keys, a locked variant and accessibility. The hold has timings, siren, haptics and 12 one-liners. The cinematic has a storyboard in ms, 12 flight variants with unlocks and phases, skip and reduced-motion rules, shot pinning, a phone particle budget, and network, reload and two-tab handling.
+- **After the blast:** the postcard has front, back, title variants and a shared SVG for Discord in R6. The rebuild covers the screen, landing, green sky and ash. Afterglow is anchored at the first tap of the new run.
+- **Reference tables:** an exhaustive kept and lost table, the agenda with ship phases and backfill, run targets and an edge-case table.
+- **The Crossing:** trigger, Barge planks, a Sea Charts table, what resets and stays, and island traits.
+OPEN QUESTIONS:
+  - Canon 5.4's example '+12 glass, Glow ×1.79 → ×2.35' does not compute: from 10 glass ever, +12 gives ×2.17, and ×2.35 needs +19. The file uses consistent numbers, and the canon example should be fixed in R0.
+  - Canon 5.1 says a nuke 'pays G − glass already earned'. With Bigger Payload, Late Tide or the founders' grant, that claws bonuses back at the next nuke. Proposed wording: pays (G − level) × modifiers, where level is the formula level already paid.
+  - Canon 5.3 puts the Kettle's frame at '10% of glass ever' in later runs, the same threshold as the warhead, so two stages would appear at once. The file uses 10% of the counting threshold instead (1% of glass ever, minimum 1). It also uses a lifetime threshold of 3e7 for the pad instead of 'minute 10'.
+  - Small blasts: Wipe Day #N counts only nukes that count, and small blasts post no news, wash no Blowback and add nothing to the Island Count or the 'Wipe Days this month' board. Otherwise yield-1 nukes could spam crates onto friends' shores and inflate group counters. 06-friends.md needs to confirm.
+  - Afterglow's start is not given in canon. The file anchors it at the first tap of the new run (run.afterglowFrom), so time spent on the postcard, the Blast Map or the rebuild screen never wastes it. 09-architecture.md must carry this field.
+  - Canon 9 shows the Barge's keel from nuke 25, but canon 12.3 forbids teasing unshipped content. The file shows the keel only once the Crossing is built, with planks backfilled from the count.
+  - The player's gate to cross (25 planks and 70% of the Blast Map lit), and keeping the Wipe Day count, agenda unlocks and Dare rewards through a Crossing, go beyond canon 9.
+  - 01-vision.md 4.4 has the first cover card say 'Next Wipe Day unlocks: the Armored era'. This file has the cover card name what the press itself unlocks and the postcard name the next one. One of the two files should change.
+  - Canon names three flight variants for R2. This file ships U-Turn, Loop-the-Loop, Sputter and Drop, and Fizzle (small blasts) in R2, and the other eight with the Logbook in R4. Afterglow reads 'halving every 5 minutes' as the bonus halving, 1 + 2 × 2^(−t/300), which ends at 30 minutes.
+===== 04-blast-map
+04-blast-map.md is written. It runs about 8,200 words (about 7,200 outside code blocks), over the 4,500-6,500 target. Most of it is the eight sector briefs.
+
+- **Structure:** Ground Zero plus 8 sectors × 9 rings, slot numbering, ids, locale keys and icons. Edges are same-sector only, with OR prerequisites and AND completions; a default wiring table follows 09's layout rule.
+- **Template:** one slot-type template, mirror-symmetric from ring 2 up. A script over the lattice confirmed it has no three smalls in a row. Keystones sit at 5.3 and 8.4, completions at 4.3 (all of ring 3) and 9.4 (all of ring 8).
+- **Quotas:** exact per sector, totalling 187 small (51.8%), 70 notable, 16 keystone, 36 unlock, 36 automation and 16 completion. All eight maps were script-checked.
+- **Shipping:** wave 1 ships whole in R2 (73 nodes); Logbook and Scrapyard open with history and shelf nodes. Rings 4-6 arrive at 178, 191 and 201 nodes across R3-R5, with reserved slots and no orphans.
+- **Costs:** a price ladder per ring and type, with all keystones at 7,777 or 7.77M. The whole tree costs about 2.9B glass (about 2e36 lifetime), and N14 is shown with a first-nuke basket.
+- **Vocabulary:** 09's stat ids, 05's Toolbelt stats and the additions this section needs, each with a ceiling.
+- **Rest of the section:**
+  - all 16 keystones with trade-offs and all 16 completions;
+  - eight sector briefs with maps, fixed nodes, every canon system placed, all 14 anchors, and scene-changers in every band;
+  - a provisional power budget;
+  - UI rules beyond 08: layout, path algorithm, advisor pick, derived filters, performance, accessibility and shots;
+  - the data shape, five example entries and 14 content checks;
+  - the small-node template: series, step table, the 10% rule and a worked example.
+
+It aligns with 03 (agenda, rebuild screen, glass modifiers), 05 (Magnet winches, Pocket slots 2-3 as nodes, Foreman limits, Morale nodes), 08 (wireframes, frames, no hues) and 09 (stat ids, schema, no phase flags). It answers 11's open question 1 by keeping 73 nodes in R2.
+OPEN QUESTIONS:
+  - Wave counts: canon 6.1 says 201 nodes by R3. This plan ships 178 at R3, 191 at R4 and 201 at R5, because 23 ring 4-6 nodes need systems that ship later and nothing may tease unshipped content. The alternative is ring 4-6 nodes in those wedges that ignore their own systems.
+  - Keystone and Pocket slots as nodes: canon 6.3 lists them as unlock examples, while 5.8, 6.5 and 7.4 grant them by agenda and scrap. This plan keeps the agenda's 3 keystone slots, adds an optional 4th as fourth_socket (Blast 9.6), and opens Pocket slots 2-3 through the nodes deep_pockets and sewn_lining as 05 proposes. Does the owner want a 4th keystone slot?
+  - Flare Gun: canon 7.6 grants the Flare at Wipe Day #15. The flare_gun node (gate 15) lets you choose the kind instead of granting the skill. Should the Flare itself be bought in the tree instead?
+  - Effect vocabulary extensions to canon 13.5 that 09 must register: a max field on every per effect; shelf, flotsam and skill scopes; new stats (hustle_hold, hustle_drain, hustle_gain, afterglow_hold, upgrade_cost, era_cost, milestone_x2, roster_x2, mk_mult, start_upgrade, flotsam_weight, rally_mult, foreman_lines, hand_cap, rank_mult, morale); and set on hustle_max for Fever Pitch.
+  - Counts versus canon's 'about' figures: 187 small (canon about 188; 188 would be 52.1% and fail the 52% check) and 16 completions (canon about 15), so every sector has two.
+  - Dead Hand costs 22.2k rather than canon's 22k, because 09's formatter keeps trailing zeros and the price ladder uses three equal leading digits.
+  - 05 placements moved: the Morale and hint nodes (war_stories, old_maps and others) go from rings 1-2 to rings 4-9, and the Magnet winches from rings 2-8 to 5-8, so wave 1 ships whole in R2. 05 should adopt these.
+  - Canon 6.3 says a node needing new code 'counts as an unlock'. This plan reads that as: only unlock, automation and keystone nodes may use feature:<id>, each budgeted in its phase. Small, notable and completion nodes stay pure vocabulary.
+===== 05-meta-layers
+I wrote 05-meta-layers.md, about 6,200 tokens counted by wc. That is over the 5,500 target because the dense tables, ids and pseudocode add a lot; the prose alone is close to target. It covers every layer kept beside the Blast Map.
+
+- **Logbook (R4):** 120 pages in 11 categories, 30 of them secret. The flight-log category has 13 pages, matching the 12 flight variants in 03.
+  - Pages are found by one pure function that runs at the end of every command, never inside settle. Each condition is data from a closed list of 7 kinds.
+  - Morale is folded after Glow. Logbook-sector nodes raise the value per page from 0.02 to 0.05.
+  - Hints open at Wipe Day #15, with Old Maps, after a friend's first find, or from a Message in a Bottle. First finds go to the feed with the hint shown and the page name hidden.
+  - Past pages are backfilled from counters recorded since R1-R2.
+  - Includes a full brief for the 05b writer: format, tone, rules and 15 example pages, 5 of them secret.
+- **The Magnet:** a state table (20/23/24 h) with seeded rolls, a tray filled by settle in closed form, the crane in the scene, the top-bar chip and the card copy.
+  - Scrap per week by archetype: casual 1.6 a day, about 49 by day 30, optimal near 2.4 a day. Two levers if the 2.5 ceiling breaks.
+  - The only sinks total 494 scrap.
+- **Ranks:** ×3 per rank on the line whether or not the hand is hired. Each rank is one fixed multiplier per line and never moves a milestone. Portrait frames and pips are shown.
+- **Pockets:** an empty slot can be filled at any time; a full slot can only be swapped before the run's first purchase.
+- **The Foreman:**
+  - Buys the affordable unit with the lowest payback, but only if it pays for itself before the crowned purchase becomes affordable.
+  - Online: at most one ordinary command a second.
+  - At Collect: one chunked greedy pass, with pseudocode, determinism notes, tests and edge cases.
+- **Dead Hand:** aligned with 03, plus extra safety rules.
+- **Toolbelt:** effects run on real seconds, cooldowns on the game clock; placement and advisor rules.
+- **Dares:** the 4 launch Dares and 8 later ones on 12 different stats. A Dare run ends by a nuke, which grants the reward.
+- **Creeds:** a trigger and three one-paragraph sketches.
+- **Curve and phases:** planning multipliers per layer for 10-balance and what ships in each phase.
+OPEN QUESTIONS:
+  - Taps batches have no event_log row (canon 13.4), but a first find needs the logbook_entry event at once. Proposal: a taps batch that finds a page writes that one row (about 250 in a lifetime).
+  - Gull and Kettle pages need taps on scene objects to be reported. Proposal: an optional `pokes` field on the taps batch, clamped by the same token bucket. This extends canon 13.4 and 13.6.
+  - The rebuild screen in 03 9.1 appears only for keystones or Dares. This file adds a POCKETS block from Wipe Day #2 (R5) and the rule that a full slot can only be swapped before the run's first purchase. 03 and 08 should adopt it.
+  - Canon 13.6 has no command for the Foreman toggle or Dead Hand's setting. Proposal: extend set_loadout to {keystones, foreman, deadHand} rather than adding new commands.
+  - N19's 'per day' needs a definition: per calendar day, the first nuke's 3 scrap and R5's backfill would break 'never above 2.5'. Proposal: a 7-day average from day 2, one-offs excluded. The optimal player sits near 2.4 a day with all four winch nodes, so the margin is thin.
+  - Canon prints flotsam odds in the Logbook (R4), but flotsam ships in R1. Proposal: an Odds sheet in the top-bar menu for R1-R3, moved into the Logbook in R4.
+  - Long Night's reward (+4 h) is a third of the 12 h starting window, which strains canon 7.7's +25% cap. Proposal: accept canon's table and measure against the 48 h ceiling. The existing locale says 'Long Nights' while canon says 'Long Night'; the naming pass should pick one.
+  - Canon 9 does not say whether Dare rewards survive a Crossing. Proposal (03 suggests the same): they are kept, like Logbook pages.
+  - Dependency for 04: the Logbook and Scrapyard sectors' nodes (Morale ladder, Old Maps, the four winch nodes, the two Pocket-slot nodes) reference systems that ship in R4 and R5, while rings 1-3 ship in R2. The node `dead_hand` sits in ring 6 (R3) but works only from R5. This is the same issue as 11-roadmap's open question 1.
+===== 06-friends
+06-friends.md is written, at about 5,800 words. That is over the 5,000 target, mostly because of the dense tables. All 12 parts of the brief are covered, plus the data and tests.
+
+- **Rules.** Seven rules, each old social system mapped to the rule it broke (D99-D119), and one definition of "active": `players.last_seen_at`, which bot calls never move.
+- **Nuke news.** Six feed kinds, each riding on an event canon already lists, with a flag the server sets, so no new event types. A 30-minute throttle folds repeat nukes. There are 16 example sentences with their locale keys. The Discord postcard is specified as satori `postcard.tsx`.
+- **Blowback.** The exact math (a full shore is worth at most 2 h 15 min of the receiver's own output), the lazy cursor with a pure `arrive()` function, and an edge-case table.
+- **Island Count.** Six cosmetics given to everyone, with a pace estimate.
+- **Freighter.** A tier bar of 2n/4n/6n, where n is the players who opened the game this week. Loading can only help. Reached tiers are never lost. Payout is lazy, from event flags, with no new table. Covers solo play, 2 vs 10 players, and the scene and sheet copy.
+- **Late Tide.** The median rule, worked examples, a label only the player sees, and why it cannot be gamed.
+- **Boards and Visit.** Seven boards with exact metrics, a worked example of a newcomer leading in week 1, and Visit's shown and hidden fields.
+- **Shared first finds.**
+- **Discord v2.** Card fields by phase, Collect-only through an API allowlist, DMs, the monthly post, an allowlist version of `boundary.test.ts`, string keys and the removals.
+- **Notifications.** Only Night Shift is on by default; quiet hours are proposed.
+- **Pressure checks** and a `social.json5` sketch.
+
+Notes for other writers:
+- 03 should list waiting Blowback crates as kept through a nuke.
+- 03 must take the formula delta without Late Tide's extra glass.
+- 05 owns when the Magnet notification fires.
+- 09 owns the `glance` module name and the `VisitView` and Friends routes.
+OPEN QUESTIONS:
+  - Counting Wipe Days: limit nuke news, Blowback, the Island Count and the Wipe Days board to nukes that add at least 10% to glass ever (canon 5.1's agenda rule). This narrows canon 8.1-8.3 and 8.6, which say 'every nuke'. Reason: later nukes can be pressed at +1 glass, so short runs could farm the feed, friends' shores and the boards.
+  - Late Tide overshoot: x2 on a nuke that doubles glass can carry a player from 49% to about 147% of the median in one press. Proposal: the extra glass stops at the median. This changes canon 8.5's plain x2, so N16 and N17 need a simulator re-run.
+  - Quiet hours (22:00-08:00 in the player's browser time zone, on by default, the notification held until 08:00) are new. Canon 12.7 defines only notification kinds and defaults.
+  - Late Tide median with two players: the median of two values is their mean, so the player behind qualifies only below a third of the other's glass. Alternative: the median of the other active players, which gives 'below half the leader'. This matters because season 1 has two players.
+  - Bot command allowlist: /api/bot/commands accepts only collect and refuses the rest with not_on_discord. This narrows D121's 'every player route is mounted' and makes owner decision 18 (no nuke from Discord) a server rule.
+  - Freighter price: one hour of current output (canon 8.4) is tiny just after a nuke, so loads are cheapest then. Recommended: accept it. Alternative: price a load at the higher of the current rate and a share of the last run's peak rate.
+  - Blowback crate floor (low priority): min(15% held, 15 min output) pays almost nothing when the player holds nothing. A floor of 1 minute of output would remove these near-empty crates but changes the Drift Crate formula they share.
+===== 07-what-changes
+I wrote 07-what-changes.md, about 6,500 words. It is the owner-facing list of what changes, stays and goes, in the 10 sections the brief asked for, plus an open-questions section at the end.
+
+1. **The big decision.** It recommends one run currency, Supplies, with product badges (A1) and an honest trade-off table. It also sketches a fallback: 4 era materials that gate only era purchases. That would cost about +1.5 sessions, so friends play at about session 14 instead of 12.
+2. **Direct answers.** Seasons go. The cut list has one line per system. Scrap becomes rare (about 1-2 a day). Crater Glass is the nuke currency, with the reasons "Blueprint Fragments" was rejected.
+3. **Systems disposition.** About 50 rows in five tables. Each row has a verdict, its replacement and where the code goes, citing real files and line ranges at 58533e4.
+4. **Decisions.** Every D1-D126 is sorted into overturned, parked, modified, kept or history. The new decisions D127-D145 follow canon 16's order, each with a one-line gist.
+5. **CLAUDE.md and docs.** A section-by-section rewrite list, the 6.3 amendments, and what happens to each doc.
+6. **Guardrails.** Old and new side by side, with the N1-N27 numbers that enforce the new ones.
+7. **Names.** The status of every new name, 13 rejected names with reasons, and a checklist to run before locking names.
+8. **Icons.** File conventions, a proposed list of kind folders, and checklists: keep drawing (now including the 11 product ids), wait, stop, and new icons by phase (R1 22, R2 24, R4-R5 12, R6-R7 9 plus 2).
+9. **The live game.** Season 1 until the cut-over, the cut-over steps, what the two players see, a message the owner can post, and an honest sunk-cost table (about 3,000 of 7,600 domain rule lines deleted, 909 parked).
+10. **Owner decisions.** Decisions 0-20, each with its default and what choosing otherwise costs.
+
+The repo was not modified.
+OPEN QUESTIONS:
+  - The founders' 5 glass should go to glass held only, not glass ever. Granted as 'ever', the delta formula would make their first nuke pay 5 less and raise Glow before any nuke. The canon is silent; 09-architecture.md should confirm what the admin grant targets.
+  - Canon 17 fixes the icon path pattern icons/<kind>/<id>.svg but not the list of kinds or the root folder. Section 8.1 proposes packages/content/icons/ and 15 kinds; D141 should fix them, and 08-screens.md and 09-architecture.md should use the same list.
+  - Canon 17 needs wording fixes in D141. Its Stop list ('every resource except scrap, every item except crate') is overridden for the 11 product ids by A1. The keycodes appear in both its Wait list and, as items, its Stop list; section 8 reads them as Wait. Its R2 slot for the night_shift icon is late, because the Night Shift and its welcome-back card ship in R1.
+  - A1 proposes 'signal' as the Radio Mast's product id. That reuses the name of the removed Signal: harmless in code, confusing in docs. 02-the-run.md should finalise the id.
+  - The W7 wipe recipe in docs/deploy.md ('Starting over') deletes season_archive, hall_of_fame, legacy and seasons. The cut-over must keep all four (canon 10 and 13.2), so 09-architecture.md's runbook needs its own recipe, which also never resets event_log's sequence.
+  - Section 5 proposes a new docs/architecture.md, added to CLAUDE.md's doc map, as the home for 09-architecture.md's engineering spec. This is not canon; the alternative is to spread that spec over decisions D130-D136.
+===== 08-screens
+I've written 08-screens.md. It runs about 9,200 words (8,150 of prose and tables plus 1,060 in wireframes), which is over the 5,000-7,000 target even after one trimming pass. The list of 19 screens is what makes it long. The repo is untouched.
+
+What it covers:
+- **Phone layout at 390 × 844.** A pixel budget: top bar 56 px, scene 464 px with the target centred at y 338 and 128 px tall, a shared 44 px band above the drawer, collapsed drawer 290 px, nav row 56 px. Wireframes for 0:00 and 10:30. The camera keeps 880 world units across (D75 unchanged) and draws the target as a 290-unit hero object.
+- **Desktop.** A 420 px right column with the camera recentred in the free area.
+- **Every screen and overlay.** Each has an ASCII wireframe, real copy, its states, its one primary action and how it closes, with a summary table at the end. This includes shop rows with the product badges from amendment A1, all 7 cinematic phases as pinnable shot states, and the Blast Map overview, sector ladder and node sheet.
+- **Visual language.** Exact token changes in `tokens.css` and line-by-line changes in `hud.css` (orange primary with dark text, red only for the Big Red and danger, hazard frames, new colours for glass, scrap, Afterglow, Hustle and buffs). Typography, how numbers are formatted, icons, and three scene palettes.
+- **Contrast.** I computed the ratios. Today's muted text over the bright day sky is 3.48:1, which fails; I propose `#b5afa4` on a 0.86 panel (5.2 or better). White text on orange fails, so orange buttons use dark text.
+- **Juice and performance.** Floater and particle pools with caps, the counter written outside React, a per-frame budget table and a dev-only `?perf` overlay.
+- **Sound and haptics.** 21 procedural sound cues with phase tags, and Android vibration patterns.
+- **Accessibility.** Reduced motion, and the list of current under-44 px touch targets with `hud.css` line numbers.
+- **Onboarding.** The crown order, 14 hints with copy, and a table of what first appears in which phase.
+- **Screenshots.** New state keys for `shots.mjs`, an automatic 44 px touch check, all 140 old shots pruned, about 80 new ones by phase, and an 11-point `ui-review.md` checklist.
+OPEN QUESTIONS:
+  - One crown per screen: canon 12.3 wants one crowned row per shop view and 12.5 gives the crown to exactly one thing. The spec reads them together: while the crown is on the Big Red, crates, a Toolbelt skill or the tap hint, the collapsed drawer shows no orange row, and the expanded drawer always crowns one. Please confirm, otherwise the island screen shows two crowns.
+  - Nav row at 0:00: canon 12.1 shows locked destinations disabled with reasons, but canon 4.9 says the only text at 0:00 is 'Tap the tree.' The spec hides the nav row until the first destination unlocks (the first hire, about 1:42).
+  - Five node frames for six node types: canon 6.3 lists six types and canon 17 asks for five frames. The spec gives completion nodes the notable frame; 04-blast-map.md may want a sixth.
+  - Keystone bought mid-run: canon 6.5 re-picks keystones only on the rebuild screen. Auto-filling a free slot right away would feel better; the spec does not assume it.
+  - When Afterglow starts (the nuke or the Rebuild button) is for 03-the-big-red.md to decide. It matters if a player spends minutes on the Blast Map in between.
+  - CLAUDE.md 6.4 says shots pin `time` and a `wall` clock, but `apps/web/src/state/clocks.ts` has only the game clock. R0 or R1 needs to add it (09-architecture.md).
+  - The contrast fixes (`--muted` to #b5afa4, `--panel-glass` alpha 0.78 to 0.86) change every existing panel slightly. They belong in the R1 decision on the orange primary.
+===== 09-architecture
+09-architecture.md is written. It is the engineering spec, checked against `main` at 58533e4, and cites real files and line numbers (`game.ts`, `store.ts`, `schema.ts`, `commands.ts`, `deploy.md` and others). It has all 15 required parts plus open questions. Prose runs about 5,700 words, plus about 1,000 words of code and roughly 1,500 inline code spans.
+
+What it contains:
+- **Principles.** What is kept and what is amended, each amendment as a decision from D127.
+- **Numbers.** The `Amount` type with finite checks in the domain and in `save()`; the zod changes; one formatter for web and bot, with an example table matching the roadmap's acceptance (`1.50Qa`, `999Dc`).
+- **State.** Full `BaseState` v2, `RunState` and `Meta` types; a table of what is stored where; a `normalizeState` that resets any old-shape base in place so `version` keeps rising; a 24 KB size budget.
+- **Settle.** Closed-form segments and their split points; how the Night Shift window works; unmanned lines credited only by taps; how the two property tests are written.
+- **Effects.** A stat registry, the fold order, the tap formula, caching by identity, and monotonicity and upper-bound tests that replace the 25% checks.
+- **Commands.** A table of every command with refusals and record class. The taps transport in full: batches merged before a key is assigned, prediction that does not drift, the bucket math with a provable cap, the slim record, version-only pushes, never dropping taps.
+- **Flotsam.** A seeded slot schedule that needs no stepping, with rain as a second stream; weather moves into the domain.
+- **World, events, content.** World inputs and how they are copied into `meta`; which events are logged, shown in the feed or sent as notifications; the content files and their checks.
+- **API and DB.** One additive migration (`commands.expires_at`), admin grant and respec, rate limiting.
+- **Web client and bot.** Store, scene, the Blast Map in DOM and SVG, sound; the bot's v2 card and boundary test.
+- **Deletion plan, testing, ops.**
+- **Cut-over runbook.** Exact commands. The wipe keeps `event_log`, the seasons table and the old-world history, and never touches the event id sequence. Rollback steps included.
+OPEN QUESTIONS:
+  - Should every command's stored record drop the state (outcome only, 7 days), not just taps and pings? Canon 13.4 makes only taps and pings slim, but the Foreman's one buy a second would otherwise store about 20 MB a day per heavy player. This widens the D59 amendment.
+  - Add `island.json5` (island id, UTC offset, weather table)? Rain now changes flotsam and effects can depend on night, so weather and the island's clock must be domain data. Canon 13.8 does not list such a file.
+  - Keep the Foreman toggle and Dead Hand's threshold per device (localStorage, with Collect passing `foreman`), or add a `set_prefs` command? A new command would add to canon 13.6's list.
+  - Four formula readings need confirming by 03-the-big-red.md and 10-balance.md: (a) the gain's delta is taken on the formula's own base, G(L) minus glass.base, with Bigger Payload and Late Tide applied after; (b) Glow and Morale multiply only the 2^grip part of a tap, because p × supplies per second is already folded; (c) Afterglow is 1 + 2 × 2^(−t/5 min), counted from the run's first action; (d) granted glass goes to held only, so it never changes Glow.
+  - Demo clock fixed at 1× with time jumps only (keeps rule 6.3.9 literally true in demo mode), or two time bases in the domain?
+  - Canon 13.8 doesn't list `crew.json5` or `resources.json5`. This file slims them instead of deleting them, keeping the 14 hand ids, the currency ids and amendment A1's product ids so their locale keys and icons survive. Please confirm.
+===== 10-balance
+10-balance.md is written (about 4,500 words of prose plus tables) and backed by a Python model in scratchpad\model\. wipe_model.py is the model, configs.py holds the CANON and PROPOSAL parameter sets, and run_all.py regenerates every table (out\report_canon.txt, report_proposal.txt, levers.txt, horizon.txt) in about 3.5 minutes.
+
+The canon's constants run away. The first nuke comes at 22 minutes (N1 wants 40-60). The active player nukes 16 times on day 1, and the optimal player lights the whole tree by day 12. The cause: while rungs, eras and upgrades are still ahead, supplies per run grow as power^3.9, and the cube-root formula turns that into a cascade.
+
+The tuned proposal (P1) changes data only:
+- output ×4.75 per rung;
+- a fifth-root glass formula, with L0 = 5e5 so 10 glass needs 50B supplies;
+- p 0.4% per Grip rung and a Hustle ceiling of ×2.25;
+- gentler flotsam: Rally ×4, Adrenaline ×100, crates capped at 10 minutes;
+- Rush ×5;
+- crew ranks ×2 that rise together;
+- a crown that also fires when the nuke counts and the run is 20 hours old;
+- Late Tide ×3;
+- a per-ring Blast Map budget.
+
+P1 passes N1-N4, N6, N9, N15-N17, N19 and N23, plus the canon's first week (7 nukes, 1,104 glass) and first month (25 nukes). It misses the per-nuke step targets N11-N14, which cannot hold together with the month-1 cadence, N15 and N16. The section proposes amended bands.
+
+The late game hits a wall. Under P1, casual runs grow from a day to about 10 days, and the tree is 57% lit at day 365. Stronger late rings shorten runs but split the group; the owner chooses before R7.
+
+The section also covers the budget table (D), simulator v2 with a pacing.json5 v2 draft (E), and the lever table, tuning order and risks (F).
+OPEN QUESTIONS:
+  - Prestige exponent (N21, owner decision 9): the model needs a fifth root with L0 = 5e5 instead of a cube root with 1e8. Doubling glass then takes 32x the lifetime, not 8x, and the 5.1 table changes. The owner's square-root alternative would make the runaway worse.
+  - N11-N14 (per-nuke steps of x1.5-2) cannot hold together with canon 4.10's 25-40 nukes in month 1 and with N15/N16. Proposal: keep the cadence and amend N11-N14 to the bands in 4.9. The alternative is the canon crown: 15 nukes in month 1 and 9-day late runs.
+  - Crown rule (5.2): add 'crowned when the nuke counts (at least 10%) and the run is at least 20 hours old'.
+  - N8: count tap-driven income (taps plus unmanned lines) for run 1's first minute. Direct taps reach only 19-29% while N1 holds.
+  - Tap and flotsam numbers not marked (sim) in the canon need changes for N9: p 0.4% per Grip rung (canon 1%), Hustle ceiling x2.25 (canon x5), Rush x5 (x10), Rally x4 (x6), Adrenaline x100 (x300), crate cap 10 min (15). The alternative is raising N9 to 1.5-4.5x.
+  - The Foreman's Collect buy-max pass (7.5) must keep the crowned purchase's price in reserve. A plain pass halves the idler's glass in the model.
+  - Unmanned crediting (4.5) needs a per-line busy-until timestamp. The literal batch formula pays a whole cycle (up to 82 min of Reactor output) per one-second batch and moves the first nuke from 48:00 to 38:00. This is for 09-architecture.md.
+  - Glass multipliers (Bigger Payload, Late Tide) must multiply the delta of the formula level, or the next nuke's delta absorbs them. This is for 09-architecture.md.
+  - The Kettle's frame stage (5.3) should key on yield 5 (minute 13). Under the fifth root, yield 1 arrives at minute 3, before the minute-10 pad.
+  - Crew ranks (7.3): x2 per rank and ranks rising together, instead of x3 with free focus (x243 on the top line for 31 scrap).
+  - Late Tide (8.5): x3 below 50% of the median (canon x2) for N17. N16 should also be asserted in the group simulation with Late Tide on.
+  - Late-game wall: the owner chooses before R7 between a slow outer tree with an earlier Crossing trigger (45% lit, not 70%), a fair calendar-time power source, or stronger outer rings proven in the group simulation.
+  - Anchor nodes (6.7) exceed their rings' budgets. Proposed: Glow Lamp 0.25 to 0.27, Union Rules milestones x2.2 (not x2.5), Lone Wolf taps x50 (not x1,000).
+  - Roster milestones (4.3): 02-the-run.md should say a roster bonus is kept once reached in a run. Otherwise buying an era lowers income.
+===== 11-roadmap
+I wrote 11-roadmap.md, about 5,300 words, in the style of docs/roadmap.md.
+
+- **Overview:** a table of phases R0-R7 plus the gated later phases, with 26 sessions in all. A text diagram shows the dependencies. R3, R4 and R5 depend only on R2, so their order can follow the friends' first week. R3 is the default first because friends will use up rings 1-3 in about 10 days. A common contract applies to every phase: pnpm check, every N-assertion switched on so far (pacing v2 tags each one with its phase), web:shots plus ui-review notes, decisions, docs, nothing that teases unshipped content, and a stop-and-report.
+- **Each phase has:**
+  - its goal, kind, plan mode, model and effort, and sessions;
+  - a build list by session, naming real files;
+  - testable acceptance with N-numbers and concrete counts. Examples: 10,000 seeded settle sequences, at most 3,700 slim records per hour, one crowned element per view.
+  - what the owner supplies, and the screenshot states to review.
+- **Old plan items:**
+  - Off-server backup moves into R0 on main: rclone crypt from the vpsuser crontab, plus a restore drill.
+  - Error reporting, /status, admin grant and respec_all go into R2.
+  - The admin panel and the CSV export go into R7.
+  - The owner's current to-do items are re-mapped: skip season announce, and the name pass becomes the glossary pass.
+- **Branches:** tag `pre-redesign`; work on a long-lived `redesign` branch; `main` is frozen to crash and data-loss fixes and merged into `redesign` after each one. The cut-over runs in canon 10's order, points to 09's runbook and adds a rehearsal, a 24-hour watch and a one-day rollback.
+- **Calendar:** R0 done 2026-10-16 to 10-18. The cut-over is most likely 2026-10-31 to 11-14. R7 lands 2026-11-25 to late December, possibly January. Past pace (W0-W8 in 12 days) suggests it could be faster.
+- **Also included:** the kickoff prompt with per-phase lines, the effort guide, a risks table, the cut order and "never cut" list, and a checkbox to-do list for the owner by phase (decisions with defaults, names, icons including A1 products, four playtests).
+OPEN QUESTIONS:
+  - Wave 1 and sectors whose systems ship later: canon puts rings 1-3 of all 8 sectors (73 nodes) in R2, but the Logbook sector's theme ships in R4 and the Scrapyard's in R5, and nothing may tease unshipped content. Either 04b makes those wedges' ring 1-3 nodes work in R2 (keeps 73, the default if 04-blast-map.md can), or those 18 nodes ship with R4/R5 (55 in R2), which changes canon 6.1's wave count.
+  - Scrap before R5: canon pays 3 scrap for the first nuke (R2) and 1 per 25 Logbook entries (R4), but scrap has no sink until R5, while canon 12.1 puts the scrap chip in the top bar. Proposal: record scrap in meta from R2 and show the chip from R5.
+  - Rings 7-9 transcribed into data from R3 but hidden, so the simulator can assert N15 on the full 361-node tree before R7 shows it. Players see nothing earlier, but the 04b transcription moves forward; 09-architecture.md and 10-balance.md should agree on the mechanism (a wave or phase field).
+  - Where the approved plan lives in the repo: proposed docs/redesign/ (read by later sessions' kickoff prompts), with the old design archived as docs/archive/game-design-v1.md. The owner may prefer folding it all into docs/game-design.md.

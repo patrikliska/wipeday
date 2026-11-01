@@ -1,7 +1,7 @@
 import { loadGame } from "@wipe-day/content/load";
 import { words } from "@wipe-day/domain/words";
 import { describe, expect, it } from "vitest";
-import { homeFixtures, NOW } from "../render/fixtures";
+import { homeFixtures } from "../render/fixtures";
 import { homeScreen } from "./home";
 import { type Button, lintScreen, type Screen } from "./screen";
 
@@ -12,67 +12,78 @@ const fixtures = homeFixtures(content);
 const screenOf = (state: string): Screen => {
   const found = fixtures.find((candidate) => candidate.state === state);
   if (!found) throw new Error(`no ${state} fixture`);
-  return homeScreen(lexicon, found.home, NOW, found.last);
+  return homeScreen(lexicon, found.home, found.last);
 };
 const buttons = (screen: Screen): Button[] =>
   screen.rows.flatMap((row) => (row.kind === "buttons" ? row.buttons : []));
 const primary = (screen: Screen) => buttons(screen).find((button) => button.style === "primary");
 
-describe("the /base message", () => {
+describe("the /base card v2 (06-friends.md 10.2; R4 S3)", () => {
   it("passes the zero-tutorial lint in every state, with no missing string", () => {
     for (const fixture of fixtures) {
-      const screen = homeScreen(lexicon, fixture.home, NOW, fixture.last);
+      const screen = homeScreen(lexicon, fixture.home, fixture.last);
       expect(lintScreen(screen), fixture.state).toEqual([]);
       const text = [screen.title, screen.status, ...screen.details, screen.hint].join("\n");
       expect(text, fixture.state).not.toContain("⟦");
+      expect(buttons(screen).filter((button) => button.style === "primary")).toHaveLength(1);
+      expect(buttons(screen).map((button) => button.label)).toContain("Collect");
     }
   });
 
-  it("makes the advisor's action the one primary, and puts it first", () => {
-    expect(primary(screenOf("new"))?.label).toBe("Gather");
-    expect(primary(screenOf("filling"))?.label).toBe("Collect");
-    const busy = screenOf("busy");
-    expect(primary(busy)?.url).toContain("/api/auth/link?t=");
-    expect(buttons(busy)[0]).toBe(primary(busy));
-    // The next step is where the eye lands.
-    expect(busy.status).toBe("Next, in the game: post a guard, raiders are coming.");
+  it("names the era and the Wipe Days, the rate, the glass with Glow, the Night Shift", () => {
+    const first = screenOf("first_minute");
+    expect(first.title).toBe("Nia on Saltmarsh");
+    expect(first.details[0]).toBe("Twig era · first run");
+    expect(first.details[1]).toContain("Nothing runs by itself yet");
+    expect(first.details.some((line) => line.includes("Crater glass"))).toBe(false);
+    expect(first.details).toContain("Night Shift: nobody on shift yet");
+    expect(first.status).toBe("Open the game and tap the tree.");
+    expect(primary(first)?.label).toBe("Open the game");
+
+    const running = screenOf("running");
+    expect(running.details[0]).toBe("Stone era · Wipe Days: 12");
+    expect(running.details[1]).toMatch(/^\*\*\+[\d.]+[kMBT]?\/s\*\*$/);
+    expect(running.details).toContainEqual(
+      expect.stringMatching(/^Crater glass \*\*320\*\* · Glow ×[\d.]+$/),
+    );
+    expect(running.details).toContain("Night Shift 40m of 2h");
+    expect(running.status).toMatch(/^Your hands work until <t:\d+:R>\./);
+    expect(primary(running)?.label).toBe("Open the game");
   });
 
-  it("explains every button it locks", () => {
-    const full = buttons(screenOf("full"));
-    expect(full.find((button) => button.label.startsWith("Collect"))).toMatchObject({
-      label: "Collect · store full",
-      disabled: true,
-    });
-    const waiting = buttons(screenOf("waiting"));
-    expect(waiting.find((button) => button.label.startsWith("Gather"))).toMatchObject({
-      label: "Gather · 8m",
-      disabled: true,
-    });
+  it("puts Collect first when the shift is stalled, and says what a Collect did", () => {
+    const stalled = screenOf("stalled");
+    expect(primary(stalled)?.label).toBe("Collect");
+    expect(stalled.details).toContainEqual(
+      expect.stringMatching(/^Night Shift full: your hands stopped <t:\d+:R>$/),
+    );
+    expect(stalled.status).toContain("Collect to start them again");
+    const collected = screenOf("collected");
+    expect(collected.status).toBe(
+      "Collected: your hands worked 2h (+4.20T). A fresh 2h Night Shift starts now.",
+    );
   });
 
-  it("says what the last click did, and keeps the next step in the small print", () => {
-    const banked = screenOf("banked");
-    expect(banked.status).toBe("Banked +214 Timber, +80 Stone, +12 Iron Ore.");
-    expect(banked.hint).toContain("Next, in the game:");
-    expect(screenOf("cooldown").status).toBe(`Gather is ready again <t:${NOW + 240}:R>.`);
+  it("carries the Big Red's line from the shared glance, crowned or waiting", () => {
+    const crowned = screenOf("crowned");
+    expect(crowned.details).toContain("👑 The Big Red is crowned: +10 glass now");
+    expect(crowned.status).toBe("The Big Red is crowned: open the game to flip the lid.");
+    const running = screenOf("running");
+    expect(running.details).toContainEqual(
+      expect.stringMatching(/^The Big Red: the next glass at .+ made \(.+ now\)$/),
+    );
   });
 
-  it("tells the timers as live Discord timestamps", () => {
-    const busy = screenOf("busy");
-    expect(busy.details).toEqual([
-      expect.stringMatching(/^\*\*Waiting\*\* \+/),
-      expect.stringMatching(/^\*\*Builders\*\* Walls level 1, done <t:\d+:R>$/),
-      expect.stringMatching(/^\*\*Crafting\*\* 8× Planks, 6× Rope, the first done <t:\d+:R>$/),
-      expect.stringMatching(/^\*\*Scouting\*\* Ivo in Quarry Hills, back <t:\d+:R>$/),
-      expect.stringMatching(/^\*\*Out\*\* Mara, Dax at the Cannery, back <t:\d+:R>$/),
-      expect.stringMatching(/^\*\*Raiders\*\* sighted: they land <t:\d+:R>\.$/),
-      expect.stringMatching(/^\*\*Season 1\*\* ends <t:\d+:R>\.$/),
-    ]);
+  it("formats a 7-digit chip through the shared formatter and keeps the longest name", () => {
+    const rich = screenOf("rich");
+    expect(rich.title).toContain("Wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww");
+    expect(rich.details).toContainEqual(expect.stringContaining("Crater glass **1.23M**"));
   });
 
-  it("offers DMs off when they are on, and on when they are off", () => {
-    expect(buttons(screenOf("busy")).some((button) => button.label === "Turn DMs off")).toBe(true);
-    expect(buttons(screenOf("full")).some((button) => button.label === "Turn DMs on")).toBe(true);
+  it("says what the last click did, and offers DMs on or off", () => {
+    expect(screenOf("dm_off").status).toBe("DMs are off. Turn them back on here any time.");
+    expect(buttons(screenOf("dm_off")).some((button) => button.label === "Turn DMs on")).toBe(true);
+    expect(buttons(screenOf("stale")).some((button) => button.label === "Turn DMs off")).toBe(true);
+    expect(screenOf("stale").status).toContain("older bot");
   });
 });

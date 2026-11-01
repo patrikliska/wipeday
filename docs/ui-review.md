@@ -841,3 +841,1379 @@ plus the card alone at phone size. States: `new`, `waiting`, `filling`, `banked`
     buttons a little differently. The owner's first live `/base` on a phone is the real check.
   - Titles still show only in the web's Legacy tab, not beside names in the feed (carried
     over from W7).
+
+## R0: the redesign closes the W-phase open items
+
+The redesign (D127) deletes or replaces the screens the "Still open" lists above belong to. Each
+is closed here; nothing above is edited.
+
+- **Moot, D137** (the system is gone): the barrel and Gather as the advisor's pick; the tannery
+  racks, station floaters and station tabs; the map's night look; the skiff crowding the
+  boathouse, the Den's tabs, slot symbols and the 240× wheel; the shield badge, the ridge's
+  raiders and the raid banner; the Signal's stages; titles in the Legacy tab.
+- **Carried into the redesign's phases:**
+  - The phone scene sits low under a lot of sky: R1's camera reframe (the tap target on the rise
+    at about 40% height, `docs/redesign/08-screens.md`).
+  - The desktop side panel covers the east coast: R1's 420 px drawer column with the scene
+    recentred left of it.
+  - Crew portraits and every lettered tile: the owner's icons by phase (D141).
+  - Tab rows that scroll with no hint: the drawer has two tabs and the Blast Map a ladder, so
+    the pattern is not reused; any new scroller gets an edge fade.
+  - Titles beside names: R6's boards and the Friends tab.
+  - The full shot run's length: `SHOTS` is rebuilt per phase from `08-screens.md` 8 (R0 has the
+    bare island only).
+  - The bot's mock versus the real Discord app: still the owner's live check, now of card v2 in
+    R2.
+
+## R0: the bare island, the demo drawer and `/base` until R2
+
+Shots (`pnpm web:shots`, `preview/web/`): `bare_island`, `phone_bare_island`,
+`phone_bare_island_tapping`, `phone_bare_island_big` (1.23e36 supplies), `bare_island_night`
+(999,999 supplies), `bare_island_drawer`, `phone_bare_island_drawer`, each with a `__zoom` crop
+of the counter, the floater or the drawer. Shots now render in UTC and pin two clocks: `time`
+(the game) and `wall` (animation, D138). Bot: `pnpm preview` (`preview/discord/`).
+
+- Iteration 1, what was wrong:
+  - The counter's rate line read `0/s` on a fresh island: a number that says nothing, under
+    the one that matters.
+  - The counter pill kept 112 px for its figures, so `0` sat in a wide pill with a hole on its
+    right.
+  - The drawer offered "Pause" while the clock was paused: it read the clock once, when it
+    mounted, not when it opened.
+  - The drawer's clock read "10:00 · 1": nothing said the 1 was a day.
+  - `/base` (Discord) said "Everything new happens in the game for now" without naming the
+    action; Discord draws the "Open the game" link grey like every link, so the words must
+    carry it (as W8 found, D125).
+- What changed:
+  - The rate line shows only once something runs by itself; an empty line keeps the pill's
+    height, so the counter never jumps when the first hand is hired.
+  - The figures' minimum width is 56 px; the pill grows with the number (tabular figures, so
+    a ticking value keeps its width within a magnitude).
+  - The drawer reads the clock on every render, and its clock reads "Day 1 · 10:00".
+  - `/base` now says "The island is being rebuilt. Open the game to see it and tap it."
+- Iteration 2: the counter fits `0`, `1.24k`, `999k` and `1.23e36` at 390 px with its tile; the
+  night sky keeps it readable (light text on the glass pill); the floater `+6` rises from the
+  finger in the land's middle; the tap hint is gone after the first tap; the drawer's six
+  buttons are 44 px tall and fit three a row at 390 px; the DM keeps "Show my island" as its one
+  primary. All seven web shots and four bot screens pass, no console errors, no lint findings.
+- Still open (by design or for R1):
+  - The phone view is mostly sky with an empty land: R1's camera reframe puts the tap target on
+    the rise at about 40% of the height, and R1's scene fills the land with lines and hands.
+  - The counter's icon is the lettered `SU` tile until the owner's `currency/supplies` icon
+    (D141, R1's list).
+  - The tap hint is the R0 stand-in for "Tap the tree." (R1's era target); it is drawn as a
+    pulsing pill, not the signal-orange primary, which arrives with R1's contrast pass (D138).
+
+## Icons: R1's first set (`packages/content/icons`, branch `icons-r1`)
+
+54 hand-drawn icons (25 more below), in the order of `07-what-changes.md` 8: `currency/scrap`,
+`currency/supplies`, the 14 `product/` badges, the 14 `line/` buildings, the 5 `tier/` eras, the
+5 `tool/` Grip tools, `target/` tree, stone, ore, sulfur, wreck, `flotsam/crate`, `ui/hustle`,
+`ui/hand`, `ui/night_shift`, and the 5 `nav/` items. Sheet: `pnpm icons` (`preview/icons/`): each
+icon at 16, 24 and 48 px, white on `--bg` and dark on `--text`, the 16 px render zoomed 4x without
+smoothing, and `strip16-*.png` with all of them side by side at a real 16 px. The script lints
+every file against D141 (viewBox, no width/height, no text, raster, filters, gradients, refs or
+ids, at most one accent and only from `palette.ts`/`tokens.css`, strokes of at least 3, ink inside
+the 2-unit margin) and prints each icon's ink share, so visual weight can be compared by number.
+
+- Iteration 1, what was wrong:
+  - Look-alikes at 16 px: `tier/wood` (palisade) and `tier/metal` (corrugated ridges) were both
+    a row of vertical bars; `nav/blast_map` (a burst with six spoked nodes) was a snowflake.
+  - Misreads: `tier/hqm` (shield, two rivets over a bar) was a face, or a "!" warning sign;
+    `product/plates` (square plate, three holes) was a die; `product/timber` (three log ends
+    with a hole) was coins; `currency/supplies` (sack with a lashing band) was an urn with a lid;
+    `line/furnace` (tower with a flame on top) was a lighthouse; `target/wreck` (hull and mast
+    with a yard) was a sailboat; `ui/night_shift` was too fat a crescent, a bitten cookie;
+    `product/fibre` (solid sheaf) was a trophy.
+  - Weak or small: `product/ingots` filled only the lower half (y 18-44); `tool/iron_tools`'
+    pick head was a hairline at 16 px; `product/cell` read as a door frame; `tool/rock`'s two
+    cut-out chips read as holes.
+  - Margins: `tier/twig` and `tool/stone_tools` reached past the 2-unit margin (the lint
+    caught both).
+- What changed (iteration 2):
+  - `tier/metal` became one plate with scalloped top and bottom edges (the corrugation profile)
+    and three slots; the palisade keeps its points, so the two differ in outline, not only in
+    stripes. `tier/hqm` became a shield with two chevron seams (plated, no face).
+  - `product/timber` is a woodpile: three log ends in front of their half-tone bodies. `plates`
+    became a riveted slab in perspective with a second slab under it. `supplies` lost the band:
+    a plain sack with a tied, flared neck. `furnace` became a block with a chimney and a glowing
+    mouth, so it no longer competes with the kiln's dome. `wreck` lists 17 degrees with a holed
+    hull and a snapped mast. The crescent is thinner. `fibre` is five stalks with seed heads,
+    bound in the middle.
+  - Ingots are taller (y 16-44), the pick head is thicker, `cell` is a canister with a window
+    onto its glowing core, `rock` is a knapped stone in two tones instead of holes.
+- Iteration 2, still wrong: `target/stone`'s crack read as a lightning bolt; the new
+  `nav/blast_map` (burst inside a ring with four nodes) read as a lifebuoy; `line/shipbreaker`
+  (hull split in two with a spark) read as a basket with a star.
+- Iteration 3: the stone lost its crack (the moss cap and the dome carry it); the blast map is a
+  burst at the foot of three ringed nodes, a tree growing from the blast; the ship breaker is a
+  crane hook over a cut hull. The stroke-drawn tools and the twig were the lightest icons
+  (15-17% ink against 30-44% for their neighbours); the twig, the hatchet and the pick got
+  heavier strokes (now 17-18%).
+- Still open, and what I would redo:
+  - `product/plates` reads as a slab or a sandwich, not "steel": the weakest product.
+  - `line/loom` is a framed grid (a crib, a barcode) at 16 px; `line/press` passes but is busy.
+  - `nav/blast_map` is legible but abstract: it needs the Blast Map screen beside it to mean
+    anything, and the burst could be the Big Red's red once the nav's accent policy is set.
+  - `product/cell` and `product/battery` are both "power" at a glance; they differ in shape
+    (canister with a teal core, box with posts and a bolt) but share a meaning.
+  - `product/charcoal` (lumps with an ember) and `target/ore` (rock with copper nuggets) are both
+    rocks with a warm accent; they never meet in one view (shop badge against tap target).
+  - Visual weight still spans 15-58% ink: line-drawn things (tools, broadcast, the fish) stay
+    lighter than solid ones (`tier/metal`, `product/plates`); R1's shop rows should be checked
+    with the real 40/18 px badge sizes before this is evened out further.
+
+### Icons, second batch: the rest of R1's list and the redo list (79 in all)
+
+New: the 14 hand portraits (`crew/`), `flotsam/fuel_drum` and `flotsam/adrenaline`, and the UI
+glyphs `ui/crown`, `lock`, `finger`, `chevron`, `close`, `menu`, `upgrade`, `buy_max`, `roster`.
+A portrait is the face in half tone, the person's one sign in full, and shared shoulders, so the
+headgear carries the silhouette. `ui/pocket` waits for R5.
+
+- Iteration 1, what was wrong:
+  - Look-alike portraits at 16 px: Mara's sun hat, Pike's sou'wester and Otto's cap were all
+    "a hat with a brim"; Dax's pompom and Sela's bun were both a ball on top; Juno's braids and
+    Tamsin's headset were both blocks at the sides of the face.
+  - The spec draws the Rally drum (`flotsam/fuel_drum`) as "a red-banded drum", the same picture
+    as `product/fuel`. The Adrenaline tin with a cut-out bolt was the battery's box and bolt.
+  - The redo list: `product/plates` (one slab, four holes) was a die again; `line/loom` with a
+    straight shuttle was one more bar in the crib.
+- What changed:
+  - Pike wears a diver's helmet with a porthole onto the face; Gus a welding helmet pushed up
+    (visor slit); Sela a ponytail swinging out behind. Otto keeps the one-sided flat cap and Mara
+    the round sun hat.
+  - All flotsam floats: the crate, the drum and the tin sit on the same wave, now drawn in
+    `currentColor` (the crate's sea blue went), so the family reads at once and the drum keeps its
+    red band as its one accent. The drum lies on its side and tilts; `product/fuel` stands upright.
+    The tin's bolt is filled in fire orange, not cut out, and the tin has a lid seam and no posts.
+  - Plates became three thin sheets with half-tone edges, two cut holes on the top one; the
+    loom's shuttle is boat-shaped, tilted 18 degrees across half-tone warp threads.
+- Iteration 2: Juno's first fix (two buns) made a famous cartoon-mouse silhouette (D43), so Juno
+  wears a long stocking cap drooping to the left with a tassel. The 14 portraits now differ at
+  16 px.
+- Still open: `product/plates` is legible as a stack of sheets but sits close to `planks` at
+  16 px (thin slanted sheets against thick boxes): still the one I would redo, ideally after the
+  owner's naming pass (an I-beam would say "steel" but not "plates"). The `loom` is better but
+  still busy. Mara (round brim) and Otto (one-sided brim) are the closest pair of portraits.
+
+### Icons, third batch: R2's list, drawn ahead (103 in all)
+
+New, none of them shown before R2 (D140; the icons are not wired in): `currency/glass`,
+`ui/glow`, `ui/big_red`, the Kettle stages `ui/kettle_pad`, `kettle_frame`, `kettle_warhead`,
+`kettle_fuel`, `ui/afterglow`, `ui/ground_zero`, the sector glyphs `sector/grip`, `crew`, `works`,
+`tide`, `bunker`, `blast`, `logbook`, `scrapyard`, the six node-type frames `node_type/stat`,
+`notable`, `keystone`, `unlock`, `automation`, `completion` (04-blast-map.md 2.1), and
+`skin/founder`. `pnpm icons --only sector,node_type` now draws a subset into the sheets.
+
+- Iteration 1, what was wrong:
+  - `ui/ground_zero` (a sign planted in a crater) was a golf flag in its hole.
+  - `ui/kettle_pad` (ladder, taped slab, two pallets) was a busy fence at 16 px: the ladder
+    competed with the hazard stripes, which are the pad's identity.
+  - `ui/big_red`'s dome (r 8) was too small to carry the icon at 16 px against the drum.
+  - `ui/glow` was the lightest icon in the set (15% ink): a speck with dotted rays.
+  - Fine on the first pass: the sector glyphs (fist, hard hat, factory roof, curling wave,
+    pillbox, mushroom cloud, pencil, tyre) all name themselves at 16 px; the frames differ by
+    outline (circle, double ring, hexagon, rounded square, cog ring, double ring with badge);
+    the glass shard and the scrap nut differ in shape and colour.
+- What changed: Ground Zero is a crater with blast rays and no flag; the pad is one wide
+  hazard-striped slab on a pallet; the dome grew to r 11 with the hinged seat behind it; the glow
+  is a bigger shard with heavier rays (19%). All four read at 16 px in iteration 2.
+- Choices: `sector/works` is a sawtooth factory roof, not a cog, because a works node inside the
+  automation frame (a cog ring) would be a cog in a cog. `sector/crew` is a hard hat alone, so it
+  differs from `nav/crew` (a person). The Big Red's dome and the glass use R2's `BIG_RED` and
+  `GLASS` (03-the-big-red.md 3.3, 3.4), now in `palette.ts`.
+- Still open: the seat behind the Big Red's dome reads as a hook at 16 px (the dome carries the
+  icon, the seat only shows at 48); `ui/kettle_frame` could be a water tower; `sector/scrapyard`
+  (a tyre) is close in outline to the automation frame's cog, but one is filled and one is a ring.
+
+### Icons at their real sizes: the shop rows
+
+`pnpm icons` now also draws `shop-dark.png` and `shop-light.png`: the 14 lines as R1's shop rows
+at a 390 px phone width (2x), from the real data and locale, with each building at 40 px, its
+product badge at 18 px on a panel-coloured disc at the lower right (02-the-run.md 1.2), the name,
+"makes <product>", and the hand's portrait at 24 px on a round chip.
+
+- Iteration 1, what was wrong: the loom's shuttle, tilted 18 degrees right across the frame,
+  read at 40 px as a "crossed out" stripe over the building: next to rows that are disabled
+  with a reason (CLAUDE.md 6.3.3), a line must never look struck through.
+- What changed: the shuttle is level again, shorter and inside the frame, an eye-shaped boat
+  with its bobbin slot, so it reads as an object, not a bar or a strike.
+- Fine at the real sizes: every badge names its product at 18 px on its disc (the fish, the
+  sheaf, the coil, the pelt, the drum's red band, the battery's bolt and the broadcast rings
+  the most); the 14 portraits differ at 24 px; the warm accents (campfire, kiln, furnace) and
+  the mast's red light give the list a rhythm without competing with the orange primary, which
+  is a button, never an icon. Visual weight across rows is even enough at 40 px that the 15-58%
+  ink spread from the 48 px sheet does not show; nothing needs evening out before R1.
+- Still open: the badge disc covers the building's lower right corner, which hides the furnace's
+  and reactor's doors partly; R1 may move the badge 2 px outward if the doors matter.
+
+### Icons, fourth batch: R4-R5's list, drawn ahead (115 in all)
+
+New, not shown before their phases (D140): `ui/morale` (a steaming tin mug), `ui/magnet` (a
+horseshoe on its cable), `ui/pocket`, `ui/rank` (a star over two chevrons), `ui/foreman` (a
+megaphone), `ui/dead_hand` (a flat palm over the Big Red's dome), the Toolbelt's
+`toolbelt/rush` (a speed arrow), `grit` (a work boot), `flare` (a trail ending in a burst), and
+the flotsam `drowned_drone`, `sealed_locker` (barnacles on a locker) and `bottle` (a corked
+bottle with its note), all three on the flotsam wave.
+
+- Iteration 1, what was wrong:
+  - `flotsam/drowned_drone`, side-on with two rotor discs, was a seagull sitting on the water.
+  - `toolbelt/flare` was the lightest icon in the set (10% ink): a hairline and a spark.
+  - `ui/pocket` (pointed bottom, a screwdriver peeking out) was a shield at 16 px, next to
+    `tier/hqm`.
+- What changed: the drone is a top-down quadcopter (four rotor rings on an X), tilted and
+  half under the wave; the flare's trail is full-tone and heavier and its burst bigger (13%); the
+  pocket is a cargo pocket, rounded at the bottom, under a buttoned flap.
+- Still open: `ui/rank` and `ui/buy_max` both stack two chevrons (a star on top against a bar);
+  they differ at 16 px and never share a view (the Crew panel against the shop), but a rank pip
+  drawing may suit R5's portrait frames better. `toolbelt/flare` stays airy by design: it sits on
+  a 48 px Toolbelt button, not in a chip.
+
+## R1 S2: the island scene
+
+Shots: `phone_first_tap`, `phone_first_buy`, `phone_taps__zoom`, `phone_hold__zoom`,
+`phone_fell__zoom`, `phone_timber_era`, `phone_hand_hired`, `phone_stone_day` / `_dusk` /
+`_night` / `_rain` / `_fog`, `phone_lines_1` / `_25` / `_100`, `phone_wreck__zoom`,
+`phone_metal_vent__zoom`, `desktop_day`, `desktop_lines_100`, `desktop_night_metal`, `laptop`,
+`tablet`, `phone_landscape` (`preview/web/index.html`). The HUD is still R0's (S3 builds it), so
+only the counter and the tap hint sit over the scene.
+
+### Iteration 1: the first full run
+- **Weather.** `phone_first_tap` asked for a clear morning and showed rain: the overlay eased in
+  from the block before the jump. A jump of the game clock now shows its weather at once.
+- **Onboarding.** Run 1 at 0:00 showed three staked plots with prices beside the pine, against
+  rule 6.3.6 (the beach, one glowing pine, "Tap the tree."). Twig's plots now appear one by one,
+  as the run first makes each price (D160).
+- **Price signs.** A pale board with the floaters' ink-stroked font read as blobs ("6", "96"):
+  now a dark board with pale figures, the same font and size as the count badges.
+- **Layout.** At 100 owned the lines piled onto each other, the Armored house filled the right
+  third, the loom and the reactor were cut off at the right edge of a 390 px phone, and the
+  badges overlapped into a wall of "100". The ore seam's veins read as pickaxes stuck in the
+  rock; the Wreck's sand drift floated on the grass of the rise.
+- **Juice.** No product piles or line floaters in any shot: shots pause the game clock, so no
+  cycle ever completed.
+
+### Iteration 2: the layout table, badges, the rocks
+- One layout table in three rows (D159); the house at 0.4 scale; the right-hand lines pulled
+  inside x 1270. Badges are 11 px on a 15 px pill and step up when they would cover one already
+  placed; a manned line under a second shows a steady full bar instead of a flicker.
+- The ore and the sulfur show as broad patches with nuggets or crystals on them; the Wreck is
+  drawn at 0.8 with earth and grass heaped against it, rust in drips and peels as sprung plates
+  (its first rust patches read as little flags).
+- The shot fast-forward now moves the demo's game clock: piles fill, line floaters fly with the
+  product's icon on a dark badge (`phone_fell__zoom`: driftwood "+20" on its way to the counter).
+- **Still wrong:** the era and hire shots showed a counter of 0 and no era swap. A ping answered
+  during the patch overwrote it (the patch did not take the backend's version, D163).
+
+### Iteration 3: night, the furnace, celebrations
+- `phone_stone_night`: the target's halo floodlit the whole ore seam. It is now a faint rim that
+  rises with darkness and fog (0.06 + 0.2 at night), still enough to find the target.
+- The furnace stood behind the ore seam (only its fire showed): moved up the beach behind the
+  kiln. Pile icons came down from 42 to 34 units; stacks overlap by half.
+- `phone_lines_25` fired 14 milestone floaters at once, an unreadable heap: at most two per
+  frame now, and a demo patch is not celebrated at all (D161).
+- *Fine:* the fell (`phone_fell__zoom`) shows the old pine tipping toward the sea behind the new
+  one springing up, "Timber! +17" in gold over the running "+2"; the era swap shows the pine
+  going down behind the fresh outcrop; Mara walks from the cabin door with "Mara's on it" over
+  it. Rain and fog grey the sky and leave the badges and signs legible; dusk and night keep the
+  fire, the windows and the furnace warm on the lights layer.
+
+### Iteration 4: hold to work
+- `phone_hold__zoom`: a press held still shows a white ring round the finger that closes over
+  0.35 s, then pulses with each counted tap, inside the Hustle arc.
+
+### Checklist
+1. Hierarchy: the target (and its Hustle arc) is where the eye lands; the counter second.
+2. Legibility: badges 11 px bold on a dark pill; floaters 22-28 px with the ink stroke.
+3. Spacing: badges never touch; the tap hint sits 8 px under the tap box.
+4. Overflow: "1.00Qa", "25.8B" and "6.29M" fit their pills and signs.
+5. Consistency: a line's product icon is the same on its pile and its floater.
+6. Contrast: day, dusk, night, rain and fog reviewed (the `phone_stone_*` set).
+7. Rules: no crown in the scene (S3's drawer carries it); no dead end; nothing unshipped is
+   drawn (no Kettle, no flotsam, no Armored before its era).
+8. Juice: a tap floats within the frame; 12 floaters at most (`pnpm web:perf`).
+9. Touch: the audit list is empty on every phone shot; the target's box is 140-180 × 160-174.
+10. Still open: on a phone, stage-1 lines are 15-25 px (shapes, not detail), and the sky above
+    the island is large until S3's drawer takes the lower half; the counter keeps R0's lettered
+    tile until S3 wires the icons; sound and vibration wait for the owner's phone.
+
+## R1 S3: the HUD
+
+The top bar (the counter opens the Multipliers sheet, the menu opens Settings), buff pills, the
+shop drawer (three rows collapsed; Lines and Upgrades expanded; the bulk toggle from the second
+hand), the nav row (Island and Crew, from the first hire), the Crew and Settings panels, the
+Multipliers sheet, the refusal toast's button, and the desktop column. 36 shots
+(`preview/web/index.html`), three rounds.
+
+### Iteration 1: the first full run
+- `phone_drawer_lines`: the expanded drawer's top edge slid under the counter block (the block
+  was 62 px for a 56 px bar). The counter is now exactly the bar's height, and the drawer and
+  panels start 16 px under it.
+- The demo drawer's ✦ button sat under the menu, right where the expanded drawer's tabs and the
+  panels' (x) are: it moved into the top row, left of the menu.
+- The era row's effect ("Everything ×2 · Dock, Generator, Radio Mast") wrapped to two lines and
+  pushed its progress line out of the row: one line with an ellipsis now.
+- `phone_refusal` showed the same toast twice: the predicted refusal and the server's answer.
+  A toast with the same words replaces the older one. Its button read "Tap the Ore Seam" (the
+  proper name); it now reads like the hint, "Tap the ore seam".
+- The hint pill was half under the drawer: it read the drawer's top edge once, while the drawer
+  and the nav row were still sliding in. It is placed from the drawer's height in CSS now
+  (`--drawer-h`), never lower than 52 px above it.
+- `desktop_day` had no crown in sight: the pick was an upgrade while the column showed Lines.
+  The column now pins the island's crowned purchase over its tabs (D166).
+- `phone_numbers_sci` had no crowned row in the expanded drawer: the shot seeded the player's
+  pace after the patch, so the advisor had looked at an idle player (every unmanned line worth
+  nothing). The harness seeds the pace first.
+- Panels, the nav row and the drawer were caught mid-slide (half transparent, half down): the
+  harness switches entrance animations off. `phone_multipliers` had lost its Rally, because a
+  weather pick moved the clock by days and not the buff: buffs move with it now.
+- *Fine:* one orange button per view everywhere; rows read at 390 px ("Charcoal Kiln", "1.14e25",
+  "in 10h 22m" fit their slots); locked rows give real reasons ("Opens in the Sheet Metal era",
+  "Needs 25 Workbenches (14 now)"); Max reads "Buy 37"; the tablet's drawer centres at 600 px.
+
+### Iteration 2: the fixes in place
+- Every phone shot: the counter block is the bar's height, the ✦ sits beside the menu, the
+  expanded drawer and the panels start 16 px under the bar; one toast per refusal, its button
+  "Tap the ore seam"; the hint pill sits above the drawer; `phone_multipliers` shows the Rally
+  pill and a "Buffs ×4 · Rally ×4 · 41s" row; `desktop_day` pins Driftwood Hooks over the tabs.
+- Still wrong: `phone_landscape`'s 320 px column spent its height on the tabs, the bulk
+  segments and the pin, leaving one row and a half. Landscape phones now put the bulk toggle in
+  the column's head as the cycling button. `desktop_first_tap` (new) showed the menu and the hint
+  offset for a column that did not exist yet: `--column-w` now applies only while the column is
+  on screen (`.app.has-column`). A demo patch that adds six hands fired six stacked "X's on it":
+  several hands appearing in one frame (a load or a patch) float nothing.
+
+### Iteration 3
+- `desktop_first_tap`: the pine in the middle of the full width, "Tap the tree." under it, the
+  menu at the right edge. `phone_landscape`: the pin, the era row and a line row fit. `phone_bulk`:
+  one clean "×10" button, "Buy ×10 · 1.51k" crowned, no floater stack.
+
+### Checklist
+1. Hierarchy: the counter top left, the target in the middle, the one orange button in the
+   drawer (or the column's pin); nothing else is orange.
+2. Legibility at 390 px: row names 16 bold, meta 12, the nav labels 11 bold; "1.23e36" and
+   "+9.73e13/s" fit the counter block, "1.14e25" the buy button.
+3. Spacing: 8 px between rows, 16 px gutters in panels, the drawer 16 px under the bar.
+4. Overflow: "Charcoal Kiln", "Keeps the Furnace running, even while you're away." (two lines,
+   clamped), the era's effect (one line, ellipsis), "Needs 25 Workbenches (14 now)".
+5. Consistency: the supplies bundle on the counter and every price; the product badge of each
+   line row is its floater's icon; era colours on bars and frames only.
+6. Contrast: muted text on the 0.86 panel over day, dusk, night, rain and fog (`phone_stone_*`).
+7. Rules: one crown per view (the audit counts what is not inert); no dead end (every panel has
+   (x), Done, Island, Escape and back); locked rows name real reasons; nothing unshipped (no
+   glass chip, no Blast Map in the nav, no Armored era row).
+8. Juice: unchanged from S2 (`pnpm web:perf`: 60 fps, 5th percentile 59, also with the CPU
+   slowed 4×).
+9. Touch: the audit list is empty on every phone shot.
+10. Still open: the era row repeats its time to afford in its note and on its button (as
+    08-screens.md 2.1 draws it); sound and the drawer's drag want the owner's phone.
+
+## R1 S4: flotsam and away
+
+New shots: `phone_flotsam__zoom` (run 1's crate at 3:03 with its ring and hint),
+`phone_flotsam_caught__zoom`, `phone_flotsam_rally__zoom`, `phone_flotsam_sank__zoom`,
+`phone_flotsam_night__zoom` (a Fuel Drum), `phone_flotsam_fog__zoom` (an Adrenaline Kit),
+`phone_flotsam_rain__zoom`, `phone_rally_cap__zoom` (Rally and Adrenaline at once),
+`phone_odds`, `phone_settings_odds`, `phone_welcome_full` / `_short` / `_nohands`,
+`phone_welcome_collected`, `desktop_flotsam`, `desktop_welcome`.
+
+### Iteration 1
+- `phone_flotsam`: a white line ran from the screen's top-left corner to the ring. The ring's arc
+  began its path at the origin (an arc joins the current point). Every arc now starts with a
+  `moveTo`, the hold ring's too.
+- The hint, placed right of the crate, covered the Beachcomber's and the Campfire's badges on the
+  beach. It sits above the crate now, over the sea and the sky, left-aligned with it.
+- `phone_flotsam_caught` showed no pop and no floaters: the claim went out before the scene had
+  drawn the crate once, so nothing knew where it was. The scene falls back to the resting point,
+  and the harness plays one frame before a `send` (a tap can only land on a drawn crate).
+- `phone_flotsam_night`: the glow had become a flat grey disc behind the drum. It is weaker at
+  night now (0.25 + 0.3 × darkness).
+- `phone_welcome_full` / `_nohands`: the counter read 0 and the no-hands card claimed "+2.40k".
+  The fixture never set `madeAtActive`, so everything made before the patch counted as made
+  while away; the harness sets it with `activeAt`.
+- `phone_welcome_*`, `desktop_welcome`: the dimmed drawer (and the desktop column) still showed
+  its crowned Buy in orange beside the card's Collect. Under a sheet or the card the HUD's crown
+  now goes secondary (D175).
+
+### Iteration 2
+- `phone_flotsam_rally`: the floater said "Rally! All lines ×4 · 60s" while its pill said
+  "Rally ×4 · 1m". Both use the one duration format now, and so does the Odds sheet ("for 1m").
+- `phone_flotsam_sank`: "It sank. Another one drifts in within 3 minutes." looked washed out. The
+  floater was stamped with a clock read outside the frame, so in a fast-forward it was already
+  fading; it takes the frame's time now and reads crisp, kept 8 px inside the screen's edge.
+- `phone_welcome_full`: "31.2M" held on the counter, "+26.8B" as the card's figure, "Your hands
+  worked the Night Shift (12 h of it). They stopped yesterday at 08:30.", one orange Collect.
+  `_short` reads "Away 7h 12m · Your hands worked the whole time."; `_nohands` has no figure,
+  "Nobody was on shift: lines without a hand only run while you tap." and "Back to work".
+  `phone_welcome_collected`: the gain flies from the house, the counter counting up under it.
+
+### Iteration 3: the full run
+- All 53 shots: the audit list is empty (no button under 44 px, the flotsam's button 64 × 64, the
+  target's box over 120 px, at most one crown in what is not inert), no console errors.
+  `phone_multipliers` (now on the shared sheet frame) gains "Flotsam odds >" above Done;
+  `phone_hold`'s ring is unchanged by the `moveTo` fix.
+
+### Checklist
+1. Hierarchy: on the welcome card the gain is the big figure; on the water the crate is the
+   brightest thing at the shore, with its ring; on the Odds sheet the percentages sit right in 18
+   bold.
+2. Legibility at 390 px: the hint 14 bold on its pill; "It sank. Another one drifts in within 3
+   minutes." 17 px with its stroke, inside the screen; Odds effects 13 px muted, two lines at most.
+3. Spacing: the hint 8 px above the crate's button and 16 px from the screen's edge at least;
+   sheets keep the panel's 16 px gutters.
+4. Overflow: "+26.8B" and "Supplies at once: 15% of what you hold, between 1 and 10 min of
+   output" fit; floaters are kept 8 px inside both edges.
+5. Consistency: the crate, drum and kit icons are the same on the water, in the buff pills and on
+   the Odds sheet; buff times use the one duration format ("1m", "12s") in the pill, the floater
+   and the sheet.
+6. Contrast: flotsam in day, rain, fog and night (its glow and ring sit above the night tint and
+   the weather); the `phone_stone_*` set unchanged.
+7. Rules: one crown per view, also to the eye (D175); no dead end (the welcome card's one button,
+   backdrop and Escape all collect; the Odds sheet has (x), Done, back and Escape); nothing
+   unshipped (only R1's three kinds on the Odds sheet, no Bunker link on the welcome card).
+8. Still open: the sounds and the 15 ms buzz want the owner's phone; `pnpm web:perf` was not
+   re-run this session (the PC was busy with a game, so frame numbers would mean nothing); the
+   flotsam adds one sprite, one ring and a glow.
+
+## R1 S5: balance and polish
+
+No HUD code changed this session; the crown's rules did (D176, D177), so every shot was re-taken
+and read for what the new rules show. New shots: `phone_saving` (Loom Mk II scores best but is out
+of reach) and `phone_saving_drawer` (the same state, Upgrades expanded).
+
+### Iteration 1
+- `phone_saving`: the collapsed drawer led with the Workbench ("in 2s"), not the 246M Loom Mk II
+  the fixture was built for. Correct behaviour: the client weighs the wait at the top bar's
+  1.14M/s plus the pace, so the Workbench is the best score and the save lasts two seconds. Such
+  saves are the common case; the long one shows where it belongs, crowned orange in the expanded
+  Upgrades tab ("in 3m 5s · 246M"), with Beach Sledges, Handcarts and the rest below it unpainted.
+- `phone_saving`: the crown sits on "Tap the ore seam." while saving and no row is orange; the
+  affordable Beachcomber stays an enabled, secondary Buy. One crown, nothing disabled without its
+  reason ("in 2s").
+- `phone_timber_era` changed meaning: 40 held, Stone Tools (60) 2 s away, so the hint "Tap the
+  outcrop." is crowned and the affordable Beachcomber (32) waits secondary. It reads right; the
+  pill does not say what the player is saving for, which playtest 1 should judge (playtest kit,
+  "the crown").
+- `desktop_upgrades`, `phone_saving_drawer`: Handcarts reads 5.00B (D179); its countdown fits
+  the 104 px button.
+- Under D176 unmanned lines no longer go idle between taps, but a still shows no taps in flight,
+  so the `Idle · tap to run` rows in `phone_timber_era` and `phone_first_buy` are unchanged and
+  right for a frozen frame.
+
+### Iteration 2
+- After D177's third rule (a first unit as the way to a hand) every shot was re-taken: 55, the
+  audit list empty (no button under 44 px, the target's box over 120 px, at most one crown in what
+  is not inert), no console errors. `phone_first_tap` still opens on the pine, "Tap the tree." and
+  no drawer; `phone_first_buy` crowns the Beachcomber at 7; `phone_hand_hired` crowns Stone Tools
+  with Mara on shift.
+
+### Checklist
+1. Hierarchy: while saving, the tap hint is the one orange thing and the saved-for row leads the
+   drawer with its countdown.
+2. Legibility at 390 px: "in 3m 5s" and "in 1h 2m" fit the button on one line each.
+3. Spacing: unchanged from S3-S4.
+4. Overflow: Handcarts with "in 1h 2m · 5.00B" (phone) and "in 1h 42m" (desktop) fits.
+5. Consistency: a saving row uses the same "in 42s" wording as an era within 30 s.
+6. Contrast: unchanged (no colours touched).
+7. Rules: one crown per view, also while saving; no dead end; locked rows keep their real reasons.
+8. Still open: `pnpm web:perf` was not re-run at the end. A game was running on the PC; the
+   baseline at the session's start, on an idle machine, was 60 fps (5th percentile 59) with 4
+   floaters and 114 particles at most.
+
+## R2 Feel S2: the pixel island, the first two eras
+
+The scene became pixel art on the terraced island (D203-D205): the integer-zoom camera, the
+landscape from the Scene Mock's tiles, the Twig and Timber lines at three stages, the Twig tent
+and the Timber cabin, Timber's outcrop, small hands with idle and walk cycles. Shots reviewed:
+`phone_first_tap`, `phone_first_buy`, `phone_timber_era`, `phone_hand_hired`, `phone_lines_25`,
+`phone_lines_100`, `desktop_first_tap`, `desktop_day` (`preview/web/index.html`); the art in
+`preview/art/s2-sheet.png`, `s2b-sheet.png`, `s2c-sheet.png`.
+
+### Iteration 1: the grid on the old layout
+- `phone_lines_25`: the island was one wide strip of tiny lines (about 20 px) under a half-empty
+  sky. Asked the owner; the island became terraces, one per era (D203).
+- `desktop_day`: the mock's survivor (23×40) was twice the height of a line and buried the island
+  in hands. A 12×18 survivor was generated and animated.
+- Every view: the mock's ground tile repeats tall grass every 160 px; on the terraces it stood
+  behind every line like noise. A seamless grass-free tile was made from the tile's middle and its
+  mirror (`terrain/ground_plain`).
+- `phone_first_tap`: below the earth tile the bedrock was a flat near-black slab. It now darkens
+  in three dirt bands first.
+- The 55-px shelter ran off the phone's right edge; the house is now a generated 31-px tent.
+
+### Iteration 2: the art in place
+- `phone_timber_era`: the low-res line sprites have no outline and vanished on the sand. Every
+  line sprite gets a 1-px dark outline at install (D205).
+- `phone_hand_hired`: the drawer's top edge cut across the beach row. The phone's ground line
+  moved from 58% to 53% of the height.
+- `desktop_day`: zoom 4 left the island small in the middle of a 1600 px view; back to 5. The
+  terraces stopped in a cliff at the right; they now run off past every screen.
+- A hand worked standing on the outcrop: hands now work on the side of their line away from the
+  target. (The figure on the outcrop in `phone_hand_hired` is Mara walking out from the house.)
+- *Fine:* the sea's surface steps one art pixel at a time; the far ruins and ridge read as the
+  coast across the bay; the outcrop and cabin are sharp at every zoom.
+
+### Checklist
+1. Hierarchy: the target is the largest thing on the beach, centred; the counter still leads.
+2. Legibility at 390 px: stage-1 lines are 16 px (40 CSS px): readable with the outline, small.
+3. Spacing: beach row slots are 20-26 px apart; the target's column stays clear on the terraces.
+4. Overflow: the house and the right lines fit inside a 390 px phone's 156 art px.
+5. Consistency: one palette (48), one grid; the Stone and later eras are still the stand-in
+   drawing until S3, and look it.
+6. Contrast: day and dusk checked; night, rain and fog through the ambient tint, not re-checked.
+7. Rules: one crown per view and the 44 px audit pass in every shot.
+8. Still open: pixel wear on the targets (S3), pixel clouds (the soft procedural ones clash),
+   the mirrored tile's faint seam every 88 px, the house tiers from Stone on, sparse empty
+   terraces at the start (by design: they fill as eras open).
+
+## R2 Feel S2b: the owner's screenshot, and the house
+
+The owner's desktop screenshot (rain, 1680 wide, nothing bought) showed the ground below the
+beach broken and the sea far too wide; the owner also asked for less outside and the crafting
+lines inside the house (D206, D207). New shots: `phone_timber_yard`, `phone_house_open`,
+`desktop_house_open`; re-checked `desktop_first_tap`.
+
+### Iteration 1
+- Owner's screenshot: below the beach the earth tile and two dirt strips repeated sand crests
+  and grass blades in bands. Replaced by a seeded dirt texture in the tile's colours, darkening in
+  four bands; the plain tile's dirt rows cleaned of blades.
+- Owner's screenshot: the sea took the left 40% of a wide window. The camera keeps at most 30 art
+  px of sea; the island moves left and the hill fills the right.
+- `desktop_first_tap`: "Tap the tree." sat under the tent, centred on the screen while the tree
+  no longer is. The hint now follows the target's x (`--target-x`).
+- `phone_timber_yard`: "Tap the cabin to go inside" ran off the right edge. It clamps inside the
+  island's part of the screen.
+- `phone_house_open`: the stand-in room (plain planks) worked but was empty and flat. The cabin's
+  inside was generated (window on the sea, lamp, tools and rope on the wall).
+
+### Iteration 2
+- *Fine:* the yard is calm with five lines moved indoors; the room reads as a place, the loom's
+  hand works at it, the back button and the title are clear, the dimmed island says "you can go
+  back". The audit passes in every shot (one crown, 44 px).
+
+### Checklist
+1. Hierarchy: open, the room is the one thing lit; closed, the target leads.
+2. Legibility at 390 px: the room is 330 CSS px wide; its stage-1 lines are small on its floor.
+3. Spacing: five floor slots 24 px apart; stage-3 sprites (24 px) will touch.
+4. Overflow: the room fits a 390 px phone with 30 px to spare; the bar's title fits.
+5. Consistency: the room is drawn at the island's zoom, so its pixels match.
+6. Contrast: day checked; the room ignores the night tint (it is lit indoors), by design.
+7. Rules: Back, Escape and a tap outside close it (never a dead end); the hint retires after two
+   openings.
+8. Still open: the Stone and later rooms (stand-in until their art), the furnace, tannery and
+   press sprites (S3), the shop does not yet say which lines are inside.
+
+## R2 Feel S2c: the ground on a 2k monitor
+
+The owner's screenshots at about 1700×1340, with and without the shop column: every terrace the
+same tile wave, the dirt a visible grid of pebbles, half the screen underground (D208).
+
+### Iteration 1
+- `desktop_tall_rain`: repeats gone (each piece painted from noise), but the sand was flat
+  ribbons with almost no wave: duller than the mock.
+- `desktop_2k`: at zoom 5 the island sat small in a sea of sky and dirt; the cap is now 7.
+
+### Iteration 2
+- `desktop_tall_rain` (zoom crop): the crest swells in long dunes with small ripples, the sand
+  thickens and thins between 7 and 13 rows, brighter at the top and warmer at its lower edge;
+  the lip and the dirt below follow the wave. No period at 1700 or 2560 px.
+- `phone_timber_yard`: the beach, yard and hill read as three distinct sand ledges; the lines and
+  the cabin sit on them as before.
+- Still open: the sand is a little paler and flatter than the mock's tile; a few dune-grass tufts
+  placed by hand (not tiled) could bring back its life.
+
+## R2 Feel S2d: the wasteland
+
+The owner found the ground taking half the screen and preferred the comparison page's look A
+(D209). Shots: `desktop_2k`, `desktop_tall_rain`, `phone_timber_yard`, `phone_flotsam`,
+`phone_first_tap`.
+
+### Iteration 1
+- `desktop_2k`: the skyline drawn at full size: the near layer's car was bigger than the house
+  and the towers dwarfed the camp. The layers were downscaled (far and mid by 2, near by 3).
+- `desktop_2k`, `phone_timber_yard`: after the downscale every layer sat in a pale box: the tool
+  flattens onto white. Alpha rebuilt from each original.
+- `desktop_2k`: a clear blue sky fought the dusty skyline; the day sky is warmed to its haze.
+
+### Iteration 2
+- `phone_flotsam`: the hint covered the parachute; it now sits beside the drop, level with it.
+- *Fine:* the ground is a fifth of the screen; the camp reads in front of a hazy city; no repeat
+  at 2560 px; dusk and rain keep the mood.
+- Still open: the back row hides behind the front where they overlap (the kiln behind the
+  campfire): placed again when the back-row lines get their art; the crate icon's waves; the
+  sea lines' re-theme.
+
+## R2 Feel S2e: an open wasteland (D210)
+- Owner's screenshot: a wrecked car in the background bigger than the tent, and a city too busy
+  for the open wasteland the owner chose. The screenshot showed the first, full-size layers (a
+  stale browser); the dense city went regardless.
+- `desktop_tall_rain`, `desktop_2k`: the far city is a faint pale silhouette; the middle distance
+  holds a lone house and water towers on empty ground, the near distance a few poles, a fence
+  and small wrecks, all smaller than the tent. The ground and the sky are as before.
+
+
+## R2 Feel S3: Stone to Armored in pixel art (D214-D216)
+New shots `s3_*` (the tree's wear, Timber's boulder, Stone's ore, Sheet Metal on desktop and
+phone, Armored on desktop, phone, 2k in rain and at night, the stone, shack and bunker rooms).
+
+### Iteration 1
+- `s3_metal`, `desktop_lines_100`: the back row 9 px behind the front: the kiln hidden behind the
+  boulder, the generator behind the garden, the radio mast's foot behind the house. Rows moved
+  22 px apart (D215).
+- `s3_hqm`: the Crashed Plane (60 px) overlapped the campfire and the garden, and the six
+  back-row structures did not fit the 156 px view. Armored gets a wider view and its own spots.
+- `s3_hqm`, `s3_hqm_phone`: the Scrapyard's and the reactor's hands were cut by the screen's
+  edges; both lines moved inward 3-4 px.
+- Icons: the first plane icon read as an X at 16 px; redrawn side-on, nosed into the ground.
+
+### Iteration 2
+- `s3_hqm_phone`: all 14 lines and their hands visible at 4 device px per art px; the camp reads
+  as built round the wreck; the kiln shows over the plane's low middle.
+- `s3_metal_phone`: the Rain Catcher, kiln and generator stand over the front row, the radio
+  mast over the shack's roof.
+- `desktop_2k`: Timber's kiln now visible behind the boulder; the deeper ground shows no repeat.
+- `s3_ore`, `s3_stone_wear`, `s3_tree_wear__zoom`: cracks read on the ore and the boulder; the
+  tree's notch is a pale wedge at the trunk's foot. On the pale sulfur the cracks are faint.
+- `s3_house_stone`: the stone hut's room (hearth, window, lamp) at the island's zoom; the furnace
+  stands in front of the hearth and blends into it a little.
+- Still open: hands are as tall as the lines and crowd a full camp; the stockpile, chips and
+  squash of the hero tap; pixel clouds.
+
+## R2 Feel S3: the hero tap and pixel clouds (D217, D218)
+New shots `s3_hero_*` (Twig at 6 taps a second on a phone, a full pile on desktop, a fell, the
+pile in Timber, Stone, Sheet Metal and Armored) and `s3_clouds_*` (dusk phone, desktop rain).
+
+### Iteration 1
+- `s3_hero_phone`: the Hustle multiplier (`×1.1`) at the arc's end sat on the stockpile; moved
+  into the arc's open bottom, under the target.
+- `s3_hero_full`: a full pile of 10 read as a brick tower, and the grey-green logs merged with
+  the dead tree; the logs are brown with a bright cut end now, the heap 4-3-2 and nudged a pixel
+  either way per slot.
+- `s3_hero_fell`: a hire's walk from the house crossed the pile mid-shot (a demo patch); the hero
+  shots start with no hands.
+- `desktop_2k`, `s3_clouds_dusk_phone`: only two clouds on 2k and none on the phone, low over the
+  skyline, flat slabs. 18 clouds (11 in a clear sky), spread from above the skyline to the top of
+  a tall phone's sky, rounder puffs.
+- Every shot: no pallet. It was built before the art loaded; it is now laid by a run's first chip.
+
+### Iteration 2
+- `s3_hero_phone__zoom`: logs arc from the trunk onto a pallet at the tree's right foot; the pile
+  stands clear of the campfire and the garden.
+- `s3_hero_full__zoom`: a tumbled woodpile on its pallet; the top piece hops and turns into
+  coins as each new one lands.
+- `s3_hero_stone__zoom`, `s3_hero_ore`, `s3_hero_hqm_phone`: grey stones, rusty nuggets and hull
+  plates on the pallet between the target and the garden; in Armored's wide view it stands clear
+  of the plane's tail.
+- `phone_first_tap`: the first screen is still the tree, the tent and "Tap the tree.": no pallet
+  until the first chip. The tree stands 6 art px left of before.
+- `desktop_tall_rain`, `desktop_2k`: pixel clouds, every one a different shape; no repeat at
+  2560 px. In rain they are grey and more of them show.
+- Still open: the tree's fall still rotates the old sprite off the grid (into the ground at the
+  end); the Hustle arc gives way to the Frenzy meter in S7.
+
+## R2 Feel S4: the HUD (D219-D223)
+
+Shots `s4_*` (28: the desktop and phone heroes at day, dusk, night and rain; the first minute;
+the hire; the drawer's Lines and Shelf; the Stone run; Best buy before and after; three purchases
+in a row; the dock badge; Crew and Settings as sheets; the welcome lamp burnt out, at night and
+half full; the ticker; 999Dc; the short phone), against the Feel Board's two mocks.
+
+### Iteration 1
+- **The dock was missing everywhere.** Its layer was `position: relative` at the top of the HUD
+  with no height, so the dock sat above the screen. The layers are now full-screen, take no
+  pointer events, and only their children do.
+- **A saving hire read "in 9h 18m 118M"**: the wait replaced the hand's name. The name stays and
+  the price beside it is the reason (rule 3).
+- **The Best buy chip collided with the top-right pills on a phone** (the plate grew to 560 px of
+  390) and the expanded drawer cut the counter's foot. On a phone the chip moved beside the lamp
+  under the plate, and hides while the drawer is expanded (that view crowns its own card); the
+  expanded drawer starts under the plate.
+- **"IN 4H 41M" in capitals** on a saving Buy was hard to read: waits are lower case now; only
+  "Buy" and "Locked" stay in capitals.
+- **"×1" read as "×l"** in Big Shoulders: the bulk sizes are Barlow.
+- **The Crew badge counted every hand** in shots and on a first load: the "seen" mark used
+  `startedAt`, which is null before the first tap; it uses the run number now.
+- **A store selector returned a fresh object** (the Best buy's place) and React looped until it
+  unmounted the app; the selector returns the tab, a string.
+- *Shot artifact, not the HUD:* shots that patch a later era caught the old target's fall half
+  way (a dead tree across the ore or the plane). Those shots now settle 2.5 s.
+- *Fine:* one crown per view in every shot (audit); 999Dc fits the phone plate with its rate;
+  the crowned card's orange border and the gold Best buy never compete; the drawer's two cards
+  and the dock leave the target over 120 px tall, the short phone shows one card and a peek.
+
+### Iteration 2
+- **The ticker said "Sun's out" at dusk**: clear-weather lines keep to 07:00-19:00 now (tested).
+- **The welcome card said the window twice** ("worked the Night Shift (12 h of it)" and "the lamp
+  burnt out: all 12h used", with two spellings of hours). It says it once, in the one duration
+  format: "Your hands worked the whole Night Shift: 12h." and "The lamp burnt out." under an
+  empty, dashed lamp; a half-used window reads "7h of 12h still in the lamp." under the bar.
+- Crew's "hire on the Lines tab" became "hire on its card": the hire lives on the line's card.
+
+### Iteration 3 (the whole suite, 110 shots, audit clean)
+- **The refusal toast and the room bar sat on the lamp** on a phone (they were placed under a
+  one-row top bar). A `--hud-top` token holds the counter row's height per layout; toasts, the
+  room bar and the demo panel sit under it.
+- **The ticker crowded a landscape phone** under its short dock: it shows under the dock only on
+  desktop, and in the drawer's handle on a phone in portrait.
+- *Fine:* the first screen is the tree, "Tap the tree." and a dock with Island alone; the
+  Multipliers sheet, the room, the tablet's centred drawer and the landscape column all take the
+  new plates without other changes.
+- The stylesheet's rule order was tidied so the lint has no specificity warnings left (three were
+  there before this session).
+
+## R2 Feel S5: sound and juice (D224-D226)
+
+Shots: `s5_desktop_buy_flash`, `s5_phone_buy_flash` (two purchases caught 60 ms in),
+`s5_desktop_mk_flash`, `s5_desktop_tap_gain`, `s5_phone_collect_coins` (0.42 s after Collect),
+`s5_desktop_credits`, `s5_phone_credits`, `s5_phone_settings_end`; the 28 `s4_*` again for
+regressions. A headless check (not a shot) clicked the island, then the target: no sound file
+before the first tap, all 52 Ogg files after it, no console errors.
+
+### Iteration 1
+- **The card's flash barely read**: a 2 px gold border and a faint glow over 420 ms were mostly
+  gone by the time the eye got there. It is a 3 px border, a gold wash from the art side and an
+  outer glow, held for a third of 520 ms before it fades.
+- **The credits' links were 53×16 px** (the phone audit failed three times). Each pack's whole
+  row is the link now, 44 px tall, with its site and a chevron on the right.
+- **"Type"** as the fonts' heading is a designer's word: "Fonts".
+- The last credits line sat on the divider above it: 12 px more room.
+- *Fine:* the line's flash and stepped pop read on the island at desktop (the campfire and the
+  beachcomber bright in the same frame); "Driftwood Hooks" rises from the beachcomber when its Mk
+  lands; the tap's +740 carries the sack icon like the line floaters carry theirs; Collect's seven
+  tokens arc from the house toward the counter behind "+11.2B".
+
+### Iteration 2
+- **The flash dimmed the level badge** it should be showing off: the badges (level, Mk, hand)
+  ride above the flash now, so "63" pops through the gold.
+- *Fine:* the 28 S4 shots are unchanged apart from the cards' new press and tick (audit clean,
+  one crown per view); the credits sheet fits a phone without scrolling past Done.
+
+## R2 Feel S6: the Workshop and the 2 h Night Shift (D227-D235)
+
+Shots: `s6_desktop_research`, `s6_desktop_research_night`, `s6_phone_research`,
+`s6_phone_research_night` (Timber four minutes in, the Workshop's first levels), `s6_phone_workshop_opens`
+and `s6_desktop_workshop_opens` (2:10, the dock's new place with its badge), `s6_phone_research_first`
+(the hint, every price 40), `s6_desktop_research_stone` (the list's end in rain: Stone's Mks and
+the locked Sheet Metal group), `s6_phone_research_big` (Armored at 999Dc), `s6_desktop_research_flash`
+and `s6_phone_research_flash` (a level mid-flash), `s6_desktop_research_order` (three levels bought,
+the harness fails if a tile moves), `s6_welcome_lamp_2h`, `s6_welcome_lamp_4h_left`.
+
+### Iteration 1
+- **The dock's Workshop showed a lettered "WO" tile**: the running dev server had not re-read the
+  icon glob after `nav/workshop.svg` was added. Touching `Icon.tsx` re-reads it; the glyph (a
+  hammer and a wrench over a bench) reads at 26 and 30 px. Owner note: after pulling, restart
+  `pnpm web` or hard-refresh if a new icon shows letters.
+- **×10 and ×100 meant nothing on a tile** (a Workshop level is one, or Max): on the Workshop tab
+  the bulk control is ×1 · Max, and the handle's cycle button alternates the two.
+- **A locked era's reason showed on every tile** under a header that already said it ("Opens in
+  the Sheet Metal era" four times): it stands once, over the group; a Mk's own reason ("Needs 25
+  Oil Presses (0 now)") stays on its tile.
+- *Fine:* the crown lights Spare Wicks in place with "2h 20m → 2h 40m" and the lamp says "of 2h
+  20m"; tiles two to a row fit the 400 px column and the 390 px drawer; "999Dc"-era prices
+  ("1.06Qi", "270Qi") and gains ("+13.5T/s") fit the button and the gain line; the Mk chip takes
+  the era colour; locked rings go grey; the Workshop tab carries the small crown mark when the
+  island's crown is on a tile and the drawer is on Lines.
+
+### Iteration 2
+- *Fine:* the dock shows its glyph and "Workshop" sits between Island and Crew; a maxed item
+  reads "25/25", a full ring, "All 25 levels" and a disabled Done; three purchases in a row
+  (Dry Kindling ×max, Spare Wicks, Tarred Twine) left every tile where it was; the gold flash
+  and the level pop read on a phone tile ("2/6"); the welcome card after 3 h says the hands
+  worked the whole 2 h and the lamp burnt out, one Collect.
+- Left for S8 (the finish): the dusk and rain variants of the two Workshop shots, and the juice
+  checklist pass over S6 and S7 together.
+
+### Iteration 3 (the whole suite, 132 shots, audit clean)
+- **The first card came uncrowned** in a domain test before any shot showed it: with base output
+  0.42 the crown saved for Stone Tools (60) ahead of the first Beachcomber (6). Stone Tools costs
+  100 now (D236); `phone_first_buy` shows the Beachcomber crowned at 7 and no Workshop tab yet.
+- *Fine:* the S4-S5 shots now carry Workshop levels, so their drawers show three tabs and the ×1
+  button in one row at 390 px, and the dock reads Island, Workshop, Crew; one crown per view
+  throughout.
+
+## R2 Feel S7: the active layer (2026-10-19)
+
+Shots: `s7_desktop_frenzy`, `s7_gull_elite`, `s7_achievement_toast` and `s7_phone_dock_badges`,
+each with `_dusk`, `_night` and `_rain`; `s7_phone_frenzy`, `s7_phone_frenzy_filling`,
+`s7_desktop_frenzy_filling`, `s7_phone_gull`, `s7_phone_gull_elite_night`, `s7_phone_gull_caught`,
+`s7_desktop_achievement_toast`, `s7_phone_badges_merged`, `s7_phone_logbook`,
+`s7_phone_logbook_end`, `s7_desktop_logbook`, `s7_phone_multipliers_morale`,
+`s7_phone_odds_crows`, `s7_desktop_2k_frenzy`.
+
+### Iteration 1
+- **The Frenzy bar was invisible on a phone**: drawn under the target as `12-feel.md` asks, it fell
+  behind the drawer (Hustle's "×1.1" already sits at its edge), and on an 810 px desktop its label
+  fell behind the dock; where it did show, it sat on Hustle's label. It moved over the target,
+  above the Hustle arc, one row: ten segments and the label beside them (D241).
+- **The toast said "2 badges"** where the shot meant one (the run's unit counter was 0, so Open for
+  Business came too), and its Morale line wrapped ("Morale ×1 / → ×1.02"): Morale reads with two
+  decimals ("×1.09 → ×1.10") on one line; the shot sets the counters a player at that point has.
+- **The Logbook's dates followed the browser's locale** ("Earned 3. 1." in a Czech Chromium): one
+  fixed short form, "3 Jan".
+- **Eras showed 0/5 in the Stone era**: an era badge waited for the `era_reached` event, so a run
+  already past an era (and every older shot) could never earn it. The plain era badges read the
+  era reached (`state: era`); the two sprints keep the event (D239).
+- **The Magpie was a thin dark tick** against a bright day sky, its gold glow invisible (added
+  light on a pale sky): the bird is 15 × 8 at 5 px with two-pixel wings, a white belly and a gold
+  glint, and by day its glow is a normal-blend gold wash (added light only after dusk).
+- **The Odds sheet was titled "Airdrop odds"** with crows on it: "Odds", "What drops in or flies
+  by, and how often"; the Magpie's row has a gold icon.
+- *Fine:* the warm sky reads as Frenzy in day, dusk and rain and keeps the night a night; the
+  Frenzy pill under the counter says "Frenzy ×6 · 6s" (not ×36, which the effects multiplied out
+  to at first); the Multipliers sheet adds a Morale step ("badges: 11") and Frenzy ×6 under Buffs.
+
+### Iteration 2
+- *Fine:* on a phone the bar sits over the Dead Oak's arc, "FRENZY ×6" beside the burning
+  segments, clear of the airdrop's hint; filling, it says "Keep tapping: Frenzy" in pale print; the
+  crow crosses the upper sky with its hint fixed under the top bar; caught, it bursts into
+  feathers, "+30s of output" rises and the supplies fly to the counter while the first-crow badge's
+  toast drops in; the Logbook's chapters read in a fixed order with brass earned tiles, "New" tags,
+  locked tiles with their bars ("31.2M / 1.00B"), two columns on desktop; the dock reads Island,
+  Workshop 29, Crew 1, Logbook 3 in rain.
+- Left for S8: the juice checklist on S6-S7 together (the crow's catch has no coin arc into the
+  counter beyond its floater), and Frenzy's sting and the badge chime heard in a live session.
+
+### Iteration 3 (the whole suite, 162 shots, audit clean)
+- **Older shots popped badge toasts** over what they were about: `s5_phone_buy_flash`'s purchase
+  earned Open for Business over the drawer's tabs, because a shot patches the run (63
+  Beachcombers) but not the lifetime counters behind it. Before it fills the badges a run has
+  met, the harness raises the counters to at least what the run shows; the flash shot is clean
+  again and the toast shots still show exactly their one badge.
+- *Fine:* one crown per view everywhere, every tap area at least 44 px (the crow's 64 px button
+  is in the audit), the dock gains its Logbook place only where a badge was earned
+  (`phone_first_buy` still shows Island alone).
+
+## R2 Feel S8: the finish (2026-10-19)
+
+The juice checklist (`12-feel.md` 3.2) on S6-S7's features (D243), and `08-screens.md` 8.3's
+twelve R2 shots in day, dusk, night and rain: S7 had four of them in four skies, the other eight
+come as `s8_*` (desktop and phone hero, the drawer's cards, the Workshop on both, the Crew sheet,
+the welcome card's lamp, the ticker), plus `s8_desktop_frenzy_end`, `s8_phone_logbook_arrives`
+and `s8_desktop_tile_maxed` for the new juice. Reviewed as four-sky contact sheets and at full
+size.
+
+### Iteration 1
+- **Five places had no juice** (the audit against 3.2): a Frenzy's timer ran out without a tick
+  or a sound; Spare Wicks lengthened the window and the lamp did not react; the dock's counts
+  changed without a pop and a new place just appeared; a tile's last level looked like any other;
+  the toast's Morale line sat still. S7 also left the crow's catch without coins arcing into the
+  counter. All added (D243).
+- **`s8_desktop_frenzy_end` caught the buff still running**: a buff ends on a whole second, and
+  the shot ended it at +2.45 s; and the end tick (260 ms, fading from the first frame) read as a
+  grey bar, not a flash. The shot ends it on a whole second and freezes 80 ms after; the tick holds
+  full white for a third of 360 ms, then fades.
+- **`s8_desktop_tile_maxed` missed the flashes**: it waited 200 ms after the purchase and the
+  screenshot itself takes as long again, so the tile's and the lamp's gold had faded. At 60 ms the
+  lamp's flash, its popped "4h of 4h", the tile's flash and its flaring ring all show.
+- **The ticker's crop cut the dock's left edge** (the dock is centred in the scene, not the
+  page): the crop moved left and narrowed to the dock and its line.
+- **A welcome back in rain could arrive dry**: the harness picked the weather at the moment the
+  player left, three hours before the card. It now picks it for the arrival, whose sky the card
+  sits on.
+- *Fine:* dusk, night and rain keep every plate legible (the plates are opaque, so the sky never
+  reaches the text); one orange per view in every sky (Garden's card in the drawer, Spare Wicks'
+  tile, Done on the Crew sheet, Collect on the welcome card, the Best buy chip's card off-screen
+  on desktop); the dock reads Island, Workshop, Crew, Logbook in every sky; the Frenzy bar over
+  the target and "Keep tapping: Frenzy" read on the night sky.
+- *Noted, not changed:* the phone's Sheet Metal hero is busy (an airdrop with its hint, the
+  house's hint, ten count badges over the hands); each piece is its own rule (an airdrop every few
+  minutes, the house's hint until two openings) and the airdrop's hint is the one a new player
+  needs. The playtest decides whether the count badges thin out on a phone.
+
+### Iteration 2
+- *Fine:* `s8_desktop_frenzy_end` shows the ten segments white beside "Keep tapping: Frenzy";
+  `s8_desktop_tile_maxed` shows Spare Wicks at 6/6 flashing gold with its ring flaring, "All 6
+  levels", Done, and the lamp flashing with "4h of 4h" popped; `s8_phone_logbook_arrives` shows the
+  Logbook rising into the dock in gold beside Island with its count, under "Badge: Open for
+  Business" and "Morale ×1.00 → ×1.01".
+- **The new coin arcs crossed what the catch paid**: three tokens leaving the crow (four from a
+  crate) passed over "+30s of output" and "+2 min of supplies" while those were still landing.
+  They now wait half a second (`CATCH_COINS_DELAY_MS`), so the line reads first and the tokens
+  gather under it; Collect's pour is unchanged (`s5_phone_collect_coins`).
+
+### Iteration 3 (the whole suite, 197 shots, audit clean)
+- Run after every change but the coin arcs, whose three shots (the crow's catch, the crate's,
+  Collect) were run again after them. No console errors, no audit problems (one crown per view, every target at least 44 px, nothing
+  over its edge), and both order checks (`s4_phone_order_kept`, `s6_desktop_research_order`) keep
+  the cards' order through three purchases. The dock's pops do not show in older shots (a place
+  that joins after the page opened stays frozen unless the shot says `liveDock`).
+
+## P1: no buying advice after onboarding (D244, 2026-10-19)
+
+The owner's R2 playtest: "I still hate how the game suggests best buy." The Best buy chip, the
+crown's pulse, the tab crowns and the expanded drawer's crown are gone; a purchase is lit only
+while its kind is new. New shots `p1_*`, each with an exact crown count (`crowns: 0 | 1`).
+
+### Iteration 1
+- **`p1_phone_onboard_hire` lit nothing**: the shot patched `meta.stats` with three counters, and
+  the patch replaces the whole object, so `hands` was undefined and `undefined < 2` is false. The
+  shots now patch from `NEW_STATS` (every counter, `upgrades` included); `FRENZY_STATS` gained
+  `upgrades`. With it, "Hire Mara 1.80k" is orange on Beachcomber's card, the one crown.
+- *Fine:* at 0:20 the first Beachcomber's Buy is orange, the Campfire's "in 15s" plain;
+  "Tap the tree." glows over the target at 1 supply; past onboarding (`p1_phone_after`,
+  `p1_phone_expanded_after`, `p1_desktop_after`, `p1_desktop_research_after`) no button is
+  orange, no chip sits in the counter plate, no tab wears a mark, the target does not glow, and
+  the phone's counter row holds only the lamp.
+- *Noted:* during onboarding a lit purchase can sit on a tab not in sight (the first upgrade on
+  the Shelf while Lines shows); the Shelf's count badge already says something is affordable
+  there, so no tab mark came back.
+
+## P2: the era plate (D245, 2026-10-19)
+
+The owner: the eras belong outside the shop list, on a plate in the top bar that opens a sheet
+with cost, result and Build. New shots `p2_*`.
+
+### Iteration 1
+- **The sheet was too tall:** on a 390 × 844 phone and a 1440 × 810 desktop, "Left after" and
+  "Still needed" sat under the footer, so the outcome before commitment needed a scroll. The
+  figures moved to the top as two or three tiles (have, left after; or have, still needed, at
+  this pace); the rows of what it brings shrank (52 px, 42 px art), and on desktop they sit two
+  to a row with the lines across both. Everything now fits without a scroll on both.
+- **The phone's plate did not say what it was:** an era icon, an empty bar and "in 11h 56m". It
+  now names the era ("SHEET METAL", 10 px caps in the era's colour) over the time, with the bar
+  along its foot like a buff's line; at 0.2% the bar showed nothing, so a 3% sliver shows it is a
+  bar. The lamp grew to the plate's 36 px so the row reads as one.
+- **Desktop: the plate drifted right**, next to the settings pill, as a flex child with auto
+  margins. The top bar is now a three-column grid; the plate centres when the row has room and
+  follows the lamp otherwise (at 1440 and 1600 the counter and the lamp take more than half).
+- **"Ready" shots lit the plate orange:** correct for that state (the shots' Timber player had
+  bought one era, so eras were still new, D244); the "ready, not lit" shots now use a veteran's
+  counters (`VETERAN_STATS`), and `p2_phone_onboard_era` keeps the lit case.
+- *Fine:* "Every line ×2" duplicated the ×2 glyph as "Everything ×2" at first; reworded.
+
+### Iteration 2
+- **Text centred in the plate** (a button's default): left-aligned now, and the foot bar touched
+  the time's descenders; the face keeps 4 px (6 on desktop) for it.
+- **"Need 20.0B more" looked like a live orange button** (the dimmed-orange rule for a lit
+  purchase still saving). In the sheet a waiting Build is a plain plate with muted text; it turns
+  orange in place when the supplies arrive.
+- **"You have 32.0M" under a counter at 32.2M:** the sheet read the advisor's once-a-second view.
+  Have, left after and still needed are now written each frame from the settle, as the counter
+  is; they agree in every shot.
+
+### Iteration 3
+- Phone 390 and 360 (the lamp's bar 40 px under 375): lamp and plate share the row with room;
+  999Dc held and left after fit their tiles; Sheet Metal shows no plate (Armored waits on a
+  Wipe Day); night keeps the plate legible (its plate background, not the sky); the build juice
+  shows "Stone era · ×2" over the island and Sheet Metal's plate in place. One crown in each sheet
+  (Build), none on the plate after onboarding, one during it.
+- *Noted:* on desktops up to about 1800 px wide the plate follows the lamp rather than standing
+  in the bar's exact centre; moving the lamp under the counter would centre it but changes the
+  approved Feel Board layout, so it is left for the owner's look.
+- *Full suite:* clean (no audit problems, no console errors) through `s7_desktop_2k_frenzy`, about
+  160 shots, when the browser crashed for lack of memory; the last change before it (the plate's
+  CSS moved later in `hud.css` for the lint, the fill renamed `.era-fill`) is not yet re-shot.
+
+## P3: the deep yard mocks and the art takes (2026-10-19)
+
+The owner: the scene feels flat, everything on one or two rows. Two mocks behind a dev switch
+(`?yard=terrace`, `?yard=camp`; `scene/yards.ts`), same sprites, plus the unused props. New shots
+`p3_{flat,terrace,camp}_*` (Twig, Sheet Metal and Armored on phone and desktop, 1440, 2k at zoom
+7 and 10, tall rain, night on a phone); side by side in `preview/p3/index.html`.
+
+### Iteration 1
+- **Phone: a slab of dark dirt under the yard.** With the target's middle at 35% of the height,
+  the cliff's cross-section filled the rest down to the drawer (about a fifth of the screen,
+  near-black). A camera looking down sees no cliff: in a deep yard the ground now runs on toward
+  the viewer and darkens into the foreground's shade, dithered, with no lip. Desktop's bottom
+  15% (under the dock) reads as near ground too.
+- **The barrel stood taller than the car** (22 px against 19) in Camp's back band, so the back
+  looked nearer than the front. Props now go big to small, front to back: the barrel in band 1,
+  the lamp and the car in band 3, the rock at the far edge.
+- **Terrace risers read as thin stripes,** not steps: four rows, the same light as the ground.
+  Six rows now: a sunlit lip, its edge, a dark face two rows deep and a row of shadow on the band
+  below; they read as ledges on desktop.
+- *Fine:* Camp's four bands read as a lived-in yard on desktop (1600 and 1440: ground about half
+  the height); badges stay legible; the house hint sits clear of the house.
+
+### Iteration 2
+- **The barrel hid behind the garden** and its hand by the house (Sheet Metal). Moved beside the
+  campfire, between it and the target, where it shows in every era.
+- **`flat` is R2's camp to the pixel:** `p3_flat_metal_desktop` rendered on the code before and
+  after the change compares equal (no differing pixel).
+- Checked: 2k at zoom 7 shows Camp's ground at about a third of the height; at zoom 10 (`?zoom=10`)
+  about half, with the sprites at the size a 1600 desktop shows them. Night on a phone keeps the
+  badges and the house hint legible.
+- *Noted for P4:* the lamp prop gives no light at night (it needs a glow on the `lights` layer
+  like the house's window); Armored on a phone is dense in both deep yards (fourteen lines and
+  the plane in 194 art px); Terrace's front row is R2's as before (the step adds depth behind,
+  not room in front).
+
+
+## P4: the yard, the art, the names (2026-10-19)
+
+The owner picked the Terrace with less ground under the front row on a phone (their 390 px shot:
+about a fifth of the screen of dark ground between the lines and the drawer), the 2k zoom at 7,
+and takes 04, 11 and 17. Shots `p4_*`; the P1 phone shots rerun.
+
+### Iteration 1
+- **The phone's ground under the front row** was about 150 CSS px (390×844) because the camera
+  put the target's middle at 35%. The phone now frames the front edge 10 art px (25 CSS px) above
+  the dock and the collapsed drawer; at 360×640 (one card) and 412×915 the strip is the same. The
+  price: more sky above the skyline (about a fifth of the screen at 390×844, the sun and clouds in
+  it). Armored on a phone is as dense as P3 noted (fourteen lines and the plane in 194 art px).
+- **The house hint covered the terrace's lines:** "Tap the shed to go inside" stood above the shed,
+  over the Radio Mast and two count badges (Sheet Metal, phone). It now sits under the house,
+  held above the drawer and the dock (`--hint-floor`), so on a phone it rides over the shed's
+  foot and covers no line.
+- **Barrel Smasher stage 3, first cuts:** a mirrored barrel 3 px up the yard floated with no dirt
+  under it; a second patch of dirt beside the first showed a seam. The third barrel now stands on
+  one widened patch (its middle columns repeated), 30 px wide; it reads as three barrels.
+- *Fine:* the campfire's three pixel frames show above the drawn fire in day and night; at night
+  its glow and the lamp's bulb are the warm points of the yard (desktop Twig, phone Sheet Metal).
+  The shop cards' thumbnails show the new art; "Barrel Smasher" fits the card at 360 px.
+
+### Iteration 2
+- **Before the drawer comes** (the first taps), the camera already frames for it, and the near
+  ground faded to one flat maroon over the bottom 40% of a phone (`p1_phone_onboard_tap`). The
+  near ground is now dark earth with specks and scattered pebbles to the dock; it reads as ground.
+- Checked: 2k and tall rain show the ground painted, no repeat; the desktop hint sits over the
+  shed's foot (the dock's floor), clear of the Sheet Metal lines; the new icons pass `pnpm icons`
+  and read at 16 px (the sheet `preview/icons/p4.png` beside planks, plates and scrap).
+
+## R3 S1: the Sealed Locker (2026-10-20)
+
+Shots `r3_locker_phone`, `r3_locker_desktop`, `r3_odds_locker_phone` (Stone run, day and dusk).
+S1 is the domain; the only visible change is the new airdrop kind and its Odds line.
+
+### Iteration 1
+- **Two hints on top of each other (phone):** a crow and the locker came in together; "A crow!
+  Tap it before it flies off." sat over the airdrop's "Something's dropping in. Tap it before
+  the wind takes it.", both cut off. An R2 bug the locker shot happened to catch: on desktop the
+  two stand apart. Now one scene hint at a time: the crow's waits while the airdrop's is up
+  (D254).
+- **The locker's icon read as a sheet of paper** (the R0 drawing: a tilted page with lines), on
+  the parachute and on the Odds sheet. Redrawn as a locker: three vents, a door handle and a red
+  padlock (the one accent), tilted like the other airdrops; tinted the Magpie's gold in the sky
+  so the rare one reads as rare.
+
+### Iteration 2
+- One hint shows (the airdrop's) beside the locker; the crow flies by without its plate. The
+  locker reads at 48 px in the sky and at 40 px in the Odds row; `pnpm icons` clean.
+- The Odds sheet's new line ("Sealed Locker · A Supply Drop II: three cards for the Album ·
+  1.1%") wraps to two lines at 390 px like the Drift Crate's; the percentages stay aligned.
+- *Left for S3:* the pixel PNG for the locker (item icons, D188) and the reveal's own sound (the
+  catch plays the confirmation cue for now).
+
+## Missions mocks: quests, Work Orders, both, the postcard (2026-10-26)
+
+Shots `mock_*` (13: the Stone run at 10:30 with six hands, phone and desktop), the picks page
+`preview/missions/index.html`. Static screens behind `?mock=` for the owner's pick before R3 S2
+(`docs/redesign/13-adventure.md`); nothing in the domain.
+
+### Iteration 1
+- **The Kettle line was below the fold** on both devices: eight order rows filled the sheet and
+  the box saying "any 5 of the 8 fuel the Kettle" (and, when done, "the Big Red is lit") sat under
+  the primary, cut off. It is the point of the variant. Moved above the list, right under the
+  head's steps.
+- **"Fell the ore seam 20 times" truncated** at 390 px ("20 ti…") beside its reward chip. Shorter
+  ("Fell the seam 20 times") and the name may wrap to two lines.
+- **The orders card's sub line wrapped** ("Put 6 hands on shift · ready to claim", and the done
+  text) and pushed the card past 80 px on both devices. Shorter: "· ready", "Kettle fuelled · the
+  Big Red is lit".
+- **The postcard's secondary ("Blast Map · 5 affordable") was off the phone screen** and the
+  "+2 gear" tile wrapped alone onto a second row. The crew is a six-column grid; the front
+  picture is shorter (300×96); the back's gaps tightened. Everything fits above Rebuild at 390 px.
+- *Fine:* one primary per view (Claim 1 reward, Done, Rebuild); the ready row glows gold and the
+  claimed rows strike through; the steps bar reads at a glance on the card and in the sheet's
+  head; the reward chips (a locker for a drop, the scrap nut for scrap) line up at one width.
+
+### Iteration 2
+- The Kettle box leads the sheet: dashed and quiet while open, red-bordered when fuelled, with
+  the Big Red's icon; the "5 of 5" head fills all five steps.
+- Names fit on one line at 390 px; the done card's desktop sub wraps to two short lines (kept).
+- The postcard on a phone shows the picture, the four figures, Glow and Crew side by side, the
+  five portraits with stars, NEXT and the secondary, then Rebuild; on desktop it is one card
+  with air around it.
+- *Left for the build:* the "1" ready badge on the orders card borrows the level badge's shape
+  (reads as "level 1" at a glance): a tick or a star would be its own mark; the crater picture is
+  a placeholder for R4's `postcardSvg`.
+
+## R3 S2: the Work Orders, Today, the scrap chip and sheet (2026-10-26)
+
+Shots `r3s2_*` (17: the Stone run at 10:30 with six hands, phone and desktop; the orders named
+outright so the card reads the same on every seed). The mocks (`hud/mocks`, `mocks.css`, the 13
+`mock_*` shots) are gone; their rows, chips, steps and set box moved into `hud.css` under real
+names, with the fixes of the mocks' review kept (the set's rule above the list, names that may wrap
+to two lines, short card subs).
+
+### Iteration 1
+- **The three boost glyphs showed as lettered tiles** ("OV", "DO", "LU") in the Scrap sheet and
+  the pills: Vite's icon glob had not seen the new files (the S6 gotcha). `touch Icon.tsx`; the
+  gauge, the fast-forward and the parachute draw now.
+- **The scrap chip failed the 44 px audit on phones** (56×36): the plate was the button. Now the
+  button is a 44 px tap target around the 36 px plate, as the era plate does; the audit is clean.
+- **The claim shot's flash was gone by 420 ms** (the card had rebuilt by then): captured at 240 ms,
+  where the gold border and the fourth step read.
+- **The ready mark is its own shape** (a gold rounded square with a tick, "✓2" for two), not the
+  level badge, as the mocks' review asked.
+- *Fine:* the card sits first on the lines and keeps its place after a claim (`orderSends` style:
+  `data-key="orders"`); the phone's collapsed drawer shows it and one line card; the chip fits
+  between the lamp and the era plate at 390 px ("SHEET METAL in 11h 50m" still whole); the sheet's
+  one primary ("Claim 2 rewards" / Done) and the per-row Claim on ready rows, so a quest in the
+  Logbook is never a dead end; "need 7" / "need 97" on the drops' Buy and "Running · 6m 40s" on
+  Overdrive's (6.3 rule 3); a tide crate comes down the airdrop's way with the pill above it.
+
+### Iteration 2
+- The complete set: the card's thumb lights gold with "Set complete · 5 of 8 done" and Open 5/5;
+  the sheet's box turns solid gold with "The 3 left are yours to skip or finish"; the head reads
+  "5 of 5 · the set is complete". Nothing names the Kettle or the Big Red before R4 (D140).
+- Claimed rows strike through and grey their icon; a two-line struck name ("Three hands on the
+  Twig lines") stays readable at 390 px.
+- The Logbook's Today reads "1/3 · NEW IN 13H 30M" in the chapter's capitals (consistent with the
+  chapter counts); the note under it says what the set pays.
+- *Left for S3:* the reveal for the drops the claims earn (held drops still only count), a sound
+  of their own for a claim and the set (both on the era-ready and Frenzy-end cues now), and the
+  pills' polish.
+
+## R3 S3: the Album, the reveal, the crates (2026-10-27)
+
+Shots `r3s3_*` (29: the Stone run at 10:30 and 19:00 with the Album empty, half full and full,
+phone and desktop). Four iterations.
+
+### Iteration 1
+- **The reveal never opened in the shots:** the harness sent `open_drop` straight through the
+  store, so the reveal store had no drop in hand and ignored the predicted `drop_opened`. The
+  harness now opens through the same hook a crate tap uses (`__wipeDay.openDrop`) and flips the
+  named cards (`reveal: {tier, flip, ms}`).
+- **Every new glyph drew as a lettered tile** (`ST`, `SL`, `AL`): Vite's icon glob had not seen
+  the files (the S6 gotcha again; `touch Icon.tsx`). The star pips at 11 px then overflowed their
+  tile as 44 px tiles until the real icon loaded.
+- **Two primaries on the Album** (the held plate's orange Open and the foot's Open 4) and on the
+  Scrap sheet (Open 1 beside Done): the plate's chip and the Scrap row's Open are plain buttons;
+  the foot keeps the one orange. **Equip buttons were 65×36:** `.btn.small` keeps the 44 px floor.
+- *Fine:* the crates stand between the pile and the house with the ×4 count and the hint; the
+  survivor sheet reads top to bottom (bust, stars, status, "Barrel Smasher ×1.98 while hired",
+  trait, stars' price, three slots); "STAR UP · NEED 19 MORE" disabled with its reason.
+
+### Iteration 2
+- The reveal: three cards, the Rare's blue strap and glow first, NEW ribbons, "To the Album"
+  beside "Flip the next"; mid-flip at 260 ms shows the glow before the face.
+- **"OPEN THE NEXT SUPPLY DROP II" overflowed the primary** at 390 px: "Open the next"; the head's
+  sub says what waits.
+- **The sets printed raw keys** (`[[line.twig.name]] ×1.5`): era-scoped and Morale effects now
+  have their own lines ("Twig lines ×1.5", "Morale ×1.1", "That line ×1.1").
+- **Two hints on the island** (the crate's and the house's): the house's waits while the crate's
+  is up (D254's chain: airdrop, crate, house, crow).
+- *Fine:* the Odds segment (shard chips in rarity colours, the table, "Rare or better within 10
+  cards · 3 of 10"); the gear sheet's Equip list with "Swap for Salvaged Hatchet · Barrel
+  Smasher ×1.2"; the desktop Album at seven columns.
+
+### Iteration 3 (the art installed)
+- Busts at zoom 2 in the grid and zoom 4 on the sheet read as people at arm's length; Dax's red
+  cap, Rook's grey ponytail and Vera's bun tell them apart at 48 px.
+- **Gear names truncated at five columns** ("Salvage…", "Bolt Cutt…"): four columns on a phone,
+  names on two lines, the wearer's bust moved to the top-right corner clear of the name.
+- **The first reveal showed Mara as "+5 shards":** the shot's Album already held her; a first
+  drop now opens on an empty Album and she wears NEW.
+- *Fine:* the crates' art (planks for I, banded for II, the green case for III) on the ground
+  by day and at night; the crew rows with busts and stars.
+
+### Iteration 4
+- Clean: no audit problems on 29 shots; the Bram and Pike busts arrived last and show after the
+  dev server re-globs the art (a restart or a touch of `PixelArt.tsx`).
+- *Left for S4:* the reveal's "creak then burst" is a creak and a flip (the burst waits for a
+  particle pass); the crates stand behind the hands' walk line on a busy camp; the Album's
+  desktop width could take the sets beside the grid.
+
+## R3 S4: Workshop tiers 5-8, the orders' shards, the drop queue (2026-10-27)
+
+Shots `r3s4_*` (08-screens.md 8.3c): the Workshop's Stone group with tiers 5-6 started and the
+Sheet Metal group with tiers 7-8 going, on both devices, by day and in night rain; Fire Brick
+mid-flash; the Orders sheet with shard chips and the set's drop; the complete set with its drop
+on its way; the Album's plate with a drop on its way; the Odds segment's gate rule.
+
+### Iteration 1
+- **Assembly Line printed a raw key** (`[[line.all.name]] ×1.02`): the `more` wording had one
+  form, for a line; it now has one per scope (line, era, every line), as `inc` does.
+- **The Stone tiles were out of the frame:** `scrollRows: "end"` shows the list's end, the
+  locked Sheet Metal group; the harness gained `scrollTo` (a selector into the middle of its
+  list or sheet) and the Stone shots look at Bellows and Quarry Rails, the flash at Fire Brick.
+- **The gate rule was below the fold** on the Odds segment (after the pity bars): the gate shots
+  scroll to the pity list, where the rule reads under "A Legendary within 150 cards".
+- **"1 on its way · next in 1h" where 40 min was meant:** the shot's veteran stats earned badge
+  drops the queue counted; the on-way shots mark the badges paid, so only the set's mark waits.
+- *Fine:* the shard chips (grey +3, blue +6, purple +10) on the sheet's rows and inside a ready
+  row's Claim; "The fifth claim pays a Supply Drop I on top." under the set's rule; the complete
+  set's gold box with "The set paid a Supply Drop I." and the on-way line; the late tiles' rings,
+  gains ("+316M/s" on Assembly Line at 51.2B) and the Mk tiles' "in 14d 20h" beside them.
+
+### Iteration 2
+- The Stone group reads as one: the era's header, six tiles with their rings at 12/25, 8/25,
+  5/25, 4/20, 6/25, 2/25, every effect in words ("+5% Furnace", "Stone lines 1% faster", "Every
+  line +1%"); Bark Liquor and Iron Screws show no gain line because the run owns no Tannery or
+  Oil Press yet (as S6's tiles do for an unowned line).
+- The flash: Fire Brick's tile lit gold at 13/25 with its name floating over the island.
+- The gate rule: "Felling pays a drop every 30th fell, one every 1h and 3 a day. A quest set's,
+  an order set's and a badge's drop take the next free hour." in three lines at 390 px.
+- **The on-way plate vanished** in the Album shots: the queued mark was paid at the patch
+  (`today.day` 0 reads as "no day yet", so the gate stood open); the shots now give `today` the
+  island day of their time.
+
+### Iteration 3
+- The gate's last payment is given as `today.ago` (the harness resolves it against the shot's
+  final time, as it does `fuelledAt: "now"`): the Album's dashed plate reads "1 on its way ·
+  next in 40m" on a phone with nothing held, sits under "1 to open" on desktop, and the complete
+  set's box carries the same line after "The set paid a Supply Drop I."
+- Clean: no audit problems on the 16 shots; one orange action per view (Claim 2 rewards, Open 1,
+  Done); every locked tile says why (the next era's group, a Mk's "Needs 25 Charcoal Kilns (9
+  now)"); nothing names the Kettle or the Big Red (D140).
+- *Left for R4:* the dock's Album bump and the shard flyer are behind the sheet when a claim
+  comes from the sheet (the flyer lands on the dock's Album place, which is visible on desktop
+  beside the sheet and under it on a phone); a surplus of Common and Rare shards piles up once
+  the gear is complete (a sink is R6's).
+
+## R4 S2: the Kettle, the Big Red, the film, the postcard, the landing (2026-10-29/30)
+
+Shots (08-screens.md 8.3, 8.3d): `phone_kettle_pad`, `phone_kettle_frame`, `phone_kettle_card`,
+`phone_bigred_chip` (day, night, desktop), `phone_cover_first`, `phone_cover_small`,
+`phone_bigred_hold`, `cine_*` (every phase of the U-Turn, one mid-flight frame per variant, the
+fizzle, flash and cloud at night and in rain, desktop fireball and cloud, the reduced-motion
+midpoint), `phone_postcard_front` / `_back` / `desktop_postcard_back` / `_small`,
+`phone_rebuild_plain`, `phone_afterglow`, `desktop_afterglow`, `phone_crater_27`.
+
+### Iteration 1
+- **The chip's hazard frame painted over its own text:** the striped pseudo-element landed in
+  the button's stacking context above the face. It is a `border-image` now; the two lines read.
+- **The locked card said "that comes at 1.56B"** (the next whole glass) where run 1 must name the
+  first launch's threshold: it names 50.0B made in run 1 and the next glass later.
+- **The readout read "13/s/h now · peak 13/s/h":** the glass rate went through the per-second
+  formatter. A glass-an-hour formatter: one decimal under 10, the shared one above.
+- **The airdrop note printed `[[flotsam.[object Object].name]]`:** the arrival's kind is a
+  definition, not an id.
+- **The rocket flew nose-down:** the climb's control point sat above the apex, so the curve
+  arrived descending; the lean is now read from a step behind to a step ahead and the control
+  sits below the apex. **Under the flash it snapped back to its pad** for 80 ms: it holds its
+  last flight point until the white swallows it.
+- **The sign dropped off-screen:** stage units passed to an art-pixel helper (96 art px left).
+- **The cloud was a dust devil** (radii in units, not art px): three times the size, it reads as
+  a mushroom on both devices.
+- **"+4" glass floaters after a demo patch** (the yield's rise is gated on patches, as hires are)
+  and **line floaters rising from a crater** (the lines stop with the island).
+- **`phone_hold` already named the hold-to-work shot** and overwrote the Big Red's: it is
+  `phone_bigred_hold`. The harness's weather pick moves the shot's time by days: a run's
+  `createdAt` and `afterglowFrom` now move with it (the afterglow sky showed plain).
+- *Fine:* the Kettle's stages on the back terrace (desktop zoom 7 shows the crate face, the cone,
+  the gull, the firebox and the open-lidded drum); steam puffs; the cover card's gain, Glow,
+  unlocks, KEPT/LOST with the minus marks, the one-liner; the hold's ring and dome; the postcard
+  front (title, stamp, postmark, rowboat, dotted flight) and back; the green sky with ash and the
+  pill frozen at ×3; Skip only on a small blast or from Wipe Day #2.
+
+### Iteration 2
+- **The crater did not read:** rows drawn below the front edge vanished into the dark near ground.
+  It is an ellipse round the target's feet now (half on the walkable surface), dark earth stepping
+  in, the glass sheen on its near side, the rim along its far edge; at #27 the bowl is plain under
+  the outcrop. The sign stands on its left rim with the "#N" lettering once it has landed (the
+  lettering showed before the board dropped).
+- **Reduced motion lost the Kettle:** it hid with the props at the crater swap; it rides the blast
+  layer and hangs mid-air at half alpha over the still cloud, as 03 7.4 asks.
+- **The postcard's "WIPE DAY #1" overran its board:** a wider board and fitted lettering.
+- **"a new flight: Loop-the-Loop, a new flight: Sputter and Drop"** on NEXT: the agenda's flight
+  names are "the Loop-the-Loop flight".
+- Clean: no audit problems and no console errors on all 36 shots; one crowned thing per view
+  (the chip's crown mark on the island, Rebuild or Back to work on a card, nothing orange on the
+  cover).
+- *Left:* the chip above the phone's drawer covers the crater's left rim (the sign) and touches
+  the house hint; the generated stages carry their pad, so the pad flies with the rocket (a
+  separate pad sprite would stay); the hands scramble toward the rowboat but a 2 s walk is long
+  for the far lines; the scene's film has no camera ease-out (D270); the drum is procedural.
+
+## R4 S3: the Blast Map, the glass plate, the edges (2026-11-01)
+
+Shots: `phone_map_first`, `phone_map_mid`, `phone_map_filter`, `phone_sector_grip`,
+`phone_sector_works`, `phone_node_sheet`, `phone_node_far`, `phone_node_path_partial`,
+`phone_node_short`, `phone_node_locked`, `phone_node_owned`, `phone_node_just`, `desktop_map`,
+`desktop_map_sheet`, `desktop_map_first`, `r4s3_phone_glass_plate`, `r4s3_desktop_glass_plate`,
+`phone_armored_locked`, `phone_armored_sheet`, `r4s3_phone_postcard_first`,
+`r4s3_phone_postcard_later`, `r4s3_desktop_postcard_later`, `r4s3_phone_welcome_nuke`,
+`r4s3_phone_bulk_next`, `r4s3_phone_multipliers_nodes`.
+
+### Iteration 1
+- **"3.00M/s/s → 3.39M/s/s"** on the node sheet: the rate formatter already says `/s` and the
+  locale line said it again. The line is "Now: 3.00M/s → 3.39M/s (+13%)".
+- **"Crit: 0 → 8"**: a set-only stat (crit ×8) folded from 0 like an amount. A stat with no base
+  and no `add` reads as a factor: "Crit: ×1 → ×8".
+- **The shut ring's gate sat on the sector labels**: a pill at ring 3's top overlapped SCRAPYARD
+  and GRIP and their badges. It moved into the header's sub line ("Glow ×1.95 · 1 of 73 lit ·
+  Ring 3 opens at Wipe Day #3"); the ring stays dashed, and the ladder's ring head says it.
+- **Stubs under ring 1** (short green lines to a Ground Zero the ladder does not draw) read as
+  broken edges: gone. Ring 1 hangs free, and the ladder sits at the foot of its box when short.
+- **The sheet's letters disagreed with the ladder's** ("LU" for Lucky Swing in the sheet, "LS" on
+  the ladder): one `nodeLetters` for both.
+- **The era sheet read "OPENS {COUNT} NEW LINES"** for Armored's gate: the new key collided with
+  the existing `era_sheet.opens`; the cell is "Opens after / Wipe Day #2" and the Build button
+  "Opens after Wipe Day #2 (1 to go)".
+- **The Big Red's chip covered the drawer's cards** when the phone's drawer was expanded (an S2
+  leftover, "Left:" in its notes): it steps aside while the drawer is open.
+- **The Multipliers shot wanted 0 crowns** but the sheet's Done is its one primary: the shot
+  says 1.
+- *Fine:* the disk's wedges, fills and counts at 390 px; the pick's orange ring and the pick
+  card on Go Bag with "Buy · 2 glass"; the Offline chip dimming the rest with the right-edge
+  fade on the chip row; the ladder's frames by type (circle, double ring, rounded square, dashed
+  ring), owned paths in glass green, locked glyphs; the lit path to a far node (Conveyor Belts
+  through First Light) and "Buy path · 2 nodes · 82 glass"; "Buy the first 2 · 11 glass" with
+  the two nodes lit on the path; the locked sheet's reason with no button; the desktop's disk
+  beside the Grip ladder and the Rainmaker popover ("Airdrop float: 13s → 23s", "for the path
+  of 3 · you'll have 40 left"); the glass plate on both devices; Armored's plate lock line; the
+  postcard's two button sets; welcome back over the ready chip with Collect alone; Next in the
+  segments ("BUY ×2 131k" to Campfire's 50); the Multipliers' Blast Map step naming its nodes
+  and Glow's "240 glass ever".
+
+### Iteration 2
+- **A selected node hid under its sheet** (`phone_node_far`: Conveyor Belts just above the
+  sheet's edge, rings 1-2 covered, nothing to scroll because the ladder was bottom-aligned): with
+  a sheet open the ladder gets 55 vh of room below and the node scrolls to the centre.
+- Clean: no audit problems and no console errors on the 25 shots; one crowned thing per view
+  (the pick card's Buy or a sheet's primary, nothing orange on the disk after onboarding).
+- *Left:* node icons are the lettered tile (an owner supply, D268); the Pixi ticker keeps 60 fps
+  under the map (10 fps was for 361 nodes, R5); the desktop shows one ladder, not the clockwise
+  neighbour too (the 1100 px panel holds the disk and one comfortably; the neighbour is a `<`
+  `>` away); the glass flyer is DOM shards from the header's chip, not the scene's floaters (the
+  panel covers the scene).
+
+## R4 S4: the finish, the lasting R4 states in four weathers (2026-11-01)
+
+Shots: `r4s4_phone_kettle_pad_{dusk,night,rain}`, `r4s4_phone_bigred_chip_{dusk,night,rain}`,
+`r4s4_desktop_bigred_chip_{dusk,night,rain}`, `r4s4_phone_afterglow_{dusk,night,rain}`,
+`r4s4_phone_rebuild_plain_{dusk,night,rain}`, `r4s4_phone_crater_27_{dusk,night,rain}`,
+`r4s4_phone_map_mid_{dusk,night,rain}`, `r4s4_desktop_map_{dusk,night,rain}`; then every R4
+group re-rendered (`pnpm web:shots --only` per group) after the fixes.
+
+### Iteration 1
+- **"Tap the tree." sat under the Kettle's chip** on the second island (`r4s4_phone_afterglow_*`:
+  "+0 of 10 glass" over the pill, "ee." peeking out). A real second island never shows the
+  onboarding hint (D244: it needs a new player's `stats.units`), and its dock has Workshop, Crew
+  and Album; the fixture `AFTER_FIRST_META` had no `stats`, so the demo played a veteran as a
+  newcomer. The fixture carries a first run's stats now; the landing shot loses its hint too, as
+  the game does.
+- **The airdrop hint covered the lamp's plate** on the desktop (`r4s4_desktop_bigred_chip_*`:
+  "Something's dropping in" over "Night Shift 3h 59m of 4h" while the crate was still at the top).
+  The hint's centre is clamped to 150 px from the top, under the top bar's two rows, on every
+  device (`scene/flotsam.ts`).
+- *Fine:* the Kettle's chip (dashed hazard frame, green glass figure) reads on the dusk orange,
+  the night blue and the rain grey alike; the crowned chip's "+10 glass · 13/h now · peak 13/h"
+  at 390 px in all three; Afterglow's green sky keeps its ash and the pill's "×3 · tap!" against
+  dusk and rain, and the moon shows through it at night; the landing's rowboat, sapling and
+  lean-to; the Blast Map's disk and ladders are opaque panels, the same in every sky, the
+  desktop's scene dimmed behind; the Frenzy bar's "Keep tapping: Frenzy" over the stockpile at
+  night; one crown per view everywhere (the chip's crown mark, or nothing).
+- *Known, left for the owner:* on a phone the Kettle's chip stands where the crater and its
+  "WIPE DAY #27" sign lie (`r4s4_phone_crater_27_*`, S2's note): moving the chip right collides
+  with the house and its hint, moving the crater changes the island's geography (D270), so the
+  call is the owner's after playtest 2.
+
+### Iteration 2
+- The second island reads right (`r4s4_phone_afterglow_*`, `phone_rebuild_plain`,
+  `phone_afterglow`): the Kettle's "+0 of 10 glass" chip alone over the drawer, no onboarding
+  pill, the dock with Crew, Album (1), Map (16) and Logbook (the Workshop joins when it opens in
+  the run, as in play).
+- The desktop's airdrop hint sits under the lamp's plate now, beside the crate's parachute
+  (`r4s4_desktop_bigred_chip_*`); the phone's was never high enough to clamp.
+- **Armored's shots gained a crown** once the fixture had real stats: a second island at 3T
+  made has a gain of 12 against 10 glass ever, a doubling, so the Big Red's chip is rightly
+  crowned (03 2.2 rule 2); the shots expect 1 now, and the view still has exactly one.
+- Clean: no audit problems and no console errors on the 24 `r4s4_*` shots and the re-rendered
+  R4 groups; one crowned thing per view.
+- *Left:* the crater behind the chip on phones (above); the S2 and S3 "Left" items stand (the
+  stage art's pad, no camera ease-out, lettered node icons, one ladder on the desktop, the Pixi
+  ticker at 60 fps under the map).

@@ -1,0 +1,4 @@
+Icons in this folder come from https://game-icons.net and are licensed CC BY 3.0
+(https://creativecommons.org/licenses/by/3.0/). Authors: Lorc (lighthouse, hood, treasure-map,
+locked-chest, open-treasure-chest), Delapouite (gear-hammer). Used only as placeholders in the
+scene mock dock; the game ships its own icons (D141).

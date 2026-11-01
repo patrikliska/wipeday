@@ -1,0 +1,161 @@
+# Model report: canon v2, a player alone (P1 constants, the resolutions' rules and budget)
+
+## Run 1, continuous play at 6 taps/s (first_hour)
+  Beachcomber bought           0:02
+  Stone Tools                  0:08
+  10 Beachcombers              0:12
+  Campfire                     0:43
+  First hand (Mara)            0:41
+  Timber era                   0:36
+  Second hand                  1:30
+  Sorting Tables (island 1)    3:01
+  Stone era                    3:01
+  Iron Tools                   2:13
+  Salvaged Tools               7:12
+  5th hand                     8:12
+  Sheet Metal era              42:38
+  Power Tools                  -
+  First flotsam                3:00
+  Yield 1 glass                2:55
+  Yield 5 glass                12:21
+  Yield 10 glass               44:26
+  Supplies made at 5:00        44.1M
+  Supplies made at 10:00       963M
+  Supplies made at 20:00       6.95B
+  Supplies made at 30:00       15.8B
+  Supplies made at 40:00       36.1B
+  First nuke                   44:30 (S 50.7B, gain 10, flotsam caught 7, tap share 13%)
+  N8 tap share run 1, minute 0-1: 19% direct, 55% tap-driven (taps + unmanned lines); from minute 10 outside bursts: 14% direct, 18% tap-driven
+  N8 run 2 tap share: 19% overall, 20% outside bursts (Afterglow counts as a burst)
+  N8 run 3 tap share: 22% overall, 22% outside bursts (Afterglow counts as a burst)
+  N8 run 4 tap share: 27% overall, 0% outside bursts (Afterglow counts as a burst)
+  N8 run 5 tap share: 47% overall, 26% outside bursts (Afterglow counts as a burst)
+  continuous runs 1-6 (online): 1: 44:30, 2: 39:30, 3: 1h11, 4: 21h25, 5: 48:00, 6: 1h19
+
+## First nuke per archetype (N1-N3)
+  first_hour                 wall 44:30    online 44:30    glass 10
+  autoclicker                wall 37:00    online 37:00    glass 10
+  casual                     wall 13h00    online 10:00    glass 11
+  active                     wall 5h00     online 20:00    glass 14
+  optimal                    wall 3h00     online 15:00    glass 11
+  idler                      wall 37h03    online 12:00    glass 10
+  first_hour literal batch   wall 35:00    online 35:00    glass 10
+  casual day 1 check-ins: 8h00: 42 buys; 13h00: 122 buys; 21h00: 154 buys; 32h00: 145 buys
+
+## Runs 1-12 per archetype (day = calendar day the run started; N11 = time for run N+1 to pass run N's supplies / run N's time)
+### idler
+  #   day   dur      online   gain     E        power  speed  N11   nodes lit
+  1   1.0   37h03    12:00    10       10       1.95   -      -     8     9
+  2   2.5   34h57    6:00     20       30       1.58   259.51 0.50  8     17
+  3   4.0   37h00    9:00     38       68       1.42   1.92   0.55  8     25
+  4   5.5   2.0d     12:00    114      182      1.85   2.36   0.80  13    38
+  5   7.5   2.0d     12:00    228      410      1.65   48.97  0.62  9     47
+  6   9.5   2.5d     15:00    626      1036     1.87   17.20  0.73  14    61
+  7   12.0  2.5d     15:00    1075     2111     1.96   11.93  0.64  12    73
+  8   14.5  2.5d     15:00    3361     5472     1.86   97.50  0.59  13    86
+  9   17.0  3.5d     21:00    6645     12.1k    2.07   1.59   0.74  16    102
+  10  20.5  5.5d     33:00    13.7k    25.8k    2.34   4.31   0.59  14    116
+  11  26.0  9.5d     57:00    26.7k    52.5k    2.01   8.44   0.51  10    126
+  12  35.5  21.5d    2h09     54.1k    107k     2.79   4.18   0.43  13    139
+### casual
+  #   day   dur      online   gain     E        power  speed  N11   nodes lit
+  1   1.0   13h01    11:30    10       10       1.95   -      -     8     9
+  2   1.5   15h58    8:30     17       27       1.48   2.79   0.74  7     16
+  3   2.2   24h00    15:00    37       64       1.47   0.16   0.55  8     24
+  4   3.2   24h00    15:00    61       125      1.44   21.61  0.77  8     32
+  5   4.2   24h00    15:00    140      265      1.73   38.58  0.79  10    42
+  6   5.2   24h00    15:00    348      613      1.62   57.38  0.44  11    53
+  7   6.2   24h00    15:00    305      918      1.33   6.10   0.81  6     59
+  8   7.2   24h00    15:00    206      1124     1.19   1.93   0.89  4     63
+  9   8.2   24h00    15:00    374      1498     1.29   4.75   0.82  5     68
+  10  9.2   24h00    15:00    1663     3161     1.80   46.88  0.79  10    78
+  11  10.2  24h00    15:00    1449     4610     1.30   5.16   0.82  6     84
+  12  11.2  24h00    15:00    1914     6524     1.28   5.13   0.79  5     89
+### active
+  #   day   dur      online   gain     E        power  speed  N11   nodes lit
+  1   1.0   5h00     20:00    12       12       2.07   -      -     9     10
+  2   1.2   5h00     20:00    17       29       1.47   77.22  0.28  7     17
+  3   1.4   6h00     30:00    38       67       1.41   13.32  0.41  7     24
+  4   1.7   13h00    30:00    83       150      1.62   0.00   1.39  11    35
+  5   2.2   7h00     30:00    151      301      1.63   53.73  0.31  9     44
+  6   2.5   14h00    40:00    409      710      1.66   1.42   0.58  11    55
+  7   3.1   10h09    49:30    713      1423     1.75   39.21  0.44  12    67
+  8   3.5   16h50    40:30    1534     2957     1.81   0.02   1.17  10    77
+  9   4.2   19h00    1h00     2587     5544     1.55   6.27   0.35  10    87
+  10  5.0   14h00    1h00     1233     6777     1.16   2.30   0.59  3     90
+  11  5.6   20h00    1h00     1466     8243     1.19   0.57   1.04  4     94
+  12  6.4   19h00    1h00     2025     10.3k    1.22   3.23   0.71  4     98
+### optimal
+  #   day   dur      online   gain     E        power  speed  N11   nodes lit
+  1   1.0   3h00     15:00    11       11       2.03   -      -     9     10
+  2   1.1   6h00     30:00    40       51       1.89   45.98  0.49  12    22
+  3   1.4   22h00    1h50     640      691      4.80   57.75  0.50  32    54
+  4   2.3   15h00    1h15     1955     2646     2.96   922.25 0.23  19    73
+  5   2.9   16h00    1h20     2309     4955     1.57   15.73  0.35  12    85
+  6   3.6   27h00    2h15     3363     8318     1.51   3.15   0.62  9     94
+  7   4.7   26h00    2h10     2265     10.6k    1.26   2.43   0.58  5     99
+  8   5.8   32h00    2h40     2092     12.7k    1.21   1.49   0.75  4     103
+  9   7.1   2.3d     4h35     5614     18.3k    1.56   2.25   0.63  8     111
+  10  9.4   2.9d     5h45     16.1k    34.4k    1.81   11.95  0.52  8     119
+  11  12.3  3.1d     6h10     11.9k    46.3k    1.38   2.88   0.58  5     124
+  12  15.4  3.5d     6h55     9607     55.9k    1.24   1.63   0.73  3     127
+
+## Phases (N11, N12, N14): geometric mean power per nuke, median N11 ratio, median run length
+  archetype phase  nukes power  speed  N11-med N11-max dur-med   nodes-med
+  idler     early  5     1.68   15.49  0.62    0.80    37h03     9
+  idler     mid    5     2.01   10.65  0.64    0.74    2.5d      14
+  idler     late   4     2.62   8.21   0.43    0.51    38.5d     13
+  casual    early  5     1.60   4.42   0.77    0.79    24h00     8
+  casual    mid    19    1.24   2.82   0.82    1.06    24h00     3
+  casual    late   27    1.20   1.31   0.86    0.96    4.5d      2
+  active    early  5     1.63   3.88   0.41    1.39    6h00      9
+  active    mid    22    1.24   1.47   0.79    1.17    26h00     3
+  active    late   25    1.21   1.39   0.85    0.91    4.2d      2
+  optimal   early  5     2.43   78.78  0.49    0.50    15h00     19
+  optimal   mid    9     1.35   2.38   0.63    0.85    2.9d      5
+  optimal   late   17    1.37   1.62   0.72    0.88    7.1d      2
+
+## Glass ever by day (N16), nukes and lit nodes
+  archetype   d1            d3            d7            d14           d30           d60           d90           d120          d180          
+  idler       0/0/1         10/1/9        182/4/38      2111/7/73     25.8k/10/116  107k/12/139   107k/12/139   214k/13/153   428k/14/153   
+  idler_crown 0/0/1         12/2/10       46/6/21       270/12/42     3090/22/78    53.1k/36/126  109k/43/140   233k/50/154   416k/56/162   
+  casual      10/1/9        64/3/24       918/7/59      10.1k/14/98   43.3k/25/123  101k/33/138   233k/41/154   381k/46/160   619k/51/169   
+  active      67/3/24       1423/7/67     10.3k/12/98   25.6k/19/115  68.7k/27/130  152k/35/147   332k/43/158   443k/46/163   789k/52/173   
+  optimal     51/2/22       4955/5/85     12.7k/8/103   34.4k/10/119  71.7k/14/131  206k/19/152   378k/24/160   514k/26/165   941k/31/177   
+  (cells: glass ever / nukes / nodes lit of 361)
+  gaps vs casual:
+    active       d30 1.59  d90 1.42  d180 1.28
+    optimal      d30 1.66  d90 1.62  d180 1.52
+    idler        d30 0.60  d90 0.46  d180 0.69
+    idler_crown  d30 0.07  d90 0.47  d180 0.67
+
+## Late joiner (N17): casual from day 30; the group median is the casual's glass ever
+  this config        reaches the day-30 casual's 43.3k glass after 9.0 days; at d60 112k (casual 101k), d90 245k (casual 233k)
+  no Late Tide       reaches the day-30 casual's 43.3k glass after 31.0 days; at d60 44.9k (casual 101k), d90 105k (casual 233k)
+  x2 below 50% (canon) reaches the day-30 casual's 43.3k glass after 14.0 days; at d60 89.6k (casual 101k), d90 186k (casual 233k)
+  x2 below 75%       reaches the day-30 casual's 43.3k glass after 13.0 days; at d60 111k (casual 101k), d90 254k (casual 233k)
+
+## Active hour vs idle online hour (N9), active archetype at the first session of day 14 and day 30
+  day 14 (nuke 18, glass 23.1k): active/idle 2.83 (taps, Hustle, Rush only 1.73); with buying 2.71; casual 4 taps/s 2.49; tap share outside bursts 38%; crate share 22%
+  day 30 (nuke 27, glass 68.7k): active/idle 2.83 (taps, Hustle, Rush only 1.73); with buying 2.80; casual 4 taps/s 2.49; tap share outside bursts 38%; crate share 22%
+  day 60 (nuke 34, glass 138k): active/idle 3.16 (taps, Hustle, Rush only 1.73); with buying 2.74; casual 4 taps/s 2.80; tap share outside bursts 38%; crate share 27%
+
+## Purchase cadence (N5-N7)
+  active   max purchase gap in the first 10 online minutes of runs 1-5: [86, 103, 106, 81, 230] s; longest online stretch with nothing affordable, runs 1-5: [5, 2, 1, 1, 2] s
+  casual   max purchase gap in the first 10 online minutes of runs 1-5: [119, 178, 138, 150, 114] s; longest online stretch with nothing affordable, runs 1-5: [7, 2, 2, 1, 3] s
+  optimal  max purchase gap in the first 10 online minutes of runs 1-5: [63, 239, 232, 62, 101] s; longest online stretch with nothing affordable, runs 1-5: [5, 4, 1, 2, 2] s
+  first_hour max purchase gap, first 10 min of runs 1-5: [91, 104, 92, 83, 94] s; nothing affordable: [8, 4, 3, 2, 1] s
+  casual check-ins in days 1-30 with at least one purchase: 84 of 90 (min 0)
+
+## Tree (N13-N15)
+  casual   nodes at nuke 1: 8; later median 2, max 11, share of later nukes in 3-8: 34%; lit d30 34%, d90 43%, d180 47%; full tree day None; flattening alarms (N13 per nuke) 16, (5-nuke product < 1.3) 0
+  active   nodes at nuke 1: 9; later median 2, max 12, share of later nukes in 3-8: 20%; lit d30 36%, d90 44%, d180 48%; full tree day None; flattening alarms (N13 per nuke) 18, (5-nuke product < 1.3) 0
+  optimal  nodes at nuke 1: 9; later median 3, max 32, share of later nukes in 3-8: 37%; lit d30 36%, d90 44%, d180 49%; full tree day None; flattening alarms (N13 per nuke) 1, (5-nuke product < 1.3) 0
+  idler    nodes at nuke 1: 8; later median 13, max 16, share of later nukes in 3-8: 15%; lit d30 32%, d90 39%, d180 42%; full tree day None; flattening alarms (N13 per nuke) 0, (5-nuke product < 1.3) 0
+
+## Scrap (N19) and magnitude (N23)
+  idler    scrap by d30 40 (1.33/day), d30-180 1.22/day; ranks at d180 [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]; largest number 1.64Dc; run 1 supplies 50.7B
+  casual   scrap by d30 50 (1.67/day), d30-180 1.26/day; ranks at d180 [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5]; largest number 5.88Dc; run 1 supplies 51.2B
+  active   scrap by d30 54 (1.80/day), d30-180 1.56/day; ranks at d180 [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5]; largest number 25.8Dc; run 1 supplies 136B
+  optimal  scrap by d30 48 (1.60/day), d30-180 1.71/day; ranks at d180 [4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5]; largest number 72.3Dc; run 1 supplies 101B
+

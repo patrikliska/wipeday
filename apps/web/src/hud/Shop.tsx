@@ -1,0 +1,650 @@
+import { hasFeature } from "@wipe-day/domain/blastmap";
+import type { Command } from "@wipe-day/domain/commands";
+import {
+  memo,
+  type PointerEvent as ReactPointerEvent,
+  type RefObject,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { type AdvisorView, useAdvisor } from "../state/advisor";
+import { insets, useColumn } from "../state/layout";
+import { useWorld } from "../state/store";
+import { BULKS, type Bulk, reducedMotion, type Tab, useUi } from "../state/ui";
+import { content, t } from "../state/world";
+import { BigRedChip } from "./BigRed";
+import { Icon, ResourceIcon } from "./Icon";
+import { OrdersCard } from "./Orders";
+import { PixelArt } from "./PixelArt";
+import {
+  affordableUpgrades,
+  type Bar,
+  type Button,
+  bulkShown,
+  cardCrowned,
+  crownPick,
+  crownPlace,
+  linesTab,
+  type ResearchGroup,
+  type Row,
+  researchTab,
+  upgradesTab,
+  workshopOpenItems,
+  workshopShown,
+} from "./rows";
+import { Ticker } from "./Ticker";
+import { tierVar, useRise, vars } from "./util";
+
+/** A drag on the handle longer than this opens or closes the drawer (CSS px). */
+const DRAG_PX = 30;
+/** The collapsed drawer follows the crown, but never this soon after the player touched it. */
+const TOUCH_QUIET_MS = 4000;
+
+const BULK_LABEL: Record<string, string> = {
+  "1": "drawer.bulk_one",
+  "10": "drawer.bulk_ten",
+  "100": "drawer.bulk_hundred",
+  max: "drawer.bulk_max",
+  next: "drawer.bulk_next",
+};
+
+/** The shop appears with its first card: once the first line's price is reached (wireframe 1). */
+export function shopOpen(view: AdvisorView | null): boolean {
+  if (!view) return false;
+  const run = view.base.run;
+  const first = Math.min(
+    ...content.lines.filter((line) => line.era === "twig").map((line) => line.cost),
+  );
+  return (
+    view.base.meta.nukes > 0 ||
+    run.era !== "twig" ||
+    Object.values(run.lines).some((n) => n > 0) ||
+    run.made >= first
+  );
+}
+
+const send = (command: Command | null): void => {
+  if (command) useWorld.getState().send(command);
+};
+
+/**
+ * The shop (12-feel.md 4): the desktop column of cards, or the phone drawer. The cards keep one
+ * order forever (D186); the crown lights its card where it stands.
+ */
+export function Shop() {
+  const column = useColumn();
+  const view = useAdvisor((state) => state.view);
+  const open = shopOpen(view);
+  useEffect(() => {
+    if (!column) insets.right = 0;
+  }, [column]);
+  if (!view || !open) return null;
+  return column ? <Column view={view} /> : <Drawer view={view} />;
+}
+
+/** The bulk size in force: ×1 until the toggle exists. */
+function useBulk(view: AdvisorView): Bulk {
+  const bulk = useUi((state) => state.bulk);
+  const next = hasFeature(content, view.base.meta, "bulk_buy");
+  if (!bulkShown(view.base)) return 1;
+  return bulk === "next" && !next ? 1 : bulk;
+}
+
+/** Whether the map's Bulk Buttons are lit: the "Next" size exists. */
+function useNextBulk(): boolean {
+  return useWorld((state) =>
+    state.base ? hasFeature(content, state.base.meta, "bulk_buy") : false,
+  );
+}
+
+/** The tab in force: the Workshop's only once it is open (a new run starts on Lines). */
+export function useTab(view: AdvisorView): Tab {
+  const tab = useUi((state) => state.tab);
+  return tab === "research" && !workshopShown(view) ? "lines" : tab;
+}
+
+interface TabRows {
+  rows: Row[];
+  bought: Array<{ id: string; name: string }>;
+  groups?: ResearchGroup[];
+}
+
+function tabRows(view: AdvisorView, tab: Tab, bulk: Bulk): TabRows {
+  if (tab === "lines") return { rows: linesTab(view, bulk), bought: [] };
+  if (tab === "research") return { ...researchTab(view, bulk), bought: [] };
+  return upgradesTab(view);
+}
+
+/** The Workshop tab on screen: its open items are seen (the dock's badge clears). */
+function useSeeWorkshop(view: AdvisorView, shown: boolean, groups: ResearchGroup[] | undefined) {
+  const items = workshopOpenItems(groups);
+  const run = view.base.run.n;
+  useEffect(() => {
+    if (shown) useUi.getState().seeWorkshop(run, items);
+  }, [shown, run, items]);
+}
+
+function Drawer({ view }: { view: AdvisorView }) {
+  const expanded = useUi((state) => state.expanded);
+  const tab = useTab(view);
+  const expand = useUi((state) => state.expand);
+  const bulk = useBulk(view);
+  const list = useRef<HTMLDivElement>(null);
+  const touchedAt = useRef(Number.NEGATIVE_INFINITY);
+  const drag = useRef<number | null>(null);
+
+  const { rows: plain, bought, groups } = tabRows(view, tab, bulk);
+  useSeeWorkshop(view, tab === "research" && expanded, groups);
+  const rows = crownPick(plain, view);
+  useFollowCrown(list, view, tab, expanded ? null : touchedAt);
+
+  const onHandleDown = (event: ReactPointerEvent) => {
+    drag.current = event.clientY;
+  };
+  const onHandleUp = (event: ReactPointerEvent) => {
+    const start = drag.current;
+    drag.current = null;
+    if (start === null) return;
+    const dy = event.clientY - start;
+    if (!expanded && dy < -DRAG_PX) open(true);
+    if (expanded && dy > DRAG_PX) open(false);
+  };
+  const open = (next: boolean) => {
+    expand(next);
+  };
+
+  return (
+    <div
+      className={`drawer${expanded ? " expanded" : ""}`}
+      onPointerDown={() => {
+        touchedAt.current = performance.now();
+      }}
+      onWheel={() => {
+        touchedAt.current = performance.now();
+      }}
+    >
+      <div className="handle" onPointerDown={onHandleDown} onPointerUp={onHandleUp}>
+        <span className="grabber" aria-hidden="true" />
+        <Ticker />
+        <button
+          type="button"
+          className="btn ghost toggle-drawer"
+          aria-expanded={expanded}
+          aria-label={expanded ? t("drawer.close") : t("drawer.see_all")}
+          onClick={() => open(!expanded)}
+        >
+          <Icon kind="ui" id="chevron" size={18} className={expanded ? "down" : "up"} />
+        </button>
+      </div>
+      <div className="shop-bar">
+        <Tabs view={view} />
+        {bulkShown(view.base) && !expanded ? <BulkCycle tab={tab} /> : null}
+      </div>
+      {expanded && bulkShown(view.base) ? <BulkSegments tab={tab} /> : null}
+      <CardList rows={rows} bought={bought} groups={groups} list={list} view={view} />
+    </div>
+  );
+}
+
+/** Desktop: a permanent column of cards on the right (12-feel.md 4; 08-screens.md 1.7). */
+function Column({ view }: { view: AdvisorView }) {
+  const tab = useTab(view);
+  const bulk = useBulk(view);
+  const ref = useRef<HTMLElement>(null);
+  const list = useRef<HTMLDivElement>(null);
+  const { rows: plain, bought, groups } = tabRows(view, tab, bulk);
+  useSeeWorkshop(view, tab === "research", groups);
+  // Only a purchase new to the player is lit (D244).
+  const rows = crownPick(plain, view);
+
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const publish = () => {
+      insets.right = Math.round(element.getBoundingClientRect().width);
+    };
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      insets.right = 0;
+    };
+  }, []);
+
+  return (
+    <aside ref={ref} className="column" aria-label={t("drawer.shop")}>
+      {/* The Big Red's chip at the top of the column (03 4.4), from the Kettle's pad on. */}
+      <BigRedChip />
+      <div className="shop-bar">
+        <Tabs view={view} />
+      </div>
+      {bulkShown(view.base) ? <BulkSegments tab={tab} /> : null}
+      <CardList rows={rows} bought={bought} groups={groups} list={list} view={view} />
+    </aside>
+  );
+}
+
+/**
+ * Onboarding (D244): the collapsed drawer's two-card window keeps the lit card in sight, without
+ * moving a card (D186), unless the player touched the drawer in the last few seconds.
+ */
+function useFollowCrown(
+  list: RefObject<HTMLDivElement | null>,
+  view: AdvisorView,
+  tab: Tab,
+  follow: RefObject<number> | null,
+): void {
+  const place = crownPlace(view);
+  const crowned = place && place.tab === tab ? place.key : null;
+  useEffect(() => {
+    const root = list.current;
+    if (!root || !crowned || !follow) return;
+    if (performance.now() - follow.current < TOUCH_QUIET_MS) return;
+    const card = root.querySelector<HTMLElement>(`[data-key="${crowned}"]`);
+    if (card) scrollTo(root, card);
+  }, [list, crowned, follow]);
+}
+
+function scrollTo(root: HTMLElement, card: HTMLElement): void {
+  const top = card.offsetTop;
+  const bottom = top + card.offsetHeight;
+  let target = root.scrollTop;
+  if (top < root.scrollTop + 6) target = top - 6;
+  else if (bottom > root.scrollTop + root.clientHeight - 6) target = bottom - root.clientHeight + 6;
+  if (Math.abs(target - root.scrollTop) < 1) return;
+  root.scrollTo({ top: target, behavior: reducedMotion() ? "auto" : "smooth" });
+}
+
+function Tabs({ view }: { view: AdvisorView }) {
+  const tab = useTab(view);
+  const setTab = useUi((state) => state.setTab);
+  const count = affordableUpgrades(view);
+  const select = (next: Tab) => {
+    if (next === tab) return;
+    setTab(next);
+  };
+  const tabs: Array<{ id: Tab; label: string; count: number }> = [
+    { id: "lines", label: t("drawer.lines"), count: 0 },
+    { id: "upgrades", label: t("drawer.upgrades"), count },
+    // The Workshop joins two minutes into the run (D199), never before.
+    ...(workshopShown(view)
+      ? [{ id: "research" as const, label: t("drawer.research"), count: 0 }]
+      : []),
+  ];
+  return (
+    <div className="tabs" role="tablist">
+      {tabs.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          role="tab"
+          aria-selected={tab === item.id}
+          className={`tab${tab === item.id ? " on" : ""}`}
+          onClick={() => select(item.id)}
+        >
+          {item.label}
+          {item.count > 0 ? <span className="count num">{item.count}</span> : null}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function CardList({
+  rows,
+  bought,
+  groups,
+  list,
+  view,
+}: {
+  rows: Row[];
+  bought: Array<{ id: string; name: string }>;
+  groups?: ResearchGroup[] | undefined;
+  list: RefObject<HTMLDivElement | null>;
+  view: AdvisorView;
+}) {
+  const boughtOpen = useUi((state) => state.boughtOpen);
+  const toggleBought = useUi((state) => state.toggleBought);
+  const tab = useTab(view);
+  if (groups) {
+    return (
+      <div className="cards workshop" role="tabpanel" ref={list}>
+        {/* The one-line hint, gone after two levels (CLAUDE.md 6.3 rule 6). */}
+        {view.base.meta.stats.research < 2 ? (
+          <p className="workshop-hint">{t("workshop.hint")}</p>
+        ) : null}
+        {groups.map((group) => (
+          <section
+            key={group.era}
+            className={`tile-group${group.locked ? " locked" : ""}`}
+            style={vars({ "--tier-color": tierVar(group.era) })}
+          >
+            <h3 className="tile-group-title">
+              <Icon kind="tier" id={group.era} size={16} />
+              <span>{group.title}</span>
+              {group.locked ? <span className="tile-group-note">{group.locked}</span> : null}
+            </h3>
+            <div className="tiles">
+              {group.rows.map((row) => (
+                <Tile key={row.key} row={row} />
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div className="cards" role="tabpanel" ref={list}>
+      {/* The Work Orders lead the lines, in a fixed place like every card (D186, D256). */}
+      {tab === "lines" ? <OrdersCard /> : null}
+      {rows.length === 0 ? <p className="empty">{t("drawer.empty")}</p> : null}
+      {rows.map((row) => (
+        <Card key={row.key} row={row} />
+      ))}
+      {tab === "upgrades" && bought.length > 0 ? (
+        <>
+          <button
+            type="button"
+            className="btn ghost fold"
+            aria-expanded={boughtOpen}
+            onClick={toggleBought}
+          >
+            {t("drawer.bought", { count: bought.length })}
+            <Icon kind="ui" id="chevron" size={16} className={boughtOpen ? "up" : "down"} />
+          </button>
+          {boughtOpen ? (
+            <ul className="bought">
+              {bought.map((item) => (
+                <li key={item.id}>{item.name}</li>
+              ))}
+            </ul>
+          ) : null}
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+/** The sizes on offer: "Next" joins the lines' once the map's Bulk Buttons are lit (R4 S3). */
+const sizesOf = (tab: Tab, next: boolean): readonly Bulk[] =>
+  tab === "research" ? [1, "max"] : next ? [...BULKS, "next"] : BULKS;
+
+/** The size in force on a tab: on the Workshop's, ×10 and ×100 read as ×1. */
+const sizeOn = (tab: Tab, bulk: Bulk, next: boolean): Bulk =>
+  tab === "research" && bulk !== "max" ? 1 : bulk === "next" && !next ? 1 : bulk;
+
+/** The handle's bulk button: ×1 → ×10 → ×100 → Max (44 × 44); ×1 ↔ Max on the Workshop. */
+function BulkCycle({ tab }: { tab: Tab }) {
+  const nextOn = useNextBulk();
+  const sizes = sizesOf(tab, nextOn);
+  const bulk = sizeOn(
+    tab,
+    useUi((state) => state.bulk),
+    nextOn,
+  );
+  const setBulk = useUi((state) => state.setBulk);
+  const next = sizes[(sizes.indexOf(bulk) + 1) % sizes.length] ?? 1;
+  return (
+    <button
+      type="button"
+      className="btn bulk-cycle num"
+      aria-label={`${t("drawer.bulk")}: ${t(BULK_LABEL[String(bulk)] ?? "")}`}
+      onClick={() => setBulk(next)}
+    >
+      {t(BULK_LABEL[String(bulk)] ?? "")}
+    </button>
+  );
+}
+
+/** The segmented control: ×1 · ×10 · ×100 · Max; ×1 · Max on the Workshop. */
+function BulkSegments({ tab }: { tab: Tab }) {
+  const next = useNextBulk();
+  const bulk = sizeOn(
+    tab,
+    useUi((state) => state.bulk),
+    next,
+  );
+  const setBulk = useUi((state) => state.setBulk);
+  return (
+    <fieldset className="segments">
+      <legend className="sr-only">{t("drawer.bulk")}</legend>
+      {sizesOf(tab, next).map((size) => (
+        <button
+          key={String(size)}
+          type="button"
+          aria-pressed={bulk === size}
+          className={`segment num${bulk === size ? " on" : ""}`}
+          onClick={() => {
+            if (bulk === size) return;
+            setBulk(size);
+          }}
+        >
+          {t(BULK_LABEL[String(size)] ?? "")}
+        </button>
+      ))}
+    </fieldset>
+  );
+}
+
+/**
+ * One card (12-feel.md 4): the art with its level and its hand, the name, the rate, the bar to
+ * the next milestone, and one button; a line without its hand carries the hire as a second,
+ * smaller button where the milestone line would be.
+ */
+export const Card = memo(function Card({ row }: { row: Row }) {
+  const column = useColumn();
+  const owned = row.owned ?? 0;
+  const lineCard = row.kind === "line";
+  // A purchase flashes its card and pops its level; a hire pops the hand's face (3.2).
+  const bought = useRise(owned);
+  const hired = useRise(row.hand ? 1 : 0);
+  const icon = (
+    <Icon kind={row.icon.kind} id={row.icon.id} size={column ? 44 : 38} className="thumb-icon" />
+  );
+  return (
+    <div
+      className={`card kind-${row.kind}${row.locked ? " locked" : ""}${cardCrowned(row) ? " crown" : ""}`}
+      data-key={row.key}
+      style={vars({ "--tier-color": tierVar(row.tier) })}
+    >
+      {bought + hired > 0 ? (
+        <span key={`flash-${bought + hired}`} className="card-flash" aria-hidden="true" />
+      ) : null}
+      <div className="thumb">
+        {row.art ? <PixelArt id={row.art} box={column ? 64 : 52} fallback={icon} /> : icon}
+        {lineCard && owned > 0 ? (
+          <span key={`lvl-${bought}`} className={`lvl num${bought > 0 ? " pop" : ""}`}>
+            {owned}
+          </span>
+        ) : null}
+        {lineCard && owned > 0 ? (
+          row.hand ? (
+            <span key={`face-${hired}`} className={`face${hired > 0 ? " pop" : ""}`}>
+              <Icon kind="crew" id={row.hand} size={16} />
+            </span>
+          ) : (
+            <span className="face finger">
+              <Icon kind="ui" id="finger" size={13} />
+            </span>
+          )
+        ) : null}
+        {row.locked ? (
+          <span className="lock">
+            <Icon kind="ui" id="lock" size={13} />
+          </span>
+        ) : null}
+        {lineCard && owned > 0 && row.bar ? <CycleBar bar={row.bar} /> : null}
+      </div>
+      <div className="mid">
+        <div className="name">{row.name}</div>
+        {lineCard && row.product && owned > 0 ? (
+          <div className="rate">
+            <ResourceIcon id={row.product} size={14} />
+            <span className="num">{row.rate}</span>
+          </div>
+        ) : row.sub ? (
+          <div className="sub">{row.sub}</div>
+        ) : null}
+        {row.progress !== undefined ? (
+          <div className="prog" aria-hidden="true">
+            <i style={{ transform: `scaleX(${row.progress})` }} />
+          </div>
+        ) : null}
+        {row.hire ? (
+          <HireButton hire={row.hire} />
+        ) : row.note ? (
+          <div className="note">{row.note}</div>
+        ) : null}
+      </div>
+      <BuyButton
+        button={row.button}
+        crowned={row.crowned}
+        command={row.command}
+        locked={row.locked}
+      />
+    </div>
+  );
+}, sameCard);
+
+/**
+ * A Workshop tile (game-design 5.12; 08-screens.md 8.3): the icon in a ring of its levels, the
+ * name, what the next level does and adds, and one button. Levels change its price, never its
+ * place; a bought level flashes the tile and pops its count (12-feel.md 3.2).
+ */
+const Tile = memo(function Tile({ row }: { row: Row }) {
+  const level = row.level ?? { n: 0, of: 1 };
+  const rose = useRise(level.n);
+  const done = level.n >= level.of;
+  return (
+    <div
+      className={`tile${row.locked ? " locked" : ""}${done ? " done" : ""}${row.crowned ? " crown" : ""}`}
+      data-key={row.key}
+      style={vars({ "--tier-color": tierVar(row.tier), "--level": String(level.n / level.of) })}
+    >
+      {rose > 0 ? <span key={`flash-${rose}`} className="card-flash" aria-hidden="true" /> : null}
+      <div className="tile-head">
+        <span
+          key={`ring-${rose}`}
+          className={`ring${rose > 0 && done ? " maxed" : ""}`}
+          aria-hidden="true"
+        >
+          <Icon kind={row.icon.kind} id={row.icon.id} size={26} />
+        </span>
+        <span key={`lvl-${rose}`} className={`tile-level num${rose > 0 ? " pop" : ""}`}>
+          {t("workshop.level", { n: level.n, of: level.of })}
+        </span>
+        {row.mk && !done ? <span className="tile-mk num">{row.mk}</span> : null}
+      </div>
+      <div className="tile-name">{row.name}</div>
+      <div className="tile-effect">{row.sub}</div>
+      {row.gain ? (
+        <div className="tile-gain num">{row.gain}</div>
+      ) : row.note ? (
+        <div className="tile-note">{row.note}</div>
+      ) : null}
+      {row.progress !== undefined ? (
+        <div className="tile-prog" aria-hidden="true">
+          <i className="tile-prog-fill" style={{ transform: `scaleX(${row.progress})` }} />
+        </div>
+      ) : null}
+      <BuyButton
+        button={row.button}
+        crowned={row.crowned}
+        command={row.command}
+        locked={row.locked}
+      />
+    </div>
+  );
+}, sameCard);
+
+/** Cards are rebuilt each second: re-render only when something shown changed. */
+function sameCard(a: { row: Row }, b: { row: Row }): boolean {
+  return JSON.stringify(a.row) === JSON.stringify(b.row);
+}
+
+function BuyButton({
+  button,
+  crowned,
+  command,
+  locked,
+}: {
+  button: Button;
+  crowned: boolean;
+  command: Command | null;
+  locked: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      className={`btn buy${crowned ? " primary crowned" : ""}`}
+      disabled={!button.enabled}
+      aria-label={crowned ? `${button.label} · ${t("row.crowned")}` : button.label}
+      onClick={() => send(command)}
+    >
+      <span className="buy-top">
+        {locked ? <Icon kind="ui" id="lock" size={12} /> : null}
+        {button.top}
+      </span>
+      {button.cost ? <span className="buy-cost num">{button.cost}</span> : null}
+    </button>
+  );
+}
+
+function HireButton({ hire }: { hire: NonNullable<Row["hire"]> }) {
+  const { button, crowned } = hire;
+  return (
+    <button
+      type="button"
+      className={`btn hire${crowned ? " primary crowned" : ""}`}
+      disabled={!button.enabled}
+      aria-label={crowned ? `${button.label} · ${t("row.crowned")}` : button.label}
+      onClick={() => send(hire.command)}
+    >
+      <span className="hire-name">{button.top}</span>
+      <span className="hire-cost num">{button.cost}</span>
+    </button>
+  );
+}
+
+/**
+ * The cycle, a strip along the foot of the art (08-screens.md 4.5): a manned line loops (under
+ * a quarter second it shows a moving stripe); an unmanned one plays the cycle in flight and
+ * stops empty.
+ */
+function CycleBar({ bar }: { bar: Bar }) {
+  if (bar.manned) {
+    if (bar.seconds < 0.25) return <span className="cycle fast" aria-hidden="true" />;
+    return (
+      <span className="cycle" aria-hidden="true">
+        <i className="loop" style={{ animationDuration: `${bar.seconds}s` }} />
+      </span>
+    );
+  }
+  if (bar.elapsed === undefined) return <span className="cycle idle" aria-hidden="true" />;
+  return (
+    <span className="cycle unmanned" aria-hidden="true">
+      <i
+        key={bar.until}
+        className="once"
+        style={{ animationDuration: `${bar.seconds}s`, animationDelay: `-${bar.elapsed}s` }}
+      />
+    </span>
+  );
+}
+
+/** Under 740 px tall the collapsed drawer shows one card and a peek (tokens.css). */
+export function useShort(): boolean {
+  const [short, setShort] = useState(() => window.innerHeight < 740);
+  useEffect(() => {
+    const onResize = () => setShort(window.innerHeight < 740);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return short;
+}
+
+export { BULK_LABEL };

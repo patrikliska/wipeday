@@ -140,7 +140,45 @@ DISCORD_TOKEN=...            # developer portal -> the application -> Bot -> Res
 DISCORD_GUILD_ID=718829849137119232
 FEED_CHANNEL_ID=...          # where the island's feed and season news go (optional)
 BOT_API_TOKEN=...            # 32+ random characters (openssl rand -hex 32); the API reads it too
+ADMIN_TOKEN=...              # 16+ characters: the admin routes and admin-cli (R4)
+OWNER_DISCORD_ID=...         # the owner's Discord id: error and stale-copy DMs (R4)
 ```
+
+## The admin (R4)
+
+`/api/admin/grant` and `/api/admin/respec_all` take the `ADMIN_TOKEN` bearer (development
+without one), each an idempotent command by key; `/api/status` reports the version, uptime, the
+last backup, the last off-site copy and the errors of the last 24 h. The CLI runs on the server
+over loopback:
+
+```sh
+docker exec -w /app/apps/api wipeday node_modules/.bin/tsx src/admin-cli.ts grant --player 1 --glass 5 --skin founder --note founders
+docker exec -w /app/apps/api wipeday node_modules/.bin/tsx src/admin-cli.ts respec-all --note "D2xx"
+docker exec -w /app/apps/api wipeday node_modules/.bin/tsx src/admin-cli.ts status
+```
+
+A grant goes to glass held only (never Glow); a respec refunds every node but Ground Zero on
+every base and ships only with a decision. With `OWNER_DISCORD_ID` set the API DMs the owner
+through the bot when a command throws (once an hour per signature) and when the off-site copy is
+older than 26 h (once a day).
+
+### The founders' gift (R4 S3; D271)
+
+Every player who had a season-1 base gets the Founder skin and 5 crater glass held, once. The
+ids come from the old game's last database (`var/backups/wipeday-pre-r2s7.db`, table `bases`);
+`scripts/founders-gift.sh` reads them inside the container and grants each under the key
+`founders:<player id>`, so running it twice changes nothing (the API replays the stored outcome).
+Needs `ADMIN_TOKEN` in `~/wipeday/.env` and the API container up (`docker compose ps`).
+
+```sh
+# from the repo, with the deploy key: the ids first, then the grants
+DRY_RUN=1 ssh -i ~/.ssh/<key> vpsuser@37.46.209.127 'bash -s' < scripts/founders-gift.sh
+ssh -i ~/.ssh/<key> vpsuser@37.46.209.127 'bash -s' < scripts/founders-gift.sh
+```
+
+Each grant is logged as `granted` in `event_log`, and the player's open tabs see the glass
+plate pop. The legacy and hall rows of season 1 stay archived in the old database; nothing
+reads them.
 
 - The bot must be in the server: developer portal -> OAuth2 -> URL Generator, scopes `bot` and
   `applications.commands`; in the feed channel it needs View Channel and Send Messages. It
@@ -157,28 +195,15 @@ BOT_API_TOKEN=...            # 32+ random characters (openssl rand -hex 32); the
   sends the missed ones (at most 20, from the last day) when the bot reconnects.
 - Stop it without touching the game: `docker compose stop wipeday-bot`.
 
-## Seasons (W7, D114)
+## Seasons and starting over (until the cut-over)
 
-The season's end is announced, then run, from the server. Both talk to the running API from
-inside the container (loopback is trusted; no secret needed):
-
-```sh
-docker exec -w /app/apps/api wipeday node_modules/.bin/tsx src/season-cli.ts announce 2026-11-04 --next storm_season
-docker exec -w /app/apps/api wipeday node_modules/.bin/tsx src/season-cli.ts end
-```
-
-The end takes its own backup first (`var/backups/wipeday-pre-season-N.db`). Modifiers:
-`long_nights`, `rich_tides`, `quiet_raiders`, `storm_season` (`packages/content/data/seasons.json5`).
-
-## Starting over (wipe the game, keep logins)
-
-Done once at the W7 deploy, at the owner's request. Take a copy first, then delete the game's
-rows (players, sessions, push subscriptions and the VAPID keys stay), then restart:
-
-```sh
-docker exec -w /app/apps/api wipeday node -e "const D=require('better-sqlite3'); const db=new D('/app/var/wipeday.db'); db.backup('/app/var/backups/wipeday-pre-wipe.db').then(()=>{ db.transaction(()=>{ for (const t of ['commands','event_log','listings','trades','wheel_bets','season_archive','hall_of_fame','signal_gifts','signal','bases','legacy','seasons']) db.prepare('DELETE FROM '+t).run(); db.prepare(\"DELETE FROM settings WHERE key='jackpot'\").run(); db.prepare(\"DELETE FROM sqlite_sequence WHERE name='seasons'\").run(); })(); console.log('wiped'); })"
-cd ~/wipeday && docker compose restart wipeday
-```
+The redesign removes seasons as a reset (D128). The live old game on `main` still has the W7
+season commands (`season-cli.ts`, see this file at the `pre-redesign` tag); they are used once,
+at the cut-over, to end season 1 quietly. The W7 "Starting over" recipe must **not** be used
+again: it deletes `event_log` and resets a sequence. The cut-over has its own runbook and wipe
+recipe, which keep players, sessions, push subscriptions, settings, the season archive, the Hall
+of fame, legacy rows and `event_log` with its sequence: `docs/redesign/09-architecture.md`
+section 13, rehearsed on a copy of the live database first (R4).
 
 ## Useful commands on the server
 
@@ -212,7 +237,7 @@ mistake on it) never loses the game.
   last 30 days. The script only copies, never syncs, so an emptied folder on the box cannot
   empty the remote.
 - **Did it run:** `~/wipeday/var/offsite.json` is `{"ok":true,"at":<unix>,"files":<n on the
-  remote>}` after every run (the API's status page reads it from R2); the log says why a run
+  remote>}` after every run (the API's status page reads it from R4); the log says why a run
   failed.
 - **By hand:** `~/wipeday/offsite.sh` any time (it skips if a run is still going), e.g. right
   after a `wipeday-pre-<phase>.db` copy.

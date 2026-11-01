@@ -1,7 +1,12 @@
 /**
- * Headless screenshot review for the web prototype: loads the dev server in
- * Chromium, puts the store into a set of states and saves PNGs plus a contact
- * sheet to preview/web/. Usage: pnpm web:shots [--url http://localhost:5173]
+ * Headless screenshot review for the web client (D44): loads the dev server in Chromium (demo
+ * mode), puts the store into each state of `SHOTS`, and saves PNGs plus a contact sheet to
+ * preview/web/. Usage: pnpm web:shots [--url http://localhost:5173/?demo] [--only name]
+ *
+ * The list per phase is docs/redesign/08-screens.md section 8. Each phone shot is audited: every
+ * visible button and scene tap area at least 44 × 44 CSS px, the target's tap box at least
+ * 120 px tall (N27), at most one crowned element; a failure is listed under the shot and makes
+ * the run exit non-zero.
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -17,1499 +22,4088 @@ const only = process.argv.includes("--only")
   : null;
 
 const DAY = 86_400;
-const at = (day, hour) => day * DAY + hour * 3600;
+/**
+ * Seconds on the demo's game clock: day `day` (from 1) at `hour` on the island's clock, which
+ * runs at UTC+1 (errata E9).
+ */
+const at = (day, hour) => (day - 1) * DAY + (hour - 1) * 3600;
+/** A fixed animation clock, so clouds and waves sit in the same place every run. */
+const WALL = 1_791_400_000;
 
-/** Every building type (buildings.json5), for the "whole base" shots. */
-const BUILDINGS = [
-  "workbench",
-  "furnace",
+const DESKTOP = [1600, 900];
+const LAPTOP = [1366, 768];
+const TABLET = [820, 1180];
+const PHONE = [390, 844];
+const PHONE_LANDSCAPE = [844, 390];
+
+/** Lines owned at about 10:30 of run 1 in the Stone era, with six hands (the P1 script). */
+/** Timber with the yard's kiln and the cabin's loom and workbench, hands on four lines. */
+const TIMBER_YARD = {
+  era: "wood",
+  eraAt: { wood: 52 },
+  runAge: 330,
+  research: {
+    sharper_hooks: 8,
+    dry_kindling: 5,
+    raised_beds: 3,
+    spare_wicks: 2,
+    calloused_thumbs: 3,
+  },
+  supplies: 2.4e4,
+  made: 9.1e4,
+  taps: 900,
+  lines: { beachcomber: 25, campfire: 14, garden: 8, kiln: 1, loom: 6, workbench: 2 },
+  hands: ["beachcomber", "campfire", "garden", "loom"],
+  upgrades: ["stone_tools"],
+  target: { taps: 10, felled: 20 },
+};
+
+const STONE_RUN = {
+  era: "stone",
+  runAge: 630,
+  research: {
+    sharper_hooks: 25,
+    dry_kindling: 25,
+    raised_beds: 22,
+    spare_wicks: 6,
+    calloused_thumbs: 10,
+    camp_routine: 21,
+    greased_axles: 14,
+    banked_coals: 8,
+    tally_sticks: 17,
+    steady_rhythm: 5,
+    tarred_twine: 14,
+    sharp_chisels: 11,
+    turf_lids: 9,
+    oiled_pulleys: 8,
+    tool_ledger: 9,
+    timber_frames: 6,
+    camp_kitchen: 5,
+    hide_mitts: 4,
+    crew_rations: 5,
+    storm_shutters: 2,
+    beachcomber_mk: 1,
+    campfire_mk: 1,
+    garden_mk: 1,
+  },
+  supplies: 31.2e6,
+  made: 31.2e6,
+  taps: 3200,
+  lines: {
+    beachcomber: 62,
+    campfire: 48,
+    garden: 36,
+    loom: 26,
+    workbench: 14,
+    kiln: 9,
+    furnace: 2,
+  },
+  hands: ["beachcomber", "campfire", "garden", "loom", "workbench", "kiln"],
+  upgrades: ["stone_tools", "sorting_tables", "iron_tools"],
+  roster: 0,
+  target: { taps: 22, felled: 64 },
+};
+
+/** Timber four minutes in: the Workshop open two minutes, its first levels bought (D199). */
+const WORKSHOP_TIMBER = {
+  ...TIMBER_YARD,
+  runAge: 250,
+  supplies: 3.1e3,
+  research: {
+    sharper_hooks: 9,
+    dry_kindling: 6,
+    raised_beds: 2,
+    spare_wicks: 1,
+    calloused_thumbs: 4,
+    camp_routine: 2,
+    tally_sticks: 1,
+  },
+};
+
+/** Later in the Stone era, saving for Loom Mk II (246M) at about 2.8M/s. */
+const SAVING_RUN = {
+  ...STONE_RUN,
+  supplies: 283e3,
+  made: 2.1e8,
+  taps: 5200,
+  lines: {
+    beachcomber: 70,
+    campfire: 65,
+    garden: 65,
+    loom: 59,
+    workbench: 14,
+    kiln: 18,
+    furnace: 2,
+  },
+  hands: ["beachcomber", "campfire", "garden", "loom"],
+  upgrades: ["stone_tools", "sorting_tables", "iron_tools", "salvaged_tools"],
+};
+
+const ALL_LINES = [
+  "beachcomber",
   "campfire",
-  "warehouse",
   "garden",
   "loom",
-  "bunkhouse",
-  "lights",
-  "tannery",
+  "workbench",
   "kiln",
+  "furnace",
+  "tannery",
   "press",
-  "watchtower",
-  "walls",
+  "dock",
   "generator",
   "radio_mast",
-  "dock",
-  "traps",
-  "turret",
+  "shipbreaker",
+  "reactor",
 ];
-const allAt = (level) => Object.fromEntries(BUILDINGS.map((id) => [id, level]));
-/** A believable mid-game base: the early buildings at level 1 and 2. */
-const MIDGAME = {
-  workbench: 2,
-  furnace: 2,
-  campfire: 2,
-  warehouse: 1,
-  garden: 2,
-  loom: 1,
-  bunkhouse: 1,
-  lights: 1,
-  kiln: 1,
-  walls: 1,
+const every = (n) => Object.fromEntries(ALL_LINES.map((id) => [id, n]));
+
+/** Twig a few minutes in: the three Twig lines, one hand, the tree half worn. */
+const TWIG_HERO = {
+  supplies: 420,
+  made: 980,
+  taps: 130,
+  target: { taps: 10, felled: 3 },
+  lines: { beachcomber: 9, campfire: 2, garden: 1 },
+  hands: [],
 };
-/** Mid-game stock with parts, for the crafting shots. */
-const CRAFT_STOCK = {
-  timber: 4200,
-  stone: 3100,
-  ore: 900,
-  ingots: 640,
-  fibre: 380,
-  hide: 120,
-  fat: 40,
-  food: 150,
-  scrap: 60,
-  planks: 45,
-  rope: 0,
-  cloth: 10,
-  plates: 12,
+
+/** Twig, the Workshop just open (2:10): Mara on the Beachcombers, the tree half worn. */
+const WORKSHOP_OPENS = {
+  ...TWIG_HERO,
+  runAge: 130,
+  supplies: 95,
+  made: 2600,
+  lines: { beachcomber: 14, campfire: 4, garden: 1 },
+  hands: ["beachcomber"],
 };
-/** A rested shift from the start of `day` (W4b): tired by the evening. */
-const SHIFT = (day, tiredHour = 16) => ({
-  since: at(day, 0),
-  tiredAt: at(day, tiredHour),
-  sleepUntil: null,
-});
-/** The crew a week in: levels, gear, one hurt, two out on missions. */
-const CREW = (day) => [
-  {
-    id: "mara",
-    job: null,
-    shift: SHIFT(day),
-    level: 3,
-    xp: 300,
-    gear: { weapon: "bow", armor: null },
-    injuredUntil: null,
-    away: "m7",
-  },
-  {
-    id: "dax",
-    job: null,
-    shift: SHIFT(day),
-    level: 2,
-    xp: 180,
-    gear: { weapon: null, armor: "leather_vest" },
-    injuredUntil: null,
-    away: "m7",
-  },
-  {
-    id: "ivo",
-    job: null,
-    shift: SHIFT(day),
-    level: 2,
-    xp: 140,
-    gear: { weapon: null, armor: null },
-    injuredUntil: at(day, 13),
-    away: null,
-  },
-  {
-    id: "rook",
-    job: { kind: "node", node: "tree" },
-    shift: SHIFT(day),
-    level: 1,
-    xp: 40,
-    gear: { weapon: "spear", armor: null },
-    injuredUntil: null,
-    away: null,
-  },
-  {
-    id: "sela",
-    job: { kind: "guard" },
-    shift: SHIFT(day),
-    level: 1,
-    xp: 0,
-    gear: { weapon: null, armor: null },
-    injuredUntil: null,
-    away: null,
-  },
+
+/** Sheet Metal with every line to its Rain Catcher, radio mast and generator; ten hands. */
+const METAL_RUN = {
+  time: at(1, 11),
+  wall: WALL,
+  weather: "clear",
+  era: "metal",
+  lines: { ...every(30), shipbreaker: 0, reactor: 0 },
+  hands: ALL_LINES.slice(0, 10),
+  supplies: 1e12,
+  made: 1e12,
+};
+
+/** Armored, every line at 100 and every hand. */
+const HQM_RUN = {
+  time: at(1, 11),
+  wall: WALL,
+  weather: "clear",
+  era: "hqm",
+  lines: every(100),
+  hands: ALL_LINES,
+  supplies: 1e15,
+  made: 1e15,
+};
+
+/** Sheet Metal 45 minutes into the run: Frenzy open (D240), ten hands, the Workshop deep. */
+const FRENZY_RUN = {
+  era: "metal",
+  runAge: 2700,
+  research: STONE_RUN.research,
+  lines: { ...every(40), shipbreaker: 0, reactor: 0 },
+  hands: ALL_LINES.slice(0, 10),
+  upgrades: ["stone_tools", "iron_tools"],
+  supplies: 4.2e10,
+  made: 9.5e10,
+  taps: 14_200,
+  target: { taps: 40, felled: 210 },
+};
+
+/** Lifetime counters of a player that far in: the Logbook's bars. */
+const FRENZY_STATS = {
+  taps: 14_200,
+  hands: 10,
+  felled: 210,
+  flotsam: 9,
+  crits: 0,
+  frenzies: 3,
+  gulls: 11,
+  units: 1_640,
+  research: 236,
+  upgrades: 12,
+  eras: 3,
+  collects: 4,
+};
+
+/** A new player's counters (`meta.stats` is patched whole). */
+const NEW_STATS = {
+  taps: 0,
+  hands: 0,
+  felled: 0,
+  flotsam: 0,
+  crits: 0,
+  frenzies: 0,
+  gulls: 0,
+  units: 0,
+  research: 0,
+  upgrades: 0,
+  eras: 0,
+  collects: 0,
+  drops: 0,
+  scrap: 0,
+  orders: 0,
+  quests: 0,
+};
+
+/** A player past onboarding: every kind bought twice and more, so nothing is lit (D244). */
+const VETERAN_STATS = {
+  ...NEW_STATS,
+  taps: 9000,
+  hands: 20,
+  felled: 300,
+  units: 600,
+  research: 60,
+  upgrades: 12,
+  eras: 6,
+};
+
+/** Each R2 Feel shot's four skies (08-screens.md 8.3): suffix, the island's hour, weather. */
+const SKIES = [
+  ["", 10.5, "clear"],
+  ["_dusk", 17.75, "clear"],
+  ["_night", 22.5, "clear"],
+  ["_rain", 10.5, "rain"],
 ];
-const KNOWN = ["landing", "tidal_flats", "pine_ridge", "ferry_point", "quarry_hills"];
-/** Seven at work late in the season: nodes, two stations, a guard, one asleep, one tired. */
-const WORK_CREW = (day, hour = 11) =>
-  [
-    ["mara", { kind: "node", node: "tree" }, SHIFT(day)],
-    ["dax", { kind: "node", node: "stone" }, SHIFT(day)],
-    ["ivo", { kind: "guard" }, SHIFT(day)],
-    ["rook", { kind: "node", node: "ore" }, SHIFT(day - 1, 9)],
-    ["bram", { kind: "station", station: "campfire" }, SHIFT(day)],
-    ["otto", { kind: "station", station: "workbench" }, SHIFT(day - 1, 10)],
-    [
-      "sela",
-      { kind: "node", node: "fibre" },
-      { since: at(day, hour + 5), tiredAt: at(day, hour + 21), sleepUntil: at(day, hour + 5) },
-    ],
-  ].map(([id, job, shift], index) => ({
-    id,
-    level: 2 + (index % 3),
-    xp: 200 + index * 40,
-    gear: { weapon: index < 2 ? "bow" : null, armor: null },
-    injuredUntil: null,
-    away: null,
-    job,
-    shift,
-  }));
-const ALL_LAND = [
-  "landing",
-  "tidal_flats",
-  "pine_ridge",
-  "ferry_point",
-  "rust_bay",
-  "quarry_hills",
-  "stormcap",
-  "sulfur_springs",
-  "signal_hill",
-];
-/** A few hours of the island's feed: two friends and the player ("Survivor", id 0). */
-const FEED = (day) =>
-  [
-    [
-      0,
-      "Survivor",
-      {
-        type: "mission_back",
-        mission: "m40",
-        kind: "trip",
-        target: "weather_station",
-        outcome: "success",
-        crew: ["mara"],
-        gained: {},
-        at: 0,
-      },
-    ],
-    [7, "Nia", { type: "item_found", item: "brass_keycode", from: "power_station", at: 0 }],
-    [
-      7,
-      "Nia",
-      {
-        type: "mission_back",
-        mission: "m31",
-        kind: "trip",
-        target: "power_station",
-        outcome: "partial",
-        crew: ["dax"],
-        gained: {},
-        at: 0,
-      },
-    ],
-    [9, "Tomas the Unusually Long-Named Builder", { type: "build_done", tier: "hqm" }],
-    [7, "Nia", { type: "survivor_arrived", survivor: "hale", at: 0, from: "rescue" }],
-    [0, "Survivor", { type: "level_up", survivor: "dax", level: 5, at: 0 }],
-    [
-      9,
-      "Tomas the Unusually Long-Named Builder",
-      { type: "blueprint_found", recipe: "crossbow", from: "site" },
-    ],
-  ].map(([playerId, playerName, event], index) => ({
-    id: 900 - index,
-    at: at(day, 10.8) - index * 2400,
-    playerId,
-    playerName,
-    event,
-  }));
-/** Late season: Sheet Metal, a radio mast and a dock, the north and the narrows charted. */
-const LATE_MAP = (day) => ({
-  time: at(day, 11),
-  tier: "metal",
-  buildings: { ...MIDGAME, radio_mast: 1, dock: 2, bunkhouse: 3 },
-  stock: { ...CRAFT_STOCK, food: 2400, fuel: 180, scrap: 900 },
-  crew: WORK_CREW(day),
-  known: [...ALL_LAND, "rail_yards", "north_dam", "the_narrows"],
-  missions: [],
-  items: { bandage: 2, copper_keycode: 1, brass_keycode: 1 },
-  bonds: { "dax+mara": 4 },
-});
-const MISSIONS = (day) => [
-  {
-    id: "m7",
-    kind: "trip",
-    target: "quarry",
-    crew: ["mara", "dax"],
-    startedAt: at(day, 10),
-    endsAt: at(day, 12.5),
-    seed: 7,
-    odds: {
-      success: 78,
-      partial: 89,
-      injury: [11, 8],
-      minutes: 150,
-      rolls: 3,
-      loot: 20,
-      blueprint: 5,
-      fragment: 12,
-    },
-  },
-];
-const REPORT = (day, outcome) => ({
-  id: "m6",
-  kind: "trip",
-  target: "beach_wreck",
-  outcome,
-  crew: ["rook", "sela"],
-  gained: outcome === "fail" ? {} : { scrap: 11, rope: 7, food: 18 },
-  injured: outcome === "fail" ? [{ id: "rook", until: at(day, 13) }] : [],
-  xp: outcome === "fail" ? 5 : 20,
-  levelUps: outcome === "success" ? ["sela"] : [],
-  revealed: outcome === "success" ? ["rust_bay"] : [],
-  blueprint: null,
-  at: at(day, 10.5),
-  read: false,
-});
-const MAP_STATE = (day) => ({
-  time: at(day, 11),
-  tier: "stone",
-  buildings: MIDGAME,
-  stock: CRAFT_STOCK,
-  crew: CREW(day),
-  known: KNOWN,
-  missions: MISSIONS(day),
-  items: { bandage: 2, crate: 2 },
-});
-/** Two stations at work: planks at the workbench, a queue at the loom. */
-const BUSY = (day) => ({
-  workbench: [
-    { recipe: "planks", count: 20, done: 6, unitSeconds: 120, startedAt: at(day, 11) - 780 },
-    { recipe: "frames", count: 4, done: 0, unitSeconds: 300, startedAt: at(day, 11) + 1620 },
-  ],
-  loom: [{ recipe: "rope", count: 8, done: 2, unitSeconds: 180, startedAt: at(day, 11) - 400 }],
-});
 
 /**
- * Each shot: viewport, state patch, settle time. The page runs in demo mode (`?demo`). In the
- * patch, `time` sets the demo game clock (seconds into the demo season, which starts at the
- * epoch), `panel`, `weather` and `welcome` set the HUD, and every other key overwrites that
- * field of the base (`BaseState` in the domain). Optional: `act` fires a store
- * action after the patch (for effects such as floating gains), `click` clicks a
- * point in CSS pixels instead (starting a node run), `clip` also saves
- * a 1:1 crop `{name}__zoom.png` ([x, y, width, height] in CSS pixels), `scrollTo` scrolls
- * the element matching that selector to the top of its panel before the picture.
+ * Each shot: `viewport`, `scale` (device pixels), `state`, and optionally `clip`, `taps`, `ff`.
+ * In `state`, `time` pins the game clock and `wall` the animation clock (both paused);
+ * `weather` moves `time` by whole days until the island has that weather at that hour;
+ * `demoOpen` opens the demo drawer; `ui` sets the HUD (`expanded`, `tab`, `bulk`, `panel`,
+ * `sheet`, `boughtOpen`, `scientific`); `pace` is the player's taps a second over the last
+ * minute (default 6), which the crown weighs; every other key overwrites that field of the run
+ * (`RunState`). `taps: [rounds, perRound]` taps the target through the store, a sixth of a
+ * second apart; `ff` plays that many seconds of scene time after the patch and the taps (60 fps
+ * steps, deterministic), then the frame is frozen. `clip` also saves a 1:1 crop
+ * `{name}__zoom.png` ([x, y, width, height] in CSS pixels). `press` holds a finger on the
+ * target through the fast-forward (hold to work). `send` sends a command through the store after
+ * the patch (a refusal shows its toast); `scrollRows: "end"` scrolls the open shop list down and
+ * `scroll` scrolls any element (a selector) to its end; `scrollTo` brings one element (a
+ * selector) into the middle of its list or sheet.
+ *
+ * Flotsam and away (R1 S4), in `state`: `runAge` starts the run that many seconds before `time`;
+ * `flotsamAge` puts an arrival on the water that many seconds old (run 1's crate, or the first
+ * of `flotsamKind` once one was caught); `away` moves the game clock on that many seconds after
+ * the patch and shows the welcome-back card; `collect` presses its Collect.
+ *
+ * R2 Feel S7, in `state`: `gull: {age, elite}` starts the run so a crow (a Magpie) is that many
+ * seconds into its crossing; `meta` overwrites lifetime fields (`badges`, `stats`) and
+ * `badgesNew` how many of the badges the Logbook has not shown yet (the dock's count);
+ * `badgesFill` (the ids kept back; `false` for none) earns every badge the run already meets, by
+ * default; `frenzy` (the
+ * meter) and `buffs` are run fields like any other. On the shot, `sendGull` catches the crow.
+ *
+ * R2 Feel S8: `liveDock` lets a place that joins the dock (and P2's next era plate) animate in
+ * (frozen otherwise).
  */
-/**
- * A Stone holdfast on day 9 with the Den open (W5): scrap and goods to trade, today's
- * counter and contracts (one deliverable), one listing up. `extra` overrides any field.
- */
-const DEN = (extra = {}) => ({
-  time: at(9, 11),
-  tier: "stone",
-  buildings: MIDGAME,
-  stock: { ...CRAFT_STOCK, scrap: 640, fibre: 900, rope: 140 },
-  items: { crate: 3, bow: 2, tin_keycode: 1 },
-  den: {
-    day: 9,
-    tier: "stone",
-    offers: ["planks_lot", "rope_lot", "leather_lot", "stew_lot", "blueprint_lot"],
-    bought: { rope_lot: 1 },
-  },
-  contracts: {
-    day: 9,
-    tier: "stone",
-    ids: ["net_fibre", "jetty_timber", "rigging_rope"],
-    done: [],
-  },
-  listings: [
-    { id: "l1", good: "cloth", amount: 60, price: 18, listedAt: at(9, 8), expiresAt: at(11, 8) },
-  ],
-  listingSeq: 1,
-  casino: { day: 9, wagered: 20, won: 22 },
-  panel: "den",
-  ...extra,
-});
+const PHONE_SHORT = [390, 664];
 
-// --- raids (W6) ------------------------------------------------------------------------
-/** A Stone holdfast with walls, a watchtower and traps, raiders landing at 21:30 on day 9. */
-const RAID = (extra = {}) => ({
-  time: at(9, 15),
-  tier: "stone",
-  buildings: { ...MIDGAME, watchtower: 1, traps: 1 },
-  stock: { ...CRAFT_STOCK, timber: 9200, stone: 8400, ingots: 1900, scrap: 420, charge: 2 },
-  crew: CREW(9).map((member) => ({ ...member, away: null })),
-  raid: { at: at(9, 21.5), seed: 5, n: 2, warned: true },
-  raidSeq: 2,
-  damaged: false,
-  raidReports: [],
-  ...extra,
-});
-const NPC_BREACHED = {
-  id: "r3",
-  kind: "npc",
-  at: at(9, 21.2),
-  outcome: "breached",
-  chance: 42,
-  defence: 18,
-  attack: 25,
-  lost: { timber: 460, stone: 420, ingots: 95, scrap: 21 },
-  gained: {},
-  foe: null,
-  damaged: true,
-  revenge: false,
-  read: false,
+/** R4 S2 (D270): the Stone run at minute 10 with the Kettle's pad just up (500M made, E2). */
+const KETTLE_PAD = { ...STONE_RUN, made: 6e8, supplies: 1e7 };
+/** ...with the rocket taking shape (a gain of 5). */
+const KETTLE_FRAME = { ...STONE_RUN, made: 2.2e9, supplies: 1e7 };
+/** The first launch ready: 58B made, the formula's delta at 10 (03 2.3), crowned "first". */
+const FIRST_NUKE = { ...STONE_RUN, runAge: 2880, made: 5.8e10, supplies: 3.1e9, taps: 9000 };
+/** A later island, four presses in, where the press pays +6 of 84 glass: a small blast. */
+const SMALL_BLAST_META = {
+  nukes: 3,
+  wipeDays: 3,
+  lifetime: 2.95e15,
+  glass: { ever: 84, held: 40, level: 84, spent: 44 },
+  nodes: ["ground_zero", "go_bag", "beachcomber_kit"],
+  flights: ["u_turn", "loop_the_loop"],
 };
-const NPC_HELD = {
-  id: "r1",
-  kind: "npc",
-  at: at(7, 22.1),
-  outcome: "held",
-  chance: 61,
-  defence: 23,
-  attack: 15,
-  lost: {},
-  gained: { scrap: 18, sulfur: 44 },
-  foe: null,
-  damaged: false,
-  revenge: false,
-  read: true,
+/** The fresh island after Wipe Day #1: run 2, nothing built, 10 glass ever. */
+const AFTER_FIRST_META = {
+  nukes: 1,
+  wipeDays: 1,
+  lifetime: 5.8e10,
+  glass: { ever: 10, held: 10, level: 10, spent: 0 },
+  nodes: ["ground_zero"],
+  flights: ["u_turn"],
+  records: { bestRun: 5.8e10, bestBlast: 10 },
+  // A first run's worth of play (R4 S4): the onboarding hint is gone and the dock is full, as
+  // on a real second island.
+  stats: {
+    ...NEW_STATS,
+    taps: 2600,
+    hands: 14,
+    felled: 90,
+    flotsam: 4,
+    units: 320,
+    research: 24,
+    upgrades: 6,
+    eras: 4,
+    drops: 2,
+  },
 };
-const PVP_STATE = (extra = {}) => ({
-  on: true,
-  lastAttackAt: null,
-  hits: {},
-  shieldUntil: null,
-  revenge: [],
-  ...extra,
-});
-/** Sheet Metal, in the raids, with charges: the PvP tab against Hollis. */
-const PVP = (extra = {}) => ({
-  ...RAID(),
-  time: at(16, 11),
-  tier: "metal",
-  buildings: { ...MIDGAME, walls: 2, watchtower: 2, traps: 2, turret: 1 },
-  stock: { ...CRAFT_STOCK, timber: 38_000, stone: 44_000, ingots: 12_000, scrap: 1100, charge: 14 },
-  raid: null,
-  raidReports: [NPC_HELD],
-  pvp: PVP_STATE(),
-  panel: "defence",
-  defenceTab: "raids",
-  ...extra,
-});
-const PVP_IN = {
-  id: "i1",
-  kind: "pvp_in",
-  at: at(16, 6),
-  outcome: "breached",
-  chance: 38,
-  defence: 46,
-  attack: 60,
-  lost: { timber: 3800, stone: 4400, ingots: 1200, scrap: 110 },
-  gained: {},
-  foe: { id: 9, name: "Hollis" },
-  damaged: true,
-  revenge: false,
-  read: false,
+const FRESH_RUN = {
+  n: 2,
+  lines: {},
+  hands: [],
+  upgrades: [],
+  research: {},
+  supplies: 0,
+  made: 0,
+  taps: 0,
+  era: "twig",
+  target: { taps: 0, felled: 0 },
 };
-const PVP_OUT = {
-  id: "o1",
-  kind: "pvp_out",
-  at: at(16, 11),
-  outcome: "breached",
-  chance: 31,
-  defence: 41,
-  attack: 60,
-  lost: { charge: 6 },
-  gained: { timber: 4200, stone: 5100, ingots: 1850, sulfur: 240, scrap: 150 },
-  foe: { id: 9, name: "Hollis" },
-  damaged: false,
-  revenge: false,
-  read: false,
-};
-const REVENGE = PVP_STATE({
-  shieldUntil: at(17, 6),
-  revenge: [{ attacker: 9, name: "Hollis", until: at(18, 6) }],
-});
-const FORT = { ...MIDGAME, walls: 3, watchtower: 3, traps: 3, turret: 3 };
-
-// --- seasons and the legacy layer (W7) ----------------------------------------------------
-/** A finished season's card, as the reset archives it. */
-const SEASON_ONE = {
-  season: 1,
+/** The first Wipe Day's `nuked` event, as the postcard reads it. */
+const FIRST_EVENT = {
+  n: 1,
+  wipeDay: 1,
+  gain: 10,
+  ever: 10,
+  glowBefore: 1,
+  glowAfter: 1.95,
+  doubling: true,
+  flight: "u_turn",
   summary: {
-    tier: "hqm",
-    tierDays: { twig: 1, wood: 1, stone: 4, metal: 14, hqm: 23 },
-    sites: 9,
-    bestHaul: 1820,
-    crew: 7,
-    traded: 640,
-    wagered: 420,
-    won: 380,
-    biggestWin: 120,
-    contracts: 12,
-    wealth: 48_200,
-    ranks: { wealth: 2, builder: 1, explorer: 1, trader: 2, lucky: 2, guard: 1 },
-    players: 2,
+    seconds: 2880,
+    made: 5.8e10,
+    era: "stone",
+    flotsam: 7,
+    gulls: 2,
+    orders: 3,
+    taps: 9000,
+    bestLine: { id: "furnace", share: 0.41 },
   },
-  ranks: { wealth: 2, builder: 1, explorer: 1, trader: 2, lucky: 2, guard: 1 },
-  points: 21,
 };
-/** The Signal half-way: the foundation done, the tower going up. */
-const SIGNAL_TOWER = { stage: 1, given: { frames: 120, plates: 90 }, litAt: null };
-const SIGNAL_LIT = { stage: 4, given: {}, litAt: at(25, 22) };
-const LATE = (extra = {}) => ({
-  time: at(23, 11),
-  tier: "hqm",
-  buildings: { ...MIDGAME, walls: 3, watchtower: 2 },
-  stock: {
-    ...CRAFT_STOCK,
-    stone: 24_000,
-    planks: 900,
-    frames: 60,
-    plates: 140,
-    gears: 30,
-    fuel: 200,
+/** The named phases of the U-Turn (03 7.5; impact 4,100 ms). */
+const U_TURN = {
+  scramble: 600,
+  ignite: 1100,
+  liftoff: 1500,
+  flight: 2800,
+  whistle: 3700,
+  flash: 4140,
+  fireball: 4500,
+  cloud: 5500,
+  settle: 6600,
+};
+const cine = (name, variant, ms, extra = {}) => ({
+  name,
+  viewport: PHONE,
+  state: {
+    time: at(1, 10.5),
+    wall: WALL,
+    weather: "clear",
+    ...FIRST_NUKE,
+    cinematic: { variant, at: ms, ...(extra.event ? { event: extra.event } : {}) },
+    ...extra.state,
   },
-  ...extra,
+  ...extra.shot,
+});
+
+/** R4 S3 (D271): a third island, three Wipe Days in, a dozen nodes lit and 100 glass to spend. */
+const MAP_META = {
+  nukes: 3,
+  wipeDays: 3,
+  lifetime: 2.95e15,
+  glass: { ever: 240, held: 100, level: 240, spent: 140 },
+  nodes: [
+    "ground_zero",
+    "packed_crate",
+    "hot_coals",
+    "steady_hands",
+    "second_wind",
+    "quick_fingers",
+    "old_friend",
+    "fair_pay_1",
+    "tally_wall",
+    "souvenir_jar",
+    "deep_cellars",
+    "scrap_heap",
+  ],
+  flights: ["u_turn", "loop_the_loop", "sputter_drop"],
+  records: { bestRun: 2e15, bestBlast: 120 },
+};
+/** The Stone run with the map's third island behind it. */
+const MAP_RUN = { ...STONE_RUN, n: 4 };
+/** Wipe Day #4's `nuked` event, for the later postcard. */
+const LATER_EVENT = {
+  ...FIRST_EVENT,
+  n: 4,
+  wipeDay: 4,
+  gain: 186,
+  ever: 426,
+  glowBefore: 3.52,
+  glowAfter: 5.24,
+  doubling: false,
+  flight: "loop_the_loop",
+};
+const map = (name, viewport, extra = {}, shot = {}) => ({
+  name,
+  viewport,
+  state: {
+    time: at(1, 10.5),
+    wall: WALL,
+    weather: "clear",
+    ...MAP_RUN,
+    meta: MAP_META,
+    ui: { panel: "map" },
+    ...extra,
+  },
+  ...shot,
 });
 
 const SHOTS = [
-  { name: "desktop_day", viewport: [1600, 900], state: { time: at(3, 11) } },
-  { name: "desktop_morning", viewport: [1600, 900], state: { time: at(3, 7) } },
-  { name: "desktop_dusk", viewport: [1600, 900], state: { time: at(3, 18.6) } },
-  { name: "desktop_night", viewport: [1600, 900], state: { time: at(3, 23) } },
+  // --- R4 S2: the Kettle, the Big Red, the film, the postcard, the landing (08 8.3) ---
   {
-    name: "desktop_rain",
-    viewport: [1600, 900],
-    state: { time: at(3, 14), weather: "rain" },
-    settle: 4500,
+    name: "phone_kettle_pad",
+    viewport: PHONE,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...KETTLE_PAD },
   },
   {
-    name: "desktop_fog",
-    viewport: [1600, 900],
-    state: { time: at(3, 8), weather: "fog" },
-    settle: 4500,
+    name: "phone_kettle_frame",
+    viewport: PHONE,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...KETTLE_FRAME },
   },
   {
-    name: "desktop_twig",
-    viewport: [1600, 900],
+    name: "phone_kettle_card",
+    viewport: PHONE,
     state: {
-      time: at(1, 12),
-      tier: "twig",
-      toolId: "rock",
-      lastGatherAt: 0,
-      items: {},
-      buildings: {},
-      furnaceJobs: [],
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...KETTLE_PAD,
+      bigRed: { card: true },
     },
   },
   {
-    name: "desktop_stone",
-    viewport: [1600, 900],
+    name: "phone_bigred_chip",
+    viewport: PHONE,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...FIRST_NUKE },
+    ff: 1.3,
+  },
+  {
+    name: "phone_bigred_chip_night",
+    viewport: PHONE,
+    state: { time: at(1, 23), wall: WALL, weather: "clear", ...FIRST_NUKE },
+    ff: 1.3,
+  },
+  {
+    name: "desktop_bigred_chip",
+    viewport: DESKTOP,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...FIRST_NUKE },
+    ff: 1.3,
+  },
+  {
+    name: "phone_cover_first",
+    viewport: PHONE,
     state: {
-      time: at(9, 12),
-      tier: "stone",
-      items: { crate: 3 },
-      buildings: MIDGAME,
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FIRST_NUKE,
+      bigRed: { card: true },
     },
   },
   {
-    name: "desktop_metal",
-    viewport: [1600, 900],
+    name: "phone_cover_small",
+    viewport: PHONE,
     state: {
-      time: at(15, 12),
-      tier: "metal",
-      items: { crate: 4 },
-      buildings: allAt(2),
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      n: 4,
+      made: 1e12,
+      afterglowFrom: at(1, 10.5) - 3000,
+      meta: SMALL_BLAST_META,
+      bigRed: { card: true },
     },
   },
   {
-    name: "desktop_hqm_night",
-    viewport: [1600, 900],
+    name: "phone_bigred_hold",
+    viewport: PHONE,
     state: {
-      time: at(24, 22),
-      tier: "hqm",
-      items: { crate: 6 },
-      buildings: allAt(3),
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FIRST_NUKE,
+      bigRed: { hold: 0.6 },
+    },
+  },
+  cine("cine_scramble", "u_turn", U_TURN.scramble),
+  cine("cine_ignite", "u_turn", U_TURN.ignite),
+  cine("cine_liftoff", "u_turn", U_TURN.liftoff),
+  cine("cine_flight_u_turn", "u_turn", U_TURN.flight),
+  cine("cine_flight_loop_the_loop", "loop_the_loop", 3000),
+  cine("cine_flight_sputter_drop", "sputter_drop", 2200),
+  cine("cine_fizzle", "fizzle", 2100, { event: { wipeDay: null, gain: 6, flight: "fizzle" } }),
+  cine("cine_whistle", "u_turn", U_TURN.whistle),
+  cine("cine_flash", "u_turn", U_TURN.flash),
+  cine("cine_fireball", "u_turn", U_TURN.fireball),
+  cine("cine_cloud", "u_turn", U_TURN.cloud),
+  cine("cine_settle", "u_turn", U_TURN.settle),
+  cine("cine_flash_night", "u_turn", U_TURN.flash, { state: { time: at(1, 23) } }),
+  cine("cine_cloud_night", "u_turn", U_TURN.cloud, { state: { time: at(1, 23) } }),
+  cine("cine_flash_rain", "u_turn", U_TURN.flash, { state: { weather: "rain" } }),
+  cine("cine_cloud_rain", "u_turn", U_TURN.cloud, { state: { weather: "rain" } }),
+  cine("desktop_cine_fireball", "u_turn", U_TURN.fireball, { shot: { viewport: DESKTOP } }),
+  cine("desktop_cine_cloud", "u_turn", U_TURN.cloud, { shot: { viewport: DESKTOP } }),
+  cine("cine_reduced", "u_turn", 1200, { state: { ui: { motion: "reduced" } } }),
+  {
+    name: "phone_postcard_front",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      meta: AFTER_FIRST_META,
+      postcard: { event: FIRST_EVENT },
     },
   },
   {
-    name: "desktop_building",
-    viewport: [1600, 900],
+    name: "phone_postcard_back",
+    viewport: PHONE,
     state: {
-      time: at(5, 12),
-      construction: [
-        { target: { kind: "tier", tier: "stone" }, startedAt: at(5, 11), endsAt: at(5, 15) },
-      ],
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      meta: AFTER_FIRST_META,
+      postcard: { event: FIRST_EVENT, flipped: true },
     },
   },
   {
-    name: "desktop_panel_build",
-    viewport: [1600, 900],
-    state: { time: at(3, 11), panel: "build" },
-  },
-  {
-    name: "desktop_panel_buildings",
-    viewport: [1600, 900],
-    state: { time: at(9, 11), tier: "stone", buildings: MIDGAME, panel: "build" },
-    scrollTo: ".panel h3.section:nth-of-type(3)",
-  },
-  {
-    name: "desktop_panel_craft",
-    viewport: [1600, 900],
-    state: { time: at(3, 11), panel: "craft" },
-  },
-  {
-    name: "desktop_craft_busy",
-    viewport: [1600, 900],
+    name: "desktop_postcard_back",
+    viewport: DESKTOP,
     state: {
-      time: at(9, 11),
-      tier: "stone",
-      buildings: MIDGAME,
-      stock: CRAFT_STOCK,
-      production: BUSY(9),
-      panel: "craft",
-      station: "workbench",
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      meta: AFTER_FIRST_META,
+      postcard: { event: FIRST_EVENT, flipped: true },
     },
   },
   {
-    name: "desktop_recipe_frames",
-    viewport: [1600, 900],
+    name: "phone_postcard_small",
+    viewport: PHONE,
     state: {
-      time: at(9, 11),
-      tier: "stone",
-      buildings: MIDGAME,
-      stock: CRAFT_STOCK,
-      panel: "craft",
-      recipe: "frames",
-    },
-  },
-  {
-    name: "desktop_panel_furnace",
-    viewport: [1600, 900],
-    state: {
-      time: at(3, 11),
-      panel: "furnace",
-      furnaceJobs: [
-        {
-          input: "ore",
-          output: "ingots",
-          amount: 400,
-          perHour: 120,
-          startedAt: at(3, 9),
-          collected: 0,
-        },
-      ],
-    },
-  },
-  {
-    name: "desktop_panel_inventory",
-    viewport: [1600, 900],
-    state: {
-      time: at(9, 11),
-      tier: "stone",
-      buildings: MIDGAME,
-      stock: CRAFT_STOCK,
-      items: { crate: 3, bow: 1, roast: 2, stew: 1 },
-      wellFed: { percent: 10, until: at(9, 13) },
-      panel: "inventory",
-    },
-  },
-  {
-    name: "desktop_panel_squad",
-    viewport: [1600, 900],
-    state: { time: at(3, 11), panel: "squad" },
-  },
-  {
-    name: "desktop_panel_tasks",
-    viewport: [1600, 900],
-    state: { time: at(3, 11), panel: "tasks" },
-  },
-  { name: "desktop_away", viewport: [1600, 900], state: { time: at(3, 11), welcome: true } },
-  {
-    name: "furnace_idle",
-    viewport: [1920, 1080],
-    state: { time: at(3, 11), furnaceJobs: [] },
-    clip: [641, 540, 300, 260],
-  },
-  {
-    name: "furnace_lit",
-    viewport: [1920, 1080],
-    state: {
-      time: at(3, 11),
-      furnaceJobs: [
-        {
-          input: "ore",
-          output: "ingots",
-          amount: 400,
-          perHour: 120,
-          startedAt: at(3, 10),
-          collected: 0,
-        },
-      ],
-    },
-    clip: [641, 540, 300, 260],
-  },
-  {
-    name: "furnace_night_hqm",
-    viewport: [1920, 1080],
-    state: {
-      time: at(24, 22),
-      tier: "hqm",
-      items: { crate: 6 },
-      buildings: allAt(3),
-      furnaceJobs: [
-        {
-          input: "ore",
-          output: "ingots",
-          amount: 900,
-          perHour: 1200,
-          startedAt: at(24, 21.8),
-          collected: 0,
-        },
-      ],
-    },
-    clip: [361, 500, 620, 320],
-  },
-  {
-    name: "node_marker",
-    viewport: [1920, 1080],
-    state: { time: at(3, 11) },
-    click: [651, 849],
-    clip: [520, 694, 280, 220],
-  },
-  {
-    name: "node_hits",
-    viewport: [1920, 1080],
-    state: { time: at(3, 22) },
-    click: [651, 849],
-    hits: 2,
-    clip: [480, 614, 360, 300],
-  },
-  {
-    name: "node_perfect",
-    viewport: [1920, 1080],
-    state: { time: at(3, 11) },
-    click: [651, 849],
-    hits: 5,
-    clip: [480, 614, 360, 300],
-  },
-  {
-    name: "ore_node",
-    viewport: [1920, 1080],
-    scale: 2,
-    state: { time: at(3, 11) },
-    clip: [570, 754, 190, 130],
-  },
-  {
-    // Nodes hit but not worked out keep standing with cuts and cracks (D76).
-    name: "worn_nodes",
-    viewport: [1920, 1080],
-    scale: 2,
-    state: { time: at(3, 11), toolId: "stone_tools", wear: { ore_1: 3, tree_1: 4, stone_1: 2 } },
-    clip: [540, 560, 480, 340],
-  },
-  {
-    name: "barrel",
-    viewport: [1920, 1080],
-    scale: 2,
-    state: { time: at(3, 11) },
-    clip: [411, 735, 170, 170],
-  },
-  {
-    name: "sulfur_node",
-    viewport: [1920, 1080],
-    scale: 2,
-    state: { time: at(3, 11) },
-    clip: [1358, 812, 190, 120],
-  },
-  {
-    name: "stone_node",
-    viewport: [1920, 1080],
-    scale: 2,
-    state: { time: at(3, 11) },
-    clip: [1241, 780, 150, 100],
-  },
-  {
-    name: "nodes_depleted",
-    viewport: [1920, 1080],
-    state: {
-      time: at(3, 11),
-      // Back at `until` (game seconds); how far each regrow pie is follows from the kind's respawn.
-      depleted: {
-        tree_1: at(3, 11) + 10,
-        tree_2: at(3, 11) + 5,
-        ore_1: at(3, 11) + 15,
-        stone_1: at(3, 11) + 18,
-        sulfur_1: at(3, 11) + 100,
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      n: 5,
+      meta: {
+        ...SMALL_BLAST_META,
+        nukes: 4,
+        lifetime: 2.951e15,
+        glass: { ever: 90, held: 46, level: 90, spent: 44 },
       },
-    },
-    settle: 2500,
-    clip: [500, 640, 1080, 300],
-  },
-  {
-    name: "survivors",
-    viewport: [1920, 1080],
-    scale: 2,
-    state: { time: at(3, 11) },
-    clip: [921, 650, 260, 160],
-  },
-  {
-    name: "buildings_level1",
-    viewport: [1920, 1080],
-    state: { time: at(9, 11), tier: "stone", items: { crate: 2 }, buildings: allAt(1) },
-  },
-  {
-    name: "buildings_level3",
-    viewport: [1920, 1080],
-    state: { time: at(24, 11), tier: "hqm", items: { crate: 6 }, buildings: allAt(3) },
-  },
-  {
-    name: "buildings_night",
-    viewport: [1920, 1080],
-    state: { time: at(24, 22), tier: "hqm", items: { crate: 6 }, buildings: allAt(3) },
-  },
-  {
-    name: "buildings_construction",
-    viewport: [1920, 1080],
-    state: {
-      time: at(9, 11),
-      tier: "stone",
-      buildings: MIDGAME,
-      construction: [
-        {
-          target: { kind: "building", building: "warehouse", level: 2 },
-          startedAt: at(9, 10),
-          endsAt: at(9, 12),
+      postcard: {
+        event: {
+          ...FIRST_EVENT,
+          n: 4,
+          wipeDay: null,
+          gain: 6,
+          ever: 90,
+          glowBefore: 3.75,
+          glowAfter: 3.85,
+          doubling: false,
+          flight: "fizzle",
         },
-        {
-          target: { kind: "building", building: "bunkhouse", level: 2 },
-          startedAt: at(9, 10),
-          endsAt: at(9, 13),
-        },
-      ],
-    },
-  },
-  {
-    name: "phone_buildings",
-    viewport: [390, 844],
-    scale: 3,
-    state: { time: at(9, 11), tier: "stone", items: { crate: 3 }, buildings: MIDGAME },
-  },
-  {
-    name: "phone_buildings_full",
-    viewport: [390, 844],
-    scale: 3,
-    state: { time: at(24, 11), tier: "hqm", items: { crate: 6 }, buildings: allAt(3) },
-  },
-  {
-    name: "desktop_ultrawide",
-    viewport: [2560, 1080],
-    state: { time: at(3, 11) },
-  },
-  { name: "laptop", viewport: [1366, 768], state: { time: at(3, 11) } },
-  {
-    name: "desktop_gains",
-    viewport: [1920, 1080],
-    state: { time: at(3, 11), lastGatherAt: 0 },
-    act: "gather",
-    clip: [801, 320, 500, 220],
-  },
-  { name: "phone_day", viewport: [390, 844], scale: 3, state: { time: at(3, 11) } },
-  { name: "phone_night", viewport: [390, 844], scale: 3, state: { time: at(3, 23) } },
-  {
-    name: "phone_gains",
-    viewport: [390, 844],
-    scale: 3,
-    state: { time: at(3, 11), lastGatherAt: 0 },
-    act: "gather",
-    clip: [95, 330, 270, 140],
-  },
-  {
-    name: "phone_panel_build",
-    viewport: [390, 844],
-    scale: 3,
-    state: { time: at(3, 11), panel: "build" },
-  },
-  {
-    // Three stations at work, no panel: the rings over them and the kiln's smoke.
-    name: "stations_busy",
-    viewport: [1920, 1080],
-    state: {
-      time: at(9, 11),
-      tier: "stone",
-      buildings: MIDGAME,
-      stock: CRAFT_STOCK,
-      production: {
-        ...BUSY(9),
-        kiln: [
-          { recipe: "charcoal", count: 6, done: 1, unitSeconds: 240, startedAt: at(9, 11) - 330 },
-        ],
-      },
-    },
-    clip: [760, 480, 900, 260],
-  },
-  {
-    name: "stations_busy_night",
-    viewport: [1920, 1080],
-    state: {
-      time: at(9, 22),
-      tier: "stone",
-      buildings: MIDGAME,
-      stock: CRAFT_STOCK,
-      production: {
-        workbench: [
-          { recipe: "planks", count: 20, done: 6, unitSeconds: 120, startedAt: at(9, 22) - 780 },
-        ],
-        kiln: [
-          { recipe: "charcoal", count: 6, done: 1, unitSeconds: 240, startedAt: at(9, 22) - 330 },
-        ],
+        flipped: true,
       },
     },
   },
   {
-    name: "map_fresh",
-    viewport: [1600, 900],
-    state: { time: at(1, 11), view: "map" },
-  },
-  {
-    name: "map_desktop",
-    viewport: [1600, 900],
-    state: { ...MAP_STATE(7), view: "map" },
-  },
-  {
-    name: "map_site_desktop",
-    viewport: [1600, 900],
+    name: "phone_rebuild_plain",
+    viewport: PHONE,
     state: {
-      ...MAP_STATE(7),
-      view: "map",
-      panel: "map",
-      mapFocus: { kind: "site", id: "old_campground" },
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      createdAt: at(1, 10.5) - 5,
+      meta: AFTER_FIRST_META,
+      landing: 1400,
     },
   },
   {
-    name: "phone_map",
-    viewport: [390, 844],
-    scale: 3,
-    state: { ...MAP_STATE(7), view: "map" },
+    name: "phone_afterglow",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      createdAt: at(1, 10.5) - 20,
+      afterglowFrom: null,
+      meta: AFTER_FIRST_META,
+    },
+    ff: 0.6,
   },
   {
-    name: "phone_map_region",
-    viewport: [390, 844],
-    scale: 3,
+    name: "desktop_afterglow",
+    viewport: DESKTOP,
     state: {
-      ...MAP_STATE(7),
-      view: "map",
-      panel: "map",
-      mapFocus: { kind: "region", id: "rust_bay" },
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      createdAt: at(1, 10.5) - 400,
+      afterglowFrom: at(1, 10.5) - 400,
+      lines: { beachcomber: 3 },
+      made: 900,
+      supplies: 400,
+      meta: AFTER_FIRST_META,
+    },
+    ff: 0.6,
+  },
+  {
+    name: "phone_crater_27",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      n: 28,
+      meta: {
+        nukes: 27,
+        wipeDays: 27,
+        lifetime: 1e20,
+        glass: { ever: 2400, held: 100, level: 2400, spent: 2300 },
+        nodes: ["ground_zero"],
+        flights: ["u_turn", "loop_the_loop", "sputter_drop"],
+      },
     },
   },
+  // --- R4 S3: the Blast Map, the glass plate, the welcome rule, the edges (08 8.3e) ---
   {
-    name: "phone_map_site",
-    viewport: [390, 844],
-    scale: 3,
+    // After nuke 1: Ground Zero lit, 10 glass, the pick card on Go Bag (the one crown).
+    name: "phone_map_first",
+    viewport: PHONE,
     state: {
-      ...MAP_STATE(7),
-      view: "map",
-      panel: "map",
-      mapFocus: { kind: "site", id: "old_campground" },
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      meta: AFTER_FIRST_META,
+      ui: { panel: "map" },
     },
+    crowns: 1,
+  },
+  map("phone_map_mid", PHONE, {}, { crowns: 0 }),
+  map("phone_map_filter", PHONE, { map: { filter: "offline" } }, { crowns: 0 }),
+  map("phone_sector_grip", PHONE, { map: { sector: "grip" } }, { crowns: 0 }),
+  map("phone_sector_works", PHONE, { map: { sector: "works" } }, { crowns: 0 }),
+  // Lucky Swing affordable: the sheet with its numbers, "you'll have 23 left", Buy.
+  map("phone_node_sheet", PHONE, { map: { sector: "grip", node: "lucky_swing" } }, { crowns: 1 }),
+  // Conveyor two rings out: the path through First Light lights, "Buy path · 2 nodes · 86 glass".
+  map("phone_node_far", PHONE, { map: { sector: "works", node: "conveyor" } }, { crowns: 1 }),
+  // Elbow Grease with 15 glass and no Works node: "Buy the first 2 · 11 glass".
+  map(
+    "phone_node_path_partial",
+    PHONE,
+    {
+      meta: {
+        ...MAP_META,
+        glass: { ever: 240, held: 15, level: 240, spent: 225 },
+        nodes: ["ground_zero", "steady_hands"],
+      },
+      map: { sector: "works", node: "elbow_grease_1" },
+    },
+    { crowns: 1 },
+  ),
+  // Ring 3 shut at Wipe Day #2: the reason and no button.
+  map(
+    "phone_node_locked",
+    PHONE,
+    {
+      meta: { ...MAP_META, wipeDays: 2, nukes: 2 },
+      map: { sector: "grip", node: "lucky_swing" },
+    },
+    { crowns: 0 },
+  ),
+  // Short of glass: Buy disabled with "Need 57 more glass".
+  map(
+    "phone_node_short",
+    PHONE,
+    {
+      meta: { ...MAP_META, glass: { ever: 240, held: 20, level: 240, spent: 220 } },
+      map: { sector: "grip", node: "lucky_swing" },
+    },
+    { crowns: 0 },
+  ),
+  // A lit node's sheet: "Lit", no button.
+  map("phone_node_owned", PHONE, { map: { sector: "grip", node: "second_wind" } }, { crowns: 0 }),
+  // A buy caught mid-juice: Lucky Swing fills, its edges light, glass flies.
+  map(
+    "phone_node_just",
+    PHONE,
+    { map: { sector: "grip" } },
+    { send: { type: "buy_node", path: ["lucky_swing"] }, ff: 0.05, crowns: 0 },
+  ),
+  map("desktop_map", DESKTOP, {}, { crowns: 0 }),
+  map("desktop_map_sheet", DESKTOP, { map: { sector: "tide", node: "rainmaker" } }, { crowns: 1 }),
+  map("desktop_map_first", DESKTOP, { ...FRESH_RUN, meta: AFTER_FIRST_META }, { crowns: 1 }),
+  {
+    // The glass plate beside the scrap chip, the dock's Map badge (5 affordable).
+    name: "r4s3_phone_glass_plate",
+    viewport: PHONE,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...MAP_RUN, meta: MAP_META },
   },
   {
-    name: "phone_map_site_odds",
-    viewport: [390, 844],
-    scale: 3,
+    name: "r4s3_desktop_glass_plate",
+    viewport: DESKTOP,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...MAP_RUN, meta: MAP_META },
+  },
+  {
+    // Run 2 at Sheet Metal: Armored's plate shut behind Wipe Day #2 (1 to go).
+    name: "phone_armored_locked",
+    viewport: PHONE,
     state: {
-      ...MAP_STATE(7),
-      view: "map",
-      panel: "map",
-      mapFocus: { kind: "site", id: "old_campground" },
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      n: 2,
+      era: "metal",
+      eraAt: { wood: 52, stone: 300, metal: 500 },
+      supplies: 1e12,
+      made: 3e12,
+      lines: { ...STONE_RUN.lines, furnace: 20, tannery: 12, press: 6, dock: 3, generator: 1 },
+      meta: AFTER_FIRST_META,
     },
-    scrollTo: ".panel .odds",
+    // A second island at 3T made: the gain of 12 doubles its 10 glass ever, so the Big Red's chip
+    // is crowned (03 2.2 rule 2; R4 S4, with the fixture's real stats).
+    crowns: 1,
   },
   {
-    name: "phone_report_success",
-    viewport: [390, 844],
-    scale: 3,
-    state: { ...MAP_STATE(7), reports: [REPORT(7, "success")], report: "m6" },
+    name: "phone_armored_sheet",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      n: 2,
+      era: "metal",
+      eraAt: { wood: 52, stone: 300, metal: 500 },
+      supplies: 1e12,
+      made: 3e12,
+      lines: { ...STONE_RUN.lines, furnace: 20, tannery: 12, press: 6, dock: 3, generator: 1 },
+      meta: AFTER_FIRST_META,
+      ui: { sheet: "era" },
+    },
+    // A second island at 3T made: the gain of 12 doubles its 10 glass ever, so the Big Red's chip
+    // is crowned (03 2.2 rule 2; R4 S4, with the fixture's real stats).
+    crowns: 1,
   },
   {
-    name: "phone_report_fail",
-    viewport: [390, 844],
-    scale: 3,
-    state: { ...MAP_STATE(7), reports: [REPORT(7, "fail")], report: "m6" },
+    // Wipe Day #1's postcard back: one button, Open the Blast Map.
+    name: "r4s3_phone_postcard_first",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      meta: AFTER_FIRST_META,
+      postcard: { event: FIRST_EVENT, flipped: true },
+    },
+    crowns: 1,
+  },
+  {
+    // Wipe Day #4's: Rebuild, with "Blast Map · 4 affordable" beside it.
+    name: "r4s3_phone_postcard_later",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      n: 5,
+      meta: {
+        ...MAP_META,
+        nukes: 4,
+        wipeDays: 4,
+        glass: { ever: 426, held: 286, level: 426, spent: 140 },
+      },
+      postcard: { event: LATER_EVENT, flipped: true },
+    },
+    crowns: 1,
+  },
+  {
+    name: "r4s3_desktop_postcard_later",
+    viewport: DESKTOP,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      n: 5,
+      meta: {
+        ...MAP_META,
+        nukes: 4,
+        wipeDays: 4,
+        glass: { ever: 426, held: 286, level: 426, spent: 140 },
+      },
+      postcard: { event: LATER_EVENT, flipped: true },
+    },
+    crowns: 1,
+  },
+  {
+    // Welcome back with the first launch ready: Collect is the one primary, never the nuke.
+    name: "r4s3_phone_welcome_nuke",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FIRST_NUKE,
+      away: 3 * 3600,
+    },
+    crowns: 1,
+  },
+  {
+    // The drawer's bulk sizes with Next, from the map's Bulk Buttons.
+    name: "r4s3_phone_bulk_next",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...MAP_RUN,
+      meta: { ...MAP_META, nodes: [...MAP_META.nodes, "bulk_buttons"] },
+      ui: { expanded: true, bulk: "next" },
+    },
+    crowns: 0,
+  },
+  {
+    // The Multipliers sheet: the Blast Map's step named, Glow with its glass ever.
+    name: "r4s3_phone_multipliers_nodes",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...MAP_RUN,
+      meta: { ...MAP_META, nodes: [...MAP_META.nodes, "conveyor", "first_light"] },
+      ui: { sheet: "multipliers" },
+    },
+    crowns: 1,
+  },
+  // --- R4 S4, the finish (D272): the lasting R4 states in dusk, night and rain (08 8.3f);
+  // their day shots are above.
+  ...SKIES.filter(([sky]) => sky !== "").flatMap(([sky, hour, weather]) => [
+    {
+      name: `r4s4_phone_kettle_pad${sky}`,
+      viewport: PHONE,
+      state: { time: at(1, hour), wall: WALL, weather, ...KETTLE_PAD },
+    },
+    {
+      name: `r4s4_phone_bigred_chip${sky}`,
+      viewport: PHONE,
+      state: { time: at(1, hour), wall: WALL, weather, ...FIRST_NUKE },
+      ff: 1.3,
+    },
+    {
+      name: `r4s4_desktop_bigred_chip${sky}`,
+      viewport: DESKTOP,
+      state: { time: at(1, hour), wall: WALL, weather, ...FIRST_NUKE },
+      ff: 1.3,
+    },
+    {
+      name: `r4s4_phone_afterglow${sky}`,
+      viewport: PHONE,
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...FRESH_RUN,
+        createdAt: at(1, hour) - 20,
+        afterglowFrom: null,
+        meta: AFTER_FIRST_META,
+      },
+      ff: 0.6,
+    },
+    {
+      name: `r4s4_phone_rebuild_plain${sky}`,
+      viewport: PHONE,
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...FRESH_RUN,
+        createdAt: at(1, hour) - 5,
+        meta: AFTER_FIRST_META,
+        landing: 1400,
+      },
+    },
+    {
+      name: `r4s4_phone_crater_27${sky}`,
+      viewport: PHONE,
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...STONE_RUN,
+        n: 28,
+        meta: {
+          nukes: 27,
+          wipeDays: 27,
+          lifetime: 1e20,
+          glass: { ever: 2400, held: 100, level: 2400, spent: 2300 },
+          nodes: ["ground_zero"],
+          flights: ["u_turn", "loop_the_loop", "sputter_drop"],
+        },
+      },
+    },
+    map(`r4s4_phone_map_mid${sky}`, PHONE, { time: at(1, hour), weather }, { crowns: 0 }),
+    map(`r4s4_desktop_map${sky}`, DESKTOP, { time: at(1, hour), weather }, { crowns: 0 }),
+  ]),
+  {
+    name: "phone_first_tap",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 6.6), wall: WALL, weather: "clear" },
+  },
+  {
+    name: "phone_first_buy",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 8.5),
+      wall: WALL,
+      weather: "clear",
+      supplies: 7,
+      made: 31,
+      taps: 31,
+      target: { taps: 31, felled: 0 },
+      lines: { beachcomber: 1 },
+    },
+    ff: 1.2,
+  },
+  {
+    name: "phone_taps",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+      supplies: 420,
+      made: 980,
+      taps: 130,
+      target: { taps: 10, felled: 3 },
+      lines: { beachcomber: 9, campfire: 2 },
+      hustle: { value: 54, at: at(1, 9) },
+    },
+    taps: [6, 1],
+    ff: 0.1,
+    clip: [70, 140, 250, 300],
+  },
+  {
+    name: "phone_hold",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+      supplies: 420,
+      made: 980,
+      taps: 130,
+      target: { taps: 10, felled: 3 },
+      lines: { beachcomber: 9, campfire: 2 },
+      hustle: { value: 30, at: at(1, 9) },
+    },
+    press: true,
+    ff: 0.9,
+    clip: [70, 140, 250, 300],
+  },
+  {
+    name: "phone_fell",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+      supplies: 820,
+      made: 1400,
+      taps: 159,
+      target: { taps: 39, felled: 3 },
+      lines: { beachcomber: 11, campfire: 4 },
+      hustle: { value: 70, at: at(1, 9) },
+    },
+    taps: [1, 1],
+    ff: 0.55,
+    clip: [20, 120, 350, 330],
+  },
+  {
+    name: "phone_timber_era",
+    viewport: PHONE,
+    scale: 2,
+    before: { era: "twig", lines: { beachcomber: 12, campfire: 6, garden: 2 } },
+    state: {
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+      era: "wood",
+      eraAt: { wood: 36 },
+      supplies: 40,
+      made: 1700,
+      taps: 210,
+      target: { taps: 0, felled: 5 },
+      lines: { beachcomber: 12, campfire: 6, garden: 2 },
+    },
+    ff: 0.4,
+  },
+  {
+    name: "phone_hand_hired",
+    viewport: PHONE,
+    scale: 2,
+    before: { era: "wood", lines: { beachcomber: 14, campfire: 8, garden: 3, loom: 1 } },
+    state: {
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+      era: "wood",
+      supplies: 80,
+      made: 3900,
+      taps: 250,
+      lines: { beachcomber: 14, campfire: 8, garden: 3, loom: 1 },
+      hands: ["beachcomber"],
+    },
+    ff: 1.0,
+  },
+  {
+    name: "phone_bulk",
+    viewport: PHONE,
+    scale: 2,
+    before: {
+      era: "wood",
+      lines: { beachcomber: 18, campfire: 11, garden: 5, loom: 2 },
+      hands: ["beachcomber", "campfire"],
+    },
+    state: {
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+      era: "wood",
+      supplies: 2.4e3,
+      made: 9e3,
+      taps: 420,
+      lines: { beachcomber: 18, campfire: 11, garden: 5, loom: 2 },
+      hands: ["beachcomber", "campfire"],
+      upgrades: ["stone_tools"],
+      ui: { bulk: 10 },
+    },
+    ff: 1,
+  },
+  {
+    name: "phone_drawer_lines",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { expanded: true },
+    },
+    ff: 1,
+  },
+  {
+    name: "phone_drawer_upgrades",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      lines: { ...STONE_RUN.lines, furnace: 12 },
+      ui: { expanded: true, tab: "upgrades", boughtOpen: true },
+    },
+    ff: 1,
+  },
+  // Saving up (D177): the advisor waits for Loom Mk II, but past onboarding nothing is lit and
+  // there is no tap hint (D244): every affordable row looks alike, collapsed or expanded.
+  {
+    name: "phone_saving",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...SAVING_RUN },
+    ff: 1,
+  },
+  {
+    name: "phone_saving_drawer",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...SAVING_RUN,
+      ui: { expanded: true, tab: "upgrades" },
+    },
+    ff: 1,
+  },
+  {
+    name: "phone_locked_rows",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      lines: { ...STONE_RUN.lines, furnace: 12 },
+      ui: { expanded: true, bulk: "max" },
+    },
+    scrollRows: "end",
+    ff: 1,
+  },
+  {
+    name: "phone_refusal",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, supplies: 31.2e3 },
+    send: { type: "buy_era", era: "metal" },
+    ff: 0.4,
+  },
+  {
+    name: "phone_multipliers",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      roster: 1,
+      buffs: [{ kind: "rally", until: at(1, 10.5) + 41 }],
+      hustle: { value: 60, at: at(1, 10.5) },
+      ui: { sheet: "multipliers" },
+    },
+    ff: 0.5,
   },
   {
     name: "phone_crew",
-    viewport: [390, 844],
-    scale: 3,
-    state: { ...MAP_STATE(7), panel: "squad" },
-  },
-  // --- W4b: jobs, rest, the far north and the sea, trip events -----------------------
-  {
-    name: "phone_crew_jobs",
-    viewport: [390, 844],
-    scale: 3,
-    state: { ...LATE_MAP(20), time: at(20, 9), panel: "squad" },
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, ui: { panel: "crew" } },
+    ff: 0.5,
   },
   {
-    name: "phone_crew_tired",
-    viewport: [390, 844],
-    scale: 3,
-    state: { ...LATE_MAP(20), time: at(20, 18), panel: "squad" },
-  },
-  {
-    name: "phone_crew_chip",
-    viewport: [390, 844],
-    scale: 3,
+    name: "phone_settings",
+    viewport: PHONE,
+    scale: 2,
     state: {
-      time: at(4, 11),
-      tier: "wood",
-      buildings: { workbench: 1, furnace: 1, campfire: 1 },
-      stock: { timber: 300, stone: 200, ore: 40, food: 60 },
-      crew: CREW(4)
-        .slice(0, 4)
-        .map((member) => ({ ...member, away: null, job: null, injuredUntil: null })),
-      barrel: null,
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { panel: "settings" },
     },
+    ff: 0.5,
   },
   {
-    name: "phone_map_north",
-    viewport: [390, 844],
-    scale: 3,
-    state: { ...LATE_MAP(20), view: "map" },
-  },
-  {
-    name: "map_north_desktop",
-    viewport: [1600, 900],
-    state: { ...LATE_MAP(20), view: "map" },
-  },
-  {
-    name: "phone_map_sea_site",
-    viewport: [390, 844],
-    scale: 3,
+    name: "phone_numbers_dc",
+    viewport: PHONE,
+    scale: 2,
     state: {
-      ...LATE_MAP(20),
-      view: "map",
-      panel: "map",
-      mapFocus: { kind: "site", id: "submarine_pen" },
+      time: at(1, 11),
+      wall: WALL,
+      weather: "clear",
+      era: "metal",
+      lines: { ...every(400), shipbreaker: 0, reactor: 0 },
+      hands: ALL_LINES.slice(0, 12),
+      supplies: 9.99e35,
+      made: 9.99e35,
     },
+    ff: 1,
   },
   {
-    name: "phone_map_sea_odds",
-    viewport: [390, 844],
-    scale: 3,
+    name: "phone_numbers_sci",
+    viewport: PHONE,
+    scale: 2,
     state: {
-      ...LATE_MAP(20),
-      view: "map",
-      panel: "map",
-      mapFocus: { kind: "site", id: "submarine_pen" },
+      time: at(1, 11),
+      wall: WALL,
+      weather: "clear",
+      era: "metal",
+      lines: { ...every(400), shipbreaker: 0, reactor: 0 },
+      hands: ALL_LINES.slice(0, 12),
+      supplies: 1.234e36,
+      made: 1.234e36,
+      ui: { scientific: true, expanded: true },
     },
-    scrollTo: ".panel .odds",
+    ff: 1,
   },
   {
-    name: "phone_site_keycode_locked",
-    viewport: [390, 844],
-    scale: 3,
+    name: "phone_short",
+    viewport: PHONE_SHORT,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 1,
+  },
+  {
+    name: "phone_stone_day",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 3,
+  },
+  {
+    name: "phone_stone_dusk",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 18.2), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 3,
+  },
+  {
+    name: "phone_stone_night",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 23), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 3,
+  },
+  {
+    name: "phone_stone_rain",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 12), wall: WALL, weather: "rain", ...STONE_RUN },
+    ff: 3,
+  },
+  {
+    name: "phone_stone_fog",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 9), wall: WALL, weather: "fog", ...STONE_RUN },
+    ff: 3,
+  },
+  {
+    name: "phone_flotsam",
+    viewport: PHONE,
+    scale: 2,
     state: {
-      ...LATE_MAP(20),
-      items: {},
-      view: "map",
-      panel: "map",
-      mapFocus: { kind: "site", id: "weather_station" },
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+      era: "wood",
+      supplies: 4.1e5,
+      made: 5.6e5,
+      taps: 1100,
+      lines: { beachcomber: 25, campfire: 14, garden: 8, loom: 3, workbench: 1 },
+      hands: ["beachcomber", "campfire", "garden"],
+      upgrades: ["stone_tools"],
+      target: { taps: 12, felled: 27 },
+      runAge: 184,
+      flotsamAge: 3,
     },
-    scrollTo: ".panel .odds",
+    clip: [0, 360, 390, 200],
+    ff: 1,
   },
   {
-    name: "phone_region_open_water",
-    viewport: [390, 844],
-    scale: 3,
+    name: "phone_flotsam_caught",
+    viewport: PHONE,
+    scale: 2,
     state: {
-      ...LATE_MAP(20),
-      tier: "hqm",
-      view: "map",
-      panel: "map",
-      mapFocus: { kind: "region", id: "open_water" },
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+      era: "wood",
+      supplies: 4.1e5,
+      made: 5.6e5,
+      taps: 1100,
+      lines: { beachcomber: 25, campfire: 14, garden: 8, loom: 3, workbench: 1 },
+      hands: ["beachcomber", "campfire", "garden"],
+      upgrades: ["stone_tools"],
+      target: { taps: 12, felled: 27 },
+      runAge: 186,
+      flotsamAge: 6,
     },
+    send: { type: "claim_flotsam", run: 1, k: 0 },
+    clip: [0, 300, 390, 260],
+    ff: 0.3,
   },
   {
-    name: "phone_report_events",
-    viewport: [390, 844],
-    scale: 3,
+    name: "phone_flotsam_rally",
+    viewport: PHONE,
+    scale: 2,
     state: {
-      ...LATE_MAP(20),
-      reports: [
-        {
-          ...REPORT(20, "success"),
-          target: "weather_station",
-          crew: ["mara", "dax", "ivo"],
-          gained: { scrap: 48, plates: 9, fuel: 22 },
-          levelUps: [],
-          revealed: [],
-          events: ["ambush", "stranger"],
-          found: ["copper_keycode"],
-          rescued: "wren",
-        },
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      runAge: 1800,
+      flotsamAge: 6,
+      flotsamKind: "fuel_drum",
+    },
+    sendFlotsam: true,
+    clip: [0, 0, 390, 520],
+    ff: 0.4,
+  },
+  {
+    name: "phone_flotsam_sank",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+      era: "wood",
+      supplies: 4.1e5,
+      made: 5.6e5,
+      taps: 1100,
+      lines: { beachcomber: 25, campfire: 14, garden: 8, loom: 3, workbench: 1 },
+      hands: ["beachcomber", "campfire", "garden"],
+      upgrades: ["stone_tools"],
+      target: { taps: 12, felled: 27 },
+      runAge: 194,
+      flotsamAge: 13.5,
+    },
+    clip: [0, 300, 390, 260],
+    ff: 3,
+  },
+  {
+    name: "phone_flotsam_night",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 23),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      runAge: 1800,
+      flotsamAge: 9,
+      flotsamKind: "fuel_drum",
+    },
+    clip: [0, 360, 390, 200],
+    ff: 0.5,
+  },
+  {
+    name: "phone_flotsam_fog",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 9),
+      wall: WALL,
+      weather: "fog",
+      ...STONE_RUN,
+      runAge: 1800,
+      flotsamAge: 5,
+      flotsamKind: "adrenaline",
+    },
+    clip: [0, 360, 390, 200],
+    ff: 0.5,
+  },
+  {
+    name: "phone_flotsam_rain",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 12),
+      wall: WALL,
+      weather: "rain",
+      ...STONE_RUN,
+      runAge: 1800,
+      flotsamAge: 5,
+      flotsamKind: "crate",
+    },
+    clip: [0, 360, 390, 200],
+    ff: 0.5,
+  },
+  {
+    name: "phone_rally_cap",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      buffs: [
+        { kind: "rally", until: at(1, 10.5) + 41 },
+        { kind: "adrenaline", until: at(1, 10.5) + 9 },
       ],
-      report: "m6",
+      hustle: { value: 80, at: at(1, 10.5) },
     },
+    taps: [10, 4],
+    clip: [0, 0, 390, 470],
+    ff: 0.2,
   },
   {
-    name: "phone_feed",
-    viewport: [390, 844],
-    scale: 3,
-    state: { ...LATE_MAP(20), panel: "feed", feed: FEED(20) },
-  },
-  {
-    name: "desktop_feed",
-    viewport: [1600, 900],
-    state: { ...LATE_MAP(20), panel: "feed", feed: FEED(20) },
-  },
-  {
-    name: "phone_feed_dot",
-    viewport: [390, 844],
-    scale: 3,
-    state: { ...LATE_MAP(20), feed: FEED(20) },
-  },
-  {
-    name: "scene_workers",
-    viewport: [1600, 900],
-    state: { ...LATE_MAP(20), time: at(20, 11) },
-    // The patched crew walk up from the shore first: give them time to reach their posts.
-    settle: 24000,
-  },
-  {
-    name: "scene_workers_night",
-    viewport: [1600, 900],
-    state: { ...LATE_MAP(20), time: at(20, 22.5), crew: WORK_CREW(20, 22.5) },
-    settle: 24000,
-  },
-  {
-    name: "phone_craft",
-    viewport: [390, 844],
-    scale: 3,
+    name: "phone_odds",
+    viewport: PHONE,
+    scale: 2,
     state: {
-      time: at(9, 11),
-      tier: "stone",
-      buildings: MIDGAME,
-      stock: CRAFT_STOCK,
-      production: BUSY(9),
-      panel: "craft",
-      station: "workbench",
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+      era: "wood",
+      supplies: 4.1e5,
+      made: 5.6e5,
+      taps: 1100,
+      lines: { beachcomber: 25, campfire: 14, garden: 8, loom: 3, workbench: 1 },
+      hands: ["beachcomber", "campfire", "garden"],
+      upgrades: ["stone_tools"],
+      target: { taps: 12, felled: 27 },
+      runAge: 120,
+      ui: { sheet: "odds" },
     },
+    ff: 0.5,
   },
   {
-    // A new player's first look at the bow: planks in hand, rope still to make.
-    name: "phone_recipe_bow",
-    viewport: [390, 844],
-    scale: 3,
+    name: "phone_settings_odds",
+    viewport: PHONE,
+    scale: 2,
     state: {
-      time: at(2, 11),
-      tier: "wood",
-      buildings: { workbench: 1, campfire: 1, loom: 1 },
-      stock: { timber: 900, stone: 400, fibre: 60, planks: 12 },
-      panel: "craft",
-      recipe: "bow",
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { panel: "settings" },
     },
+    scroll: ".panel-sheet .panel-scroll",
+    ff: 0.5,
   },
   {
-    name: "phone_recipe_bow_tree",
-    viewport: [390, 844],
-    scale: 3,
+    name: "phone_welcome_full",
+    viewport: PHONE,
+    scale: 2,
     state: {
-      time: at(2, 11),
-      tier: "wood",
-      buildings: { workbench: 1, campfire: 1, loom: 1 },
-      stock: { timber: 900, stone: 400, fibre: 60, planks: 12 },
-      panel: "craft",
-      recipe: "bow",
+      time: at(1, 21.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      away: 2 * DAY + 3 * 3600,
     },
-    scrollTo: ".panel .needs",
+    ff: 0.5,
   },
   {
-    name: "phone_inventory",
-    viewport: [390, 844],
-    scale: 3,
+    name: "phone_welcome_short",
+    viewport: PHONE,
+    scale: 2,
     state: {
-      time: at(9, 11),
-      tier: "stone",
-      buildings: MIDGAME,
-      stock: CRAFT_STOCK,
-      items: { crate: 3, bow: 1, roast: 2 },
-      wellFed: { percent: 10, until: at(9, 13) },
-      panel: "inventory",
+      time: at(1, 23.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      away: 90 * 60,
     },
-    scrollTo: ".panel h3.section",
+    ff: 0.5,
   },
   {
-    name: "phone_panel_buildings",
-    viewport: [390, 844],
-    scale: 3,
-    state: { time: at(9, 11), tier: "stone", buildings: MIDGAME, panel: "build" },
-    scrollTo: ".panel h3.section:nth-of-type(3)",
-  },
-  {
-    name: "phone_panel_buildings_busy",
-    viewport: [390, 844],
-    scale: 3,
+    name: "phone_welcome_nohands",
+    viewport: PHONE,
+    scale: 2,
     state: {
-      time: at(9, 11),
-      tier: "stone",
-      buildings: MIDGAME,
-      panel: "build",
-      construction: [
-        {
-          target: { kind: "building", building: "warehouse", level: 2 },
-          startedAt: at(9, 10),
-          endsAt: at(9, 12),
-        },
-        {
-          target: { kind: "building", building: "bunkhouse", level: 2 },
-          startedAt: at(9, 10),
-          endsAt: at(9, 13),
-        },
+      time: at(1, 6.5),
+      wall: WALL,
+      weather: "clear",
+      supplies: 820,
+      made: 2400,
+      taps: 400,
+      lines: { beachcomber: 9, campfire: 2 },
+      target: { taps: 10, felled: 9 },
+      away: 3 * 3600,
+    },
+    ff: 0.5,
+  },
+  {
+    name: "phone_welcome_collected",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 21.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      away: 9 * 3600 + 40 * 60,
+      collect: true,
+    },
+    ff: 0.35,
+  },
+  {
+    name: "phone_lines_1",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 11),
+      wall: WALL,
+      weather: "clear",
+      era: "hqm",
+      lines: every(1),
+      supplies: 1e15,
+      made: 1e15,
+    },
+    ff: 1,
+  },
+  {
+    name: "phone_lines_25",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 11),
+      wall: WALL,
+      weather: "clear",
+      era: "hqm",
+      lines: every(25),
+      supplies: 1e15,
+      made: 1e15,
+    },
+    ff: 1,
+  },
+  {
+    name: "phone_lines_100",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 11),
+      wall: WALL,
+      weather: "clear",
+      era: "hqm",
+      lines: every(100),
+      hands: ALL_LINES,
+      supplies: 1e15,
+      made: 1e15,
+    },
+    ff: 3,
+  },
+  {
+    name: "phone_wreck",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 11),
+      wall: WALL,
+      weather: "clear",
+      era: "hqm",
+      lines: every(100),
+      hands: ALL_LINES,
+      target: { taps: 70, felled: 12 },
+      supplies: 1e15,
+      made: 1e15,
+    },
+    ff: 3,
+    clip: [70, 160, 250, 260],
+  },
+  {
+    name: "phone_metal_vent",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 11),
+      wall: WALL,
+      weather: "clear",
+      era: "metal",
+      lines: { ...every(30), shipbreaker: 0, reactor: 0 },
+      hands: ALL_LINES.slice(0, 10),
+      target: { taps: 60, felled: 40 },
+      supplies: 1e12,
+      made: 1e12,
+    },
+    ff: 3,
+    clip: [70, 160, 250, 260],
+  },
+  {
+    name: "desktop_day",
+    viewport: DESKTOP,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 3,
+  },
+  // Big screens (the owner's 2k monitor, D208): the ground must never show a repeat.
+  {
+    name: "desktop_tall_rain",
+    viewport: [1700, 1340],
+    state: { time: at(1, 9), wall: WALL, weather: "rain" },
+    ff: 0.5,
+  },
+  {
+    name: "desktop_2k",
+    viewport: [2560, 1440],
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...TIMBER_YARD },
+    ff: 1.5,
+  },
+  // The house (D206): Timber's yard with the cabin and its hint, then the cabin open.
+  {
+    name: "phone_timber_yard",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 9), wall: WALL, weather: "clear", ...TIMBER_YARD },
+    ff: 1.5,
+  },
+  {
+    name: "phone_house_open",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 9), wall: WALL, weather: "clear", ...TIMBER_YARD, ui: { house: true } },
+    ff: 1.5,
+  },
+  {
+    name: "desktop_house_open",
+    viewport: DESKTOP,
+    state: { time: at(1, 9), wall: WALL, weather: "clear", ...TIMBER_YARD, ui: { house: true } },
+    ff: 1.5,
+  },
+  {
+    name: "desktop_flotsam",
+    viewport: DESKTOP,
+    state: {
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+      era: "wood",
+      supplies: 4.1e5,
+      made: 5.6e5,
+      taps: 1100,
+      lines: { beachcomber: 25, campfire: 14, garden: 8, loom: 3, workbench: 1 },
+      hands: ["beachcomber", "campfire", "garden"],
+      upgrades: ["stone_tools"],
+      target: { taps: 12, felled: 27 },
+      runAge: 184,
+      flotsamAge: 4,
+    },
+    ff: 1,
+  },
+  {
+    name: "desktop_welcome",
+    viewport: DESKTOP,
+    state: {
+      time: at(1, 21.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      away: 2 * DAY + 3 * 3600,
+    },
+    ff: 0.5,
+  },
+  {
+    name: "desktop_first_tap",
+    viewport: DESKTOP,
+    state: { time: at(1, 6.6), wall: WALL, weather: "clear" },
+  },
+  {
+    name: "desktop_upgrades",
+    viewport: DESKTOP,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      lines: { ...STONE_RUN.lines, furnace: 12 },
+      ui: { tab: "upgrades" },
+    },
+    ff: 1,
+  },
+  {
+    name: "desktop_multipliers",
+    viewport: DESKTOP,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { sheet: "multipliers" },
+    },
+    ff: 1,
+  },
+  {
+    name: "desktop_lines_100",
+    viewport: DESKTOP,
+    state: {
+      time: at(1, 11),
+      wall: WALL,
+      weather: "clear",
+      era: "hqm",
+      lines: every(100),
+      hands: ALL_LINES,
+      supplies: 1e15,
+      made: 1e15,
+    },
+    ff: 3,
+  },
+  {
+    name: "desktop_night_metal",
+    viewport: DESKTOP,
+    state: {
+      time: at(1, 23),
+      wall: WALL,
+      weather: "clear",
+      era: "metal",
+      lines: { ...every(30), shipbreaker: 0, reactor: 0 },
+      hands: ALL_LINES.slice(0, 10),
+      supplies: 1e12,
+      made: 1e12,
+    },
+    ff: 3,
+  },
+  {
+    name: "laptop",
+    viewport: LAPTOP,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 3,
+  },
+  {
+    name: "tablet",
+    viewport: TABLET,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 3,
+  },
+  {
+    name: "phone_landscape",
+    viewport: PHONE_LANDSCAPE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 3,
+  },
+  // R2 Feel S3: Stone to Armored in pixel art, the back row clear of the front, wear on the grid.
+  {
+    name: "s3_tree_wear",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10), wall: WALL, weather: "clear", target: { taps: 36, felled: 2 } },
+    ff: 0.5,
+    clip: [70, 260, 250, 260],
+  },
+  {
+    name: "s3_stone_wear",
+    viewport: DESKTOP,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...TIMBER_YARD,
+      target: { taps: 46, felled: 20 },
+    },
+    ff: 1.5,
+  },
+  {
+    name: "s3_ore",
+    viewport: DESKTOP,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      target: { taps: 70, felled: 64 },
+    },
+    ff: 3,
+  },
+  {
+    name: "s3_metal",
+    viewport: DESKTOP,
+    state: { ...METAL_RUN, time: at(1, 10.5), target: { taps: 85, felled: 40 } },
+    ff: 3,
+  },
+  {
+    name: "s3_metal_phone",
+    viewport: PHONE,
+    scale: 2,
+    state: { ...METAL_RUN, time: at(1, 10.5), target: { taps: 85, felled: 40 } },
+    ff: 3,
+  },
+  {
+    name: "s3_hqm",
+    viewport: DESKTOP,
+    state: { ...HQM_RUN, target: { taps: 100, felled: 12 } },
+    ff: 3,
+  },
+  {
+    name: "s3_hqm_phone",
+    viewport: PHONE,
+    scale: 2,
+    state: { ...HQM_RUN, target: { taps: 100, felled: 12 } },
+    ff: 3,
+  },
+  {
+    name: "s3_hqm_2k",
+    viewport: [2560, 1440],
+    state: { ...HQM_RUN, weather: "rain" },
+    ff: 3,
+  },
+  {
+    name: "s3_hqm_night",
+    viewport: DESKTOP,
+    state: { ...HQM_RUN, time: at(1, 23) },
+    ff: 3,
+  },
+  {
+    name: "s3_house_stone",
+    viewport: DESKTOP,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, ui: { house: true } },
+    ff: 3,
+  },
+  {
+    name: "s3_house_stone_phone",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, ui: { house: true } },
+    ff: 3,
+  },
+  {
+    name: "s3_house_metal",
+    viewport: DESKTOP,
+    state: { ...METAL_RUN, time: at(1, 10.5), ui: { house: true } },
+    ff: 3,
+  },
+  {
+    name: "s3_house_hqm_phone",
+    viewport: PHONE,
+    scale: 2,
+    state: { ...HQM_RUN, ui: { house: true } },
+    ff: 3,
+  },
+  // R2 Feel S3, the hero tap (D217): chips arc onto the stockpile at 6 taps a second; a full
+  // pile sells its top piece; a fell lands three pieces and shakes; each era's chips.
+  {
+    name: "s3_hero_phone",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      ...TWIG_HERO,
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+    },
+    taps: [7, 1],
+    ff: 0.12,
+    clip: [60, 280, 300, 190],
+  },
+  {
+    name: "s3_hero_full",
+    viewport: DESKTOP,
+    state: { ...TWIG_HERO, time: at(1, 9.5), wall: WALL, weather: "clear" },
+    taps: [16, 1],
+    ff: 0.3,
+    clip: [300, 420, 520, 300],
+  },
+  {
+    name: "s3_hero_fell",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      ...TWIG_HERO,
+      time: at(1, 9),
+      wall: WALL,
+      weather: "clear",
+      target: { taps: 39, felled: 3 },
+    },
+    taps: [4, 1],
+    ff: 0.2,
+    clip: [60, 280, 300, 190],
+  },
+  {
+    name: "s3_hero_stone",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...TIMBER_YARD },
+    taps: [9, 1],
+    ff: 0.4,
+    clip: [60, 280, 300, 190],
+  },
+  {
+    name: "s3_hero_ore",
+    viewport: DESKTOP,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    taps: [8, 1],
+    ff: 0.4,
+  },
+  {
+    name: "s3_hero_sulfur_phone",
+    viewport: PHONE,
+    scale: 2,
+    state: { ...METAL_RUN, target: { taps: 4, felled: 80 } },
+    taps: [10, 1],
+    ff: 0.4,
+  },
+  {
+    name: "s3_hero_hqm_phone",
+    viewport: PHONE,
+    scale: 2,
+    state: { ...HQM_RUN, target: { taps: 4, felled: 120 } },
+    taps: [10, 1],
+    ff: 0.4,
+  },
+  {
+    name: "s3_clouds_dusk_phone",
+    viewport: PHONE,
+    scale: 2,
+    state: { ...TWIG_HERO, time: at(1, 19), wall: WALL, weather: "clear" },
+    ff: 0.2,
+  },
+  {
+    name: "s3_clouds_rain",
+    viewport: DESKTOP,
+    state: { ...TWIG_HERO, time: at(1, 12), wall: WALL, weather: "rain" },
+    ff: 0.2,
+  },
+  // R2 Feel S4, the HUD (12-feel.md 13): the Feel Board's views, the dock, sheets, the cards in
+  // fixed order with the crown in place and the Best buy chip, the lamp, the ticker.
+  ...["day", "dusk", "night", "rain"].map((sky) => ({
+    name: sky === "day" ? "s4_desktop_hero" : `s4_desktop_hero_${sky}`,
+    viewport: [1440, 810],
+    state: {
+      time: at(1, sky === "dusk" ? 19.2 : sky === "night" ? 23 : 10.5),
+      wall: WALL,
+      weather: sky === "rain" ? "rain" : "clear",
+      ...TIMBER_YARD,
+    },
+    ff: 2.5,
+  })),
+  ...["day", "dusk", "night", "rain"].map((sky) => ({
+    name: sky === "day" ? "s4_phone_hero" : `s4_phone_hero_${sky}`,
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, sky === "dusk" ? 19.2 : sky === "night" ? 23 : 10.5),
+      wall: WALL,
+      weather: sky === "rain" ? "rain" : "clear",
+      ...TIMBER_YARD,
+    },
+    ff: 2.5,
+  })),
+  {
+    name: "s4_phone_first_minute",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      supplies: 12,
+      made: 60,
+      taps: 60,
+      target: { taps: 60, felled: 1 },
+      lines: { beachcomber: 2 },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s4_phone_hire",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      era: "wood",
+      eraAt: { wood: 36 },
+      supplies: 2600,
+      made: 4200,
+      taps: 380,
+      target: { taps: 4, felled: 9 },
+      lines: { beachcomber: 12, campfire: 2 },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s4_desktop_hire",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      era: "wood",
+      eraAt: { wood: 36 },
+      supplies: 2600,
+      made: 4200,
+      taps: 380,
+      target: { taps: 4, felled: 9 },
+      lines: { beachcomber: 12, campfire: 2 },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s4_phone_drawer_cards",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { expanded: true },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s4_phone_drawer_shelf",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { expanded: true, tab: "upgrades" },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s4_phone_stone",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+  },
+  {
+    name: "s4_desktop_stone",
+    viewport: [1440, 810],
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+  },
+  // Three purchases in a row: the cards keep their order (D186); the harness checks it.
+  {
+    name: "s4_phone_order_kept",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { expanded: true },
+    },
+    orderSends: [
+      { type: "buy_line", line: "kiln", count: 1 },
+      { type: "buy_line", line: "beachcomber", count: 1 },
+      { type: "buy_line", line: "furnace", count: 1 },
+    ],
+    ff: 2.5,
+  },
+  {
+    name: "s4_phone_dock_badges",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...TIMBER_YARD, crewNew: 2 },
+    ff: 2.5,
+  },
+  {
+    name: "s4_desktop_sheet_crew",
+    viewport: [1440, 810],
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, ui: { panel: "crew" } },
+    ff: 2.5,
+  },
+  {
+    name: "s4_phone_sheet_crew",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, ui: { panel: "crew" } },
+    ff: 2.5,
+  },
+  {
+    name: "s4_desktop_sheet_settings",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { panel: "settings" },
+    },
+    ff: 2.5,
+  },
+  ...["day", "night"].map((sky) => ({
+    name: sky === "day" ? "s4_welcome_back_lamp" : "s4_welcome_back_lamp_night",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, sky === "night" ? 22 : 13),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      away: 13 * 3600,
+    },
+    ff: 2.5,
+  })),
+  {
+    name: "s4_welcome_back_lamp_left",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 15), wall: WALL, weather: "clear", ...STONE_RUN, away: 90 * 60 },
+    ff: 2.5,
+  },
+  {
+    name: "s4_ticker",
+    viewport: [1440, 810],
+    state: { time: at(1, 10.5), wall: WALL, weather: "rain", ...TIMBER_YARD },
+    ff: 2.5,
+    clip: [300, 690, 760, 120],
+  },
+  {
+    name: "s4_phone_numbers_big",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...HQM_RUN,
+      supplies: 9.99e35,
+      made: 9.99e35,
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s4_phone_short",
+    viewport: PHONE_SHORT,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+  },
+  // R2 Feel S6, the Workshop and the 2 h Night Shift (08-screens.md 8.3): the column's and the
+  // drawer's Workshop tab, the dock's place when it opens, the hint, a level caught mid-flash,
+  // three levels bought in a row with the tiles in place, the welcome card at 2 h and 4 h.
+  ...["day", "night"].flatMap((sky) => [
+    {
+      name: `s6_desktop_research${sky === "night" ? "_night" : ""}`,
+      viewport: [1440, 810],
+      state: {
+        time: at(1, sky === "night" ? 22.5 : 10.5),
+        wall: WALL,
+        weather: "clear",
+        ...WORKSHOP_TIMBER,
+        ui: { tab: "research" },
+      },
+      ff: 2.5,
+    },
+    {
+      name: `s6_phone_research${sky === "night" ? "_night" : ""}`,
+      viewport: PHONE,
+      scale: 2,
+      state: {
+        time: at(1, sky === "night" ? 22.5 : 10.5),
+        wall: WALL,
+        weather: "clear",
+        ...WORKSHOP_TIMBER,
+        ui: { expanded: true, tab: "research" },
+      },
+      ff: 2.5,
+    },
+  ]),
+  {
+    name: "s6_phone_workshop_opens",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...WORKSHOP_OPENS,
+      workshopNew: true,
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s6_desktop_workshop_opens",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...WORKSHOP_OPENS,
+      workshopNew: true,
+      ui: { tab: "research" },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s6_phone_research_first",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...WORKSHOP_OPENS,
+      ui: { expanded: true, tab: "research" },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s6_desktop_research_stone",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "rain",
+      ...STONE_RUN,
+      ui: { tab: "research" },
+    },
+    scrollRows: "end",
+    ff: 2.5,
+  },
+  {
+    name: "s6_phone_research_big",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...HQM_RUN,
+      runAge: 5400,
+      supplies: 9.99e35,
+      made: 9.99e35,
+      ui: { expanded: true, tab: "research" },
+    },
+    scrollRows: "end",
+    ff: 2.5,
+  },
+  {
+    name: "s6_desktop_research_flash",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...WORKSHOP_TIMBER,
+      ui: { tab: "research" },
+    },
+    juice: [{ type: "buy_research", item: "sharper_hooks", count: 1 }],
+    ff: 2.5,
+  },
+  {
+    name: "s6_phone_research_flash",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...WORKSHOP_TIMBER,
+      ui: { expanded: true, tab: "research" },
+    },
+    juice: [{ type: "buy_research", item: "spare_wicks", count: 1 }],
+    ff: 2.5,
+  },
+  {
+    name: "s6_desktop_research_order",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...WORKSHOP_TIMBER,
+      supplies: 5e5,
+      ui: { tab: "research" },
+    },
+    orderSends: [
+      { type: "buy_research", item: "dry_kindling", count: "max" },
+      { type: "buy_research", item: "spare_wicks", count: 1 },
+      { type: "buy_research", item: "tarred_twine", count: 1 },
+    ],
+    ff: 2.5,
+  },
+  {
+    name: "s6_welcome_lamp_2h",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 13),
+      wall: WALL,
+      weather: "clear",
+      ...TIMBER_YARD,
+      research: {},
+      away: 3 * 3600,
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s6_welcome_lamp_4h_left",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 13), wall: WALL, weather: "clear", ...STONE_RUN, away: 90 * 60 },
+    ff: 2.5,
+  },
+  // R2 Feel S5, sound and juice (12-feel.md 3.2): a purchase caught mid-flash (the card's gold
+  // flash and level pop, the line's flash and pop), Collect's coins in the air, the tap's gain
+  // with its icon, the credits sheet.
+  {
+    name: "s5_desktop_buy_flash",
+    viewport: [1440, 810],
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    juice: [
+      { type: "buy_line", line: "campfire", count: 1 },
+      { type: "buy_line", line: "beachcomber", count: 1 },
+    ],
+    ff: 2.5,
+  },
+  {
+    name: "s5_phone_buy_flash",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { expanded: true },
+    },
+    juice: [{ type: "buy_line", line: "beachcomber", count: 1 }],
+    ff: 2.5,
+  },
+  {
+    name: "s5_desktop_mk_flash",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      supplies: 7e8,
+      ui: { tab: "research" },
+    },
+    juice: [{ type: "buy_research", item: "beachcomber_mk", count: 1 }],
+    ff: 2.5,
+  },
+  {
+    name: "s5_desktop_tap_gain",
+    viewport: [1440, 810],
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...TIMBER_YARD },
+    taps: [6, 2],
+    ff: 0.15,
+  },
+  {
+    name: "s5_phone_collect_coins",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 13),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      away: 5 * 3600,
+      collect: true,
+    },
+    ff: 0.42,
+  },
+  {
+    name: "s5_desktop_credits",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { sheet: "credits" },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s5_phone_credits",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { sheet: "credits" },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s5_phone_settings_end",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { panel: "settings" },
+    },
+    scroll: ".panel-scroll",
+    ff: 2.5,
+  },
+  // R2 Feel S7, the active layer (D237-D240): Frenzy, crows, badges and the Logbook, each of
+  // 08-screens.md 8.3's R2 shots in day, dusk, night and rain.
+  ...SKIES.flatMap(([sky, hour, weather]) => [
+    {
+      name: `s7_desktop_frenzy${sky}`,
+      viewport: [1440, 810],
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...FRENZY_RUN,
+        buffs: [{ kind: "frenzy", until: at(1, hour) + 9 }],
+        frenzy: { value: 0, at: at(1, hour) + 9, trips: 0 },
+      },
+      taps: [8, 2],
+      ff: 2.5,
+    },
+    {
+      name: `s7_gull_elite${sky}`,
+      viewport: [1440, 810],
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...FRENZY_RUN,
+        gull: { age: 0.5, elite: true },
+      },
+      ff: 2.5,
+    },
+    {
+      name: `s7_achievement_toast${sky}`,
+      viewport: PHONE,
+      scale: 2,
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...TWIG_HERO,
+        runAge: 300,
+        badgesFill: ["ten_of_a_kind"],
+        meta: { stats: { ...FRENZY_STATS, units: 12, frenzies: 0, gulls: 0, research: 6 } },
+      },
+      ff: 2.5,
+      juice: [{ type: "buy_line", line: "beachcomber", count: 1 }],
+      juiceMs: 420,
+    },
+    {
+      name: `s7_phone_dock_badges${sky}`,
+      viewport: PHONE,
+      scale: 2,
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...STONE_RUN,
+        crewNew: 1,
+        workshopNew: true,
+        badgesNew: 3,
+      },
+      ff: 2.5,
+    },
+  ]),
+  {
+    name: "s7_phone_frenzy",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRENZY_RUN,
+      buffs: [{ kind: "frenzy", until: at(1, 10.5) + 6 }],
+      frenzy: { value: 0, at: at(1, 10.5) + 6, trips: 0 },
+    },
+    taps: [8, 2],
+    ff: 2.5,
+  },
+  {
+    // The bar filling, its name beside it while Frenzy is new (two trips).
+    name: "s7_phone_frenzy_filling",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRENZY_RUN,
+      frenzy: { value: 62, at: at(1, 10.5), trips: 0 },
+      meta: { stats: { ...FRENZY_STATS, frenzies: 0 } },
+    },
+    taps: [6, 2],
+    ff: 1.5,
+  },
+  {
+    name: "s7_desktop_frenzy_filling",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 22.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRENZY_RUN,
+      frenzy: { value: 35, at: at(1, 22.5), trips: 0 },
+      meta: { stats: { ...FRENZY_STATS, frenzies: 0 } },
+    },
+    taps: [6, 2],
+    ff: 1.5,
+  },
+  {
+    // A crow and its hint, new to crows.
+    name: "s7_phone_gull",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      gull: { age: 1.5, elite: false },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s7_phone_gull_elite_night",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 22.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      gull: { age: 0.5, elite: true },
+    },
+    ff: 2.5,
+  },
+  {
+    // Caught: feathers, "+30s of output" and the supplies flying to the counter.
+    name: "s7_phone_gull_caught",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      gull: { age: 4, elite: false },
+    },
+    ff: 0.3,
+    sendGull: true,
+  },
+  {
+    name: "s7_desktop_achievement_toast",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...TWIG_HERO,
+      runAge: 300,
+      badgesFill: ["ten_of_a_kind"],
+      meta: { stats: { ...FRENZY_STATS, units: 12, frenzies: 0, gulls: 0, research: 6 } },
+    },
+    ff: 2.5,
+    juice: [{ type: "buy_line", line: "beachcomber", count: 1 }],
+    juiceMs: 420,
+  },
+  {
+    // Three at once merge: "3 badges".
+    name: "s7_phone_badges_merged",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...TWIG_HERO,
+      runAge: 300,
+      badgesFill: ["ten_of_a_kind", "first_line", "made_1m"],
+      made: 2e6,
+    },
+    ff: 2.5,
+    juice: [{ type: "buy_line", line: "beachcomber", count: 1 }],
+    juiceMs: 420,
+  },
+  {
+    name: "s7_phone_logbook",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      badgesNew: 2,
+      meta: { stats: FRENZY_STATS },
+      ui: { panel: "logbook" },
+    },
+    ff: 2.5,
+  },
+  {
+    // The wall's end: Night Shift and Supplies, a 999Dc counter's progress.
+    name: "s7_phone_logbook_end",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      supplies: 9.99e35,
+      meta: { stats: FRENZY_STATS },
+      ui: { panel: "logbook" },
+    },
+    scroll: ".panel-scroll",
+    ff: 2.5,
+  },
+  {
+    name: "s7_desktop_logbook",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      badgesNew: 2,
+      meta: { stats: FRENZY_STATS },
+      ui: { panel: "logbook" },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s7_phone_multipliers_morale",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRENZY_RUN,
+      buffs: [{ kind: "frenzy", until: at(1, 10.5) + 9 }],
+      ui: { sheet: "multipliers" },
+    },
+    ff: 2.5,
+  },
+  {
+    name: "s7_phone_odds_crows",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, ui: { sheet: "odds" } },
+    scroll: ".panel-scroll",
+    ff: 2.5,
+  },
+  {
+    // The big screens (no visible repeats): Frenzy's warm sky and the bar at 2k.
+    name: "s7_desktop_2k_frenzy",
+    viewport: [2560, 1440],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRENZY_RUN,
+      buffs: [{ kind: "frenzy", until: at(1, 10.5) + 9 }],
+      frenzy: { value: 0, at: at(1, 10.5) + 9, trips: 0 },
+    },
+    ff: 2.5,
+  },
+  // R2 Feel S8, the finish: the rest of 08-screens.md 8.3's R2 shots in day, dusk, night and
+  // rain (S7's four are above), then the juice added to S6-S7's features.
+  ...SKIES.flatMap(([sky, hour, weather]) => [
+    {
+      // 6 taps a second: chips onto the stockpile, the column's cards in fixed order with the
+      // crowned card scrolled out of sight, so the Best buy chip shows; the dock centred.
+      name: `s8_desktop_hero${sky}`,
+      viewport: [1440, 810],
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...STONE_RUN,
+        lines: { ...STONE_RUN.lines, tannery: 3, press: 1 },
+        hands: [...STONE_RUN.hands, "furnace"],
+      },
+      taps: [9, 1],
+      ff: 0.25,
+      scrollRows: "end",
+    },
+    {
+      // The target at a third of the height, the stockpile, the Frenzy bar filling, the
+      // drawer's two cards, the dock.
+      name: `s8_phone_hero${sky}`,
+      viewport: PHONE,
+      scale: 2,
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...FRENZY_RUN,
+        frenzy: { value: 55, at: at(1, hour), trips: 0 },
+      },
+      taps: [8, 1],
+      ff: 0.25,
+    },
+    {
+      name: `s8_phone_drawer_cards${sky}`,
+      viewport: PHONE,
+      scale: 2,
+      state: { time: at(1, hour), wall: WALL, weather, ...STONE_RUN, ui: { expanded: true } },
+      ff: 2.5,
+    },
+    {
+      // Twig and Timber's tiles with their rings, a crowned tile, Stone's group locked.
+      name: `s8_desktop_research${sky}`,
+      viewport: [1440, 810],
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...WORKSHOP_TIMBER,
+        ui: { tab: "research" },
+      },
+      ff: 2.5,
+    },
+    {
+      name: `s8_phone_research${sky}`,
+      viewport: PHONE,
+      scale: 2,
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...WORKSHOP_TIMBER,
+        ui: { expanded: true, tab: "research" },
+      },
+      ff: 2.5,
+    },
+    {
+      name: `s8_desktop_sheet_crew${sky}`,
+      viewport: [1440, 810],
+      state: { time: at(1, hour), wall: WALL, weather, ...STONE_RUN, ui: { panel: "crew" } },
+      ff: 2.5,
+    },
+    {
+      // Back after three hours: the 2 h lamp burnt out, one Collect. The sky is the arrival's.
+      name: `s8_welcome_back_lamp${sky}`,
+      viewport: PHONE,
+      scale: 2,
+      state: {
+        time: at(1, hour) - 3 * 3600,
+        wall: WALL,
+        weather,
+        ...TIMBER_YARD,
+        research: {},
+        away: 3 * 3600,
+      },
+      ff: 2.5,
+    },
+    {
+      name: `s8_ticker${sky}`,
+      viewport: [1440, 810],
+      state: { time: at(1, hour), wall: WALL, weather, ...TIMBER_YARD },
+      ff: 2.5,
+      clip: [240, 680, 560, 130],
+    },
+  ]),
+  {
+    // A Frenzy burns out: the bar's segments show white for a beat (and a falling sweep).
+    name: "s8_desktop_frenzy_end",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRENZY_RUN,
+      buffs: [{ kind: "frenzy", until: at(1, 10.5) + 2 }],
+      frenzy: { value: 0, at: at(1, 10.5) + 2, trips: 0 },
+    },
+    ff: 2.08,
+    clip: [240, 340, 480, 200],
+  },
+  {
+    // The first badge: the Logbook joins the dock, its count pops, the toast lands.
+    name: "s8_phone_logbook_arrives",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      supplies: 40,
+      made: 60,
+      taps: 40,
+      runAge: 30,
+      lines: {},
+      hands: [],
+      badgesFill: false,
+    },
+    liveDock: true,
+    ff: 1,
+    juice: [{ type: "buy_line", line: "beachcomber", count: 1 }],
+    juiceMs: 240,
+  },
+  {
+    // The last level of an item: its full ring flares in the era's colour.
+    name: "s8_desktop_tile_maxed",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...WORKSHOP_TIMBER,
+      supplies: 2e5,
+      research: { ...WORKSHOP_TIMBER.research, spare_wicks: 5 },
+      ui: { tab: "research" },
+    },
+    ff: 2.5,
+    juice: [{ type: "buy_research", item: "spare_wicks", count: 1 }],
+    juiceMs: 60,
+  },
+  // P1, no buying advice after onboarding (D244): orange only while a kind of purchase is new.
+  {
+    // The first line: its Buy is orange, the one crown.
+    name: "p1_phone_onboard_line",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      runAge: 20,
+      supplies: 7,
+      made: 12,
+      taps: 12,
+      lines: {},
+      hands: [],
+      badgesFill: false,
+    },
+    ff: 1,
+    crowns: 1,
+  },
+  {
+    // Nothing to buy yet and new to the game: "Tap the tree." glows.
+    name: "p1_phone_onboard_tap",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      runAge: 5,
+      supplies: 1,
+      made: 1,
+      taps: 1,
+      lines: {},
+      hands: [],
+      badgesFill: false,
+    },
+    ff: 1,
+    crowns: 1,
+  },
+  {
+    // Two lines bought, the first hire still new: its Hire is orange.
+    name: "p1_phone_onboard_hire",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      era: "wood",
+      eraAt: { wood: 52 },
+      runAge: 80,
+      supplies: 2600,
+      made: 4200,
+      taps: 380,
+      target: { taps: 4, felled: 9 },
+      lines: { beachcomber: 12, campfire: 2 },
+      hands: [],
+      badgesFill: false,
+      meta: { stats: { ...NEW_STATS, units: 14, eras: 1, taps: 380, felled: 9 } },
+    },
+    ff: 1.5,
+    crowns: 1,
+  },
+  {
+    // Past onboarding: every affordable Buy alike, no chip, no hint, nothing lit.
+    name: "p1_desktop_after",
+    viewport: [1440, 810],
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+    crowns: 0,
+  },
+  {
+    name: "p1_phone_after",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+    crowns: 0,
+  },
+  {
+    name: "p1_phone_expanded_after",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      ui: { expanded: true },
+    },
+    ff: 2.5,
+    crowns: 0,
+  },
+  {
+    name: "p1_desktop_research_after",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...WORKSHOP_TIMBER,
+      ui: { tab: "research" },
+    },
+    ff: 2.5,
+    crowns: 0,
+  },
+  // P2, the era plate (D245): the next era in the top bar, its sheet with cost, result and Build.
+  {
+    // Saving for Sheet Metal: the plate beside the lamp, its bar in the era's colour.
+    name: "p2_phone_plate",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+    crowns: 0,
+    clip: [0, 0, 390, 140],
+  },
+  {
+    name: "p2_desktop_plate",
+    viewport: [1440, 810],
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+    crowns: 0,
+    clip: [0, 0, 1100, 110],
+  },
+  {
+    name: "p2_desktop_plate_1600",
+    viewport: DESKTOP,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+    crowns: 0,
+  },
+  {
+    name: "p2_laptop_plate",
+    viewport: LAPTOP,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+    crowns: 0,
+  },
+  {
+    // The narrowest phone: lamp and plate still share the row.
+    name: "p2_phone_360",
+    viewport: [360, 780],
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+    crowns: 0,
+    clip: [0, 0, 360, 140],
+  },
+  {
+    // Stone affordable from Timber: "Build" and the price, lit in the era's colour, not orange.
+    name: "p2_phone_plate_ready",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...TIMBER_YARD,
+      supplies: 3.4e6,
+      meta: { stats: VETERAN_STATS },
+    },
+    ff: 2.5,
+    crowns: 0,
+    clip: [0, 0, 390, 140],
+  },
+  {
+    name: "p2_desktop_plate_ready",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...TIMBER_YARD,
+      supplies: 3.4e6,
+      meta: { stats: VETERAN_STATS },
+    },
+    ff: 2.5,
+    crowns: 0,
+    clip: [0, 0, 1100, 110],
+  },
+  {
+    name: "p2_phone_plate_night",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 23), wall: WALL, weather: "clear", ...STONE_RUN },
+    ff: 2.5,
+    crowns: 0,
+    clip: [0, 0, 390, 140],
+  },
+  {
+    // Saving: Build stays, disabled, saying how much is missing (6.3 rule 3).
+    name: "p2_phone_sheet",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, ui: { sheet: "era" } },
+    ff: 2.5,
+    crowns: 1,
+  },
+  {
+    name: "p2_desktop_sheet",
+    viewport: [1440, 810],
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, ui: { sheet: "era" } },
+    ff: 2.5,
+    crowns: 1,
+  },
+  {
+    // Affordable: what is left after, Build the Stone era.
+    name: "p2_phone_sheet_ready",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...TIMBER_YARD,
+      supplies: 3.4e6,
+      ui: { sheet: "era" },
+    },
+    ff: 2.5,
+    crowns: 1,
+  },
+  {
+    name: "p2_desktop_sheet_ready",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...TIMBER_YARD,
+      supplies: 3.4e6,
+      ui: { sheet: "era" },
+    },
+    ff: 2.5,
+    crowns: 1,
+  },
+  {
+    // Run 1's first era, new to the player: the plate is the one orange (D244).
+    name: "p2_phone_onboard_era",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      runAge: 55,
+      supplies: 1600,
+      made: 2400,
+      taps: 300,
+      target: { taps: 4, felled: 7 },
+      lines: { beachcomber: 12, campfire: 3 },
+      hands: ["beachcomber"],
+      badgesFill: false,
+      meta: { stats: { ...NEW_STATS, units: 15, hands: 1, taps: 300, felled: 7 } },
+    },
+    ff: 1.5,
+    crowns: 1,
+    clip: [0, 0, 390, 140],
+  },
+  {
+    // The longest numbers: 999Dc held, left after in the sheet.
+    name: "p2_phone_sheet_numbers_big",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      supplies: 9.99e35,
+      made: 9.99e35,
+      ui: { sheet: "era" },
+    },
+    ff: 2.5,
+    crowns: 1,
+  },
+  {
+    // Sheet Metal reached: Armored waits on a Wipe Day, so there is no plate (D140).
+    name: "p2_phone_metal_no_plate",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      era: "metal",
+      eraAt: { wood: 52, stone: 400, metal: 600 },
+    },
+    ff: 2.5,
+    crowns: 0,
+    clip: [0, 0, 390, 140],
+  },
+  {
+    // Build: the era's pop on the island, and the next era's plate sliding in.
+    name: "p2_phone_build_juice",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...TIMBER_YARD,
+      supplies: 3.4e6,
+      meta: { stats: VETERAN_STATS },
+    },
+    ff: 2.5,
+    liveDock: true,
+    juice: [{ type: "buy_era", era: "stone" }],
+    juiceMs: 140,
+    clip: [0, 0, 390, 420],
+  },
+  {
+    name: "p2_desktop_build_juice",
+    viewport: [1440, 810],
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...TIMBER_YARD,
+      supplies: 3.4e6,
+      meta: { stats: VETERAN_STATS },
+    },
+    ff: 2.5,
+    liveDock: true,
+    juice: [{ type: "buy_era", era: "stone" }],
+    juiceMs: 140,
+    clip: [0, 0, 1100, 400],
+  },
+  // P4, the terrace yard (D246) and the new art (D247): Twig (every stage 1), Sheet Metal (stage
+  // 2) and Armored (stage 3) from a short phone to 2k, the phone's ground under the front row,
+  // night for the campfire and the lamp.
+  ...(() => {
+    const day = { time: at(1, 9.5), wall: WALL, weather: "clear" };
+    const night = { time: at(1, 22), wall: WALL, weather: "clear" };
+    const twig = { ...TWIG_HERO, ...day };
+    const metal = { ...METAL_RUN, ...day };
+    return [
+      { name: "p4_twig_phone", viewport: PHONE, scale: 2, state: twig, ff: 1 },
+      { name: "p4_twig_phone_short", viewport: [360, 640], scale: 2, state: twig, ff: 1 },
+      { name: "p4_twig_phone_tall", viewport: [412, 915], scale: 2, state: twig, ff: 1 },
+      { name: "p4_twig_desktop", viewport: DESKTOP, state: twig, ff: 1 },
+      {
+        name: "p4_twig_desktop__zoom",
+        viewport: DESKTOP,
+        state: twig,
+        ff: 1,
+        clip: [180, 420, 700, 360],
+      },
+      { name: "p4_metal_phone", viewport: PHONE, scale: 2, state: metal, ff: 2.5 },
+      { name: "p4_metal_desktop", viewport: DESKTOP, state: metal, ff: 2.5 },
+      { name: "p4_hqm_phone", viewport: PHONE, scale: 2, state: HQM_RUN, ff: 2.5 },
+      { name: "p4_hqm_desktop", viewport: DESKTOP, state: HQM_RUN, ff: 2.5 },
+      { name: "p4_laptop", viewport: [1440, 900], state: metal, ff: 2.5 },
+      { name: "p4_2k", viewport: [2560, 1440], state: metal, ff: 2.5 },
+      {
+        name: "p4_tall_rain",
+        viewport: [1700, 1340],
+        state: { ...METAL_RUN, time: at(1, 9), wall: WALL, weather: "rain" },
+        ff: 2.5,
+      },
+      {
+        name: "p4_night_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...METAL_RUN, ...night },
+        ff: 2.5,
+      },
+      {
+        name: "p4_night_twig_desktop",
+        viewport: DESKTOP,
+        state: { ...TWIG_HERO, ...night },
+        ff: 1,
+      },
+    ];
+  })(),
+  // R3 S1: the Sealed Locker (a Supply Drop II) coming down, and its line on the Odds sheet.
+  {
+    name: "r3_locker_phone",
+    viewport: PHONE,
+    scale: 2,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      runAge: 1800,
+      flotsamAge: 5,
+      flotsamKind: "sealed_locker",
+    },
+    ff: 0.5,
+  },
+  {
+    name: "r3_locker_desktop",
+    viewport: DESKTOP,
+    state: {
+      time: at(1, 19),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      runAge: 1800,
+      flotsamAge: 5,
+      flotsamKind: "sealed_locker",
+    },
+    ff: 0.5,
+  },
+  {
+    name: "r3_odds_locker_phone",
+    viewport: PHONE,
+    scale: 2,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN, ui: { sheet: "odds" } },
+    ff: 2.5,
+  },
+  // R3 S2 (D255-D259): the Work Orders card and sheet, the day's quests, scrap and the boosts.
+  // The Stone run at 10:30 with six hands; the orders are named outright so the card reads the
+  // same on every seed (two ready: 3,200 taps and the Stone era; the rest counting).
+  ...(() => {
+    const stone = { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN };
+    const evening = { ...stone, time: at(1, 19) };
+    const orders = {
+      ids: [
+        "twig_three_hands",
+        "twig_lines_10",
+        "twig_taps_300",
+        "wood_era",
+        "wood_lines_25",
+        "wood_catch_3",
+        "stone_era",
+        "stone_furnace_50",
       ],
-    },
-  },
-  {
-    name: "phone_away",
-    viewport: [390, 844],
-    scale: 3,
-    state: { time: at(3, 11), welcome: true },
-  },
-  // --- the Den (W5) ---
-  { name: "phone_den_market", viewport: [390, 844], scale: 3, state: DEN() },
-  {
-    name: "phone_den_players",
-    viewport: [390, 844],
-    scale: 3,
-    state: DEN(),
-    scrollTo: ".panel h3.section:nth-of-type(2)",
-  },
-  { name: "phone_den_sell", viewport: [390, 844], scale: 3, state: DEN({ denSell: "rope" }) },
-  { name: "phone_den_sell_pick", viewport: [390, 844], scale: 3, state: DEN({ denSell: null }) },
-  {
-    name: "phone_den_contracts",
-    viewport: [390, 844],
-    scale: 3,
-    state: DEN({ denTab: "contracts" }),
-  },
-  {
-    name: "phone_den_wheel",
-    viewport: [390, 844],
-    scale: 3,
-    state: DEN({
-      denTab: "games",
-      game: "wheel",
-      wheelBets: [{ round: Math.floor(at(9, 11) / 30), segment: "crab", amount: 10 }],
-      denBets: [
-        {
-          round: Math.floor(at(9, 11) / 30),
-          playerId: 9,
-          name: "Hollis",
-          segment: "gull",
-          amount: 10,
+      claimed: ["twig_three_hands", "twig_lines_10", "wood_era"],
+      fuelledAt: null,
+    };
+    const complete = {
+      ...orders,
+      claimed: [...orders.claimed, "twig_taps_300", "stone_era"],
+      fuelledAt: "now",
+    };
+    const quests = {
+      ids: ["tap_500", "hire_2", "catch_1"],
+      claimed: ["tap_500"],
+      progress: { hire_2: 1 },
+    };
+    const scrap = (held, ever = held + 5) => ({
+      scrap: held,
+      stats: { ...VETERAN_STATS, scrap: ever, orders: 3, quests: 1 },
+    });
+    return [
+      {
+        name: "r3s2_orders_card_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, orders, meta: scrap(3) },
+        ff: 0.5,
+      },
+      {
+        name: "r3s2_orders_card_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, orders, meta: scrap(3) },
+        ff: 0.5,
+      },
+      {
+        name: "r3s2_orders_complete_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, orders: complete, meta: scrap(3) },
+        ff: 0.5,
+      },
+      {
+        name: "r3s2_orders_complete_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, orders: complete, meta: scrap(3) },
+        ff: 0.5,
+      },
+      {
+        name: "r3s2_orders_sheet_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, orders, quests, meta: scrap(3), ui: { sheet: "orders" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s2_orders_sheet_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, orders, quests, meta: scrap(3), ui: { sheet: "orders" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s2_orders_sheet_complete_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, orders: complete, quests, meta: scrap(3), ui: { sheet: "orders" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s2_logbook_today_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, orders, quests, meta: scrap(3), ui: { panel: "logbook" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s2_logbook_today_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, orders, quests, meta: scrap(3), ui: { panel: "logbook" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s2_scrap_plate_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, orders, meta: scrap(23, 31) },
+        ff: 0.5,
+      },
+      {
+        name: "r3s2_scrap_plate_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, orders, meta: scrap(23, 31) },
+        ff: 0.5,
+      },
+      {
+        name: "r3s2_scrap_sheet_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: {
+          ...stone,
+          orders,
+          meta: scrap(23, 31),
+          buffs: [{ kind: "overdrive", until: at(1, 10.5) + 400 }],
+          ui: { sheet: "scrap" },
         },
-        {
-          round: Math.floor(at(9, 11) / 30),
-          playerId: 9,
-          name: "Hollis",
-          segment: "crown",
-          amount: 5,
+        ff: 0.5,
+      },
+      {
+        name: "r3s2_scrap_sheet_desktop",
+        viewport: DESKTOP,
+        state: {
+          ...evening,
+          orders,
+          meta: scrap(23, 31),
+          buffs: [{ kind: "overdrive", until: at(1, 19) + 400 }],
+          ui: { sheet: "scrap" },
         },
-      ],
-    }),
-  },
-  {
-    name: "phone_den_slots",
-    viewport: [390, 844],
-    scale: 3,
-    state: DEN({
-      denTab: "games",
-      game: "slots",
-      jackpot: 48_200,
-      roll: { game: "slots", result: [3, 3, 3], bet: 10, payout: 400 },
-    }),
-  },
-  {
-    name: "phone_den_bones",
-    viewport: [390, 844],
-    scale: 3,
-    state: DEN({
-      denTab: "games",
-      game: "dice",
-      roll: { game: "dice", result: [5, 4], bet: 10, payout: 22 },
-    }),
-  },
-  {
-    name: "phone_den_capped",
-    viewport: [390, 844],
-    scale: 3,
-    state: DEN({
-      denTab: "games",
-      game: "slots",
-      casino: { day: 9, wagered: 50, won: 30 },
-    }),
-  },
-  {
-    name: "phone_den_closed",
-    viewport: [390, 844],
-    scale: 3,
-    state: { time: at(3, 11), panel: "den" },
-  },
-  {
-    name: "phone_ranks",
-    viewport: [390, 844],
-    scale: 3,
-    state: { ...DEN(), panel: "feed", feedTab: "ranks" },
-  },
-  { name: "desktop_den", viewport: [1600, 900], state: DEN() },
-  {
-    name: "desktop_den_wheel",
-    viewport: [1600, 900],
-    state: DEN({ denTab: "games", game: "wheel" }),
-  },
-  {
-    name: "skiff_day",
-    viewport: [390, 844],
-    scale: 3,
-    state: { ...DEN(), panel: null, time: at(9, 11) },
-    clip: [0, 480, 260, 200],
-  },
-  {
-    name: "skiff_night",
-    viewport: [390, 844],
-    scale: 3,
-    state: { ...DEN(), panel: null, time: at(9, 23) },
-    clip: [0, 480, 260, 200],
-  },
-  {
-    name: "skiff_desktop",
-    viewport: [1600, 900],
-    state: { ...DEN(), panel: null, time: at(9, 19) },
-  },
-  {
-    name: "map_den_locked",
-    viewport: [390, 844],
-    scale: 3,
-    state: { time: at(3, 11), view: "map" },
-  },
-  // Raids (W6).
-  { name: "raid_warned_day", viewport: [1600, 900], state: RAID() },
-  { name: "raid_warned_night", viewport: [1600, 900], state: RAID({ time: at(9, 20.8) }) },
-  { name: "phone_raid_warned", viewport: [390, 844], scale: 3, state: RAID() },
-  {
-    name: "phone_raid_warned_night",
-    viewport: [390, 844],
-    scale: 3,
-    state: RAID({ time: at(9, 20.8) }),
-    clip: [180, 300, 210, 260],
-  },
-  {
-    name: "phone_defence_warned",
-    viewport: [390, 844],
-    scale: 3,
-    state: RAID({ panel: "defence" }),
-  },
-  {
-    name: "phone_defence_damaged",
-    viewport: [390, 844],
-    scale: 3,
-    state: RAID({
-      time: at(10, 9),
-      raid: null,
-      damaged: true,
-      raidReports: [NPC_BREACHED, NPC_HELD],
-      panel: "defence",
-    }),
-  },
-  {
-    name: "phone_defence_calm",
-    viewport: [390, 844],
-    scale: 3,
-    state: RAID({ time: at(8, 11), raid: null, raidReports: [NPC_HELD], panel: "defence" }),
-    scrollTo: ".panel h3.section:nth-of-type(2)",
-  },
-  {
-    name: "desktop_damaged",
-    viewport: [1600, 900],
-    state: RAID({ time: at(10, 9), raid: null, damaged: true, raidReports: [NPC_BREACHED] }),
-  },
-  {
-    name: "phone_raid_report_breached",
-    viewport: [390, 844],
-    scale: 3,
-    state: RAID({
-      time: at(10, 9),
-      raid: null,
-      damaged: true,
-      raidReports: [NPC_BREACHED],
-      report: "r3",
-    }),
-  },
-  {
-    name: "phone_raid_report_held",
-    viewport: [390, 844],
-    scale: 3,
-    state: RAID({ time: at(8, 9), raid: null, raidReports: [NPC_HELD], report: "r1" }),
-  },
-  {
-    name: "phone_pvp_locked",
-    viewport: [390, 844],
-    scale: 3,
-    state: RAID({ raid: null, panel: "defence", defenceTab: "raids" }),
-  },
-  {
-    name: "phone_pvp_join",
-    viewport: [390, 844],
-    scale: 3,
-    state: PVP({ pvp: PVP_STATE({ on: false }) }),
-  },
-  { name: "phone_pvp_targets", viewport: [390, 844], scale: 3, state: PVP() },
-  {
-    name: "phone_pvp_shielded",
-    viewport: [390, 844],
-    scale: 3,
-    state: PVP({ rival: { pvp: PVP_STATE({ shieldUntil: at(16, 30) }) } }),
-  },
-  {
-    name: "phone_pvp_revenge",
-    viewport: [390, 844],
-    scale: 3,
-    state: PVP({ damaged: true, raidReports: [PVP_IN, NPC_HELD], pvp: REVENGE }),
-  },
-  {
-    name: "phone_pvp_report_in",
-    viewport: [390, 844],
-    scale: 3,
-    state: PVP({ panel: null, damaged: true, raidReports: [PVP_IN], report: "i1", pvp: REVENGE }),
-  },
-  {
-    name: "phone_pvp_report_won",
-    viewport: [390, 844],
-    scale: 3,
-    state: PVP({
-      panel: null,
-      raidReports: [PVP_OUT],
-      report: "o1",
-      pvp: PVP_STATE({ lastAttackAt: at(16, 11), hits: { 9: at(16, 11) } }),
-    }),
-  },
-  {
-    name: "phone_camp_confirm",
-    viewport: [390, 844],
-    scale: 3,
-    state: RAID({
-      raid: null,
-      view: "map",
-      known: KNOWN,
-      panel: "map",
-      mapFocus: { kind: "site", id: "driftwood_camp" },
-    }),
-    scrollTo: ".panel .cost",
-  },
-  { name: "map_camps", viewport: [390, 844], scale: 3, state: { ...LATE_MAP(20), view: "map" } },
-  {
-    name: "desktop_defences",
-    viewport: [1600, 900],
-    state: PVP({ panel: null, buildings: FORT }),
-  },
-  {
-    name: "desktop_defences_night",
-    viewport: [1600, 900],
-    state: PVP({ panel: null, time: at(16, 23), buildings: FORT }),
-  },
-  { name: "desktop_defence_panel", viewport: [1600, 900], state: RAID({ panel: "defence" }) },
-  // Seasons and the legacy layer (W7).
-  {
-    name: "phone_legacy",
-    viewport: [390, 844],
-    scale: 3,
-    state: { time: at(3, 11), panel: "feed", feedTab: "legacy" },
-  },
-  {
-    name: "phone_legacy_bought",
-    viewport: [390, 844],
-    scale: 3,
-    state: {
-      time: at(3, 11),
-      panel: "feed",
-      feedTab: "legacy",
-      perks: { steady_hands: 3, deep_cellars: 1, old_maps: 2, old_friend: 1 },
-      skin: "driftwood",
-      seasonDemo: {
-        legacy: {
-          points: 2,
-          perks: { steady_hands: 3, deep_cellars: 1, old_maps: 2, old_friend: 1 },
-          skin: "driftwood",
+        ff: 0.5,
+      },
+      {
+        name: "r3s2_boost_running_desktop",
+        viewport: DESKTOP,
+        state: {
+          ...evening,
+          orders,
+          meta: scrap(8, 31),
+          buffs: [{ kind: "overdrive", until: at(1, 19) + 400 }],
+          tide: { fromAgo: 60, length: 300 },
+        },
+        ff: 0.5,
+      },
+      {
+        name: "r3s2_boost_running_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: {
+          ...stone,
+          orders,
+          meta: scrap(8, 31),
+          buffs: [{ kind: "overdrive", until: at(1, 10.5) + 400 }],
+          tide: { fromAgo: 60, length: 300 },
+        },
+        ff: 0.5,
+      },
+      {
+        name: "r3s2_tide_crate_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, orders, meta: scrap(3, 31), tide: { fromAgo: 20, length: 300 } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s2_claim_juice_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, orders, meta: scrap(3) },
+        juice: [{ type: "claim_order", run: 1, id: "twig_taps_300" }],
+        juiceMs: 240,
+      },
+    ];
+  })(),
+  // R3 S3, the Album and the reveal (12-feel.md 7; D260-D264): crates by the house, the reveal
+  // at each rarity, the Album's three segments empty, half and full, a survivor's and a gear
+  // card's sheet, the Scrap sheet's Open, the Crew panel's stars, the Album joining the dock.
+  ...(() => {
+    const stone = { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN };
+    const evening = { ...stone, time: at(1, 19) };
+    const night = { ...stone, time: at(1, 23.5) };
+    const noShards = { common: 0, rare: 0, epic: 0, legendary: 0 };
+    /** `meta.drops` whole (the patch merges meta shallowly): `held` and the shards as given. */
+    const drops = (
+      held = {},
+      shards = {},
+      pulls = 0,
+      pity = { rare: 0, epic: 0, legendary: 0 },
+    ) => ({
+      held: { 1: 0, 2: 0, 3: 0, ...held },
+      pulls,
+      pity,
+      shards: {
+        crew: {},
+        gear: { ...noShards, ...shards.gear },
+        ...(shards.crew ? { crew: shards.crew } : {}),
+      },
+      paid: { fells: 0, badges: 0 },
+      owed: { earned: 0, paid: 0 },
+      today: { day: 0, fells: 0, at: 0 },
+    });
+    const stats = (opened) => ({ ...VETERAN_STATS, drops: opened, scrap: 31 });
+    /** The Album empty: the first drop just landed, nothing opened yet. */
+    const empty = {
+      cards: { survivors: {}, gear: {} },
+      drops: drops({ 1: 1 }),
+      stats: stats(0),
+      scrap: 3,
+    };
+    /** Half full, a week in: nine survivors, fourteen gear cards, some worn, shards saved. */
+    const half = {
+      cards: {
+        survivors: {
+          mara: 3,
+          dax: 2,
+          ivo: 1,
+          bram: 3,
+          otto: 1,
+          rook: 2,
+          sela: 1,
+          wren: 1,
+          hale: 1,
+        },
+        gear: {
+          salvaged_hatchet: "mara",
+          crowbar: null,
+          pipe_wrench: "dax",
+          work_gloves: null,
+          claw_hammer: "wren",
+          tin_lantern: "mara",
+          bandana: "dax",
+          hard_hat: null,
+          gas_mask: null,
+          rope_belt: "mara",
+          jerrycan: null,
+          car_battery: "wren",
+          satchel: null,
+          chainsaw: "bram",
         },
       },
-    },
-    scrollTo: ".panel h3.section",
-  },
-  {
-    name: "phone_hall",
-    viewport: [390, 844],
-    scale: 3,
-    state: { time: at(3, 11), panel: "feed", feedTab: "hall" },
-  },
-  {
-    name: "phone_season_over",
-    viewport: [390, 844],
-    scale: 3,
-    state: { time: at(1, 9), seasonDemo: { archived: [SEASON_ONE] }, seasonSeen: 1 },
-  },
-  {
-    name: "desktop_season_over",
-    viewport: [1600, 900],
-    state: { time: at(1, 9), seasonDemo: { archived: [SEASON_ONE] }, seasonSeen: 1 },
-  },
-  {
-    name: "phone_signal_closed",
-    viewport: [390, 844],
-    scale: 3,
-    state: { time: at(9, 11), panel: "signal" },
-  },
-  {
-    name: "phone_signal_open",
-    viewport: [390, 844],
-    scale: 3,
-    state: LATE({
-      panel: "signal",
-      seasonDemo: { endsAt: at(27, 20), next: "quiet_raiders", signal: SIGNAL_TOWER },
-    }),
-  },
-  {
-    name: "phone_signal_lit",
-    viewport: [390, 844],
-    scale: 3,
-    state: LATE({
-      time: at(26, 9),
-      panel: "signal",
-      seasonDemo: { endsAt: at(27, 20), signal: SIGNAL_LIT },
-    }),
-  },
-  {
-    name: "phone_season_ends",
-    viewport: [390, 844],
-    scale: 3,
-    state: LATE({
-      seasonDemo: { endsAt: at(27, 20), next: "quiet_raiders", signal: SIGNAL_TOWER },
-    }),
-  },
-  {
-    name: "desktop_signal_tower",
-    viewport: [1600, 900],
-    state: LATE({ seasonDemo: { endsAt: at(27, 20), signal: SIGNAL_TOWER } }),
-  },
-  {
-    name: "desktop_signal_lit_night",
-    viewport: [1600, 900],
-    state: LATE({ time: at(26, 22), seasonDemo: { endsAt: at(27, 20), signal: SIGNAL_LIT } }),
-  },
-  {
-    name: "desktop_skin_beacon",
-    viewport: [1600, 900],
-    state: { ...DEN(), panel: null, skin: "beacon" },
-  },
-  {
-    name: "desktop_skin_rust",
-    viewport: [1600, 900],
-    state: { ...DEN(), panel: null, tier: "metal", skin: "rust" },
-  },
-  { name: "phone_landscape", viewport: [844, 390], scale: 3, state: { time: at(3, 11) } },
-  { name: "tablet", viewport: [820, 1180], scale: 2, state: { time: at(3, 11) } },
+      drops: drops(
+        { 1: 2, 2: 1 },
+        {
+          gear: { common: 17, rare: 6, epic: 0, legendary: 0 },
+          crew: { mara: 31, dax: 4, bram: 12 },
+        },
+        63,
+        { rare: 3, epic: 22, legendary: 63 },
+      ),
+      stats: stats(21),
+      scrap: 23,
+    };
+    /** Full: every card, every survivor at five stars. */
+    const full = {
+      cards: {
+        survivors: Object.fromEntries(
+          [
+            "mara",
+            "dax",
+            "ivo",
+            "rook",
+            "sela",
+            "bram",
+            "wren",
+            "otto",
+            "juno",
+            "pike",
+            "hale",
+            "tamsin",
+            "gus",
+            "vera",
+          ].map((id) => [id, 5]),
+        ),
+        gear: {
+          salvaged_hatchet: null,
+          crowbar: null,
+          pipe_wrench: null,
+          work_gloves: null,
+          claw_hammer: null,
+          hand_drill: null,
+          bolt_cutters: null,
+          chainsaw: "mara",
+          welding_torch: "wren",
+          power_saw: "vera",
+          tin_lantern: null,
+          bandana: null,
+          welding_goggles: null,
+          hard_hat: null,
+          gas_mask: null,
+          headlamp: null,
+          ear_defenders: null,
+          night_goggles: "mara",
+          hazmat_hood: null,
+          spotter_scope: "vera",
+          rope_belt: null,
+          jerrycan: null,
+          car_battery: null,
+          tool_roll: null,
+          satchel: null,
+          water_flask: null,
+          tarp_bundle: null,
+          hazmat_coat: "mara",
+          flare_pouch: null,
+          generator_pack: "vera",
+        },
+      },
+      drops: drops({}, { gear: { common: 212, rare: 90, epic: 48, legendary: 9 } }, 600, {
+        rare: 1,
+        epic: 7,
+        legendary: 40,
+      }),
+      stats: stats(200),
+      scrap: 140,
+    };
+    /** The reveal: a fresh island's first drop opens on Mara (pull 0) at each tier; the rarity
+     *  of the first card after Mara is the seed's, so each shot names the pull index that gives
+     *  its rarity on the demo's seed (found with `pnpm web:shots --only r3s3_reveal`). */
+    const reveal = (tier, pulls, opened) => ({
+      // The first drop ever (pull 0) opens on a fresh Album; later ones already hold Mara.
+      cards: { survivors: pulls === 0 ? {} : { mara: 1 }, gear: {} },
+      drops: drops({ [tier]: 1 }, {}, pulls),
+      stats: stats(opened),
+      scrap: 3,
+    });
+    return [
+      {
+        name: "r3s3_crates_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: { ...empty, drops: drops({ 1: 2, 2: 1 }) } },
+        ff: 0.8,
+      },
+      {
+        name: "r3s3_crates_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, meta: { ...empty, drops: drops({ 1: 2, 2: 1 }) } },
+        ff: 0.8,
+      },
+      {
+        name: "r3s3_crates_night_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...night, meta: { ...empty, drops: drops({ 1: 1 }) } },
+        ff: 0.8,
+      },
+      {
+        name: "r3s3_crates_first_phone",
+        viewport: PHONE,
+        scale: 2,
+        // A new island's first crate, with its hint (the Album is not in the dock yet).
+        state: { ...stone, meta: { ...empty }, badgesFill: false },
+        ff: 0.8,
+      },
+      {
+        name: "r3s3_reveal_first_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: reveal(1, 0, 0), ui: {} },
+        reveal: { tier: 1, flip: [0], ms: 900 },
+      },
+      {
+        name: "r3s3_reveal_first_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, meta: reveal(1, 0, 0), ui: {} },
+        reveal: { tier: 1, flip: [0], ms: 900 },
+      },
+      {
+        name: "r3s3_reveal_down_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: reveal(2, 3, 1), ui: {} },
+        reveal: { tier: 2, flip: [], ms: 600 },
+      },
+      {
+        name: "r3s3_reveal_all_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: reveal(2, 3, 1), ui: {} },
+        reveal: { tier: 2, flip: [0, 1, 2], ms: 1200 },
+      },
+      {
+        name: "r3s3_reveal_all_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, meta: reveal(3, 3, 1), ui: {} },
+        reveal: { tier: 3, flip: [0, 1, 2], ms: 1200 },
+      },
+      {
+        name: "r3s3_reveal_mid_phone",
+        viewport: PHONE,
+        scale: 2,
+        // Caught mid-turn: the rarity's glow before the face.
+        state: { ...stone, meta: reveal(3, 3, 1), ui: {} },
+        reveal: { tier: 3, flip: [1], ms: 260 },
+      },
+      {
+        name: "r3s3_album_empty_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: empty, ui: { panel: "album" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_album_half_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: half, ui: { panel: "album" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_album_half_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, meta: half, ui: { panel: "album" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_album_full_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: full, ui: { panel: "album" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_album_full_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, meta: full, ui: { panel: "album" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_album_gear_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: half, ui: { panel: "album", albumTab: "gear" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_album_gear_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, meta: half, ui: { panel: "album", albumTab: "gear" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_album_odds_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: half, ui: { panel: "album", albumTab: "odds" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_album_odds_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, meta: half, ui: { panel: "album", albumTab: "odds" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_survivor_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: half, ui: { sheet: "survivor", survivorSheet: "mara" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_survivor_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, meta: half, ui: { sheet: "survivor", survivorSheet: "mara" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_survivor_short_phone",
+        viewport: PHONE,
+        scale: 2,
+        // Dax: shards short of the next star, a slot empty.
+        state: { ...stone, meta: half, ui: { sheet: "survivor", survivorSheet: "dax" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_survivor_missing_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: half, ui: { sheet: "survivor", survivorSheet: "vera" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_gear_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: half, ui: { sheet: "gear", gearSheet: "crowbar" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_gear_desktop",
+        viewport: DESKTOP,
+        state: { ...evening, meta: half, ui: { sheet: "gear", gearSheet: "crowbar" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_gear_craft_phone",
+        viewport: PHONE,
+        scale: 2,
+        // Not owned: Craft against the common shards held (17 of 20).
+        state: { ...stone, meta: half, ui: { sheet: "gear", gearSheet: "welding_goggles" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_scrap_open_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: half, ui: { sheet: "scrap" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_crew_stars_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: half, ui: { panel: "crew" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s3_dock_album_phone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: half, albumNew: 3 },
+        ff: 0.5,
+      },
+    ];
+  })(),
+  // R3 S4 (D265-D267): the Workshop's Stone and Sheet Metal tiers, the orders' shard chips, the
+  // set's drop on its way, the Odds page's gate rule.
+  ...(() => {
+    const stone = { time: at(1, 10.5), wall: WALL, weather: "clear", ...STONE_RUN };
+    const evening = { ...stone, time: at(1, 19) };
+    const night = { ...stone, time: at(1, 23.5), weather: "rain" };
+    /** The Stone run with the fifth and sixth tiers started. */
+    const lateStone = {
+      ...STONE_RUN,
+      research: {
+        ...STONE_RUN.research,
+        fire_brick: 12,
+        bark_liquor: 8,
+        iron_screws: 5,
+        bellows: 4,
+        quota_board: 6,
+        quarry_rails: 2,
+        shift_bell: 1,
+      },
+      supplies: 2.1e9,
+      made: 2.1e9,
+    };
+    /** Sheet Metal an hour in, the first six tiers bought out, the seventh and eighth going. */
+    const metal = {
+      ...FRENZY_RUN,
+      runAge: 3600,
+      research: {
+        ...Object.fromEntries(
+          Object.entries(STONE_RUN.research).map(([id, n]) => [id, id.endsWith("_mk") ? n : 25]),
+        ),
+        spare_wicks: 6,
+        calloused_thumbs: 10,
+        banked_coals: 10,
+        steady_rhythm: 5,
+        greased_axles: 20,
+        oiled_pulleys: 20,
+        hide_mitts: 10,
+        storm_shutters: 10,
+        fire_brick: 25,
+        bark_liquor: 25,
+        iron_screws: 25,
+        bellows: 20,
+        quota_board: 25,
+        quarry_rails: 25,
+        seasoned_timber: 25,
+        wrapped_grips: 10,
+        tar_paper: 10,
+        shift_bell: 25,
+        mooring_winch: 9,
+        copper_windings: 6,
+        guy_wires: 4,
+        drive_belts: 3,
+        work_rota: 5,
+        welded_frames: 1,
+      },
+      supplies: 3.8e11,
+      made: 9.5e11,
+    };
+    const orders = {
+      ids: [
+        "twig_three_hands",
+        "twig_lines_10",
+        "twig_taps_300",
+        "wood_era",
+        "wood_lines_25",
+        "wood_catch_3",
+        "stone_era",
+        "stone_furnace_50",
+      ],
+      claimed: ["twig_three_hands", "twig_lines_10", "wood_era"],
+      fuelledAt: null,
+    };
+    const complete = {
+      ...orders,
+      claimed: [...orders.claimed, "twig_taps_300", "stone_era"],
+      fuelledAt: "now",
+    };
+    const quests = {
+      ids: ["tap_500", "hire_2", "catch_1"],
+      claimed: ["tap_500"],
+      progress: { hire_2: 1 },
+    };
+    const noShards = { common: 0, rare: 0, epic: 0, legendary: 0 };
+    /** `meta.drops` whole: `held` and the shards as given; `onWay` marks queued, the last gated
+     * drop paid `ago` seconds before the shot's time (the gate opens an hour after it). */
+    const drops = (held = {}, shards = {}, onWay = 0, ago = 1200) => ({
+      held: { 1: 0, 2: 0, 3: 0, ...held },
+      pulls: 27,
+      pity: { rare: 4, epic: 21, legendary: 27 },
+      shards: { crew: {}, gear: { ...noShards, ...shards } },
+      paid: { fells: 3, badges: 99 },
+      owed: { earned: onWay, paid: 0 },
+      today: onWay > 0 ? { day: 0, fells: 1, at: 0, ago } : { day: 0, fells: 1, at: 0 },
+    });
+    const few = {
+      survivors: { mara: 2, dax: 1, rook: 1, bram: 1 },
+      gear: { salvaged_hatchet: "mara", crowbar: null, work_gloves: "dax" },
+    };
+    const meta = (extra = {}) => ({
+      scrap: 3,
+      stats: { ...VETERAN_STATS, scrap: 8, orders: 3, quests: 1, drops: 9 },
+      cards: few,
+      drops: drops(),
+      ...extra,
+    });
+    return [
+      {
+        name: "r3s4_desktop_workshop_stone",
+        viewport: DESKTOP,
+        state: { ...stone, ...lateStone, ui: { tab: "research" } },
+        scrollTo: '[data-key="research:bellows"]',
+        ff: 2.5,
+      },
+      {
+        name: "r3s4_phone_workshop_stone",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, ...lateStone, ui: { expanded: true, tab: "research" } },
+        scrollTo: '[data-key="research:bellows"]',
+        ff: 2.5,
+      },
+      {
+        name: "r3s4_desktop_workshop_stone_night",
+        viewport: DESKTOP,
+        state: { ...night, ...lateStone, ui: { tab: "research" } },
+        scrollTo: '[data-key="research:quarry_rails"]',
+        ff: 2.5,
+      },
+      {
+        name: "r3s4_phone_workshop_stone_night",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...night, ...lateStone, ui: { expanded: true, tab: "research" } },
+        scrollTo: '[data-key="research:quarry_rails"]',
+        ff: 2.5,
+      },
+      {
+        name: "r3s4_desktop_workshop_metal",
+        viewport: DESKTOP,
+        state: {
+          time: at(1, 11.5),
+          wall: WALL,
+          weather: "clear",
+          ...metal,
+          ui: { tab: "research" },
+        },
+        scrollRows: "end",
+        ff: 2.5,
+      },
+      {
+        name: "r3s4_phone_workshop_metal",
+        viewport: PHONE,
+        scale: 2,
+        state: {
+          time: at(1, 11.5),
+          wall: WALL,
+          weather: "clear",
+          ...metal,
+          ui: { expanded: true, tab: "research" },
+        },
+        scrollRows: "end",
+        ff: 2.5,
+      },
+      {
+        name: "r3s4_desktop_workshop_flash",
+        viewport: DESKTOP,
+        state: { ...stone, ...lateStone, ui: { tab: "research" } },
+        scrollTo: '[data-key="research:fire_brick"]',
+        juice: [{ type: "buy_research", item: "fire_brick", count: 1 }],
+        ff: 2.5,
+      },
+      {
+        name: "r3s4_phone_orders_shards",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, orders, quests, meta: meta(), ui: { sheet: "orders" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s4_desktop_orders_shards",
+        viewport: DESKTOP,
+        state: { ...evening, orders, quests, meta: meta(), ui: { sheet: "orders" } },
+        ff: 0.5,
+      },
+      {
+        name: "r3s4_phone_orders_set_onway",
+        viewport: PHONE,
+        scale: 2,
+        state: {
+          ...stone,
+          orders: complete,
+          quests,
+          meta: meta({ drops: drops({}, { common: 9, rare: 12 }, 1) }),
+          ui: { sheet: "orders" },
+        },
+        ff: 0.5,
+      },
+      {
+        name: "r3s4_desktop_orders_set_onway",
+        viewport: DESKTOP,
+        state: {
+          ...evening,
+          orders: complete,
+          quests,
+          meta: meta({ drops: drops({}, { common: 9, rare: 12 }, 1) }),
+          ui: { sheet: "orders" },
+        },
+        ff: 0.5,
+      },
+      {
+        name: "r3s4_phone_orders_claim_shards",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, orders, quests, meta: meta(), ui: { sheet: "orders" } },
+        juice: [{ type: "claim_order", run: 1, id: "twig_taps_300" }],
+        ff: 0.5,
+      },
+      {
+        name: "r3s4_phone_album_onway",
+        viewport: PHONE,
+        scale: 2,
+        state: {
+          ...stone,
+          meta: meta({ drops: drops({}, {}, 1) }),
+          ui: { panel: "album", albumTab: "crew" },
+        },
+        ff: 0.5,
+      },
+      {
+        name: "r3s4_desktop_album_onway",
+        viewport: DESKTOP,
+        state: {
+          ...evening,
+          meta: meta({ drops: drops({ 1: 1 }, {}, 1) }),
+          ui: { panel: "album", albumTab: "crew" },
+        },
+        ff: 0.5,
+      },
+      {
+        name: "r3s4_phone_album_gate",
+        viewport: PHONE,
+        scale: 2,
+        state: { ...stone, meta: meta(), ui: { panel: "album", albumTab: "odds" } },
+        scrollTo: ".pity-list",
+        ff: 0.5,
+      },
+      {
+        name: "r3s4_desktop_album_gate",
+        viewport: DESKTOP,
+        state: { ...evening, meta: meta(), ui: { panel: "album", albumTab: "odds" } },
+        scrollTo: ".pity-list",
+        ff: 0.5,
+      },
+    ];
+  })(),
 ];
+
+/** Moves `time` by whole days (same hour) until the island has `weather` then. */
+async function pickTime(page, time, weather) {
+  if (!weather) return time;
+  return page.evaluate(
+    ([t, want]) => {
+      for (let day = 0; day < 400; day++) {
+        const candidate = t + day * 86_400;
+        // The whole next 15 minutes, so a shot's few seconds stay in the same weather.
+        if (
+          window.__wipeDay.weatherAt(candidate) === want &&
+          window.__wipeDay.weatherAt(candidate + 900) === want
+        )
+          return candidate;
+      }
+      return t;
+    },
+    [time, weather],
+  );
+}
+
+/**
+ * Visible buttons and scene tap areas under 44 px, the target's box, and crowns: at most one,
+ * or exactly `want` when the shot says (`crowns: 0 | 1`, D244).
+ */
+async function audit(page, width, want) {
+  return page.evaluate(
+    ([viewportWidth, want]) => {
+      const problems = [];
+      const phone = viewportWidth <= 430;
+      const small = (box) => box.width < 44 || box.height < 44;
+      if (phone) {
+        for (const element of document.querySelectorAll("button, a, [role=button]")) {
+          const rect = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
+          if (rect.width === 0 || rect.height === 0 || style.visibility === "hidden") continue;
+          if (small(rect)) {
+            const label =
+              element.getAttribute("aria-label") ??
+              element.textContent?.trim() ??
+              element.className;
+            problems.push(
+              `button "${label}" is ${Math.round(rect.width)}×${Math.round(rect.height)}`,
+            );
+          }
+        }
+        for (const box of window.__wipeDay.hitBoxes?.() ?? []) {
+          if (small(box)) problems.push(`scene ${box.name} is ${box.width}×${box.height}`);
+        }
+      }
+      const target = window.__wipeDay.target?.();
+      if (target && target.height < 120)
+        problems.push(`the target's box is ${target.height} px tall (N27: 120)`);
+      // A view is what is not inert: a sheet makes the rest of the HUD inert (6.3 rule 1).
+      const crowns = [...document.querySelectorAll(".primary, [data-crown]")].filter(
+        (element) => element.getBoundingClientRect().width > 0 && !element.closest("[inert]"),
+      ).length;
+      if (crowns > 1) problems.push(`${crowns} crowned elements (one per view)`);
+      if (want !== undefined && crowns !== want)
+        problems.push(`${crowns} crowned elements, the shot wants ${want}`);
+      return problems;
+    },
+    [width, want],
+  );
+}
 
 async function main() {
   await mkdir(outDir, { recursive: true });
@@ -1523,6 +4117,7 @@ async function main() {
     const context = await browser.newContext({
       viewport: { width, height },
       deviceScaleFactor: shot.scale ?? 1,
+      timezoneId: "UTC",
     });
     const page = await context.newPage();
     const errors = [];
@@ -1530,120 +4125,295 @@ async function main() {
     page.on("console", (message) => {
       if (message.type() === "error") errors.push(message.text());
     });
-    await page.goto(url, { waitUntil: "networkidle" });
+    // `query` adds dev switches to the page's address (`?demo` and the like).
+    const address = shot.query ? `${url}${url.includes("?") ? "&" : "?"}${shot.query}` : url;
+    await page.goto(address, { waitUntil: "networkidle" });
+    // Entrance slides and fades would be caught half-way: shots show the settled layout.
+    // A place joining the dock is frozen too, unless the shot is about it (`liveDock`).
+    await page.addStyleTag({
+      content: `.drawer, .column, .dock, .sheet, .sheet-backdrop, .toast, .ticker-line, .era-fill${shot.liveDock ? "" : ", .dock-item.arrive, .era-plate.arrive"} { animation: none !important; transition: none !important; }`,
+    });
     await page.waitForFunction(() => (window.__wipeDay?.frames ?? 0) > 5, null, {
       timeout: 20_000,
     });
     await page.waitForFunction(() => window.__wipeDay?.store.getState().phase === "playing", null, {
       timeout: 20_000,
     });
-    await page.evaluate((state) => {
-      // The demo clock stops at the shot's moment. Upkeep, collection and the barrel are anchored
-      // to that moment so jumping days ahead neither decays the base nor fills storage.
-      const { store, clocks } = window.__wipeDay;
-      const {
-        time,
-        panel,
-        station,
-        recipe,
-        view,
-        mapFocus,
-        report,
-        weather,
-        welcome,
-        feed,
-        denTab,
-        denSell,
-        game,
-        feedTab,
-        roll,
-        spin,
-        denBets,
-        jackpot,
-        defenceTab,
-        rival,
-        seasonDemo,
-        seasonSeen,
-        ...base
-      } = state;
-      clocks.game.setPaused(true);
-      if (time !== undefined) clocks.game.set(time);
-      const now = Math.floor(clocks.game.nowMs() / 1000);
-      const world = store.getState();
-      world.demoPatch({
-        upkeepPaidUntil: now,
-        lastCollectedAt: now - 3600,
-        lastGatherAt: now - 20 * 60,
-        nextBarrelAt: now + 4 * 3600,
-        barrel: { spawnedAt: now - 15 * 60, expiresAt: now + 30 * 60, seed: 42 },
-        production: {},
-        ...base,
-      });
-      world.tick();
-      if (weather) world.setWeather(weather);
-      store.setState({
-        panel: panel ?? null,
-        station: station ?? "workbench",
-        recipe: recipe ?? null,
-        view: view ?? "base",
-        mapFocus: mapFocus ?? null,
-        report: report ?? null,
-        demoOpen: false,
-        toasts: [],
-        welcomeBack: welcome ? { awaySeconds: 3 * 3600, events: [] } : null,
-        ...(feed ? { feed, feedSeen: 0 } : {}),
-        denTab: denTab ?? "market",
-        denSell,
-        game: game ?? "wheel",
-        feedTab: feedTab ?? "feed",
-        roll: roll ? { ...roll, at: 0 } : null,
-        spin: spin ?? null,
-        defenceTab: defenceTab ?? "defence",
-        // The season-over card only where a shot asks for it.
-        seasonSeen: seasonSeen ?? 99,
-      });
-      if (rival) world.demoRival(rival);
-      if (seasonDemo) world.demoSeason(seasonDemo);
-      if (panel === "signal") void world.loadSignal();
-      if (panel === "feed" && (feedTab === "legacy" || feedTab === "hall")) void world.loadLegacy();
-      if (panel === "defence") void world.loadRaids();
-      if (denBets || jackpot !== undefined)
-        world.demoDen({
-          ...(denBets ? { bets: denBets } : {}),
-          ...(jackpot !== undefined ? { jackpot } : {}),
+    const { weather, ...state } = shot.state;
+    const asked = state.time;
+    // A welcome back shows the arrival's sky, so its weather is picked for then.
+    const away = state.away ?? 0;
+    state.time = (await pickTime(page, state.time + away, weather)) - away;
+    if (state.hustle) state.hustle = { ...state.hustle, at: state.time };
+    // A weather pick moves whole days: running buffs and the Frenzy meter move with it.
+    if (state.buffs)
+      state.buffs = state.buffs.map((buff) => ({
+        ...buff,
+        until: buff.until + state.time - asked,
+      }));
+    if (state.frenzy) state.frenzy = { ...state.frenzy, at: state.frenzy.at + state.time - asked };
+    // R4: a run's birth and Afterglow's first tap are game seconds too (the afterglow sky).
+    if (state.createdAt !== undefined) state.createdAt += state.time - asked;
+    if (typeof state.afterglowFrom === "number") state.afterglowFrom += state.time - asked;
+    await page.evaluate(
+      ([state, before]) => {
+        const { store, clocks, ui: uiStore } = window.__wipeDay;
+        const {
+          time,
+          wall,
+          demoOpen,
+          ui,
+          pace,
+          runAge,
+          flotsamAge,
+          flotsamKind,
+          away,
+          collect,
+          crewNew,
+          workshopNew,
+          gull,
+          meta,
+          badgesNew,
+          badgesFill,
+          quests,
+          tide,
+          albumNew,
+          bigRed,
+          cinematic,
+          postcard,
+          landing,
+          map,
+          ...run
+        } = state;
+        // R3 S2: the set completed a minute ago; a Lucky Tide bought `fromAgo` seconds ago.
+        if (run.orders?.fuelledAt === "now") run.orders = { ...run.orders, fuelledAt: time - 60 };
+        // R3 S4: the drops' gate last paid `today.ago` seconds before the shot's time (which
+        // `pickTime` may have moved by days), so a queued mark waits for its hour.
+        if (meta?.drops?.today?.ago !== undefined) {
+          const { ago, ...today } = meta.drops.today;
+          meta.drops = { ...meta.drops, today: { ...today, at: time - ago } };
+        }
+        if (tide)
+          run.tide = {
+            boost: "lucky_tide",
+            from: time - tide.fromAgo,
+            until: time - tide.fromAgo + tide.length,
+            last: -1,
+          };
+        if (runAge !== undefined) run.startedAt = time - runAge;
+        // A crow (or a Magpie) `gull.age` seconds into its crossing at `time` (D238).
+        if (gull)
+          run.startedAt = window.__wipeDay.gullStart(
+            time,
+            gull.age,
+            gull.elite === true,
+            runAge ?? 0,
+          );
+        // Present now: the Night Shift runs and manned lines cycle.
+        if (time !== undefined) run.activeAt ??= time;
+        // ...and nothing made before the patch counts as made while away.
+        if (run.made !== undefined) run.madeAtActive ??= run.made;
+        clocks.game.setPaused(true);
+        if (time !== undefined) clocks.game.set(time);
+        clocks.wall.setPaused(true);
+        if (wall !== undefined) clocks.wall.set(wall);
+        // The player taps 6 a second unless the shot says (the crown weighs taps by it); set
+        // before the patch, which is what makes the crown look again.
+        window.__wipeDay.pace(pace ?? 6);
+        // `before`: the run as it stood a moment earlier, so the scene animates the change.
+        if (before) {
+          store.getState().demoPatch(before);
+          window.__wipeDay.fastForward?.(0.1);
+        }
+        store.getState().demoPatch(run, meta ?? {});
+        // The day's quests as the shot names them (their day is the game clock's).
+        if (quests) window.__wipeDay.setQuests(time, quests);
+        if (flotsamAge !== undefined) {
+          // An arrival on the water: run 1's guaranteed crate, or the first of a kind after it.
+          const k = flotsamKind ? window.__wipeDay.flotsamK(flotsamKind) : 0;
+          store.getState().demoPatch({
+            flotsam: { k, at: time - flotsamAge, caught: flotsamKind ? 1 : 0, last: k - 1 },
+          });
+        }
+        // Every badge the run already meets, earned a while ago, as a player at this point has
+        // (but those the shot keeps back; `false` earns none).
+        if (badgesFill !== false && time !== undefined)
+          window.__wipeDay.fillBadges(time - 600, Array.isArray(badgesFill) ? badgesFill : []);
+        store.setState({ demoOpen: demoOpen === true, toasts: [] });
+        // The HUD: collapsed drawer on the Lines tab at ×1, nothing open, unless the shot says.
+        uiStore.setState({
+          expanded: false,
+          tab: "lines",
+          bulk: 1,
+          panel: null,
+          sheet: null,
+          boughtOpen: false,
+          house: false,
+          scientific: false,
+          motion: "device",
+          crownInView: true,
+          focusAt: 0,
+          ...ui,
         });
-      if (panel === "den") void world.loadDen();
-      if (panel === "feed" && feedTab === "ranks") void world.loadRanks();
-    }, shot.state);
-    if (shot.act || shot.click) {
-      // Let the scene pick up the patch, fire the action, then catch the effect in flight:
-      // at least 450 ms and 12 frames, so slow software rendering still gets past the pop.
-      await page.waitForTimeout(400);
-      if (shot.click) await page.mouse.click(shot.click[0], shot.click[1]);
-      for (let hit = 0; hit < (shot.hits ?? 0); hit++) {
-        await page.waitForTimeout(500);
-        const point = await page.evaluate(() => window.__wipeDay.nodeMarker?.() ?? null);
-        if (point) await page.mouse.click(point.x, point.y);
-      }
-      const frames = await page.evaluate((act) => {
-        if (act) window.__wipeDay.store.getState()[act]();
-        return window.__wipeDay.frames;
-      }, shot.act ?? null);
-      await page.waitForTimeout(450);
-      await page.waitForFunction((target) => window.__wipeDay.frames >= target, frames + 12, {
-        timeout: 20_000,
-      });
+        // The Crew badge counts hands hired since the sheet last showed them: none new, unless
+        // the shot says how many.
+        const after = store.getState().base.run;
+        uiStore.setState({
+          crewSeen: {
+            run: after.n,
+            hands: Math.max(0, after.hands.length - (crewNew ?? 0)),
+          },
+          // The Workshop's badge: every open item seen, or none when the shot says it just opened.
+          workshopSeen: { run: after.n, items: workshopNew ? 0 : 999 },
+          // The Logbook's: every badge seen, unless the shot says how many are new.
+          badgesSeen: Math.max(
+            0,
+            Object.keys(store.getState().base.meta.badges).length - (badgesNew ?? 0),
+          ),
+          // The Album's (D260): every card seen, unless the shot says how many are new.
+          albumSeen: Math.max(
+            0,
+            Object.keys(store.getState().base.meta.cards.survivors).length +
+              Object.keys(store.getState().base.meta.cards.gear).length -
+              (albumNew ?? 0),
+          ),
+        });
+        // R4 S3 (D271): where the Blast Map is open (a sector's ladder, a node's sheet, a filter).
+        if (map) window.__wipeDay.map.setState({ sector: null, node: null, filter: null, ...map });
+        if (away) {
+          clocks.game.set(time + away);
+          store.getState().checkAway();
+          if (collect) store.getState().collect();
+        }
+        // R4 S2 (D270): the Big Red's card (`bigRed: {card: true}`), the lid up with the ring at
+        // `hold`; the film pinned (`cinematic: {variant, at, event?}`); the postcard (`postcard:
+        // {event?, flipped?}`); the landing at `landing` ms. All on the wall clock, pinned.
+        const big = window.__wipeDay.bigRed;
+        if (bigRed?.card) big.open();
+        if (bigRed?.hold !== undefined) big.hold(bigRed.hold);
+        if (cinematic) big.pin(cinematic.variant, cinematic.at, cinematic.event);
+        if (postcard) big.postcard(postcard.event, postcard.flipped === true);
+        if (landing !== undefined) big.land(landing);
+      },
+      [state, shot.before ?? null],
+    );
+    if (shot.sendFlotsam) {
+      // Catches what floats now (its run and index), as a tap on it would.
       await page.evaluate(() => {
-        window.__wipeDay.frozen = true;
+        const hook = window.__wipeDay;
+        hook.fastForward?.(1 / 60);
+        const run = hook.store.getState().base.run;
+        hook.store.getState().send({ type: "claim_flotsam", run: run.n, k: run.flotsam.k });
       });
-    } else {
-      await page.waitForTimeout(shot.settle ?? 1600);
+    }
+    if (shot.sendGull) {
+      // Catches the crow crossing now, as a tap on it would.
+      await page.evaluate(() => {
+        const hook = window.__wipeDay;
+        hook.fastForward?.(1 / 60);
+        const crow = hook.gullNow();
+        if (crow) hook.store.getState().send({ type: "claim_gull", run: crow.run, k: crow.k });
+        hook.fastForward?.(0.12);
+      });
+    }
+    if (shot.send) {
+      // A command through the store, as a button would send it (a refusal shows its toast),
+      // after one frame, so the scene has drawn what the command touches (flotsam).
+      await page.evaluate((command) => {
+        window.__wipeDay.fastForward?.(1 / 60);
+        window.__wipeDay.store.getState().send(command);
+      }, shot.send);
+    }
+    const extra = [];
+    if (shot.orderSends) {
+      // Purchases one after another: the shop's cards must keep their order (D186).
+      const order = () =>
+        page.evaluate(() =>
+          [...document.querySelectorAll(".card, .tile")].map((card) => card.dataset.key).join(" "),
+        );
+      await page.waitForTimeout(150);
+      const before = await order();
+      for (const command of shot.orderSends) {
+        await page.evaluate((command) => {
+          window.__wipeDay.fastForward?.(1 / 60);
+          window.__wipeDay.store.getState().send(command);
+        }, command);
+        await page.waitForTimeout(150);
+        const now = await order();
+        if (now !== before)
+          extra.push(`the cards moved after ${command.type} ${command.line ?? ""}: ${now}`);
+      }
+    }
+    if (shot.taps) {
+      const [rounds, perRound] = shot.taps;
+      await page.evaluate(
+        ([rounds, perRound]) => {
+          const hook = window.__wipeDay;
+          for (let round = 0; round < rounds; round++) {
+            hook.tap(perRound);
+            hook.fastForward(1 / 6);
+          }
+        },
+        [rounds, perRound],
+      );
+    }
+    if (shot.press) {
+      // A finger held still on the target: hold to work.
+      const box = await page.evaluate(() => window.__wipeDay.target());
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.6);
+      await page.mouse.down();
+    }
+    await page.evaluate((seconds) => {
+      window.__wipeDay.fastForward?.(seconds);
+      window.__wipeDay.frozen = true;
+    }, shot.ff ?? 0.2);
+    await page.waitForTimeout(400);
+    if (shot.scroll) {
+      await page.evaluate((selector) => {
+        const element = document.querySelector(selector);
+        if (element) element.scrollTop = element.scrollHeight;
+      }, shot.scroll);
+      await page.waitForTimeout(100);
+    }
+    if (shot.scrollRows === "end") {
+      await page.evaluate(() => {
+        const list = document.querySelector(".cards");
+        if (list) list.scrollTop = list.scrollHeight;
+      });
+      await page.waitForTimeout(100);
     }
     if (shot.scrollTo) {
+      // Brings one element (a selector) into the middle of its scrolling list or sheet.
       await page.evaluate((selector) => {
-        document.querySelector(selector)?.scrollIntoView({ block: "start" });
+        document.querySelector(selector)?.scrollIntoView({ block: "center" });
       }, shot.scrollTo);
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(100);
+    }
+    if (shot.click) {
+      // After any scroll: the Best buy chip shows once its card is out of sight.
+      await page.waitForTimeout(250);
+      await page.click(shot.click);
+      await page.waitForTimeout(900);
+    }
+    if (shot.juice) {
+      // Purchases on the settled view, caught mid-flash: the scene steps 60 ms, the cards' CSS
+      // runs in real time for about as long.
+      await page.evaluate((commands) => {
+        const hook = window.__wipeDay;
+        for (const command of commands) hook.store.getState().send(command);
+        hook.fastForward?.(0.06);
+      }, shot.juice);
+      await page.waitForTimeout(shot.juiceMs ?? 60);
+    }
+    if (shot.reveal) {
+      // The reveal (D261): open a held drop of `tier` as a tap on the crates does, then turn the
+      // named cards over and wait `ms` for the flip (short, to catch it mid-turn).
+      await page.evaluate((tier) => window.__wipeDay.openDrop?.(tier), shot.reveal.tier);
+      await page.waitForTimeout(300);
+      await page.evaluate((indexes) => {
+        for (const index of indexes) window.__wipeDay.reveal?.(index);
+      }, shot.reveal.flip);
+      await page.waitForTimeout(shot.reveal.ms ?? 800);
     }
     if (shot.clip) {
       const [x, y, clipWidth, clipHeight] = shot.clip;
@@ -1654,31 +4424,44 @@ async function main() {
     }
     const file = path.join(outDir, `${shot.name}.png`);
     await page.screenshot({ path: file });
-    done.push({ ...shot, file: `${shot.name}.png`, errors });
-    process.stdout.write(
-      `${shot.name}${errors.length ? ` (${errors.length} console errors)` : ""}\n`,
-    );
+    const problems = [...extra, ...(await audit(page, width, shot.crowns))];
+    done.push({ ...shot, file: `${shot.name}.png`, errors, problems });
+    const notes = [
+      errors.length ? `${errors.length} console errors` : "",
+      problems.length ? `${problems.length} audit problems` : "",
+    ]
+      .filter(Boolean)
+      .join(", ");
+    process.stdout.write(`${shot.name}${notes ? ` (${notes})` : ""}\n`);
     await context.close();
   }
   await browser.close();
 
   const cards = done
-    .map(
-      (shot) =>
-        `<figure><img src="${shot.file}" alt="${shot.name}" loading="lazy"><figcaption>${shot.name} · ${shot.viewport.join("×")}${
-          shot.errors.length ? ` · <b style="color:#f05252">${shot.errors.length} errors</b>` : ""
-        }</figcaption></figure>`,
-    )
+    .map((shot) => {
+      const zoom = shot.clip
+        ? `<img src="${shot.name}__zoom.png" alt="${shot.name} zoom" loading="lazy">`
+        : "";
+      const problems = shot.problems.length
+        ? `<ul class="audit">${shot.problems.map((p) => `<li>${p}</li>`).join("")}</ul>`
+        : "";
+      return `<figure><img src="${shot.file}" alt="${shot.name}" loading="lazy">${zoom}<figcaption>${shot.name} · ${shot.viewport.join("×")}${
+        shot.errors.length ? ` · <b style="color:#f05252">${shot.errors.length} errors</b>` : ""
+      }</figcaption>${problems}</figure>`;
+    })
     .join("\n");
   const html = `<!doctype html><meta charset="utf-8"><title>Wipe Day web preview</title>
 <style>body{margin:0;padding:24px;background:#1b1a18;color:#ece8df;font:14px/1.4 system-ui}h1{font-size:18px;margin:0 0 16px}
-main{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:20px}figure{margin:0}img{width:100%;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
-figcaption{margin-top:6px;color:#a49e93}</style><h1>Wipe Day web prototype · ${new Date().toISOString()}</h1><main>${cards}</main>`;
+main{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:20px}figure{margin:0}img{width:100%;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.5);margin-bottom:6px}
+figcaption{margin-top:6px;color:#a49e93}.audit{color:#f05252;margin:4px 0 0;padding-left:18px}</style><h1>Wipe Day web client · ${new Date().toISOString()}</h1><main>${cards}</main>`;
   await writeFile(path.join(outDir, "index.html"), html);
-  const failures = done.filter((shot) => shot.errors.length > 0);
-  for (const shot of failures)
+  for (const shot of done.filter((item) => item.errors.length > 0))
     process.stdout.write(`\n${shot.name}:\n  ${shot.errors.join("\n  ")}\n`);
+  const failed = done.filter((item) => item.problems.length > 0);
+  for (const shot of failed)
+    process.stdout.write(`\n${shot.name} audit:\n  ${shot.problems.join("\n  ")}\n`);
   process.stdout.write(`\n${done.length} shots -> ${outDir}\n`);
+  if (failed.length > 0) process.exitCode = 1;
 }
 
 main().catch((error) => {

@@ -1,0 +1,214 @@
+# The art pipeline, as learned on 2026-10-18
+
+What we know about generating Wipe Day's pixel art, written down so any computer (and any
+session) can continue. The decisions behind it: D188 (chunky pixel, the grid), D189 (Retro
+Diffusion first, OpenAI as backup, Gemini dropped), D190 (the pipeline's shape after the scene
+mock), D203-D205 (the terraced island, the camera, the pipeline in the game). The plan:
+`12-feel.md` 2.1 and 2.2. Since R2 Feel S2 the scripts live in `scripts/art/` behind `pnpm art`;
+the game's art is `packages/content/art/` (the palette, and `scene/<kind>/<id>.png`).
+
+## 1. Setup on a new computer
+
+1. `.env` at the repo root (gitignored, copy it by hand, never through git):
+   `RETRO_DIFFUSION_API_KEY=rdpk-…` (the key page is https://www.retrodiffusion.ai/app/devtools).
+   `OPENAI_API_KEY` only when the parallax layers come up.
+2. Python 3 with Pillow (`pip install pillow`) for the Python steps; Node 24 for the
+   `.mjs` scripts (no dependencies).
+3. Optional, for driving Retro Diffusion from Claude Code directly: register its hosted MCP
+   server once per machine, reading the key from `.env` so it is never typed into a transcript:
+
+   ```sh
+   K=$(grep '^RETRO_DIFFUSION_API_KEY=' .env | cut -d= -f2)
+   claude mcp add --transport http retro-diffusion https://mcp.retrodiffusion.ai/mcp --header "Authorization: Bearer $K"
+   ```
+
+   The REST scripts below do not need the MCP server; it is for ad-hoc generation in a session.
+
+## 2. The API in one paragraph
+
+Base `https://api.retrodiffusion.ai`, header `X-RD-Token: <key>`. `GET /v2/inferences/credits`
+returns `{credits, balance}` (balance in USD). `POST /v2/inferences` with
+`{prompt, prompt_style, width, height, num_images, remove_bg, tile_x, seed, input_image,
+frames_duration, return_spritesheet, check_cost}` is **asynchronous**: it answers
+`{status:"accepted", task_id}` and the result comes from `GET /v2/inferences/tasks/<id>` (or the
+list `GET /v2/inferences/tasks?limit=50`), whose `result.base64_images` holds the PNGs and
+`result.balance_cost` the price. `check_cost:true` returns the price without generating, free.
+`GET /v2/styles/selector` lists every style with its size limits. Pictures with the wrong size
+for a style fail with `invalid_style_dimensions` and cost nothing.
+
+## 3. Which style for what (measured prices)
+
+| Need | Style | Size limits | Price | Verdict from the mock |
+| --- | --- | --- | --- | --- |
+| Sprites, props, targets, hands, busts | `rd_pro__platformer` | 12-256 px | 0.18 USD per image, any size | The one. Strict side view, clean alpha, one grid, first try. |
+| Small props (≤ 40 px) | `rd_plus__low_res` | 16-128 px | 0.06 | Fine for barrels, rocks, crates. The flotsam crate came back as a sack. |
+| Quick drafts | `rd_fast__default` | 64-384 px | 0.03 | The 64 px workbench smoke test. Leans fantasy, three-quarter view. |
+| Idle / walk cycles from an existing sprite | `rd_advanced_animation__idle`, `__walking` | 32-256 px, `input_image` required | 0.14 per animation (8 frames) | See section 5. |
+| Subtle motion (lamp sway, water) | `rd_advanced_animation__subtle_motion` | 32-256 px, input required | 0.25 | Not tried yet. |
+| Tiles | `rd_tile__single_tile`, `rd_tile__tileset` | 16-64 / 16-32 px | not measured | The route for ground, water and sky pieces. |
+| Wide landscapes | `rd_plus__environment` | 64-512 px | 0.06 | **Paints whole postcards and ignores "no sky, no ground".** Usable only by cropping. Not the route for bands. |
+
+Every prompt: describe the subject only, richly; say "strict side view"; end with "on a plain
+white background" and set `remove_bg:true` for anything standalone; never write "pixel art".
+Two takes (`num_images:2`) of the important sprites, one of the rest. The same seed with the same
+prompt gives near-identical takes, so vary the seed, not only the count.
+
+## 4. The scripts (`pnpm art <step>`)
+
+| Step | Does |
+| --- | --- |
+| `palette` | The 48 colours: every opaque pixel of the Scene Mock's sprites reduced by median cut (near-duplicates merged), plus the fixed ones (the five era colours, fire, the warning red, the sea depths, the far ridge). Writes `packages/content/art/palette.json` (the source of truth), `palette.png` (one pixel per colour: Retro Diffusion's `input_palette`) and a swatch in `preview/art/`. |
+| `seed` | The mock's approved pieces (the pine, the sea and far tiles, the props, the crate) cleaned into `packages/content/art/scene/`. The ground is not a tile any more: `apps/web/src/scene/ground.ts` paints each terrace, the beach and the earth whole in the mock's colours (D208). |
+| `gen <jobs.json> <out> [--estimate] [--only=a,b] [--collect]` | Submits every job (`--estimate` prints the total price instead), polls the task list and writes `<id>_<n>.png` plus `manifest.json`. A job may carry `palette: true` (the palette as `input_palette`), `refs: [paths]` (reference images, pro styles only) and `input: path` (the starting frame of an animation). `--collect` harvests finished tasks; only it guesses a task by image size, and only for a job with no task of its own. |
+| `chips` | The hand-pixelled pieces a tap chips off each target and the stockpile's pallet (D217), drawn as rows of characters in the palette's colours: `art/scene/chip/<target>.png`, `prop/pallet.png`. Too small (6-7 px) for a generator to help. |
+| `sheet <dir> <out.png> [zoom]` | Every PNG in a folder on one checkerboard contact sheet, nearest neighbour, with name and size: what the owner picks from. |
+| `clean <in> <out> [--keep-size]` | Onto the grid: background knock-out (not for tiles and sheets), pitch detection and downsample, alpha snapped, the palette's nearest colours, lone pixels removed, the border trimmed. |
+| `install <picks.json>` | The chosen takes, cleaned, into `packages/content/art/scene/<key>.png`. `scripts/art/picks/*.json` records every choice (`"outline": true` adds a 1-px dark outline; `"sheet": true` keeps a sprite sheet's canvas). |
+
+`prep.py` and `anim.mjs` are the mock's one-off helpers, kept for the record; `gen` now does
+animations from a job (`input`). The job files are in `scripts/art/jobs/`: `scene-mock.json`
+(the mock's fifteen), `s2-*.json` (the first two eras, the hands, the retakes).
+
+Run from the repo root, for example:
+
+```sh
+pnpm art gen scripts/art/jobs/s2-eras.json preview/art/s2 --estimate
+pnpm art gen scripts/art/jobs/s2-eras.json preview/art/s2
+pnpm art sheet preview/art/s2 preview/art/s2-sheet.png 6
+pnpm art install scripts/art/picks/s2.json
+```
+
+`preview/` is gitignored: the installed art in `packages/content/art/scene/` and the picks file
+are what is kept.
+
+### What S2 learned (2026-10-18)
+
+- **Small lines: `rd_plus__low_res` beats the pro style.** At 16-24 px the pro platformer's take
+  of the beachcomber rack was a smear; low-res's was clear and colourful, at a third of the price
+  (0.06). It takes no reference images, so the clean-up's palette and outline hold it to the set.
+- **Heroes and characters: `rd_pro__platformer` with references** (the mock's pine, shelter and
+  survivor): the cabin and the outcrop came out right first time. Two takes each.
+- **Low-res sprites need an outline** on sand: `install` adds one.
+- **Animations' background removal leaves white crumbs** around the figure: knock out
+  near-white before installing (the survivor has none of its own).
+- **A fresh run must never match an old task by size**: the hand came back as yesterday's barrel
+  until `gen` stopped guessing outside `--collect`.
+- The pro style at 32×24 drew both Twig shelters as blobs; "a small tent of a patched tarp over
+  two poles" worked. Concrete, simple shapes for small sprites.
+- Spend for S2: 0.42 test, 2.70 the eras, 0.76 retakes and the first cycles, 0.64 the small hand
+  and its cycles, 0.36 the cabin's room: 4.88 USD. Balance after: about 3.09 USD.
+- A room (132×72, pro, with the cabin and two line sprites as references) came out right first
+  time on both takes: wider scenes suit the pro style.
+
+### What S3 learned (2026-10-18)
+
+- **Back-row structures a size up** (20, 24, 32 px; the radio mast 16×24 to 24×44) read well in
+  `rd_plus__low_res`; two takes each, at least one usable for every one of 24 sprites.
+- **Rooms:** the pro style with the cabin's room as reference drew the stone hut, the shack and
+  the bunker right first time (132×72), as in S2.
+- **Houses:** "a small survivor's hut of stacked stones" came back as a narrow wooden shed; "a
+  small square hut with thick walls of rough grey stone blocks ... seen straight from the front"
+  worked. Say the material twice and the view once.
+- **Targets:** the Crashed Plane at 64×36 is the widest thing in the camp (60 px after clean-up);
+  plan the layout round a target's size before generating it.
+- Spend for S3: 5.76 the batch, 0.36 the hut's retake: 6.12 USD. Balance after: about 4.39 USD.
+
+### What P3 learned (2026-10-19)
+
+- **Takes for the owner to pick** (`scripts/art/jobs/p3-takes.json`, `p3-garden.json`): each
+  sprite as two `rd_plus__low_res` takes plus one `rd_pro__platformer` take with set references
+  (the barrel prop, the Twig tent), cleaned and outlined as `install` would and numbered on one
+  sheet (`preview/art/p3-takes-sheet.png`). Nothing installs until the owner picks numbers.
+- **The palette has no bright green** (only olives `#454e35` to `#888464`): `palette: true`
+  drained the garden's sprouts to beige. Without `input_palette` the low-res takes kept leaf
+  shapes, and the clean-up's palette mapping still held them to the set.
+- **Concrete objects read at 16 px:** "one rusty red oil barrel with a crowbar leaning against
+  it" and "a pot hanging over a fire in a ring of stones" (the pro take) read first time; the
+  campfire's flames read only where the fire is drawn big and bright.
+- A low-res job failed once with a 502 (`inference_failed`) and was not charged; rerun with
+  `--only=<id>`.
+- Spend for P3: 1.50 the takes, 0.30 the garden retake (its low-res half rerun after the failed, uncharged try): 1.80 USD. Balance
+  after: about 2.59 USD.
+
+### What P4 learned (2026-10-19)
+
+- **Install the picked numbers through a picks file** (`scripts/art/picks/p4.json`): installing
+  from the raw take with `outline: true` gives exactly the numbered take on the sheet.
+- **One pick can make a set.** The owner picked one barrel take (04, stage 2); stages 1 and 3 were
+  cut from it by hand (the red barrel alone; the barrels on a widened patch, its middle columns
+  repeated so no seam shows) instead of new takes that would not match. Strip the outline, cut
+  or compose, then outline again.
+- **A fire needs motion and light, not just pixels:** an art line's flame is three stepped frames
+  of two to four pixels above the drawn fire, plus a glow, on the `lights` layer
+  (`ART_FIRES` in `scene/lines.ts`). Spend for P4: none. Balance: about 2.59 USD.
+
+### What R3 S3 learned (2026-10-27)
+
+- **Busts: the pro style with the hand sprite as reference, 24×24, "head and shoulders, facing
+  the viewer, simple shapes."** Fourteen distinct people first try where the prompt named one
+  strong feature each (a red knit cap, a straw hat, a grey ponytail, radio headphones, a white
+  bun); two takes each, near-identical, so one seed is enough next time.
+- **Gear at 16×16: mix the styles per item.** Low-res takes are brighter and read for soft things
+  (rope, tarp, jerrycan, hard hat); the pro take is crisper for tools and glass (wrench, torch,
+  lantern, goggles, scope, flask, battery). The pro takes carry their own outline, so
+  `outline: true` only on the low-res picks.
+- **The API fails about half a big batch with 502 `inference_failed`** (uncharged) and its task
+  list holds only the last 50, so a 60-job batch loses its first ten: `gen` now fetches a pending
+  job's task by id, and failed ids are resubmitted in chunks of eight with `--only`. Three busts
+  needed three tries each; one prompt ("freckles, a leaf behind his ear") failed three times
+  and passed reworded.
+- **The low-res style refuses 16×14** (`invalid_style_dimensions`): crates at 16×16, trimmed on
+  install.
+- Spend for S3: 5.76 the busts (with retakes), 8.46 the gear, 0.36 the crates: 13.86 USD.
+  Balance after: about 13.73 USD.
+
+### What R4 S2 learned (2026-10-29)
+
+- **Tall props in the pro style with the barrel, the car and a crate as references** (28×40 and
+  28×48): the boiler on stilts, the crate-faced warhead and the fuelled rocket came out right on
+  both takes; the owner picks by number from `preview/art/r4-kettle-sheet.png`.
+- **A grey slab on a white background is background to the remover:** the pad's first takes
+  kept only three hazard dashes. "Dark charcoal concrete" with the stripes named passed.
+- **14 px is too small for a drum with a button and a lid** (two blobs): the Big Red's drum is
+  drawn in code. The rowboat at 18×12 needed three submissions (two 502s, reworded) and is
+  borderline at 16×10 installed.
+- Spend for R4 S2: 1.80 the batch, 0.36 the pad retake, 0.36 the rowboat: 2.52 USD. Balance
+  after: about 11.2 USD.
+
+## 5. Animation
+
+Retro Diffusion animates an existing sprite: `rd_advanced_animation__idle` and `__walking` take
+the sprite as `input_image` (at least 32 px on each side, so small sprites are padded onto a
+32×48 canvas first), `frames_duration` picks 4-16 frames, `return_spritesheet:true` returns one
+PNG strip instead of a GIF. Price measured at 0.14 USD per 8-frame cycle for a 32×48 sprite,
+0.25 for subtle motion. The first test on the survivor (`mock-scene/img/survivor_idle.png` and
+`survivor_walk.png`, 4 × 2 cells of 32 × 48) came back coherent on both cycles, with the outline
+a touch heavier than the source; good enough for hands and the island's small motions. PixelLab (subscription, skeleton animation) stays the
+fallback if these cycles are not good enough for the hands.
+
+## 6. The scene mock
+
+`mock-scene/index.html` is the page published as "Saltmarsh Scene Mock"
+(https://claude.ai/artifact/PKrdCDtyVt5gZCrmFBGthV, private): the fifteen generated assets on the
+D188 grid (zoom 4 desktop, zoom 3 phone) under the approved HUD, day and night. Open it from
+disk; it needs no server (the HUD icons are fetched relatively, so some browsers want it served:
+`npx serve docs/redesign/art/mock-scene` works). Cost of everything in it: 2.16 USD.
+
+What it taught us, now in D190:
+
+- The pro platformer style is the tool for every sprite in the game.
+- Bands (sky, sea, ground, far coast) come from the palette gradient plus small generated
+  pieces or tiles, not from landscape renders.
+- Palette drift between props is visible without the palette constraint; the real pass uses
+  `input_palette` with the 48-colour swatch.
+- One light direction must be stated in every prompt (the mock has lamps lit from different
+  sides).
+
+## 7. Licences
+
+Generated images are ours to use under Retro Diffusion's terms (commercial use of outputs
+allowed for paying accounts; re-check the terms before the public build). `wd/*.svg` are our
+own icons. `gi/*.svg` are placeholders from game-icons.net (CC BY 3.0, authors Lorc and
+Delapouite; see `mock-scene/gi/LICENSE.txt`) used in the mock's dock only; the game's dock gets
+its own icons (D141). Nothing from the 0-mem0ry, LittleSmith, TheLazyStone or CraftPix packs is
+in this folder, and none of those may ever be sent to an image model.

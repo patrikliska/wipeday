@@ -1,0 +1,26 @@
+[
+  {
+    "id": "garden_1b",
+    "prompt_style": "rd_plus__low_res",
+    "width": 20,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 361,
+    "prompt": "a small wooden planter box full of dark soil with a row of bright green leafy cabbage sprouts growing out of it, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "garden_1b_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 20,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 362,
+    "refs": [
+      "packages/content/art/scene/line/garden_2.png",
+      "packages/content/art/scene/house/twig.png"
+    ],
+    "prompt": "a small wooden planter box full of dark soil with a row of bright green leafy cabbage sprouts growing out of it, strict side view, light from the upper left, on a plain white background"
+  }
+]

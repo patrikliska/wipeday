@@ -1,15 +1,15 @@
 /**
  * The only module that talks to discord.js: the `/base` command, the button router, DMs and
- * the feed channel. Screens stay plain data (`ui/screen`); every change to a base is a
- * command through the API (W8), keyed by the interaction's id so a retried click runs once.
+ * the feed channel. Screens stay plain data (`ui/screen`). The bot's one command is Collect
+ * (06-friends.md 10.3), keyed by the interaction id so a double click runs once; the API
+ * refuses everything else (`not_on_discord`).
  *
- * `/base` answers privately (ephemeral): each player has their own card, updated in place by
- * its buttons. A DM's "Show my base" answers with the same card.
+ * `/base` answers privately (ephemeral), updated in place by its buttons. A DM's "Show my
+ * island" answers with the same message.
  */
-import type { Amounts } from "@wipe-day/content/schema";
-import type { Command } from "@wipe-day/domain/commands";
 import type { FeedItem } from "@wipe-day/domain/feed";
-import type { CommandResponse, DmNote, SeasonNews } from "@wipe-day/domain/wire";
+import { nightShiftGlance } from "@wipe-day/domain/glance";
+import type { DmNote } from "@wipe-day/domain/wire";
 import {
   AttachmentBuilder,
   type ButtonInteraction,
@@ -24,17 +24,14 @@ import {
 } from "discord.js";
 import { type Api, ApiError, type DiscordUser } from "../api";
 import { log } from "../log";
-import { baseCard } from "../render/cards/base";
-import type { Renderer } from "../render/renderer";
 import { allows, parseCustomId, type Route } from "./customId";
-import { cardProps, homeScreen, type Last, type Lexicon } from "./home";
-import { feedMessages, newsMessage, noteScreen } from "./island";
+import { homeScreen, type Last, type Lexicon } from "./home";
+import { feedMessages, noteScreen } from "./island";
 import { type Screen, toComponents } from "./screen";
 
 export interface Bot {
   api: Api;
   lexicon: Lexicon;
-  renderer: Renderer;
 }
 
 /** The one slash command, registered to the guild at startup (so changes show at once). */
@@ -73,41 +70,15 @@ export function userOf(user: User): DiscordUser {
   };
 }
 
-/** The `/base` card and message for `user`, after `last`. */
+/** The `/base` message for `user`, after `last`. */
 export async function baseMessage(
   bot: Bot,
   user: DiscordUser,
   last?: Last,
 ): Promise<InteractionEditReplyOptions> {
   const home = await bot.api.home(user);
-  const now = home.serverNow;
-  const screen = homeScreen(bot.lexicon, home, now, last);
-  const rendered = await bot.renderer.render(baseCard, cardProps(bot.lexicon, home, now));
-  const name = "base.png";
-  screen.card = { fileName: name, png: rendered.png };
-  // Drop the previous card: only the new attachment is referenced.
-  return { ...toMessage(screen, { png: rendered.png, name }), attachments: [] };
-}
-
-const plus = (a: Amounts, b: Amounts): Amounts => {
-  const out: Amounts = { ...a };
-  for (const [id, amount] of Object.entries(b)) out[id] = (out[id] ?? 0) + amount;
-  return out;
-};
-
-/** What a command did, for the status line. */
-export function lastOf(response: CommandResponse): Last {
-  if (!response.ok) {
-    return response.refusal.code === "cooldown" && "readyAt" in response.refusal
-      ? { kind: "cooldown", readyAt: response.refusal.readyAt }
-      : { kind: "refused" };
-  }
-  for (const event of response.events) {
-    if (event.type === "gathered")
-      return { kind: "gathered", gained: plus(event.gained, event.bonus) };
-    if (event.type === "collected") return { kind: "banked", gained: event.gained };
-  }
-  return { kind: "refused" };
+  // Card v2 is text (D271): drop any picture an older message carried.
+  return { ...toMessage(homeScreen(bot.lexicon, home, last)), attachments: [] };
 }
 
 /** Runs a `/base` button and says what happened (nothing, for Refresh). */
@@ -115,14 +86,24 @@ async function runBase(
   bot: Bot,
   user: DiscordUser,
   action: Extract<Route, { screen: "base" }>["action"],
-  key: string,
+  interactionId: string,
 ): Promise<Last | undefined> {
-  const send = (command: Command) => bot.api.command(user, key, command);
   switch (action) {
-    case "collect":
-      return lastOf(await send({ type: "collect" }));
-    case "gather":
-      return lastOf(await send({ type: "gather" }));
+    case "collect": {
+      // What the hands made since the last command, read before Collect restarts the window.
+      const before = await bot.api.home(user);
+      const shift = nightShiftGlance(bot.lexicon.content, before.state, before.serverNow);
+      const response = await bot.api.command(user, `discord:${interactionId}`, {
+        type: "collect",
+      });
+      if (!response.ok) return undefined;
+      return {
+        kind: "collected",
+        seconds: shift.used,
+        gain: Math.max(0, before.state.run.made - before.state.run.madeAtActive),
+        hands: before.state.run.hands.length,
+      };
+    }
     case "dm_on":
     case "dm_off": {
       const on = action === "dm_on";
@@ -164,7 +145,7 @@ async function onButton(bot: Bot, interaction: ButtonInteraction): Promise<void>
   }
 
   await interaction.deferUpdate();
-  const last = await runBase(bot, user, id.route.action, `discord:${interaction.id}`);
+  const last = await runBase(bot, user, id.route.action, interaction.id);
   await interaction.editReply(await baseMessage(bot, user, last));
 }
 
@@ -197,7 +178,7 @@ export async function handleInteraction(bot: Bot, interaction: Interaction): Pro
 
 /**
  * What the API's stream brings: feed items to the channel (then acked, so a restart never
- * posts them twice or skips them), DMs to players, season news to the channel.
+ * posts them twice or skips them) and DMs to players.
  */
 export class Island {
   private channel: SendableChannels | null = null;
@@ -230,16 +211,6 @@ export class Island {
       await channel.send({ content, allowedMentions: { parse: [] } });
     this.posted = Math.max(this.posted, ...fresh.map((item) => item.id));
     await this.bot.api.ackFeed(this.posted);
-  }
-
-  async news(news: SeasonNews): Promise<void> {
-    const channel = await this.feedChannel();
-    if (!channel) return;
-    const { words, content } = this.bot.lexicon;
-    await channel.send({
-      content: newsMessage(words, content, news),
-      allowedMentions: { parse: [] },
-    });
   }
 
   async dm(note: DmNote): Promise<void> {

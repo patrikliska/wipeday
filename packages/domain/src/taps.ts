@@ -1,0 +1,291 @@
+/**
+ * The taps batch on the server (D134; docs/redesign/09-architecture.md 6.3). The client sends
+ * `{count, from, to}` (whole seconds) for at most 1 s or 30 taps; the server:
+ *
+ * 1. clamps the times to its own clock and the bucket's last refill, so they never run ahead
+ *    of `now` and never move back;
+ * 2. refills the bucket (perSecond a second, at most `burst`) and credits at most its whole
+ *    tokens, so over any interval at most burst + perSecond × elapsed taps count (N10);
+ * 3. raises Hustle per credited tap (after its grace and drain), and Frenzy once it is open: a
+ *    tap that fills Frenzy trips its buff, and the taps after it (spread evenly over the batch)
+ *    take it (D196, D237);
+ * 4. values each tap: (flat × global + p × fullRate) × T × Hustle × Afterglow × crit, crits
+ *    seeded by the tap's index so the client predicts them;
+ * 5. fells the era's target every `fellTaps` credited taps: each fell pays `fellBonusTaps`
+ *    taps' worth at the felling tap's Hustle, without a crit (02-the-run.md 7.5);
+ * 6. starts a cycle on each unmanned line that is idle (busy-until), as many back to back as fit
+ *    the batch's seconds `[from, to + 1)` and no more than the taps credited: the cycles that
+ *    ended by `now` pay at once, the one still in flight pays when settle passes its `readyAt`.
+ *
+ * Pure: state and `now` in, state and events out.
+ */
+import type { Content } from "@wipe-day/content/schema";
+import { finite } from "./amount";
+import {
+  afterglowAt,
+  buffEffects,
+  type Conditions,
+  cycleOf,
+  foldStat,
+  fullRate,
+  rates,
+  type StatId,
+} from "./effects";
+import type { GameEvent } from "./events";
+import { frenzyMeter, frenzyOpensAt, frenzyRules, frenzyUntil } from "./frenzy";
+import { roll, SEED, seedOf } from "./rng";
+import { cyclePayout } from "./settle";
+import type { BaseState } from "./state";
+
+export { afterglowAt };
+
+export interface TapsBatch {
+  count: number;
+  from: number;
+  to: number;
+}
+
+/** Hustle's multiplier at meter value `h` (0..cap). */
+export function hustleFactor(h: number, cap: number, peak: number): number {
+  return 1 + (Math.min(h, cap) / cap) * (peak - 1);
+}
+
+/** The folds of a tap that change only with the state's effects and the buffs running. */
+interface TapFolds {
+  flat: number;
+  share: number;
+  tapMult: number;
+  target: string | null;
+  fellEvery: number;
+  fellBonus: number;
+  hustlePeak: number;
+  hold: number;
+  drain: number;
+  gain: number;
+  critChance: number;
+  critMult: number;
+}
+
+/** Buff-free folds per effects layer (keyed on its memo), which taps and the advisor ask for often. */
+const foldsMemo = new WeakMap<object, TapFolds>();
+
+function tapFolds(content: Content, state: BaseState, t: number): TapFolds {
+  const r = rates(content, state);
+  // Tap buffs (Adrenaline, Rush) count while they run at `t`.
+  const buffs = state.run.buffs.length ? buffEffects(content, state.run.buffs, t) : [];
+  const known = buffs.length === 0 ? foldsMemo.get(r.memo) : undefined;
+  if (known) return known;
+  const when: Conditions = { online: true };
+  const fold = (stat: StatId, base: number): number =>
+    foldStat(stat, [...(r.byStat.get(stat) ?? []), ...buffs], base, {}, when);
+  const { hustle } = content.tap;
+  const target = content.targets.find((row) => row.era === state.run.era);
+  const folds: TapFolds = {
+    flat: fold("tap_flat", content.tap.flat),
+    share: fold("tap_share", content.tap.share),
+    tapMult: fold("tap", 1),
+    target: target?.id ?? null,
+    fellEvery: target
+      ? Math.max(1, Math.round(fold("fell_taps", target.fellTaps)))
+      : Number.POSITIVE_INFINITY,
+    fellBonus: fold("fell_bonus", content.tap.fellBonusTaps),
+    hustlePeak: Math.min(hustle.peakCeiling, fold("hustle_max", hustle.peak)),
+    hold: fold("hustle_hold", hustle.graceSeconds),
+    drain: fold("hustle_drain", hustle.drainPerSecond),
+    gain: fold("hustle_gain", hustle.perTap),
+    critChance: fold("crit_chance", 0),
+    critMult: fold("crit_mult", 1),
+  };
+  if (buffs.length === 0) foldsMemo.set(r.memo, folds);
+  return folds;
+}
+
+/** The parts of a tap's value that hold for a whole batch evaluated at `t`. */
+export function tapParts(content: Content, state: BaseState, t: number) {
+  const r = rates(content, state);
+  const folds = tapFolds(content, state, t);
+  const full = fullRate(content, state, t, { online: true });
+  const scale = folds.tapMult * afterglowAt(content, state, t);
+  return {
+    /** The era's target, felled every `fellEvery` credited taps. */
+    target: folds.target,
+    fellEvery: folds.fellEvery,
+    fellBonus: folds.fellBonus,
+    /** A tap's value before Hustle and crits. */
+    base: (folds.flat * r.tapGlobal + folds.share * full) * scale,
+    /** Its flat part (Grip × the global fold), and the full rate it takes its share of. */
+    flatValue: folds.flat * r.tapGlobal * scale,
+    fullValue: full * scale,
+    hustleCap: content.tap.hustle.cap,
+    hustlePeak: folds.hustlePeak,
+    hold: folds.hold,
+    drain: folds.drain,
+    gain: folds.gain,
+    critChance: folds.critChance,
+    critMult: folds.critMult,
+  };
+}
+
+/**
+ * Applies a taps batch to a settled state (`settledAt === now`). Never refuses: a batch the
+ * bucket cannot cover is clamped, down to nothing.
+ */
+export function applyTaps(
+  content: Content,
+  state: BaseState,
+  batch: TapsBatch,
+  now: number,
+): { state: BaseState; events: GameEvent[] } {
+  const run = state.run;
+  const { perSecond, burst } = content.tap.bucket;
+  // 1. Times: never ahead of the server, never before the last refill.
+  const to = Math.max(run.bucket.at, Math.min(batch.to, now));
+  const from = Math.max(run.bucket.at, Math.min(batch.from, to));
+  // 2. The bucket.
+  const tokens = Math.min(burst, run.bucket.tokens + perSecond * (to - run.bucket.at));
+  const credited = Math.max(0, Math.min(Math.floor(batch.count), Math.floor(tokens)));
+  const bucket = { tokens: tokens - credited, at: to };
+  if (credited === 0) {
+    return { state: { ...state, run: { ...run, bucket } }, events: [] };
+  }
+
+  // The run's first credited batch starts Afterglow's clock.
+  const afterglowFrom = run.afterglowFrom ?? from;
+  const started: BaseState = { ...state, run: { ...run, afterglowFrom } };
+
+  // 3-4. Hustle, Frenzy and the value of each tap. Frenzy's parts are taken apart from the
+  // rest, so a tap reads the buff only when its own time falls inside it.
+  const calm: BaseState = {
+    ...started,
+    run: { ...started.run, buffs: started.run.buffs.filter((buff) => buff.kind !== "frenzy") },
+  };
+  const parts = tapParts(content, calm, to);
+  let hot: ReturnType<typeof tapParts> | null = null;
+  const hotParts = () => {
+    hot ??= tapParts(
+      content,
+      {
+        ...calm,
+        run: { ...calm.run, buffs: [...calm.run.buffs, { kind: "frenzy", until: to + 1 }] },
+      },
+      to,
+    );
+    return hot;
+  };
+  const idle = Math.max(0, from - run.hustle.at - parts.hold);
+  const h0 = Math.max(0, run.hustle.value - parts.drain * idle);
+  const frenzy = frenzyRules(content, started);
+  const opensAt = frenzyOpensAt(content, started);
+  let until = frenzyUntil(started, from) ?? 0;
+  let meter = frenzyMeter(content, started, from);
+  let trips = 0;
+  let value = 0;
+  let crits = 0;
+  let fells = 0;
+  let fellValue = 0;
+  for (let k = 1; k <= credited; k++) {
+    const t = from + ((to - from) * k) / credited;
+    const running = t < until;
+    const h = Math.min(parts.hustleCap, h0 + parts.gain * k);
+    let tap =
+      (running ? hotParts() : parts).base * hustleFactor(h, parts.hustleCap, parts.hustlePeak);
+    if (!running && opensAt !== null && t >= opensAt) {
+      meter = Math.min(frenzy.cap, meter + frenzy.perTap);
+      if (meter >= frenzy.cap) {
+        until = Math.ceil(t) + frenzy.seconds;
+        meter = 0;
+        trips += 1;
+      }
+    }
+    if ((run.target.taps + k) % parts.fellEvery === 0) {
+      fells += 1;
+      fellValue += parts.fellBonus * tap;
+    }
+    if (parts.critChance > 0) {
+      if (roll(seedOf(run.seed, SEED.crit, run.taps + k)) < parts.critChance) {
+        tap *= parts.critMult;
+        crits += 1;
+      }
+    }
+    value += tap;
+  }
+  const hustle = { value: Math.min(parts.hustleCap, h0 + parts.gain * credited), at: to };
+  // While a Frenzy runs the meter waits empty for its end; otherwise it holds from `to`.
+  const tripped = run.frenzy.trips + trips;
+  const frenzyState =
+    until > to ? { value: 0, at: until, trips: tripped } : { value: meter, at: to, trips: tripped };
+  const buffs = trips > 0 ? [...calm.run.buffs, { kind: "frenzy", until }] : run.buffs;
+
+  // 5. Unmanned lines: start cycles on idle ones; pay the ones that already ended.
+  let payouts = 0;
+  let cycles = 0;
+  const readyAt = { ...run.readyAt };
+  // The player is tapping, so online throughout (the pipeline sets activeAt right after).
+  const afterTaps: BaseState = {
+    ...state,
+    run: { ...run, afterglowFrom, hustle, bucket, buffs, activeAt: now },
+  };
+  // Times are whole seconds, so the batch's taps fell anywhere in [from, to + 1): a line freed
+  // inside the last second was still being tapped (02 3.1: tapping faster than its cycle runs it
+  // as if manned; D176). The state keeps one `readyAt` a line, so when new cycles follow one
+  // still in flight, every cycle but the last is paid now (at most a second early, valued at its
+  // own end) and only the last waits for settle.
+  const end = to + 1;
+  for (const line of content.lines) {
+    const n = run.lines[line.id] ?? 0;
+    if (n <= 0 || run.hands.includes(line.id)) continue;
+    const flight = readyAt[line.id];
+    const start = Math.max(from, flight ?? from);
+    if (start >= end) continue;
+    const length = cycleOf(content, afterTaps, line, start);
+    const k = Math.min(credited, Math.ceil((end - start) / length));
+    if (k <= 0) continue;
+    if (flight !== undefined && flight > now) {
+      payouts += cyclePayout(content, afterTaps, line.id, flight);
+    }
+    for (let j = 1; j <= k; j++) {
+      const done = start + j * length;
+      if (j < k || done <= now) payouts += cyclePayout(content, afterTaps, line.id, done);
+    }
+    readyAt[line.id] = start + k * length;
+    cycles += k;
+  }
+
+  const gain = finite(value + fellValue + payouts, "taps gain");
+  const fellTaps = Number.isFinite(parts.fellEvery)
+    ? (run.target.taps + credited) % parts.fellEvery
+    : run.target.taps + credited;
+  const next: BaseState = {
+    ...state,
+    run: {
+      ...run,
+      supplies: run.supplies + gain,
+      made: run.made + gain,
+      afterglowFrom,
+      hustle,
+      frenzy: frenzyState,
+      buffs,
+      bucket,
+      readyAt,
+      taps: run.taps + credited,
+      target: { taps: fellTaps, felled: run.target.felled + fells },
+    },
+    meta: {
+      ...state.meta,
+      stats: {
+        ...state.meta.stats,
+        taps: state.meta.stats.taps + credited,
+        felled: state.meta.stats.felled + fells,
+        crits: state.meta.stats.crits + crits,
+        frenzies: state.meta.stats.frenzies + trips,
+      },
+    },
+  };
+  const events: GameEvent[] = [
+    { type: "tapped", credited, value: gain, direct: value + fellValue, crits, cycles },
+  ];
+  if (fells > 0 && parts.target)
+    events.push({ type: "felled", target: parts.target, count: fells, value: fellValue });
+  if (trips > 0) events.push({ type: "frenzy_tripped", until });
+  return { state: next, events };
+}

@@ -1,0 +1,15 @@
+// Scrap, the premium currency (docs/redesign/12-feel.md 8; D182, D258, D259): earned in play
+// only (quests.json5, orders.json5, the Magpie `magpie`), never traded, gifted, wagered, stolen
+// or sold for Supplies. Spent on Supply Drops (`drops`, by tier) and `boosts` on real seconds: a
+// boost with `effects` is a timed buff like Rally (bought again only after it ends); the one with
+// `tide` drops a crate every `every` seconds from `firstAfterSeconds` after the buy for its
+// `seconds`, each caught like flotsam. Names: `boost.{id}.name` (and `buff.{id}.name` for buffs).
+{
+  drops: { "2": 30, "3": 120 },
+  magpie: 1,
+  boosts: [
+    { id: "overdrive", cost: 15, seconds: 600, effects: [{ stat: "output", op: "more", value: 3 }] },
+    { id: "double_time", cost: 10, seconds: 120, effects: [{ stat: "tap", op: "more", value: 5 }] },
+    { id: "lucky_tide", cost: 20, seconds: 300, tide: { firstAfterSeconds: 15, every: 90 } },
+  ],
+}

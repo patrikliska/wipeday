@@ -1,305 +1,141 @@
-import { type Advice, advise, hintFor, partWorthIt } from "@wipe-day/domain/advisor";
-import {
-  canAfford,
-  furnaceOf,
-  furnaceReady,
-  gatherReadyAt,
-  nextTier,
-  nextTool,
-  tierOf,
-  total,
-} from "@wipe-day/domain/base";
-import { craftOptions, jobEndsAt } from "@wipe-day/domain/craft";
-import { denOpen } from "@wipe-day/domain/den";
-import { defenceOf, raidsOpen, raidWarned } from "@wipe-day/domain/raids";
-import { type Panel as PanelId, useWorld } from "../state/store";
-import { abbrev, content, duration, outputName, t, tierName } from "../state/world";
-import { needLabel } from "./Cost";
-import { crewSummary } from "./crew";
-import { pendingOf } from "./derived";
-import { Tile } from "./Icon";
-import { tierVar } from "./util";
+import { badgeCount } from "@wipe-day/domain/badges";
+import { affordableNodes } from "@wipe-day/domain/blastmap";
+import { heldDrops } from "@wipe-day/domain/cards";
+import { useRef } from "react";
+import { useAdvisor } from "../state/advisor";
+import { useColumn } from "../state/layout";
+import { useWorld } from "../state/store";
+import { type Panel, useUi } from "../state/ui";
+import { content, t } from "../state/world";
+import { albumShown, cardsOwned } from "./Album";
+import { Icon } from "./Icon";
+import { researchTab, workshopOpenItems, workshopShown } from "./rows";
+import { Ticker } from "./Ticker";
 
-interface Action {
-  id: string;
-  name: string;
-  glyph: string;
-  color: string;
-  sub?: string | undefined;
-  badge?: string | undefined;
-  disabled?: boolean | undefined;
-  /** Hidden on phones; reachable from the top bar instead. */
-  extra?: boolean | undefined;
-  panel?: PanelId | undefined;
-  onClick: () => void;
-}
+/**
+ * The dock (D187, D199; 12-feel.md 4): one bottom bar on every device, centred on desktop with
+ * larger icons. Island from 0:00; each destination joins when it unlocks, and only once its phase
+ * has shipped (D140): the Workshop two minutes into the run (it opens the shop on its tab), Crew
+ * at the first hand, the Logbook at the first badge. A badge counts new things (the Workshop:
+ * items opened since its tab last showed; Crew: hands hired since the Crew sheet last showed
+ * this run; the Logbook: badges earned since it last showed). Island closes any sheet.
+ * The Album (D260) counts held drops plus cards owned since it last showed. The Blast Map (R4
+ * S3, D271) joins at Wipe Day #1 with the affordable nodes as its badge. On desktop the news
+ * ticker runs under it.
+ */
+type Place = "island" | "workshop" | Panel;
 
-/** Which dock button carries each piece of advice. */
-const DOCK_FOR: Record<Advice, string | null> = {
-  gather: "gather",
-  collect: "gather",
-  build: "build",
-  tools: "build",
-  furnace: "furnace",
-  building: "build",
-  craft: "craft",
-  map: "map",
-  // Desktop: the Squad button; phones: the crew chip in the top bar.
-  crew: "squad",
-  // Desktop: the Den button; phones: the skiff glows in the scene, like the barrel.
-  den: "den",
-  // The barrel glows in the scene itself.
-  barrel: null,
-  // Desktop: the Defence button; phones: the shield over the walls and the raid banner.
-  defend: "defence",
-  repair: "defence",
-};
-
-/** The action bar. The advisor picks exactly one primary button; its hint sits above the bar. */
 export function Dock() {
-  const panel = useWorld((state) => state.panel);
-  const openPanel = useWorld((state) => state.openPanel);
-  const openRecipe = useWorld((state) => state.openRecipe);
-  const openDen = useWorld((state) => state.openDen);
-  const openDefence = useWorld((state) => state.openDefence);
-  const view = useWorld((state) => state.view);
-  const setView = useWorld((state) => state.setView);
-  const gather = useWorld((state) => state.gather);
-  const collect = useWorld((state) => state.collect);
-  const base = useWorld((state) => state.base);
-  const panelOpen = useWorld((state) => state.panel !== null);
-  // The dock reads time in whole minutes: enough for its labels, and it re-renders rarely.
-  const minute = useWorld((state) => Math.floor(state.now / 60) * 60);
-  const pendingTotal = useWorld((state) => Math.floor(total(pendingOf(state))));
-  const now = minute;
+  const column = useColumn();
+  const crew = useWorld(
+    (state) =>
+      state.base !== null && (state.base.run.hands.length > 0 || state.base.meta.stats.hands > 0),
+  );
+  const run = useWorld((state) => state.base?.run.n ?? 0);
+  const hands = useWorld((state) => state.base?.run.hands.length ?? 0);
+  const seen = useUi((state) => state.crewSeen);
+  const panel = useUi((state) => state.panel);
+  const openPanel = useUi((state) => state.openPanel);
+  const tab = useUi((state) => state.tab);
+  const expanded = useUi((state) => state.expanded);
+  const workshopSeen = useUi((state) => state.workshopSeen);
+  const badges = useWorld((state) => (state.base ? badgeCount(content, state.base) : 0));
+  const badgesSeen = useUi((state) => state.badgesSeen);
+  const album = useWorld((state) => (state.base ? albumShown(state.base) : false));
+  const albumHeld = useWorld((state) => (state.base ? heldDrops(state.base.meta.drops) : 0));
+  const albumCards = useWorld((state) => (state.base ? cardsOwned(state.base) : 0));
+  const albumSeen = useUi((state) => state.albumSeen);
+  const map = useWorld((state) => (state.base?.meta.wipeDays ?? 0) >= 1);
+  const mapAffordable = useWorld((state) =>
+    state.base ? affordableNodes(content, state.base.meta).length : 0,
+  );
+  const view = useAdvisor((state) => state.view);
+  const playing = useWorld((state) => state.phase === "playing");
+  // The places the dock showed when the game opened; a place that joins later pops in (3.2).
+  const first = useRef<Set<Place> | null>(null);
+  if (!playing) return null;
 
-  const advice = advise(content, base, now);
-  const hint = hintFor(base, advice);
-  const primary = DOCK_FOR[advice];
-
-  const readyIn = Math.max(0, gatherReadyAt(content, base) - now);
-  const gatherReady = readyIn <= 0;
-  const target = nextTier(base.tier);
-  const tool = nextTool(content, base);
-  const ready = total(furnaceReady(base, now));
-  const furnace = furnaceOf(content, base);
-  const craftable = craftOptions(content, base).filter((option) => option.status.code === "ok");
-  // What the stations are making: the job that finishes first.
-  const soonest = Object.values(base.production)
-    .flatMap((jobs) => jobs.slice(0, 1))
-    .sort((a, b) => jobEndsAt(a) - jobEndsAt(b))[0];
-  // The part the next tier or tool waits on: Craft opens straight on its recipe.
-  const part = partWorthIt(content, base);
-  const unread = base.reports.filter((report) => !report.read).length;
-  const soonestBack = [...base.missions].sort((a, b) => a.endsAt - b.endsAt)[0];
-  const tasksDone = base.tasks.done.length;
-  const warned = raidWarned(content, base, now);
-
-  // The builders first: what is going up and when it lands; then what can be built next.
-  const first = [...base.construction].sort((a, b) => a.endsAt - b.endsAt)[0];
-  let buildSub = t("hud.max_tier");
-  if (first) buildSub = t("hud.lands_in", { time: duration(first.endsAt - now) });
-  else if (advice === "building") buildSub = t("hud.can_build");
-  else if (target) {
-    const tier = tierOf(content, target);
-    buildSub =
-      needLabel(tier.cost, base.stock) ??
-      (tier.buildMinutes === 0 ? t("hud.instant") : duration(tier.buildMinutes * 60));
-  }
-  if (!first && tool && canAfford(tool.cost, base.stock)) buildSub = t("hud.new_tools");
-
-  // With gather on cooldown and a pile waiting, the first button banks the pile instead.
-  const collectMode = !gatherReady && pendingTotal > 0;
-
-  const actions: Action[] = [
-    {
-      id: "gather",
-      name: collectMode ? t("action.collect") : t("action.gather"),
-      glyph: collectMode ? "CO" : "GA",
-      color: "#7fa043",
-      sub: collectMode
-        ? `+${abbrev(pendingTotal)}`
-        : gatherReady
-          ? t("hud.gather_bonus", { minutes: content.tools[0]?.bonusMinutes ?? 0 })
-          : t("hud.ready_in", { time: duration(readyIn) }),
-      disabled: !gatherReady && !collectMode,
-      onClick: () => {
-        // Gathering happens at the holdfast: from the map, go home first.
-        setView("base");
-        if (collectMode) collect();
-        else gather();
-      },
-    },
-    {
-      id: "build",
-      name: target ? t("action.upgrade") : t("action.base"),
-      glyph: "UP",
-      color: tierVar(target ?? base.tier),
-      sub: buildSub,
-      panel: "build",
-      onClick: () => openPanel("build"),
-    },
-    {
-      id: "craft",
-      name: t("action.craft"),
-      glyph: "CR",
-      color: "#e3a32f",
-      sub: part
-        ? t("craft.make_named", { item: outputName(part.output) })
-        : soonest
-          ? t("hud.crafting_now", {
-              item: outputName(soonest.recipe),
-              time: duration(Math.max(0, jobEndsAt(soonest) - now)),
-            })
-          : craftable.length > 0
-            ? t("hud.recipes_ready", { count: craftable.length })
-            : t("hud.nothing_affordable"),
-      panel: "craft",
-      onClick: () => (part ? openRecipe(part.output) : openPanel("craft")),
-    },
-    {
-      id: "furnace",
-      name: t("action.furnace"),
-      glyph: "FU",
-      color: "#ff8a3c",
-      sub: !furnace
-        ? t("hud.not_built")
-        : ready > 0
-          ? t("hud.ready_amount", { amount: abbrev(ready) })
-          : base.furnaceJobs.length > 0
-            ? t("hud.smelting")
-            : t("hud.idle"),
-      badge: ready > 0 ? abbrev(ready) : undefined,
-      panel: "furnace",
-      onClick: () => openPanel("furnace"),
-    },
-    {
-      // The fifth phone action (D84): the island; on the map it takes you home.
-      id: "map",
-      name: view === "map" ? t("action.holdfast") : t("action.map"),
-      glyph: "MA",
-      color: "#3aa0a0",
-      sub:
-        unread > 0
-          ? t("hud.reports", { count: unread })
-          : soonestBack
-            ? t("hud.away", {
-                count: base.missions.length,
-                time: duration(Math.max(0, soonestBack.endsAt - now)),
-              })
-            : t("hud.explore"),
-      badge: unread > 0 ? String(unread) : undefined,
-      onClick: () => setView(view === "map" ? "base" : "map"),
-    },
-    {
-      id: "squad",
-      name: t("action.squad"),
-      glyph: "SQ",
-      color: "#4a7fb5",
-      sub: crewSummary(base, now),
-      extra: true,
-      panel: "squad",
-      onClick: () => openPanel("squad"),
-    },
-    {
-      id: "inventory",
-      name: t("action.inventory"),
-      glyph: "IN",
-      color: "#9aa0a6",
-      extra: true,
-      panel: "inventory",
-      onClick: () => openPanel("inventory"),
-    },
-    {
-      // Desktop only: on phones the skiff at the shore and the map's marker open the Den.
-      id: "den",
-      name: t("action.den"),
-      glyph: "DE",
-      color: "#c0607f",
-      sub: denOpen(content, base)
-        ? advice === "den"
-          ? t("hud.den_contract")
-          : t("hud.den_open")
-        : t("hud.den_closed", { tier: tierName(content.den.open.tier) }),
-      extra: true,
-      disabled: !denOpen(content, base),
-      panel: "den",
-      onClick: () => openDen(advice === "den" ? "contracts" : undefined),
-    },
-    {
-      // Desktop only: on phones the shield over the walls and the raid banner open it (W6).
-      id: "defence",
-      name: t("action.defence"),
-      glyph: "DF",
-      color: "#cd412b",
-      sub: raidsOpen(content, base)
-        ? warned
-          ? t("hud.raid_in", { time: duration(Math.max(0, (base.raid?.at ?? now) - now)) })
-          : base.damaged
-            ? t("hud.damaged")
-            : t("hud.defence", { points: defenceOf(content, base, now).total })
-        : t("hud.den_closed", { tier: tierName(content.raids.npc.startTier) }),
-      extra: true,
-      disabled: !raidsOpen(content, base),
-      panel: "defence",
-      onClick: () => openDefence(),
-    },
-    {
-      id: "feed",
-      name: t("action.feed"),
-      glyph: "FE",
-      color: "#8a6fb5",
-      extra: true,
-      panel: "feed",
-      onClick: () => openPanel("feed"),
-    },
-    {
-      id: "tasks",
-      name: t("action.tasks"),
-      glyph: "TA",
-      color: "#c85a2b",
-      sub: t("hud.tasks_done", { done: tasksDone, total: base.tasks.ids.length }),
-      extra: true,
-      panel: "tasks",
-      onClick: () => openPanel("tasks"),
-    },
+  const workshop = view !== null && workshopShown(view);
+  const openItems = workshop && view ? workshopOpenItems(researchTab(view, 1).groups) : 0;
+  const newItems = Math.max(0, openItems - (workshopSeen.run === run ? workshopSeen.items : 0));
+  const onWorkshop = workshop && tab === "research" && (column || expanded);
+  const current: Place =
+    panel === "crew" || panel === "logbook" || panel === "album" || panel === "map"
+      ? panel
+      : onWorkshop
+        ? "workshop"
+        : "island";
+  const newHands = Math.max(0, hands - (seen.run === run ? seen.hands : 0));
+  const items: Array<{ id: Place; icon: string; badge: number }> = [
+    { id: "island", icon: "island", badge: 0 },
+    ...(workshop ? [{ id: "workshop" as const, icon: "workshop", badge: newItems }] : []),
+    ...(crew ? [{ id: "crew" as const, icon: "crew", badge: newHands }] : []),
+    // The Album from the first Supply Drop (D260): drops to open, and cards new since it showed.
+    ...(album
+      ? [
+          {
+            id: "album" as const,
+            icon: "album",
+            badge: albumHeld + Math.max(0, albumCards - albumSeen),
+          },
+        ]
+      : []),
+    // The Blast Map from Wipe Day #1 (D271): its badge counts the nodes the glass can buy now.
+    ...(map ? [{ id: "map" as const, icon: "blast_map", badge: mapAffordable }] : []),
+    ...(badges > 0
+      ? [{ id: "logbook" as const, icon: "logbook", badge: Math.max(0, badges - badgesSeen) }]
+      : []),
   ];
+  first.current ??= new Set(items.map((item) => item.id));
+  const shownAtStart = first.current;
+  const go = (place: Place) => {
+    const ui = useUi.getState();
+    if (place === "workshop") {
+      ui.openWorkshop(column);
+      return;
+    }
+    if (place === "island") {
+      // Back to the island: the panel closes, the shop returns to its lines.
+      if (panel !== null) openPanel(null);
+      else if (expanded) ui.expand(false);
+      if (tab === "research") ui.setTab("lines");
+      return;
+    }
+    openPanel(place);
+  };
 
   return (
-    <>
-      {/* The hint points at the dock; with a panel open (a sheet on phones) it would cover it. */}
-      {hint && !panelOpen && view === "base" ? (
-        <p className="glass advice" aria-live="polite">
-          {t(`hint.${hint}`)}
-        </p>
-      ) : null}
-      <nav className="glass dock" aria-label={t("hud.actions")}>
-        {actions.map((action) => {
-          const classes = [
-            "action",
-            action.id === primary ? "primary" : "",
-            action.panel && action.panel === panel ? "active" : "",
-            action.extra ? "extra" : "",
-            action.sub ? "has-sub" : "",
-          ]
-            .filter(Boolean)
-            .join(" ");
-          return (
-            <button
-              key={action.id}
-              type="button"
-              className={classes}
-              disabled={action.disabled ?? false}
-              onClick={action.onClick}
-            >
-              <Tile color={action.color} label={action.glyph} className="glyph" />
-              <span className="name">{action.name}</span>
-              {action.sub ? <span className="sub">{action.sub}</span> : null}
-              {action.badge ? <span className="badge">{action.badge}</span> : null}
-            </button>
-          );
-        })}
+    <div className="dock-wrap">
+      <nav className="dock plate" aria-label={t("nav.label")}>
+        {items.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={`dock-item${current === item.id ? " on" : ""}${shownAtStart.has(item.id) ? "" : " arrive"}`}
+            data-place={item.id}
+            aria-current={current === item.id ? "page" : undefined}
+            aria-label={
+              item.badge > 0
+                ? t("nav.with_badge", { place: t(`nav.${item.id}`), count: item.badge })
+                : t(`nav.${item.id}`)
+            }
+            onClick={() => {
+              if (current === item.id) return;
+              go(item.id);
+            }}
+          >
+            <Icon kind="nav" id={item.icon} size={column ? 30 : 26} />
+            <span className="dock-label">{t(`nav.${item.id}`)}</span>
+            {item.badge > 0 ? (
+              // Keyed on the count, so each new thing pops the badge again.
+              <span key={item.badge} className="badge num pop">
+                {item.badge}
+              </span>
+            ) : null}
+          </button>
+        ))}
       </nav>
-    </>
+      {column ? <Ticker /> : null}
+    </div>
   );
 }

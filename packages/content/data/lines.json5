@@ -1,0 +1,56 @@
+// The 14 production lines (docs/redesign/02-the-run.md 2 and 13.1; P1 constants, D132).
+// Rung i (1-14): base cost costBase × costRatio^(i−1); output rateBase × rateRatio^(i−1)
+// supplies per second per unit; cycle cycleBase × cycleRatio^(i−1) seconds (at least
+// cycleFloor); growth growthBase − growthStep × (i−1), so the n-th unit costs cost × growth^(n−1);
+// hand price handFactor × cost. A line may override any derived number. Names: `line.{id}.name`.
+{
+  island: "saltmarsh",
+  formula: {
+    costBase: 6,
+    costRatio: 16,
+    // 0.34 and 4.5, not 02's 1.5 and 4.75: the Workshop earns the rest back from minute two (R2
+    // Feel S6: 0.42), and Morale, crows and Frenzy the rest for an active player (R2 Feel S7,
+    // D240). The flatter ratio slows the mid-game and leaves the first minutes as they were.
+    rateBase: 0.34,
+    rateRatio: 4.5,
+    cycleBase: 0.6,
+    cycleRatio: 2,
+    cycleFloor: 0.1,
+    growthBase: 1.15,
+    growthStep: 0.006,
+    handFactor: 300,
+  },
+  // A line is drawn anew at these counts owned.
+  stages: [1, 25, 100],
+  run: {
+    // The Night Shift (N18; D183): manned lines run at 100% this long after the last command,
+    // never longer than maxHours whatever adds to it (Spare Wicks in the Workshop, later the
+    // Blast Map). A visible tab pings every pingMinutes, and once more when it is hidden.
+    // Away welcomeAfterMinutes or more: one welcome-back card with one Collect.
+    nightShift: { windowHours: 2, maxHours: 24, pingMinutes: 5, welcomeAfterMinutes: 60 },
+    // The ×1/×10/×100/Max toggle appears with the second hand of a run and stays.
+    bulkAfterHands: 2,
+    // The crown (02 11.1): the next era or a hand is crowned once affordable within 30 s.
+    // Purchases are scored over a day the player is away half of, even while they tap now:
+    // unmanned lines and taps stop then, hands keep working (D177).
+    // hintUses: a kind of purchase (lines, hires, Workshop levels, upgrades, eras) shows its Buy
+    // in orange until it has been bought this many times; after that the game never advises (D244).
+    advisor: { saveSeconds: 30, away: 0.5, hintUses: 2 },
+  },
+  lines: [
+    { id: "beachcomber", rung: 1, era: "twig", hand: "mara", product: "timber" },
+    { id: "campfire", rung: 2, era: "twig", hand: "dax", product: "roast" },
+    { id: "garden", rung: 3, era: "twig", hand: "ivo", product: "fibre" },
+    { id: "loom", rung: 4, era: "wood", hand: "rook", product: "rope" },
+    { id: "workbench", rung: 5, era: "wood", hand: "sela", product: "planks" },
+    { id: "kiln", rung: 6, era: "wood", hand: "bram", product: "charcoal" },
+    { id: "furnace", rung: 7, era: "stone", hand: "wren", product: "ingots" },
+    { id: "tannery", rung: 8, era: "stone", hand: "otto", product: "leather" },
+    { id: "press", rung: 9, era: "stone", hand: "juno", product: "fuel" },
+    { id: "dock", rung: 10, era: "metal", hand: "pike", product: "food" },
+    { id: "generator", rung: 11, era: "metal", hand: "hale", product: "battery" },
+    { id: "radio_mast", rung: 12, era: "metal", hand: "tamsin", product: "broadcast" },
+    { id: "shipbreaker", rung: 13, era: "hqm", hand: "gus", product: "plates" },
+    { id: "reactor", rung: 14, era: "hqm", hand: "vera", product: "cell" },
+  ],
+}

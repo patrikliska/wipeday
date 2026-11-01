@@ -1,34 +1,55 @@
 /**
- * Validates the parsed data files and checks them against each other and the
- * locale. Browser-safe: the server reads the files from disk (`load.ts`), the
- * web client gets the same objects from its bundler, and both end up here.
- * Collects every problem so one attempt shows the whole list.
+ * Validates the parsed data files and checks them against each other and the locale.
+ * Browser-safe: the server reads the files from disk (`load.ts`), the web client gets the same
+ * objects from its bundler, and both end up here. Collects every problem so one attempt shows
+ * the whole list.
  */
-import { z } from "zod";
-import type { Locale } from "./locale";
-import { betOptions, exactRtp } from "./odds";
+import type { z } from "zod";
+import { checkAgenda, checkBlastMap } from "./blastmap";
 import {
-  type Amounts,
-  activeSchema,
-  baseRulesSchema,
+  CARD_STATS,
+  type CardEffect,
+  RARITIES,
+  RARITY_SHARE,
+  TRAIT_SHARE,
+  withinCap,
+} from "./cards";
+import { deriveLines } from "./lines";
+import type { Locale } from "./locale";
+import { deriveResearch, isScored, levelEffect, levelsCost, tierEra } from "./research";
+import {
+  achievementsFileSchema,
+  agendaFileSchema,
+  type BadgeWhen,
+  blastMapFileSchema,
   type Content,
-  craftingSchema,
-  crewRulesSchema,
+  cardsFileSchema,
+  crewSchema,
   DATA_FILES,
   type DataFile,
-  denSchema,
   type EntityKind,
+  eraSchema,
   FILES,
-  legacySchema,
-  mapRulesSchema,
-  nodeSchema,
+  flotsamFileSchema,
+  islandFileSchema,
+  LINE_STATES,
+  linesFileSchema,
+  milestonesFileSchema,
+  ordersFileSchema,
   pacingSchema,
-  raidsSchema,
-  recipeSchema,
-  seasonsSchema,
-  tripEventRulesSchema,
+  prestigeSchema,
+  questsFileSchema,
+  researchFileSchema,
+  resourceSchema,
+  scrapFileSchema,
+  targetsFileSchema,
+  toolSchema,
+  upgradesFileSchema,
+  WEATHERS,
+  waveOf,
 } from "./schema";
 import { TIERS } from "./tiers";
+import { deriveUpgrades } from "./upgrades";
 
 export interface Problem {
   file: string;
@@ -60,9 +81,59 @@ export interface Identity {
 
 /** Every named entity in file order. */
 export function identities(content: Content): Identity[] {
-  return FILES.flatMap(({ file, field, kind }) =>
-    content[field].map((entity) => ({ file, kind, id: entity.id })),
-  );
+  return [
+    ...FILES.flatMap(({ file, field, kind }) =>
+      content[field].map((entity) => ({ file, kind, id: entity.id })),
+    ),
+    ...content.upgrades
+      .filter((upgrade) => upgrade.kind !== "grip")
+      .map((upgrade) => ({ file: "upgrades.json5", kind: "upgrade" as const, id: upgrade.id })),
+    ...content.research.map((def) => ({
+      file: "research.json5",
+      kind: "research" as const,
+      id: def.id,
+    })),
+    ...content.flotsam.kinds.map((kind) => ({
+      file: "flotsam.json5",
+      kind: "flotsam" as const,
+      id: kind.id,
+    })),
+    ...content.cards.gear.map((gear) => ({
+      file: "cards.json5",
+      kind: "gear" as const,
+      id: gear.id,
+    })),
+    ...[...content.cards.sets.crews, content.cards.sets.kit].map((set) => ({
+      file: "cards.json5",
+      kind: "set" as const,
+      id: set.id,
+    })),
+    ...content.orders.orders.map((order) => ({
+      file: "orders.json5",
+      kind: "order" as const,
+      id: order.id,
+    })),
+    ...content.quests.quests.map((quest) => ({
+      file: "quests.json5",
+      kind: "quest" as const,
+      id: quest.id,
+    })),
+    ...content.scrap.boosts.map((boost) => ({
+      file: "scrap.json5",
+      kind: "boost" as const,
+      id: boost.id,
+    })),
+    ...content.blastMap.nodes.map((node) => ({
+      file: "blastmap.json5",
+      kind: "node" as const,
+      id: node.id,
+    })),
+    ...content.blastMap.sectors.map((sector) => ({
+      file: "blastmap.json5",
+      kind: "sector" as const,
+      id: sector,
+    })),
+  ];
 }
 
 function issuesOf(error: z.ZodError): string[] {
@@ -71,163 +142,12 @@ function issuesOf(error: z.ZodError): string[] {
   );
 }
 
-/** A content object with every list empty, filled in by `parseContent`. */
-function emptyContent(): Content {
-  return {
-    resources: [],
-    tools: [],
-    baseTiers: [],
-    baseRules: { decayProductionPercent: 50, tierLossAfterHours: 72 },
-    furnaces: [],
-    items: [],
-    buildings: [],
-    traits: [],
-    crew: [],
-    crewRules: {
-      start: [],
-      baseCap: 1,
-      arrivalHours: 1,
-      levels: [1],
-      successPerLevel: 0,
-      successPerCompanion: 0,
-      treat: {},
-      jobs: {
-        nodePercent: 1,
-        stationPercent: 0,
-        guardScore: 0,
-        awakeHours: 1,
-        sleepHours: 1,
-        tiredPercent: 100,
-      },
-      bonds: { trips: 1, success: 0 },
-    },
-    regions: [],
-    mapRules: {
-      range: { twig: 1, wood: 1, stone: 1, metal: 1, hqm: 1 },
-      maxParty: 1,
-      boatBuilding: "",
-      boatTrait: "",
-      findPity: 1,
-    },
-    sites: [],
-    tripEvents: [],
-    tripEventRules: { most: 1 },
-    recipes: [],
-    crafting: {
-      queueSlots: [1],
-      batchSize: [1],
-      salvagePercent: 0,
-      salvageScrap: { twig: 0, wood: 0, stone: 0, metal: 0, hqm: 0 },
-      blueprints: { barrelPercent: 0, perfectRunPercent: 0 },
-    },
-    nodeKinds: [],
-    nodes: [],
-    active: {
-      node: {
-        maxHits: 1,
-        hitWindowSeconds: 1,
-        graceSeconds: 0,
-        perfectBonusHits: 0,
-        dailyHaulMinutes: 1,
-        afterHaulPercent: 0,
-      },
-      barrels: { firstAfterMinutes: 0, everyMinutes: 1, expiresMinutes: 1, rolls: 1, loot: [] },
-      tasks: { perDay: 1, pool: [] },
-    },
-    pacing: {
-      casual: {
-        stone: { earliestDay: 1, latestDay: 1 },
-        metal: { earliestDay: 1, latestDay: 1 },
-        hqm: { earliestDay: 1, latestDay: 1 },
-        buildings: { day: 1, count: 1 },
-        firstMade: {},
-        stationsWorkedByDay: 1,
-        firstTripByDay: 1,
-        tierThreeSiteByDay: 1,
-        jobsByDay: 1,
-        tierFourSiteByDay: 1,
-        tierFiveSiteByDay: 1,
-        crew: { day: 1, count: 1 },
-        tool: { id: "", byDay: 1 },
-        scrap: { day: 1, min: 0, max: 0 },
-        raids: { firstByDay: 1, day: 1, heldPercent: 0 },
-        firstCampByDay: 1,
-        signalStages: 0,
-      },
-      pvp: { minRaids: 0, targetHqmByDay: 1 },
-      optimal: {
-        hqmNotBeforeDay: 1,
-        tierThreeSiteNotBeforeDay: 1,
-        lastSite: { id: "", notBeforeDay: 1 },
-      },
-      tierCostRatio: { min: 1, max: 1 },
-    },
-    den: {
-      open: { tier: "stone" },
-      map: { region: "", x: 0, y: 0 },
-      market: {
-        refPer100: {},
-        floorPercent: 50,
-        feePercent: 0,
-        minFee: 0,
-        maxListings: 1,
-        listingHours: 1,
-      },
-      stock: { perDay: 1, markupPercent: 100, blueprintPrice: 1, pool: [] },
-      contracts: { perDay: 1, payPercent: 1, pool: [] },
-      casino: {
-        betStep: 1,
-        limits: {},
-        bigWin: 2,
-        wheel: { roundSeconds: 30, closeSeconds: 0, segments: [] },
-        slots: { symbols: [], jackpot: { feedPercent: 0, pays: 0 } },
-        dice: { options: [] },
-      },
-    },
-    raids: {
-      capPercent: 10,
-      scrapCeiling: {},
-      minChance: 0,
-      maxChance: 100,
-      damagedPercent: 100,
-      repair: {},
-      npc: {
-        startTier: "stone",
-        firstAfterHours: 0,
-        planDays: 1,
-        windowStartHour: 0,
-        windowHours: 1,
-        warnBaseHours: 0,
-        lossPercent: 1,
-        scrapPerPoint: 1,
-        strength: {},
-        held: {},
-      },
-      pvp: {
-        minTier: "metal",
-        maxTierGap: 0,
-        charges: {},
-        attack: {},
-        shieldHours: 1,
-        attackHours: 1,
-        sameTargetHours: 1,
-        revengeHours: 1,
-        revengePercent: 100,
-      },
-    },
-    legacy: {
-      points: { played: 0, place: [0], signal: 0 },
-      capPercent: 25,
-      perks: [],
-      skins: [],
-    },
-    seasons: { modifiers: [], signal: { opensOnDay: 1, stages: [] } },
-  };
-}
+/** The largest price a reachable cost may have (docs/redesign/09-architecture.md 2.3). */
+export const MAX_REACHABLE_COST = 1e200;
 
 /**
- * Validates every file. `raw` holds each file's parsed JSON5 (undefined when it
- * could not be read, which is reported). Throws `ContentError` listing all problems.
+ * Validates every file. `raw` holds each file's parsed JSON5 (undefined when it could not be
+ * read, which is reported). Throws `ContentError` listing all problems.
  */
 export function parseContent(
   raw: Partial<Record<DataFile, unknown>>,
@@ -235,7 +155,6 @@ export function parseContent(
   readProblems: Problem[] = [],
 ): Content {
   const problems: Problem[] = [...readProblems];
-  const content = emptyContent();
   // Every file must arrive: a bundler that forgets one would otherwise run on defaults.
   for (const file of DATA_FILES) {
     if (raw[file] === undefined && !readProblems.some((problem) => problem.file === file)) {
@@ -243,83 +162,128 @@ export function parseContent(
     }
   }
 
-  for (const { file, key, field, schema } of FILES) {
+  /** A file as a whole; its entity lists are checked row by row below. */
+  const whole = <T>(file: DataFile, schema: z.ZodType<T>): T | null => {
     const data = raw[file];
-    if (data === undefined) continue;
-    // Some files carry more than their entity list: base rules, node placements.
-    const extras =
-      field === "baseTiers"
-        ? { rules: baseRulesSchema }
-        : field === "nodeKinds"
-          ? { nodes: z.array(nodeSchema) }
-          : field === "crew"
-            ? { rules: crewRulesSchema }
-            : field === "regions"
-              ? { rules: mapRulesSchema }
-              : field === "tripEvents"
-                ? { rules: tripEventRulesSchema }
-                : {};
-    const parsed = z.strictObject({ [key]: z.array(z.unknown()), ...extras }).safeParse(data);
-    if (!parsed.success) {
-      problems.push({ file, id: "", message: issuesOf(parsed.error).join("; ") });
-      continue;
+    if (data === undefined) return null;
+    const parsed = schema.safeParse(data);
+    if (parsed.success) return parsed.data;
+    problems.push({ file, id: "", message: issuesOf(parsed.error).join("; ") });
+    return null;
+  };
+  /** An entity list, row by row, so one bad row names its id. */
+  const rows = <T>(file: DataFile, key: string, schema: z.ZodType<T>): T[] => {
+    const data = raw[file] as Record<string, unknown> | undefined;
+    if (data === undefined) return [];
+    const list = data[key];
+    if (!Array.isArray(list)) {
+      problems.push({ file, id: "", message: `\`${key}\` must be a list` });
+      return [];
     }
-    if (field === "baseTiers")
-      content.baseRules = (parsed.data as { rules: Content["baseRules"] }).rules;
-    if (field === "nodeKinds") content.nodes = (parsed.data as { nodes: Content["nodes"] }).nodes;
-    if (field === "crew")
-      content.crewRules = (parsed.data as { rules: Content["crewRules"] }).rules;
-    if (field === "regions")
-      content.mapRules = (parsed.data as { rules: Content["mapRules"] }).rules;
-    if (field === "tripEvents")
-      content.tripEventRules = (parsed.data as { rules: Content["tripEventRules"] }).rules;
-    const rows = (parsed.data as Record<string, unknown[]>)[key] ?? [];
-    for (const [index, row] of rows.entries()) {
+    const out: T[] = [];
+    for (const [index, row] of list.entries()) {
       const result = schema.safeParse(row);
       if (result.success) {
-        (content[field] as unknown[]).push(result.data);
+        out.push(result.data);
         continue;
       }
-      const id =
-        typeof (row as { id?: unknown })?.id === "string" ? (row as { id: string }).id : "";
+      const rowId = (row as { id?: unknown })?.id;
       for (const message of issuesOf(result.error)) {
-        problems.push({ file, id: id || `#${index + 1}`, message });
+        problems.push({ file, id: typeof rowId === "string" ? rowId : `#${index + 1}`, message });
       }
     }
+    const extra = Object.keys(data).filter((name) => name !== key);
+    if (file !== "lines.json5" && extra.length > 0)
+      problems.push({ file, id: "", message: `unknown keys: ${extra.join(", ")}` });
+    return out;
+  };
+
+  const resources = rows("resources.json5", "resources", resourceSchema);
+  const crew = rows("crew.json5", "crew", crewSchema);
+  const tools = rows("tools.json5", "tools", toolSchema);
+  const eras = rows("eras.json5", "eras", eraSchema);
+  const linesFile = whole("lines.json5", linesFileSchema);
+  const prestige = whole("prestige.json5", prestigeSchema);
+  const targets = whole("targets.json5", targetsFileSchema);
+  const upgrades = whole("upgrades.json5", upgradesFileSchema);
+  const research = whole("research.json5", researchFileSchema);
+  const milestones = whole("milestones.json5", milestonesFileSchema);
+  const flotsam = whole("flotsam.json5", flotsamFileSchema);
+  const islandClock = whole("island.json5", islandFileSchema);
+  const pacing = whole("pacing.json5", pacingSchema);
+  const achievements = whole("achievements.json5", achievementsFileSchema);
+  const cards = whole("cards.json5", cardsFileSchema);
+  const orders = whole("orders.json5", ordersFileSchema);
+  const quests = whole("quests.json5", questsFileSchema);
+  const scrap = whole("scrap.json5", scrapFileSchema);
+  const blastMap = whole("blastmap.json5", blastMapFileSchema);
+  const agenda = whole("agenda.json5", agendaFileSchema);
+
+  if (
+    problems.length > 0 ||
+    !blastMap ||
+    !agenda ||
+    !linesFile ||
+    !prestige ||
+    !targets ||
+    !upgrades ||
+    !research ||
+    !milestones ||
+    !flotsam ||
+    !islandClock ||
+    !pacing ||
+    !achievements ||
+    !cards ||
+    !orders ||
+    !quests ||
+    !scrap
+  ) {
+    throw new ContentError(problems);
   }
 
-  const single = <T>(file: DataFile, schema: z.ZodType<T>, apply: (value: T) => void): void => {
-    const data = raw[file];
-    if (data === undefined) return;
-    const parsed = schema.safeParse(data);
-    if (parsed.success) apply(parsed.data);
-    else problems.push({ file, id: "", message: issuesOf(parsed.error).join("; ") });
+  const lines = deriveLines(linesFile.formula, linesFile.lines);
+  const buffs: Content["buffs"] = {};
+  for (const kind of flotsam.kinds) {
+    if ("buff" in kind.effect) buffs[kind.effect.buff] = kind.effect.effects;
+  }
+  // Frenzy's buff: taps ×mult, lines ×mult as a visible speed-up and the rest as output.
+  const frenzy = targets.tap.frenzy;
+  buffs.frenzy = [
+    { stat: "tap", op: "more", value: frenzy.mult },
+    { stat: "speed", op: "more", value: frenzy.speed },
+    { stat: "output", op: "more", value: frenzy.mult / frenzy.speed },
+  ];
+  // The scrap boosts that are timed buffs (Overdrive, Double Time; D258).
+  for (const boost of scrap.boosts) if (boost.effects) buffs[boost.id] = boost.effects;
+  const content: Content = {
+    resources,
+    crew,
+    tools,
+    island: linesFile.island,
+    formula: linesFile.formula,
+    lines,
+    stages: linesFile.stages,
+    run: linesFile.run,
+    prestige,
+    tap: targets.tap,
+    targets: targets.targets,
+    eras,
+    upgrades: deriveUpgrades(tools, upgrades),
+    research: deriveResearch(lines, research),
+    workshop: { opensAfterSeconds: research.opensAfterSeconds },
+    milestones,
+    flotsam,
+    islandClock,
+    pacing,
+    achievements,
+    buffs,
+    cards,
+    orders,
+    quests,
+    scrap,
+    blastMap,
+    agenda,
   };
-  single("recipes.json5", z.strictObject({ recipes: z.array(recipeSchema) }), (value) => {
-    content.recipes = value.recipes;
-  });
-  single("crafting.json5", craftingSchema, (value) => {
-    content.crafting = value;
-  });
-  single("pacing.json5", pacingSchema, (value) => {
-    content.pacing = value;
-  });
-  single("active.json5", activeSchema, (value) => {
-    content.active = value;
-  });
-  single("den.json5", denSchema, (value) => {
-    content.den = value;
-  });
-  single("raids.json5", raidsSchema, (value) => {
-    content.raids = value;
-  });
-  single("legacy.json5", legacySchema, (value) => {
-    content.legacy = value;
-  });
-  single("seasons.json5", seasonsSchema, (value) => {
-    content.seasons = value;
-  });
-
   problems.push(...crossCheck(content, locale));
   if (problems.length > 0) throw new ContentError(problems);
   return content;
@@ -328,719 +292,570 @@ export function parseContent(
 /** Checks that span entities or files. */
 export function crossCheck(content: Content, locale: Locale): Problem[] {
   const problems: Problem[] = [];
-  const seen = new Map<string, number>();
+  const add = (file: string, id: string, message: string) => problems.push({ file, id, message });
 
-  for (const entity of identities(content)) {
-    const slot = `${entity.kind}:${entity.id}`;
-    seen.set(slot, (seen.get(slot) ?? 0) + 1);
-    if (seen.get(slot) === 2) {
-      problems.push({ file: entity.file, id: entity.id, message: "id is used more than once" });
-    }
-    const key = `${entity.kind}.${entity.id}.name`;
-    if (!locale.has(key)) {
-      problems.push({ file: entity.file, id: entity.id, message: `missing locale key \`${key}\`` });
-    }
-  }
-
-  const resourceIds = new Set(content.resources.map((resource) => resource.id));
-  const checkAmounts = (file: string, id: string, field: string, table: Amounts) => {
-    for (const resource of Object.keys(table)) {
-      if (!resourceIds.has(resource)) {
-        problems.push({ file, id, message: `${field} names unknown resource \`${resource}\`` });
-      }
-    }
-  };
-  for (const tool of content.tools) {
-    checkAmounts("tools.json5", tool.id, "rates", tool.rates);
-    checkAmounts("tools.json5", tool.id, "cost", tool.cost);
-  }
-  for (const tier of content.baseTiers) {
-    checkAmounts("base_tiers.json5", tier.id, "cost", tier.cost);
-    checkAmounts("base_tiers.json5", tier.id, "upkeep", tier.upkeep);
-  }
-  for (const furnace of content.furnaces) {
-    if (!resourceIds.has(furnace.fuel)) {
-      problems.push({
-        file: "furnaces.json5",
-        id: furnace.id,
-        message: `fuel names unknown resource \`${furnace.fuel}\``,
-      });
-    }
-  }
-  for (const resource of content.resources) {
-    if (resource.smeltsInto === undefined) continue;
-    const target = content.resources.find((candidate) => candidate.id === resource.smeltsInto);
-    if (target?.kind !== "refined") {
-      problems.push({
-        file: "resources.json5",
-        id: resource.id,
-        message: `smeltsInto \`${resource.smeltsInto}\` is not a refined resource`,
-      });
-    }
-  }
-
-  // Tiers are a fixed list in code (colours, ordering), so the file must match it.
-  const found = content.baseTiers.map((tier) => tier.id);
-  if (found.join() !== TIERS.join()) {
-    problems.push({
-      file: "base_tiers.json5",
-      id: "",
-      message: `must list exactly [${TIERS.join(", ")}] in that order, found [${found.join(", ")}]`,
-    });
-  }
-  const caps = content.baseTiers.map((tier) => tier.storageCap);
-  if (caps.some((cap, index) => index > 0 && cap <= (caps[index - 1] ?? 0))) {
-    problems.push({
-      file: "base_tiers.json5",
-      id: "",
-      message: "storageCap must increase with every tier",
-    });
-  }
-
-  for (const item of content.items) {
-    if (item.category === "storage" && item.capacity === undefined) {
-      problems.push({ file: "items.json5", id: item.id, message: "storage items need `capacity`" });
-    }
-    const meal = item.category === "meal";
-    if (meal !== (item.boostPercent !== undefined && item.hours !== undefined)) {
-      problems.push({
-        file: "items.json5",
-        id: item.id,
-        message: meal
-          ? "meals need `boostPercent` and `hours`"
-          : "only meals have `boostPercent` and `hours`",
-      });
-    }
-    if (!locale.has(`item.${item.id}.effect`)) {
-      problems.push({
-        file: "items.json5",
-        id: item.id,
-        message: `missing locale key \`item.${item.id}.effect\``,
-      });
-    }
-  }
-  problems.push(...checkRecipes(content));
-  for (const building of content.buildings) {
-    if (!locale.has(`building.${building.id}.blurb`)) {
-      problems.push({
-        file: "buildings.json5",
-        id: building.id,
-        message: `missing locale key \`building.${building.id}.blurb\``,
-      });
-    }
-    for (const [index, level] of building.levels.entries()) {
-      const label = `${building.id} level ${index + 1}`;
-      checkAmounts("buildings.json5", label, "cost", level.cost);
-      checkAmounts("buildings.json5", label, "upkeep", level.upkeep);
-      checkAmounts("buildings.json5", label, "rates", level.effects.rates ?? {});
-      checkAmounts("buildings.json5", label, "flat", level.effects.flat ?? {});
-      const furnace = level.effects.furnace;
-      if (furnace !== undefined && furnace > content.furnaces.length) {
-        problems.push({
-          file: "buildings.json5",
-          id: label,
-          message: `furnace ${furnace} does not exist (furnaces.json5 lists ${content.furnaces.length})`,
-        });
-      }
-    }
-  }
-
-  problems.push(...checkCrewAndMap(content, locale));
-  problems.push(...checkDen(content, locale));
-  problems.push(...checkRaids(content, locale));
-  problems.push(...checkLegacy(content, locale));
-
-  const kindIds = new Set(content.nodeKinds.map((kind) => kind.id));
-  for (const kind of content.nodeKinds) {
-    checkAmounts("nodes.json5", kind.id, "yields", kind.yields);
-  }
-  const nodeIds = new Set<string>();
-  for (const node of content.nodes) {
-    if (nodeIds.has(node.id)) {
-      problems.push({
-        file: "nodes.json5",
-        id: node.id,
-        message: "node id is used more than once",
-      });
-    }
-    nodeIds.add(node.id);
-    if (!kindIds.has(node.kind)) {
-      problems.push({
-        file: "nodes.json5",
-        id: node.id,
-        message: `unknown node kind \`${node.kind}\``,
-      });
-    }
-  }
-
-  for (const [index, entry] of content.active.barrels.loot.entries()) {
-    if (!resourceIds.has(entry.resource)) {
-      problems.push({
-        file: "active.json5",
-        id: entry.resource || `#${index + 1}`,
-        message: "loot names an unknown resource",
-      });
-    }
-  }
-  const taskIds = new Set<string>();
-  for (const task of content.active.tasks.pool) {
-    if (taskIds.has(task.id)) {
-      problems.push({
-        file: "active.json5",
-        id: task.id,
-        message: "task id is used more than once",
-      });
-    }
-    taskIds.add(task.id);
-    checkAmounts("active.json5", task.id, "reward", task.reward);
-    if (!locale.has(`task.${task.id}.name`)) {
-      problems.push({
-        file: "active.json5",
-        id: task.id,
-        message: `missing locale key \`task.${task.id}.name\``,
-      });
-    }
-  }
-  return problems;
-}
-
-/**
- * The crafting web: every recipe makes a part or an item at a real station level, every
- * part and item has a recipe and is reachable from what the island gives (gathering,
- * smelting, barrels, tasks), every part is used by something, and no part hides behind a
- * blueprint (blueprints are for extras, never the road to tiers and tools).
- */
-export function checkRecipes(content: Content): Problem[] {
-  const problems: Problem[] = [];
-  const file = "recipes.json5";
-  const resources = new Map(content.resources.map((resource) => [resource.id, resource]));
-  const items = new Set(content.items.map((item) => item.id));
-  const buildings = new Map(content.buildings.map((building) => [building.id, building]));
+  // Ids are unique within their kind, and each has its name.
+  const all = identities(content);
   const seen = new Set<string>();
-  const stationLevels = Math.max(0, ...content.recipes.map((recipe) => recipe.level));
-
-  for (const recipe of content.recipes) {
-    const label = recipe.output;
-    if (seen.has(label)) problems.push({ file, id: label, message: "has two recipes" });
-    seen.add(label);
-    const resource = resources.get(label);
-    if (resource && resource.kind !== "part") {
-      problems.push({ file, id: label, message: `makes a ${resource.kind} resource, not a part` });
-    } else if (!resource && !items.has(label)) {
-      problems.push({ file, id: label, message: "makes neither a part nor an item" });
-    }
-    const station = buildings.get(recipe.station);
-    if (!station) {
-      problems.push({
-        file,
-        id: label,
-        message: `station \`${recipe.station}\` is not a building`,
-      });
-    } else if (recipe.level > station.levels.length) {
-      problems.push({ file, id: label, message: `${recipe.station} has no level ${recipe.level}` });
-    }
-    for (const id of Object.keys(recipe.cost)) {
-      if (!resources.has(id)) {
-        problems.push({ file, id: label, message: `cost names unknown resource \`${id}\`` });
-      }
-    }
-    if (recipe.blueprint && resource) {
-      problems.push({ file, id: label, message: "a part cannot need a blueprint" });
-    }
+  for (const { file, kind, id } of all) {
+    if (seen.has(`${kind}.${id}`)) add(file, id, "id is used more than once");
+    seen.add(`${kind}.${id}`);
+    const key = `${kind}.${id}.name`;
+    if (!locale.has(key)) add(file, id, `missing locale key \`${key}\``);
   }
-  for (const resource of content.resources) {
-    if (resource.kind === "part" && !seen.has(resource.id)) {
-      problems.push({ file, id: resource.id, message: "part has no recipe" });
-    }
+  // A shelf row's, a Workshop item's or a node's id names nothing else (its key stays unambiguous).
+  for (const { file, kind, id } of all) {
+    if (kind !== "upgrade" && kind !== "research" && kind !== "node") continue;
+    if (all.some((other) => other.kind !== kind && other.id === id))
+      add(file, id, `this ${kind} id must not be used by any other entity`);
   }
-  for (const item of content.items) {
-    // Keycodes are only ever found (sites.json5 `finds`), never made.
-    if (item.category === "keycode") continue;
-    if (!seen.has(item.id)) problems.push({ file, id: item.id, message: "item has no recipe" });
-  }
-  for (const rule of ["queueSlots", "batchSize"] as const) {
-    if (content.crafting[rule].length < stationLevels) {
-      problems.push({
-        file: "crafting.json5",
-        id: "",
-        message: `${rule} needs a value for every station level up to ${stationLevels}`,
-      });
-    }
-  }
-
-  // Everything a part can be used for.
-  const uses = new Set<string>();
-  const use = (table: Amounts) => {
-    for (const id of Object.keys(table)) uses.add(id);
+  if (!locale.has(`island.${content.island}.name`))
+    add("lines.json5", "", `missing locale key \`island.${content.island}.name\``);
+  const need = (file: string, id: string, key: string) => {
+    if (!locale.has(key)) add(file, id, `missing locale key \`${key}\``);
   };
-  for (const recipe of content.recipes) use(recipe.cost);
-  for (const tool of content.tools) use(tool.cost);
-  for (const tier of content.baseTiers) {
-    use(tier.cost);
-    use(tier.upkeep);
+  for (const target of content.targets) need("targets.json5", target.id, `target.${target.id}.cry`);
+  for (const buff of Object.keys(content.buffs)) {
+    const boost = content.scrap.boosts.some((row) => row.id === buff);
+    need(boost ? "scrap.json5" : "flotsam.json5", buff, `buff.${buff}.name`);
   }
-  for (const building of content.buildings) {
-    for (const level of building.levels) {
-      use(level.cost);
-      use(level.upkeep);
-    }
-  }
-  for (const furnace of content.furnaces) uses.add(furnace.fuel);
-  for (const resource of content.resources) {
-    if (resource.kind === "part" && !uses.has(resource.id)) {
-      problems.push({ file, id: resource.id, message: "part is made but nothing uses it" });
-    }
+  for (const weather of WEATHERS) need("island.json5", weather, `weather.${weather}.name`);
+
+  // Grip: Rock is free and owned; each rung after it costs more, in era order.
+  for (const [index, tool] of content.tools.entries()) {
+    const previous = content.tools[index - 1];
+    if (index === 0 && tool.cost !== 0) add("tools.json5", tool.id, "the first rung must be free");
+    if (previous && TIERS.indexOf(tool.tier) < TIERS.indexOf(previous.tier))
+      add("tools.json5", tool.id, "tools must be listed in era order");
+    if (previous && !(tool.cost > previous.cost))
+      add("tools.json5", tool.id, "each rung must cost more than the one before");
   }
 
-  // Reachable from what the island gives, following smelting and recipes to a fixed point.
-  const have = new Set<string>();
-  const give = (table: Amounts) => {
-    for (const id of Object.keys(table)) have.add(id);
+  problems.push(...checkLines(content));
+  problems.push(...checkEras(content));
+  problems.push(...checkShelf(content));
+  problems.push(...checkResearch(content, locale));
+  problems.push(...checkFlotsam(content));
+  problems.push(...checkAchievements(content, locale));
+  problems.push(...checkCards(content, locale));
+  problems.push(...checkOrders(content));
+  problems.push(...checkQuests(content));
+  problems.push(...checkScrap(content));
+  problems.push(...checkBlastMap(content, locale));
+  problems.push(...checkAgenda(content, locale));
+  problems.push(...checkPrestige(content));
+
+  // The tap (N10, N9).
+  const { tap } = content;
+  if (tap.bucket.burst < tap.bucket.perSecond)
+    add("targets.json5", "", "the bucket's burst must be at least a second's taps");
+  if (tap.hustle.peak > tap.hustle.peakCeiling)
+    add("targets.json5", "", "Hustle's peak must not pass its ceiling");
+  if (tap.hustle.peakCeiling * tap.frenzy.mult > tap.frenzy.multCeiling)
+    add("targets.json5", "frenzy", "Hustle's ceiling × Frenzy must stay within multCeiling");
+  if (tap.frenzy.speed > tap.frenzy.mult)
+    add("targets.json5", "frenzy", "Frenzy's speed-up must not exceed its multiplier");
+  const c = tapCoefficient(content);
+  if (c > TAP_COEFFICIENT_MAX)
+    add("", "", `the tap's steady coefficient c is ${c.toFixed(3)}, above ${TAP_COEFFICIENT_MAX}`);
+
+  // The simulator's archetypes.
+  for (const [name, archetype] of Object.entries({
+    ...content.pacing.archetypes,
+    ...content.pacing.scenarios,
+  })) {
+    if (archetype.tapsPerSecond > tap.bucket.perSecond)
+      add("pacing.json5", name, "taps a second above the bucket's rate would only be clamped");
+  }
+  return problems;
+}
+
+/** Eras and their targets (02-the-run.md 13.2). */
+function checkEras(content: Content): Problem[] {
+  const problems: Problem[] = [];
+  const add = (file: string, id: string, message: string) => problems.push({ file, id, message });
+  const { eras, targets, lines } = content;
+  if (eras.map((era) => era.id).join() !== TIERS.join())
+    add("eras.json5", "", `the eras must be ${TIERS.join(", ")}, in that order`);
+  for (const [index, era] of eras.entries()) {
+    const previous = eras[index - 1];
+    if (index === 0 && era.cost !== 0) add("eras.json5", era.id, "the first era must be free");
+    if (previous && !(era.cost > previous.cost))
+      add("eras.json5", era.id, "each era must cost more than the one before");
+    const target = targets.find((row) => row.id === era.target);
+    if (!target) add("eras.json5", era.id, `unknown target \`${era.target}\` (targets.json5)`);
+    else if (target.era !== era.id)
+      add("eras.json5", era.id, `target \`${target.id}\` belongs to the ${target.era} era`);
+    if (!lines.some((line) => line.era === era.id))
+      add("eras.json5", era.id, "an era must open at least one line");
+  }
+  for (const [index, target] of targets.entries()) {
+    if (targets.findIndex((row) => row.id === target.id) !== index) continue;
+    if (eras.filter((era) => era.target === target.id).length !== 1)
+      add("targets.json5", target.id, "each target belongs to exactly one era");
+    const previous = targets[index - 1];
+    if (previous && !(target.fellTaps > previous.fellTaps))
+      add("targets.json5", target.id, "fellTaps must rise from era to era");
+  }
+  return problems;
+}
+
+/** The shelf and milestones (02-the-run.md 13.3). */
+function checkShelf(content: Content): Problem[] {
+  const problems: Problem[] = [];
+  const add = (file: string, id: string, message: string) => problems.push({ file, id, message });
+  const island = content.upgrades.filter((upgrade) => upgrade.kind === "island");
+  for (const [index, upgrade] of island.entries()) {
+    const previous = island[index - 1];
+    if (previous && !(upgrade.cost > previous.cost))
+      add("upgrades.json5", upgrade.id, "each island upgrade must cost more than the one before");
+  }
+  for (const upgrade of content.upgrades) {
+    if (!(upgrade.cost < MAX_REACHABLE_COST))
+      add("upgrades.json5", upgrade.id, "its price must stay under 1e200");
+  }
+  const rising = (file: string, what: string, ats: number[]) => {
+    for (const [index, at] of ats.entries()) {
+      const before = ats[index - 1];
+      if (before !== undefined && !(at > before)) add(file, "", `${what} must rise: ${at}`);
+    }
   };
-  for (const tool of content.tools) give(tool.rates);
-  for (const building of content.buildings) {
-    for (const level of building.levels) give(level.effects.flat ?? {});
+  const { line, lineEvery, roster } = content.milestones;
+  rising(
+    "milestones.json5",
+    "line milestones",
+    line.map((step) => step.at),
+  );
+  rising(
+    "milestones.json5",
+    "roster milestones",
+    roster.map((step) => step.at),
+  );
+  const last = line.at(-1)?.at ?? 0;
+  if (lineEvery.from <= last)
+    add("milestones.json5", "", "lineEvery must start after the last listed line milestone");
+  for (const special of lineEvery.special) {
+    if (special.at < lineEvery.from || (special.at - lineEvery.from) % lineEvery.step !== 0)
+      add("milestones.json5", "", `special milestone ${special.at} is not on lineEvery's steps`);
   }
-  for (const entry of content.active.barrels.loot) have.add(entry.resource);
-  for (const task of content.active.tasks.pool) give(task.reward);
-  for (const resource of content.resources) {
-    if (resource.smeltsInto && have.has(resource.id)) have.add(resource.smeltsInto);
-  }
-  let grew = true;
-  while (grew) {
-    grew = false;
-    for (const recipe of content.recipes) {
-      if (have.has(recipe.output)) continue;
-      if (Object.keys(recipe.cost).every((id) => have.has(id))) {
-        have.add(recipe.output);
-        grew = true;
-      }
-    }
-  }
-  for (const recipe of content.recipes) {
-    if (!have.has(recipe.output)) {
-      const missing = Object.keys(recipe.cost).filter((id) => !have.has(id));
-      problems.push({
-        file,
-        id: recipe.output,
-        message: `cannot be made: nothing on the island gives ${missing.join(", ")}`,
-      });
-    }
-  }
+  return problems;
+}
 
-  for (const id of Object.keys(content.pacing.casual.firstMade)) {
-    if (!seen.has(id)) {
-      problems.push({ file: "pacing.json5", id, message: "firstMade names no recipe output" });
+/** Flotsam and the island's clock (02-the-run.md 13.4). */
+function checkFlotsam(content: Content): Problem[] {
+  const problems: Problem[] = [];
+  const add = (file: string, id: string, message: string) => problems.push({ file, id, message });
+  const { schedule, firstRun, kinds } = content.flotsam;
+  const [shortest, longest] = schedule.gapMinutes;
+  if (!(shortest < longest)) add("flotsam.json5", "", "gapMinutes must be [shortest, longest]");
+  if (schedule.floatSeconds < 8) add("flotsam.json5", "", "flotsam must float 8 s or more");
+  if (!kinds.some((kind) => kind.id === firstRun.kind))
+    add("flotsam.json5", "", `unknown first-run kind \`${firstRun.kind}\``);
+  let longestBuff = 0;
+  for (const kind of kinds) {
+    if ("lump" in kind.effect && kind.effect.lump.floorMinutes > kind.effect.lump.rateMinutes)
+      add("flotsam.json5", kind.id, "floorMinutes must not pass rateMinutes");
+    if ("buff" in kind.effect) longestBuff = Math.max(longestBuff, kind.effect.seconds);
+  }
+  // Natural spawns never stack two buffs: the shortest rainy gap outlasts the longest buff.
+  if (!((shortest * 60) / schedule.rainFactor > longestBuff))
+    add("flotsam.json5", "", "the shortest rainy gap must outlast the longest buff");
+  // Crows: never two under 120 s apart, and one slot's crossing ends before the next can start.
+  const gulls = content.flotsam.gulls;
+  if (gulls.every - gulls.jitter < 120)
+    add("flotsam.json5", "gulls", "crows must never cross under 120 s apart (every − jitter)");
+  if (
+    gulls.jitter + Math.max(gulls.crossSeconds, gulls.eliteCrossSeconds) + gulls.graceSeconds >=
+    gulls.every
+  )
+    add("flotsam.json5", "gulls", "a crow's crossing must end before the next slot opens");
+  if (gulls.eliteCrossSeconds > gulls.crossSeconds)
+    add("flotsam.json5", "gulls", "a Magpie flies faster than a crow");
+  if (gulls.eliteSeconds < gulls.seconds)
+    add("flotsam.json5", "gulls", "a Magpie pays more than a crow");
+  const clock = content.islandClock;
+  if (clock.id !== content.island)
+    add("island.json5", clock.id, `the island must be \`${content.island}\` (lines.json5)`);
+  if (clock.utcOffsetMinutes % 60 !== 0)
+    add("island.json5", clock.id, "the island's clock is a whole number of hours from UTC");
+  const { clear, rain, fog } = clock.weather;
+  if (clear + rain + fog !== 100) add("island.json5", clock.id, "weather shares must sum to 100");
+  return problems;
+}
+
+/** What is wrong with a `when` condition: fields that do not fit its state, unknown ids. */
+function whenProblems(content: Content, when: BadgeWhen): string[] {
+  const problems: string[] = [];
+  if (when.kind === "state") {
+    const exact = when.state === "supplies_digits";
+    if (exact ? when.eq === undefined || when.gte !== undefined : when.gte === undefined)
+      problems.push(exact ? "`supplies_digits` takes `eq`" : `\`${when.state}\` takes \`gte\``);
+    if (
+      when.era !== undefined &&
+      when.state !== "lines_min_owned" &&
+      when.state !== "hands_working"
+    )
+      problems.push(`\`${when.state}\` takes no \`era\``);
+    const lined = LINE_STATES.includes(when.state);
+    if (lined && when.line === undefined) problems.push(`\`${when.state}\` needs its \`line\``);
+    if (!lined && when.line !== undefined) problems.push(`\`${when.state}\` takes no \`line\``);
+    if (when.line !== undefined && !content.lines.some((line) => line.id === when.line))
+      problems.push(`unknown line \`${when.line}\``);
+  } else if (when.kind === "buffs") {
+    for (const kind of when.buffs)
+      if (!(kind in content.buffs)) problems.push(`unknown buff \`${kind}\``);
+  } else if (when.kind === "event") {
+    const known: Record<string, readonly string[]> = {
+      kind: content.flotsam.kinds.map((kind) => kind.id),
+      era: content.eras.map((era) => era.id),
+      target: content.targets.map((target) => target.id),
+      item: content.research.map((item) => item.id),
+    };
+    for (const [field, value] of Object.entries(when.filters)) {
+      const ids = known[field];
+      if (ids && !ids.includes(String(value)))
+        problems.push(`unknown ${field} \`${String(value)}\``);
     }
   }
   return problems;
 }
 
-/**
- * Survivors and the island: traits and treatment items exist, the start crew is in the pool,
- * every region is reachable from the one at ring 0 through two-way neighbours, every site
- * sits in a region with loot that names real resources, and the locale has every blurb and
- * report line the map and the report cards show.
- */
-export function checkCrewAndMap(content: Content, locale: Locale): Problem[] {
+/** The badges (D198, D239): ids, names, and conditions that name real things. */
+function checkAchievements(content: Content, locale: Locale): Problem[] {
   const problems: Problem[] = [];
-  const traits = new Set(content.traits.map((trait) => trait.id));
+  const add = (id: string, message: string) =>
+    problems.push({ file: "achievements.json5", id, message });
+  const seen = new Set<string>();
+  const chapters = new Set<string>();
+  for (const badge of content.achievements.badges) {
+    if (seen.has(badge.id)) add(badge.id, "id is used more than once");
+    seen.add(badge.id);
+    chapters.add(badge.chapter);
+    for (const key of [`badge.${badge.id}.name`, `badge.${badge.id}.how`])
+      if (!locale.has(key)) add(badge.id, `missing locale key \`${key}\``);
+    for (const message of whenProblems(content, badge.when)) add(badge.id, message);
+  }
+  for (const chapter of chapters)
+    if (!locale.has(`logbook.chapter.${chapter}`))
+      add("", `missing locale key \`logbook.chapter.${chapter}\``);
+  return problems;
+}
+
+/** The formula checks (docs/redesign/09-architecture.md 8.3; 02-the-run.md 13.1). */
+function checkLines(content: Content): Problem[] {
+  const problems: Problem[] = [];
+  const add = (id: string, message: string) => problems.push({ file: "lines.json5", id, message });
+  const { lines, run } = content;
+  const products = new Map(content.resources.map((resource) => [resource.id, resource.kind]));
   const crew = new Set(content.crew.map((member) => member.id));
-  const items = new Set(content.items.map((item) => item.id));
-  const resources = new Set(content.resources.map((resource) => resource.id));
-  for (const member of content.crew) {
-    for (const trait of member.traits) {
-      if (!traits.has(trait)) {
-        problems.push({ file: "crew.json5", id: member.id, message: `unknown trait \`${trait}\`` });
-      }
-    }
-  }
-  for (const id of content.crewRules.start) {
-    if (!crew.has(id)) {
-      problems.push({ file: "crew.json5", id, message: "start names no survivor in `crew`" });
-    }
-  }
-  for (const id of Object.keys(content.crewRules.treat)) {
-    if (!items.has(id)) problems.push({ file: "crew.json5", id, message: "treat names no item" });
-  }
-  const buildings = new Set(content.buildings.map((building) => building.id));
-  for (const trait of content.traits) {
-    for (const station of Object.keys(trait.craft ?? {})) {
-      if (station !== "any" && !buildings.has(station)) {
-        problems.push({
-          file: "traits.json5",
-          id: trait.id,
-          message: `craft names unknown station \`${station}\``,
-        });
-      }
-    }
-    if (!locale.has(`trait.${trait.id}.effect`)) {
-      problems.push({
-        file: "traits.json5",
-        id: trait.id,
-        message: `missing locale key \`trait.${trait.id}.effect\``,
-      });
-    }
-  }
+  const hands = new Set<string>();
+  const made = new Set<string>();
 
-  const { boatBuilding, boatTrait } = content.mapRules;
-  if (content.regions.some((region) => region.access === "sea")) {
-    if (!buildings.has(boatBuilding)) {
-      problems.push({
-        file: "regions.json5",
-        id: "",
-        message: `boatBuilding names unknown building \`${boatBuilding}\``,
-      });
-    }
-    if (!traits.has(boatTrait)) {
-      problems.push({
-        file: "regions.json5",
-        id: "",
-        message: `boatTrait names unknown trait \`${boatTrait}\``,
-      });
-    }
-  }
-  const regions = new Map(content.regions.map((region) => [region.id, region]));
-  const homes = content.regions.filter((region) => region.ring === 0);
-  if (content.regions.length > 0 && homes.length !== 1) {
-    problems.push({
-      file: "regions.json5",
-      id: "",
-      message: `exactly one region must be ring 0, found ${homes.length}`,
-    });
-  }
-  for (const region of content.regions) {
-    for (const other of region.neighbours) {
-      const neighbour = regions.get(other);
-      if (!neighbour) {
-        problems.push({
-          file: "regions.json5",
-          id: region.id,
-          message: `unknown neighbour \`${other}\``,
-        });
-      } else if (!neighbour.neighbours.includes(region.id)) {
-        problems.push({
-          file: "regions.json5",
-          id: region.id,
-          message: `\`${other}\` does not list it back as a neighbour`,
-        });
-      }
-    }
-    for (const id of Object.keys(region.scout.cost)) {
-      if (!resources.has(id)) {
-        problems.push({
-          file: "regions.json5",
-          id: region.id,
-          message: `scout cost names unknown resource \`${id}\``,
-        });
-      }
-    }
-    // A boat leaves from the shore: every sea region touches a shore or another sea region.
-    if (
-      region.access === "sea" &&
-      !region.neighbours.some((other) => {
-        const neighbour = regions.get(other);
-        return neighbour?.terrain === "shore" || neighbour?.access === "sea";
-      })
-    ) {
-      problems.push({
-        file: "regions.json5",
-        id: region.id,
-        message: "a sea region must border a shore or another sea region",
-      });
-    }
-    if (!locale.has(`region.${region.id}.blurb`)) {
-      problems.push({
-        file: "regions.json5",
-        id: region.id,
-        message: `missing locale key \`region.${region.id}.blurb\``,
-      });
+  for (const [index, line] of lines.entries()) {
+    if (line.rung !== index + 1) add(line.id, `rungs must run 1, 2, 3, ...: found ${line.rung}`);
+    if (!crew.has(line.hand)) add(line.id, `unknown hand \`${line.hand}\` (crew.json5)`);
+    if (hands.has(line.hand)) add(line.id, `hand \`${line.hand}\` already runs another line`);
+    hands.add(line.hand);
+    if (products.get(line.product) !== "product")
+      add(line.id, `product \`${line.product}\` must be a product in resources.json5`);
+    if (made.has(line.product)) add(line.id, `product \`${line.product}\` is already made`);
+    made.add(line.product);
+    if (!(line.growth > 1 && line.growth <= 1.2)) add(line.id, "growth must be in (1, 1.2]");
+    if (!(line.handPrice > line.cost)) add(line.id, "the hand must cost more than a unit");
+    const top = line.cost * line.growth ** line.maxOwned;
+    if (!(top < 1e200))
+      add(line.id, `the ${line.maxOwned}th unit would cost ${top}: keep it under 1e200`);
+    const previous = lines[index - 1];
+    if (previous) {
+      if (TIERS.indexOf(line.era) < TIERS.indexOf(previous.era))
+        add(line.id, "a line's era must not come before the previous rung's");
+      if (!(line.cost > previous.cost)) add(line.id, "cost must rise with the rung");
+      if (!(line.rate > previous.rate)) add(line.id, "output must rise with the rung");
+      if (!(line.cost / line.rate > previous.cost / previous.rate))
+        add(line.id, "payback (cost ÷ output) must rise with the rung");
     }
   }
-  const home = homes[0];
-  if (home) {
-    const seen = new Set([home.id]);
-    const queue = [home.id];
-    while (queue.length > 0) {
-      const next = regions.get(queue.shift() ?? "");
-      for (const other of next?.neighbours ?? []) {
-        if (!seen.has(other) && regions.has(other)) {
-          seen.add(other);
-          queue.push(other);
-        }
-      }
-    }
-    for (const region of content.regions) {
-      if (!seen.has(region.id)) {
-        problems.push({
-          file: "regions.json5",
-          id: region.id,
-          message: "cannot be reached from ring 0",
-        });
-      }
-    }
-  }
+  const unused = content.resources.filter(
+    (resource) => resource.kind === "product" && !made.has(resource.id),
+  );
+  for (const resource of unused)
+    problems.push({ file: "resources.json5", id: resource.id, message: "no line makes it" });
 
-  for (const site of content.sites) {
-    const file = "sites.json5";
-    if (!regions.has(site.region)) {
-      problems.push({ file, id: site.id, message: `unknown region \`${site.region}\`` });
-    }
-    for (const entry of site.loot) {
-      if (!resources.has(entry.resource)) {
-        problems.push({
-          file,
-          id: site.id,
-          message: `loot names unknown resource \`${entry.resource}\``,
-        });
-      }
-    }
-    for (const id of Object.keys(site.rations)) {
-      if (!resources.has(id)) {
-        problems.push({ file, id: site.id, message: `rations name unknown resource \`${id}\`` });
-      }
-    }
-    const keycodes = [site.keycode, ...(site.finds ?? []).map((find) => find.item)];
-    for (const id of keycodes) {
-      if (id !== undefined && !items.has(id)) {
-        problems.push({ file, id: site.id, message: `names unknown item \`${id}\`` });
-      }
-    }
-    // A keycode must drop somewhere, or the site behind it can never be reached.
-    if (
-      site.keycode &&
-      !content.sites.some((other) => other.finds?.some((find) => find.item === site.keycode))
-    ) {
-      problems.push({
-        file,
-        id: site.id,
-        message: `no site finds its keycode \`${site.keycode}\``,
-      });
-    }
-    for (const key of [
-      `site.${site.id}.blurb`,
-      `story.${site.id}.success`,
-      `story.${site.id}.partial`,
-      `story.${site.id}.fail`,
-    ]) {
-      if (!locale.has(key))
-        problems.push({ file, id: site.id, message: `missing locale key \`${key}\`` });
-    }
-  }
-
-  for (const event of content.tripEvents) {
-    for (const id of Object.keys(event.traits ?? {})) {
-      if (!traits.has(id)) {
-        problems.push({
-          file: "events.json5",
-          id: event.id,
-          message: `unknown trait \`${id}\``,
-        });
-      }
-    }
-    if (!locale.has(`trip_event.${event.id}.line`)) {
-      problems.push({
-        file: "events.json5",
-        id: event.id,
-        message: `missing locale key \`trip_event.${event.id}.line\``,
-      });
-    }
+  // N18: the Night Shift starts at 2 h at least and never passes 24 h (D183).
+  const { windowHours, maxHours } = run.nightShift;
+  if (windowHours < 2) add("", "the Night Shift must start at 2 h or more (N18)");
+  if (maxHours > 24) add("", "the Night Shift must never pass 24 h (N18)");
+  if (windowHours > maxHours) add("", "the Night Shift's window is longer than its ceiling");
+  for (const [index, stage] of content.stages.entries()) {
+    const before = content.stages[index - 1];
+    if (stage < 1 || (before !== undefined && stage <= before))
+      add("", "stages must be counts of 1 or more, rising");
   }
   return problems;
 }
 
-/** Every bet option returns between these (a 5-10% edge for the Den, CLAUDE.md section 8). */
-export const RTP_RANGE = { min: 0.9, max: 0.95 } as const;
+/** The tap's steady coefficient may not pass this (game-design 5.2; 02-the-run.md 7.5). */
+export const TAP_COEFFICIENT_MAX = 0.6;
 
 /**
- * The Den (W5): every tradeable good has a price, the stock and the contracts name real
- * goods, nothing can be bought from the Den and delivered back at a profit, every bet
- * option keeps the Den's edge between 5 and 10% and pays whole scrap, and the locale has a
- * name for every contract, wheel segment, slot symbol and dice option.
+ * The tap's steady coefficient `c = taps/s × p × T × Hustle × crit` (game-design 5.2) at 6 taps a
+ * second, with every shipped source at its top (Grip and the whole Workshop; the Blast Map's tap
+ * nodes join in R4), and fells as their gain over the base fell: what a tap takes of the full
+ * rate stays a share of it, never the game.
  */
-export function checkDen(content: Content, locale: Locale): Problem[] {
+export function tapCoefficient(content: Content): number {
+  // Every card at once: a bound (one survivor wears one card a slot, and only while hired).
+  const cards = allCardEffects(content).map((effect) => ({
+    stat: effect.stat as string,
+    op: CARD_STATS[effect.stat].op as string,
+    value: effect.value,
+  }));
+  // The Blast Map's shipped non-keystone nodes all owned (R4): the tree's whole tap power.
+  const nodes = content.blastMap.nodes
+    .filter((node) => node.type !== "keystone" && waveOf(node.ring) <= content.blastMap.shippedWave)
+    .flatMap((node) => node.effects);
+  const top = [
+    ...content.research.map((def) => levelEffect(def.effect, def.levels)),
+    ...cards,
+    ...nodes,
+  ];
+  const grip = content.tools.flatMap((tool) => tool.effects);
+  const sum = (stat: string, op: string, effects = top) =>
+    effects.filter((e) => e.stat === stat && e.op === op).reduce((a, e) => a + e.value, 0);
+  const product = (stat: string, op: string) =>
+    top.filter((e) => e.stat === stat && e.op === op).reduce((a, e) => a * e.value, 1);
+  const p = content.tap.share + sum("tap_share", "add", grip) + sum("tap_share", "add");
+  const t = (1 + sum("tap", "inc")) * product("tap", "more");
+  const crit = 1 + sum("crit_chance", "add") * sum("crit_mult", "add");
+  const fellTaps = Math.min(...content.targets.map((target) => target.fellTaps));
+  const fell = (bonus: number) => 1 + bonus / fellTaps;
+  const fells =
+    fell(content.tap.fellBonusTaps + sum("fell_bonus", "add")) / fell(content.tap.fellBonusTaps);
+  return 6 * p * t * content.tap.hustle.peakCeiling * crit * fells;
+}
+
+/** The Workshop's tier items may cost at most this in all (12-feel.md 5): bought beside lines. */
+export const RESEARCH_TREE_MAX = 1e18;
+
+/** The Workshop (game-design 5.12; D185, D194, D195). */
+function checkResearch(content: Content, locale: Locale): Problem[] {
   const problems: Problem[] = [];
-  const file = "den.json5";
-  const { den } = content;
-  const goods = new Set([
-    ...content.resources.filter((resource) => resource.kind !== "currency").map((r) => r.id),
-    ...content.items.map((item) => item.id),
-  ]);
-  const add = (id: string, message: string) => problems.push({ file, id, message });
-  if (content.resources.length === 0) return problems;
-
-  if (!content.regions.some((region) => region.id === den.map.region))
-    add("map", `unknown region \`${den.map.region}\``);
-  for (const good of goods) {
-    if (den.market.refPer100[good] === undefined) add(good, "tradeable good has no refPer100");
-  }
-  for (const good of Object.keys(den.market.refPer100)) {
-    if (!goods.has(good)) add(good, "refPer100 names no tradeable resource or item");
-  }
-  for (const offer of den.stock.pool) {
-    if (offer.good !== "blueprint" && !goods.has(offer.good))
-      add(offer.id, `stock names unknown good \`${offer.good}\``);
-  }
-  // Contracts pay below what the Den sells for: buy-and-deliver can never make scrap.
-  if (den.contracts.payPercent >= den.stock.markupPercent) {
-    add("contracts", "payPercent must be below the stock's markupPercent (no arbitrage)");
-  }
-  for (const contract of den.contracts.pool) {
-    if (!goods.has(contract.good))
-      add(contract.id, `contract names unknown good \`${contract.good}\``);
-    if (Object.keys(contract.amount).length === 0) add(contract.id, "wants nothing at any tier");
-    if (!locale.has(`contract.${contract.id}.line`))
-      add(contract.id, `missing locale key \`contract.${contract.id}.line\``);
-  }
-
-  const { casino } = den;
-  const openAt = TIERS.indexOf(den.open.tier);
-  for (const tier of TIERS.slice(openAt)) {
-    const limit = casino.limits[tier];
-    if (!limit) {
-      add(tier, "casino needs limits for every tier the Den is open at");
+  const add = (id: string, message: string) =>
+    problems.push({ file: "research.json5", id, message });
+  const lines = new Set(content.lines.map((line) => line.id));
+  const eras = new Set<string>(TIERS);
+  let tree = 0;
+  let hours = 0;
+  for (const def of content.research) {
+    const { effect } = def;
+    if (!isScored(effect))
+      add(def.id, `the crown cannot score \`${effect.stat} ${effect.op}\` (research.ts SCORED)`);
+    const scoped = effect.stat === "output" || effect.stat === "speed";
+    const known =
+      effect.scope === "all" ||
+      (effect.scope !== undefined && (lines.has(effect.scope) || eras.has(effect.scope)));
+    if (scoped && !known)
+      add(def.id, `\`${effect.stat}\` needs a scope: a line, an era or \`all\``);
+    if (!scoped && effect.scope !== undefined) add(def.id, `\`${effect.stat}\` takes no scope`);
+    // A cost cut, when one ships, stops at ×0.6 at its top level (12-feel.md 5).
+    if (effect.stat.endsWith("_cost") && levelEffect(effect, def.levels).value < 0.6)
+      add(def.id, "a cost cut must stop at ×0.6");
+    if (effect.stat === "night_shift") hours += levelEffect(effect, def.levels).value;
+    if (def.kind === "tier") {
+      if (def.era !== tierEra(def.tier))
+        add(def.id, `tier ${def.tier} opens with the ${tierEra(def.tier)} era, not ${def.era}`);
+      tree += levelsCost(def, 0, def.levels);
       continue;
     }
-    if (limit.maxBet % casino.betStep !== 0) add(tier, "maxBet must be a whole number of chips");
-    if (limit.maxBet > limit.dailyWager) add(tier, "maxBet is above the daily wager cap");
-  }
-  if (casino.wheel.closeSeconds >= casino.wheel.roundSeconds)
-    add("wheel", "closeSeconds must be shorter than roundSeconds");
-  const allPays = [
-    ...casino.wheel.segments.map((segment) => [segment.id, segment.pays] as const),
-    ...casino.slots.symbols.flatMap((symbol) => [
-      [symbol.id, symbol.three ?? 0] as const,
-      [symbol.id, symbol.two ?? 0] as const,
-    ]),
-    ...casino.dice.options.map((option) => [option.id, option.pays] as const),
-    ["jackpot", casino.slots.jackpot.pays] as const,
-  ];
-  for (const [id, pay] of allPays) {
-    if ((casino.betStep * pay) % 100 !== 0)
-      add(id, `pays ${pay}% of a ${casino.betStep}-scrap chip is not whole scrap`);
-  }
-  const jackpots = casino.slots.symbols.filter((symbol) => symbol.jackpot);
-  if (jackpots.length !== 1) add("slots", "exactly one symbol must be the jackpot");
-  for (const { game, option } of betOptions(casino)) {
-    const rtp = exactRtp(casino, game, option);
-    if (rtp < RTP_RANGE.min || rtp > RTP_RANGE.max) {
-      add(
-        option ?? game,
-        `${game} returns ${(rtp * 100).toFixed(1)}%, outside ${RTP_RANGE.min * 100}-${RTP_RANGE.max * 100}%`,
-      );
+    for (const [i, cost] of def.costs.entries()) {
+      const before = def.costs[i - 1];
+      if (before !== undefined && !(cost > before)) add(def.id, "each Mk level must cost more");
+      if (!(cost < MAX_REACHABLE_COST)) add(def.id, "its price must stay under 1e200");
     }
+    for (const [i, need] of def.needOwned.entries()) {
+      const before = def.needOwned[i - 1];
+      if (before !== undefined && !(need > before))
+        add(def.id, "each Mk level must need more units");
+    }
+    for (const level of MK_LEVELS.slice(0, def.levels)) {
+      const key = `research.${def.id}.${level}`;
+      if (!locale.has(key)) add(def.id, `missing locale key \`${key}\``);
+    }
+    if (def.levels > MK_LEVELS.length)
+      add(def.id, `a Line Mk has at most ${MK_LEVELS.length} levels`);
   }
-  const named = [
-    ...casino.wheel.segments.map((segment) => `casino.segment.${segment.id}`),
-    ...casino.slots.symbols.map((symbol) => `casino.symbol.${symbol.id}`),
-    ...casino.dice.options.map((option) => `casino.dice.${option.id}`),
-  ];
-  for (const key of named) {
-    if (!locale.has(key)) add("casino", `missing locale key \`${key}\``);
+  if (!(tree < RESEARCH_TREE_MAX))
+    add("", `the tier items cost ${tree.toExponential(2)} in all: keep the tree under 1e18`);
+  // N18 with the Workshop: its hours fit under the ceiling and add at most 2 h a run (D195).
+  const { windowHours, maxHours } = content.run.nightShift;
+  if (hours > 2 + 1e-9) add("", "the Workshop may add at most 2 h to the Night Shift (D195)");
+  if (windowHours + hours > maxHours + 1e-9)
+    add("", "the Night Shift with the Workshop's hours passes its ceiling (N18)");
+  return problems;
+}
+
+/** A Line Mk's levels by name (`research.{line}_mk.mk2`, ...). */
+export const MK_LEVELS = ["mk2", "mk3", "mk4", "mk5", "mk6"] as const;
+
+/** Every trait and gear card's effect (the most the cards can give at once). */
+function allCardEffects(content: Content): CardEffect[] {
+  const { survivors, gear } = content.cards;
+  return [...survivors.map((row) => row.trait), ...gear.map((row) => row.effect)];
+}
+
+/** The Work Orders (D256): pools deep enough for every roll, five always reachable (N32). */
+function checkOrders(content: Content): Problem[] {
+  const problems: Problem[] = [];
+  const add = (id: string, message: string) => problems.push({ file: "orders.json5", id, message });
+  const { perRun, fuel, spread, activeMax, idleMin, orders } = content.orders;
+  for (const order of orders) {
+    for (const message of whenProblems(content, order.when)) add(order.id, message);
+    if (order.active && order.idle) add(order.id, "an order is `active` or `idle`, not both");
+  }
+  const total = spread.reduce((sum, row) => sum + row.count, 0);
+  if (total !== perRun) add("", `the spread rolls ${total} orders, perRun is ${perRun}`);
+  if (fuel > perRun) add("", "`fuel` must not exceed `perRun`");
+  // Every roll needs enough non-active orders in each pool once the active budget is spent.
+  const eras = new Set<string>();
+  for (const row of spread) {
+    if (eras.has(row.era)) add("", `era \`${row.era}\` is spread twice`);
+    eras.add(row.era);
+    const pool = orders.filter((order) => order.era === row.era);
+    const calm = pool.filter((order) => !order.active).length;
+    if (pool.length < row.count)
+      add("", `era \`${row.era}\` has ${pool.length} orders, the spread needs ${row.count}`);
+    if (calm < row.count)
+      add("", `era \`${row.era}\` needs ${row.count} orders that need no taps or catches (N32)`);
+  }
+  if (perRun - activeMax < fuel)
+    add("", "fewer than `fuel` orders could need no taps or catches (N32)");
+  // The idle minimum must be fillable from the spread's eras.
+  const idleRoom = spread.reduce(
+    (sum, row) =>
+      sum +
+      Math.min(row.count, orders.filter((order) => order.era === row.era && order.idle).length),
+    0,
+  );
+  if (idleRoom < idleMin)
+    add("", `the pools hold room for ${idleRoom} idle orders a roll, idleMin is ${idleMin}`);
+  if (idleMin < fuel) add("", "`idleMin` under `fuel`: an idler could not fuel the set (N32)");
+  for (const order of orders)
+    if (!eras.has(order.era))
+      add(order.id, `era \`${order.era}\` is not in the spread: never rolled`);
+  return problems;
+}
+
+/** The daily quests (D257): a pool the day's roll can draw from. */
+function checkQuests(content: Content): Problem[] {
+  const { perDay, quests } = content.quests;
+  if (quests.length < perDay)
+    return [
+      { file: "quests.json5", id: "", message: `${quests.length} quests, a day needs ${perDay}` },
+    ];
+  return [];
+}
+
+/** The nuke's numbers (R4): the flights are distinct and the small blast's is one of them. */
+function checkPrestige(content: Content): Problem[] {
+  const problems: Problem[] = [];
+  const add = (id: string, message: string) =>
+    problems.push({ file: "prestige.json5", id, message });
+  const { flights, kettle, news } = content.prestige;
+  const seen = new Set<string>();
+  for (const flight of flights.variants) {
+    if (seen.has(flight.id)) add(flight.id, "a flight is listed once");
+    seen.add(flight.id);
+  }
+  if (seen.has(flights.small)) add(flights.small, "the small blast's flight is its own");
+  if (!flights.variants.some((flight) => flight.unlockAt <= 1))
+    add("", "a flight must be open from the first Wipe Day");
+  if (kettle.frameFirst >= content.prestige.firstNukeGlass)
+    add("", "the frame comes before the first nuke's glass");
+  for (const [index, at] of news.milestones.entries()) {
+    const before = news.milestones[index - 1];
+    if (before !== undefined && !(at > before)) add("", "news milestones must rise");
   }
   return problems;
 }
 
-/**
- * Raids (W6): every tier raiders or PvP reach has its numbers, the losses stay inside the cap,
- * the landing window fits in a day, every resource named exists, every camp has charges in
- * its rations (a camp is where charges go) and the report lines are in the locale.
- */
-export function checkRaids(content: Content, locale: Locale): Problem[] {
+/** Scrap (D258): the tide's slots fit its length; a boost's buff is its own. */
+function checkScrap(content: Content): Problem[] {
   const problems: Problem[] = [];
-  const file = "raids.json5";
-  const { raids } = content;
-  const add = (id: string, message: string) => problems.push({ file, id, message });
-  if (content.resources.length === 0) return problems;
-  const resources = new Set(content.resources.map((resource) => resource.id));
-  const from = (tier: (typeof TIERS)[number]) => TIERS.slice(TIERS.indexOf(tier));
-
-  if (raids.minChance >= raids.maxChance) add("", "minChance must be below maxChance");
-  if (raids.npc.lossPercent > raids.capPercent) add("npc", "lossPercent is above capPercent");
-  if (raids.npc.windowStartHour + raids.npc.windowHours > 24)
-    add("npc", "the landing window must end by midnight");
-  for (const tier of from(raids.npc.startTier)) {
-    if (raids.scrapCeiling[tier] === undefined) add(tier, "needs a scrapCeiling");
-    if (!raids.repair[tier]) add(tier, "needs a repair cost");
-    const strength = raids.npc.strength[tier];
-    if (!strength) add(tier, "npc needs a strength");
-    else if (strength.max < strength.base) add(tier, "npc strength max is below its base");
-    if (!raids.npc.held[tier]) add(tier, "npc needs held loot");
+  const add = (id: string, message: string) => problems.push({ file: "scrap.json5", id, message });
+  for (const boost of content.scrap.boosts) {
+    if (boost.tide && boost.tide.firstAfterSeconds + boost.tide.every > boost.seconds)
+      add(boost.id, "the tide ends before its second crate");
+    if (boost.effects && content.flotsam.kinds.some((kind) => kind.id === boost.id))
+      add(boost.id, "a boost's id must not be a flotsam kind's (one buff a kind)");
   }
-  for (const tier of from(raids.pvp.minTier)) {
-    if (raids.pvp.charges[tier] === undefined) add(tier, "pvp needs a charge cost");
-    if (raids.pvp.attack[tier] === undefined) add(tier, "pvp needs an attack");
-    if (raids.scrapCeiling[tier] === undefined) add(tier, "needs a scrapCeiling");
-    if (!raids.repair[tier]) add(tier, "needs a repair cost");
-  }
-  const named = [
-    ...Object.values(raids.repair).flatMap((cost) => Object.keys(cost ?? {})),
-    ...Object.values(raids.npc.held).flatMap((lines) => (lines ?? []).map((line) => line.resource)),
-  ];
-  for (const id of named) {
-    if (!resources.has(id)) add(id, "names an unknown resource");
-  }
-  if (!resources.has("charge")) add("charge", "raids need a `charge` resource");
-
-  for (const site of content.sites.filter((candidate) => candidate.camp)) {
-    if ((site.rations.charge ?? 0) < 1)
-      problems.push({ file: "sites.json5", id: site.id, message: "a camp's rations need charges" });
-  }
-  for (const key of ["raid.npc.held", "raid.npc.breached", "raid.pvp.held", "raid.pvp.breached"]) {
-    if (!locale.has(key)) add("", `missing locale key \`${key}\``);
-  }
+  if (!(content.scrap.drops[2] < content.scrap.drops[3]))
+    add("", "a Supply Drop III must cost more than a II");
   return problems;
 }
 
-/**
- * The legacy layer and seasons (W7): no perk tree makes a veteran more than `capPercent`
- * stronger in any rate (summed over every perk at its top rank; trip success counted
- * against the weakest site's base chance), names are in the locale, and the season data
- * names real resources.
- */
-export function checkLegacy(content: Content, locale: Locale): Problem[] {
+/** The cards, the sets and the Supply Drops (12-feel.md 7; D248-D250). */
+function checkCards(content: Content, locale: Locale): Problem[] {
   const problems: Problem[] = [];
-  const { legacy, seasons } = content;
-  if (content.resources.length === 0) return problems;
-  const add = (file: string, id: string, message: string) => problems.push({ file, id, message });
-  const totals: Record<string, number> = {};
-  for (const perk of legacy.perks) {
-    for (const [field, value] of Object.entries(perk.bonus)) {
-      totals[field] = (totals[field] ?? 0) + (value ?? 0) * perk.cost.length;
-    }
-    for (const key of [`perk.${perk.id}.name`, `perk.${perk.id}.effect`]) {
-      if (!locale.has(key)) add("legacy.json5", perk.id, `missing locale key \`${key}\``);
-    }
-  }
-  const weakest = Math.min(...content.sites.map((site) => site.chance), 100);
-  for (const [field, total] of Object.entries(totals)) {
-    const percent = field === "tripSuccess" ? (total * 100) / weakest : total;
-    if (percent > legacy.capPercent)
+  const add = (id: string, message: string) => problems.push({ file: "cards.json5", id, message });
+  const { survivors, gear, sets, drops, stars } = content.cards;
+  const crew = new Set(content.crew.map((member) => member.id));
+  const seen = new Set<string>();
+  for (const survivor of survivors) {
+    if (!crew.has(survivor.id)) add(survivor.id, "a survivor must be a hand of crew.json5");
+    if (seen.has(survivor.id)) add(survivor.id, "a survivor is listed once");
+    seen.add(survivor.id);
+    if (!withinCap(survivor.trait, TRAIT_SHARE))
       add(
-        "legacy.json5",
-        field,
-        `perks add ${percent.toFixed(1)}%, above the ${legacy.capPercent}% cap`,
+        survivor.id,
+        `the trait must give something and at most a trait's share of \`${survivor.trait.stat}\``,
       );
+    const key = `trait.${survivor.id}.name`;
+    if (!locale.has(key)) add(survivor.id, `missing locale key \`${key}\``);
   }
-  for (const skin of legacy.skins) {
-    if (!locale.has(`skin.${skin.id}.name`))
-      add("legacy.json5", skin.id, `missing locale key \`skin.${skin.id}.name\``);
+  for (const member of crew) if (!seen.has(member)) add(member, "every hand needs a survivor card");
+  for (const row of gear)
+    if (!withinCap(row.effect, RARITY_SHARE[row.rarity]))
+      add(
+        row.id,
+        `a ${row.rarity} card gives at most ${row.rarity}'s share of \`${row.effect.stat}\``,
+      );
+  if (!withinCap(sets.kit.effect, TRAIT_SHARE))
+    add(sets.kit.id, "the kit gives at most a trait's share");
+  // No blank card (N28): every rarity has a card to draw.
+  for (const rarity of RARITIES) {
+    const pool = survivors.filter((row) => row.rarity === rarity).length;
+    if (pool + gear.filter((row) => row.rarity === rarity).length === 0)
+      add("", `no card of rarity \`${rarity}\`: a drop could draw nothing`);
+    const name = `rarity.${rarity}.name`;
+    if (!locale.has(name)) add("", `missing locale key \`${name}\``);
   }
-  const resources = new Set(content.resources.map((resource) => resource.id));
-  for (const modifier of seasons.modifiers) {
-    for (const id of Object.keys(modifier.flatPercent ?? {})) {
-      if (!resources.has(id)) add("seasons.json5", modifier.id, `names unknown resource \`${id}\``);
-    }
-    for (const key of [`modifier.${modifier.id}.name`, `modifier.${modifier.id}.blurb`]) {
-      if (!locale.has(key)) add("seasons.json5", modifier.id, `missing locale key \`${key}\``);
-    }
+  for (const [index, tier] of drops.tiers.entries()) {
+    const sum = RARITIES.reduce((total, rarity) => total + tier.odds[rarity], 0);
+    if (Math.abs(sum - 100) > 1e-9) add("", `tier ${index + 1}'s odds sum to ${sum}, not 100`);
+    const name = `drop.tier_${index + 1}`;
+    if (!locale.has(name)) add("", `missing locale key \`${name}\``);
   }
-  for (const stage of seasons.signal.stages) {
-    for (const id of Object.keys(stage.needs)) {
-      if (!resources.has(id)) add("seasons.json5", stage.id, `needs unknown resource \`${id}\``);
-    }
-    if (!locale.has(`signal.stage_${stage.id}`))
-      add("seasons.json5", stage.id, `missing locale key \`signal.stage_${stage.id}\``);
+  const { rare, epic, legendary } = drops.pity;
+  if (!(rare < epic && epic < legendary)) add("", "pity must rise: rare < epic < legendary");
+  if (!survivors.some((row) => row.id === drops.first))
+    add("", `the first card \`${drops.first}\` must be a survivor`);
+  for (const [index, at] of drops.fells.at.entries()) {
+    const before = drops.fells.at[index - 1];
+    if (before !== undefined && !(at > before)) add("", "drops.fells.at must rise");
   }
+  for (const [index, cost] of stars.costs.entries()) {
+    const before = stars.costs[index - 1];
+    if (before !== undefined && !(cost > before)) add("", "each star must cost more shards");
+  }
+  // N18 with the cards: the window with the Workshop's hours and every card's stays under the ceiling.
+  const { windowHours, maxHours } = content.run.nightShift;
+  const workshop = content.research
+    .filter((def) => def.effect.stat === "night_shift")
+    .reduce((sum, def) => sum + levelEffect(def.effect, def.levels).value, 0);
+  const fromCards = allCardEffects(content)
+    .filter((effect) => effect.stat === "night_shift")
+    .reduce((sum, effect) => sum + effect.value, 0);
+  if (windowHours + workshop + fromCards > maxHours + 1e-9)
+    add("", "the Night Shift with the Workshop's and the cards' hours passes its ceiling (N18)");
   return problems;
 }

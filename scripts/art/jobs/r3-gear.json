@@ -1,0 +1,782 @@
+[
+  {
+    "id": "gear_salvaged_hatchet",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1400,
+    "palette": true,
+    "prompt": "a small hatchet with a chipped steel head and a wrapped wooden handle, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_salvaged_hatchet_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1500,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a small hatchet with a chipped steel head and a wrapped wooden handle, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_crowbar",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1401,
+    "palette": true,
+    "prompt": "a red iron crowbar with a curved claw end, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_crowbar_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1501,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a red iron crowbar with a curved claw end, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_pipe_wrench",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1402,
+    "palette": true,
+    "prompt": "a heavy red pipe wrench with a rusty jaw, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_pipe_wrench_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1502,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a heavy red pipe wrench with a rusty jaw, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_work_gloves",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1403,
+    "palette": true,
+    "prompt": "a pair of thick brown leather work gloves, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_work_gloves_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1503,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a pair of thick brown leather work gloves, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_claw_hammer",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1404,
+    "palette": true,
+    "prompt": "a claw hammer with a steel head and a wooden handle, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_claw_hammer_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1504,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a claw hammer with a steel head and a wooden handle, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_hand_drill",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1405,
+    "palette": true,
+    "prompt": "an old hand-cranked drill with a wooden handle and a steel bit, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_hand_drill_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1505,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "an old hand-cranked drill with a wooden handle and a steel bit, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_bolt_cutters",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1406,
+    "palette": true,
+    "prompt": "a pair of red-handled bolt cutters, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_bolt_cutters_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1506,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a pair of red-handled bolt cutters, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_chainsaw",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1407,
+    "palette": true,
+    "prompt": "an orange chainsaw with a black bar and sharp chain, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_chainsaw_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1507,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "an orange chainsaw with a black bar and sharp chain, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_welding_torch",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1408,
+    "palette": true,
+    "prompt": "a brass welding torch with a blue flame at its tip, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_welding_torch_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1508,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a brass welding torch with a blue flame at its tip, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_power_saw",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1409,
+    "palette": true,
+    "prompt": "a yellow circular power saw with a toothed steel blade, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_power_saw_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1509,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a yellow circular power saw with a toothed steel blade, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_tin_lantern",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1410,
+    "palette": true,
+    "prompt": "a small tin lantern with a glowing yellow flame inside, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_tin_lantern_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1510,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a small tin lantern with a glowing yellow flame inside, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_bandana",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1411,
+    "palette": true,
+    "prompt": "a folded red bandana with a white pattern, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_bandana_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1511,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a folded red bandana with a white pattern, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_welding_goggles",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1412,
+    "palette": true,
+    "prompt": "a pair of round welding goggles with dark green lenses and a leather strap, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_welding_goggles_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1512,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a pair of round welding goggles with dark green lenses and a leather strap, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_hard_hat",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1413,
+    "palette": true,
+    "prompt": "a scuffed yellow hard hat, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_hard_hat_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1513,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a scuffed yellow hard hat, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_gas_mask",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1414,
+    "palette": true,
+    "prompt": "a grey rubber gas mask with round glass eyes and a filter can, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_gas_mask_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1514,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a grey rubber gas mask with round glass eyes and a filter can, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_headlamp",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1415,
+    "palette": true,
+    "prompt": "a headlamp with a bright white lens on a black elastic band, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_headlamp_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1515,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a headlamp with a bright white lens on a black elastic band, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_ear_defenders",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1416,
+    "palette": true,
+    "prompt": "a pair of orange ear defenders with a black headband, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_ear_defenders_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1516,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a pair of orange ear defenders with a black headband, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_night_goggles",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1417,
+    "palette": true,
+    "prompt": "a pair of military night vision goggles with green glowing lenses, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_night_goggles_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1517,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a pair of military night vision goggles with green glowing lenses, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_hazmat_hood",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1418,
+    "palette": true,
+    "prompt": "a yellow hazmat hood with a clear square visor, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_hazmat_hood_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1518,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a yellow hazmat hood with a clear square visor, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_spotter_scope",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1419,
+    "palette": true,
+    "prompt": "a brass spotter's telescope with a glass lens, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_spotter_scope_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1519,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a brass spotter's telescope with a glass lens, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_rope_belt",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1420,
+    "palette": true,
+    "prompt": "a coiled hemp rope tied into a belt with a brass buckle, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_rope_belt_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1520,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a coiled hemp rope tied into a belt with a brass buckle, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_jerrycan",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1421,
+    "palette": true,
+    "prompt": "a green metal jerrycan of fuel with a spout, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_jerrycan_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1521,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a green metal jerrycan of fuel with a spout, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_car_battery",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1422,
+    "palette": true,
+    "prompt": "a black car battery with red and blue terminals, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_car_battery_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1522,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a black car battery with red and blue terminals, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_tool_roll",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1423,
+    "palette": true,
+    "prompt": "a rolled brown canvas tool roll tied with a strap, tool handles poking out, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_tool_roll_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1523,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a rolled brown canvas tool roll tied with a strap, tool handles poking out, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_satchel",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1424,
+    "palette": true,
+    "prompt": "a worn brown leather satchel with a brass buckle, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_satchel_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1524,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a worn brown leather satchel with a brass buckle, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_water_flask",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1425,
+    "palette": true,
+    "prompt": "a dented steel water flask with a cork and a strap, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_water_flask_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1525,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a dented steel water flask with a cork and a strap, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_tarp_bundle",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1426,
+    "palette": true,
+    "prompt": "a rolled blue tarpaulin bundle tied with rope, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_tarp_bundle_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1526,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a rolled blue tarpaulin bundle tied with rope, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_hazmat_coat",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1427,
+    "palette": true,
+    "prompt": "a folded yellow hazmat coat with black gloves on top, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_hazmat_coat_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1527,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a folded yellow hazmat coat with black gloves on top, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_flare_pouch",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1428,
+    "palette": true,
+    "prompt": "a red canvas pouch with two signal flares sticking out, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_flare_pouch_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1528,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a red canvas pouch with two signal flares sticking out, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_generator_pack",
+    "prompt_style": "rd_plus__low_res",
+    "width": 16,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 1429,
+    "palette": true,
+    "prompt": "a small olive green backpack generator with a black exhaust pipe and a dial, a single item, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "gear_generator_pack_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 16,
+    "height": 16,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 1529,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/flotsam/crate.png"
+    ],
+    "prompt": "a small olive green backpack generator with a black exhaust pipe and a dial, a single item, strict side view, light from the upper left, on a plain white background"
+  }
+]

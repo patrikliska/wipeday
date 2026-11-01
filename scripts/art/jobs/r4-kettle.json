@@ -1,0 +1,121 @@
+[
+  {
+    "id": "kettle_pad",
+    "prompt_style": "rd_pro__platformer",
+    "width": 28,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 4100,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/prop/car.png",
+      "packages/content/art/scene/prop/drop_1.png"
+    ],
+    "prompt": "a small homemade launch pad: two stacked rough wooden pallets under a cracked grey concrete slab, yellow and black hazard tape in diagonal bands along the slab's front edge, a short wooden ladder leaning against the left end, nothing standing on it, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "kettle_frame",
+    "prompt_style": "rd_pro__platformer",
+    "width": 28,
+    "height": 40,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 4101,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/prop/car.png",
+      "packages/content/art/scene/prop/drop_1.png"
+    ],
+    "prompt": "a homemade rocket under construction: one tall rusty orange boiler tank with rivets standing upright on four splayed grey steel stilts with cross braces, a round white pressure gauge with a red needle on the tank, a crooked tin chimney pipe on top, the whole thing standing on a launch pad of two wooden pallets under a cracked concrete slab with hazard tape, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "kettle_warhead",
+    "prompt_style": "rd_pro__platformer",
+    "width": 28,
+    "height": 48,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 4102,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/prop/car.png",
+      "packages/content/art/scene/prop/drop_1.png"
+    ],
+    "prompt": "a homemade rocket ready to launch: a rusty orange boiler tank with rivets on four splayed grey steel stilts with cross braces, three sheet-metal fins at its foot, a taped wooden crate with a crudely painted grinning face sitting on top of the tank, an orange traffic cone with two white reflective bands as the nose, standing on a launch pad of wooden pallets under a cracked concrete slab with hazard tape, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "kettle_fuel",
+    "prompt_style": "rd_pro__platformer",
+    "width": 28,
+    "height": 48,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 4103,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/prop/car.png",
+      "packages/content/art/scene/prop/drop_1.png"
+    ],
+    "prompt": "a homemade rocket fuelled and ready: a rusty orange boiler tank with rivets on four splayed grey steel stilts, three sheet-metal fins, a taped wooden crate with a painted grinning face on top and an orange traffic cone nose with white reflective bands, a small orange fire glowing in a firebox under the tank, three olive green jerrycans and a black rubber hose at the foot of the pad, standing on a launch pad of wooden pallets under a cracked concrete slab with hazard tape, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "big_red",
+    "prompt_style": "rd_pro__platformer",
+    "width": 14,
+    "height": 18,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 4104,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/prop/drop_1.png"
+    ],
+    "prompt": "a small faded blue steel oil drum with two ribs and rust streaks, a square sheet-metal plate bolted on its top carrying one big round red push button, a white toilet seat lid hinged open behind the button wrapped in yellow and black hazard tape, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "rowboat",
+    "prompt_style": "rd_pro__platformer",
+    "width": 18,
+    "height": 12,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 4108,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/prop/car.png"
+    ],
+    "prompt": "one small old wooden dinghy with a dark brown hull and faded pale blue paint on its sides, a pair of oars laid across it, resting on dry cracked earth on two wooden blocks, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "kettle_pad_low",
+    "prompt_style": "rd_plus__low_res",
+    "width": 32,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 4106,
+    "prompt": "a low wide homemade launch platform: two stacked rough brown wooden pallets with a slab of dark charcoal concrete on top, bright yellow and black hazard stripes painted along the slab front edge, a short wooden ladder leaning on the left end, standing on the ground, strict side view, light from the upper left, on a plain white background"
+  },
+  {
+    "id": "kettle_pad_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 28,
+    "height": 16,
+    "num_images": 2,
+    "remove_bg": true,
+    "seed": 4107,
+    "palette": true,
+    "refs": [
+      "packages/content/art/scene/prop/barrel.png",
+      "packages/content/art/scene/prop/drop_1.png"
+    ],
+    "prompt": "a low wide launch platform built from two stacked rough brown wooden pallets with a thick slab of dark charcoal concrete laid on top, bright yellow and black hazard stripes painted along the front edge of the slab, a short wooden ladder leaning on the left end, standing on the ground, strict side view, light from the upper left, on a plain white background"
+  }
+]

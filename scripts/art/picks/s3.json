@@ -1,0 +1,117 @@
+{
+  "//": "R2 Feel S3, Stone to Armored (agent's first pass, 2026-10-18; the owner may swap any)",
+  "line/furnace_1": {
+    "from": "preview/art/s3/furnace_1_1.png",
+    "outline": true
+  },
+  "line/furnace_2": {
+    "from": "preview/art/s3/furnace_2_0.png",
+    "outline": true
+  },
+  "line/furnace_3": {
+    "from": "preview/art/s3/furnace_3_1.png",
+    "outline": true
+  },
+  "line/tannery_1": {
+    "from": "preview/art/s3/tannery_1_1.png",
+    "outline": true
+  },
+  "line/tannery_2": {
+    "from": "preview/art/s3/tannery_2_1.png",
+    "outline": true
+  },
+  "line/tannery_3": {
+    "from": "preview/art/s3/tannery_3_1.png",
+    "outline": true
+  },
+  "line/press_1": {
+    "from": "preview/art/s3/press_1_0.png",
+    "outline": true
+  },
+  "line/press_2": {
+    "from": "preview/art/s3/press_2_0.png",
+    "outline": true
+  },
+  "line/press_3": {
+    "from": "preview/art/s3/press_3_1.png",
+    "outline": true
+  },
+  "line/dock_1": {
+    "from": "preview/art/s3/dock_1_0.png",
+    "outline": true
+  },
+  "line/dock_2": {
+    "from": "preview/art/s3/dock_2_0.png",
+    "outline": true
+  },
+  "line/dock_3": {
+    "from": "preview/art/s3/dock_3_0.png",
+    "outline": true
+  },
+  "line/generator_1": {
+    "from": "preview/art/s3/generator_1_0.png",
+    "outline": true
+  },
+  "line/generator_2": {
+    "from": "preview/art/s3/generator_2_0.png",
+    "outline": true
+  },
+  "line/generator_3": {
+    "from": "preview/art/s3/generator_3_0.png",
+    "outline": true
+  },
+  "line/radio_mast_1": {
+    "from": "preview/art/s3/radio_mast_1_0.png",
+    "outline": true
+  },
+  "line/radio_mast_2": {
+    "from": "preview/art/s3/radio_mast_2_1.png",
+    "outline": true
+  },
+  "line/radio_mast_3": {
+    "from": "preview/art/s3/radio_mast_3_1.png",
+    "outline": true
+  },
+  "line/shipbreaker_1": {
+    "from": "preview/art/s3/shipbreaker_1_0.png",
+    "outline": true
+  },
+  "line/shipbreaker_2": {
+    "from": "preview/art/s3/shipbreaker_2_1.png",
+    "outline": true
+  },
+  "line/shipbreaker_3": {
+    "from": "preview/art/s3/shipbreaker_3_1.png",
+    "outline": true
+  },
+  "line/reactor_1": {
+    "from": "preview/art/s3/reactor_1_0.png",
+    "outline": true
+  },
+  "line/reactor_2": {
+    "from": "preview/art/s3/reactor_2_1.png",
+    "outline": true
+  },
+  "line/reactor_3": {
+    "from": "preview/art/s3/reactor_3_0.png",
+    "outline": true
+  },
+  "target/ore": "preview/art/s3/target_ore_0.png",
+  "target/sulfur": "preview/art/s3/target_sulfur_1.png",
+  "target/wreck": "preview/art/s3/target_wreck_1.png",
+  "house/stone": "preview/art/s3b/house_stone_b_0.png",
+  "house/metal": "preview/art/s3/house_metal_0.png",
+  "house/hqm": "preview/art/s3/house_hqm_0.png",
+  "room/stone": {
+    "from": "preview/art/s3/room_stone_0.png",
+    "sheet": true
+  },
+  "room/metal": {
+    "from": "preview/art/s3/room_metal_0.png",
+    "sheet": true
+  },
+  "room/hqm": {
+    "from": "preview/art/s3/room_hqm_0.png",
+    "sheet": true
+  }
+}

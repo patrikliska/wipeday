@@ -1,0 +1,24 @@
+[
+  {
+    "id": "sky_env",
+    "prompt_style": "rd_plus__environment",
+    "width": 512,
+    "height": 128,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 501,
+    "palette": true,
+    "prompt": "a distant ruined city skyline seen from far away: broken skyscrapers with missing floors, a snapped radio tower, a leaning crane and a collapsed bridge, all in pale dusty orange haze, low contrast, flat silhouettes standing on a flat horizon line, strict side view, on a plain white background"
+  },
+  {
+    "id": "sky_pro",
+    "prompt_style": "rd_pro__platformer",
+    "width": 256,
+    "height": 96,
+    "num_images": 1,
+    "remove_bg": true,
+    "seed": 502,
+    "palette": true,
+    "prompt": "a distant ruined city skyline seen from far away: broken skyscrapers with missing floors, a snapped radio tower, a leaning crane and a collapsed bridge, all in pale dusty orange haze, low contrast, flat silhouettes standing on a flat horizon line, strict side view, on a plain white background"
+  }
+]

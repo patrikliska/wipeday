@@ -1,0 +1,52 @@
+// The tap and the five era targets it fells (docs/redesign/02-the-run.md 6.1, 7 and 13.2).
+{
+  tap: {
+    // N10: the server credits at most perSecond taps a second, burst at most (D134).
+    bucket: { perSecond: 15, burst: 45 },
+    // Holding a press counts holdTapsPerSecond, once it has been held holdAfterSeconds.
+    holdTapsPerSecond: 4,
+    holdAfterSeconds: 0.35,
+    // A tap's share of the full rate (p) and its flat part, before Grip.
+    flat: 1,
+    share: 0,
+    // Hustle, the tap meter: +perTap a tap up to cap; it holds graceSeconds after the last tap,
+    // then drains drainPerSecond. At the cap taps are worth `peak` times as much; nothing may
+    // lift the peak above peakCeiling (N9).
+    hustle: {
+      perTap: 1,
+      cap: 100,
+      peak: 2,
+      peakCeiling: 2.25,
+      graceSeconds: 2,
+      drainPerSecond: 10,
+    },
+    // Frenzy (D196, D237, D240): +perTap a credited tap once it opens (opensAfterSeconds on the
+    // run's clock: 40 minutes, so run 1's script holds), holding graceSeconds after the last tap,
+    // then draining drainPerSecond. At cap it trips for `seconds` real seconds: taps and lines
+    // ×mult (lines run `speed` times faster and pay mult/speed more a cycle). Hustle's
+    // peakCeiling × mult must stay within multCeiling.
+    frenzy: {
+      opensAfterSeconds: 2400,
+      perTap: 0.25,
+      cap: 100,
+      graceSeconds: 3,
+      drainPerSecond: 2,
+      seconds: 15,
+      mult: 6,
+      speed: 1.5,
+      multCeiling: 20,
+    },
+    // Taps a fell pays, and the seconds the target stays down while still counting taps.
+    fellBonusTaps: 10,
+    popSeconds: 0.3,
+  },
+  // One target per era: felled every fellTaps credited taps, paying fellBonusTaps taps' worth.
+  // `art` names the scene's drawing; the cry is `target.{id}.cry`.
+  targets: [
+    { id: "tree", era: "twig", fellTaps: 40, art: "tree" },
+    { id: "stone", era: "wood", fellTaps: 60, art: "rock_stone" },
+    { id: "ore", era: "stone", fellTaps: 80, art: "rock_ore" },
+    { id: "sulfur", era: "metal", fellTaps: 100, art: "rock_sulfur" },
+    { id: "wreck", era: "hqm", fellTaps: 120, art: "wreck" },
+  ],
+}

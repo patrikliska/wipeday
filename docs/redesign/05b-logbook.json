@@ -1,0 +1,3217 @@
+{
+  "launch": [
+    {
+      "id": "timber_era",
+      "category": "eras",
+      "name": "Goodbye, Lean-to",
+      "how": "Reach the Timber era.",
+      "when": {
+        "stat": "eras",
+        "of": "wood",
+        "gte": 1
+      },
+      "secret": false,
+      "quip": "A roof. An actual roof.",
+      "icon": "tier/wood",
+      "day": 1
+    },
+    {
+      "id": "stone_era",
+      "category": "eras",
+      "name": "Set in Stone",
+      "how": "Reach the Stone era.",
+      "when": {
+        "stat": "eras",
+        "of": "stone",
+        "gte": 1
+      },
+      "secret": false,
+      "icon": "tier/stone",
+      "day": 1
+    },
+    {
+      "id": "metal_era",
+      "category": "eras",
+      "name": "Tin Can Living",
+      "how": "Reach the Sheet Metal era.",
+      "when": {
+        "stat": "eras",
+        "of": "metal",
+        "gte": 1
+      },
+      "secret": false,
+      "quip": "It rattles when it rains. We love it.",
+      "icon": "tier/metal",
+      "day": 1
+    },
+    {
+      "id": "armored_era",
+      "category": "eras",
+      "name": "Plated Up",
+      "how": "Reach the Armored era.",
+      "when": {
+        "stat": "eras",
+        "of": "hqm",
+        "gte": 1
+      },
+      "secret": false,
+      "icon": "tier/hqm",
+      "day": 3
+    },
+    {
+      "id": "metal_sprint",
+      "category": "eras",
+      "name": "Tin Roof Sprint",
+      "how": "Reach Sheet Metal in a run's first 30 min.",
+      "when": {
+        "event": "era_reached",
+        "era": "metal",
+        "runSecondsLte": 1800
+      },
+      "secret": false,
+      "icon": "tier/metal",
+      "day": 6
+    },
+    {
+      "id": "armored_dash",
+      "category": "eras",
+      "name": "Armor by Lunch",
+      "how": "Reach Armored in a run's first hour.",
+      "when": {
+        "event": "era_reached",
+        "era": "hqm",
+        "runSecondsLte": 3600
+      },
+      "secret": false,
+      "icon": "tier/hqm",
+      "day": 14
+    },
+    {
+      "id": "armored_regular",
+      "category": "eras",
+      "name": "Plate Collector",
+      "how": "Reach the Armored era 25 times.",
+      "when": {
+        "stat": "eras",
+        "of": "hqm",
+        "gte": 25
+      },
+      "secret": false,
+      "icon": "tier/hqm",
+      "day": 32
+    },
+    {
+      "id": "lean_to_life",
+      "category": "eras",
+      "name": "Lean-to Life",
+      "how": "Make 1M supplies in a run before buying an era.",
+      "when": {
+        "state": "run_made_before_era",
+        "gte": 1000000
+      },
+      "secret": true,
+      "hint": "Some never move out.",
+      "quip": "Who needs walls? We have a tarp.",
+      "icon": "tier/twig",
+      "day": "secret"
+    },
+    {
+      "id": "wreck_express",
+      "category": "eras",
+      "name": "Wreck Express",
+      "how": "Reach Armored in a run's first 10 min.",
+      "when": {
+        "event": "era_reached",
+        "era": "hqm",
+        "runSecondsLte": 600
+      },
+      "secret": true,
+      "hint": "Some crews reach the hull before the tea cools.",
+      "icon": "target/wreck",
+      "day": 35
+    },
+    {
+      "id": "first_line",
+      "category": "lines",
+      "name": "Open for Business",
+      "how": "Buy your first line.",
+      "when": {
+        "stat": "units",
+        "gte": 1
+      },
+      "secret": false,
+      "quip": "One man, one sack, one beach.",
+      "icon": "line/beachcomber",
+      "day": 1
+    },
+    {
+      "id": "ten_of_a_kind",
+      "category": "lines",
+      "name": "Ten Alike",
+      "how": "Own 10 of one line.",
+      "when": {
+        "event": "milestone",
+        "kind": "line",
+        "at": 10
+      },
+      "secret": false,
+      "icon": "line/beachcomber",
+      "day": 1
+    },
+    {
+      "id": "twig_hundreds",
+      "category": "lines",
+      "name": "Smoke and Hemp",
+      "how": "Own 100 of each Twig line.",
+      "when": {
+        "state": "lines_min_owned",
+        "era": "twig",
+        "gte": 100
+      },
+      "secret": false,
+      "icon": "line/campfire",
+      "day": 2
+    },
+    {
+      "id": "timber_hundreds",
+      "category": "lines",
+      "name": "Rope and Planks",
+      "how": "Own 100 of each Timber line.",
+      "when": {
+        "state": "lines_min_owned",
+        "era": "wood",
+        "gte": 100
+      },
+      "secret": false,
+      "icon": "line/loom",
+      "day": 3
+    },
+    {
+      "id": "stone_hundreds",
+      "category": "lines",
+      "name": "Hides and Ingots",
+      "how": "Own 100 of each Stone line.",
+      "when": {
+        "state": "lines_min_owned",
+        "era": "stone",
+        "gte": 100
+      },
+      "secret": false,
+      "icon": "line/furnace",
+      "day": 5
+    },
+    {
+      "id": "metal_hundreds",
+      "category": "lines",
+      "name": "Sparks and Static",
+      "how": "Own 100 of each Sheet Metal line.",
+      "when": {
+        "state": "lines_min_owned",
+        "era": "metal",
+        "gte": 100
+      },
+      "secret": false,
+      "icon": "line/radio_mast",
+      "day": 7
+    },
+    {
+      "id": "armored_hundreds",
+      "category": "lines",
+      "name": "Heavy Industry",
+      "how": "Own 100 Ship Breakers and 100 Reactors.",
+      "when": {
+        "state": "lines_min_owned",
+        "era": "hqm",
+        "gte": 100
+      },
+      "secret": false,
+      "icon": "line/reactor",
+      "day": 12
+    },
+    {
+      "id": "roster_25",
+      "category": "lines",
+      "name": "Bunting Up",
+      "how": "Own 25 of every unlocked line.",
+      "when": {
+        "event": "milestone",
+        "kind": "roster",
+        "at": 25
+      },
+      "secret": false,
+      "quip": "Somebody found a lot of flags.",
+      "icon": "ui/roster",
+      "day": 1
+    },
+    {
+      "id": "bit_of_everything",
+      "category": "lines",
+      "name": "A Bit of Everything",
+      "how": "Own 100 of every unlocked line.",
+      "when": {
+        "event": "milestone",
+        "kind": "roster",
+        "at": 100
+      },
+      "secret": false,
+      "icon": "ui/roster",
+      "day": 5
+    },
+    {
+      "id": "roster_250",
+      "category": "lines",
+      "name": "Roof Flag",
+      "how": "Own 250 of every unlocked line.",
+      "when": {
+        "event": "milestone",
+        "kind": "roster",
+        "at": 250
+      },
+      "secret": false,
+      "icon": "ui/roster",
+      "day": 35
+    },
+    {
+      "id": "bronze_pennant",
+      "category": "lines",
+      "name": "Bronze Pennant",
+      "how": "Own 200 of one line.",
+      "when": {
+        "event": "milestone",
+        "kind": "line",
+        "at": 200
+      },
+      "secret": false,
+      "icon": "ui/roster",
+      "day": 4
+    },
+    {
+      "id": "silver_pennant",
+      "category": "lines",
+      "name": "Silver Pennant",
+      "how": "Own 300 of one line.",
+      "when": {
+        "event": "milestone",
+        "kind": "line",
+        "at": 300
+      },
+      "secret": false,
+      "icon": "ui/roster",
+      "day": 15
+    },
+    {
+      "id": "gold_pennant",
+      "category": "lines",
+      "name": "Gold Pennant",
+      "how": "Own 400 of one line.",
+      "when": {
+        "event": "milestone",
+        "kind": "line",
+        "at": 400
+      },
+      "secret": false,
+      "quip": "We ran out of pole.",
+      "icon": "ui/roster",
+      "day": 45
+    },
+    {
+      "id": "units_10k",
+      "category": "lines",
+      "name": "Busy Builders",
+      "how": "Buy 10,000 line units.",
+      "when": {
+        "stat": "units",
+        "gte": 10000
+      },
+      "secret": false,
+      "icon": "ui/buy_max",
+      "day": 8
+    },
+    {
+      "id": "shelf_stocker",
+      "category": "lines",
+      "name": "Shelf Stocker",
+      "how": "Buy 1,000 shelf upgrades.",
+      "when": {
+        "stat": "upgrades",
+        "gte": 1000
+      },
+      "secret": false,
+      "icon": "ui/upgrade",
+      "day": 35
+    },
+    {
+      "id": "even_keel",
+      "category": "lines",
+      "name": "Even Keel",
+      "how": "Own the same 50+ of every unlocked line.",
+      "when": {
+        "state": "lines_equal",
+        "gte": 50
+      },
+      "secret": true,
+      "hint": "A level deck: nothing sits higher than the rest.",
+      "quip": "Measured twice. Bought once.",
+      "icon": "ui/roster",
+      "day": "secret"
+    },
+    {
+      "id": "hot_pennant",
+      "category": "lines",
+      "name": "Hot Pennant",
+      "how": "Own 200 Reactors.",
+      "when": {
+        "event": "milestone",
+        "kind": "line",
+        "line": "reactor",
+        "at": 200
+      },
+      "secret": true,
+      "hint": "Bronze looks best on a cooling tower.",
+      "icon": "line/reactor",
+      "day": 40
+    },
+    {
+      "id": "tideline_sprawl",
+      "category": "lines",
+      "name": "Tideline Sprawl",
+      "how": "Own 300 Beachcombers.",
+      "when": {
+        "event": "milestone",
+        "kind": "line",
+        "line": "beachcomber",
+        "at": 300
+      },
+      "secret": true,
+      "hint": "The oldest trade on the beach can still win silver.",
+      "icon": "line/beachcomber",
+      "day": 40
+    },
+    {
+      "id": "first_hand",
+      "category": "hands",
+      "name": "Help Wanted",
+      "how": "Hire your first hand.",
+      "when": {
+        "stat": "hands_hired",
+        "gte": 1
+      },
+      "secret": false,
+      "quip": "Mara says she'll take it from here.",
+      "icon": "ui/hand",
+      "day": 1
+    },
+    {
+      "id": "twig_crew",
+      "category": "hands",
+      "name": "Beach Crew",
+      "how": "Have Mara, Dax and Ivo at work at once.",
+      "when": {
+        "state": "hands_working",
+        "era": "twig",
+        "gte": 3
+      },
+      "secret": false,
+      "icon": "crew/mara",
+      "day": 1
+    },
+    {
+      "id": "timber_crew",
+      "category": "hands",
+      "name": "Rope Crew",
+      "how": "Have Rook, Sela and Bram at work at once.",
+      "when": {
+        "state": "hands_working",
+        "era": "wood",
+        "gte": 3
+      },
+      "secret": false,
+      "icon": "crew/rook",
+      "day": 2
+    },
+    {
+      "id": "stone_crew",
+      "category": "hands",
+      "name": "Forge Crew",
+      "how": "Have Wren, Otto and Juno at work at once.",
+      "when": {
+        "state": "hands_working",
+        "era": "stone",
+        "gte": 3
+      },
+      "secret": false,
+      "icon": "crew/wren",
+      "day": 3
+    },
+    {
+      "id": "metal_crew",
+      "category": "hands",
+      "name": "Dock Crew",
+      "how": "Have Pike, Hale and Tamsin at work at once.",
+      "when": {
+        "state": "hands_working",
+        "era": "metal",
+        "gte": 3
+      },
+      "secret": false,
+      "icon": "crew/pike",
+      "day": 5
+    },
+    {
+      "id": "armored_crew",
+      "category": "hands",
+      "name": "Wreck Crew",
+      "how": "Have Gus and Vera at work at once.",
+      "when": {
+        "state": "hands_working",
+        "era": "hqm",
+        "gte": 2
+      },
+      "secret": false,
+      "icon": "crew/vera",
+      "day": 8
+    },
+    {
+      "id": "all_hands",
+      "category": "hands",
+      "name": "All Hands",
+      "how": "Have all 14 hands working at once.",
+      "when": {
+        "state": "hands_working",
+        "gte": 14
+      },
+      "secret": false,
+      "quip": "Fourteen mugs. One kettle. Trouble.",
+      "icon": "ui/hand",
+      "day": 8
+    },
+    {
+      "id": "hands_100",
+      "category": "hands",
+      "name": "Payroll",
+      "how": "Hire 100 hands.",
+      "when": {
+        "stat": "hands_hired",
+        "gte": 100
+      },
+      "secret": false,
+      "icon": "ui/hand",
+      "day": 10
+    },
+    {
+      "id": "quick_hire",
+      "category": "hands",
+      "name": "Instant Hire",
+      "how": "Hire a hand in a run's first minute.",
+      "when": {
+        "event": "hand_hired",
+        "runSecondsLte": 60
+      },
+      "secret": false,
+      "icon": "crew/dax",
+      "day": 2
+    },
+    {
+      "id": "old_faces",
+      "category": "hands",
+      "name": "Old Faces",
+      "how": "Start a run with 3 hands already on shift.",
+      "when": {
+        "state": "kept_hands",
+        "gte": 3
+      },
+      "secret": false,
+      "quip": "Same boat, same faces, new island.",
+      "icon": "crew/mara",
+      "day": 3
+    },
+    {
+      "id": "crew_for_life",
+      "category": "hands",
+      "name": "Crew for Life",
+      "how": "Start a run with all 14 hands kept.",
+      "when": {
+        "state": "kept_hands",
+        "gte": 14
+      },
+      "secret": true,
+      "hint": "A crew that rows back from every blast, to the last name.",
+      "icon": "crew/ivo",
+      "day": 35
+    },
+    {
+      "id": "crew_album",
+      "category": "hands",
+      "name": "Crew Album",
+      "how": "Log every other Hands page.",
+      "when": {
+        "pages": {
+          "category": "hands",
+          "all": true
+        }
+      },
+      "secret": true,
+      "hint": "Know every face, every way there is.",
+      "icon": "ui/hand",
+      "day": 35
+    },
+    {
+      "id": "first_fell",
+      "category": "taps",
+      "name": "Timber!",
+      "how": "Fell your first target.",
+      "when": {
+        "stat": "felled",
+        "gte": 1
+      },
+      "secret": false,
+      "quip": "Mind your toes.",
+      "icon": "target/tree",
+      "day": 1
+    },
+    {
+      "id": "felled_100",
+      "category": "taps",
+      "name": "Hundred Stumps",
+      "how": "Fell 100 targets.",
+      "when": {
+        "stat": "felled",
+        "gte": 100
+      },
+      "secret": false,
+      "icon": "target/stone",
+      "day": 3
+    },
+    {
+      "id": "felled_1000",
+      "category": "taps",
+      "name": "Thousand Stumps",
+      "how": "Fell 1,000 targets.",
+      "when": {
+        "stat": "felled",
+        "gte": 1000
+      },
+      "secret": false,
+      "quip": "The island grows them back. Rude.",
+      "icon": "target/ore",
+      "day": 25
+    },
+    {
+      "id": "taps_10k",
+      "category": "taps",
+      "name": "Sore Thumbs",
+      "how": "Tap 10,000 times.",
+      "when": {
+        "stat": "taps",
+        "gte": 10000
+      },
+      "secret": false,
+      "icon": "ui/finger",
+      "day": 3
+    },
+    {
+      "id": "full_hustle",
+      "category": "taps",
+      "name": "In the Groove",
+      "how": "Fill Hustle to the top.",
+      "when": {
+        "state": "hustle",
+        "gte": 100
+      },
+      "secret": false,
+      "quip": "Don't stop now. Seriously, don't.",
+      "icon": "ui/hustle",
+      "day": 1
+    },
+    {
+      "id": "hold_steady",
+      "category": "taps",
+      "name": "Hold Steady",
+      "how": "Hold to work for 1,000 taps.",
+      "when": {
+        "stat": "held",
+        "gte": 1000
+      },
+      "secret": false,
+      "icon": "ui/finger",
+      "day": 2
+    },
+    {
+      "id": "crits_100",
+      "category": "taps",
+      "name": "Lucky Streak",
+      "how": "Land 100 crits.",
+      "when": {
+        "stat": "crits",
+        "gte": 100
+      },
+      "secret": false,
+      "icon": "tool/iron_tools",
+      "day": 8
+    },
+    {
+      "id": "afterglow_1000",
+      "category": "taps",
+      "name": "Ash and Sparks",
+      "how": "Tap 1,000 times in Afterglow.",
+      "when": {
+        "stat": "afterglow_taps",
+        "gte": 1000
+      },
+      "secret": false,
+      "quip": "The sky's green. Keep swinging.",
+      "icon": "ui/afterglow",
+      "day": 3
+    },
+    {
+      "id": "clean_through",
+      "category": "taps",
+      "name": "Clean Through",
+      "how": "Fell a target with a crit.",
+      "when": {
+        "event": "felled",
+        "crit": true
+      },
+      "secret": true,
+      "hint": "Sometimes the last swing is the lucky one.",
+      "icon": "tool/salvaged_tools",
+      "day": 8
+    },
+    {
+      "id": "lumberjack_day",
+      "category": "taps",
+      "name": "Lumberjack Day",
+      "how": "Fell 100 targets in one run.",
+      "when": {
+        "run": "felled",
+        "gte": 100
+      },
+      "secret": true,
+      "hint": "Some runs are all chopping.",
+      "quip": "We're out of firewood space. Again.",
+      "icon": "target/tree",
+      "day": "secret"
+    },
+    {
+      "id": "hull_splitter",
+      "category": "taps",
+      "name": "Hull Splitter",
+      "how": "Fell the Wreck 100 times.",
+      "when": {
+        "stat": "felled",
+        "of": "wreck",
+        "gte": 100
+      },
+      "secret": true,
+      "hint": "That rusted hull on the rise has a hundred lives.",
+      "icon": "target/wreck",
+      "day": 15
+    },
+    {
+      "id": "first_catch",
+      "category": "flotsam",
+      "name": "Washed Up",
+      "how": "Catch your first flotsam.",
+      "when": {
+        "stat": "flotsam",
+        "gte": 1
+      },
+      "secret": false,
+      "quip": "Finders keepers.",
+      "icon": "flotsam/crate",
+      "day": 1
+    },
+    {
+      "id": "crates_10",
+      "category": "flotsam",
+      "name": "Crate Digger",
+      "how": "Catch 10 Drift Crates.",
+      "when": {
+        "stat": "flotsam",
+        "of": "crate",
+        "gte": 10
+      },
+      "secret": false,
+      "icon": "flotsam/crate",
+      "day": 10
+    },
+    {
+      "id": "drums_10",
+      "category": "flotsam",
+      "name": "Rally Round",
+      "how": "Catch 10 Fuel Drums.",
+      "when": {
+        "stat": "flotsam",
+        "of": "fuel_drum",
+        "gte": 10
+      },
+      "secret": false,
+      "icon": "flotsam/fuel_drum",
+      "day": 12
+    },
+    {
+      "id": "first_adrenaline",
+      "category": "flotsam",
+      "name": "Jolt",
+      "how": "Catch an Adrenaline Kit.",
+      "when": {
+        "stat": "flotsam",
+        "of": "adrenaline",
+        "gte": 1
+      },
+      "secret": false,
+      "quip": "My hands are buzzing. Is that normal?",
+      "icon": "flotsam/adrenaline",
+      "day": 8
+    },
+    {
+      "id": "first_drone",
+      "category": "flotsam",
+      "name": "Fished a Drone",
+      "how": "Catch a Drowned Drone.",
+      "when": {
+        "stat": "flotsam",
+        "of": "drowned_drone",
+        "gte": 1
+      },
+      "secret": false,
+      "icon": "flotsam/drowned_drone",
+      "day": 7
+    },
+    {
+      "id": "first_bottle",
+      "category": "flotsam",
+      "name": "Message Received",
+      "how": "Open a Message in a Bottle.",
+      "when": {
+        "stat": "flotsam",
+        "of": "bottle",
+        "gte": 1
+      },
+      "secret": false,
+      "quip": "It says 'help'. Same, mate.",
+      "icon": "flotsam/bottle",
+      "day": "long haul"
+    },
+    {
+      "id": "flotsam_100",
+      "category": "flotsam",
+      "name": "Tide Watcher",
+      "how": "Catch 100 flotsam.",
+      "when": {
+        "stat": "flotsam",
+        "gte": 100
+      },
+      "secret": false,
+      "icon": "flotsam/crate",
+      "day": 50
+    },
+    {
+      "id": "rain_catch",
+      "category": "flotsam",
+      "name": "Wet Pickings",
+      "how": "Catch flotsam in the rain.",
+      "when": {
+        "event": "flotsam_claimed",
+        "weather": "rain"
+      },
+      "secret": false,
+      "icon": "flotsam/fuel_drum",
+      "day": 3
+    },
+    {
+      "id": "night_catch",
+      "category": "flotsam",
+      "name": "Night Fishing",
+      "how": "Catch flotsam at night.",
+      "when": {
+        "event": "flotsam_claimed",
+        "night": true
+      },
+      "secret": false,
+      "icon": "flotsam/crate",
+      "day": 1
+    },
+    {
+      "id": "full_throttle",
+      "category": "flotsam",
+      "name": "Full Throttle",
+      "how": "Run a Rally and a Drowned Drone at once.",
+      "when": {
+        "buffs": [
+          "rally",
+          "drone"
+        ]
+      },
+      "secret": true,
+      "hint": "A drum that waits can share the stage.",
+      "icon": "flotsam/fuel_drum",
+      "day": "secret"
+    },
+    {
+      "id": "storm_surge",
+      "category": "flotsam",
+      "name": "Storm Surge",
+      "how": "Catch an Adrenaline Kit in the rain.",
+      "when": {
+        "event": "flotsam_claimed",
+        "kind": "adrenaline",
+        "weather": "rain"
+      },
+      "secret": true,
+      "hint": "Lightning in a tin.",
+      "icon": "flotsam/adrenaline",
+      "day": 40
+    },
+    {
+      "id": "out_of_fog",
+      "category": "flotsam",
+      "name": "Fog Find",
+      "how": "Catch flotsam in the fog.",
+      "when": {
+        "event": "flotsam_claimed",
+        "weather": "fog"
+      },
+      "secret": true,
+      "hint": "Not everything lost in the murk stays lost.",
+      "icon": "flotsam/crate",
+      "day": 5
+    },
+    {
+      "id": "first_wipe",
+      "category": "nukes",
+      "name": "Lid's Up",
+      "how": "Press the Big Red.",
+      "when": {
+        "stat": "wipe_days",
+        "gte": 1
+      },
+      "secret": false,
+      "quip": "I *just* fixed the roof.",
+      "icon": "ui/big_red",
+      "day": 1
+    },
+    {
+      "id": "wipe_5",
+      "category": "nukes",
+      "name": "Old Habit",
+      "how": "Reach Wipe Day #5.",
+      "when": {
+        "stat": "wipe_days",
+        "gte": 5
+      },
+      "secret": false,
+      "icon": "ui/big_red",
+      "day": 5
+    },
+    {
+      "id": "regular",
+      "category": "nukes",
+      "name": "Regular",
+      "how": "Reach Wipe Day #10.",
+      "when": {
+        "stat": "wipe_days",
+        "gte": 10
+      },
+      "secret": false,
+      "quip": "The gulls don't even look up any more.",
+      "icon": "ui/big_red",
+      "day": 10
+    },
+    {
+      "id": "doubling",
+      "category": "nukes",
+      "name": "Twice as Bright",
+      "how": "Double your glass in one Wipe Day.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "gainShareGte": 1
+      },
+      "secret": false,
+      "icon": "currency/glass",
+      "day": 2
+    },
+    {
+      "id": "glass_1k",
+      "category": "nukes",
+      "name": "Glass Jar",
+      "how": "Earn 1,000 crater glass.",
+      "when": {
+        "stat": "glass_ever",
+        "gte": 1000
+      },
+      "secret": false,
+      "icon": "currency/glass",
+      "day": 7
+    },
+    {
+      "id": "glass_10k",
+      "category": "nukes",
+      "name": "Glass Shelf",
+      "how": "Earn 10,000 crater glass.",
+      "when": {
+        "stat": "glass_ever",
+        "gte": 10000
+      },
+      "secret": false,
+      "icon": "currency/glass",
+      "day": 20
+    },
+    {
+      "id": "glass_100k",
+      "category": "nukes",
+      "name": "Glass House",
+      "how": "Earn 100,000 crater glass.",
+      "when": {
+        "stat": "glass_ever",
+        "gte": 100000
+      },
+      "secret": false,
+      "quip": "Nobody throw anything.",
+      "icon": "currency/glass",
+      "day": 50
+    },
+    {
+      "id": "big_gain",
+      "category": "nukes",
+      "name": "Ten Thousand Shards",
+      "how": "Earn 10,000 glass in one Wipe Day.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "gainGte": 10000
+      },
+      "secret": false,
+      "icon": "ui/glow",
+      "day": 40
+    },
+    {
+      "id": "short_fuse",
+      "category": "nukes",
+      "name": "Short Fuse",
+      "how": "Make a Wipe Day within 30 min of a run's start.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "runSecondsLte": 1800
+      },
+      "secret": false,
+      "icon": "ui/big_red",
+      "day": "long haul"
+    },
+    {
+      "id": "lightning_rod",
+      "category": "nukes",
+      "name": "Lightning Rod",
+      "how": "Press the Big Red while it rains.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "weather": "rain"
+      },
+      "secret": true,
+      "hint": "Most people launch in fair weather.",
+      "icon": "ui/big_red",
+      "day": 5
+    },
+    {
+      "id": "nobody_home",
+      "category": "nukes",
+      "name": "Nobody Home",
+      "how": "Press the Big Red with no hand hired that run.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "handsHiredThisRun": 0
+      },
+      "secret": true,
+      "hint": "Some blasts are a solo act.",
+      "icon": "ui/big_red",
+      "day": 35
+    },
+    {
+      "id": "blind_launch",
+      "category": "nukes",
+      "name": "Blind Launch",
+      "how": "Press the Big Red at night, in fog.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "weather": "fog",
+        "night": true
+      },
+      "secret": true,
+      "hint": "Nobody saw that one go.",
+      "quip": "Did it go? I think it went.",
+      "icon": "ui/big_red",
+      "day": 35
+    },
+    {
+      "id": "just_made_it",
+      "category": "nukes",
+      "name": "Just Made It",
+      "how": "Make a Wipe Day worth under 11% of your glass.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "gainShareLte": 0.11
+      },
+      "secret": true,
+      "hint": "Scraping past the line still counts.",
+      "icon": "currency/glass",
+      "day": 40
+    },
+    {
+      "id": "flight_u_turn",
+      "category": "flights",
+      "name": "U-Turn",
+      "how": "Watch the Kettle shrug and turn home.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "flight": "u_turn"
+      },
+      "secret": false,
+      "quip": "It looked at the sea and changed its mind.",
+      "icon": "ui/kettle_fuel",
+      "day": 1
+    },
+    {
+      "id": "flight_loop_the_loop",
+      "category": "flights",
+      "name": "Loop-the-Loop",
+      "how": "Watch the Kettle loop the loop.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "flight": "loop_the_loop"
+      },
+      "secret": false,
+      "icon": "ui/kettle_fuel",
+      "day": 3
+    },
+    {
+      "id": "flight_sputter_drop",
+      "category": "flights",
+      "name": "Sputter and Drop",
+      "how": "Watch the Kettle cough and drop.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "flight": "sputter_drop"
+      },
+      "secret": false,
+      "quip": "Technically a launch.",
+      "icon": "ui/kettle_fuel",
+      "day": 3
+    },
+    {
+      "id": "flight_fizzle",
+      "category": "flights",
+      "name": "Fizzle",
+      "how": "Set off a small blast.",
+      "when": {
+        "event": "nuked",
+        "counted": false,
+        "flight": "fizzle"
+      },
+      "secret": false,
+      "quip": "That's it? That's the whole bang?",
+      "icon": "ui/kettle_frame",
+      "day": "long haul"
+    },
+    {
+      "id": "flight_boomerang",
+      "category": "flights",
+      "name": "Boomerang",
+      "how": "Watch the Kettle come back the other way.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "flight": "boomerang"
+      },
+      "secret": false,
+      "icon": "ui/kettle_fuel",
+      "day": 4
+    },
+    {
+      "id": "flight_storm_rider",
+      "category": "flights",
+      "name": "Storm Rider",
+      "how": "Watch lightning steer the Kettle home.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "flight": "storm_rider"
+      },
+      "secret": false,
+      "icon": "ui/kettle_fuel",
+      "day": 15
+    },
+    {
+      "id": "flight_gull_strike",
+      "category": "flights",
+      "name": "Gull Strike",
+      "how": "Watch a gull ride the Kettle down.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "flight": "gull_strike"
+      },
+      "secret": false,
+      "quip": "The gull got off. The gull always gets off.",
+      "icon": "ui/kettle_fuel",
+      "day": 6
+    },
+    {
+      "id": "flight_skipper",
+      "category": "flights",
+      "name": "The Skipper",
+      "how": "Watch the Kettle skip like a stone.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "flight": "skipper"
+      },
+      "secret": false,
+      "icon": "ui/kettle_fuel",
+      "day": 9
+    },
+    {
+      "id": "flight_moonshot",
+      "category": "flights",
+      "name": "Moonshot",
+      "how": "Watch the Kettle go straight up.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "flight": "moonshot"
+      },
+      "secret": false,
+      "icon": "ui/kettle_fuel",
+      "day": 11
+    },
+    {
+      "id": "flight_lawn_dart",
+      "category": "flights",
+      "name": "Lawn Dart",
+      "how": "Watch the Kettle stick in the yard.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "flight": "lawn_dart"
+      },
+      "secret": false,
+      "icon": "ui/kettle_fuel",
+      "day": 13
+    },
+    {
+      "id": "flight_ricochet",
+      "category": "flights",
+      "name": "Ricochet",
+      "how": "Watch the Kettle bounce off the lighthouse.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "flight": "ricochet"
+      },
+      "secret": false,
+      "icon": "ui/kettle_fuel",
+      "day": 17
+    },
+    {
+      "id": "flight_rowboat_chaser",
+      "category": "flights",
+      "name": "Rowboat Chaser",
+      "how": "Watch the Kettle chase the rowboat.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "flight": "rowboat_chaser"
+      },
+      "secret": false,
+      "quip": "Row. ROW.",
+      "icon": "ui/kettle_fuel",
+      "day": 23
+    },
+    {
+      "id": "all_flights",
+      "category": "flights",
+      "name": "Seen Them All",
+      "how": "Watch all 12 flights.",
+      "when": {
+        "pages": {
+          "category": "flights",
+          "all": true
+        }
+      },
+      "secret": false,
+      "icon": "ui/kettle_fuel",
+      "day": "long haul"
+    },
+    {
+      "id": "first_node",
+      "category": "map",
+      "name": "First Scorch",
+      "how": "Light your first Blast Map node.",
+      "when": {
+        "stat": "nodes",
+        "gte": 1
+      },
+      "secret": false,
+      "icon": "ui/ground_zero",
+      "day": 1
+    },
+    {
+      "id": "nodes_10",
+      "category": "map",
+      "name": "Spreading Burn",
+      "how": "Light 10 nodes.",
+      "when": {
+        "stat": "nodes",
+        "gte": 10
+      },
+      "secret": false,
+      "icon": "ui/ground_zero",
+      "day": 2
+    },
+    {
+      "id": "nodes_50",
+      "category": "map",
+      "name": "Scorch Marks",
+      "how": "Light 50 nodes.",
+      "when": {
+        "stat": "nodes",
+        "gte": 50
+      },
+      "secret": false,
+      "icon": "ui/ground_zero",
+      "day": 10
+    },
+    {
+      "id": "nodes_100",
+      "category": "map",
+      "name": "Wide Burn",
+      "how": "Light 100 nodes.",
+      "when": {
+        "stat": "nodes",
+        "gte": 100
+      },
+      "secret": false,
+      "icon": "ui/ground_zero",
+      "day": 35
+    },
+    {
+      "id": "scorched_wedge",
+      "category": "map",
+      "name": "Scorched Wedge",
+      "how": "Light every node of one ring in one sector.",
+      "when": {
+        "state": "sector_rings_lit",
+        "gte": 1
+      },
+      "secret": false,
+      "icon": "sector/grip",
+      "day": 1
+    },
+    {
+      "id": "all_sectors",
+      "category": "map",
+      "name": "Every Direction",
+      "how": "Light a node in all eight sectors.",
+      "when": {
+        "state": "sectors_touched",
+        "gte": 8
+      },
+      "secret": false,
+      "icon": "ui/ground_zero",
+      "day": 3
+    },
+    {
+      "id": "first_keystone",
+      "category": "map",
+      "name": "Keystone",
+      "how": "Slot a keystone.",
+      "when": {
+        "state": "keystones_slotted",
+        "gte": 1
+      },
+      "secret": false,
+      "quip": "Rules are more like guidelines now.",
+      "icon": "node_type/keystone",
+      "day": 11
+    },
+    {
+      "id": "path_buy",
+      "category": "map",
+      "name": "Shortcut",
+      "how": "Buy a whole path in one tap.",
+      "when": {
+        "event": "node_bought",
+        "path": true
+      },
+      "secret": false,
+      "icon": "ui/ground_zero",
+      "day": 5
+    },
+    {
+      "id": "burnt_crust",
+      "category": "map",
+      "name": "Burnt Through",
+      "how": "Light rings 1-6 of one sector in full.",
+      "when": {
+        "state": "sector_rings_lit",
+        "gte": 6
+      },
+      "secret": true,
+      "hint": "One slice, burnt right through.",
+      "icon": "sector/blast",
+      "day": "secret"
+    },
+    {
+      "id": "first_collect",
+      "category": "night_shift",
+      "name": "Welcome Back",
+      "how": "Collect what the Night Shift made.",
+      "when": {
+        "stat": "collects",
+        "gte": 1
+      },
+      "secret": false,
+      "quip": "We saved you some fish.",
+      "icon": "ui/night_shift",
+      "day": 1
+    },
+    {
+      "id": "collects_50",
+      "category": "night_shift",
+      "name": "Morning Routine",
+      "how": "Collect 50 times.",
+      "when": {
+        "stat": "collects",
+        "gte": 50
+      },
+      "secret": false,
+      "icon": "ui/night_shift",
+      "day": 17
+    },
+    {
+      "id": "long_window",
+      "category": "night_shift",
+      "name": "Round the Clock",
+      "how": "Stretch the Night Shift window to 24 h.",
+      "when": {
+        "state": "window_hours",
+        "gte": 24
+      },
+      "secret": false,
+      "icon": "ui/night_shift",
+      "day": 12
+    },
+    {
+      "id": "slept_through",
+      "category": "night_shift",
+      "name": "Slept Through It",
+      "how": "Come back to a full Night Shift window.",
+      "when": {
+        "event": "collected",
+        "windowFull": true
+      },
+      "secret": false,
+      "quip": "We stopped at nine. Union rules.",
+      "icon": "ui/night_shift",
+      "day": "long haul"
+    },
+    {
+      "id": "catnap",
+      "category": "night_shift",
+      "name": "Catnap",
+      "how": "Collect after barely an hour away.",
+      "when": {
+        "event": "collected",
+        "awaySecondsLte": 3660
+      },
+      "secret": true,
+      "hint": "The shortest welcome is still a welcome.",
+      "icon": "ui/night_shift",
+      "day": "secret"
+    },
+    {
+      "id": "deep_bunker",
+      "category": "night_shift",
+      "name": "Deep Bunker",
+      "how": "Stretch the Night Shift window to 40 h.",
+      "when": {
+        "state": "window_hours",
+        "gte": 40
+      },
+      "secret": true,
+      "hint": "Some bunkers sleep for days.",
+      "icon": "ui/night_shift",
+      "day": 45
+    },
+    {
+      "id": "gull_hello",
+      "category": "island",
+      "name": "Hello, Gull",
+      "how": "Poke a gull.",
+      "when": {
+        "stat": "pokes",
+        "of": "gull",
+        "gte": 1
+      },
+      "secret": false,
+      "quip": "It did not say hello back.",
+      "icon": "ui/gull",
+      "day": 1
+    },
+    {
+      "id": "kettle_knock",
+      "category": "island",
+      "name": "Knock Knock",
+      "how": "Poke the Kettle 10 times.",
+      "when": {
+        "stat": "pokes",
+        "of": "kettle",
+        "gte": 10
+      },
+      "secret": false,
+      "quip": "Don't. Knock. On. The. Warhead.",
+      "icon": "ui/kettle_frame",
+      "day": 2
+    },
+    {
+      "id": "night_launch",
+      "category": "island",
+      "name": "Night Sky Show",
+      "how": "Press the Big Red at night.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "night": true
+      },
+      "secret": false,
+      "icon": "ui/big_red",
+      "day": 1
+    },
+    {
+      "id": "metal_sign",
+      "category": "island",
+      "name": "Metal Sign",
+      "how": "Reach Wipe Day #25: the sign goes metal.",
+      "when": {
+        "stat": "wipe_days",
+        "gte": 25
+      },
+      "secret": false,
+      "icon": "ui/ground_zero",
+      "day": 30
+    },
+    {
+      "id": "gull_botherer",
+      "category": "island",
+      "name": "Gull Botherer",
+      "how": "Poke the gulls 100 times.",
+      "when": {
+        "stat": "pokes",
+        "of": "gull",
+        "gte": 100
+      },
+      "secret": true,
+      "hint": "The gulls are keeping score.",
+      "icon": "ui/gull",
+      "day": "secret"
+    },
+    {
+      "id": "kettle_drummer",
+      "category": "island",
+      "name": "Kettle Drummer",
+      "how": "Poke the Kettle 250 times.",
+      "when": {
+        "stat": "pokes",
+        "of": "kettle",
+        "gte": 250
+      },
+      "secret": true,
+      "hint": "It rings like a dinner gong if you keep at it.",
+      "icon": "ui/kettle_frame",
+      "day": "secret"
+    },
+    {
+      "id": "over_the_moon",
+      "category": "island",
+      "name": "Over the Moon",
+      "how": "Watch a Moonshot at night.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "flight": "moonshot",
+        "night": true
+      },
+      "secret": true,
+      "hint": "One flight is best watched after dark.",
+      "icon": "ui/kettle_fuel",
+      "day": 35
+    },
+    {
+      "id": "night_drone",
+      "category": "island",
+      "name": "Glow Worm",
+      "how": "Catch a Drowned Drone at night.",
+      "when": {
+        "event": "flotsam_claimed",
+        "kind": "drowned_drone",
+        "night": true
+      },
+      "secret": true,
+      "hint": "Something blinks in the dark water.",
+      "icon": "flotsam/drowned_drone",
+      "day": 40
+    },
+    {
+      "id": "paperwork",
+      "category": "jokes",
+      "name": "Paperwork",
+      "how": "Log 25 Logbook pages.",
+      "when": {
+        "pages": {
+          "gte": 25
+        }
+      },
+      "secret": false,
+      "quip": "Somebody has to write this down.",
+      "icon": "ui/page",
+      "day": 2
+    },
+    {
+      "id": "page_turner",
+      "category": "jokes",
+      "name": "Page Turner",
+      "how": "Log 60 Logbook pages.",
+      "when": {
+        "pages": {
+          "gte": 60
+        }
+      },
+      "secret": false,
+      "icon": "ui/page",
+      "day": 12
+    },
+    {
+      "id": "damp_squibs",
+      "category": "jokes",
+      "name": "Damp Squibs",
+      "how": "Set off 3 small blasts.",
+      "when": {
+        "stat": "small_blasts",
+        "gte": 3
+      },
+      "secret": false,
+      "quip": "Pop. Pop. Pop.",
+      "icon": "ui/kettle_frame",
+      "day": "long haul"
+    },
+    {
+      "id": "elite_heap",
+      "category": "jokes",
+      "name": "Elite Heap",
+      "how": "Hold supplies that start with 1337.",
+      "when": {
+        "state": "supplies_digits",
+        "eq": 1337
+      },
+      "secret": true,
+      "hint": "Some numbers are more elite than others.",
+      "icon": "currency/supplies",
+      "day": "secret"
+    },
+    {
+      "id": "not_found",
+      "category": "jokes",
+      "name": "Not Found",
+      "how": "Hold supplies that start with 404.",
+      "when": {
+        "state": "supplies_digits",
+        "eq": 404
+      },
+      "secret": true,
+      "hint": "Look for the number that is never found.",
+      "icon": "currency/supplies",
+      "day": "secret"
+    },
+    {
+      "id": "lucky_sevens",
+      "category": "jokes",
+      "name": "Lucky Sevens",
+      "how": "Hold supplies that start with 777.",
+      "when": {
+        "state": "supplies_digits",
+        "eq": 777
+      },
+      "secret": true,
+      "hint": "Three of a kind, right on the counter.",
+      "icon": "currency/supplies",
+      "day": "secret"
+    },
+    {
+      "id": "oops",
+      "category": "jokes",
+      "name": "Oops",
+      "how": "Set off a small blast in a run's first minute.",
+      "when": {
+        "event": "nuked",
+        "counted": false,
+        "runSecondsLte": 60
+      },
+      "secret": true,
+      "hint": "Some people press it just to see.",
+      "quip": "It was a test. Of the island.",
+      "icon": "ui/big_red",
+      "day": "secret"
+    },
+    {
+      "id": "wet_firework",
+      "category": "jokes",
+      "name": "Wet Firework",
+      "how": "Watch Sputter and Drop in the rain.",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "flight": "sputter_drop",
+        "weather": "rain"
+      },
+      "secret": true,
+      "hint": "A dud looks even sadder in the rain.",
+      "icon": "ui/kettle_fuel",
+      "day": "secret"
+    },
+    {
+      "id": "class_clown",
+      "category": "jokes",
+      "name": "Class Clown",
+      "how": "Log every other Jokes page.",
+      "when": {
+        "pages": {
+          "category": "jokes",
+          "all": true
+        }
+      },
+      "secret": true,
+      "hint": "Laugh at every last one of them.",
+      "icon": "ui/secret",
+      "day": "secret"
+    }
+  ],
+  "later": [
+    {
+      "id": "first_haul",
+      "category": "scrap",
+      "name": "First Haul",
+      "when": {
+        "stat": "hauls",
+        "gte": 1
+      },
+      "phase": "R5",
+      "secret": false,
+      "needs": "counter hauls"
+    },
+    {
+      "id": "early_win",
+      "category": "scrap",
+      "name": "Early Bird",
+      "when": {
+        "event": "scrap_hauled",
+        "early": true,
+        "amountGte": 1
+      },
+      "phase": "R5",
+      "secret": false
+    },
+    {
+      "id": "old_boot",
+      "category": "scrap",
+      "name": "Old Boot",
+      "when": {
+        "event": "scrap_hauled",
+        "early": true,
+        "amountLte": 0
+      },
+      "phase": "R5",
+      "secret": true
+    },
+    {
+      "id": "rich_haul",
+      "category": "scrap",
+      "name": "Gold Lump",
+      "when": {
+        "event": "scrap_hauled",
+        "rich": true
+      },
+      "phase": "R5",
+      "secret": false
+    },
+    {
+      "id": "auto_haul",
+      "category": "scrap",
+      "name": "Hauls Itself",
+      "when": {
+        "event": "scrap_hauled",
+        "auto": true
+      },
+      "phase": "R5",
+      "secret": false
+    },
+    {
+      "id": "hauls_30",
+      "category": "scrap",
+      "name": "Crane Operator",
+      "when": {
+        "stat": "hauls",
+        "gte": 30
+      },
+      "phase": "R5",
+      "secret": false
+    },
+    {
+      "id": "hauls_100",
+      "category": "scrap",
+      "name": "Magnet Keeper",
+      "when": {
+        "stat": "hauls",
+        "gte": 100
+      },
+      "phase": "R5",
+      "secret": false
+    },
+    {
+      "id": "scrap_25",
+      "category": "scrap",
+      "name": "Scrap Tin",
+      "when": {
+        "stat": "scrap_earned",
+        "gte": 25
+      },
+      "phase": "R5",
+      "secret": false,
+      "needs": "counter scrap_earned"
+    },
+    {
+      "id": "scrap_100",
+      "category": "scrap",
+      "name": "Scrap Pile",
+      "when": {
+        "stat": "scrap_earned",
+        "gte": 100
+      },
+      "phase": "R5",
+      "secret": false
+    },
+    {
+      "id": "tray_three",
+      "category": "scrap",
+      "name": "Full Tray",
+      "when": {
+        "state": "magnet_tray",
+        "gte": 3
+      },
+      "phase": "R5",
+      "secret": true,
+      "needs": "predicate magnet_tray"
+    },
+    {
+      "id": "first_pocket",
+      "category": "scrap",
+      "name": "Lined Pocket",
+      "when": {
+        "stat": "pocket_slots",
+        "gte": 1
+      },
+      "phase": "R5",
+      "secret": false,
+      "needs": "counter pocket_slots"
+    },
+    {
+      "id": "pockets_3",
+      "category": "scrap",
+      "name": "Full Pockets",
+      "when": {
+        "stat": "pocket_slots",
+        "gte": 3
+      },
+      "phase": "R5",
+      "secret": false
+    },
+    {
+      "id": "pocket_island",
+      "category": "scrap",
+      "name": "Pocket Island",
+      "when": {
+        "state": "pocketed",
+        "of": "island",
+        "gte": 1
+      },
+      "phase": "R5",
+      "secret": true,
+      "needs": "predicate pocketed"
+    },
+    {
+      "id": "pocket_grip",
+      "category": "scrap",
+      "name": "Pocket Tools",
+      "when": {
+        "state": "pocketed",
+        "of": "grip",
+        "gte": 1
+      },
+      "phase": "R5",
+      "secret": false
+    },
+    {
+      "id": "pocket_shuffle",
+      "category": "scrap",
+      "name": "Pocket Shuffle",
+      "when": {
+        "stat": "pocket_swaps",
+        "gte": 5
+      },
+      "phase": "R5",
+      "secret": true,
+      "needs": "counter pocket_swaps"
+    },
+    {
+      "id": "first_rank",
+      "category": "hands",
+      "name": "Armband",
+      "when": {
+        "stat": "ranks",
+        "gte": 1
+      },
+      "phase": "R5",
+      "secret": false,
+      "needs": "counter ranks"
+    },
+    {
+      "id": "ranks_all_1",
+      "category": "hands",
+      "name": "Gold Armbands",
+      "when": {
+        "state": "rank_floor",
+        "gte": 1
+      },
+      "phase": "R5",
+      "secret": false,
+      "needs": "predicate rank_floor"
+    },
+    {
+      "id": "ranks_all_2",
+      "category": "hands",
+      "name": "Two Pips Each",
+      "when": {
+        "state": "rank_floor",
+        "gte": 2
+      },
+      "phase": "R5",
+      "secret": false
+    },
+    {
+      "id": "ranks_all_3",
+      "category": "hands",
+      "name": "Hat Bands",
+      "when": {
+        "state": "rank_floor",
+        "gte": 3
+      },
+      "phase": "R5",
+      "secret": false
+    },
+    {
+      "id": "ranks_all_4",
+      "category": "hands",
+      "name": "Four Pips Each",
+      "when": {
+        "state": "rank_floor",
+        "gte": 4
+      },
+      "phase": "R5",
+      "secret": false
+    },
+    {
+      "id": "gold_star",
+      "category": "hands",
+      "name": "Gold Star",
+      "when": {
+        "event": "rank_bought",
+        "rank": 5
+      },
+      "phase": "R5",
+      "secret": false,
+      "needs": "event rank_bought"
+    },
+    {
+      "id": "ranks_all_5",
+      "category": "hands",
+      "name": "Gold Stars",
+      "when": {
+        "state": "rank_floor",
+        "gte": 5
+      },
+      "phase": "R5",
+      "secret": false
+    },
+    {
+      "id": "first_locker",
+      "category": "flotsam",
+      "name": "Barnacled Locker",
+      "when": {
+        "stat": "flotsam",
+        "of": "sealed_locker",
+        "gte": 1
+      },
+      "phase": "R5",
+      "secret": false
+    },
+    {
+      "id": "lockers_10",
+      "category": "flotsam",
+      "name": "Locker Room",
+      "when": {
+        "stat": "flotsam",
+        "of": "sealed_locker",
+        "gte": 10
+      },
+      "phase": "R5",
+      "secret": false
+    },
+    {
+      "id": "double_shot",
+      "category": "flotsam",
+      "name": "Double Shot",
+      "when": {
+        "buffs": [
+          "rally",
+          "adrenaline"
+        ]
+      },
+      "phase": "R5",
+      "secret": false
+    },
+    {
+      "id": "first_rush",
+      "category": "toolbelt",
+      "name": "Rush Job",
+      "when": {
+        "stat": "tools",
+        "of": "rush",
+        "gte": 1
+      },
+      "phase": "R5",
+      "secret": false,
+      "needs": "counter tools"
+    },
+    {
+      "id": "rush_100",
+      "category": "toolbelt",
+      "name": "Always Rushing",
+      "when": {
+        "stat": "tools",
+        "of": "rush",
+        "gte": 100
+      },
+      "phase": "R5",
+      "secret": false
+    },
+    {
+      "id": "first_grit",
+      "category": "toolbelt",
+      "name": "Grit Your Teeth",
+      "when": {
+        "stat": "tools",
+        "of": "grit",
+        "gte": 1
+      },
+      "phase": "R5",
+      "secret": false
+    },
+    {
+      "id": "grit_full",
+      "category": "toolbelt",
+      "name": "Ten Stacks",
+      "when": {
+        "state": "grit",
+        "gte": 10
+      },
+      "phase": "R5",
+      "secret": false,
+      "needs": "predicate grit"
+    },
+    {
+      "id": "first_flare",
+      "category": "toolbelt",
+      "name": "Flare Up",
+      "when": {
+        "stat": "tools",
+        "of": "flare",
+        "gte": 1
+      },
+      "phase": "R5",
+      "secret": false
+    },
+    {
+      "id": "flares_50",
+      "category": "toolbelt",
+      "name": "Flare Season",
+      "when": {
+        "stat": "tools",
+        "of": "flare",
+        "gte": 50
+      },
+      "phase": "R5",
+      "secret": false
+    },
+    {
+      "id": "called_it",
+      "category": "toolbelt",
+      "name": "Called It",
+      "when": {
+        "event": "tool_used",
+        "tool": "flare",
+        "kind": "fuel_drum"
+      },
+      "phase": "R5",
+      "secret": true,
+      "needs": "event tool_used"
+    },
+    {
+      "id": "overdrive",
+      "category": "toolbelt",
+      "name": "Overdrive",
+      "when": {
+        "buffs": [
+          "adrenaline",
+          "rush"
+        ]
+      },
+      "phase": "R5",
+      "secret": true
+    },
+    {
+      "id": "everything_at_once",
+      "category": "toolbelt",
+      "name": "Everything at Once",
+      "when": {
+        "buffs": [
+          "rally",
+          "adrenaline",
+          "rush"
+        ]
+      },
+      "phase": "R5",
+      "secret": true
+    },
+    {
+      "id": "clipboard",
+      "category": "lines",
+      "name": "Clipboard",
+      "when": {
+        "stat": "foreman_units",
+        "gte": 1
+      },
+      "phase": "R5",
+      "secret": false,
+      "needs": "counter foreman_units"
+    },
+    {
+      "id": "middle_management",
+      "category": "lines",
+      "name": "Middle Management",
+      "when": {
+        "stat": "foreman_units",
+        "gte": 10000
+      },
+      "phase": "R5",
+      "secret": false
+    },
+    {
+      "id": "bulk_order",
+      "category": "lines",
+      "name": "Bulk Order",
+      "when": {
+        "event": "collected",
+        "foremanUnitsGte": 1000
+      },
+      "phase": "R5",
+      "secret": true,
+      "needs": "field collected.foremanUnits"
+    },
+    {
+      "id": "hands_free",
+      "category": "nukes",
+      "name": "Hands Free",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "by": "dead_hand"
+      },
+      "phase": "R5",
+      "secret": false,
+      "needs": "field nuked.by"
+    },
+    {
+      "id": "set_and_forget",
+      "category": "nukes",
+      "name": "Set and Forget",
+      "when": {
+        "stat": "dead_hand_wipes",
+        "gte": 10
+      },
+      "phase": "R5",
+      "secret": false,
+      "needs": "counter dead_hand_wipes"
+    },
+    {
+      "id": "cold_feet",
+      "category": "nukes",
+      "name": "Cold Feet",
+      "when": {
+        "event": "dead_hand_stopped"
+      },
+      "phase": "R5",
+      "secret": true,
+      "needs": "event dead_hand_stopped"
+    },
+    {
+      "id": "first_claim",
+      "category": "friends",
+      "name": "Return Mail",
+      "when": {
+        "stat": "blowback",
+        "gte": 1
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "claims_10",
+      "category": "friends",
+      "name": "Beach Mail",
+      "when": {
+        "stat": "blowback",
+        "gte": 10
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "claims_50",
+      "category": "friends",
+      "name": "Shore Duty",
+      "when": {
+        "stat": "blowback",
+        "gte": 50
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "claims_200",
+      "category": "friends",
+      "name": "Wash-up Collector",
+      "when": {
+        "stat": "blowback",
+        "gte": 200
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "full_shore",
+      "category": "friends",
+      "name": "Full Shore",
+      "when": {
+        "state": "crates_waiting",
+        "gte": 9
+      },
+      "phase": "R6",
+      "secret": false,
+      "needs": "predicate crates_waiting"
+    },
+    {
+      "id": "soggy_parcel",
+      "category": "friends",
+      "name": "Soggy Parcel",
+      "when": {
+        "event": "blowback_claimed",
+        "weather": "rain"
+      },
+      "phase": "R6",
+      "secret": true,
+      "needs": "field blowback_claimed.weather"
+    },
+    {
+      "id": "midnight_delivery",
+      "category": "friends",
+      "name": "Midnight Delivery",
+      "when": {
+        "event": "blowback_claimed",
+        "night": true
+      },
+      "phase": "R6",
+      "secret": true
+    },
+    {
+      "id": "spread_the_love",
+      "category": "friends",
+      "name": "Spread the Love",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "islandsWashedGte": 3
+      },
+      "phase": "R6",
+      "secret": true,
+      "needs": "field nuked.islandsWashed"
+    },
+    {
+      "id": "neighbourly",
+      "category": "friends",
+      "name": "Neighbourly",
+      "when": {
+        "stat": "crates_sent",
+        "gte": 100
+      },
+      "phase": "R6",
+      "secret": false,
+      "needs": "counter crates_sent"
+    },
+    {
+      "id": "double_delivery",
+      "category": "friends",
+      "name": "Double Delivery",
+      "when": {
+        "event": "blowback_claimed",
+        "afterglow": true
+      },
+      "phase": "R6",
+      "secret": true
+    },
+    {
+      "id": "first_load",
+      "category": "friends",
+      "name": "Loaded Up",
+      "when": {
+        "stat": "loads",
+        "gte": 1
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "six_deep",
+      "category": "friends",
+      "name": "Six Crates Deep",
+      "when": {
+        "state": "loads_this_week",
+        "gte": 6
+      },
+      "phase": "R6",
+      "secret": false,
+      "needs": "predicate loads_this_week"
+    },
+    {
+      "id": "loads_50",
+      "category": "friends",
+      "name": "Regular Shipper",
+      "when": {
+        "stat": "loads",
+        "gte": 50
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "loads_150",
+      "category": "friends",
+      "name": "Freight Line",
+      "when": {
+        "stat": "loads",
+        "gte": 150
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "over_the_line",
+      "category": "friends",
+      "name": "Over the Line",
+      "when": {
+        "event": "freighter_loaded",
+        "tierGte": 1
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "topped_off",
+      "category": "friends",
+      "name": "Topped Off",
+      "when": {
+        "event": "freighter_loaded",
+        "tier": 3
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "four_mondays",
+      "category": "friends",
+      "name": "Four Mondays",
+      "when": {
+        "stat": "freighter_weeks",
+        "gte": 4
+      },
+      "phase": "R6",
+      "secret": false,
+      "needs": "counter freighter_weeks"
+    },
+    {
+      "id": "twelve_mondays",
+      "category": "friends",
+      "name": "Twelve Mondays",
+      "when": {
+        "stat": "freighter_weeks",
+        "gte": 12
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "pennant_up",
+      "category": "friends",
+      "name": "Pennant Up",
+      "when": {
+        "stat": "pennants",
+        "gte": 1
+      },
+      "phase": "R6",
+      "secret": false,
+      "needs": "counter pennants"
+    },
+    {
+      "id": "pennant_row",
+      "category": "friends",
+      "name": "Pennant Row",
+      "when": {
+        "stat": "pennants",
+        "gte": 10
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "count_10",
+      "category": "friends",
+      "name": "Scorched Flag",
+      "when": {
+        "state": "island_count",
+        "gte": 10
+      },
+      "phase": "R6",
+      "secret": false,
+      "needs": "predicate island_count"
+    },
+    {
+      "id": "count_25",
+      "category": "friends",
+      "name": "Glass Gull",
+      "when": {
+        "state": "island_count",
+        "gte": 25
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "count_50",
+      "category": "friends",
+      "name": "Pockmarked",
+      "when": {
+        "state": "island_count",
+        "gte": 50
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "count_100",
+      "category": "friends",
+      "name": "Century of Craters",
+      "when": {
+        "state": "island_count",
+        "gte": 100
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "count_175",
+      "category": "friends",
+      "name": "Swiss Cheese",
+      "when": {
+        "state": "island_count",
+        "gte": 175
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "count_250",
+      "category": "friends",
+      "name": "Crater Field",
+      "when": {
+        "state": "island_count",
+        "gte": 250
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "popping_round",
+      "category": "friends",
+      "name": "Popping Round",
+      "when": {
+        "stat": "visits",
+        "gte": 1
+      },
+      "phase": "R6",
+      "secret": false,
+      "needs": "counter visits"
+    },
+    {
+      "id": "grand_tour",
+      "category": "friends",
+      "name": "Grand Tour",
+      "when": {
+        "state": "visited_all",
+        "eq": true
+      },
+      "phase": "R6",
+      "secret": true,
+      "needs": "predicate visited_all"
+    },
+    {
+      "id": "nosy_neighbour",
+      "category": "friends",
+      "name": "Nosy Neighbour",
+      "when": {
+        "stat": "visits",
+        "gte": 25
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "postcard_collector",
+      "category": "friends",
+      "name": "Postcard Collector",
+      "when": {
+        "stat": "postcards_viewed",
+        "gte": 10
+      },
+      "phase": "R6",
+      "secret": true,
+      "needs": "counter postcards_viewed"
+    },
+    {
+      "id": "night_visit",
+      "category": "friends",
+      "name": "Night Visit",
+      "when": {
+        "event": "visited",
+        "night": true
+      },
+      "phase": "R6",
+      "secret": true,
+      "needs": "event visited"
+    },
+    {
+      "id": "front_page",
+      "category": "nukes",
+      "name": "Front Page",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "news": true
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "three_in_a_row",
+      "category": "nukes",
+      "name": "Hat Trick",
+      "when": {
+        "event": "nuked",
+        "counted": true,
+        "foldedGte": 3
+      },
+      "phase": "R6",
+      "secret": true
+    },
+    {
+      "id": "best_blast_yet",
+      "category": "nukes",
+      "name": "Best Blast Yet",
+      "when": {
+        "event": "record_set",
+        "record": "best_blast"
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "comeback_kid",
+      "category": "nukes",
+      "name": "Comeback Kid",
+      "when": {
+        "event": "record_set",
+        "record": "fastest_comeback"
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "biggest_bang",
+      "category": "nukes",
+      "name": "Biggest Bang",
+      "when": {
+        "event": "record_set",
+        "record": "biggest_gain"
+      },
+      "phase": "R6",
+      "secret": true
+    },
+    {
+      "id": "on_the_board",
+      "category": "friends",
+      "name": "On the Board",
+      "when": {
+        "state": "boards_listed",
+        "gte": 1
+      },
+      "phase": "R6",
+      "secret": false,
+      "needs": "predicate boards_listed"
+    },
+    {
+      "id": "seven_boards",
+      "category": "friends",
+      "name": "Seven Boards",
+      "when": {
+        "state": "boards_listed",
+        "gte": 7
+      },
+      "phase": "R6",
+      "secret": false
+    },
+    {
+      "id": "busy_month",
+      "category": "friends",
+      "name": "Busy Month",
+      "when": {
+        "stat": "month_pages",
+        "gte": 10
+      },
+      "phase": "R6",
+      "secret": false,
+      "needs": "monthly counter pages"
+    },
+    {
+      "id": "tide_month",
+      "category": "friends",
+      "name": "Tide Month",
+      "when": {
+        "stat": "month_flotsam",
+        "gte": 50
+      },
+      "phase": "R6",
+      "secret": false,
+      "needs": "monthly counter flotsam"
+    },
+    {
+      "id": "sleepless",
+      "category": "dares",
+      "name": "Sleepless",
+      "when": {
+        "event": "dare_done",
+        "dare": "long_nights"
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "rich_pickings",
+      "category": "dares",
+      "name": "Rich Pickings",
+      "when": {
+        "event": "dare_done",
+        "dare": "rich_tides"
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "eye_of_the_storm",
+      "category": "dares",
+      "name": "Storm's Eye",
+      "when": {
+        "event": "dare_done",
+        "dare": "storm_season"
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "hands_in_pockets",
+      "category": "dares",
+      "name": "Hands in Pockets",
+      "when": {
+        "event": "dare_done",
+        "dare": "quiet_raiders"
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "changed_my_mind",
+      "category": "dares",
+      "name": "Changed My Mind",
+      "when": {
+        "stat": "dares_abandoned",
+        "gte": 1
+      },
+      "phase": "R7",
+      "secret": true,
+      "needs": "counter dares_abandoned"
+    },
+    {
+      "id": "daredevil",
+      "category": "dares",
+      "name": "Daredevil",
+      "when": {
+        "state": "dares_done",
+        "gte": 4
+      },
+      "phase": "R7",
+      "secret": false,
+      "needs": "predicate dares_done"
+    },
+    {
+      "id": "encore",
+      "category": "dares",
+      "name": "Encore",
+      "when": {
+        "event": "dare_done",
+        "repeat": true
+      },
+      "phase": "R7",
+      "secret": true,
+      "needs": "field dare_done.repeat"
+    },
+    {
+      "id": "double_or_nothing",
+      "category": "dares",
+      "name": "Double or Nothing",
+      "when": {
+        "event": "dare_done",
+        "double": true
+      },
+      "phase": "R7",
+      "secret": true,
+      "needs": "field dare_done.double"
+    },
+    {
+      "id": "bare_knuckles",
+      "category": "dares",
+      "name": "Bare Knuckles",
+      "when": {
+        "event": "dare_done",
+        "dare": "bare_hands"
+      },
+      "phase": "R7+",
+      "secret": false,
+      "needs": "ships with its Dare"
+    },
+    {
+      "id": "unlucky_thirteen",
+      "category": "dares",
+      "name": "Unlucky Thirteen",
+      "when": {
+        "event": "dare_done",
+        "dare": "thirteen"
+      },
+      "phase": "R7+",
+      "secret": false,
+      "needs": "ships with its Dare"
+    },
+    {
+      "id": "speed_demon",
+      "category": "dares",
+      "name": "Speed Demon",
+      "when": {
+        "event": "dare_done",
+        "dare": "speed_wipe"
+      },
+      "phase": "R7+",
+      "secret": false,
+      "needs": "ships with its Dare"
+    },
+    {
+      "id": "twig_forever",
+      "category": "dares",
+      "name": "Twig Forever",
+      "when": {
+        "event": "dare_done",
+        "dare": "twig_only"
+      },
+      "phase": "R7+",
+      "secret": false,
+      "needs": "ships with its Dare"
+    },
+    {
+      "id": "bare_bones",
+      "category": "dares",
+      "name": "Bare Bones",
+      "when": {
+        "event": "dare_done",
+        "dare": "skeleton_crew"
+      },
+      "phase": "R7+",
+      "secret": false,
+      "needs": "ships with its Dare"
+    },
+    {
+      "id": "flat_sea",
+      "category": "dares",
+      "name": "Flat Sea",
+      "when": {
+        "event": "dare_done",
+        "dare": "dead_calm"
+      },
+      "phase": "R7+",
+      "secret": false,
+      "needs": "ships with its Dare"
+    },
+    {
+      "id": "plain_living",
+      "category": "dares",
+      "name": "Plain Living",
+      "when": {
+        "event": "dare_done",
+        "dare": "no_frills"
+      },
+      "phase": "R7+",
+      "secret": false,
+      "needs": "ships with its Dare"
+    },
+    {
+      "id": "belt_undone",
+      "category": "dares",
+      "name": "Belt Undone",
+      "when": {
+        "event": "dare_done",
+        "dare": "empty_belt"
+      },
+      "phase": "R7+",
+      "secret": false,
+      "needs": "ships with its Dare"
+    },
+    {
+      "id": "seventh_ring",
+      "category": "map",
+      "name": "Seventh Ring",
+      "when": {
+        "event": "node_bought",
+        "ring": 7
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "outer_rim",
+      "category": "map",
+      "name": "Outer Rim",
+      "when": {
+        "event": "node_bought",
+        "ring": 9
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "nodes_200",
+      "category": "map",
+      "name": "Big Burn",
+      "when": {
+        "stat": "nodes",
+        "gte": 200
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "nodes_300",
+      "category": "map",
+      "name": "Scorched Earth",
+      "when": {
+        "stat": "nodes",
+        "gte": 300
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "whole_map",
+      "category": "map",
+      "name": "The Whole Map",
+      "when": {
+        "stat": "nodes",
+        "gte": 361
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "three_keystones",
+      "category": "map",
+      "name": "Three Keystones",
+      "when": {
+        "state": "keystones_slotted",
+        "gte": 3
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "edge_of_the_map",
+      "category": "map",
+      "name": "Map's Edge",
+      "when": {
+        "state": "sector_rings_lit",
+        "gte": 9
+      },
+      "phase": "R7",
+      "secret": true
+    },
+    {
+      "id": "full_circle",
+      "category": "map",
+      "name": "Full Circle",
+      "when": {
+        "event": "node_bought",
+        "ring": 9,
+        "type": "completion"
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "lit_sign",
+      "category": "island",
+      "name": "Lit Sign",
+      "when": {
+        "stat": "wipe_days",
+        "gte": 50
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "hundredth_wipe",
+      "category": "nukes",
+      "name": "Hundredth Wipe",
+      "when": {
+        "stat": "wipe_days",
+        "gte": 100
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "glass_1m",
+      "category": "nukes",
+      "name": "Glass Palace",
+      "when": {
+        "stat": "glass_ever",
+        "gte": 1000000
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "glass_10m",
+      "category": "nukes",
+      "name": "Glass Mountain",
+      "when": {
+        "stat": "glass_ever",
+        "gte": 10000000
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "night_owl",
+      "category": "island",
+      "name": "Night Owl",
+      "when": {
+        "stat": "night_wipes",
+        "gte": 25
+      },
+      "phase": "R7",
+      "secret": true,
+      "needs": "counter night_wipes"
+    },
+    {
+      "id": "storm_chaser",
+      "category": "island",
+      "name": "Storm Chaser",
+      "when": {
+        "stat": "rain_wipes",
+        "gte": 10
+      },
+      "phase": "R7",
+      "secret": true,
+      "needs": "counter rain_wipes"
+    },
+    {
+      "id": "serial_fizzler",
+      "category": "jokes",
+      "name": "Serial Fizzler",
+      "when": {
+        "stat": "small_blasts",
+        "gte": 25
+      },
+      "phase": "R7",
+      "secret": true
+    },
+    {
+      "id": "felled_5000",
+      "category": "taps",
+      "name": "Clear-Cut",
+      "when": {
+        "stat": "felled",
+        "gte": 5000
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "taps_100k",
+      "category": "taps",
+      "name": "Iron Thumbs",
+      "when": {
+        "stat": "taps",
+        "gte": 100000
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "taps_500k",
+      "category": "taps",
+      "name": "Thumbs of Steel",
+      "when": {
+        "stat": "taps",
+        "gte": 500000
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "crits_10k",
+      "category": "taps",
+      "name": "Critical Mass",
+      "when": {
+        "stat": "crits",
+        "gte": 10000
+      },
+      "phase": "R7",
+      "secret": true
+    },
+    {
+      "id": "flotsam_250",
+      "category": "flotsam",
+      "name": "Sea Legs",
+      "when": {
+        "stat": "flotsam",
+        "gte": 250
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "crates_100",
+      "category": "flotsam",
+      "name": "Crate Hoard",
+      "when": {
+        "stat": "flotsam",
+        "of": "crate",
+        "gte": 100
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "drums_100",
+      "category": "flotsam",
+      "name": "Drum Line",
+      "when": {
+        "stat": "flotsam",
+        "of": "fuel_drum",
+        "gte": 100
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "adrenaline_25",
+      "category": "flotsam",
+      "name": "Wired",
+      "when": {
+        "stat": "flotsam",
+        "of": "adrenaline",
+        "gte": 25
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "drones_25",
+      "category": "flotsam",
+      "name": "Drone Pilot",
+      "when": {
+        "stat": "flotsam",
+        "of": "drowned_drone",
+        "gte": 25
+      },
+      "phase": "R7",
+      "secret": true
+    },
+    {
+      "id": "bottles_5",
+      "category": "flotsam",
+      "name": "Pen Pal",
+      "when": {
+        "stat": "flotsam",
+        "of": "bottle",
+        "gte": 5
+      },
+      "phase": "R7",
+      "secret": true
+    },
+    {
+      "id": "collects_250",
+      "category": "night_shift",
+      "name": "Creature of Habit",
+      "when": {
+        "stat": "collects",
+        "gte": 250
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "two_day_shift",
+      "category": "night_shift",
+      "name": "Two-Day Shift",
+      "when": {
+        "state": "window_hours",
+        "gte": 48
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "armored_100",
+      "category": "eras",
+      "name": "Armor Veteran",
+      "when": {
+        "stat": "eras",
+        "of": "hqm",
+        "gte": 100
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "units_100k",
+      "category": "lines",
+      "name": "Boomtown",
+      "when": {
+        "stat": "units",
+        "gte": 100000
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "upgrades_2500",
+      "category": "lines",
+      "name": "Collector's Shelf",
+      "when": {
+        "stat": "upgrades",
+        "gte": 2500
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "pages_150",
+      "category": "jokes",
+      "name": "Thick Book",
+      "when": {
+        "pages": {
+          "gte": 150
+        }
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "pages_200",
+      "category": "jokes",
+      "name": "Doorstop",
+      "when": {
+        "pages": {
+          "gte": 200
+        }
+      },
+      "phase": "R7",
+      "secret": false
+    },
+    {
+      "id": "gull_nemesis",
+      "category": "island",
+      "name": "Gull Nemesis",
+      "when": {
+        "stat": "pokes",
+        "of": "gull",
+        "gte": 1000
+      },
+      "phase": "R7",
+      "secret": true
+    },
+    {
+      "id": "kettle_concerto",
+      "category": "island",
+      "name": "Kettle Concerto",
+      "when": {
+        "stat": "pokes",
+        "of": "kettle",
+        "gte": 1000
+      },
+      "phase": "R7",
+      "secret": true
+    }
+  ]
+}

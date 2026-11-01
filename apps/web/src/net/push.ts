@@ -1,8 +1,8 @@
 /**
- * Web Push on this device (W4b): whether it can work here, and turning it on
- * or off. The service worker (`public/sw.js`) shows the notifications and
- * opens the game when one is tapped. iPhones only allow push for a site added
- * to the Home Screen and opened from there.
+ * Web Push on this device: whether it can work here, and turning it on or off (restored from
+ * W4b for R1's Settings). The service worker (`public/sw.js`) shows the notifications and opens
+ * the game when one is tapped. iPhones allow push only for a site added to the Home Screen and
+ * opened from there.
  */
 import type { Backend, DeviceSubscription } from "./backend";
 
@@ -27,8 +27,7 @@ export function pushSupport(): PushSupport {
   return "ok";
 }
 
-/** Registers the service worker (once per page load is enough; the browser keeps it). */
-export async function registerWorker(): Promise<ServiceWorkerRegistration | null> {
+async function registerWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!("serviceWorker" in navigator)) return null;
   try {
     return await navigator.serviceWorker.register("/sw.js");
@@ -60,7 +59,9 @@ export async function enablePush(backend: Backend, publicKey: string): Promise<b
     userVisibleOnly: true,
     applicationServerKey: keyBytes(publicKey),
   });
-  await backend.pushSubscribe(subscription.toJSON() as DeviceSubscription);
+  // Quiet hours follow this browser's clock (errata E19).
+  const tzOffsetMinutes = -new Date().getTimezoneOffset();
+  await backend.pushSubscribe(subscription.toJSON() as DeviceSubscription, tzOffsetMinutes);
   return true;
 }
 

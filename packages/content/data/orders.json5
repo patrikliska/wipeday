@@ -1,0 +1,55 @@
+// Work Orders (docs/redesign/13-adventure.md 3; D255, D256): a run's checklist. At the start of
+// every run `perRun` orders are rolled from the pools below on the base's seed, `spread` of them
+// per era in era order, at most `activeMax` of the ones marked `active` (taps, fells, catches)
+// and at least `idleMin` of the ones marked `idle` (eras, supplies made, a first pair of hands:
+// what any player reaches given time, so an idler can always fuel the set, N32). Run 1 ends in Sheet Metal about a minute after
+// reaching it, so its spread stops at Stone; later runs' spreads follow their start era (R4).
+// The list never reorders (D186). Any `fuel` claimed orders fuel the Kettle and crown the Big
+// Red (R4); the set never locks it. Each order `pays` when claimed: gear shards of its era's
+// rarity at once (Twig common, Timber rare, Stone epic; D266: eight drops a run outran the
+// drops' hourly gate, so a casual never received most of them), and the `fuel`-th claim pays
+// `set` on top: a Supply Drop through the gate (`credit`). Scrap comes from the quests and the
+// Magpie (D259: a per-run scrap source put the active player past N19's cap). `when` is the badges' state vocabulary
+// (achievements.json5), run-scoped states included: run_taps, run_felled, run_flotsam,
+// run_gulls, run_frenzies, run_made, line_owned (with `line`). Names: `order.{id}.name`.
+{
+  perRun: 8,
+  fuel: 5,
+  set: [{ drop: 1 }],
+  spread: [
+    { era: "twig", count: 3 },
+    { era: "wood", count: 3 },
+    { era: "stone", count: 2 },
+  ],
+  activeMax: 3,
+  idleMin: 5,
+  orders: [
+    // Twig
+    { id: "twig_two_hands", era: "twig", when: { state: "hands_working", era: "twig", gte: 2 }, pays: [{ shards: { rarity: "common", n: 3 } }], idle: true },
+    { id: "twig_three_hands", era: "twig", when: { state: "hands_working", era: "twig", gte: 3 }, pays: [{ shards: { rarity: "common", n: 3 } }] },
+    { id: "twig_lines_10", era: "twig", when: { state: "lines_min_owned", era: "twig", gte: 10 }, pays: [{ shards: { rarity: "common", n: 3 } }], idle: true },
+    { id: "twig_line_25", era: "twig", when: { state: "line_max_owned", gte: 25 }, pays: [{ shards: { rarity: "common", n: 3 } }], idle: true },
+    { id: "twig_taps_300", era: "twig", when: { state: "run_taps", gte: 300 }, pays: [{ shards: { rarity: "common", n: 3 } }], active: true },
+    { id: "twig_fell_5", era: "twig", when: { state: "run_felled", gte: 5 }, pays: [{ shards: { rarity: "common", n: 3 } }], active: true },
+    { id: "twig_catch_1", era: "twig", when: { state: "run_flotsam", gte: 1 }, pays: [{ shards: { rarity: "common", n: 3 } }], active: true },
+    { id: "twig_made_10k", era: "twig", when: { state: "run_made", gte: 1e4 }, pays: [{ shards: { rarity: "common", n: 3 } }], idle: true },
+    // Timber
+    { id: "wood_era", era: "wood", when: { state: "era", gte: 1 }, pays: [{ shards: { rarity: "rare", n: 6 } }], idle: true },
+    { id: "wood_three_hands", era: "wood", when: { state: "hands_working", era: "wood", gte: 3 }, pays: [{ shards: { rarity: "rare", n: 6 } }] },
+    { id: "wood_lines_25", era: "wood", when: { state: "lines_min_owned", era: "wood", gte: 25 }, pays: [{ shards: { rarity: "rare", n: 6 } }] },
+    { id: "wood_loom_50", era: "wood", when: { state: "line_owned", line: "loom", gte: 50 }, pays: [{ shards: { rarity: "rare", n: 6 } }] },
+    { id: "wood_taps_1000", era: "wood", when: { state: "run_taps", gte: 1000 }, pays: [{ shards: { rarity: "rare", n: 6 } }], active: true },
+    { id: "wood_fell_15", era: "wood", when: { state: "run_felled", gte: 15 }, pays: [{ shards: { rarity: "rare", n: 6 } }], active: true },
+    { id: "wood_catch_3", era: "wood", when: { state: "run_flotsam", gte: 3 }, pays: [{ shards: { rarity: "rare", n: 6 } }], active: true },
+    { id: "wood_made_1m", era: "wood", when: { state: "run_made", gte: 1e6 }, pays: [{ shards: { rarity: "rare", n: 6 } }], idle: true },
+    // Stone
+    { id: "stone_era", era: "stone", when: { state: "era", gte: 2 }, pays: [{ shards: { rarity: "epic", n: 10 } }], idle: true },
+    { id: "stone_three_hands", era: "stone", when: { state: "hands_working", era: "stone", gte: 3 }, pays: [{ shards: { rarity: "epic", n: 10 } }] },
+    { id: "stone_lines_25", era: "stone", when: { state: "lines_min_owned", era: "stone", gte: 25 }, pays: [{ shards: { rarity: "epic", n: 10 } }] },
+    { id: "stone_furnace_50", era: "stone", when: { state: "line_owned", line: "furnace", gte: 50 }, pays: [{ shards: { rarity: "epic", n: 10 } }] },
+    { id: "stone_taps_2000", era: "stone", when: { state: "run_taps", gte: 2000 }, pays: [{ shards: { rarity: "epic", n: 10 } }], active: true },
+    { id: "stone_fell_20", era: "stone", when: { state: "run_felled", gte: 20 }, pays: [{ shards: { rarity: "epic", n: 10 } }], active: true },
+    { id: "stone_made_1b", era: "stone", when: { state: "run_made", gte: 1e9 }, pays: [{ shards: { rarity: "epic", n: 10 } }], idle: true },
+    { id: "stone_nine_hands", era: "stone", when: { state: "hands_working", gte: 9 }, pays: [{ shards: { rarity: "epic", n: 10 } }] },
+  ],
+}

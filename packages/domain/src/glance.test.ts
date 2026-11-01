@@ -1,0 +1,384 @@
+/**
+ * The HUD's read-only views (glance.ts) and the crown (advisor.ts, 02-the-run.md 11.1).
+ */
+
+import { nodeOf } from "@wipe-day/content/blastmap";
+import { loadContent, loadLocale } from "@wipe-day/content/load";
+import { contentPaths } from "@wipe-day/content/paths";
+import { describe, expect, it } from "vitest";
+import { choices, crown, firstUse, type Player, sameRow, sheetPick, tapHintLive } from "./advisor";
+import { fullRate, rates, unitRate } from "./effects";
+import { breakdown, hustleAt, nightShiftGlance, nodeGlance, shownRate, tapGlance } from "./glance";
+import { lineOf } from "./lines";
+import { rng } from "./rng";
+import { mannedRate } from "./settle";
+import { type BaseState, newBase } from "./state";
+
+const content = loadContent(contentPaths.data, loadLocale());
+const T0 = 1_700_000_000;
+
+const fresh = (patch: Partial<BaseState["run"]> = {}): BaseState => {
+  const base = newBase(content, T0, 5);
+  return { ...base, run: { ...base.run, startedAt: T0, ...patch } };
+};
+
+const tapping: Player = { income: 10, tapShare: 1, tapRate: 6 };
+const idle: Player = { income: 0, tapShare: 0, tapRate: 0 };
+
+describe("the crown (02 11.1)", () => {
+  it("crowns the tap hint on a fresh island with nothing affordable", () => {
+    expect(crown(content, fresh(), T0, tapping)).toEqual({ kind: "tap" });
+  });
+
+  it("crowns the first Beachcomber once it is affordable", () => {
+    const pick = crown(content, fresh({ supplies: 6 }), T0, tapping);
+    expect(pick.kind === "purchase" && pick.choice.command).toEqual({
+      type: "buy_line",
+      line: "beachcomber",
+      count: 1,
+    });
+  });
+
+  it("crowns the era before the hand: Timber (1.5k) before Mara (1.8k)", () => {
+    const state = fresh({ supplies: 1500, lines: { beachcomber: 12, campfire: 6, garden: 2 } });
+    const pick = crown(content, state, T0, tapping);
+    expect(pick.kind === "purchase" && pick.rule).toBe("era");
+    // Affordable within 30 s at the current income counts too: the button counts down.
+    const saving = crown(content, { ...state, run: { ...state.run, supplies: 1200 } }, T0, {
+      ...tapping,
+      income: 20,
+    });
+    expect(saving.kind === "purchase" && saving.rule).toBe("era");
+    expect(saving.kind === "purchase" && saving.choice.affordable).toBe(false);
+  });
+
+  it("crowns the hand of the top-earning unmanned line", () => {
+    const state = fresh({
+      era: "wood",
+      supplies: 5e5,
+      lines: { beachcomber: 20, campfire: 10, garden: 5 },
+      hands: ["beachcomber"],
+    });
+    const pick = crown(content, state, T0, tapping);
+    expect(pick.kind === "purchase" && pick.rule).toBe("hand");
+    const earns = (id: string) => {
+      const line = lineOf(content, id);
+      if (!line) throw new Error(id);
+      return (state.run.lines[id] ?? 0) * unitRate(content, state, line, T0, { online: true });
+    };
+    const top = earns("campfire") >= earns("garden") ? "campfire" : "garden";
+    expect(pick.kind === "purchase" && pick.choice.command).toEqual({
+      type: "hire_hand",
+      line: top,
+    });
+  });
+
+  it("never crowns an idle player more of an unmanned line, or a Grip rung", () => {
+    // Nothing runs and nobody taps: those purchases add nothing to this player's income. A first
+    // unit of a new line may be crowned, as the way to its hand (D177).
+    const state = fresh({ era: "wood", supplies: 100, lines: { beachcomber: 3 } });
+    const pick = crown(content, state, T0, idle);
+    const command = pick.kind === "purchase" ? pick.choice.command : null;
+    expect(command?.type).not.toBe("buy_upgrade");
+    if (command?.type === "buy_line") expect(state.run.lines[command.line] ?? 0).toBe(0);
+  });
+
+  it("leads a player who does not tap to a new line, as the way to its hand (D177)", () => {
+    // Mara runs the Beachcombers; nobody taps, so a Campfire only earns once Dax mans it.
+    const state = fresh({ lines: { beachcomber: 40 }, hands: ["beachcomber"], supplies: 1e9 });
+    const offered = choices(content, state, T0, 1e3, 0, 0);
+    const campfire = offered.find(
+      (choice) => choice.command.type === "buy_line" && choice.command.line === "campfire",
+    );
+    expect(campfire?.gain).toBeGreaterThan(0);
+    // ... at the price of the unit and the hand together.
+    const line = lineOf(content, "campfire");
+    if (!line || !campfire) throw new Error("campfire");
+    const unit = unitRate(content, state, line, T0, { online: true });
+    expect(campfire.cost / campfire.gain).toBeCloseTo((campfire.cost + 300 * line.cost) / unit, 6);
+  });
+
+  it("over 2,000 seeded states crowns a purchase in reach, or the hint", () => {
+    const random = rng(42);
+    const ids = content.lines.map((line) => line.id);
+    const eras = ["twig", "wood", "stone", "metal"] as const;
+    for (let i = 0; i < 2000; i++) {
+      const era = eras[Math.floor(random.next() * eras.length)] ?? "twig";
+      const lines: Record<string, number> = {};
+      for (const id of ids.slice(0, 3 + Math.floor(random.next() * 9)))
+        lines[id] = Math.floor(random.next() * 60);
+      const state = fresh({
+        era,
+        lines,
+        supplies: 10 ** (random.next() * 12),
+        hands: ids.filter((id) => random.next() < 0.4 && (lines[id] ?? 0) > 0),
+      });
+      const player: Player = {
+        income: 10 ** (random.next() * 9),
+        tapShare: random.next(),
+        tapRate: random.next() * 8,
+      };
+      const offered = choices(content, state, T0, player.income, player.tapShare, player.tapRate);
+      const pick = crown(content, state, T0, player, offered);
+      // The best score over every row: what rule 4 crowns, or saves for (D177).
+      const best = sheetPick({ kind: "tap" }, offered);
+      if (pick.kind === "tap") {
+        expect(best === null || !best.affordable).toBe(true);
+        continue;
+      }
+      if (pick.kind === "nuke") continue;
+      const within = state.run.supplies + player.income * content.run.advisor.saveSeconds;
+      expect(pick.choice.cost).toBeLessThanOrEqual(within);
+      if (pick.rule === "best") {
+        expect(pick.choice.affordable).toBe(true);
+        expect(pick.choice).toBe(best);
+      }
+      // The expanded drawer crowns the same row whenever the pick is a purchase.
+      expect(sheetPick(pick, offered)).toBe(pick.choice);
+    }
+  });
+
+  it("saves for the best score instead of crowning a cheaper row (D177)", () => {
+    // Stone era, Grip bought, the Workshop's tiers done: the Beachcomber's Mk II (60k) scores
+    // best but is out of reach.
+    const done = content.research.filter((def) => def.kind === "tier");
+    const state = fresh({
+      era: "stone",
+      supplies: 1e4,
+      startedAt: T0 - 3600,
+      research: Object.fromEntries(done.map((def) => [def.id, def.levels])),
+      upgrades: ["stone_tools", "iron_tools", "salvaged_tools"],
+      lines: { beachcomber: 40, campfire: 30, garden: 20, loom: 10 },
+      hands: ["beachcomber", "campfire", "garden", "loom"],
+    });
+    const player: Player = { income: 2e4, tapShare: 1, tapRate: 6 };
+    const offered = choices(content, state, T0, player.income, player.tapShare, player.tapRate);
+    const best = sheetPick({ kind: "tap" }, offered);
+    expect(best?.affordable).toBe(false);
+    // Something cheaper is affordable, yet the crown waits on the hint.
+    expect(offered.some((choice) => choice.affordable && choice.gain > 0)).toBe(true);
+    expect(crown(content, state, T0, player, offered)).toEqual({ kind: "tap" });
+  });
+
+  it("the expanded drawer crowns the best score when the island crowns the hint", () => {
+    const state = fresh({ supplies: 2, lines: { beachcomber: 1 } });
+    const offered = choices(content, state, T0, 1, 1, 6);
+    const pick = crown(content, state, T0, tapping, offered);
+    expect(pick.kind).toBe("tap");
+    expect(sheetPick(pick, offered)).not.toBeNull();
+  });
+
+  it("tells rows apart by what they buy, not how many", () => {
+    const one = { type: "buy_line", line: "loom", count: 1 } as const;
+    expect(sameRow(one, { type: "buy_line", line: "loom", count: "max" })).toBe(true);
+    expect(sameRow({ type: "hire_hand", line: "loom" }, one)).toBe(false);
+  });
+});
+
+describe("the top bar's /s (02 3.2)", () => {
+  it("counts manned lines, and unmanned ones only while a cycle runs", () => {
+    const state = fresh({
+      lines: { beachcomber: 10, campfire: 4 },
+      hands: ["beachcomber"],
+      activeAt: T0,
+    });
+    expect(shownRate(content, state, T0 + 1)).toBe(mannedRate(content, state, T0 + 1));
+    const running = { ...state, run: { ...state.run, readyAt: { campfire: T0 + 5 } } };
+    const campfire = lineOf(content, "campfire");
+    if (!campfire) throw new Error("campfire");
+    const unit = unitRate(content, running, campfire, T0 + 1, { online: true });
+    expect(shownRate(content, running, T0 + 1)).toBeCloseTo(
+      mannedRate(content, running, T0 + 1) + 4 * unit,
+      9,
+    );
+    expect(shownRate(content, running, T0 + 6)).toBe(mannedRate(content, running, T0 + 6));
+  });
+});
+
+describe("the Multipliers sheet (08 2.16)", () => {
+  it("multiplies out to the full rate, over 1,000 seeded states", () => {
+    const random = rng(7);
+    const ids = content.lines.map((line) => line.id);
+    const upgrades = content.upgrades.map((upgrade) => upgrade.id);
+    const eras = ["twig", "wood", "stone", "metal", "hqm"] as const;
+    for (let i = 0; i < 1000; i++) {
+      const lines: Record<string, number> = {};
+      for (const id of ids) if (random.next() < 0.6) lines[id] = Math.floor(random.next() * 600);
+      const state = fresh({
+        era: eras[Math.floor(random.next() * eras.length)] ?? "twig",
+        lines,
+        roster: Math.floor(random.next() * 4),
+        upgrades: upgrades.filter(() => random.next() < 0.2),
+        research: Object.fromEntries(
+          content.research
+            .filter(() => random.next() < 0.3)
+            .map((def) => [def.id, 1 + Math.floor(random.next() * def.levels)]),
+        ),
+        buffs: random.next() < 0.3 ? [{ kind: "rally", until: T0 + 30 }] : [],
+      });
+      const sheet = breakdown(content, state, T0);
+      const product = sheet.steps.reduce((value, step) => value * step.factor, sheet.base);
+      const full = fullRate(content, state, T0, { online: true });
+      expect(sheet.total).toBe(full);
+      if (full > 0) expect(Math.abs(product / full - 1)).toBeLessThan(1e-9);
+      expect(sheet.steps.some((step) => step.id === "other")).toBe(false);
+    }
+  });
+
+  it("names each source: 10 Beachcombers ×2, the Timber era ×2, Rally", () => {
+    const state = fresh({
+      era: "wood",
+      lines: { beachcomber: 10 },
+      buffs: [{ kind: "rally", until: T0 + 30 }],
+    });
+    const sheet = breakdown(content, state, T0);
+    const step = (id: string) => sheet.steps.find((row) => row.id === id);
+    expect(step("milestones")?.sources).toEqual([{ id: "beachcomber", factor: 2 }]);
+    expect(step("eras")?.sources).toEqual([{ id: "wood", factor: 2 }]);
+    expect(step("buffs")?.sources[0]).toMatchObject({ id: "rally", until: T0 + 30 });
+    expect(sheet.units).toBe(10);
+    const hooks = breakdown(
+      content,
+      { ...state, run: { ...state.run, research: { sharper_hooks: 4, spare_wicks: 2 } } },
+      T0,
+    );
+    // The wicks change no line, so only the hooks show.
+    expect(hooks.steps.find((row) => row.id === "workshop")?.sources).toEqual([
+      { id: "sharper_hooks", factor: expect.closeTo(1.2, 12) },
+    ]);
+  });
+
+  it("takes a tap apart: Grip's flat part, the share of /s, Hustle", () => {
+    const state = fresh({ lines: { beachcomber: 10 }, hustle: { value: 50, at: T0 } });
+    const tap = tapGlance(content, state, T0);
+    expect(tap.flat).toBeGreaterThan(0);
+    expect(tap.hustle).toBeGreaterThan(1);
+    expect(hustleAt(content, state, T0 + 3600)).toBe(0);
+  });
+});
+
+describe("onboarding: what the game still lights (D244)", () => {
+  const uses = content.run.advisor.hintUses;
+  const withStats = (stats: Partial<BaseState["meta"]["stats"]>, run = {}): BaseState => {
+    const base = fresh(run);
+    return { ...base, meta: { ...base.meta, stats: { ...base.meta.stats, ...stats } } };
+  };
+  const kinds = [
+    ["units", { type: "buy_line", line: "beachcomber", count: 1 }],
+    ["hands", { type: "hire_hand", line: "beachcomber" }],
+    ["research", { type: "buy_research", item: "sharper_hooks", count: 1 }],
+    ["eras", { type: "buy_era", era: "wood" }],
+    ["upgrades", { type: "buy_upgrade", upgrade: "stone_tools" }],
+  ] as const;
+
+  for (const [stat, command] of kinds) {
+    it(`lights ${command.type} until it was bought ${uses} times (${stat})`, () => {
+      for (let n = 0; n <= uses; n++)
+        expect(firstUse(content, withStats({ [stat]: n }), command), `${stat} ${n}`).toBe(n < uses);
+    });
+  }
+
+  it("counts a run's own upgrades for a save from before the counter", () => {
+    const command = { type: "buy_upgrade", upgrade: "iron_tools" } as const;
+    expect(firstUse(content, withStats({ upgrades: 0 }, { upgrades: ["a", "b"] }), command)).toBe(
+      false,
+    );
+  });
+
+  it("never lights anything else", () => {
+    expect(firstUse(content, fresh(), { type: "collect" })).toBe(false);
+  });
+
+  it("shows the tap hint only until the first lines are bought", () => {
+    expect(tapHintLive(content, withStats({ units: 0 }))).toBe(true);
+    expect(tapHintLive(content, withStats({ units: uses }))).toBe(false);
+  });
+});
+
+describe("the node sheet's numbers (04-blast-map.md 8.2; R4 S3)", () => {
+  const owner = (nodes: string[], run: Partial<BaseState["run"]> = {}): BaseState => {
+    const base = fresh({ lines: { beachcomber: 10, campfire: 5 }, hands: ["beachcomber"], ...run });
+    return {
+      ...base,
+      meta: {
+        ...base.meta,
+        wipeDays: 1,
+        nukes: 1,
+        glass: { ever: 100, held: 100, level: 100, spent: 0 },
+        nodes,
+      },
+    };
+  };
+  const node = (id: string) => {
+    const def = nodeOf(content, id);
+    if (!def) throw new Error(id);
+    return def;
+  };
+
+  it("reads income, taps, the Night Shift, glass, Glow and a bare stat with and without the node", () => {
+    const state = owner(["ground_zero"]);
+    const income = nodeGlance(content, state, node("conveyor"), T0);
+    expect(income).toHaveLength(1);
+    expect(income[0]).toMatchObject({
+      kind: "income",
+      before: fullRate(content, state, T0, { online: true }),
+    });
+    if (income[0]?.kind === "income")
+      expect(income[0].after / income[0].before).toBeCloseTo(1.3, 9);
+    const tap = nodeGlance(content, state, node("steady_hands"), T0);
+    expect(tap[0]?.kind).toBe("tap");
+    if (tap[0]?.kind === "tap") expect(tap[0].after / tap[0].before).toBeCloseTo(1.25, 9);
+    const cellars = nodeGlance(content, state, node("deep_cellars"), T0);
+    expect(cellars).toEqual([
+      {
+        kind: "night_shift",
+        before: rates(content, state).nightShift,
+        after: rates(content, state).nightShift + 4 * 3600,
+      },
+    ]);
+    const payload = nodeGlance(content, state, node("bigger_payload"), T0);
+    expect(payload[0]?.kind).toBe("glass");
+    const hats = nodeGlance(content, state, node("tinfoil_hats"), T0).map((line) => line.kind);
+    expect(hats).toEqual(["glass", "glow"]);
+    const swing = nodeGlance(content, state, node("lucky_swing"), T0);
+    expect(swing).toEqual(
+      expect.arrayContaining([
+        { kind: "stat", stat: "crit_chance", before: 0, after: 0.04, additive: true },
+        { kind: "stat", stat: "crit_mult", before: 1, after: 8, additive: false },
+      ]),
+    );
+    expect(nodeGlance(content, state, node("keep_swinging"), T0)).toEqual([{ kind: "feature" }]);
+  });
+
+  it("reads a night-only node under the night, marked, and an owned node the same way", () => {
+    const noon = T0 + 12 * 3600;
+    const state = owner(["ground_zero"]);
+    const lamps = nodeGlance(content, state, node("night_lamps"), noon);
+    expect(lamps[0]).toMatchObject({ kind: "income", when: "night" });
+    const owned = owner(["ground_zero", "hot_coals"]);
+    const coals = nodeGlance(content, owned, node("hot_coals"), T0);
+    expect(coals[0]?.kind).toBe("income");
+    if (coals[0]?.kind === "income") expect(coals[0].after).toBeGreaterThan(coals[0].before);
+  });
+});
+
+describe("the Night Shift glance (06-friends.md 10.2)", () => {
+  it("counts the window used since the last command, and when the hands stopped", () => {
+    const state = fresh({ hands: ["beachcomber"], lines: { beachcomber: 3 }, activeAt: T0 });
+    const window = rates(content, state).nightShift;
+    expect(nightShiftGlance(content, state, T0 + 1800)).toEqual({
+      window,
+      used: 1800,
+      left: window - 1800,
+      full: false,
+      stoppedAt: null,
+    });
+    expect(nightShiftGlance(content, state, T0 + window + 60)).toEqual({
+      window,
+      used: window,
+      left: 0,
+      full: true,
+      stoppedAt: T0 + window,
+    });
+  });
+});

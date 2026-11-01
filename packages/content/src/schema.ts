@@ -1,801 +1,960 @@
 /**
- * Shapes of the data files (`data/*.json5`). Every entity has an `id` that is
- * also its locale key (`{kind}.{id}.name`) and, later, its asset name.
- * Browser-safe: no file access here (that is `load.ts`).
+ * Shapes of the data files (`data/*.json5`). Every entity has an `id` that is also its locale
+ * key (`{kind}.{id}.name`) and its icon name (D141). Amounts are finite doubles (D130), counts
+ * integers. Browser-safe: no file access here (that is `load.ts`).
+ *
+ * R0 shipped the run's skeleton: resources (currencies and products), the hands, the lines'
+ * formula, the prestige constants, the tap block and the simulator's pacing. R1 adds the run
+ * itself: eras and their targets, Grip's prices, the shelf, milestones, flotsam and the
+ * island's clock and weather. Each later phase adds its files (09-architecture.md 8.1).
  */
 import { z } from "zod";
-import { TIERS } from "./tiers";
+import { CARD_STAT_IDS, type CardStatId, RARITIES, SLOTS } from "./cards";
+import {
+  type Effect,
+  FEATURE_STAT,
+  isFeatureStat,
+  OPS,
+  PERS,
+  SECTOR_PER,
+  STAT_IDS,
+  STATS,
+  type StatId,
+  WHENS,
+} from "./effects";
+import { TIERS, type Tier } from "./tiers";
 
-/** Ids become locale keys and asset file names. */
+/** Ids become locale keys and icon file names. */
 export const ID_PATTERN = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
 
-const id = z
+export const id = z
   .string()
   .min(2, "id must be 2 to 32 characters")
   .max(32, "id must be 2 to 32 characters")
   .regex(ID_PATTERN, "id must be lowercase snake_case (a-z, 0-9, _ between words)");
 
 const tier = z.enum(TIERS);
+/** A quantity of supplies or glass (D130). */
+export const amount = z.number().finite().nonnegative();
+/** Owned units, taps, nukes: whole numbers. */
+export const count = z.int().min(0);
+/** A multiplier or growth factor. */
+export const factor = z.number().finite().positive();
+/** A duration in seconds. */
+export const seconds = z.number().finite().positive();
 
-/** `{ resourceId: amount }`. Keys are checked against resources.json5 in crossCheck. */
-const amounts = z.record(z.string(), z.int().min(0));
-export type Amounts = Record<string, number>;
+export const effectSchema = z
+  .strictObject({
+    stat: z.union([
+      z.enum(STAT_IDS as [StatId, ...StatId[]]),
+      z.string().regex(FEATURE_STAT, "a feature is `feature:<id>`"),
+    ]),
+    op: z.enum(OPS),
+    value: z.number().finite(),
+    scope: z.string().min(1).max(40).optional(),
+    per: z
+      .union([z.enum(PERS), z.string().regex(SECTOR_PER, "a sector count is `sector:<id>`")])
+      .optional(),
+    max: z.number().finite().optional(),
+    when: z.enum(WHENS).optional(),
+  })
+  .refine((effect) => effect.per === undefined || effect.max !== undefined, {
+    message: "an effect with `per` needs a `max`",
+  })
+  .refine(
+    (effect) =>
+      isFeatureStat(effect.stat)
+        ? effect.op === "unlock"
+        : ((STATS[effect.stat as StatId]?.ops as readonly string[] | undefined)?.includes(
+            effect.op,
+          ) ?? false),
+    { message: "this op is not allowed for this stat" },
+  )
+  // Zod types an absent key as `undefined`; it never writes one, so the parsed value is an Effect.
+  .transform((effect) => effect as Effect);
 
-export const RESOURCE_KINDS = ["raw", "refined", "part", "currency"] as const;
+export const RESOURCE_KINDS = ["currency", "product"] as const;
 
-export const resourceSchema = z.strictObject({
-  id,
-  /**
-   * raw: gathered (or grown). refined: smelted from a raw one. part: made at a station
-   * (recipes.json5), not capped by storage. currency: scrap.
-   */
-  kind: z.enum(RESOURCE_KINDS),
-  /** For ores: the refined resource a furnace turns them into, 1:1. */
-  smeltsInto: z.string().optional(),
-});
+export const resourceSchema = z.strictObject({ id, kind: z.enum(RESOURCE_KINDS) });
+export type Resource = z.infer<typeof resourceSchema>;
 
+export const crewSchema = z.strictObject({ id });
+export type CrewMember = z.infer<typeof crewSchema>;
+
+const effects = z.array(effectSchema).default([]);
+
+/** A Grip rung (docs/redesign/02-the-run.md 5.2): `tier` is its colour, not a gate. */
 export const toolSchema = z.strictObject({
   id,
   tier,
-  /** Passive gathering per hour, by resource. */
-  rates: amounts,
-  /** One Gather grants this many minutes of production. */
-  bonusMinutes: z.int().min(1),
-  cooldownMinutes: z.int().min(1),
-  /** Paid once to upgrade to this tool. */
-  cost: amounts,
-  /** Base tier needed to buy it (a tool never outranks the holdfast that keeps it running). */
-  minTier: tier.optional(),
+  cost: amount,
+  /** May be kept in a Pocket (R7). */
+  pocket: z.boolean().default(false),
+  effects,
 });
+export type Tool = z.infer<typeof toolSchema>;
 
-export const baseTierSchema = z.strictObject({
-  id: tier,
-  /** How much of each resource the base can hold, before crates. */
-  storageCap: z.int().min(1),
-  /** How many crates count toward the cap. */
-  boxSlots: z.int().min(0),
-  furnaceSlots: z.int().min(0),
-  /** Constructions (the tier or buildings) that can run at once. */
-  builders: z.int().min(1),
-  /** Paid up front to upgrade to this tier. */
-  cost: amounts,
-  buildMinutes: z.int().min(0),
-  /** Drained every hour at this tier. */
-  upkeep: amounts,
+export const lineFormulaSchema = z.strictObject({
+  costBase: amount,
+  costRatio: factor,
+  rateBase: amount,
+  rateRatio: factor,
+  cycleBase: seconds,
+  cycleRatio: factor,
+  cycleFloor: seconds,
+  growthBase: factor,
+  growthStep: z.number().finite(),
+  handFactor: factor,
 });
+export type LineFormula = z.infer<typeof lineFormulaSchema>;
 
-export const baseRulesSchema = z.strictObject({
-  /** Production while upkeep is unpaid, as a percentage of normal. */
-  decayProductionPercent: z.int().min(0).max(100),
-  /** Unpaid for this long and the base drops one tier. */
-  tierLossAfterHours: z.int().min(1),
-});
-export type BaseRules = z.infer<typeof baseRulesSchema>;
-
-export const furnaceSchema = z.strictObject({
+export const lineRowSchema = z.strictObject({
   id,
-  tier,
-  /** Smelting speed per slot. */
-  orePerHour: z.int().min(1),
-  /** The resource burned as fuel, up front when a job starts. */
-  fuel: z.string(),
-  fuelPer100Ore: z.int().min(0),
-  maxOrePerJob: z.int().min(1),
+  rung: z.int().min(1).max(14),
+  era: tier,
+  hand: id,
+  product: id,
+  maxOwned: count.default(2000),
+  /** Overrides of the derived numbers. */
+  cost: amount.optional(),
+  rate: amount.optional(),
+  cycle: seconds.optional(),
+  growth: factor.optional(),
 });
 
-export const ITEM_CATEGORIES = ["storage", "med", "weapon", "armor", "meal", "keycode"] as const;
-
-export const itemSchema = z.strictObject({
-  id,
-  category: z.enum(ITEM_CATEGORIES),
-  /** Rarity, on the base-tier colour scale. */
-  tier,
-  /** Storage items: how much they add to every resource's cap. */
-  capacity: z.int().min(1).optional(),
-  /** A base holds at most one. */
-  unique: z.boolean().optional(),
-  /** Meals: served, they add this percent to Gather and node hits for `hours`. */
-  boostPercent: z.int().min(1).max(100).optional(),
-  hours: z.int().min(1).max(24).optional(),
-  /** Weapons: success points at hostile sites for the survivor carrying it. */
-  power: z.int().min(1).max(50).optional(),
-  /** Armour: percent lower injury chance for the survivor wearing it. */
-  protection: z.int().min(1).max(90).optional(),
-});
-
-/** What a building level gives. All totals at that level; everything optional. */
-export const effectsSchema = z.strictObject({
-  /** Percent more of a resource from gathering. */
-  rates: z.record(z.string(), z.int().min(0)).optional(),
-  /** Percent more of every gathered resource. */
-  allRates: z.int().min(0).optional(),
-  /** Per hour, whatever the tool. */
-  flat: z.record(z.string(), z.int().min(0)).optional(),
-  /** Room for every resource. */
-  cap: z.int().min(0).optional(),
-  /** Less furnace fuel per 100 ore. */
-  fuelPer100Ore: z.int().min(0).optional(),
-  /** Percent faster furnaces. */
-  smeltPercent: z.int().min(0).optional(),
-  /** Percent faster crafting. */
-  craftPercent: z.int().min(0).optional(),
-  /** Minutes added to the daily node haul. */
-  haulMinutes: z.int().min(0).optional(),
-  /** Minutes a barrel stays longer. */
-  barrelLifeMinutes: z.int().min(0).optional(),
-  /** Minutes sooner the next barrel comes. */
-  barrelEveryMinutes: z.int().min(0).optional(),
-  /** Hours added before unpaid upkeep costs a level. */
-  graceHours: z.int().min(0).optional(),
-  /** Room for more survivors. */
-  crew: z.int().min(0).optional(),
-  /** Furnace type: 1 = the first in furnaces.json5. */
-  furnace: z.int().min(1).optional(),
-  /** Rings a scout reaches beyond the base tier's range. */
-  scoutRange: z.int().min(0).optional(),
-  /** Defence points against raids (W6). */
-  defence: z.int().min(0).optional(),
-  /** Hours more warning before NPC raiders land (W6). */
-  warnHours: z.int().min(0).optional(),
-});
-export type Effects = z.infer<typeof effectsSchema>;
-
-export const buildingLevelSchema = z.strictObject({
-  /** Base tier needed for this level (level 1 also needs the building's `unlockTier`). */
-  minTier: tier.optional(),
-  cost: amounts,
-  /** Builder time; 0 = at once. */
-  minutes: z.int().min(0),
-  /** Added to the base's upkeep per hour while this level stands. */
-  upkeep: amounts,
-  effects: effectsSchema,
-});
-
-export const buildingSchema = z.strictObject({
-  id,
-  /** Base tier needed to build level 1. */
-  unlockTier: tier,
-  levels: z.array(buildingLevelSchema).min(1),
-});
-
-export const HAZARDS = ["hostile", "blocked", "unstable", "flooded"] as const;
-export type Hazard = (typeof HAZARDS)[number];
-
-/** What a survivor is good at on trips; see traits.json5 for the meaning of each field. */
-export const traitSchema = z.strictObject({
-  id,
-  success: z.int().min(0).max(50).optional(),
-  hazard: z.partialRecord(z.enum(HAZARDS), z.int().min(0).max(50)).optional(),
-  loot: z.int().min(0).max(200).optional(),
-  lootRolls: z.int().min(0).max(5).optional(),
-  tripTime: z.int().min(0).max(80).optional(),
-  injury: z.int().min(0).max(90).optional(),
-  recovery: z.int().min(0).max(90).optional(),
-  rare: z.int().min(0).max(300).optional(),
-  /** Percent more output on a node job. */
-  job: z.int().min(0).max(200).optional(),
-  /** Percent faster crafting on a station job: by station id, or `any`. */
-  craft: z.record(z.string(), z.int().min(0).max(200)).optional(),
-  /** Defence points on guard duty. */
-  guard: z.int().min(0).max(50).optional(),
-});
-
-export const crewSchema = z.strictObject({
-  id,
-  traits: z.array(z.string()).length(2),
-});
-
-export const crewRulesSchema = z.strictObject({
-  /** Survivors every base starts with, in order. */
-  start: z.array(z.string()).min(1),
-  baseCap: z.int().min(1),
-  arrivalHours: z.int().min(1),
-  /** Cumulative XP to reach level 2, 3, ... */
-  levels: z.array(z.int().min(1)).min(1),
-  successPerLevel: z.int().min(0),
-  successPerCompanion: z.int().min(0),
-  /** Item id -> injury hours it takes off. */
-  treat: z.record(z.string(), z.int().min(1)),
-  /** Work at home (W4b): node, station and guard jobs, and the rest a worker needs. */
-  jobs: z.strictObject({
-    /** A node worker adds this percent of the tool's rate for the node's yields. */
-    nodePercent: z.int().min(1).max(200),
-    /** A station worker makes that station's crafting this much faster. */
-    stationPercent: z.int().min(0).max(200),
-    /** Defence points per guard, before traits. */
-    guardScore: z.int().min(0),
-    /** Hours awake before a worker tires. */
-    awakeHours: z.int().min(1).max(24),
-    /** Hours a rest takes. */
-    sleepHours: z.int().min(1).max(24),
-    /** A tired worker works at this percent of the pace. */
-    tiredPercent: z.int().min(0).max(100),
+export const runRulesSchema = z.strictObject({
+  nightShift: z.strictObject({
+    windowHours: factor,
+    maxHours: factor,
+    pingMinutes: factor,
+    /** Away at least this long: one welcome-back card with one Collect (02 10.2). */
+    welcomeAfterMinutes: factor,
   }),
-  /** Pairs who have been out together `trips` times add `success` points when they go again. */
-  bonds: z.strictObject({ trips: z.int().min(1), success: z.int().min(0).max(20) }),
+  /** The ×1/×10/×100/Max toggle shows from this many hands on (02 9.1). */
+  bulkAfterHands: count,
+  /**
+   * The crown (02 11.1): the next era or a hand is crowned when it is affordable within
+   * `saveSeconds` at the current income. Purchases are scored over a day the player is away
+   * `away` of, even while they tap now: unmanned lines and taps stop then, hands work (D177).
+   */
+  advisor: z.strictObject({
+    saveSeconds: factor,
+    away: z.number().finite().min(0).lt(1),
+    /** A kind of purchase is new (its Buy orange) until bought this many times (D244). */
+    hintUses: z.number().int().positive(),
+  }),
 });
-export type CrewRules = z.infer<typeof crewRulesSchema>;
+export type RunRules = z.infer<typeof runRulesSchema>;
 
-export const TERRAINS = [
-  "shore",
-  "marsh",
-  "forest",
-  "hills",
-  "ruins",
-  "cliffs",
-  "tundra",
-  "sea",
+export const linesFileSchema = z.strictObject({
+  island: id,
+  formula: lineFormulaSchema,
+  stages: z.array(count).min(1),
+  run: runRulesSchema,
+  lines: z.array(lineRowSchema),
+});
+
+/** A line with its derived numbers filled in (`deriveLines`). */
+export interface LineDef {
+  id: string;
+  rung: number;
+  era: Tier;
+  hand: string;
+  product: string;
+  maxOwned: number;
+  /** The first unit's price. */
+  cost: number;
+  /** Supplies a second per unit, before any multiplier. */
+  rate: number;
+  /** Seconds per cycle, before speed. */
+  cycle: number;
+  /** Each unit costs this much more than the last. */
+  growth: number;
+  /** The hand's price. */
+  handPrice: number;
+}
+
+/** What a nuke pays beside its glass (D248, 12-feel.md 7.1, 8): a Supply Drop tier and scrap. */
+const nukePaySchema = z.strictObject({
+  drop: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  scrap: z.int().min(0),
+});
+
+export const prestigeSchema = z.strictObject({
+  l0: factor,
+  exponent: z.number().finite().positive().max(1),
+  glowK: z.number().finite().nonnegative(),
+  firstNukeGlass: count,
+  /** Later nukes are pressable at this gain (03-the-big-red.md 1.5). */
+  laterNukeGlass: z.int().min(1),
+  countShare: z.number().finite().nonnegative().max(1),
+  /** A later Wipe Day's gain is at least this, whatever the share says (D269). */
+  countMinGlass: z.int().min(1),
+  afterglow: z.strictObject({
+    start: factor,
+    halfSeconds: seconds,
+    holdSeconds: z.number().finite().nonnegative(),
+    endsAfterSeconds: seconds,
+  }),
+  /**
+   * The Kettle's stages (03 3.2): the pad at `padAt` lifetime supplies in run 1 (from the start
+   * later); the frame at a gain of `frameFirst` before the first nuke, later at `frameShare` of
+   * glass ever (at least 1); the warhead when the nuke counts; fuel and steam when crowned.
+   */
+  kettle: z.strictObject({
+    padAt: amount,
+    frameFirst: z.int().min(1),
+    frameShare: z.number().finite().positive().max(1),
+  }),
+  /** The crown's "a day's run" rule (03 2.2 rule 4): a counting nuke in a run this old. */
+  crown: z.strictObject({ ageSeconds: seconds }),
+  /**
+   * Nuke news (06-friends.md 2.2): a Wipe Day is news when the last news nuke was `foldMinutes`
+   * ago or more, or its count is a milestone (`milestones`, then every `every`); the rest fold
+   * into the next one.
+   */
+  news: z.strictObject({
+    foldMinutes: factor,
+    milestones: z.array(z.int().min(1)).min(1),
+    every: z.int().min(1),
+  }),
+  /** What each kind of press pays beside glass: a small blast, a Wipe Day, a doubling Wipe Day. */
+  pays: z.strictObject({ small: nukePaySchema, wipeDay: nukePaySchema, doubling: nukePaySchema }),
+  /**
+   * The cinematic's flights (03 7.3), rolled on the run's seed: each from Wipe Day `unlockAt`,
+   * weighed `weight` (unseen ones ×`unseenWeight`); `small` is the one every small blast flies.
+   */
+  flights: z.strictObject({
+    unseenWeight: factor,
+    small: id,
+    variants: z.array(z.strictObject({ id, unlockAt: count, weight: factor })).min(1),
+  }),
+});
+export type Prestige = z.infer<typeof prestigeSchema>;
+
+// --- the Blast Map and the agenda (R4; docs/redesign/04-blast-map.md 9, 03-the-big-red.md 12) --
+
+export const NODE_TYPES = [
+  "small",
+  "notable",
+  "keystone",
+  "unlock",
+  "automation",
+  "completion",
 ] as const;
+export type NodeType = (typeof NODE_TYPES)[number];
 
-export const regionSchema = z.strictObject({
+/** A node of the Blast Map (04 9.1). Ground Zero has no sector and ring 0. */
+export const nodeSchema = z.strictObject({
   id,
-  x: z.int().min(0).max(1000),
-  y: z.int().min(0).max(1000),
-  /** Distance from the holdfast; ring 0 is known from the start. */
-  ring: z.int().min(0),
-  terrain: z.enum(TERRAINS),
-  neighbours: z.array(z.string()).min(1),
-  scout: z.strictObject({ cost: amounts, minutes: z.int().min(1) }),
-  /** `sea`: reached by boat only: the dock, and a navigator in every party. */
-  access: z.enum(["sea"]).optional(),
-  /** Sea regions: the dock level a boat needs to get there (1 when not given). */
-  dock: z.int().min(1).optional(),
+  sector: id.nullable(),
+  ring: z.int().min(0).max(9),
+  slot: z.int().min(0).max(7),
+  type: z.enum(NODE_TYPES),
+  cost: amount,
+  /** Parents, OR: one owned is enough (a completion needs its whole previous ring). */
+  requires: z.array(id),
+  effects: z.array(effectSchema).min(1),
+  /** Small nodes of one series share a name (`node.<series>.name` with a numeral). */
+  series: id.optional(),
+  /** It changes the island's picture. */
+  scene: z.boolean().optional(),
+  /** Its own Wipe Day gate, at least its ring's. */
+  gate: count.optional(),
 });
+export type NodeDef = z.infer<typeof nodeSchema>;
 
-export const mapRulesSchema = z.strictObject({
-  /** Highest ring a scout can reach, by base tier: a stronger holdfast supplies longer trips. */
-  range: z.record(tier, z.int().min(1)),
-  maxParty: z.int().min(1),
-  /** The building whose first level launches boats to the sea regions. */
-  boatBuilding: z.string(),
-  /** The trait a scout at sea needs, and at least one member of every party at sea. */
-  boatTrait: z.string(),
-  /** After this many successes at a site without its find, the next success brings it. */
-  findPity: z.int().min(1),
-});
-export type MapRules = z.infer<typeof mapRulesSchema>;
-
-export const recipeSchema = z.strictObject({
-  /** What it makes: a part (resources.json5, lands in stock) or an item (items.json5). */
-  output: z.string(),
-  /** How many of `output` one unit of this recipe makes. */
-  amount: z.int().min(1).default(1),
-  /** The building that makes it, and the level it needs. */
-  station: z.string(),
-  level: z.int().min(1),
-  /** Minutes per unit at that station, before the lights' speed-up. */
-  minutes: z.int().min(1),
-  /** Paid per unit, up front for the whole batch. */
-  cost: amounts,
-  /** Known only once a blueprint is found (barrels, perfect runs, tasks). */
-  blueprint: z.boolean().optional(),
-});
-
-/** Production rules: per station level (index 0 = level 1), salvage and blueprint odds. */
-export const craftingSchema = z.strictObject({
-  /** Jobs a station holds, including the one being made. */
-  queueSlots: z.array(z.int().min(1)).min(1),
-  /** The most units in one job. */
-  batchSize: z.array(z.int().min(1)).min(1),
-  /** Salvage returns this share of an item's recipe cost (rounded down)... */
-  salvagePercent: z.int().min(0).max(100),
-  /** ...plus this much scrap, by the item's tier. */
-  salvageScrap: z.record(tier, z.int().min(0)),
-  blueprints: z.strictObject({
-    /** Chance a broken barrel also holds a blueprint. */
-    barrelPercent: z.int().min(0).max(100),
-    /** Chance a perfect node run turns one up. */
-    perfectRunPercent: z.int().min(0).max(100),
-  }),
-});
-export type Crafting = z.infer<typeof craftingSchema>;
-
-export const nodeKindSchema = z.strictObject({
-  id,
-  /** One hit banks this many minutes of the tool's production of `yields`. */
-  hitMinutes: z.int().min(1),
-  /** Share of the slice per resource; 1 = all of it. */
-  yields: z.record(z.string(), z.number().min(0).max(1)),
-  /** Real seconds from worked out to standing again. */
-  respawnSeconds: z.int().min(1),
-});
-
-export const nodeSchema = z.strictObject({ id, kind: z.string() });
-
-export const TASK_KINDS = [
-  "gather",
-  "collect",
-  "node_hits",
-  "barrel",
-  "smelt",
-  "furnace_collect",
-  "craft",
-  "trip",
-] as const;
-
-export const taskSchema = z.strictObject({
-  id,
-  kind: z.enum(TASK_KINDS),
-  target: z.int().min(1),
-  /** Swapped out for players who lack this. */
-  requires: z.enum(["furnace", "workbench"]).optional(),
-  reward: amounts,
-  /** Also pays a blueprint the base does not know yet (when one is left). */
-  blueprint: z.boolean().optional(),
-});
-export type Task = z.infer<typeof taskSchema>;
-
-export const lootEntry = z
-  .strictObject({
-    resource: z.string(),
-    min: z.int().min(1),
-    max: z.int().min(1),
-    weight: z.int().min(0),
-  })
-  .refine((entry) => entry.max >= entry.min, { message: "max must be >= min" });
-
-export const activeSchema = z.strictObject({
-  node: z.strictObject({
-    maxHits: z.int().min(1),
-    /** What the player sees: the marker fades this long after the last hit. */
-    hitWindowSeconds: z.number().positive(),
-    /** Extra time the server allows for network lag. */
-    graceSeconds: z.number().min(0),
-    /** Extra slices for a full run. */
-    perfectBonusHits: z.int().min(0),
-    /** Minutes of production that node hits pay in full per UTC day. */
-    dailyHaulMinutes: z.int().min(1),
-    /** What a hit pays once the day's haul is in, as a percentage. */
-    afterHaulPercent: z.int().min(0).max(100),
-  }),
-  barrels: z.strictObject({
-    firstAfterMinutes: z.int().min(0),
-    everyMinutes: z.int().min(1),
-    expiresMinutes: z.int().min(1),
-    rolls: z.int().min(1),
-    loot: z.array(lootEntry).min(1),
-  }),
-  tasks: z.strictObject({
-    perDay: z.int().min(1),
-    pool: z.array(taskSchema).min(1),
-  }),
-});
-export type Active = z.infer<typeof activeSchema>;
-
-export const siteSchema = z.strictObject({
-  id,
-  region: z.string(),
-  tier: z.int().min(1).max(5),
-  minutes: z.int().min(1),
-  party: z.int().min(1),
-  chance: z.int().min(1).max(100),
-  hazard: z.enum(HAZARDS),
-  injury: z.int().min(0).max(100),
-  injuryHours: z.int().min(1),
-  rations: amounts,
-  rolls: z.int().min(1),
-  xp: z.int().min(0),
-  blueprint: z.int().min(0).max(100),
-  fragment: z.int().min(0).max(100),
-  loot: z.array(lootEntry).min(1),
-  /** An item (a keycode) spent when the party leaves. */
-  keycode: z.string().optional(),
-  /** Items a success may bring home, each with its percent chance. */
-  finds: z.array(z.strictObject({ item: z.string(), chance: z.int().min(1).max(100) })).optional(),
-  /** A bandit camp (W6): a raid on it, paid in charges; drawn apart and left out of the site chain. */
-  camp: z.boolean().optional(),
-  /** Where the map draws the marker, from the region's centre in map units (default: by order). */
-  pin: z.tuple([z.int().min(-200).max(200), z.int().min(-200).max(200)]).optional(),
-});
-
-export const OUTCOMES = ["success", "partial", "fail"] as const;
-
-/**
- * Something that can happen on a trip (events.json5). Chances are percent by site tier
- * (index 0 = tier 1), plus `hazard` points at sites with that hazard, plus `traits` points
- * for each member with the trait, minus `weapon` points per armed member.
- */
-export const tripEventSchema = z.strictObject({
-  id,
-  chance: z.array(z.int().min(0).max(100)).length(5),
-  hazard: z.partialRecord(z.enum(HAZARDS), z.int().min(-50).max(50)).optional(),
-  traits: z.record(z.string(), z.int().min(-50).max(50)).optional(),
-  weapon: z.int().min(0).max(50).optional(),
-  /** The outcomes it can happen on. */
-  outcomes: z.array(z.enum(OUTCOMES)).min(1),
-  /** Percent more (or less) of every loot amount. */
-  loot: z.int().min(-90).max(200).optional(),
-  /** Extra loot rolls. */
-  rolls: z.int().min(0).max(5).optional(),
-  /** Percent more injury chance for every member. */
-  injury: z.int().min(0).max(200).optional(),
-  /** A stranger joins the crew (or the next boat comes at once when there is no room). */
-  rescue: z.boolean().optional(),
-});
-
-export const tripEventRulesSchema = z.strictObject({
-  /** The most events one trip can have. */
-  most: z.int().min(1),
-});
-export type TripEventRules = z.infer<typeof tripEventRulesSchema>;
-
-const dayWindow = z.strictObject({ earliestDay: z.int().min(1), latestDay: z.int().min(1) });
-export const pacingSchema = z.strictObject({
-  casual: z.strictObject({
-    stone: dayWindow,
-    metal: dayWindow,
-    hqm: dayWindow,
-    /** At least `count` buildings standing on season day `day`. */
-    buildings: z.strictObject({ day: z.int().min(1), count: z.int().min(1) }),
-    /** Crafting throughput: the first of each output made by this day. */
-    firstMade: z.record(z.string(), z.int().min(1)),
-    /** Every station has made something by this day. */
-    stationsWorkedByDay: z.int().min(1),
-    /** Expeditions (W4a): the first trip, the first trip to a tier-3 site, the crew size. */
-    firstTripByDay: z.int().min(1),
-    tierThreeSiteByDay: z.int().min(1),
-    /** W4b: a survivor on a job by this day, and the first trips to tier 4 and 5 sites. */
-    jobsByDay: z.int().min(1),
-    tierFourSiteByDay: z.int().min(1),
-    tierFiveSiteByDay: z.int().min(1),
-    crew: z.strictObject({ day: z.int().min(1), count: z.int().min(1) }),
-    /** Scrap from the sites pays for this tool by this day. */
-    tool: z.strictObject({ id: z.string(), byDay: z.int().min(1) }),
-    /** W5: the scrap held on season day `day` stays between `min` and `max`. */
-    scrap: z.strictObject({ day: z.int().min(1), min: z.int().min(0), max: z.int().min(0) }),
-    /** W6: the first NPC raid lands by `firstByDay`; by `day`, at least `heldPercent` held. */
-    raids: z.strictObject({
-      firstByDay: z.int().min(1),
-      day: z.int().min(1),
-      heldPercent: z.int().min(0).max(100),
-    }),
-    /** W6: the first trip to a bandit camp (charges made and spent) by this day. */
-    firstCampByDay: z.int().min(1),
-    /** W7: feeding the Signal from surplus alone, the casual player fills this many stages. */
-    signalStages: z.int().min(0),
-  }),
-  /** W6: the raider against a casual player in the raids. */
-  pvp: z.strictObject({
-    /** The raider gets in at least this many times in the season... */
-    minRaids: z.int().min(0),
-    /** ...and the raided casual player still reaches Armored by this day. */
-    targetHqmByDay: z.int().min(1),
-  }),
-  optimal: z.strictObject({
-    hqmNotBeforeDay: z.int().min(1),
-    tierThreeSiteNotBeforeDay: z.int().min(1),
-    /** The end of the site chain: the first trip to this site never before this day. */
-    lastSite: z.strictObject({ id: z.string(), notBeforeDay: z.int().min(1) }),
-  }),
-  tierCostRatio: z.strictObject({ min: z.number().min(1), max: z.number().min(1) }),
-});
-
-/** The Den (W5): market, the Den's stock, contracts and the games (den.json5). */
-const pays = z.int().min(0).max(100_000);
-export const DICE_OPTIONS = ["over", "under", "seven", "doubles"] as const;
-export type DiceOption = (typeof DICE_OPTIONS)[number];
-
-export const denSchema = z.strictObject({
-  open: z.strictObject({ tier }),
-  map: z.strictObject({
-    region: z.string(),
-    x: z.int().min(0).max(1000),
-    y: z.int().min(0).max(1000),
-  }),
-  market: z.strictObject({
-    /** Scrap per 100 units of every tradeable good (resources but scrap, and items). */
-    refPer100: z.record(z.string(), z.int().min(1)),
-    floorPercent: z.int().min(1).max(100),
-    feePercent: z.int().min(0).max(50),
-    minFee: z.int().min(0),
-    maxListings: z.int().min(1).max(20),
-    listingHours: z.int().min(1),
-  }),
-  stock: z.strictObject({
-    perDay: z.int().min(1),
-    markupPercent: z.int().min(100),
-    blueprintPrice: z.int().min(1),
-    pool: z
-      .array(
-        z.strictObject({
-          id,
-          /** A resource or item id, or "blueprint". */
-          good: z.string(),
-          lot: z.int().min(1),
-          lotsPerDay: z.int().min(1),
-          minTier: tier,
-        }),
-      )
-      .min(1),
-  }),
-  contracts: z.strictObject({
-    perDay: z.int().min(1),
-    payPercent: z.int().min(1).max(100),
-    pool: z
-      .array(
-        z.strictObject({
-          id,
-          good: z.string(),
-          /** How much it wants from a base at each tier; absent tiers never draw it. */
-          amount: z.partialRecord(tier, z.int().min(1)),
-          blueprint: z.int().min(0).max(100).optional(),
-        }),
-      )
-      .min(1),
-  }),
-  casino: z.strictObject({
-    betStep: z.int().min(1),
-    limits: z.partialRecord(
-      tier,
-      z.strictObject({ maxBet: z.int().min(1), dailyWager: z.int().min(1) }),
-    ),
-    bigWin: z.int().min(2),
-    wheel: z.strictObject({
-      roundSeconds: z.int().min(5),
-      closeSeconds: z.int().min(0),
-      segments: z.array(z.strictObject({ id, weight: z.int().min(1), pays })).min(2),
-    }),
-    slots: z.strictObject({
-      symbols: z
-        .array(
-          z.strictObject({
-            id,
-            weight: z.int().min(1),
-            three: pays.optional(),
-            two: pays.optional(),
-            jackpot: z.boolean().optional(),
-          }),
-        )
-        .min(2),
-      jackpot: z.strictObject({ feedPercent: z.int().min(0).max(10), pays }),
-    }),
-    dice: z.strictObject({
-      options: z.array(z.strictObject({ id: z.enum(DICE_OPTIONS), pays })).min(1),
-    }),
-  }),
-});
-export type Den = z.infer<typeof denSchema>;
-export type Casino = Den["casino"];
-
-/** Raids and defence (W6): raids.json5. */
-const percent = z.int().min(0).max(100);
-export const raidsSchema = z.strictObject({
-  capPercent: z.int().min(1).max(100),
-  scrapCeiling: z.partialRecord(tier, z.int().min(0)),
-  minChance: percent,
-  maxChance: percent,
-  damagedPercent: percent,
-  repair: z.partialRecord(tier, amounts),
-  npc: z.strictObject({
-    startTier: tier,
-    firstAfterHours: z.int().min(0),
-    planDays: z.int().min(1),
-    windowStartHour: z.int().min(0).max(23),
-    windowHours: z.int().min(1).max(24),
-    warnBaseHours: z.int().min(0),
-    lossPercent: z.int().min(1).max(100),
-    scrapPerPoint: z.int().min(1),
-    strength: z.partialRecord(tier, z.strictObject({ base: z.int().min(0), max: z.int().min(1) })),
-    held: z.partialRecord(
-      tier,
-      z.array(
-        z
-          .strictObject({ resource: z.string(), min: z.int().min(1), max: z.int().min(1) })
-          .refine((entry) => entry.max >= entry.min, { message: "max must be >= min" }),
-      ),
-    ),
-  }),
-  pvp: z.strictObject({
-    minTier: tier,
-    maxTierGap: z.int().min(0),
-    charges: z.partialRecord(tier, z.int().min(1)),
-    attack: z.partialRecord(tier, z.int().min(1)),
-    shieldHours: z.int().min(1),
-    attackHours: z.int().min(1),
-    sameTargetHours: z.int().min(1),
-    revengeHours: z.int().min(1),
-    revengePercent: z.int().min(1).max(100),
-  }),
-});
-export type Raids = z.infer<typeof raidsSchema>;
-
-/** What one perk rank adds (legacy.json5, W7). Every field is a percent but tripSuccess. */
-export const perkBonusSchema = z.strictObject({
-  allRates: z.int().min(0).max(25).optional(),
-  capPercent: z.int().min(0).max(25).optional(),
-  craftPercent: z.int().min(0).max(25).optional(),
-  smeltPercent: z.int().min(0).max(25).optional(),
-  tripSuccess: z.int().min(0).max(25).optional(),
-  xpPercent: z.int().min(0).max(25).optional(),
-});
-export type PerkBonus = z.infer<typeof perkBonusSchema>;
-export const PERK_BONUSES = [
-  "allRates",
-  "capPercent",
-  "craftPercent",
-  "smeltPercent",
-  "tripSuccess",
-  "xpPercent",
-] as const satisfies readonly (keyof PerkBonus)[];
-
-export const perkSchema = z.strictObject({
-  id,
-  bonus: perkBonusSchema,
-  /** Points for each rank in turn: the list's length is the top rank. */
-  cost: z.array(z.int().min(1)).min(1).max(5),
-  /** Options: the best veteran is home from day one; a crate from day one. */
-  returning: z.boolean().optional(),
-  crate: z.boolean().optional(),
-});
-export type Perk = z.infer<typeof perkSchema>;
-
-export const legacySchema = z.strictObject({
-  points: z.strictObject({
-    played: z.int().min(0),
-    place: z.array(z.int().min(0)).min(1),
-    signal: z.int().min(0),
-  }),
-  capPercent: z.int().min(1).max(100),
-  perks: z.array(perkSchema).min(1),
-  skins: z
+export const blastMapFileSchema = z.strictObject({
+  /** Clockwise from 12 o'clock. */
+  sectors: z.array(id).min(1),
+  /** Rings up to this wave are drawn, listed and buyable; the rest wait for their phase. */
+  shippedWave: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  rings: z
     .array(
       z.strictObject({
-        id,
-        season: z.int().min(1).optional(),
-        defended: z.int().min(1).optional(),
-        signal: z.boolean().optional(),
+        ring: z.int().min(1).max(9),
+        size: z.int().min(1).max(7),
+        band: z.tuple([amount, amount]),
       }),
     )
     .min(1),
+  /** The one ladder of prices (04 3.1). */
+  prices: z.array(amount).min(1),
+  typeFactor: z.record(z.enum(NODE_TYPES), factor),
+  /** The most all shipped non-keystone nodes may add to a stat together (04 4.2). */
+  ceilings: z.partialRecord(z.enum(STAT_IDS as [StatId, ...StatId[]]), z.number().finite()),
+  nodes: z.array(nodeSchema),
 });
-export type LegacyRules = z.infer<typeof legacySchema>;
+export type BlastMapFile = z.infer<typeof blastMapFileSchema>;
 
-/** A season's modifier (seasons.json5, W7). */
-export const seasonModifierSchema = z.strictObject({
-  id,
-  raidStrength: z.int().min(-90).max(200).optional(),
-  raidDays: z.int().min(0).max(5).optional(),
-  barrelEveryMinutes: z.int().min(0).optional(),
-  barrelRolls: z.int().min(0).max(5).optional(),
-  tripLoot: z.int().min(-90).max(200).optional(),
-  flatPercent: z.record(z.string(), z.int().min(-100).max(200)).optional(),
-});
-export type SeasonModifier = z.infer<typeof seasonModifierSchema>;
-
-export const seasonsSchema = z.strictObject({
-  modifiers: z.array(seasonModifierSchema).min(1),
-  signal: z.strictObject({
-    opensOnDay: z.int().min(1),
-    stages: z.array(z.strictObject({ id, needs: amounts })).min(1),
-  }),
-});
-export type Seasons = z.infer<typeof seasonsSchema>;
-
-export type Resource = z.infer<typeof resourceSchema>;
-export type Tool = z.infer<typeof toolSchema>;
-export type BaseTier = z.infer<typeof baseTierSchema>;
-export type Furnace = z.infer<typeof furnaceSchema>;
-export type Item = z.infer<typeof itemSchema>;
-export type Trait = z.infer<typeof traitSchema>;
-export type CrewMember = z.infer<typeof crewSchema>;
-export type Region = z.infer<typeof regionSchema>;
-export type Site = z.infer<typeof siteSchema>;
-export type TripEvent = z.infer<typeof tripEventSchema>;
-export type Outcome = (typeof OUTCOMES)[number];
-export type Recipe = z.infer<typeof recipeSchema>;
-export type Building = z.infer<typeof buildingSchema>;
-export type BuildingLevel = z.infer<typeof buildingLevelSchema>;
-export type NodeKind = z.infer<typeof nodeKindSchema>;
-export type NodeDef = z.infer<typeof nodeSchema>;
-export type Pacing = z.infer<typeof pacingSchema>;
-
-export interface Content {
-  resources: Resource[];
-  tools: Tool[];
-  baseTiers: BaseTier[];
-  baseRules: BaseRules;
-  furnaces: Furnace[];
-  items: Item[];
-  buildings: Building[];
-  traits: Trait[];
-  crew: CrewMember[];
-  crewRules: CrewRules;
-  regions: Region[];
-  mapRules: MapRules;
-  sites: Site[];
-  tripEvents: TripEvent[];
-  tripEventRules: TripEventRules;
-  recipes: Recipe[];
-  crafting: Crafting;
-  nodeKinds: NodeKind[];
-  nodes: NodeDef[];
-  pacing: Pacing;
-  active: Active;
-  den: Den;
-  raids: Raids;
-  legacy: LegacyRules;
-  seasons: Seasons;
-}
+/** The wave a ring belongs to (04 1.4): 1 for rings 1-3, 2 for 4-6, 3 for 7-9. */
+export const waveOf = (ring: number): 1 | 2 | 3 => (ring <= 3 ? 1 : ring <= 6 ? 2 : 3);
 
 /**
- * One row per entity list: file, the top-level key holding the array, the
- * `Content` field it fills, and the locale namespace (`kind`) whose
- * `{kind}.{id}.name` key every entity must have.
+ * An agenda unlock (03 12), `kind:id`: a `feature` the code reads, a `ring` of the map, an
+ * `era`, a `flight`, a `sign` style, or `hands:<rung>` (hands for lines 1-rung survive nukes).
  */
-export const FILES = [
-  {
-    file: "resources.json5",
-    key: "resources",
-    field: "resources",
-    kind: "resource",
-    schema: resourceSchema,
-  },
-  { file: "tools.json5", key: "tools", field: "tools", kind: "tool", schema: toolSchema },
-  {
-    file: "base_tiers.json5",
-    key: "baseTiers",
-    field: "baseTiers",
-    kind: "base_tier",
-    schema: baseTierSchema,
-  },
-  {
-    file: "furnaces.json5",
-    key: "furnaces",
-    field: "furnaces",
-    kind: "furnace",
-    schema: furnaceSchema,
-  },
-  { file: "items.json5", key: "items", field: "items", kind: "item", schema: itemSchema },
-  {
-    file: "buildings.json5",
-    key: "buildings",
-    field: "buildings",
-    kind: "building",
-    schema: buildingSchema,
-  },
-  { file: "traits.json5", key: "traits", field: "traits", kind: "trait", schema: traitSchema },
-  { file: "crew.json5", key: "crew", field: "crew", kind: "crew", schema: crewSchema },
-  {
-    file: "regions.json5",
-    key: "regions",
-    field: "regions",
-    kind: "region",
-    schema: regionSchema,
-  },
-  { file: "sites.json5", key: "sites", field: "sites", kind: "site", schema: siteSchema },
-  {
-    file: "events.json5",
-    key: "events",
-    field: "tripEvents",
-    kind: "trip_event",
-    schema: tripEventSchema,
-  },
-  { file: "nodes.json5", key: "kinds", field: "nodeKinds", kind: "node", schema: nodeKindSchema },
+export const AGENDA_KINDS = ["feature", "ring", "era", "flight", "sign", "hands"] as const;
+export type AgendaKind = (typeof AGENDA_KINDS)[number];
+export const SIGN_STYLES = ["plank", "painted", "metal", "lit"] as const;
+export type SignStyle = (typeof SIGN_STYLES)[number];
+const unlock = z.string().regex(/^[a-z]+:[a-z0-9_]+$/, "an unlock is `kind:id`");
+
+export const agendaFileSchema = z.strictObject({
+  /** Each row: at Wipe Day `at`, these unlock. Shipped content only (a check refuses the rest). */
+  rows: z.array(z.strictObject({ at: z.int().min(1), unlocks: z.array(unlock).min(1) })).min(1),
+});
+export type AgendaFile = z.infer<typeof agendaFileSchema>;
+
+export const tapSchema = z.strictObject({
+  bucket: z.strictObject({ perSecond: factor, burst: factor }),
+  holdTapsPerSecond: factor,
+  holdAfterSeconds: z.number().finite().nonnegative(),
+  flat: amount,
+  share: z.number().finite().nonnegative(),
+  hustle: z.strictObject({
+    perTap: factor,
+    cap: factor,
+    peak: factor,
+    peakCeiling: factor,
+    graceSeconds: z.number().finite().nonnegative(),
+    drainPerSecond: z.number().finite().nonnegative(),
+  }),
+  /**
+   * Frenzy (D196, D237): a second meter, +perTap a credited tap from opensAfterSeconds on the
+   * run's clock; it holds graceSeconds, then drains. At cap it trips the `frenzy` buff for
+   * `seconds`: taps and lines ×mult (lines through speed ×speed and output ×mult/speed).
+   */
+  frenzy: z.strictObject({
+    opensAfterSeconds: z.number().finite().nonnegative(),
+    perTap: factor,
+    cap: factor,
+    graceSeconds: z.number().finite().nonnegative(),
+    drainPerSecond: z.number().finite().nonnegative(),
+    seconds: seconds,
+    mult: factor,
+    speed: factor,
+    multCeiling: factor,
+  }),
+  fellBonusTaps: count,
+  popSeconds: seconds,
+});
+export type TapRules = z.infer<typeof tapSchema>;
+
+/** An era's tap target (02 6.1): felled every `fellTaps` credited taps. */
+export const targetSchema = z.strictObject({ id, era: tier, fellTaps: z.int().min(10), art: id });
+export type TargetDef = z.infer<typeof targetSchema>;
+
+export const targetsFileSchema = z.strictObject({ tap: tapSchema, targets: z.array(targetSchema) });
+
+/** An era (02 5.5, 6): bought in order, each opens its lines and swaps the target. */
+export const eraSchema = z.strictObject({
+  id: tier,
+  cost: amount,
+  target: id,
+  /** A real, reachable gate: Armored opens after Wipe Day #2. */
+  requires: z.strictObject({ wipeDays: count }).optional(),
+  effects,
+});
+export type EraDef = z.infer<typeof eraSchema>;
+
+export const erasFileSchema = z.strictObject({ eras: z.array(eraSchema) });
+
+const islandUpgradeSchema = z.strictObject({
+  id,
+  cost: amount,
+  prop: id,
+  pocket: z.boolean().default(false),
+  effects,
+});
+
+export const upgradesFileSchema = z.strictObject({
+  island: z.array(islandUpgradeSchema),
+});
+
+/** A row of the shelf (02 5): a Grip rung or an island upgrade (the Line Mks are research, D194). */
+export interface UpgradeDef {
+  id: string;
+  kind: "grip" | "island";
+  cost: number;
+  effects: Effect[];
+  pocket: boolean;
+  /** Shown and buyable only once this one is bought (02 5.1; D152). */
+  after?: string;
+}
+
+/** A Workshop item's one effect: no `per`, no `when`, and a level adds it once more. */
+const researchEffectSchema = effectSchema.refine(
+  (effect) =>
+    effect.per === undefined &&
+    effect.when === undefined &&
+    (effect.op === "add" || effect.op === "inc" || effect.op === "more"),
+  { message: "a Workshop effect is add, inc or more, with no `per` and no `when`" },
+);
+
+const researchItemSchema = z.strictObject({
+  id,
+  levels: z.int().min(1).max(25),
+  effect: researchEffectSchema,
+});
+
+/** The Workshop (game-design 5.12; D185, D194): tiers of items, and one Line Mk per line. */
+export const researchFileSchema = z.strictObject({
+  /** Seconds after the run's clock starts. */
+  opensAfterSeconds: z.number().finite().nonnegative(),
+  /** Level n (0 first) of an item in tier k costs base × tierRatio^(k−1) × growth^n. */
+  price: z.strictObject({ base: amount, tierRatio: factor, growth: factor }),
+  tiers: z.array(z.strictObject({ era: tier, items: z.array(researchItemSchema).min(1).max(5) })),
+  lineMk: z.strictObject({
+    pocket: z.boolean().default(false),
+    effect: researchEffectSchema,
+    levels: z
+      .array(z.strictObject({ costFactor: factor, needOwned: z.int().min(1) }))
+      .min(1)
+      .max(5),
+  }),
+});
+
+/** A Workshop item with its prices derived (`deriveResearch`). */
+export interface ResearchDef {
+  id: string;
+  /** A tier item, or a line's Mk. */
+  kind: "tier" | "mk";
+  /** Tier 1, 2, ...; 0 for a Line Mk. */
+  tier: number;
+  /** It opens with this era (a Line Mk: its line's). */
+  era: Tier;
+  levels: number;
+  /** One level's effect (a Line Mk's is scoped to its line). */
+  effect: Effect;
+  /** Tier items: level n costs base × growth^n. */
+  base: number;
+  growth: number;
+  /** Line Mks: each level's price and the units of the line it needs. */
+  costs: number[];
+  needOwned: number[];
+  line?: string;
+  pocket: boolean;
+}
+
+const multiplier = z.number().finite().min(1);
+
+export const milestonesFileSchema = z.strictObject({
+  /** Per line (02 4.1): exactly one of payout or speed. */
+  line: z.array(
+    z
+      .strictObject({
+        at: z.int().min(1),
+        payout: multiplier.optional(),
+        speed: multiplier.optional(),
+      })
+      .refine((step) => (step.payout === undefined) !== (step.speed === undefined), {
+        message: "a milestone pays `payout` or `speed`, exactly one",
+      }),
+  ),
+  /** Past the list: every `step` from `from` pays `payout`, unless `special` names the count. */
+  lineEvery: z.strictObject({
+    from: z.int().min(1),
+    step: z.int().min(1),
+    payout: multiplier,
+    special: z.array(z.strictObject({ at: z.int().min(1), payout: multiplier })),
+  }),
+  /** Every unlocked line at `at` (02 4.2): kept for the run once reached. */
+  roster: z.array(z.strictObject({ at: z.int().min(1), payout: multiplier })),
+});
+export type Milestones = z.infer<typeof milestonesFileSchema>;
+
+const flotsamEffectSchema = z.union([
+  z.strictObject({
+    /** max(floorMinutes, min(heldShare × held, rateMinutes)) of output (02 8.1). */
+    lump: z.strictObject({
+      floorMinutes: factor,
+      heldShare: z.number().finite().positive().max(1),
+      rateMinutes: factor,
+    }),
+  }),
+  z.strictObject({ buff: id, seconds, effects: z.array(effectSchema).min(1) }),
+  /** A Supply Drop of this tier (the Sealed Locker, 12-feel.md 7.1). */
+  z.strictObject({ drop: z.union([z.literal(1), z.literal(2), z.literal(3)]) }),
+]);
+
+export const flotsamKindSchema = z.strictObject({
+  id,
+  weight: factor,
+  effect: flotsamEffectSchema,
+});
+export type FlotsamKind = z.infer<typeof flotsamKindSchema>;
+
+export const flotsamFileSchema = z.strictObject({
+  schedule: z.strictObject({
+    gapMinutes: z.tuple([factor, factor]),
+    floatSeconds: seconds,
+    graceSeconds: z.number().finite().nonnegative(),
+    rainFactor: factor,
+  }),
+  /** Run 1's guaranteed crate (errata E1): every repeatSeconds until one is caught. */
+  firstRun: z.strictObject({
+    atSeconds: seconds,
+    repeatSeconds: seconds,
+    kind: id,
+    flatMinutes: factor,
+  }),
+  kinds: z.array(flotsamKindSchema),
+  /**
+   * Crows (the `gull` id; D197, D238): slot j crosses the sky `firstAfterSeconds + j × every`
+   * after the run's clock starts, plus a seeded offset in [0, jitter]; one in 1/eliteOdds is a
+   * Magpie. A catch pays `seconds` (a Magpie `eliteSeconds`) of output.
+   */
+  gulls: z.strictObject({
+    firstAfterSeconds: seconds,
+    every: seconds,
+    jitter: z.number().finite().nonnegative(),
+    crossSeconds: seconds,
+    eliteCrossSeconds: seconds,
+    graceSeconds: z.number().finite().nonnegative(),
+    eliteOdds: z.number().finite().positive().max(1),
+    seconds: seconds,
+    eliteSeconds: seconds,
+  }),
+});
+export type Flotsam = z.infer<typeof flotsamFileSchema>;
+
+export const WEATHERS = ["clear", "rain", "fog"] as const;
+export type Weather = (typeof WEATHERS)[number];
+
+/** The island's clock and weather, the same for every friend (02 8.2; 09 6.5). */
+export const islandFileSchema = z.strictObject({
+  id,
+  /** East of UTC, no daylight saving (errata E9). */
+  utcOffsetMinutes: z.int().min(-720).max(840),
+  seed: z.int(),
+  weather: z.strictObject({
+    blockMinutes: z.int().min(1),
+    clear: count,
+    rain: count,
+    fog: count,
+  }),
+  /** Night on the island's clock, for "at night" badges: from `from` until `to` (hours). */
+  night: z.strictObject({ from: z.int().min(0).max(23), to: z.int().min(0).max(23) }),
+});
+export type IslandClock = z.infer<typeof islandFileSchema>;
+
+/** The phases in order (12-feel.md 12: R2 Feel, R3 Cards, R4 The Big Red, … R9 Dares and live ops). */
+export const PHASES = ["R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9"] as const;
+export type Phase = (typeof PHASES)[number];
+
+/** "08:00+5m" (daily, UTC) or "hourly+5m". */
+const sessionSchema = z
+  .string()
+  .regex(/^(\d\d:\d\d|hourly)\+\d+m$/, "a session is HH:MM+Nm or hourly+Nm");
+
+export const archetypeSchema = z.strictObject({
+  sessions: z.array(sessionSchema).min(1),
+  tapsPerSecond: z.number().finite().nonnegative(),
+  tapsWhileNothingRuns: z.number().finite().nonnegative().optional(),
+  /** The share of the flotsam it catches while online (0: none). */
+  catches: z.number().finite().min(0).max(1).default(0),
+  nuke: z.enum(["crown", "double", "best"]),
+  startDay: z.int().min(1).optional(),
+  /** What it does with scrap (R3 S2): boosts at a session's start, tier-II drops, or hoard. */
+  spend: z.enum(["boosts", "drops", "none"]).default("none"),
+  /** The quick profile plays it this many days at most (its later days are `--full`'s, D236). */
+  quickDays: z.int().min(1).optional(),
+  /** A scenario's runs in the quick profile: its session ends with this run's press (D272). */
+  quickRuns: z.int().min(1).optional(),
+});
+export type Archetype = z.infer<typeof archetypeSchema>;
+
+export const assertionSchema = z.looseObject({
+  /** The canon number (N1-N27) or the canon section it covers. */
+  n: z.string().min(1),
+  on: z.enum(PHASES),
+  check: z.string().min(1),
+  warn: z.boolean().optional(),
+});
+export type Assertion = z.infer<typeof assertionSchema>;
+
+export const pacingSchema = z.strictObject({
+  shipped: z.enum(PHASES),
+  profiles: z.record(
+    z.string(),
+    z.strictObject({
+      days: z.int().min(1),
+      seeds: z.array(z.int()).min(1),
+      /** The scenarios' seeds, when they differ from the archetypes' (a scenario is one day). */
+      scenarioSeeds: z.array(z.int()).min(1).optional(),
+      /**
+       * Each archetype plays only as long as a due assertion reads it (`days` stays the cap):
+       * `pnpm test`'s quick profile (D236).
+       */
+      early: z.boolean().optional(),
+    }),
+  ),
+  archetypes: z.record(z.string(), archetypeSchema),
+  scenarios: z.record(z.string(), archetypeSchema),
+  assertions: z.array(assertionSchema),
+});
+export type Pacing = z.infer<typeof pacingSchema>;
+
+/**
+ * Badges (12-feel.md 9.1; D198, D239): the Logbook's first pages. Each `when` is one condition
+ * from a closed vocabulary the domain evaluates after every successful command (`badges.ts`).
+ */
+export const BADGE_STATS = [
+  "taps",
+  "hands",
+  "felled",
+  "flotsam",
+  "frenzies",
+  "gulls",
+  "units",
+  "research",
+  "eras",
+  "collects",
+  "drops",
 ] as const;
+export type BadgeStat = (typeof BADGE_STATS)[number];
+/** Domain events a badge may wait for (the domain test holds each to a real event type). */
+export const BADGE_EVENTS = [
+  "era_reached",
+  "hand_hired",
+  "felled",
+  "flotsam_claimed",
+  "gull_caught",
+  "frenzy_tripped",
+  "researched",
+  "night_shift_collected",
+] as const;
+export type BadgeEvent = (typeof BADGE_EVENTS)[number];
+/** Named predicates on the state after a command. */
+export const BADGE_STATES = [
+  "era",
+  "lines_min_owned",
+  "line_max_owned",
+  "hands_working",
+  "hustle",
+  "supplies_digits",
+  "made_ever",
+  "research_maxed",
+  "window_hours",
+  // Run-scoped (the Work Orders, D256): this run's taps, fells, catches, crows, Frenzies and
+  // supplies made, and the units of one `line`.
+  "run_taps",
+  "run_felled",
+  "run_flotsam",
+  "run_gulls",
+  "run_frenzies",
+  "run_made",
+  "line_owned",
+] as const;
+export type BadgeState = (typeof BADGE_STATES)[number];
+/** The states that name their line. */
+export const LINE_STATES: readonly BadgeState[] = ["line_owned"];
+const scalar = z.union([z.string(), z.number(), z.boolean()]);
+/** Parsed into a tagged shape (`kind`) so the domain can switch on it. */
+export const badgeWhenSchema = z.union([
+  z
+    .strictObject({ stat: z.enum(BADGE_STATS), gte: factor })
+    .transform((when) => ({ kind: "stat" as const, ...when })),
+  z
+    .strictObject({
+      state: z.enum(BADGE_STATES),
+      gte: factor.optional(),
+      eq: z.number().finite().optional(),
+      era: tier.optional(),
+      /** `line_owned`'s line. */
+      line: id.optional(),
+    })
+    .transform((when) => ({ kind: "state" as const, ...when })),
+  z
+    .strictObject({ buffs: z.array(id).min(2) })
+    .transform((when) => ({ kind: "buffs" as const, ...when })),
+  // Field filters on the event (`field: value`, or `fieldLte` / `fieldGte` for numbers); also
+  // `weather` and `night`, read from the island's clock at the command's second.
+  z
+    .object({ event: z.enum(BADGE_EVENTS) })
+    .catchall(scalar)
+    .transform(({ event, ...filters }) => ({
+      kind: "event" as const,
+      event: event as BadgeEvent,
+      filters: filters as Record<string, string | number | boolean>,
+    })),
+]);
+export type BadgeWhen = z.infer<typeof badgeWhenSchema>;
+export const BADGE_CHAPTERS = [
+  "eras",
+  "lines",
+  "hands",
+  "taps",
+  "frenzy",
+  "gulls",
+  "airdrops",
+  "workshop",
+  "night_shift",
+  "supplies",
+] as const;
+export const badgeSchema = z.strictObject({
+  id,
+  chapter: z.enum(BADGE_CHAPTERS),
+  /** `<kind>/<id>`: an existing icon (D141). */
+  icon: z.string().regex(/^[a-z_]+\/[a-z0-9_]+$/),
+  when: badgeWhenSchema,
+});
+export type BadgeDef = z.infer<typeof badgeSchema>;
+export const achievementsFileSchema = z.strictObject({
+  /** Morale = 1 + moralePer × badges earned (D198). */
+  moralePer: z.number().finite().nonnegative().max(0.1),
+  badges: z.array(badgeSchema),
+});
+export type Achievements = z.infer<typeof achievementsFileSchema>;
 
-export type EntityKind = (typeof FILES)[number]["kind"];
+/**
+ * What an order or a quest pays: a Supply Drop of a tier, scrap, or gear shards of a rarity
+ * (12-feel.md 7.1, 8; D266: the orders pay shards at once, their set a drop).
+ */
+export const paySchema = z.union([
+  z.strictObject({ drop: z.union([z.literal(1), z.literal(2), z.literal(3)]) }),
+  z.strictObject({ scrap: z.int().min(1) }),
+  z.strictObject({ shards: z.strictObject({ rarity: z.enum(RARITIES), n: z.int().min(1) }) }),
+]);
+export type Pay = z.infer<typeof paySchema>;
 
-/** Every data file, for loaders that fetch or bundle them (the browser). */
+/**
+ * Work Orders (13-adventure.md 3; D255, D256): a run's checklist, rolled per run from pools per
+ * era. `when` is a state predicate (progress must be showable, so no events or buffs).
+ */
+export const orderSchema = z.strictObject({
+  id,
+  era: tier,
+  when: badgeWhenSchema.refine((when) => when.kind === "state", {
+    message: "an order's `when` is a `state` predicate",
+  }),
+  pays: z.array(paySchema).min(1),
+  /** Needs the player at the screen (taps, fells, catches, Frenzy): at most `activeMax` a roll. */
+  active: z.boolean().optional(),
+  /** Reached by any player given time (eras, supplies made): at least `idleMin` a roll (N32). */
+  idle: z.boolean().optional(),
+});
+export type OrderDef = z.infer<typeof orderSchema>;
+export const ordersFileSchema = z.strictObject({
+  perRun: z.int().min(1),
+  /** Claimed orders that fuel the Kettle (crown the Big Red). */
+  fuel: z.int().min(1),
+  /** What the `fuel`-th claim pays on top (D266): a drop, through the gate. */
+  set: z.array(paySchema),
+  /** How many of each era's pool a run gets, in era order. */
+  spread: z.array(z.strictObject({ era: tier, count: z.int().min(1) })).min(1),
+  activeMax: z.int().min(0),
+  idleMin: z.int().min(0),
+  orders: z.array(orderSchema),
+});
+export type OrdersFile = z.infer<typeof ordersFileSchema>;
+
+/** Daily quests (12-feel.md 9.2; D257): lifetime counters that must grow by `n` in the day. */
+export const questSchema = z.strictObject({ id, stat: z.enum(BADGE_STATS), n: z.int().min(1) });
+export type QuestDef = z.infer<typeof questSchema>;
+export const questsFileSchema = z.strictObject({
+  perDay: z.int().min(1),
+  pays: z.strictObject({ each: z.array(paySchema), set: z.array(paySchema) }),
+  quests: z.array(questSchema),
+});
+export type QuestsFile = z.infer<typeof questsFileSchema>;
+
+/** A scrap boost (12-feel.md 8; D258): a timed buff (`effects`) or the Lucky Tide (`tide`). */
+export const boostSchema = z
+  .strictObject({
+    id,
+    cost: z.int().min(1),
+    seconds,
+    effects: z.array(effectSchema).min(1).optional(),
+    tide: z
+      .strictObject({ firstAfterSeconds: z.number().finite().nonnegative(), every: seconds })
+      .optional(),
+  })
+  .refine((boost) => (boost.effects === undefined) !== (boost.tide === undefined), {
+    message: "a boost has either `effects` or `tide`",
+  });
+export type BoostDef = z.infer<typeof boostSchema>;
+export const scrapFileSchema = z.strictObject({
+  /** Supply Drop prices by tier (only the tiers scrap buys). */
+  drops: z.strictObject({ 2: z.int().min(1), 3: z.int().min(1) }),
+  /** What the Magpie pays. */
+  magpie: z.int().min(0),
+  boosts: z.array(boostSchema),
+});
+export type ScrapFile = z.infer<typeof scrapFileSchema>;
+
+const rarity = z.enum(RARITIES);
+const cardEffectSchema = z.strictObject({
+  stat: z.enum(CARD_STAT_IDS as [CardStatId, ...CardStatId[]]),
+  value: z.number().finite(),
+});
+const byRarity = (value: z.ZodType<number>) =>
+  z.strictObject({ common: value, rare: value, epic: value, legendary: value });
+const percent = z.number().finite().min(0).max(100);
+
+/**
+ * Survivor and gear cards, the sets and the Supply Drops (12-feel.md 7; R3 Cards). A survivor is
+ * a hand of crew.json5; owning the card adds, while the hand is hired, its stars, its trait and
+ * the gear it wears (D248).
+ */
+export const cardsFileSchema = z.strictObject({
+  /** Stars 2-5 cost these shards of the survivor; each star above 1 gives its line ×(1 + perStar). */
+  stars: z.strictObject({
+    costs: z.array(z.int().min(1)).length(4),
+    perStar: z.number().finite().positive().max(1),
+  }),
+  shards: z.strictObject({
+    /** A duplicate survivor pays this many of its own shards (a 5★ one pays gear shards). */
+    survivor: byRarity(z.int().min(1)),
+    /** A duplicate gear card pays this many shards of its rarity. */
+    gear: byRarity(z.int().min(1)),
+    /** Rarity shards buy any gear card of that rarity. */
+    craft: byRarity(z.int().min(1)),
+  }),
+  drops: z.strictObject({
+    /** Cards in a drop. */
+    cards: z.int().min(1).max(5),
+    /** The first drop's first card (printed on the odds page). */
+    first: id,
+    /** Tier I, II, III: the odds of each card's rarity, in percent. */
+    tiers: z.array(z.strictObject({ odds: byRarity(percent) })).length(3),
+    /** Pity, counted per player across tiers: at least this rarity within this many cards. */
+    pity: z.strictObject({ rare: z.int().min(2), epic: z.int().min(2), legendary: z.int().min(2) }),
+    /**
+     * A tier-I drop at each of these lifetime fells, then one every `every` fells; at most one
+     * every `gapMinutes` and `perDay` an island day (marks passed meanwhile pay nothing, D249).
+     */
+    fells: z.strictObject({
+      at: z.array(z.int().min(1)).min(1),
+      every: z.int().min(1),
+      gapMinutes: z.number().finite().nonnegative(),
+      perDay: z.int().min(1),
+    }),
+    /** A tier-I drop per this many badges earned. */
+    badgesPer: z.int().min(1),
+  }),
+  survivors: z.array(z.strictObject({ id, rarity, trait: cardEffectSchema })),
+  gear: z.array(z.strictObject({ id, rarity, slot: z.enum(SLOTS), effect: cardEffectSchema })),
+  sets: z.strictObject({
+    /** Every survivor (of `rarity`, when named) owned at `stars` or more. */
+    crews: z.array(
+      z.strictObject({
+        id,
+        rarity: rarity.optional(),
+        stars: z.int().min(1).max(5),
+        effects: z.array(effectSchema).min(1),
+      }),
+    ),
+    /** A hired survivor wearing `pieces` gear cards of one rarity: `effect` on its own line. */
+    kit: z.strictObject({ id, pieces: z.int().min(2).max(3), effect: cardEffectSchema }),
+  }),
+});
+export type CardsFile = z.infer<typeof cardsFileSchema>;
+export type SurvivorDef = CardsFile["survivors"][number];
+export type GearDef = CardsFile["gear"][number];
+
+/** Everything the game's rules read, validated. */
+export interface Content {
+  resources: Resource[];
+  crew: CrewMember[];
+  /** Grip's rungs, Rock first (owned from the start). */
+  tools: Tool[];
+  /** The island the lines stand on (canon 9's reserved field). */
+  island: string;
+  formula: LineFormula;
+  /** In rung order, with derived numbers. */
+  lines: LineDef[];
+  /** Owned counts at which a line is drawn anew. */
+  stages: number[];
+  run: RunRules;
+  prestige: Prestige;
+  tap: TapRules;
+  /** One per era, in era order. */
+  targets: TargetDef[];
+  /** In tier order; Twig costs nothing. */
+  eras: EraDef[];
+  /** The shelf: Grip rungs after Rock, then the island upgrades. */
+  upgrades: UpgradeDef[];
+  /** The Workshop: tier items in tier order, then one Line Mk per line in rung order. */
+  research: ResearchDef[];
+  workshop: { opensAfterSeconds: number };
+  milestones: Milestones;
+  flotsam: Flotsam;
+  islandClock: IslandClock;
+  pacing: Pacing;
+  /** The Logbook's badges and what each is worth in Morale. */
+  achievements: Achievements;
+  /** What each timed buff does while it runs, by buff kind (from `flotsam.json5`). */
+  buffs: Record<string, Effect[]>;
+  /** Survivor and gear cards, sets and Supply Drops (R3). */
+  cards: CardsFile;
+  /** Work Orders: the run's checklist (R3 S2, D256). */
+  orders: OrdersFile;
+  /** Daily quests on the island's clock (R3 S2, D257). */
+  quests: QuestsFile;
+  /** Scrap: drop prices, the Magpie's pay and the boosts (R3 S2, D258). */
+  scrap: ScrapFile;
+  /** The Blast Map: sectors, rings, the price ladder and the nodes in data (R4). */
+  blastMap: BlastMapFile;
+  /** What each counted Wipe Day unlocks (R4). */
+  agenda: AgendaFile;
+}
+
+/** Data files the game needs, in load order. */
 export const DATA_FILES = [
   "resources.json5",
-  "tools.json5",
-  "base_tiers.json5",
-  "furnaces.json5",
-  "items.json5",
-  "buildings.json5",
-  "traits.json5",
   "crew.json5",
-  "regions.json5",
-  "sites.json5",
-  "events.json5",
-  "recipes.json5",
-  "crafting.json5",
-  "nodes.json5",
-  "active.json5",
+  "tools.json5",
+  "lines.json5",
+  "prestige.json5",
+  "targets.json5",
+  "eras.json5",
+  "upgrades.json5",
+  "research.json5",
+  "milestones.json5",
+  "flotsam.json5",
+  "island.json5",
   "pacing.json5",
-  "den.json5",
-  "raids.json5",
-  "legacy.json5",
-  "seasons.json5",
+  "achievements.json5",
+  "cards.json5",
+  "orders.json5",
+  "quests.json5",
+  "scrap.json5",
+  "blastmap.json5",
+  "agenda.json5",
 ] as const;
 export type DataFile = (typeof DATA_FILES)[number];
+
+/** The locale namespace of an entity's name: `{kind}.{id}.name`. */
+export type EntityKind =
+  | "resource"
+  | "crew"
+  | "tool"
+  | "line"
+  | "base_tier"
+  | "target"
+  | "upgrade"
+  | "research"
+  | "flotsam"
+  | "gear"
+  | "set"
+  | "order"
+  | "quest"
+  | "boost"
+  | "node"
+  | "sector";
+
+/** The named entities: their file, where `Content` keeps them and their locale namespace. */
+export const FILES = [
+  { file: "resources.json5", field: "resources", kind: "resource" },
+  { file: "crew.json5", field: "crew", kind: "crew" },
+  { file: "tools.json5", field: "tools", kind: "tool" },
+  { file: "lines.json5", field: "lines", kind: "line" },
+  { file: "eras.json5", field: "eras", kind: "base_tier" },
+  { file: "targets.json5", field: "targets", kind: "target" },
+] as const satisfies readonly {
+  file: DataFile;
+  field: keyof Content;
+  kind: EntityKind;
+}[];

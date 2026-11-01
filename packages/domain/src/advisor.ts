@@ -1,238 +1,513 @@
 /**
- * The one obvious next action (CLAUDE.md 6.3 rule 1): which button glows. The
- * onboarding hint explains the same action, so the button and the one-line
- * hint never disagree. A hint retires after it has been acted on twice.
+ * What to buy next. The simulator's buyer (docs/redesign/10-balance.md 2.2) and, from R1, the
+ * advisor's crown share this logic, so the crown and the simulator agree.
+ *
+ * Greedy best payback with waiting: every purchase scores
+ * `wait until affordable + cost ÷ added income` and the best one wins; the player buys it when it
+ * is affordable and otherwise saves. An unmanned line's income counts only the share of the day
+ * the player taps (their pace now, times the share of the day they are present); a hand counts
+ * the rest. Shelf rows and eras are scored by what they add, in closed form: a Line Mk ×3 adds
+ * twice its line's income; an island upgrade doubles every line and the flat tap; an era does too
+ * and opens three lines, which count as much again (02 6.2 crowns the era before the hand); a
+ * Grip rung doubles the flat tap and adds its share of the full rate. A Workshop level is scored
+ * by what its one effect adds, in closed form per stat (`RESEARCH_GAINS`): every stat a Workshop
+ * item may use has a gain, so every item can be crowned (game-design 5.12).
+ * Rows still shut by a gate other than the price are not offered.
  */
-import type { Content } from "@wipe-day/content/schema";
-import {
-  accrued,
-  type BaseState,
-  boxesInUse,
-  canAfford,
-  furnaceOf,
-  furnaceReady,
-  furnaceSlots,
-  gatherReadyAt,
-  isEmpty,
-  isStorageFull,
-  nextTier,
-  nextTool,
-  smeltable,
-  storageFill,
-  tierAtLeast,
-  tierOf,
-  toolUnlocked,
-  total,
-} from "./base";
-import { buildingCount, buildStatus, nextBuild } from "./buildings";
-import { deliverStatus } from "./contracts";
-import { craftStatus } from "./craft";
-import { tiredWorkers } from "./jobs";
-import { crewCap, isFit, scoutStatus, sitesIn, tripStatus } from "./missions";
-import { npcOdds, raidWarned, repairStatus } from "./raids";
-import { partsToMake } from "./recipes";
+import type { ScoredStat } from "@wipe-day/content/research";
+import { isScored } from "@wipe-day/content/research";
+import type { Content, LineDef, ResearchDef } from "@wipe-day/content/schema";
+import { TIERS } from "@wipe-day/content/tiers";
+import type { Amount } from "./amount";
+import { hireFactor } from "./cards";
+import type { Command } from "./commands";
+import type { Conditions, Effect } from "./effects";
+import { type FoldParts, foldParts, rates, unitRate } from "./effects";
+import { costFactor, costOf, eraOpen, handPriceOf, lineOf } from "./lines";
+import { type BigRedRule, bigRedCrown } from "./prestige";
+import { levelOf, levelsCost, mkFactor, workshopOpen } from "./research";
+import { bought, eraCost, eraGate, nextEra, upgradeCost, upgradeGate } from "./shelf";
+import type { BaseState } from "./state";
+import { tapParts } from "./taps";
 
-export type Advice =
-  | "collect"
-  | "barrel"
-  | "build"
-  | "tools"
-  | "furnace"
-  | "building"
-  | "craft"
-  | "map"
-  | "crew"
-  | "den"
-  | "defend"
-  | "repair"
-  | "gather";
-
-/** A hint is shown until its action has been used this many times. */
-export const HINT_RETIRE_AFTER = 2;
-
-/** Ore worth walking to the furnace for. */
-const SMELT_WORTH = 100;
-
-/** Below this chance to hold an announced raid, posting a guard is the advice (W6). */
-const DEFEND_BELOW = 80;
-
-/** Which mechanics exist for this player yet (rule 6: reveal as they become relevant). */
-export interface Revealed {
-  furnace: boolean;
-  craft: boolean;
-  inventory: boolean;
+export interface Choice {
+  command: Command;
+  cost: Amount;
+  /** Supplies a second it adds, on average over the player's day. */
+  gain: number;
+  /** Seconds: wait until affordable plus payback. Lower is better. */
+  score: number;
+  affordable: boolean;
 }
 
-export function revealed(content: Content, state: BaseState): Revealed {
-  const hasOre = content.resources.some(
-    (resource) => resource.smeltsInto && state.stock[resource.id] !== undefined,
-  );
-  const hasItems = Object.values(state.items).some((count) => count > 0);
-  const hasParts = content.resources.some(
-    (resource) => resource.kind === "part" && (state.stock[resource.id] ?? 0) > 0,
-  );
-  const anyStation = content.recipes.some((recipe) => (state.buildings[recipe.station] ?? 0) > 0);
-  return {
-    furnace: furnaceOf(content, state) !== null || hasOre,
-    craft: hasItems || anyStation || Object.keys(state.production).length > 0,
-    inventory: hasItems || hasParts,
-  };
-}
-
-/** True when the furnace has something useful to do right now, or the first one can be built. */
-export function furnaceWorthIt(content: Content, state: BaseState, now: number): boolean {
-  if (!isEmpty(furnaceReady(state, now))) return true;
-  if (furnaceOf(content, state)) {
-    if (state.furnaceJobs.length >= furnaceSlots(content, state)) return false;
-    return content.resources.some(
-      (resource) => resource.smeltsInto && smeltable(content, state, resource.id) >= SMELT_WORTH,
-    );
-  }
-  const hasOre = content.resources.some(
-    (resource) => resource.smeltsInto && (state.stock[resource.id] ?? 0) >= SMELT_WORTH,
-  );
-  return hasOre && buildStatus(content, state, "furnace").code === "ok";
-}
+const ONLINE: Conditions = { online: true };
+/** Each era's place on the ladder. */
+const ERA_RANK: Readonly<Record<string, number>> = Object.fromEntries(
+  TIERS.map((tier, i) => [tier, i]),
+);
+const AWAY: Conditions = { online: false };
+const DAY = 86_400;
 
 /**
- * The building most worth putting a free builder on: the workbench first (it
- * opens crafting), then the cheapest affordable one. Null when none is.
+ * Every purchase on offer with its score. `income` is the player's supplies a second now (taps
+ * included), used for the wait; `pace` the share of the time they tap now, and `paceRate` their
+ * taps a second (what a better tap is worth). What taps drive is scored over the player's day:
+ * they are away `advisor.away` of it, when unmanned lines and taps stop and a hand still works
+ * (D177), so a player tapping now is still crowned the hand for their best line.
  */
-export function buildingWorthIt(content: Content, state: BaseState): string | null {
-  const ready = content.buildings
-    .map((building) => building.id)
-    .filter((id) => id !== "furnace" && buildStatus(content, state, id).code === "ok");
-  if (ready.includes("workbench") && (state.buildings.workbench ?? 0) === 0) return "workbench";
-  const cost = (id: string) => total(nextBuild(content, state, id)?.cost ?? {});
-  return ready.sort((a, b) => cost(a) - cost(b))[0] ?? null;
-}
-
-/**
- * The part the next goal waits on and a station can start now: the next tier
- * first, then the next tool. Deepest first (planks before the frames made of
- * them), as units of its recipe. Null when nothing is short or nothing can start.
- */
-export function partWorthIt(
+export function choices(
   content: Content,
   state: BaseState,
-): { output: string; units: number } | null {
-  const goals = [];
-  const tier = nextTier(state.tier);
-  if (tier && !state.construction.some((job) => job.target.kind === "tier"))
-    goals.push(tierOf(content, tier).cost);
-  const tool = nextTool(content, state);
-  if (tool && toolUnlocked(state, tool)) goals.push(tool.cost);
-  for (const cost of goals) {
-    for (const { recipe, units } of partsToMake(content, state.stock, cost)) {
-      if (craftStatus(content, state, recipe.output).code === "ok")
-        return { output: recipe.output, units };
+  now: number,
+  income: number,
+  pace: number,
+  paceRate = 0,
+): Choice[] {
+  const present = 1 - content.run.advisor.away;
+  const tapShare = pace * present;
+  const tapRate = paceRate * present;
+  const supplies = state.run.supplies;
+  const out: Choice[] = [];
+  const score = (cost: number, gain: number): number => {
+    if (gain <= 0) return Number.POSITIVE_INFINITY;
+    const wait = cost <= supplies ? 0 : (cost - supplies) / Math.max(income, 1e-9);
+    return wait + cost / gain;
+  };
+  const offer = (command: Command, cost: number, gain: number) =>
+    out.push({ command, cost, gain, score: score(cost, gain), affordable: cost <= supplies });
+  /** Each line's income over the player's day: a manned line always, an unmanned one while tapping. */
+  const lineIncome = new Map<string, number>();
+  /** Each owned line as if manned, a second (what a tap takes its share of). */
+  const lineFull = new Map<string, number>();
+  let lines = 0;
+  for (const line of content.lines) {
+    if (!eraOpen(state, line)) continue;
+    const n = state.run.lines[line.id] ?? 0;
+    const manned = state.run.hands.includes(line.id);
+    const unit = unitRate(content, state, line, now, ONLINE);
+    const earns = n * unit * (manned ? 1 : tapShare);
+    lineIncome.set(line.id, earns);
+    lineFull.set(line.id, n * unit);
+    lines += earns;
+    if (n < line.maxOwned) {
+      const cost = costOf(line, n, 1, costFactor(content, state, line));
+      // A line nobody owns or mans also counts as the way to its hand: its first unit plus the
+      // hand earn a unit's income, so a player who does not tap is still led to new lines
+      // (D177). Gain is scaled so the payback reads (unit + hand) ÷ income; the wait stays the
+      // unit's own.
+      const manning =
+        n === 0 && !manned ? (unit * cost) / (cost + handPriceOf(content, state, line)) : 0;
+      const gain = Math.max(unit * (manned ? 1 : tapShare), manning);
+      out.push({
+        command: { type: "buy_line", line: line.id, count: 1 },
+        cost,
+        gain,
+        score: score(cost, gain),
+        affordable: cost <= supplies,
+      });
+    }
+    if (!manned && n > 0) {
+      const cost = handPriceOf(content, state, line);
+      // Its survivor card turns on with the hire (R3): stars and own-line gear multiply it.
+      const gain = n * unit * (hireFactor(content, state, line) - tapShare);
+      out.push({
+        command: { type: "hire_hand", line: line.id },
+        cost,
+        gain,
+        score: score(cost, gain),
+        affordable: cost <= supplies,
+      });
     }
   }
-  return null;
-}
-
-/** True when crafting is the natural next step: a part the next goal needs, or a crate. */
-export function craftWorthIt(content: Content, state: BaseState, now: number): boolean {
-  if (partWorthIt(content, state)) return true;
-  const tier = tierOf(content, state.tier);
-  if (
-    storageFill(content, state, now).fraction >= 0.8 &&
-    boxesInUse(content, state) < tier.boxSlots
-  ) {
-    return content.items.some(
-      (item) => item.category === "storage" && craftStatus(content, state, item.id).code === "ok",
+  const tap = tapParts(content, state, now);
+  const flatIncome = tapRate * tap.flatValue;
+  for (const upgrade of content.upgrades) {
+    if (bought(state, upgrade.id) || upgradeGate(content, state, upgrade)) continue;
+    const command: Command = { type: "buy_upgrade", upgrade: upgrade.id };
+    let more = 1;
+    let share = 0;
+    for (const effect of upgrade.effects) {
+      if (effect.op === "more") more *= effect.value;
+      if (effect.stat === "tap_share" && effect.op === "add") share += effect.value;
+    }
+    const gain =
+      upgrade.kind === "grip"
+        ? tapRate * (tap.flatValue * (more - 1) + share * tap.fullValue)
+        : (lines + flatIncome) * (more - 1);
+    offer(command, upgradeCost(content, state, upgrade), gain);
+  }
+  let fullNow = 0;
+  for (const value of lineFull.values()) fullNow += value;
+  const workshop: WorkshopContext = {
+    content,
+    state,
+    now,
+    lineIncome,
+    lineFull,
+    tapRate,
+    tap,
+    // The share of the full rate a tap takes, before Hustle (Grip's convention).
+    tapShareOfFull: fullNow > 0 ? (tap.base - tap.flatValue) / fullNow : 0,
+    open: [],
+    inc: new Map(),
+    away: null,
+  };
+  for (const line of content.lines) {
+    if (eraOpen(state, line)) workshop.open.push({ line, weight: weightOf(workshop, line) });
+  }
+  // The gates of `researchGate`, inlined: this runs for every item on every call.
+  const open = workshopOpen(content, state, now);
+  const reached = ERA_RANK[state.run.era] ?? 0;
+  for (const def of open ? content.research : []) {
+    const n = levelOf(state, def.id);
+    if (n >= def.levels || (ERA_RANK[def.era] ?? 0) > reached) continue;
+    if (def.line !== undefined && (state.run.lines[def.line] ?? 0) < (def.needOwned[n] ?? 0))
+      continue;
+    offer(
+      { type: "buy_research", item: def.id, count: 1 },
+      levelsCost(def, n, 1) * mkFactor(content, state, def),
+      researchGain(workshop, def),
     );
   }
-  return false;
+  const era = nextEra(content, state);
+  if (era && !eraGate(state, era)) {
+    let more = 1;
+    for (const effect of era.effects) if (effect.op === "more") more *= effect.value;
+    // The doubling, and as much again for the three lines it opens.
+    offer(
+      { type: "buy_era", era: era.id },
+      eraCost(content, state, era),
+      (lines + flatIncome) * more,
+    );
+  }
+  return out;
+}
+
+/** What a Workshop level's gain is weighed against. */
+interface WorkshopContext {
+  content: Content;
+  state: BaseState;
+  now: number;
+  lineIncome: ReadonlyMap<string, number>;
+  lineFull: ReadonlyMap<string, number>;
+  tapRate: number;
+  tap: ReturnType<typeof tapParts>;
+  tapShareOfFull: number;
+  /** The open lines with their weight (`weightOf`), once per `choices` call. */
+  open: { line: LineDef; weight: number }[];
+  /** Memos for one `choices` call: each line's Σinc on output, and manned output while away. */
+  inc: Map<string, number>;
+  away: number | null;
+}
+
+/** Whether `effect`'s scope reaches `line`. */
+const reaches = (effect: Effect, line: LineDef): boolean =>
+  effect.scope === undefined ||
+  effect.scope === "all" ||
+  effect.scope === line.id ||
+  effect.scope === line.era;
+
+/** A line's income over the player's day, with the share a tap takes of it. */
+function weightOf(ctx: WorkshopContext, line: LineDef): number {
+  const own = ctx.lineIncome.get(line.id) ?? 0;
+  const full = ctx.lineFull.get(line.id) ?? 0;
+  return own + ctx.tapRate * ctx.tapShareOfFull * full;
+}
+
+/** Manned lines' production a second while the player is away. */
+function mannedAway(ctx: WorkshopContext): number {
+  if (ctx.away !== null) return ctx.away;
+  let total = 0;
+  for (const id of ctx.state.run.hands) {
+    const line = lineOf(ctx.content, id);
+    const n = ctx.state.run.lines[id] ?? 0;
+    if (line && n > 0) total += n * unitRate(ctx.content, ctx.state, line, ctx.now, AWAY);
+  }
+  ctx.away = total;
+  return total;
+}
+
+/** The Night Shift stat's parts per effects layer (keyed on the layer's memo, like `tapFolds`). */
+const nightShiftParts = new WeakMap<object, FoldParts>();
+
+/** A line's Σinc on output now (what one more inc is shared with). */
+function incOf(ctx: WorkshopContext, line: LineDef): number {
+  const known = ctx.inc.get(line.id);
+  if (known !== undefined) return known;
+  // The fold depends only on the effects in force: memoised with the layer's per-line folds.
+  const r = rates(ctx.content, ctx.state);
+  let memo = r.perLine.get(line.id);
+  if (!memo) {
+    memo = new Map();
+    r.perLine.set(line.id, memo);
+  }
+  let inc = memo.get("inc");
+  if (inc === undefined) {
+    inc = foldParts("output", r.byStat.get("output") ?? [], { line }).inc;
+    memo.set("inc", inc);
+  }
+  ctx.inc.set(line.id, inc);
+  return inc;
 }
 
 /**
- * True when someone at home could go out: a trip to a known site one fit survivor can
- * make now, or a region to scout. Unread reports count too (the map shows them).
+ * Supplies a second one more level adds, on average over the player's day, by stat. A `Record`
+ * over every stat a Workshop item may use (`SCORED`), so a new one cannot ship without its gain.
  */
-export function mapWorthIt(content: Content, state: BaseState, now: number): boolean {
-  if (state.reports.some((report) => !report.read)) return true;
-  // Onboarding: the map waits until the first tier is built (one new thing at a time).
-  if (!tierAtLeast(state, "wood")) return false;
-  const fit = state.crew.find((member) => isFit(member, now));
-  if (!fit) return false;
-  for (const region of state.known) {
-    for (const site of sitesIn(content, region)) {
-      if (tripStatus(content, state, site.id, [fit.id], now).code === "ok") return true;
+const RESEARCH_GAINS: Record<ScoredStat, (ctx: WorkshopContext, effect: Effect) => number> = {
+  output(ctx, effect) {
+    let gain = 0;
+    for (const { line, weight } of ctx.open) {
+      if (weight <= 0 || !reaches(effect, line)) continue;
+      if (effect.op === "more") {
+        gain += weight * (effect.value - 1);
+        continue;
+      }
+      // An inc adds to the line's (1 + Σinc), shared with every other inc on it.
+      gain += (weight * effect.value) / (1 + incOf(ctx, line));
+    }
+    return gain;
+  },
+  speed(ctx, effect) {
+    let gain = 0;
+    for (const { line, weight } of ctx.open) {
+      if (reaches(effect, line)) gain += weight * (effect.value - 1);
+    }
+    return gain;
+  },
+  tap_flat(ctx, effect) {
+    const { tap, tapRate } = ctx;
+    if (effect.op === "more") return tapRate * tap.flatValue * (effect.value - 1);
+    const r = rates(ctx.content, ctx.state);
+    const parts = foldParts("tap_flat", r.byStat.get("tap_flat") ?? []);
+    const base = (parts.best ?? ctx.content.tap.flat) + parts.add;
+    return base > 0 ? (tapRate * tap.flatValue * effect.value) / base : 0;
+  },
+  hustle_max(ctx, effect) {
+    const { hustle } = ctx.content.tap;
+    const r = rates(ctx.content, ctx.state);
+    const parts = foldParts("hustle_max", r.byStat.get("hustle_max") ?? []);
+    const raw = ((parts.best ?? hustle.peak) + parts.add) * (1 + parts.inc) * parts.more;
+    const lift =
+      Math.min(hustle.peakCeiling, raw + effect.value) - Math.min(hustle.peakCeiling, raw);
+    return (ctx.tapRate * ctx.tap.base * lift) / Math.max(1, ctx.tap.hustlePeak);
+  },
+  night_shift(ctx, effect) {
+    const { content } = ctx;
+    const { windowHours, maxHours } = content.run.nightShift;
+    const r = rates(content, ctx.state);
+    // The fold depends only on the effects in force: once a layer, like `incOf`.
+    let parts = nightShiftParts.get(r.memo);
+    if (!parts) {
+      parts = foldParts("night_shift", r.byStat.get("night_shift") ?? []);
+      nightShiftParts.set(r.memo, parts);
+    }
+    const hours = (add: number) =>
+      Math.min(maxHours, ((parts.best ?? windowHours) + add) * (1 + parts.inc) * parts.more);
+    // The player is away one stretch a day; a longer window pays only inside it.
+    const stretch = content.run.advisor.away * DAY;
+    const before = Math.min(hours(parts.add) * 3600, stretch);
+    const after = Math.min(hours(parts.add + effect.value) * 3600, stretch);
+    return (mannedAway(ctx) * (after - before)) / DAY;
+  },
+  offline(ctx, effect) {
+    const r = rates(ctx.content, ctx.state);
+    const stretch = ctx.content.run.advisor.away * DAY;
+    return (mannedAway(ctx) * (effect.value - 1) * Math.min(r.nightShift, stretch)) / DAY;
+  },
+};
+
+/** What the next level of `def` adds a second (0 for a stat the crown cannot score). */
+function researchGain(ctx: WorkshopContext, def: ResearchDef): number {
+  const effect = def.effect;
+  return isScored(effect) ? RESEARCH_GAINS[effect.stat](ctx, effect) : 0;
+}
+
+/** The best purchase by score, affordable or not; null when nothing is on offer. */
+export function bestPurchase(
+  content: Content,
+  state: BaseState,
+  now: number,
+  income: number,
+  tapShare: number,
+  tapRate = 0,
+): Choice | null {
+  let best: Choice | null = null;
+  for (const choice of choices(content, state, now, income, tapShare, tapRate)) {
+    if (!best || choice.score < best.score) best = choice;
+  }
+  return best;
+}
+
+/** Whether anything at all is affordable now (N5, N6). */
+export function anythingAffordable(content: Content, state: BaseState, now: number): boolean {
+  return choices(content, state, now, 1, 0).some((choice) => choice.affordable);
+}
+
+/**
+ * The state the crown scores (D200): its lasting rates, every timed buff (Frenzy, Rally,
+ * Adrenaline) left out, so the crown never jumps to another card while a buff runs. Every number
+ * on screen still shows the buffs. The Big Red reads the buffs to wait for them, so `crown`
+ * takes the real state's `buffs` through the lasting one (`run.buffs` stays, only the rates
+ * ignore it).
+ */
+export function lasting(state: BaseState): BaseState {
+  return state.run.buffs.length === 0 ? state : { ...state, run: { ...state.run, buffs: [] } };
+}
+
+/** How the player is playing right now: what the crown weighs purchases by. */
+export interface Player {
+  /** Supplies a second, taps included. */
+  income: number;
+  /** The share of the time the player taps (0..1). */
+  tapShare: number;
+  /** Taps a second over the last minute. */
+  tapRate: number;
+}
+
+/** Which rule of 02-the-run.md 11.1 crowned a purchase. */
+export type CrownRule = "era" | "hand" | "best";
+
+/** The advisor's pick inside a run: the Big Red (R4), a purchase, or the tap hint (rule 7). */
+export type Pick =
+  | { kind: "nuke"; rule: BigRedRule }
+  | { kind: "purchase"; rule: CrownRule; choice: Choice }
+  | { kind: "tap" };
+
+/** What makes the crown pass the Big Red down the list for now (03 2.2). */
+export interface CrownOptions {
+  /** The welcome-back card is open: its one action is Collect, never the nuke (rule 6.3.10). */
+  welcomeOpen?: boolean;
+  /**
+   * A timed buff runs on the real base: the web scores a `lasting` copy (buffs stripped, D200)
+   * and passes this, so the Big Red still waits for the Rally to end (03 2.2).
+   */
+  buffRunning?: boolean;
+}
+
+/** Lower score first; a tie goes to the cheaper purchase (02 11.1). */
+export function byScore(a: Choice, b: Choice): number {
+  if (a.score !== b.score) return a.score < b.score ? -1 : 1;
+  return a.cost - b.cost;
+}
+
+/**
+ * The crown inside a run (02-the-run.md 11.1; canon 12.5; first match wins). R1 has rules 2-4
+ * and 7; the Big Red (R4), Blowback crates (R8) and the Toolbelt (R7) join with their phases.
+ *
+ * 2. The next era, when it is affordable within `saveSeconds` at the current income: it comes
+ *    before the hand (Timber at 1.5k is crowned before Mara at 1.8k).
+ * 3. The hand for the top-earning unmanned line, affordable within `saveSeconds`.
+ * 4. The best purchase by score (the wait to afford it plus price ÷ added income), when it is
+ *    affordable now. The income of an unmanned line or a Grip rung counts the player's own
+ *    tapping, so an idle player is never crowned more of one (a new line's first unit, the way to
+ *    its hand, may be). Ties go to the cheaper. While the best is
+ *    still out of reach the player saves for it: the crown goes to the tap hint and nothing
+ *    cheaper is crowned, or a crown-follower would spend every supply on small rows and never
+ *    reach the next era (D177; 02 11.1 had "best payback affordable now").
+ * 7. Otherwise the tap hint.
+ *
+ * 1. (R4) The Big Red comes first (`bigRedCrown`: the guided first nuke, a doubling, a fuelled
+ *    set, a day's run). It waits while a timed buff runs (the scored state is `lasting`, so the
+ *    caller passes the real one's buffs through `buffs`) and while the welcome card is open.
+ */
+export function crown(
+  content: Content,
+  state: BaseState,
+  now: number,
+  player: Player,
+  offered = choices(content, state, now, player.income, player.tapShare, player.tapRate),
+  options: CrownOptions = {},
+): Pick {
+  const buffRunning = options.buffRunning ?? state.run.buffs.some((buff) => buff.until > now);
+  if (!options.welcomeOpen && !buffRunning) {
+    const rule = bigRedCrown(content, state, now);
+    if (rule !== null) return { kind: "nuke", rule };
+  }
+  const within = state.run.supplies + player.income * content.run.advisor.saveSeconds;
+  const era = offered.find((choice) => choice.command.type === "buy_era");
+  if (era && era.cost <= within) return { kind: "purchase", rule: "era", choice: era };
+  let hand: Choice | null = null;
+  let top = 0;
+  for (const choice of offered) {
+    if (choice.command.type !== "hire_hand") continue;
+    const line = lineOf(content, choice.command.line);
+    if (!line) continue;
+    const n = state.run.lines[line.id] ?? 0;
+    const earns = n * unitRate(content, state, line, now, ONLINE);
+    if (earns > top || (earns === top && hand && choice.cost < hand.cost)) {
+      top = earns;
+      hand = choice;
     }
   }
-  return content.regions.some(
-    (region) => scoutStatus(content, state, region.id, now, fit.id).code === "ok",
-  );
+  if (hand && hand.cost <= within) return { kind: "purchase", rule: "hand", choice: hand };
+  const best = bestScore(offered);
+  return best?.affordable ? { kind: "purchase", rule: "best", choice: best } : { kind: "tap" };
 }
 
 /**
- * True when the crew wants a look: a worker is tired (one tap rests them all), or someone
- * at home is free while the base can give them work (from the first tier on, W4b).
+ * The expanded drawer's crown, a view of its own that always crowns one row (resolution 3.25):
+ * the pick when it is a purchase, otherwise the best score (payback with the wait to afford it).
  */
-export function crewWorthIt(state: BaseState, now: number): boolean {
-  if (tiredWorkers(state, now).length > 0) return true;
-  if (!tierAtLeast(state, "wood")) return false;
-  return state.crew.some(
-    (member) =>
-      member.job === null &&
-      member.away === null &&
-      !(member.injuredUntil !== null && member.injuredUntil > now),
-  );
+export function sheetPick(pick: Pick, offered: readonly Choice[]): Choice | null {
+  return pick.kind === "purchase" ? pick.choice : bestScore(offered);
 }
 
-/** True when the Den has a contract the base can deliver right now (W5). */
-export function denWorthIt(content: Content, state: BaseState): boolean {
-  return state.contracts.ids.some((id) => deliverStatus(content, state, id).code === "ok");
+/** The purchase with the best score, affordable or not; null when none adds anything. */
+function bestScore(offered: readonly Choice[]): Choice | null {
+  let best: Choice | null = null;
+  for (const choice of offered) {
+    if (choice.score === Number.POSITIVE_INFINITY) continue;
+    if (!best || byScore(choice, best) < 0) best = choice;
+  }
+  return best;
 }
 
 /**
- * True when raiders are announced, the base would likely not hold, and someone at home could
- * still take the guard post (W6).
+ * Whether the kind of purchase `command` makes is still new to the player (D244): bought fewer
+ * than `advisor.hintUses` times in their whole life. Only then does the game show it as the thing
+ * to do (its Buy orange); afterwards it never advises a purchase. A line counts its units, so ×10
+ * on the first line ends it at once; upgrades count the run's own too, for a save from before the
+ * counter.
  */
-export function defendWorthIt(content: Content, state: BaseState, now: number): boolean {
-  if (!raidWarned(content, state, now)) return false;
-  const odds = npcOdds(content, state, now);
-  if (!odds || odds.chance >= DEFEND_BELOW) return false;
-  return state.crew.some(
-    (member) => member.job?.kind !== "guard" && member.away === null && isFit(member, now),
-  );
+export function firstUse(content: Content, state: BaseState, command: Command): boolean {
+  const stats = state.meta.stats;
+  const uses = content.run.advisor.hintUses;
+  switch (command.type) {
+    case "buy_line":
+      return stats.units < uses;
+    case "hire_hand":
+      return stats.hands < uses;
+    case "buy_research":
+      return stats.research < uses;
+    case "buy_era":
+      return stats.eras < uses;
+    case "buy_upgrade":
+      return Math.max(stats.upgrades, state.run.upgrades.length) < uses;
+    default:
+      return false;
+  }
 }
 
-/** True when a raid left the defences damaged and the repair is affordable (W6). */
-export function repairWorthIt(content: Content, state: BaseState): boolean {
-  return repairStatus(content, state).code === "ok";
+/** "Tap the tree." and the target's glow: onboarding, until the first lines are bought (D244). */
+export function tapHintLive(content: Content, state: BaseState): boolean {
+  return state.meta.stats.units < content.run.advisor.hintUses;
 }
 
-/** Room for another survivor, for the crew panel. */
-export { crewCap };
-
-export function advise(content: Content, state: BaseState, now: number): Advice {
-  // Full storage with something waiting: bank it. Full with nothing waiting means
-  // collecting would do nothing, so the advice moves on to spending.
-  if (isStorageFull(content, state, now) && !isEmpty(accrued(content, state, now)))
-    return "collect";
-  if (state.barrel && now <= state.barrel.expiresAt) return "barrel";
-  if (defendWorthIt(content, state, now)) return "defend";
-  if (buildStatus(content, state, "tier").code === "ok") return "build";
-  const tool = nextTool(content, state);
-  if (tool && toolUnlocked(state, tool) && canAfford(tool.cost, state.stock)) return "tools";
-  if (repairWorthIt(content, state)) return "repair";
-  if (furnaceWorthIt(content, state, now)) return "furnace";
-  if (buildingWorthIt(content, state) !== null) return "building";
-  if (crewWorthIt(state, now)) return "crew";
-  if (mapWorthIt(content, state, now)) return "map";
-  if (craftWorthIt(content, state, now)) return "craft";
-  if (denWorthIt(content, state)) return "den";
-  if (gatherReadyAt(content, state) <= now) return "gather";
-  // Nothing to spend on and Gather cooling down: bank what is waiting, or wait for Gather.
-  return total(accrued(content, state, now)) >= 1 ? "collect" : "gather";
+/** Whether two commands buy the same row (a line's count aside). */
+export function sameRow(a: Command, b: Command): boolean {
+  if (a.type !== b.type) return false;
+  switch (a.type) {
+    case "buy_line":
+    case "hire_hand":
+      return "line" in b && a.line === b.line;
+    case "buy_upgrade":
+      return b.type === "buy_upgrade" && a.upgrade === b.upgrade;
+    case "buy_research":
+      return b.type === "buy_research" && a.item === b.item;
+    case "buy_era":
+      return b.type === "buy_era" && a.era === b.era;
+    default:
+      return false;
+  }
 }
-
-/** The hint to show under the base for `advice`, or null once it has retired. */
-export function hintFor(state: BaseState, advice: Advice): Advice | null {
-  return (state.hints[advice] ?? 0) < HINT_RETIRE_AFTER ? advice : null;
-}
-
-/** How many buildings stand: for the dock and the simulator. */
-export { buildingCount };

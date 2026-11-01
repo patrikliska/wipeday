@@ -1,0 +1,16 @@
+# Canon v2 stages (solo archetypes, no Late Tide, Blowback 9 crates a day)
+
+  stage                            N1      cas 1st  cas d7/30/90    n d30  active 30/90   optimal 30/90  idler 30/90    late     lit30 
+  P1 (as published)                48:00   13h01    1104/43.7k/246k 25     1.42/1.36      1.92/1.59      1.00/0.71      4.5 d    37%
+  + crate floor 1 min              47:00   13h01    1107/43.7k/247k 25     1.43/1.37      1.97/1.54      1.00/0.71      4.5 d    37%
+  + run-1 crate flat 10 min        47:00   13h01    1104/43.7k/246k 25     1.42/1.36      1.92/1.59      1.00/0.71      4.5 d    37%
+  + Afterglow from first tap       48:00   13h01    1104/43.7k/246k 25     1.42/1.36      1.92/1.59      1.00/0.71      4.5 d    37%
+  + rain 20%                       48:00   13h01    1104/42.4k/259k 25     1.50/1.34      2.02/1.49      1.03/0.68      4.0 d    37%
+  V2A: all rules                   44:30   13h01    1105/42.4k/259k 25     1.61/1.30      2.02/1.49      1.03/0.68      4.0 d    37%
+  V2B: + Morale in rings 4-9       44:30   13h01    955/37.3k/218k  26     1.68/1.43      2.23/1.76      0.81/0.56      4.5 d    37%
+  + Logbook history lines r2-3     44:30   13h01    1106/39k/266k   26     1.74/1.38      2.06/1.69      1.13/0.68      4.0 d    37%
+  V2C: + shelf/era cost columns    44:30   13h01    1029/54.5k/279k 26     1.34/1.26      1.59/1.61      0.79/0.62      4.0 d    37%
+  V2: + 04's automation slots      44:30   13h01    1029/54.5k/279k 26     1.34/1.26      1.59/1.61      0.79/0.62      4.0 d    37%
+  V2 with P1's automation slots    44:30   13h01    1029/54.5k/279k 26     1.34/1.26      1.59/1.61      0.79/0.62      4.0 d    37%
+
+done in 42s

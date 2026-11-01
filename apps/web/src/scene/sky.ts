@@ -1,8 +1,14 @@
-/** Sky gradient, sun and moon, stars, clouds. */
+/** Sky gradient, sun and moon, stars, and the pixel clouds (D218). */
 import { Container, Graphics, Sprite } from "pixi.js";
+import { cloudTexture } from "./clouds";
 import type { Palette } from "./palette";
-import { glowTexture, puffTexture, verticalGradient } from "./textures";
+import { ART } from "./pixel";
+import { glowTexture, verticalGradient } from "./textures";
 import { clamp, hash, lerp, rand } from "./util";
+
+/** Clouds in the sky; a clear sky shows the first `CLEAR_CLOUDS`, rain and fog all of them. */
+const CLOUDS = 18;
+const CLEAR_CLOUDS = 11;
 
 interface Star {
   sprite: Graphics;
@@ -11,9 +17,12 @@ interface Star {
 }
 
 interface Cloud {
-  container: Container;
+  sprite: Sprite;
+  /** Where it is (stage units); drawn on the nearest whole art pixel. */
+  x: number;
   speed: number;
-  baseY: number;
+  /** How opaque it is at full show: the far, low clouds are paler. */
+  alpha: number;
 }
 
 export class Sky {
@@ -90,32 +99,35 @@ export class Sky {
       .fill({ color: 0xd7dbea, alpha: 0.5 });
     this.container.addChild(this.moon);
 
-    const puff = puffTexture(128);
-    for (let i = 0; i < 7; i++) {
-      const cloud = new Container();
-      const puffs = 4 + Math.floor(hash(i * 11) * 3);
-      let x = 0;
-      for (let p = 0; p < puffs; p++) {
-        const sprite = new Sprite(puff);
-        sprite.anchor.set(0.5);
-        const s = rand(0.9, 1.7);
-        sprite.scale.set(s * 1.3, s * 0.72);
-        sprite.position.set(x, rand(-14, 14));
-        sprite.alpha = rand(0.7, 0.95);
-        cloud.addChild(sprite);
-        x += rand(40, 70);
-      }
-      cloud.position.set(
-        -extend + hash(i * 13.7) * (width + extend * 2),
-        60 + hash(i * 17.3) * (horizon * 0.55),
-      );
-      cloud.scale.set(rand(0.9, 1.6));
-      this.container.addChild(cloud);
-      this.clouds.push({ container: cloud, speed: rand(6, 14), baseY: cloud.y });
+    // Pixel clouds, each its own shape (D218): the high ones big and near, the low ones small,
+    // pale and slow, as if far off over the city.
+    for (let i = 0; i < CLOUDS; i++) {
+      const height = hash(i * 17.3);
+      const size = clamp(height * 1.1 - 0.05 + (hash(i * 5.9) - 0.5) * 0.3, 0, 1);
+      const sprite = new Sprite(cloudTexture(i + 1, size));
+      sprite.anchor.set(0, 1);
+      sprite.scale.set(ART);
+      // From above the skyline up to where a tall phone's sky ends (about 330 above 0).
+      sprite.y = Math.round((horizon * (0.5 - height)) / ART) * ART;
+      this.container.addChild(sprite);
+      this.clouds.push({
+        sprite,
+        x: -extend + hash(i * 13.7) * (width + extend * 2),
+        speed: 3 + size * 9,
+        alpha: 0.55 + size * 0.35,
+      });
     }
   }
 
-  update(dt: number, dayFraction: number, palette: Palette, wind: number, gloom = 0): void {
+  /** `cover` 0..1: how overcast (rain, fog): more clouds, more opaque. */
+  update(
+    dt: number,
+    dayFraction: number,
+    palette: Palette,
+    wind: number,
+    gloom = 0,
+    cover = 0,
+  ): void {
     this.time += dt;
     const key = `${palette.skyTop}-${palette.skyMid}-${palette.skyHorizon}`;
     if (key !== this.lastGradientKey) {
@@ -155,12 +167,15 @@ export class Sky {
       star.sprite.alpha = palette.stars * twinkle;
     }
 
-    for (const cloud of this.clouds) {
-      cloud.container.x += (cloud.speed + wind * 3) * dt;
-      cloud.container.y = cloud.baseY + Math.sin(this.time * 0.2 + cloud.baseY) * 4;
-      if (cloud.container.x > this.width + this.extend + 200)
-        cloud.container.x = -this.extend - 300;
-      for (const puff of cloud.container.children) (puff as Sprite).tint = palette.cloud;
+    const shown = Math.round(lerp(CLEAR_CLOUDS, CLOUDS, clamp(cover, 0, 1)));
+    for (const [i, cloud] of this.clouds.entries()) {
+      cloud.x += (cloud.speed + wind * 2) * dt;
+      if (cloud.x > this.width + this.extend + 100) cloud.x = -this.extend - 300;
+      // Whole art pixels only: a cloud steps along the grid (D188).
+      cloud.sprite.x = Math.round(cloud.x / ART) * ART;
+      cloud.sprite.visible = i < shown;
+      cloud.sprite.alpha = Math.min(1, cloud.alpha + cover * 0.25);
+      cloud.sprite.tint = palette.cloud;
     }
   }
 }
