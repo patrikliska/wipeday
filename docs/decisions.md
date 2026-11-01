@@ -3335,5 +3335,5 @@ Choices made in planning, from the exploration:
   revisited); R5 asserts N15 and warns on the solo gaps. **N12's R5 early floor stays at 1.25**
   (D269), not the row's 1.5.
 - **Keystone slot 3** (#40) joins the agenda in R9, when Wipe Day #40's ring 8 ships (D140).
-- Found and fixed in S1: rain's flotsam float never applied (Rainmaker did nothing), `glow_k`
+- Found in planning, fixed in S1: rain's flotsam float never applied (Rainmaker did nothing), `glow_k`
   with `per: nukes` folded to 0, and a flotsam rate of 0 divided by zero.
