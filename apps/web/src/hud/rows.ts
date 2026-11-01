@@ -14,7 +14,7 @@ import type { LineDef, ResearchDef, UpgradeDef } from "@wipe-day/content/schema"
 import { TIERS, type Tier } from "@wipe-day/content/tiers";
 import { type Choice, sameRow } from "@wipe-day/domain/advisor";
 import type { Command } from "@wipe-day/domain/commands";
-import { cycleOf, foldParts, rates, unitRate } from "@wipe-day/domain/effects";
+import { cycleOf, foldParts, nextMilestone, rates, unitRate } from "@wipe-day/domain/effects";
 import {
   costFactor,
   costOf,
@@ -192,6 +192,8 @@ export const artStage = (n: number): number => (n >= 100 ? 3 : n >= 25 ? 2 : 1);
 export function bulkCount(line: LineDef, n: number, bulk: Bulk, supplies: number, factor: number) {
   const room = Math.max(0, line.maxOwned - n);
   if (bulk === "max") return Math.max(1, Math.min(room, maxAffordable(line, n, supplies, factor)));
+  // "Next" (the map's Bulk Buttons): up to the line's next milestone, whatever it costs.
+  if (bulk === "next") return Math.max(1, Math.min(room, nextMilestone(content, n) - n));
   return Math.max(1, Math.min(room, bulk));
 }
 
@@ -331,18 +333,28 @@ export interface EraPlate {
   need: string | null;
   /** The plate's spoken label. */
   label: string;
+  /** Shut behind a Wipe Day count (Armored, D140): shown with its real reason, never buyable. */
+  gate: { at: number; toGo: number } | null;
 }
 
 export function eraPlate(view: AdvisorView): EraPlate | null {
   const base = view.base;
   const era = nextEra(content, base);
-  if (!era || eraGate(base, era)) return null;
+  if (!era) return null;
+  const shut = eraGate(base, era);
+  const gate =
+    shut?.kind === "wipe_day" ? { at: shut.value, toGo: shut.value - base.meta.wipeDays } : null;
+  if (shut && !gate) return null;
   const cost = eraCost(content, base, era);
   const supplies = base.run.supplies;
   let factor = 1;
   for (const effect of era.effects ?? []) if (effect.op === "more") factor *= effect.value;
-  const ready = cost <= supplies;
-  const eta = ready ? "" : affordIn(cost, view);
+  const ready = gate === null && cost <= supplies;
+  const eta = gate
+    ? t("era_plate.locked", { count: gate.at, toGo: gate.toGo })
+    : ready
+      ? ""
+      : affordIn(cost, view);
   const name = t("row.era_name", { era: tierName(era.id) });
   const command: Command = { type: "buy_era", era: era.id };
   const price = fmt(cost, "cost");
@@ -367,12 +379,13 @@ export function eraPlate(view: AdvisorView): EraPlate | null {
     house: houseFrom === houseTo ? null : { from: houseFrom, to: houseTo },
     workshop: workshopShown(view) ? content.research.filter((def) => def.era === era.id).length : 0,
     left: ready ? fmt(supplies - cost, "held") : null,
-    need: ready ? null : fmt(cost - supplies, "cost"),
+    need: ready ? null : fmt(Math.max(0, cost - supplies), "cost"),
     label: t("era_plate.aria", {
       era: name,
       cost: price,
       status: ready ? t("era_plate.ready") : eta,
     }),
+    gate,
   };
 }
 

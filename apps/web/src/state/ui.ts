@@ -8,10 +8,12 @@
  * the shots harness (a plain `setState`) pushes nothing and closes without touching history.
  */
 import { create } from "zustand";
+import { useMap } from "./map";
 
-export type Bulk = 1 | 10 | 100 | "max";
+/** "next": up to the line's next milestone (the Blast Map's Bulk Buttons, R4 S3). */
+export type Bulk = 1 | 10 | 100 | "max" | "next";
 export type Tab = "lines" | "upgrades" | "research";
-export type Panel = "crew" | "logbook" | "settings" | "album";
+export type Panel = "crew" | "logbook" | "settings" | "album" | "map";
 export type Sheet =
   | "multipliers"
   | "odds"
@@ -117,7 +119,8 @@ function write(key: string, value: string): void {
 
 const storedBulk = (): Bulk => {
   const value = read("wipeday.bulk");
-  return value === "max" ? "max" : value === "10" ? 10 : value === "100" ? 100 : 1;
+  if (value === "max" || value === "next") return value;
+  return value === "10" ? 10 : value === "100" ? 100 : 1;
 };
 
 const storedCrewSeen = (): { run: number; hands: number } => {
@@ -290,6 +293,8 @@ export const useUi = create<UiState & UiActions>((set, get) => {
     back() {
       const state = get();
       if (state.sheet) set({ sheet: null });
+      // The map's node sheet closes before the map does (it pushes no history entry).
+      else if (state.panel === "map" && useMap.getState().node) useMap.getState().openNode(null);
       else if (state.panel) set({ panel: null });
       else if (state.expanded) set({ expanded: false });
       else if (state.house) set({ house: false });
@@ -313,6 +318,7 @@ export function installBack(): () => void {
 export function closeTop(): boolean {
   const state = useUi.getState();
   if (state.sheet) state.openSheet(null);
+  else if (state.panel === "map" && useMap.getState().node) useMap.getState().openNode(null);
   else if (state.panel) state.openPanel(null);
   else if (state.expanded) state.expand(false);
   else if (state.house) state.openHouse(false);

@@ -25,8 +25,12 @@ describe("customId", () => {
     expect(parseCustomId("idle:v2:base:teleport:-")).toMatchObject({ kind: "unknown" });
     expect(parseCustomId("idle:v2:base:collect:nobody")).toMatchObject({ kind: "unknown" });
     expect(parseCustomId("idle:v2:base:collect:-:extra")).toMatchObject({ kind: "unknown" });
-    // The W8 card's Collect and Gather: stale now, answered with a fresh /base.
-    expect(parseCustomId("idle:v2:base:collect:-")).toMatchObject({ kind: "unknown" });
+    // The W8 card's Gather is stale, answered with a fresh /base; Collect is the bot's one
+    // command again from R4 (06-friends.md 10.3).
+    expect(parseCustomId("idle:v2:base:collect:-")).toMatchObject({
+      kind: "ok",
+      id: { route: { screen: "base", action: "collect" } },
+    });
     expect(parseCustomId("idle:v2:base:gather:-")).toMatchObject({ kind: "unknown" });
   });
 

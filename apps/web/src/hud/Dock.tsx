@@ -1,4 +1,5 @@
 import { badgeCount } from "@wipe-day/domain/badges";
+import { affordableNodes } from "@wipe-day/domain/blastmap";
 import { heldDrops } from "@wipe-day/domain/cards";
 import { useRef } from "react";
 import { useAdvisor } from "../state/advisor";
@@ -18,7 +19,8 @@ import { Ticker } from "./Ticker";
  * at the first hand, the Logbook at the first badge. A badge counts new things (the Workshop:
  * items opened since its tab last showed; Crew: hands hired since the Crew sheet last showed
  * this run; the Logbook: badges earned since it last showed). Island closes any sheet.
- * The Album (D260) counts held drops plus cards owned since it last showed. On desktop the news
+ * The Album (D260) counts held drops plus cards owned since it last showed. The Blast Map (R4
+ * S3, D271) joins at Wipe Day #1 with the affordable nodes as its badge. On desktop the news
  * ticker runs under it.
  */
 type Place = "island" | "workshop" | Panel;
@@ -43,6 +45,10 @@ export function Dock() {
   const albumHeld = useWorld((state) => (state.base ? heldDrops(state.base.meta.drops) : 0));
   const albumCards = useWorld((state) => (state.base ? cardsOwned(state.base) : 0));
   const albumSeen = useUi((state) => state.albumSeen);
+  const map = useWorld((state) => (state.base?.meta.wipeDays ?? 0) >= 1);
+  const mapAffordable = useWorld((state) =>
+    state.base ? affordableNodes(content, state.base.meta).length : 0,
+  );
   const view = useAdvisor((state) => state.view);
   const playing = useWorld((state) => state.phase === "playing");
   // The places the dock showed when the game opened; a place that joins later pops in (3.2).
@@ -54,7 +60,7 @@ export function Dock() {
   const newItems = Math.max(0, openItems - (workshopSeen.run === run ? workshopSeen.items : 0));
   const onWorkshop = workshop && tab === "research" && (column || expanded);
   const current: Place =
-    panel === "crew" || panel === "logbook" || panel === "album"
+    panel === "crew" || panel === "logbook" || panel === "album" || panel === "map"
       ? panel
       : onWorkshop
         ? "workshop"
@@ -74,6 +80,8 @@ export function Dock() {
           },
         ]
       : []),
+    // The Blast Map from Wipe Day #1 (D271): its badge counts the nodes the glass can buy now.
+    ...(map ? [{ id: "map" as const, icon: "blast_map", badge: mapAffordable }] : []),
     ...(badges > 0
       ? [{ id: "logbook" as const, icon: "logbook", badge: Math.max(0, badges - badgesSeen) }]
       : []),

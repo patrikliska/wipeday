@@ -10,6 +10,7 @@ import { counterHold, gameSeconds, useWorld } from "../state/store";
 import { useUi } from "../state/ui";
 import { buffName, content, duration, fmt, fmtFactor, fmtRate, t } from "../state/world";
 import { EraPlate } from "./Era";
+import { GlassPlate } from "./Glass";
 import { Icon, ResourceIcon } from "./Icon";
 import { ScrapPlate } from "./Scrap";
 import { useRise } from "./util";
@@ -90,13 +91,15 @@ export function TopBar() {
           <>
             <Lamp />
             <ScrapPlate />
+            <GlassPlate />
           </>
         ) : (
-          // A phone's plate stays narrow: the lamp, the scrap chip and the era plate sit on the
-          // row under it.
+          // A phone's plate stays narrow: the lamp, the scrap and glass chips and the era plate
+          // sit on the row under it.
           <div className="counter-sub">
             <Lamp />
             <ScrapPlate />
+            <GlassPlate />
             <EraPlate />
           </div>
         )}
@@ -186,6 +189,11 @@ function BuffPills() {
       ? content.scrap.boosts.find((row) => row.id === tide.boost)
       : undefined;
   const afterglow = useAfterglow(second);
+  // Afterglow's bar ends with the same tick (R4 S4): the pill lingers a beat as `ending`.
+  if (afterglow?.ending && !ending.current.has("afterglow")) {
+    ending.current.set("afterglow", second);
+    emit({ type: "afterglow_ended" });
+  }
   if (live.length === 0 && !tideBoost && !afterglow) return null;
   const shown = live.slice(0, afterglow ? 2 : 3);
   const hidden = live.length - shown.length;
@@ -195,7 +203,7 @@ function BuffPills() {
         // Afterglow (03 10.1): green, frozen at ×3 until the first tap, then counting down.
         <span
           key="afterglow"
-          className="plate buff afterglow"
+          className={`plate buff afterglow${afterglow.ending ? " ending" : ""}`}
           role="img"
           aria-label={t("hud.afterglow_label", {
             factor: fmtFactor(afterglow.factor),
@@ -287,20 +295,24 @@ function BuffPills() {
  */
 function useAfterglow(
   second: number,
-): { factor: number; left: number; fill: number; waiting: boolean } | null {
+): { factor: number; left: number; fill: number; waiting: boolean; ending: boolean } | null {
   const base = useWorld((state) => state.base);
   if (!base || base.meta.nukes === 0) return null;
   const rules = afterglowRules(content, base);
   const total = rules.hold + rules.ends;
   const from = base.run.afterglowFrom;
-  if (from === null) return { factor: rules.start, left: total, fill: 1, waiting: true };
+  if (from === null)
+    return { factor: rules.start, left: total, fill: 1, waiting: true, ending: false };
   const elapsed = Math.max(0, second - from);
-  if (elapsed >= total) return null;
+  // Two seconds past its end the pill is still drawn, empty, with its tick (`ending`).
+  if (elapsed >= total + 2) return null;
+  if (elapsed >= total) return { factor: 1, left: 0, fill: 0, waiting: false, ending: true };
   return {
     factor: afterglowAt(content, base, second),
     left: total - elapsed,
     fill: (total - elapsed) / total,
     waiting: false,
+    ending: false,
   };
 }
 

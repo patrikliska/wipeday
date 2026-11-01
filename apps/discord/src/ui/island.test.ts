@@ -9,19 +9,34 @@ import { lintScreen } from "./screen";
 const { content, locale } = loadGame();
 const w = words(locale, content);
 
-// The feed has no event types until R4: a stand-in event exercises the channel's formatting.
+/** A Wipe Day's feed item (R4): the fourth, +144 glass. */
 const built = (id: number, name: string, at = NOW): FeedItem => ({
   id,
   at,
   playerId: 1,
   playerName: name,
-  event: { type: "era_reached" } as never,
+  event: {
+    type: "nuked",
+    n: 4,
+    wipeDay: 4,
+    gain: 144,
+    ever: 500,
+    glowBefore: 1,
+    glowAfter: 2,
+    doubling: false,
+    flight: "u_turn",
+    pays: { drop: 1, scrap: 0 },
+    news: { folded: 0, glass: 0 },
+    summary: {} as never,
+  },
 });
 
 describe("the feed channel", () => {
   it("posts the web feed's own sentence, with the name bold and escaped", () => {
     const [message] = feedMessages(w, [built(1, "Ana_the*Bold")], NOW);
-    expect(message).toBe(w.feedLine(built(1, "x").event as never, "**Ana\\_the\\*Bold**"));
+    expect(message).toBe(
+      "**Ana\\_the\\*Bold** pressed the Big Red. Wipe Day #4 on Saltmarsh: +144 crater glass.",
+    );
   });
 
   it("says when a caught-up item happened, and splits long batches", () => {

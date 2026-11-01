@@ -30,7 +30,7 @@
  * PUT  /api/bot/dm             {on}: DMs on or off
  * GET  /api/bot/stream         server-sent events: `feed` items (the ones missed first) and
  *                              `dm` notifications
- * POST /api/bot/commands       refused (`not_on_discord`): the bot only links into the game
+ * POST /api/bot/commands       Collect only; everything else refused (`not_on_discord`)
  *                              until R4 lets it Collect
  * POST /api/bot/feed/ack       {id}: the channel has the feed up to here
  */
@@ -84,6 +84,9 @@ export interface AppDeps {
 const HEARTBEAT_MS = 25_000;
 
 type Env = { Variables: { playerId: number; via: "web" | "bot" } };
+
+/** The command types the Discord bot may send (06-friends.md 10.3): Collect alone. */
+export const BOT_COMMANDS = ["collect"] as const;
 
 /** The bot names the player it acts for (W8); the name and avatar keep the profile fresh. */
 const discordUserSchema = z.object({
@@ -187,7 +190,6 @@ export function createApp(deps: AppDeps): Hono<Env> {
 
     authed.post("/commands", async (c) => {
       const playerId = c.get("playerId");
-      if (c.get("via") === "bot") return c.json({ error: "not_on_discord" }, 403);
       const wait = limiter.take(playerId, clock.nowMs());
       if (wait > 0)
         return c.json({ error: "slow_down", retryAfterMs: wait } satisfies SlowDown, 429);
@@ -199,8 +201,13 @@ export function createApp(deps: AppDeps): Hono<Env> {
         );
       }
       const { key, command } = parsed.data;
+      // The bot sends Collect and nothing else (06-friends.md 10.3; D271), and a Collect from
+      // Discord never marks the player seen (D121: the web's welcome back still tells the story).
+      const bot = c.get("via") === "bot";
+      if (bot && !(BOT_COMMANDS as readonly string[]).includes(command.type))
+        return c.json({ error: "not_on_discord" }, 403);
       try {
-        return c.json(game.command(playerId, key, command, true));
+        return c.json(game.command(playerId, key, command, !bot));
       } catch (error) {
         // A rule that threw is a bug: counted, and the owner hears once an hour per signature.
         status.error(`${command.type}: ${(error as Error).message}`, clock.now());

@@ -320,6 +320,7 @@
     kettle_stage: { cue: "kettle_{stage}", buzz: [20] },
     yield_rose: { cue: "glass_chime" },
     afterglow_started: { cue: "afterglow" },
+    afterglow_ended: { cue: "frenzy_end" },
     // What the scene and the panels notice.
     milestone: { cue: "milestone", buzz: [15, 40, 15] },
     roster: { cue: "roster" },

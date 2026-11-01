@@ -14,6 +14,7 @@ import {
   fmtFactor,
   fmtRate,
   lineName,
+  nodeName,
   researchName,
   t,
   tierName,
@@ -39,7 +40,14 @@ export function Multipliers() {
   const tap = tapGlance(content, base, now);
   const hours = rates(content, base).nightShift / 3600;
   const until = clockLabel(localSeconds(windowEnd(content, base)));
-  const steps = sheetData.steps.filter((step) => Math.abs(step.factor - 1) > 1e-9);
+  const steps = sheetData.steps
+    .filter((step) => Math.abs(step.factor - 1) > 1e-9)
+    // Glow's one source is the glass ever earned (R4 S3): the step says so.
+    .map((step) =>
+      step.id === "glow" && step.sources.length === 0
+        ? { ...step, sources: [{ id: String(base.meta.glass.ever), factor: step.factor }] }
+        : step,
+    );
 
   return (
     <SheetFrame
@@ -130,6 +138,10 @@ function sourceName(step: Step, id: string): string {
       return t("mult.roster", { at: id });
     case "buffs":
       return buffName(id);
+    case "nodes":
+      return nodeName(id);
+    case "glow":
+      return t("mult.glow_source", { ever: fmt(Number(id), "held") });
     default:
       return id;
   }

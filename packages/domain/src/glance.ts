@@ -3,10 +3,12 @@
  * `/s`, the Multipliers sheet's rows and a tap's parts. Nothing here changes state; the rules
  * live in `effects`, `settle` and `taps`, and these only take them apart for display.
  */
-import type { Content, LineDef } from "@wipe-day/content/schema";
+import { statBase } from "@wipe-day/content/blastmap";
+import { isFeatureStat, type StatId } from "@wipe-day/content/effects";
+import type { Content, LineDef, NodeDef } from "@wipe-day/content/schema";
 import { TIERS } from "@wipe-day/content/tiers";
 import { badgeCount } from "./badges";
-import { nodeEffects, sectorCounts } from "./blastmap";
+import { nodeEffects, ownsNode, sectorCounts } from "./blastmap";
 import {
   buffEffects,
   type Conditions,
@@ -268,4 +270,148 @@ export function tapGlance(content: Content, state: BaseState, t: number) {
     hustle,
     hustlePeak: parts.hustlePeak,
   };
+}
+
+/**
+ * The Night Shift as the bot's card and the welcome card read it (06-friends.md 10.2): the
+ * window, how much of it the hands have used since the last command, and when they stopped.
+ */
+export function nightShiftGlance(
+  content: Content,
+  state: BaseState,
+  now: number,
+): { window: number; used: number; left: number; full: boolean; stoppedAt: number | null } {
+  const window = rates(content, state).nightShift;
+  const since = Math.max(0, now - state.run.activeAt);
+  const full = since >= window;
+  return {
+    window,
+    used: Math.min(since, window),
+    left: Math.max(0, window - since),
+    full,
+    stoppedAt: full ? state.run.activeAt + window : null,
+  };
+}
+
+/**
+ * What a node does in the player's own numbers (04-blast-map.md 8.2): the state folded with
+ * and without it, read by kind. `income` is every line manned (the Multipliers sheet's total)
+ * under the conditions of this moment; a node that works only at night, in rain or under
+ * Afterglow reports its income under that condition, marked `when`. `tap` is a tap's value
+ * before Hustle and crits; `night_shift` is in seconds; `glass` is the next press's gain;
+ * `glow` the Glow factor; any other stat comes as `stat` with its fold before and after (an
+ * amount from the stat's base when it has one, else a factor from 1). Features and run starts
+ * come as `feature`: the blurb says it.
+ */
+export type NodeEffectLine =
+  | { kind: "income"; before: number; after: number; when?: "night" | "rain" | "afterglow" }
+  | { kind: "tap"; before: number; after: number }
+  | { kind: "night_shift"; before: number; after: number }
+  | { kind: "glass"; before: number; after: number }
+  | { kind: "glow"; before: number; after: number }
+  | { kind: "stat"; stat: StatId; before: number; after: number; additive: boolean }
+  | { kind: "feature" };
+
+const INCOME_STATS: ReadonlySet<string> = new Set(["output", "speed", "offline"]);
+const TAP_STATS: ReadonlySet<string> = new Set(["tap", "tap_flat", "tap_share"]);
+const START_STATS: ReadonlySet<string> = new Set([
+  "start_owned",
+  "start_era",
+  "start_upgrade",
+  "keep_hand",
+]);
+const EVERY_CONDITION: Conditions = { online: true, night: true, rain: true, afterglow: true };
+
+const differ = (a: number, b: number): boolean =>
+  Math.abs(a - b) > 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
+
+export function nodeGlance(
+  content: Content,
+  state: BaseState,
+  node: NodeDef,
+  now: number,
+): NodeEffectLine[] {
+  // "Without" is the state with the node taken out, so an owned node reads the same way.
+  const without: BaseState = ownsNode(state.meta, node.id)
+    ? { ...state, meta: { ...state.meta, nodes: state.meta.nodes.filter((id) => id !== node.id) } }
+    : state;
+  const added: BaseState = {
+    ...without,
+    meta: { ...without.meta, nodes: [...without.meta.nodes, node.id] },
+  };
+  const lines: NodeEffectLine[] = [];
+  const stats = [...new Set(node.effects.map((effect) => effect.stat))];
+
+  if (stats.some((stat) => INCOME_STATS.has(stat))) {
+    const here = conditionsAt(content, added, now);
+    const before = fullRate(content, without, now, here);
+    const after = fullRate(content, added, now, here);
+    if (differ(before, after)) lines.push({ kind: "income", before, after });
+    else {
+      // Only under a condition not met right now: read it as if it were.
+      for (const effect of node.effects) {
+        const when = effect.when;
+        if (when !== "night" && when !== "rain" && when !== "afterglow") continue;
+        const forced: Conditions = { ...here, [when]: true };
+        const b = fullRate(content, without, now, forced);
+        const a = fullRate(content, added, now, forced);
+        if (differ(a, b)) {
+          lines.push({ kind: "income", before: b, after: a, when });
+          break;
+        }
+      }
+    }
+  }
+  if (stats.some((stat) => TAP_STATS.has(stat))) {
+    const before = tapParts(content, without, now).base;
+    const after = tapParts(content, added, now).base;
+    if (differ(before, after)) lines.push({ kind: "tap", before, after });
+  }
+  if (stats.includes("night_shift")) {
+    const before = rates(content, without).nightShift;
+    const after = rates(content, added).nightShift;
+    if (differ(before, after)) lines.push({ kind: "night_shift", before, after });
+  }
+  if (stats.includes("glass_gain")) {
+    const before = glassYield(content, without, now).gain;
+    const after = glassYield(content, added, now).gain;
+    lines.push({ kind: "glass", before, after });
+  }
+  if (stats.includes("glow_k")) {
+    const before = rates(content, without).glow;
+    const after = rates(content, added).glow;
+    lines.push({ kind: "glow", before, after });
+  }
+  const counts: Counts = {
+    hands: state.run.hands.length,
+    nukes: state.meta.wipeDays,
+    sectors: sectorCounts(content, added.meta),
+  };
+  for (const stat of stats) {
+    if (
+      INCOME_STATS.has(stat) ||
+      TAP_STATS.has(stat) ||
+      stat === "night_shift" ||
+      stat === "glass_gain" ||
+      stat === "glow_k"
+    )
+      continue;
+    if (isFeatureStat(stat) || START_STATS.has(stat)) {
+      if (!lines.some((line) => line.kind === "feature")) lines.push({ kind: "feature" });
+      continue;
+    }
+    const id = stat as StatId;
+    const base = statBase(content, id);
+    const effects = node.effects.filter((effect) => effect.stat === stat);
+    const additive = base !== null || effects.some((e) => e.op === "add");
+    const from = base ?? (additive ? 0 : 1);
+    const scope = effects[0]?.scope;
+    const query = scope && scope !== "all" ? { kind: scope } : {};
+    const fold = (s: BaseState): number =>
+      foldStat(id, rates(content, s).effects, from, query, EVERY_CONDITION, counts);
+    const before = fold(without);
+    const after = fold(added);
+    if (differ(before, after)) lines.push({ kind: "stat", stat: id, before, after, additive });
+  }
+  return lines;
 }

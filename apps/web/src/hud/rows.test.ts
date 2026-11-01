@@ -195,9 +195,12 @@ describe("the onboarding crown on the cards (CLAUDE.md 6.3 rule 1; D244)", () =>
 });
 
 describe("cards", () => {
-  it("never shows the Armored era before its Wipe Day (D140)", () => {
+  it("shows the Armored era behind its Wipe Day count, never buyable, its lines absent (D140, D271)", () => {
     const view = viewOf({ ...STONE, era: "metal" });
-    expect(eraPlate(view)).toBeNull();
+    const plate = eraPlate(view);
+    expect(plate).toMatchObject({ era: "hqm", ready: false, gate: { at: 2, toGo: 2 } });
+    expect(plate?.eta).toBe("Wipe Day #2 · 2 to go");
+    expect(plate?.crowned).toBe(false);
     expect(linesTab(view, 1).some((row) => row.key === "line:reactor")).toBe(false);
   });
 

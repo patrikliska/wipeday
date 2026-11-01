@@ -49,8 +49,27 @@ export function globalEffects(content: Content, state: BaseState): Effect[] {
   return out;
 }
 
+/** Each count's milestone factors, once per content: every purchase re-reads all 14 lines'. */
+const factorsMemo = new WeakMap<Content, Map<number, { payout: number; speed: number }>>();
+
 /** A line's milestone multipliers at `owned` units (02-the-run.md 4.1): payout and speed. */
 export function milestoneFactors(
+  content: Content,
+  owned: number,
+): { payout: number; speed: number } {
+  let memo = factorsMemo.get(content);
+  if (!memo) {
+    memo = new Map();
+    factorsMemo.set(content, memo);
+  }
+  const known = memo.get(owned);
+  if (known) return known;
+  const factors = computeMilestoneFactors(content, owned);
+  memo.set(owned, factors);
+  return factors;
+}
+
+function computeMilestoneFactors(
   content: Content,
   owned: number,
 ): { payout: number; speed: number } {
@@ -73,6 +92,19 @@ export function milestoneFactors(
     payout *= lineEvery.payout ** steps;
   }
   return { payout, speed };
+}
+
+/** The next milestone above `owned` units: the listed steps, then `lineEvery`'s grid. */
+export function nextMilestone(content: Content, owned: number): number {
+  const { line, lineEvery } = content.milestones;
+  for (const step of line) if (step.at > owned) return step.at;
+  const special = lineEvery.special.find((row) => row.at > owned)?.at ?? Number.POSITIVE_INFINITY;
+  const grid =
+    owned < lineEvery.from
+      ? lineEvery.from
+      : lineEvery.from +
+        (Math.floor((owned - lineEvery.from) / lineEvery.step) + 1) * lineEvery.step;
+  return Math.min(special, grid);
 }
 
 /** The effects that hold for this state, from every source (conditional ones included). */
@@ -141,16 +173,22 @@ function scopeMatches(effect: Effect, query: Query): boolean {
 }
 
 function holds(effect: Effect, when: Conditions): boolean {
+  // A switch, not a record: the hottest fold's filter allocates nothing.
   if (effect.when === undefined) return true;
-  const state: Record<NonNullable<Effect["when"]>, boolean> = {
-    online: when.online,
-    offline: !when.online,
-    afterglow: when.afterglow === true,
-    rain: when.rain === true,
-    night: when.night === true,
-    hustle_full: when.hustleFull === true,
-  };
-  return state[effect.when];
+  switch (effect.when) {
+    case "online":
+      return when.online;
+    case "offline":
+      return !when.online;
+    case "afterglow":
+      return when.afterglow === true;
+    case "rain":
+      return when.rain === true;
+    case "night":
+      return when.night === true;
+    case "hustle_full":
+      return when.hustleFull === true;
+  }
 }
 
 /** An effect's value, scaled by what it counts and capped by its `max`. */
@@ -266,6 +304,48 @@ export function buffEffects(
   return out;
 }
 
+/** Buff kinds beyond this many (or unknown ones) leave the unit memo to the plain fold. */
+const BUFF_KINDS_MAX = 2 ** 16;
+const buffKinds = new WeakMap<Content, Map<string, number>>();
+
+/**
+ * The buff kinds running on `line` at `at` as one bit each (`content.buffs`' order), the unit
+ * memo's key; −1 when a kind has no bit or runs twice at once (the fold counts it twice), so the
+ * fold runs plain.
+ */
+function buffMask(content: Content, buffs: readonly Buff[], at: number, line: string): number {
+  // Without a line-scoped buff (a drone) the mask is the same for every line: the last one asked
+  // for (one `buffs` array, one moment) is kept, as the advisor asks for all 14 lines in a row.
+  const shared = lastMask.buffs === buffs && lastMask.at === at && lastMask.content === content;
+  if (shared && lastMask.allLines) return lastMask.mask;
+  let kinds = buffKinds.get(content);
+  if (!kinds) {
+    kinds = new Map(Object.keys(content.buffs).map((kind, i) => [kind, i]));
+    buffKinds.set(content, kinds);
+  }
+  let mask = 0;
+  let allLines = true;
+  for (const buff of buffs) {
+    if (buff.line !== undefined) allLines = false;
+    if (buff.until <= at || (buff.line !== undefined && buff.line !== line)) continue;
+    const bit = kinds.get(buff.kind);
+    if (bit === undefined || bit >= 16 || mask & (1 << bit)) {
+      mask = -1;
+      break;
+    }
+    mask |= 1 << bit;
+  }
+  if (allLines) lastMask = { content, buffs, at, allLines, mask };
+  return mask;
+}
+let lastMask: {
+  content: Content | null;
+  buffs: readonly Buff[] | null;
+  at: number;
+  allLines: boolean;
+  mask: number;
+} = { content: null, buffs: null, at: 0, allLines: false, mask: 0 };
+
 /**
  * The parts of a state's fold that hold between commands. Two layers: what depends only on the
  * effects in force (shared by every state with the same effects, so buying a unit that crosses no
@@ -288,8 +368,15 @@ export interface Rates {
   memo: Map<string, number>;
   /** The same memo for folds scoped to a line, by line id (a short key per line). */
   perLine: Map<string, Map<string, number>>;
-  /** Memo of each line's buff-free unit rate, by line and conditions (`conditionCode`). */
-  units: Map<string, number[]>;
+  /** The same memo for folds scoped to a kind (an upgrade kind, a Line Mk), by kind then stat. */
+  perKind: Map<string, Map<string, number>>;
+  /**
+   * Memo of each line's unit rate, by line, conditions (`conditionCode`), the buff kinds running
+   * on it (`buffMask`) and the line's own count when an effect counts units (`perOwned`). It
+   * lives in the effects layer: a unit bought keeps every other line's rate (the simulator buys
+   * one unit a command), and a Frenzy's folds run once a line, not once a call.
+   */
+  units: Map<string, Map<number, number>>;
   /** Memo of the totals over the lines owned and manned (`fullRate`, `mannedRate`). */
   totals: Map<string, number>;
   /** The effects in force by stat, so a fold scans only its own. */
@@ -298,8 +385,12 @@ export interface Rates {
   scoped: Map<string, Effect[]>;
   /** Some effect counts (`per`): unit rates then depend on the counts too. */
   counted: boolean;
+  /** Some effect counts a line's own units (`per: owned`): its rate then depends on them. */
+  perOwned: boolean;
   /** Which conditions any effect in force reads, so settle cuts only where it must. */
   whens: { night: boolean; rain: boolean; afterglow: boolean };
+  /** Whether any effect in force reads online or away (`hasOnlineEffects`), once a layer. */
+  online: boolean;
 }
 
 /** The effects layer of `Rates`, and what it was built from. */
@@ -357,8 +448,16 @@ export function statOf(
       memo = new Map();
       r.perLine.set(line.id, memo);
     }
+  } else if (kind !== undefined) {
+    const own = r.perKind.get(kind);
+    if (own) memo = own;
+    else {
+      memo = new Map();
+      r.perKind.set(kind, memo);
+    }
   }
-  const key = `${base === 1 ? stat : `${stat}|${base}`}${kind ? `#${kind}` : ""}`;
+  // The common ask (base 1) keys on the stat itself: no string built per call.
+  const key = base === 1 ? stat : `${stat}|${base}`;
   const known = memo.get(key);
   if (known !== undefined) return known;
   const query: Query = line ? { line } : kind ? { kind } : {};
@@ -418,8 +517,13 @@ export function afterglowHoldsUntil(content: Content, state: BaseState): number 
   return Math.min(from + hold + ends, from + hold + half * Math.log2((start - 1) / 0.1));
 }
 
+/** Each `run.lines` object's milestone signature, once: every rates miss after a purchase asks. */
+const signatures = new WeakMap<object, { content: Content; signature: number[] }>();
+
 /** Each line's milestone factors in content order: the signature of `activeEffects`' milestones. */
 function milestoneSignature(content: Content, state: BaseState): number[] {
+  const known = signatures.get(state.run.lines);
+  if (known && known.content === content) return known.signature;
   const out: number[] = [];
   for (const line of content.lines) {
     const n = state.run.lines[line.id] ?? 0;
@@ -430,6 +534,7 @@ function milestoneSignature(content: Content, state: BaseState): number[] {
     const { payout, speed } = milestoneFactors(content, n);
     out.push(payout, speed);
   }
+  signatures.set(state.run.lines, { content, signature: out });
   return out;
 }
 
@@ -497,15 +602,18 @@ function layerOf(content: Content, state: BaseState): Layer {
       nightShift: Math.round(hours * 3600),
       memo: new Map(),
       perLine: new Map(),
+      perKind: new Map(),
       units: new Map(),
       byStat,
       scoped: new Map(),
       counted: effects.some((effect) => effect.per !== undefined),
+      perOwned: effects.some((effect) => effect.per === "owned"),
       whens: {
         night: hasWhen(effects, "night"),
         rain: hasWhen(effects, "rain"),
         afterglow: hasWhen(effects, "afterglow"),
       },
+      online: hasOnlineEffects(effects),
     },
   };
   layers.set(state.run.upgrades, layer);
@@ -523,6 +631,8 @@ const cache = new WeakMap<object, { state: BaseState; layer: Layer; rates: Rates
 export function rates(content: Content, state: BaseState): Rates {
   const hit = cache.get(state.run.lines);
   const old = hit?.state;
+  // The same state asks many times between commands (every line's rate, every price).
+  if (hit && old === state && hit.layer.content === content) return hit.rates;
   if (
     hit &&
     old &&
@@ -538,14 +648,14 @@ export function rates(content: Content, state: BaseState): Rates {
     old.meta.cards === state.meta.cards &&
     old.run.personalBestAt === state.run.personalBestAt
   ) {
+    // The same object asks again next (every line's rate, every price): the fast path above.
+    hit.state = state;
     return hit.rates;
   }
   const layer = layerOf(content, state);
-  const result: Rates = {
-    ...layer.rates,
-    units: layer.rates.counted ? new Map() : layer.rates.units,
-    totals: new Map(),
-  };
+  // The counts a `per` effect reads (hands, Wipe Days, nodes per sector) are part of the layer's
+  // key, and a line's own units are part of the memo's; so the layer's unit memo is shared.
+  const result: Rates = { ...layer.rates, totals: new Map() };
   cache.set(state.run.lines, { state, layer, rates: result });
   return result;
 }
@@ -572,35 +682,38 @@ export function unitRate(
   when: Conditions,
 ): number {
   const r = rates(content, state);
-  const buffs = state.run.buffs.length ? buffEffects(content, state.run.buffs, at, line.id) : [];
-  // Without a buff on this line the fold depends only on the state and the conditions.
-  let memo: number[] | undefined;
-  const code = conditionCode(when);
-  if (buffs.length === 0) {
+  // The fold depends only on the effects layer, the conditions, which buff kinds run on the line
+  // at `at` and, when an effect counts units, the line's own count: one memo key per line.
+  const owned = state.run.lines[line.id] ?? 0;
+  const mask = state.run.buffs.length ? buffMask(content, state.run.buffs, at, line.id) : 0;
+  let memo: Map<number, number> | undefined;
+  const code = conditionCode(when) + 32 * (mask + BUFF_KINDS_MAX * (r.perOwned ? owned : 0));
+  if (mask >= 0) {
     memo = r.units.get(line.id);
     if (!memo) {
-      memo = [];
+      memo = new Map();
       r.units.set(line.id, memo);
     }
-    const known = memo[code];
+    const known = memo.get(code);
     if (known !== undefined) return known;
   }
   const own = lineEffects(r, line);
+  const buffs = mask === 0 ? [] : buffEffects(content, state.run.buffs, at, line.id);
   const effects = buffs.length ? [...own, ...buffs] : own;
   const query = { line };
   const counts: Counts = r.counted
     ? {
-        owned: state.run.lines[line.id] ?? 0,
+        owned,
         hands: state.run.hands.length,
         nukes: state.meta.wipeDays,
         sectors: sectorCounts(content, state.meta),
       }
-    : { owned: state.run.lines[line.id] ?? 0, hands: state.run.hands.length };
+    : { owned, hands: state.run.hands.length };
   const output = foldStat("output", effects, line.rate, query, when, counts);
   const speed = foldStat("speed", effects, 1, query, when, counts);
   const away = when.online ? 1 : foldStat("offline", effects, 1, query, when, counts);
   const value = output * speed * r.glow * r.morale * away;
-  if (memo) memo[code] = value;
+  if (memo) memo.set(code, value);
   return value;
 }
 

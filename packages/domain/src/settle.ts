@@ -100,8 +100,10 @@ function cutPoints(content: Content, state: BaseState, from: number, to: number)
   const inside = (t: number) => t > from && t < to;
   for (const buff of state.run.buffs) if (inside(buff.until)) points.add(buff.until);
   const r = rates(content, state);
-  const buffed = state.run.buffs.flatMap((buff) => content.buffs[buff.kind] ?? []);
-  if (hasOnlineEffects(r.effects) || hasOnlineEffects(buffed)) {
+  const buffed = state.run.buffs.length
+    ? state.run.buffs.flatMap((buff) => content.buffs[buff.kind] ?? [])
+    : [];
+  if (r.online || (buffed.length > 0 && hasOnlineEffects(buffed))) {
     const offline = state.run.activeAt + onlineSeconds(content);
     if (inside(offline)) points.add(offline);
   }
@@ -131,8 +133,10 @@ function cutPoints(content: Content, state: BaseState, from: number, to: number)
     const fade = afterglowHoldsUntil(content, state);
     if (fade !== null && inside(fade)) points.add(fade);
   }
-  return [...points].sort((a, b) => a - b);
+  // Most short spans (a taps batch) cut nowhere.
+  return points.size === 0 ? NO_CUTS : [...points].sort((a, b) => a - b);
 }
+const NO_CUTS: number[] = [];
 
 /**
  * The chained cycles Keep Swinging runs on unmanned `id` from its cycle in flight: every cycle

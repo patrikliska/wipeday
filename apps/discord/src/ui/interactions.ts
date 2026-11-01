@@ -1,12 +1,14 @@
 /**
  * The only module that talks to discord.js: the `/base` command, the button router, DMs and
- * the feed channel. Screens stay plain data (`ui/screen`). Until R4 the bot changes no base:
- * `/base` links into the game (the API refuses its commands, `not_on_discord`).
+ * the feed channel. Screens stay plain data (`ui/screen`). The bot's one command is Collect
+ * (06-friends.md 10.3), keyed by the interaction id so a double click runs once; the API
+ * refuses everything else (`not_on_discord`).
  *
  * `/base` answers privately (ephemeral), updated in place by its buttons. A DM's "Show my
  * island" answers with the same message.
  */
 import type { FeedItem } from "@wipe-day/domain/feed";
+import { nightShiftGlance } from "@wipe-day/domain/glance";
 import type { DmNote } from "@wipe-day/domain/wire";
 import {
   AttachmentBuilder,
@@ -75,7 +77,7 @@ export async function baseMessage(
   last?: Last,
 ): Promise<InteractionEditReplyOptions> {
   const home = await bot.api.home(user);
-  // No card until R4's card v2: drop any picture an older message carried.
+  // Card v2 is text (D271): drop any picture an older message carried.
   return { ...toMessage(homeScreen(bot.lexicon, home, last)), attachments: [] };
 }
 
@@ -84,8 +86,24 @@ async function runBase(
   bot: Bot,
   user: DiscordUser,
   action: Extract<Route, { screen: "base" }>["action"],
+  interactionId: string,
 ): Promise<Last | undefined> {
   switch (action) {
+    case "collect": {
+      // What the hands made since the last command, read before Collect restarts the window.
+      const before = await bot.api.home(user);
+      const shift = nightShiftGlance(bot.lexicon.content, before.state, before.serverNow);
+      const response = await bot.api.command(user, `discord:${interactionId}`, {
+        type: "collect",
+      });
+      if (!response.ok) return undefined;
+      return {
+        kind: "collected",
+        seconds: shift.used,
+        gain: Math.max(0, before.state.run.made - before.state.run.madeAtActive),
+        hands: before.state.run.hands.length,
+      };
+    }
     case "dm_on":
     case "dm_off": {
       const on = action === "dm_on";
@@ -127,7 +145,7 @@ async function onButton(bot: Bot, interaction: ButtonInteraction): Promise<void>
   }
 
   await interaction.deferUpdate();
-  const last = await runBase(bot, user, id.route.action);
+  const last = await runBase(bot, user, id.route.action, interaction.id);
   await interaction.editReply(await baseMessage(bot, user, last));
 }
 

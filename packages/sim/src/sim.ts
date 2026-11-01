@@ -176,7 +176,8 @@ function pressesNow(content: Content, state: BaseState, now: number, rule: Arche
   if (rule === "best")
     return y.first || (y.counts && runAge(state, now) >= 600 && y.rateNow < 0.8 * y.peak);
   return (
-    !state.run.buffs.some((buff) => buff.until > now) && bigRedCrown(content, state, now) !== null
+    !state.run.buffs.some((buff) => buff.until > now) &&
+    bigRedCrown(content, state, now, y) !== null
   );
 }
 
@@ -272,6 +273,8 @@ function floating(content: Content, state: BaseState, t: number): number | null 
 export interface Stop {
   day: number;
   runs: number;
+  /** Stop inside a session too (a scenario's one long day), not only at a day's end. */
+  inSession?: boolean;
 }
 
 /** One archetype's life up to calendar day `days`, from its `startDay` (a late joiner: day 30). */
@@ -625,6 +628,9 @@ export function simulate(
         maybeNuke(to);
         runOnline += length;
         t += length;
+        // A scenario's session ends with the press nothing due reads past (`quickRuns`, D272).
+        if (stop?.inSession && day >= stop.day && life.runs.length > 0 && state.run.n > stop.runs)
+          break;
       }
       // Every number still finite (D130), checked once a session: `finite()` guards each gain.
       assertFiniteState(state);
@@ -781,11 +787,21 @@ export function earlyStops(
   return stops;
 }
 
-/** Every scenario of the pacing file: one long session, so a single day covers it. */
-export function simulateScenarios(content: Content, seed = 11): Life[] {
+/**
+ * Every scenario of the pacing file: one long session, so a single day covers it. The quick
+ * profile (`early`) ends a scenario's session with its `quickRuns`th press (D272).
+ */
+export function simulateScenarios(content: Content, seed = 11, early = false): Life[] {
   return Object.entries(content.pacing.scenarios).map(([name, a]) =>
-    simulate(content, name, a, 1, seed),
+    simulate(content, name, a, 1, seed, [], scenarioStop(a, early)),
   );
+}
+
+/** Where the quick profile stops a scenario, or null to play its session out. */
+export function scenarioStop(scenario: Archetype, early: boolean): Stop | null {
+  return early && scenario.quickRuns !== undefined
+    ? { day: 1, runs: scenario.quickRuns, inSession: true }
+    : null;
 }
 
 /** Every archetype and scenario of the pacing file, alone. */
@@ -1453,7 +1469,7 @@ export function checkPacing(
   const stops = early ? earlyStops(content, due) : null;
   const lives = [
     ...seeds.flatMap((seed) => simulateArchetypes(content, days, seed, snapshotDays, stops ?? {})),
-    ...(scenarioSeeds ?? seeds).flatMap((seed) => simulateScenarios(content, seed)),
+    ...(scenarioSeeds ?? seeds).flatMap((seed) => simulateScenarios(content, seed, early === true)),
   ];
   return content.pacing.assertions.map((assertion): Verdict => {
     const base = { n: assertion.n, check: assertion.check, on: assertion.on };
@@ -1540,4 +1556,57 @@ export function windowReport(content: Content, days = 3, seed = 11): WindowRow[]
     }
   }
   return rows;
+}
+
+/**
+ * Errata E25's caps on the Blast Map's price cuts: what every shelf kind's `upgrade_cost` and the
+ * eras' `era_cost` may fall to once every node that cuts them is lit (R4 S4, D272). Line and
+ * hand prices have no cap in the plan; they are measured beside them.
+ */
+export const PRICE_CAPS: Readonly<Record<string, number>> = { upgrade_cost: 0.25, era_cost: 0.5 };
+const PRICE_STATS: ReadonlySet<string> = new Set([
+  "upgrade_cost",
+  "era_cost",
+  "line_cost",
+  "hand_cost",
+]);
+
+export interface PriceCutRow {
+  stat: string;
+  scope: string;
+  /** The product of the shipped nodes' cuts, and of every node in the data (later waves too). */
+  shipped: number;
+  all: number;
+  cap: number | null;
+}
+
+/** The map's price cuts by stat and scope, measured against E25's caps (`pnpm sim caps`). */
+export function priceCuts(content: Content): PriceCutRow[] {
+  const rows = new Map<string, PriceCutRow>();
+  const fold = (nodes: readonly NodeDef[], key: "shipped" | "all") => {
+    for (const node of nodes) {
+      for (const effect of node.effects) {
+        if (!PRICE_STATS.has(effect.stat) || effect.op !== "more") continue;
+        const scope = effect.scope ?? "all";
+        const id = `${effect.stat}|${scope}`;
+        let row = rows.get(id);
+        if (!row) {
+          row = {
+            stat: effect.stat,
+            scope,
+            shipped: 1,
+            all: 1,
+            cap: PRICE_CAPS[effect.stat] ?? null,
+          };
+          rows.set(id, row);
+        }
+        row[key] *= effect.value;
+      }
+    }
+  };
+  fold(shippedNodes(content), "shipped");
+  fold(content.blastMap.nodes, "all");
+  return [...rows.values()].sort(
+    (a, b) => a.stat.localeCompare(b.stat) || a.scope.localeCompare(b.scope),
+  );
 }

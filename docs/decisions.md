@@ -3197,3 +3197,114 @@ The Big Red's show as built (03-the-big-red.md 3-10; 08-screens.md 2.4-2.7):
   day 60 is `--full`'s). Even so the real nuke loop puts the profile at about 21 s, over
   CLAUDE.md 9's 10 s: the test holds a 25 s line until R4 S4 brings it back (the active's 43 runs
   in 60 days cost 16 s; settle per command is the lever).
+
+### D271. R4 S3, the map and the edges: the map as a dock place, the pick only while new, the postcard's buttons, bulk Next, card v2, the gift (R4 S3)
+The Blast Map and the edges as built (04-blast-map.md 8; 08-screens.md 2.9-2.11; 06-friends.md 10):
+- **The Blast Map is a sixth dock place, "Map"**, from Wipe Day #1, with the affordable nodes as
+  its badge (04 8.4); a tree of 73 nodes (361 later) deserves a door of its own, not a chip. The
+  glass plate in the top bar ("1,240", with "Glow ×2.17" on a desktop) opens it too. The panel
+  forgets where it was on close, so it always opens on the disk.
+- **The map advises only while node buying is new** (D244 applied to the map): the pick pulses
+  orange and its card sits at the disk's foot while the player has bought fewer than
+  `hintUses` (2) nodes themselves (Ground Zero is granted); after that the foot is a quiet
+  summary ("24 affordable · 100 glass") and nothing on the map glows. The simulator and the
+  bot keep `nodePick`; `nodeGain` (the pick's weights) moved from the simulator into the domain
+  so the three agree.
+- **A shut ring's gate reads in the header's sub line**, not on the disk: a pill at the ring's top
+  sat on the sector labels; the ring itself is dashed, and the ladder's ring head says it.
+- **The ladder draws no stub to Ground Zero**: ring 1 hangs free at the bottom, where the
+  ladder sits when it is shorter than its box; with a node's sheet open the ladder gets room
+  below and the node scrolls to the centre.
+- **The node sheet's numbers** come from `nodeGlance` in `glance.ts`: the state folded with and
+  without the node, read by kind (income under this moment's conditions, or under the node's
+  own condition marked "At night"; a tap's value; the Night Shift; the next press's glass; Glow;
+  any other stat as an amount from its base or a factor from 1). An owned node reads the same
+  way, so "Lit" sheets still say what the node does.
+- **The postcard's buttons**: Wipe Day #1 has one, **Open the Blast Map** ("10 glass to spend");
+  it lands the boat first (the landing plays as Rebuild's does) and then opens the map on its
+  disk, so the map never shows a crater with no island under it and "< Island" needs no special
+  case (errata E6's "< Rebuild"). From #2: Rebuild primary, "Blast Map · n affordable" (or "·
+  {held} glass" when nothing is affordable) the quiet second way, the same landing-then-map.
+- **Armored's plate stays visible behind its Wipe Day count** ("Wipe Day #2 · 1 to go", a lock
+  glyph, no bar) and its sheet keeps the figures with "Opens after Wipe Day #2 (1 to go)" as
+  the disabled primary (6.3 rule 3; D140 is kept: the count is real and reachable).
+- **Bulk Next**: the map's Bulk Buttons add a fifth size, "Next", up to the line's next milestone
+  (`nextMilestone` in `effects.ts`: the listed steps, then the every-100 grid); it travels as
+  `count: "next"` so the server computes the same k. A stored "Next" without the node reads as
+  ×1.
+- **The welcome rule** is three guards: the advisor's `welcomeOpen` (S1), the Big Red's card never
+  opening over the welcome card (`openCard`), and the chip stepping aside under the phone's
+  expanded drawer (it covered the cards). Tested in `welcome.test.ts`: the crown is the nuke
+  before and after the card, never while it is open.
+- **The bot's card v2 is text** (the owner's "minimal"): era and Wipe Days, the rate, the glass chip
+  with Glow, the Night Shift line, the Big Red's line from `bigRedGlance` (crowned, or "first
+  launch at 50B made (31M now)" from the yield's new `launchAt`), a status line (the last click;
+  else the Big Red crowned or the tap hint, where the game would crown them, D244; else the
+  shift's state). Collect leads when the window is stalled or half used, else Open the game.
+  `boundary.test.ts` is an allowlist (`glance`, `advisor`, `words`, `clock`; the fixtures'
+  `newBase`), and `BOT_COMMANDS = ["collect"]`: the API refuses the rest with `not_on_discord`,
+  and a Collect from Discord never marks the player seen (D121). `nightShiftGlance` joined
+  `glance.ts` so the bot reads the window without `effects`.
+- **The feed's sentences** live in `words.feedLine` (first, plain, folded "{times} times
+  lately", milestone, the new flight's line, the first Armored era), so the channel and the web
+  say the same thing; the folded line no longer names a clock time the event does not carry.
+- **The founders' gift** is `scripts/founders-gift.sh`, run on the VPS: the season-1 player ids
+  from `wipeday-pre-r2s7.db`, one `grant --glass 5 --skin founder` each under `founders:<id>`,
+  so it is safe to run twice. It waits for the owner's `ADMIN_TOKEN` (docs/deploy.md).
+
+### D272. R4 S4, the finish: the quick profile's budget, the scenarios' first press, the Album's day 6, the price cuts measured, Afterglow's tick (R4 S4)
+The finish of R4 as built (the plan's S4; `docs/roadmap.md` "R4 S4 results"):
+- **The simulator's quick profile is back under its budget** by making the domain faster with
+  every number identical (the fingerprint: the active's 30 days made 4.8568e26 and 18,374 glass
+  before and after). The unit-rate memo lives in the effects layer, keyed by line, conditions,
+  the buff kinds running on the line (`buffMask`; a kind running twice at once falls back to the
+  plain fold, which keeps settle path independent) and the line's own count only when an effect
+  counts units: before, every purchase threw the memo away whenever a `per` effect was in force,
+  so the active's 77k single-unit buys a month each re-folded 14 lines. `holds` is a switch, not
+  a record; `milestoneFactors` and each `run.lines`' milestone signature are memoised; `statOf`
+  keys on the stat alone at base 1 and keeps a per-kind memo; `incOf` and the Night Shift's
+  parts fold once a layer; `rates()` takes a fast path for the same state object and remembers a
+  chain hit; `roll(seed)` draws a crit or a weather block without an `Rng` closure; `badgeCount`
+  is memoised per badges object; settle's cut points allocate nothing on a span with none; the
+  per-command peak sample reads `glassRateNow` (the readout's rate alone, the same arithmetic as
+  `glassYield`) and `bigRedCrown` takes a yield already computed. Measured on the owner's machine
+  while a game held about a third of its cores: the quick profile 34 s → 12 s (tsx), the pacing
+  test 12 s in vitest; an idle machine should read about 7-8 s. The test's bound is back at
+  CLAUDE.md's 10 s (D270's 25 s is gone). Two profile knobs in the spirit of D236: the active's
+  quick stop is day 14 (N9's first reading; days 30 and 60 are `--full`'s), and a scenario's
+  session ends with its first press (`quickRuns: 1` on both; every due check reads a scenario's
+  run 1, and N5/N6 read the archetypes' runs 1-5 as well). The determinism test plays two days.
+  Not taken, both measured: bulk buys in the simulator (the crown buys one unit a command, as a
+  player with ×1 does; a ×10 model would change every number for a third of the time) and stable
+  gear wear (gear must follow the top line as the eras climb; without the re-dress at each hire
+  the active makes eight times less, so the 6.5k equips a month stay).
+- **N33's lower bound is day 6.** `--full` showed the casual's base set complete on day 6-7
+  (seeds 7, 11, 23) where R3 read 8-10: R4's nuke drops (D269, from the owner's R3 answer) add
+  about a drop a day to a casual with a Wipe Day a day. Days 7-14 were the agent's reading of
+  "about two weeks" (D266); the full Album stays past day 45 (57-183). The owner decides whether
+  the gate or the nuke's drop tier should tighten instead.
+- **The price cuts are measured at their caps (errata E25).** `pnpm sim caps` folds the map's
+  `more` cuts by stat and scope, for the shipped wave and for every node in the data: wave 1 cuts
+  `upgrade_cost` to ×0.689 (grip), ×0.720 (island) and ×0.650 (line_mk) against the ×0.25 cap,
+  so waves 2-3 have ×2.6-2.9 of room per kind; `line_cost` ×0.810 and `hand_cost` ×0.769 have no
+  cap in the plan; no shipped node cuts `era_cost` yet (cap ×0.5). A test keeps every shipped cut
+  at or above its cap, so R5's wave cannot overshoot.
+- **N13's flat fixture** is a test: five nukes at ×1.05 (×1.28 together) at Wipe Days 60-64,
+  where the agenda lists nothing, fail `flattening`; ×1.06 passes.
+- **Afterglow ends with a tick.** The pill lingers two seconds, empty, as `ending`, and the bus
+  hears `afterglow_ended` (the `frenzy_end` tick, as a boost's end does, D267): every bar a tick
+  at its end (12-feel.md 3.2). The rest of the juice checklist on R4 was met by S2 and S3 and
+  checked here: the press's siren, launch, whistle, boom and sign; `glass_chime` on a node bought
+  and on the yield's rise, with the "+N" glass floater from the Kettle; the glass plate's pop and
+  flash; the Kettle's stage pops; the postcard's flip; a bought node's fill and lit edges; and
+  reduced motion covers the chip, the hold's pulse, the postcard's flip, the map's pick and
+  `just` and the film's cross-fade.
+- **Shots in four weathers.** 08-screens 8.3 asks four skies of R2's shots and the cinematic's
+  night and rain; S4 adds the lasting R4 states in dusk, night and rain (24 `r4s4_*` shots,
+  8.3f). Two fixes from them: the second island's fixture carries a first run's stats, so the
+  onboarding hint no longer sits under the Kettle's chip and the dock is full, as on a real
+  second island; and the airdrop hint's centre never rises above 150 px, so it no longer covers
+  the top bar's plates while a crate is still high.
+- **The cut-over's remains are done** (D242, D271's gift): R4 is complete. `main` keeps shipping
+  from `redesign` until R5 starts, when each phase gets its own branch again (11-roadmap).
+- **Playtest 2** did not arrive during R4; its fixes open R5 (owner screenshots are bugs first).

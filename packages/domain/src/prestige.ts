@@ -63,6 +63,19 @@ export function glassMultiplier(content: Content, state: BaseState): number {
   return foldStat("glass_gain", r.byStat.get("glass_gain") ?? [], 1);
 }
 
+/**
+ * The readout's rate now (`Yield.rateNow`) alone: what every command samples for `run.peak`
+ * (the same arithmetic as `glassYield`, so the two never disagree).
+ */
+export function glassRateNow(content: Content, state: BaseState, now: number): number {
+  const { meta } = state;
+  const lifetime = lifetimeOf(state);
+  const multiplier = glassMultiplier(content, state);
+  const exact = Math.max(0, glassLevelExact(content, lifetime) - meta.glass.level) * multiplier;
+  const hours = Math.max(runAge(state, now) / 3600, 1 / 6);
+  return exact / hours;
+}
+
 /** What a press would do right now (03 1.1, 1.5, 2.1). */
 export interface Yield {
   /** The formula level now, and the levels not yet paid for. */
@@ -92,6 +105,8 @@ export interface Yield {
   peak: number;
   /** Lifetime supplies at which the next whole glass comes. */
   nextAt: Amount;
+  /** Lifetime supplies at which the press can go: the first launch's, or the next glass (the cards' "at 50B made"). */
+  launchAt: Amount;
 }
 
 /** Seconds this run has run (from its first tap or purchase; 0 while fresh). */
@@ -135,6 +150,11 @@ export function glassYield(content: Content, state: BaseState, now: number): Yie
     rateNow: exact / hours,
     peak: Math.max(state.run.peak, exact / hours),
     nextAt: lifetimeFor(content, meta.glass.level + delta + 1),
+    launchAt: pressable
+      ? lifetime
+      : first
+        ? lifetimeFor(content, p.firstNukeGlass)
+        : lifetimeFor(content, meta.glass.level + delta + 1),
   };
 }
 
@@ -173,8 +193,12 @@ export type BigRedRule = "first" | "doubling" | "fuelled" | "day";
  * run, so the crown is sticky without state. The caller passes down while a buff runs or the
  * welcome card is open (`advisor.ts`).
  */
-export function bigRedCrown(content: Content, state: BaseState, now: number): BigRedRule | null {
-  const y = glassYield(content, state, now);
+export function bigRedCrown(
+  content: Content,
+  state: BaseState,
+  now: number,
+  y: Yield = glassYield(content, state, now),
+): BigRedRule | null {
   if (!y.pressable) return null;
   if (y.first) return "first";
   if (y.doubling) return "doubling";

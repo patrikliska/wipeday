@@ -162,6 +162,24 @@ every base and ships only with a decision. With `OWNER_DISCORD_ID` set the API D
 through the bot when a command throws (once an hour per signature) and when the off-site copy is
 older than 26 h (once a day).
 
+### The founders' gift (R4 S3; D271)
+
+Every player who had a season-1 base gets the Founder skin and 5 crater glass held, once. The
+ids come from the old game's last database (`var/backups/wipeday-pre-r2s7.db`, table `bases`);
+`scripts/founders-gift.sh` reads them inside the container and grants each under the key
+`founders:<player id>`, so running it twice changes nothing (the API replays the stored outcome).
+Needs `ADMIN_TOKEN` in `~/wipeday/.env` and the API container up (`docker compose ps`).
+
+```sh
+# from the repo, with the deploy key: the ids first, then the grants
+DRY_RUN=1 ssh -i ~/.ssh/<key> vpsuser@37.46.209.127 'bash -s' < scripts/founders-gift.sh
+ssh -i ~/.ssh/<key> vpsuser@37.46.209.127 'bash -s' < scripts/founders-gift.sh
+```
+
+Each grant is logged as `granted` in `event_log`, and the player's open tabs see the glass
+plate pop. The legacy and hall rows of season 1 stay archived in the old database; nothing
+reads them.
+
 - The bot must be in the server: developer portal -> OAuth2 -> URL Generator, scopes `bot` and
   `applications.commands`; in the feed channel it needs View Channel and Send Messages. It
   needs no privileged intent.

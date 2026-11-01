@@ -27,7 +27,13 @@ export const commandSchema = z.discriminatedUnion("type", [
   z.strictObject({
     type: z.literal("buy_line"),
     line: id,
-    count: z.union([z.literal(1), z.literal(10), z.literal(100), z.literal("max")]),
+    count: z.union([
+      z.literal(1),
+      z.literal(10),
+      z.literal(100),
+      z.literal("max"),
+      z.literal("next"),
+    ]),
   }),
   z.strictObject({ type: z.literal("hire_hand"), line: id }),
   z.strictObject({ type: z.literal("buy_upgrade"), upgrade: id }),

@@ -44,7 +44,11 @@ export function EraPlate() {
   }
   const ready = useRise(plate?.ready ? 1 : 0);
   if (!plate) return null;
-  const classes = ["era-plate", plate.ready ? "ready" : "saving", arrived.current ? "arrive" : ""]
+  const classes = [
+    "era-plate",
+    plate.gate ? "locked" : plate.ready ? "ready" : "saving",
+    arrived.current ? "arrive" : "",
+  ]
     .filter(Boolean)
     .join(" ");
   return (
@@ -63,7 +67,13 @@ export function EraPlate() {
         <Icon kind="tier" id={plate.era} size={column ? 26 : 18} className="era-icon" />
         <span className="era-text">
           <span className="era-name">{column ? plate.name : plate.short}</span>
-          {plate.ready ? (
+          {plate.gate ? (
+            // Armored waits for a Wipe Day count (D140): the real reason, in the plate.
+            <span className="era-eta era-gate">
+              <Icon kind="ui" id="lock" size={12} />
+              {t("era_plate.locked", { count: plate.gate.at, toGo: plate.gate.toGo })}
+            </span>
+          ) : plate.ready ? (
             <span className="era-build">
               <span className="era-build-word">{t("era_plate.build")}</span>
               <span className="num">{plate.price}</span>
@@ -72,7 +82,7 @@ export function EraPlate() {
             <span className="era-eta num">{plate.eta}</span>
           )}
         </span>
-        {plate.ready ? null : <EraBar progress={plate.progress} />}
+        {plate.ready || plate.gate ? null : <EraBar progress={plate.progress} />}
       </span>
     </button>
   );
@@ -122,9 +132,11 @@ export function EraSheet() {
         </p>
       }
       primary={
-        plate.ready
-          ? t("era_sheet.build", { era: plate.name })
-          : t("era_sheet.build_need", { need: plate.need ?? "" })
+        plate.gate
+          ? t("era_sheet.locked", { count: plate.gate.at, toGo: plate.gate.toGo })
+          : plate.ready
+            ? t("era_sheet.build", { era: plate.name })
+            : t("era_sheet.build_need", { need: plate.need ?? "" })
       }
       primaryDisabled={!plate.ready}
       onPrimary={build}
@@ -137,7 +149,12 @@ export function EraSheet() {
             <dt>{t("era_sheet.have")}</dt>
             <LiveFigure of={(held) => fmt(held, "held")} />
           </div>
-          {plate.left !== null ? (
+          {plate.gate ? (
+            <div className="total">
+              <dt>{t("era_sheet.opens_when")}</dt>
+              <dd className="num">{t("era_sheet.opens_after", { count: plate.gate.at })}</dd>
+            </div>
+          ) : plate.left !== null ? (
             <div className="total">
               <dt>{t("era_sheet.left")}</dt>
               <LiveFigure of={(held) => fmt(Math.max(0, held - plate.cost), "held")} />

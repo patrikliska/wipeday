@@ -60,7 +60,9 @@ export function BigRedChip() {
   const phase = useBigRed((s) => s.phase);
   const openCard = useBigRed((s) => s.openCard);
   const column = useColumn();
-  if (!state || phase !== "idle") return null;
+  // The phone's expanded drawer covers the chip's spot: it steps aside (the column keeps its own).
+  const expanded = useUi((s) => s.expanded);
+  if (!state || phase !== "idle" || (expanded && !column)) return null;
   const { glance, crowned } = state;
   if (glance.stage === "hidden") return null;
   const locked = !glance.pressable;

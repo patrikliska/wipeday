@@ -328,6 +328,20 @@ const AFTER_FIRST_META = {
   nodes: ["ground_zero"],
   flights: ["u_turn"],
   records: { bestRun: 5.8e10, bestBlast: 10 },
+  // A first run's worth of play (R4 S4): the onboarding hint is gone and the dock is full, as
+  // on a real second island.
+  stats: {
+    ...NEW_STATS,
+    taps: 2600,
+    hands: 14,
+    felled: 90,
+    flotsam: 4,
+    units: 320,
+    research: 24,
+    upgrades: 6,
+    eras: 4,
+    drops: 2,
+  },
 };
 const FRESH_RUN = {
   n: 2,
@@ -386,6 +400,58 @@ const cine = (name, variant, ms, extra = {}) => ({
     ...extra.state,
   },
   ...extra.shot,
+});
+
+/** R4 S3 (D271): a third island, three Wipe Days in, a dozen nodes lit and 100 glass to spend. */
+const MAP_META = {
+  nukes: 3,
+  wipeDays: 3,
+  lifetime: 2.95e15,
+  glass: { ever: 240, held: 100, level: 240, spent: 140 },
+  nodes: [
+    "ground_zero",
+    "packed_crate",
+    "hot_coals",
+    "steady_hands",
+    "second_wind",
+    "quick_fingers",
+    "old_friend",
+    "fair_pay_1",
+    "tally_wall",
+    "souvenir_jar",
+    "deep_cellars",
+    "scrap_heap",
+  ],
+  flights: ["u_turn", "loop_the_loop", "sputter_drop"],
+  records: { bestRun: 2e15, bestBlast: 120 },
+};
+/** The Stone run with the map's third island behind it. */
+const MAP_RUN = { ...STONE_RUN, n: 4 };
+/** Wipe Day #4's `nuked` event, for the later postcard. */
+const LATER_EVENT = {
+  ...FIRST_EVENT,
+  n: 4,
+  wipeDay: 4,
+  gain: 186,
+  ever: 426,
+  glowBefore: 3.52,
+  glowAfter: 5.24,
+  doubling: false,
+  flight: "loop_the_loop",
+};
+const map = (name, viewport, extra = {}, shot = {}) => ({
+  name,
+  viewport,
+  state: {
+    time: at(1, 10.5),
+    wall: WALL,
+    weather: "clear",
+    ...MAP_RUN,
+    meta: MAP_META,
+    ui: { panel: "map" },
+    ...extra,
+  },
+  ...shot,
 });
 
 const SHOTS = [
@@ -615,6 +681,291 @@ const SHOTS = [
       },
     },
   },
+  // --- R4 S3: the Blast Map, the glass plate, the welcome rule, the edges (08 8.3e) ---
+  {
+    // After nuke 1: Ground Zero lit, 10 glass, the pick card on Go Bag (the one crown).
+    name: "phone_map_first",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      meta: AFTER_FIRST_META,
+      ui: { panel: "map" },
+    },
+    crowns: 1,
+  },
+  map("phone_map_mid", PHONE, {}, { crowns: 0 }),
+  map("phone_map_filter", PHONE, { map: { filter: "offline" } }, { crowns: 0 }),
+  map("phone_sector_grip", PHONE, { map: { sector: "grip" } }, { crowns: 0 }),
+  map("phone_sector_works", PHONE, { map: { sector: "works" } }, { crowns: 0 }),
+  // Lucky Swing affordable: the sheet with its numbers, "you'll have 23 left", Buy.
+  map("phone_node_sheet", PHONE, { map: { sector: "grip", node: "lucky_swing" } }, { crowns: 1 }),
+  // Conveyor two rings out: the path through First Light lights, "Buy path · 2 nodes · 86 glass".
+  map("phone_node_far", PHONE, { map: { sector: "works", node: "conveyor" } }, { crowns: 1 }),
+  // Elbow Grease with 15 glass and no Works node: "Buy the first 2 · 11 glass".
+  map(
+    "phone_node_path_partial",
+    PHONE,
+    {
+      meta: {
+        ...MAP_META,
+        glass: { ever: 240, held: 15, level: 240, spent: 225 },
+        nodes: ["ground_zero", "steady_hands"],
+      },
+      map: { sector: "works", node: "elbow_grease_1" },
+    },
+    { crowns: 1 },
+  ),
+  // Ring 3 shut at Wipe Day #2: the reason and no button.
+  map(
+    "phone_node_locked",
+    PHONE,
+    {
+      meta: { ...MAP_META, wipeDays: 2, nukes: 2 },
+      map: { sector: "grip", node: "lucky_swing" },
+    },
+    { crowns: 0 },
+  ),
+  // Short of glass: Buy disabled with "Need 57 more glass".
+  map(
+    "phone_node_short",
+    PHONE,
+    {
+      meta: { ...MAP_META, glass: { ever: 240, held: 20, level: 240, spent: 220 } },
+      map: { sector: "grip", node: "lucky_swing" },
+    },
+    { crowns: 0 },
+  ),
+  // A lit node's sheet: "Lit", no button.
+  map("phone_node_owned", PHONE, { map: { sector: "grip", node: "second_wind" } }, { crowns: 0 }),
+  // A buy caught mid-juice: Lucky Swing fills, its edges light, glass flies.
+  map(
+    "phone_node_just",
+    PHONE,
+    { map: { sector: "grip" } },
+    { send: { type: "buy_node", path: ["lucky_swing"] }, ff: 0.05, crowns: 0 },
+  ),
+  map("desktop_map", DESKTOP, {}, { crowns: 0 }),
+  map("desktop_map_sheet", DESKTOP, { map: { sector: "tide", node: "rainmaker" } }, { crowns: 1 }),
+  map("desktop_map_first", DESKTOP, { ...FRESH_RUN, meta: AFTER_FIRST_META }, { crowns: 1 }),
+  {
+    // The glass plate beside the scrap chip, the dock's Map badge (5 affordable).
+    name: "r4s3_phone_glass_plate",
+    viewport: PHONE,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...MAP_RUN, meta: MAP_META },
+  },
+  {
+    name: "r4s3_desktop_glass_plate",
+    viewport: DESKTOP,
+    state: { time: at(1, 10.5), wall: WALL, weather: "clear", ...MAP_RUN, meta: MAP_META },
+  },
+  {
+    // Run 2 at Sheet Metal: Armored's plate shut behind Wipe Day #2 (1 to go).
+    name: "phone_armored_locked",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      n: 2,
+      era: "metal",
+      eraAt: { wood: 52, stone: 300, metal: 500 },
+      supplies: 1e12,
+      made: 3e12,
+      lines: { ...STONE_RUN.lines, furnace: 20, tannery: 12, press: 6, dock: 3, generator: 1 },
+      meta: AFTER_FIRST_META,
+    },
+    // A second island at 3T made: the gain of 12 doubles its 10 glass ever, so the Big Red's chip
+    // is crowned (03 2.2 rule 2; R4 S4, with the fixture's real stats).
+    crowns: 1,
+  },
+  {
+    name: "phone_armored_sheet",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...STONE_RUN,
+      n: 2,
+      era: "metal",
+      eraAt: { wood: 52, stone: 300, metal: 500 },
+      supplies: 1e12,
+      made: 3e12,
+      lines: { ...STONE_RUN.lines, furnace: 20, tannery: 12, press: 6, dock: 3, generator: 1 },
+      meta: AFTER_FIRST_META,
+      ui: { sheet: "era" },
+    },
+    // A second island at 3T made: the gain of 12 doubles its 10 glass ever, so the Big Red's chip
+    // is crowned (03 2.2 rule 2; R4 S4, with the fixture's real stats).
+    crowns: 1,
+  },
+  {
+    // Wipe Day #1's postcard back: one button, Open the Blast Map.
+    name: "r4s3_phone_postcard_first",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      meta: AFTER_FIRST_META,
+      postcard: { event: FIRST_EVENT, flipped: true },
+    },
+    crowns: 1,
+  },
+  {
+    // Wipe Day #4's: Rebuild, with "Blast Map · 4 affordable" beside it.
+    name: "r4s3_phone_postcard_later",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      n: 5,
+      meta: {
+        ...MAP_META,
+        nukes: 4,
+        wipeDays: 4,
+        glass: { ever: 426, held: 286, level: 426, spent: 140 },
+      },
+      postcard: { event: LATER_EVENT, flipped: true },
+    },
+    crowns: 1,
+  },
+  {
+    name: "r4s3_desktop_postcard_later",
+    viewport: DESKTOP,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FRESH_RUN,
+      n: 5,
+      meta: {
+        ...MAP_META,
+        nukes: 4,
+        wipeDays: 4,
+        glass: { ever: 426, held: 286, level: 426, spent: 140 },
+      },
+      postcard: { event: LATER_EVENT, flipped: true },
+    },
+    crowns: 1,
+  },
+  {
+    // Welcome back with the first launch ready: Collect is the one primary, never the nuke.
+    name: "r4s3_phone_welcome_nuke",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...FIRST_NUKE,
+      away: 3 * 3600,
+    },
+    crowns: 1,
+  },
+  {
+    // The drawer's bulk sizes with Next, from the map's Bulk Buttons.
+    name: "r4s3_phone_bulk_next",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...MAP_RUN,
+      meta: { ...MAP_META, nodes: [...MAP_META.nodes, "bulk_buttons"] },
+      ui: { expanded: true, bulk: "next" },
+    },
+    crowns: 0,
+  },
+  {
+    // The Multipliers sheet: the Blast Map's step named, Glow with its glass ever.
+    name: "r4s3_phone_multipliers_nodes",
+    viewport: PHONE,
+    state: {
+      time: at(1, 10.5),
+      wall: WALL,
+      weather: "clear",
+      ...MAP_RUN,
+      meta: { ...MAP_META, nodes: [...MAP_META.nodes, "conveyor", "first_light"] },
+      ui: { sheet: "multipliers" },
+    },
+    crowns: 1,
+  },
+  // --- R4 S4, the finish (D272): the lasting R4 states in dusk, night and rain (08 8.3f);
+  // their day shots are above.
+  ...SKIES.filter(([sky]) => sky !== "").flatMap(([sky, hour, weather]) => [
+    {
+      name: `r4s4_phone_kettle_pad${sky}`,
+      viewport: PHONE,
+      state: { time: at(1, hour), wall: WALL, weather, ...KETTLE_PAD },
+    },
+    {
+      name: `r4s4_phone_bigred_chip${sky}`,
+      viewport: PHONE,
+      state: { time: at(1, hour), wall: WALL, weather, ...FIRST_NUKE },
+      ff: 1.3,
+    },
+    {
+      name: `r4s4_desktop_bigred_chip${sky}`,
+      viewport: DESKTOP,
+      state: { time: at(1, hour), wall: WALL, weather, ...FIRST_NUKE },
+      ff: 1.3,
+    },
+    {
+      name: `r4s4_phone_afterglow${sky}`,
+      viewport: PHONE,
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...FRESH_RUN,
+        createdAt: at(1, hour) - 20,
+        afterglowFrom: null,
+        meta: AFTER_FIRST_META,
+      },
+      ff: 0.6,
+    },
+    {
+      name: `r4s4_phone_rebuild_plain${sky}`,
+      viewport: PHONE,
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...FRESH_RUN,
+        createdAt: at(1, hour) - 5,
+        meta: AFTER_FIRST_META,
+        landing: 1400,
+      },
+    },
+    {
+      name: `r4s4_phone_crater_27${sky}`,
+      viewport: PHONE,
+      state: {
+        time: at(1, hour),
+        wall: WALL,
+        weather,
+        ...STONE_RUN,
+        n: 28,
+        meta: {
+          nukes: 27,
+          wipeDays: 27,
+          lifetime: 1e20,
+          glass: { ever: 2400, held: 100, level: 2400, spent: 2300 },
+          nodes: ["ground_zero"],
+          flights: ["u_turn", "loop_the_loop", "sputter_drop"],
+        },
+      },
+    },
+    map(`r4s4_phone_map_mid${sky}`, PHONE, { time: at(1, hour), weather }, { crowns: 0 }),
+    map(`r4s4_desktop_map${sky}`, DESKTOP, { time: at(1, hour), weather }, { crowns: 0 }),
+  ]),
   {
     name: "phone_first_tap",
     viewport: PHONE,
@@ -3831,6 +4182,7 @@ async function main() {
           cinematic,
           postcard,
           landing,
+          map,
           ...run
         } = state;
         // R3 S2: the set completed a minute ago; a Lucky Tide bought `fromAgo` seconds ago.
@@ -3926,6 +4278,8 @@ async function main() {
               (albumNew ?? 0),
           ),
         });
+        // R4 S3 (D271): where the Blast Map is open (a sector's ladder, a node's sheet, a filter).
+        if (map) window.__wipeDay.map.setState({ sector: null, node: null, filter: null, ...map });
         if (away) {
           clocks.game.set(time + away);
           store.getState().checkAway();

@@ -19,7 +19,7 @@ import type { APIMessageTopLevelComponent } from "discord.js";
 import { ROOT } from "../config";
 import { log } from "../log";
 import { MessageMock, type MockInput } from "../preview/mock";
-import { homeFixtures, NOTES, NOW } from "../render/fixtures";
+import { FEED, homeFixtures, NOTES, NOW } from "../render/fixtures";
 import { Renderer } from "../render/renderer";
 import { homeScreen } from "../ui/home";
 import { feedMessages, noteScreen } from "../ui/island";
@@ -99,9 +99,10 @@ for (const note of NOTES) {
   });
 }
 
-// The feed has no event types until R4's Wipe Days: nothing to draw yet.
-const feed: FeedItem[] = [];
-for (const [index, content] of feedMessages(lexicon.words, feed, NOW).entries()) {
+// The feed (R4): every kind of Wipe Day news and the first Armored era, one post each.
+for (const [index, item] of FEED.entries()) {
+  const feed: FeedItem[] = [item];
+  const content = feedMessages(lexicon.words, feed, NOW)[0] ?? "";
   shots.push({
     title: `feed post ${index + 1}`,
     files: await mock(`feed__${index + 1}`, { content }),

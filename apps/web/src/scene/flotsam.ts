@@ -36,6 +36,8 @@ const SINK_S = 1.2;
 const HIT = 64;
 const ICON = 50;
 const RING_R = 33;
+/** The hint's centre never rises above this (CSS px): the top bar's two plate rows. */
+const HINT_TOP_CLEAR = 150;
 /** The hint retires after this many catches (02-the-run.md 11.2). */
 const HINT_CATCHES = 2;
 /** A caught one pops for this long (ms). */
@@ -348,7 +350,8 @@ export class Flotsam {
       // Beside it in the sky (right of it, level with it), clear of its parachute and of
       // every line below.
       this.hint.style.left = `${box.x + box.width + 8}px`;
-      this.hint.style.top = `${box.y + box.height / 2}px`;
+      // Beside the crate, but never over the top bar's plates while it is still high (R4 S4).
+      this.hint.style.top = `${Math.max(box.y + box.height / 2, HINT_TOP_CLEAR)}px`;
       this.hint.style.transform = "translateY(-50%)";
     }
     const name = this.shown ? t(`flotsam.${this.shown.kind.id}.name`) : "";

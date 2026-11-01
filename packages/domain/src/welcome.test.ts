@@ -5,8 +5,10 @@
 import { loadContent, loadLocale } from "@wipe-day/content/load";
 import { contentPaths } from "@wipe-day/content/paths";
 import { describe, expect, it } from "vitest";
+import { crown, type Player } from "./advisor";
 import { applyCommand } from "./commands";
 import { rates } from "./effects";
+import { lifetimeFor } from "./prestige";
 import { settle } from "./settle";
 import { type BaseState, newBase } from "./state";
 import { welcomeBack } from "./welcome";
@@ -57,5 +59,29 @@ describe("welcome back", () => {
     expect(card?.hands).toBe(0);
     const collected = applyCommand(content, base, { type: "collect" }, T0 + 3 * 3600).state;
     expect(welcomeBack(content, collected, T0 + 3 * 3600)).toBeNull();
+  });
+
+  it("never crowns the Big Red while the card is open: Collect is its one action (6.3 rule 10)", () => {
+    // The first launch ready (a delta of 10) after three hours away: the crown would be the
+    // nuke, and the card hides it until Collect.
+    const made = lifetimeFor(content, 10);
+    const fresh = manned();
+    const state: BaseState = {
+      ...fresh,
+      run: { ...fresh.run, made, madeAtActive: made, startedAt: T0 - 3600, firstBuyAt: T0 - 3600 },
+    };
+    const now = T0 + 3 * 3600;
+    const settled = settle(content, state, now).state;
+    const card = welcomeBack(content, settled, now);
+    expect(card).not.toBeNull();
+    const player: Player = { income: 1, tapShare: 0, tapRate: 0 };
+    expect(crown(content, settled, now, player).kind).toBe("nuke");
+    expect(crown(content, settled, now, player, undefined, { welcomeOpen: true }).kind).not.toBe(
+      "nuke",
+    );
+    // Collect ends the card, and the crown may pass to the Big Red again.
+    const collected = applyCommand(content, settled, { type: "collect" }, now).state;
+    expect(welcomeBack(content, collected, now)).toBeNull();
+    expect(crown(content, collected, now, player).kind).toBe("nuke");
   });
 });

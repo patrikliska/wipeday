@@ -550,7 +550,9 @@ ships gets it at once, with one "New on Saltmarsh" card.
   (section 10).
 - **Costs:** one ladder of playful numbers, ×10 per ring: ring 1 costs 1-4 glass, ring 4 about
   222-1,111, ring 9 tens of millions; keystones cost 7,777 (ring 5) and 7.77M (ring 8). The whole
-  tree costs about 2.9B glass, about 1e53 lifetime supplies.
+  tree costs about 2.9B glass, about 1e53 lifetime supplies. Price cuts have caps (errata E25:
+  ×0.25 per shelf kind, ×0.5 for eras) that `pnpm sim caps` measures; wave 1 reaches ×0.65-0.72
+  per shelf kind and leaves eras uncut (D272).
 - **The first basket:** Go Bag, Calloused Hands, Deep Cellars, Hot Coals, Old Friends and
   Bigger Payload, 6 nodes for 9 glass, with 1 left over. Later a casual buys a median of 2-3 a nuke.
 - **Keystones:** owned forever, work only when slotted; exactly three slots (Wipe Days #10, #20,

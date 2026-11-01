@@ -92,6 +92,14 @@ export const {
   buffName,
 } = words;
 
+/** Blast Map names (R4 S3): a node, its blurb (notables and up), a sector, a node type. */
+export const nodeName = (id: string): string => t(`node.${id}.name`);
+export const nodeBlurb = (id: string): string =>
+  locale.has(`node.${id}.blurb`) ? t(`node.${id}.blurb`) : "";
+export const sectorName = (id: string): string => t(`sector.${id}.name`);
+export const sectorTagline = (id: string): string => t(`sector.${id}.tagline`);
+export const nodeTypeName = (type: string): string => t(`node_type.${type}`);
+
 /** The number format in force: the Numbers setting switches it to scientific from 1e6. */
 let numbers: NumberFormat = numberFormat(suffixesOf(locale), useUi.getState().scientific);
 useUi.subscribe((state, previous) => {

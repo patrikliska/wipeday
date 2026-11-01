@@ -5208,3 +5208,1025 @@
   opacity: 0;
   pointer-events: none;
 }
+
+/* ---------------------------------------------------------------------------------------------
+   R4 S3 (D271): the glass plate, the Blast Map panel (disk, ladder, node sheet), the era plate's
+   Wipe Day lock, the postcard's map buttons.
+   --------------------------------------------------------------------------------------------- */
+
+.glass-plate {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--glass-hi);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.glass-face {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 10px 0 8px;
+  font: 900 15px / 1 var(--display);
+  border-color: color-mix(in srgb, var(--glass) 45%, var(--edge));
+}
+
+.glass-plate:hover .glass-face {
+  filter: brightness(1.08);
+}
+
+.glass-plate:active .glass-face {
+  transform: translateY(1px);
+}
+
+.glass-plate.active .glass-face {
+  background: var(--selected);
+}
+
+.glass-face .card-flash {
+  border-radius: inherit;
+}
+
+.glass-plate .num.pop {
+  display: inline-block;
+  animation: badge-pop 300ms var(--ease-back, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+.glass-glow {
+  font: 600 12px / 1 var(--body);
+  color: var(--text-2);
+  padding-left: 6px;
+  border-left: 1px solid var(--edge-soft);
+}
+
+/* Armored behind its Wipe Day count: the plate dims and names the gate (D140). */
+.era-plate.locked .era-face {
+  opacity: 0.8;
+}
+
+.era-gate {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+}
+
+/* The postcard's foot: Open the Blast Map alone on Wipe Day #1; Rebuild with the map's quiet
+   button after. */
+.postcard-foot {
+  gap: 10px;
+}
+
+.postcard-foot .btn.secondary {
+  margin-right: 0;
+}
+
+.postcard-btn-text {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.postcard-btn-text small {
+  font: 600 11px / 1 var(--body);
+  letter-spacing: 0.02em;
+  text-transform: none;
+  opacity: 0.85;
+}
+
+/* --- The map panel --------------------------------------------------------------------- */
+
+.panel-body.map {
+  position: relative;
+}
+
+.map-head {
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px 10px 6px;
+}
+
+.map-back {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 6px 10px 6px 4px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.map-back .icon.back,
+.map-arrows .icon.back {
+  transform: rotate(180deg);
+}
+
+.map-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.map-title h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 24px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-title .sub {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.map-count {
+  font: 700 14px / 1 var(--body);
+  color: var(--muted);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.map-glass {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 10px 0 8px;
+  flex: 0 0 auto;
+  color: var(--glass-hi);
+  font: 900 15px / 1 var(--display);
+  border-color: color-mix(in srgb, var(--glass) 45%, var(--edge));
+}
+
+.map-arrows {
+  display: inline-flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+/* The filter chips: a scrolling row with a fade at its right edge (08 2.9). */
+.map-chips-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.map-chips-wrap::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 28px;
+  background: linear-gradient(90deg, transparent, var(--plate-lo));
+  pointer-events: none;
+}
+
+.map-chips {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  border: 0;
+  min-width: 0;
+  padding: 8px 28px 6px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.map-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--edge-soft);
+  background: var(--sunk);
+  color: var(--text-2);
+  font: 700 14px / 1 var(--body);
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.chip.on {
+  color: #fff;
+  background: var(--edge-soft);
+  border-color: var(--edge-hi);
+}
+
+.chip-count {
+  min-width: 20px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--glass-lo);
+  color: var(--glass-hi);
+  font-size: 12px;
+  text-align: center;
+}
+
+.map-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.map-disk-col {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px 8px;
+  overflow: hidden;
+}
+
+.map-ladder-col {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.map-ladder-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 10px;
+  align-items: center;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--edge-soft);
+}
+
+.map-ladder-head h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font: 900 20px / 1 var(--display);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.map-ladder-head .sub {
+  grid-column: 2;
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* --- The disk --------------------------------------------------------------------------- */
+
+.disk {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  max-height: 100%;
+}
+
+.disk-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.disk-ring {
+  fill: none;
+  stroke: var(--edge-soft);
+  stroke-width: 1;
+}
+
+.disk-ring.shut {
+  stroke-dasharray: 4 5;
+  stroke: var(--faint);
+}
+
+.disk-ring.full {
+  stroke: var(--glass);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 4px var(--glass));
+  animation: ring-glow 1200ms ease-out;
+}
+
+@keyframes ring-glow {
+  from {
+    stroke-width: 6;
+    stroke: var(--glass-hi);
+  }
+}
+
+.wedge {
+  fill: rgba(255, 230, 180, 0.03);
+  stroke: var(--edge-soft);
+  stroke-width: 1;
+  cursor: pointer;
+  outline: none;
+  transition: fill var(--t-fast) ease;
+}
+
+.wedge:hover,
+.wedge:focus-visible {
+  fill: rgba(255, 230, 180, 0.1);
+}
+
+.wedge:focus-visible {
+  stroke: var(--primary-hi);
+  stroke-width: 2;
+}
+
+.wedge.done {
+  fill: rgba(111, 208, 160, 0.08);
+}
+
+.wedge-track,
+.wedge-fill {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.wedge-track {
+  stroke: var(--sunk);
+}
+
+.wedge-fill {
+  stroke: var(--glass);
+  transition: stroke-dasharray 300ms var(--ease);
+}
+
+.dot {
+  fill: var(--sunk);
+  stroke: var(--faint);
+  stroke-width: 1;
+  transition:
+    fill 300ms var(--ease),
+    stroke 300ms var(--ease);
+}
+
+.dot.reachable {
+  stroke: var(--text-2);
+}
+
+.dot.affordable {
+  stroke: var(--glass);
+  stroke-width: 2;
+}
+
+.dot.owned {
+  fill: var(--glass);
+  stroke: var(--glass-hi);
+}
+
+.dot.just {
+  animation: dot-fill 500ms var(--ease-back, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+@keyframes dot-fill {
+  from {
+    transform: scale(2.2);
+    transform-origin: center;
+    transform-box: fill-box;
+  }
+}
+
+.dot-glow {
+  fill: var(--glass);
+  opacity: 0.22;
+}
+
+.dot.pick {
+  stroke: var(--primary-hi);
+  stroke-width: 2;
+}
+
+.pick-ring {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pick-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pick-pulse {
+  0%,
+  100% {
+    transform: scale(0.85);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0.35;
+  }
+}
+
+.dot-group.dim {
+  opacity: 0.25;
+}
+
+.hub {
+  fill: var(--sunk);
+  stroke: var(--glass);
+  stroke-width: 2;
+}
+
+.disk-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.wedge-label,
+.hub-glyph {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  color: var(--text-2);
+}
+
+.wedge-label.done {
+  color: var(--glass-hi);
+}
+
+.wedge-name {
+  font: 700 10px / 1 var(--body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.wedge-count {
+  position: absolute;
+  top: -6px;
+  right: -14px;
+  min-width: 18px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: var(--glass-lo);
+  border: 2px solid var(--plate-lo);
+  color: var(--glass-hi);
+  font: 700 10px / 1 var(--body);
+  text-align: center;
+}
+
+.hub-glyph {
+  color: var(--glass-hi);
+}
+
+/* --- The ladder ------------------------------------------------------------------------- */
+
+.ladder-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--edge) transparent;
+}
+
+/* Ring 1 at the foot when the ladder is short (`margin-top: auto`, not `justify-content`,
+   which would put the overflow out of reach above). */
+.ladder {
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
+  margin-top: auto;
+}
+
+/* With a node's sheet open the ladder gets its height in room below, so the node can rise. */
+.ladder-scroll.sheet-open .ladder {
+  margin-bottom: 55vh;
+}
+
+@media (min-width: 1024px) and (min-aspect-ratio: 6 / 5) {
+  .ladder-scroll.sheet-open .ladder {
+    margin-bottom: 40vh;
+  }
+}
+
+.ladder-edges {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.edge {
+  stroke: var(--edge);
+  stroke-width: 1;
+  transition: stroke 300ms var(--ease);
+}
+
+.edge.lit {
+  stroke: var(--primary-hi);
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+}
+
+.edge.owned {
+  stroke: var(--glass);
+  stroke-width: 2;
+}
+
+.edge.just {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: edge-light 300ms linear 150ms forwards;
+}
+
+@keyframes edge-light {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.ring-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+.ring-band.shut {
+  opacity: 0.55;
+}
+
+.ring-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  height: 32px;
+  margin: 0;
+  padding-top: 8px;
+  font: 900 13px / 1 var(--display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.ring-sub {
+  font: 600 11px / 1 var(--body);
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--muted);
+}
+
+.node-btn {
+  position: absolute;
+  width: 84px;
+  margin-left: -42px;
+  padding: 0;
+  border: 0;
+  background: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 10px;
+  min-height: 100px;
+}
+
+.node-btn:focus-visible {
+  outline: 2px solid var(--primary-hi);
+  outline-offset: 2px;
+}
+
+.node-btn.dim {
+  opacity: 0.3;
+}
+
+.node-frame {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  flex: 0 0 auto;
+  background: var(--sunk);
+  border: 2px solid var(--edge);
+  color: var(--text-2);
+  transition:
+    background 300ms var(--ease),
+    border-color 300ms var(--ease),
+    box-shadow 300ms var(--ease),
+    transform 300ms var(--ease);
+}
+
+.node-frame.small {
+  width: 44px;
+  height: 44px;
+}
+
+.node-letters {
+  font: 900 15px / 1 var(--display);
+  letter-spacing: 0.04em;
+}
+
+/* Frames by type (08 2.10): circle, double ring, hexagon, rounded square, cog ring. */
+.type-small .node-frame,
+.type-notable .node-frame,
+.type-automation .node-frame,
+.type-completion .node-frame {
+  border-radius: 50%;
+}
+
+.type-notable .node-frame {
+  box-shadow:
+    inset 0 0 0 3px var(--sunk),
+    inset 0 0 0 4px var(--edge);
+}
+
+.type-completion .node-frame {
+  box-shadow:
+    0 0 0 3px var(--plate-lo),
+    0 0 0 4px var(--edge);
+}
+
+.type-unlock .node-frame {
+  border-radius: 12px;
+}
+
+.type-keystone .node-frame {
+  border-radius: 0;
+  clip-path: polygon(50% 0, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
+  border: 0;
+  box-shadow: inset 0 0 0 2px var(--edge);
+}
+
+.type-automation .node-frame {
+  border-style: dashed;
+}
+
+/* States: locked (30% outline, a lock), reachable (outline, the cost), affordable (glass ring,
+   a soft glow), the pick (orange ring, crown, pulse), owned (filled glass green). */
+.node-btn.locked .node-frame {
+  border-color: color-mix(in srgb, var(--edge) 30%, transparent);
+  color: var(--faint);
+}
+
+.node-btn.locked .node-name {
+  color: var(--faint);
+}
+
+.node-btn.reachable .node-frame {
+  border-color: var(--edge-hi);
+}
+
+.node-btn.affordable .node-frame {
+  border-color: var(--glass);
+  color: var(--glass-hi);
+  box-shadow: 0 0 12px rgba(111, 208, 160, 0.35);
+}
+
+.node-btn.affordable.type-notable .node-frame {
+  box-shadow:
+    inset 0 0 0 3px var(--sunk),
+    inset 0 0 0 4px var(--glass),
+    0 0 12px rgba(111, 208, 160, 0.35);
+}
+
+.node-btn.owned .node-frame,
+.node-frame.owned {
+  background: var(--glass);
+  border-color: var(--glass-hi);
+  color: var(--ink);
+}
+
+.node-btn.owned.type-notable .node-frame {
+  box-shadow:
+    inset 0 0 0 3px var(--glass),
+    inset 0 0 0 4px var(--glass-lo);
+}
+
+.node-btn.just .node-frame {
+  animation: node-fill 500ms var(--ease-back, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+@keyframes node-fill {
+  from {
+    transform: scale(1.25);
+    box-shadow: 0 0 24px var(--glass-hi);
+  }
+}
+
+.node-btn.pick .node-frame {
+  border-color: var(--primary-hi);
+  box-shadow: 0 0 0 3px rgba(255, 106, 0, 0.25);
+  animation: node-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes node-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgba(255, 106, 0, 0.25);
+  }
+  50% {
+    box-shadow:
+      0 0 0 7px rgba(255, 106, 0, 0.08),
+      0 0 18px var(--primary-glow);
+  }
+}
+
+.node-btn.selected .node-frame {
+  transform: scale(1.08);
+  border-color: #fff;
+}
+
+.node-btn.on-path .node-frame {
+  border-color: var(--primary-hi);
+}
+
+.node-lock {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  padding: 2px;
+  border-radius: 50%;
+  background: var(--plate-lo);
+  color: var(--muted);
+}
+
+.node-crown {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  color: var(--primary-hi);
+}
+
+.node-name {
+  font: 600 11px / 1.15 var(--body);
+  text-align: center;
+  max-width: 84px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.node-cost {
+  font: 700 11px / 1 var(--display);
+  color: var(--glass-hi);
+}
+
+.node-btn.reachable .node-cost {
+  color: var(--text-2);
+}
+
+/* --- The node sheet --------------------------------------------------------------------- */
+
+.node-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  max-height: 70%;
+  border-radius: 18px 18px 0 0;
+  border-bottom: 0;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+  animation: sheet-in 240ms var(--ease);
+}
+
+.sheet-handle {
+  display: block;
+  width: 44px;
+  height: 4px;
+  margin: 8px auto 0;
+  border-radius: 2px;
+  background: var(--edge-hi);
+}
+
+.node-sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px 8px 16px;
+}
+
+.node-sheet-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.node-sheet-title h3 {
+  margin: 0;
+  font: 900 22px / 1 var(--display);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.node-sheet-title .sub {
+  margin: 3px 0 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.node-sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 16px 10px;
+}
+
+.node-blurb {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.node-lines {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.node-line {
+  font: 600 14px / 1.3 var(--body);
+  color: var(--glass-hi);
+}
+
+.node-leads {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.node-cost-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.map-glass-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--glass-hi);
+  font: 900 18px / 1 var(--display);
+}
+
+.node-sheet-foot {
+  display: flex;
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--edge-soft);
+}
+
+.node-reason {
+  flex: 1 1 auto;
+  margin: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+/* --- The foot: the pick card while node buying is new (D244), else the summary --------- */
+
+.map-foot {
+  align-items: center;
+  gap: 10px;
+}
+
+.pick-card {
+  padding-top: 10px;
+}
+
+.pick-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 6px;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.pick-crown {
+  color: var(--primary-hi);
+  grid-row: 1;
+}
+
+.pick-name {
+  font: 900 17px / 1 var(--display);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.pick-place,
+.pick-blurb {
+  grid-column: 2;
+  font-size: 12px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pick-buy {
+  flex: 0 0 auto;
+}
+
+.map-summary {
+  flex: 1 1 auto;
+  margin: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+.glass-fly {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 6;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 2px 6px 2px 6px;
+  background: var(--glass-hi);
+  box-shadow: 0 0 8px var(--glass);
+  pointer-events: none;
+}
+
+/* --- Desktop: the disk beside the chosen ladder, the sheet over the ladder's foot --------- */
+
+@media (min-width: 1024px) and (min-aspect-ratio: 6 / 5) {
+  .panel-map {
+    width: min(1100px, 100%);
+  }
+
+  .map-body {
+    flex-direction: row;
+    min-height: 0;
+  }
+
+  .map-disk-col {
+    flex: 0 0 440px;
+    padding: 10px 16px 16px;
+  }
+
+  .map-ladder-col {
+    flex: 1 1 auto;
+    border-left: 1px solid var(--edge-soft);
+  }
+
+  .node-sheet {
+    left: auto;
+    width: 420px;
+    max-height: 80%;
+    border-radius: 18px 0 0 0;
+  }
+}
+
+.reduced .pick-ring,
+.reduced .node-btn.pick .node-frame,
+.reduced .disk-ring.full,
+.reduced .node-btn.just .node-frame,
+.reduced .dot.just,
+.reduced .edge.just {
+  animation: none;
+}
+
+.reduced .edge.just {
+  stroke-dashoffset: 0;
+}

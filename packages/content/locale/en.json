@@ -198,6 +198,8 @@
     "retry": "Try again"
   },
   "hud": {
+    "glass_label": "{held} crater glass held, Glow ×{glow}. Opens the Blast Map.",
+    "glow": "Glow ×{glow}",
     "supplies": "Supplies",
     "tap_hint": "Tap the tree.",
     "demo_player": "Castaway",
@@ -406,7 +408,7 @@
   "feed": {
     "nuked": "{who} pressed the Big Red. Wipe Day #{n} on {island}: +{gain} crater glass.",
     "nuked_first": "{who} pressed the Big Red for the first time. Wipe Day #1: +{gain} crater glass and a fresh crater.",
-    "nuked_folded": "{who} pressed the Big Red {times} times since {since}. Wipe Day #{n}: +{gain} crater glass in all.",
+    "nuked_folded": "{who} pressed the Big Red {times} times lately. Wipe Day #{n}: +{gain} crater glass in all.",
     "nuked_milestone": "{who} reached Wipe Day #{n}: +{gain} crater glass. The crater sign needed a bigger post.",
     "first_armored": "{who} reached the Armored era for the first time. There is a wreck to crack open on the rise.",
     "flight": {
@@ -416,10 +418,33 @@
     }
   },
   "discord": {
-    "command": "Your island: a link into the game",
+    "card": {
+      "subtitle": "{era} era · Wipe Days: {n}",
+      "subtitle_first": "{era} era · first run",
+      "rate": "**+{rate}**",
+      "rate_none": "**Nothing runs by itself yet**",
+      "rate_stopped": "**+0/s** until Collect",
+      "glass": "Crater glass **{glass}** · Glow ×{glow}",
+      "night_shift": "Night Shift {used} of {window}",
+      "night_shift_full": "Night Shift full: your hands stopped {when}",
+      "night_shift_nobody": "Night Shift: nobody on shift yet",
+      "big_red": "The Big Red: +{glass} glass now",
+      "big_red_crowned": "👑 The Big Red is crowned: +{glass} glass now",
+      "big_red_locked": "The Big Red: first launch at {threshold} made ({made} now)",
+      "big_red_later": "The Big Red: the next glass at {threshold} made ({made} now)"
+    },
+    "next_action": {
+      "big_red": "The Big Red is crowned: open the game to flip the lid.",
+      "tap": "Open the game and tap the tree."
+    },
+    "command": "Your island: how it's doing, Collect, and a link into the game",
     "title": "{name} on {island}",
-    "rebuilding": "The island is being rebuilt. Open the game to see it and tap it.",
     "status": {
+      "stalled": "The Night Shift is over and your hands have stopped. Collect to start them again.",
+      "collected": "Collected: your hands worked {time} (+{gain}). A fresh {window} Night Shift starts now.",
+      "collected_nobody": "Collected. Nobody is on shift: hire a hand in the game and it works while you are away.",
+      "running": "Your hands work until {when}. Collect any time to restart the shift.",
+      "nobody": "Nobody is on shift yet: open the game and hire a hand.",
       "offline": "The game server did not answer. Try again in a moment.",
       "stale": "That button was from an older bot. Here is your island now.",
       "dm_on": "DMs are on: I'll message you when the Night Shift is over.",
@@ -429,6 +454,7 @@
     "dm_state_on": "on",
     "dm_state_off": "off",
     "button": {
+      "collect": "Collect",
       "open": "Open the game",
       "dm_off": "Turn DMs off",
       "dm_on": "Turn DMs on",
@@ -439,6 +465,7 @@
     "error": "Something went wrong on my side. Try /base again."
   },
   "drawer": {
+    "bulk_next": "Next",
     "see_all": "See all",
     "close": "Close",
     "lines": "Lines",
@@ -517,6 +544,7 @@
     "offline": "+{pct} while away"
   },
   "nav": {
+    "map": "Map",
     "label": "Go to",
     "island": "Island",
     "workshop": "Workshop",
@@ -590,11 +618,15 @@
     "voices": "Every other sound is played by the game itself, from oscillators and noise"
   },
   "era_plate": {
+    "locked": "Wipe Day #{count} · {toGo} to go",
     "build": "Build",
     "ready": "ready to build",
     "aria": "Next: the {era}, {cost} supplies, {status}. Show what it brings."
   },
   "era_sheet": {
+    "locked": "Opens after Wipe Day #{count} ({toGo} to go)",
+    "opens_when": "Opens after",
+    "opens_after": "Wipe Day #{count}",
     "costs": "Costs {cost}",
     "brings": "What it brings",
     "everything": "Every line ×{factor}",
@@ -612,6 +644,7 @@
     "build_need": "Need {need} more"
   },
   "mult": {
+    "glow_source": "{ever} glass ever",
     "title": "Supplies per second",
     "lines": "Lines, {units} units",
     "milestones": "Milestones",
@@ -1186,6 +1219,86 @@
     "sputter_drop": "Sputter and Drop",
     "fizzle": "Fizzle"
   },
+  "map": {
+    "title": "Blast Map",
+    "disk_label": "The Blast Map: eight sectors in rings around Ground Zero",
+    "back_island": "Island",
+    "back_map": "Map",
+    "glow_lit": "Glow ×{glow} · {lit} of {total} lit",
+    "filters": "Show",
+    "chip_affordable": "Affordable",
+    "chip_taps": "Taps",
+    "chip_offline": "Offline",
+    "chip_automation": "Automation",
+    "ring_label": "Ring {ring}",
+    "ring_band": "{low}-{high} glass",
+    "ring_opens": "Ring {ring} opens at Wipe Day #{at}",
+    "ring_opens_togo": "Ring {ring} opens at Wipe Day #{at} ({toGo} to go)",
+    "node_opens": "Opens at Wipe Day #{at} ({toGo} to go)",
+    "sector_count": "{owned}/{total}",
+    "wedge_label": "{sector}: {owned} of {total} lit, {affordable} affordable",
+    "prev_sector": "Previous sector: {sector}",
+    "next_sector": "Next sector: {sector}",
+    "node_label": "{name}, {type}, {sector} ring {ring}, {cost} glass, {state}",
+    "node_place": "{type} · {sector} ring {ring}",
+    "state_owned": "lit",
+    "state_affordable": "affordable",
+    "state_glass": "need {need} more glass",
+    "state_no_parent": "Light a node next to it first",
+    "owned_note": "Lit. It works on every run from here on.",
+    "buy": "Buy · {cost} glass",
+    "buy_path": "Buy path · {n} nodes · {cost} glass",
+    "buy_first": "Buy the first {n} · {cost} glass",
+    "need_more": "Need {need} more glass",
+    "left_after": "you'll have {left} left",
+    "have_glass": "you have {have}",
+    "cost_path": "for the path of {n} · ",
+    "cost_lit": "paid",
+    "leads_to": "Leads to: {names}",
+    "now_income": "Now: {before} → {after} ({pct})",
+    "now_income_when": "{when}: {before} → {after} ({pct})",
+    "when_night": "At night",
+    "when_rain": "In rain",
+    "when_afterglow": "Under Afterglow",
+    "now_tap": "A tap: {before} → {after}",
+    "now_night": "Night Shift {before} → {after}",
+    "now_glass": "Next press: +{before} → +{after} glass",
+    "now_glow": "Glow ×{before} → ×{after}",
+    "now_stat": "{stat}: {before} → {after}",
+    "now_feature": "Works from the next run on.",
+    "summary": "{n} affordable · {held} glass",
+    "summary_none": "Nothing affordable yet · {held} glass"
+  },
+  "node_type": {
+    "small": "Small",
+    "notable": "Notable",
+    "keystone": "Keystone",
+    "unlock": "Unlock",
+    "automation": "Automation",
+    "completion": "Completion"
+  },
+  "stat": {
+    "crit_chance": "Crit chance",
+    "crit_mult": "Crit",
+    "hustle_hold": "Hustle holds",
+    "hustle_drain": "Hustle drain",
+    "hustle_max": "Hustle peak",
+    "hustle_gain": "Hustle per tap",
+    "fell_taps": "Taps to fell",
+    "fell_bonus": "Fell bonus",
+    "afterglow_half": "Afterglow half-life",
+    "flotsam_rate": "Airdrop rate",
+    "flotsam_float": "Airdrop float",
+    "flotsam_effect": "Airdrop effect",
+    "line_cost": "Line prices",
+    "hand_cost": "Hand prices",
+    "upgrade_cost": "Upgrade prices",
+    "era_cost": "Era prices",
+    "frenzy_gain": "Frenzy per tap",
+    "frenzy_seconds": "Frenzy lasts",
+    "rally_mult": "Rally",
+    "morale": "Morale"
+  },
   "big_red": {
     "title": "The Big Red",
     "sub": "Wipe Day #{n} · {island}",
@@ -1263,6 +1376,10 @@
     "new_flight": "New flight: {flight}"
   },
   "postcard": {
+    "open_map": "Open the Blast Map",
+    "open_map_sub": "{glass} glass to spend",
+    "map_affordable": "Blast Map · {n} affordable",
+    "map_glass": "Blast Map · {glass} glass",
     "title": "Postcard",
     "greetings": "Greetings from",
     "place": "Ground Zero",

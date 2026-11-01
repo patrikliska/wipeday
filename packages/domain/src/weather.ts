@@ -6,7 +6,7 @@
  * at weather blocks only once such an effect exists.
  */
 import type { Content, Weather } from "@wipe-day/content/schema";
-import { rng, SEED, seedOf } from "./rng";
+import { roll, SEED, seedOf } from "./rng";
 
 /** The weather block `t` falls in: blocks start on whole multiples of blockMinutes (UTC). */
 export function weatherBlock(content: Content, t: number): number {
@@ -16,9 +16,9 @@ export function weatherBlock(content: Content, t: number): number {
 /** The weather at second `t`: one seeded draw per block, by the island's shares. */
 export function weatherAt(content: Content, t: number): Weather {
   const { seed, weather } = content.islandClock;
-  const roll = rng(seedOf(seed, SEED.weather, weatherBlock(content, t))).next() * 100;
-  if (roll < weather.clear) return "clear";
-  if (roll < weather.clear + weather.rain) return "rain";
+  const drawn = roll(seedOf(seed, SEED.weather, weatherBlock(content, t))) * 100;
+  if (drawn < weather.clear) return "clear";
+  if (drawn < weather.clear + weather.rain) return "rain";
   return "fog";
 }
 

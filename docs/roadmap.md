@@ -6,7 +6,7 @@ should think, and what "done" means**. It was rewritten in R0 from the approved 
 (`docs/redesign/11-roadmap.md`, which keeps the reasons); the W-phase roadmap and its results are
 in `docs/archive/roadmap-w.md`.
 
-## Where we are (2026-10-30, R4 The Big Red S2 done)
+## Where we are (2026-11-01, R4 The Big Red done)
 
 - **The live game is the redesign** since 2026-10-19 (D242): the owner had R2 Feel S7 (`redesign`
   at fdc5010) deployed to https://wipeday.patrikliska.dev, bringing the cut-over forward from R4.
@@ -124,8 +124,89 @@ in `docs/archive/roadmap-w.md`.
   the cover, the 2 s hold with the siren and "tap twice"), the pure cinematic with four flights,
   the postcard, the landing, Afterglow's pill with the green sky and ash, the crater and sign,
   the sounds, 36 shots.
-- **Next: R4 S3, the map and the edges** (the Blast Map panel as a dock place, the welcome rule,
-  the bot's minimal card v2, the admin gift; the postcard's "Open the Blast Map" for Wipe Day #1).
+- **R4 S3, the map and the edges, is done** (2026-11-01; D271; results below): the Blast Map as
+  a dock place (the disk, the ladders, the node sheet, path buying, the pick while new), the
+  glass plate, the postcard's "Open the Blast Map", Armored's lock line, bulk Next, the welcome
+  rule's three guards, the bot's card v2 and Collect, the feed's sentences, the founders' gift
+  script, 25 shots.
+- **R4 S4, the finish, is done, and with it R4 The Big Red** (2026-11-01; D272; results below):
+  the simulator's quick profile 2.7× faster with every number identical and the test's bound
+  back at 10 s, `pnpm sim check --full` (N33's lower bound moved to day 6), the price cuts
+  measured at their caps (`pnpm sim caps`, E25), N13's flat fixture, Afterglow's end tick, 24
+  weather shots, the docs.
+- **Next: R5 Blast Map wave 2** (plan mode first: rings 4-6, months of goals; the branch `r5`
+  from `redesign`, which is then retired, 11-roadmap). The owner's playtest 2 fixes come first if
+  they arrive.
+
+### R4 S4 results: the finish
+- **Built:** domain: the unit-rate memo in the effects layer with `buffMask` and `perOwned`,
+  `holds` as a switch, memoised `milestoneFactors` and milestone signatures, `statOf`'s per-kind
+  memo, `rates()`' fast path, `roll(seed)` in `rng.ts` (crits, weather), `badgeCount`'s memo,
+  `glassRateNow`, `bigRedCrown(…, yield)`, settle's cut points without allocation. Simulator:
+  `quickRuns` on scenarios with `scenarioStop` and the in-session stop, `priceCuts` and
+  `pnpm sim caps`, the active's `quickDays: 14`. Web: Afterglow's `ending` pill and
+  `afterglow_ended`, the airdrop hint clamped below the top bar, the second-island fixture's
+  stats, 24 `r4s4_*` shots.
+- **Decisions:** D272.
+- **Tests:** `sim.test.ts`: the pacing test's bound at 10 s, the determinism test at two days,
+  the price cuts at or above their caps, N13's flat fixture fails and a rising one passes, the
+  autoclicker's quick session ends with its first press and matches `--full`'s run 1; the
+  domain's 212 tests pass unchanged (the path-independence generator caught the buff memo's
+  duplicate-kind case).
+- **Balance (test profile):** N1 42:44-45:54, N2 autoclicker 37:25-39:55, N3 day 1 21:00, N7
+  97.8% of 90 check-ins, N9 day 14 6.50 (rain 6.64), N14 first nuke 7-8 and later medians 3 (casual,
+  active) / 8 (idler) / 11 (optimal), 4.10 26 Wipe Days by day 30 and 409 glass at day 7, N19
+  casual 5.43 a day, N30 casual 3.33, N33 base set day 7 (want 6-14), N11 warns (casual early
+  93.6%), N12 early ×1.32 / ×1.32 / ×1.56 (mid warns until R5), N13 warns (the active's runs 23-31
+  at ×1.28-1.30). Every number is S3's: the domain changes are speed only.
+- **Balance (`--full`, 365 days × seeds 7/11/23, 187 s):** N1 41:54-46:44 over 12 seeds, N2
+  autoclicker 33:47-41:25, N3 day 1 21:00 on 3 of 3, N7 98.1% of 270, N9 day 14 7.41 / day 30
+  6.24 / day 60 7.62 (the rain row warns: 8.01 at day 60), N19 casual 5.43-5.86 and 141-149 by
+  day 30, N30 casual 3.33-3.53, N33 base set day 6-7 (the lower bound moved to 6), Album
+  complete day 57-183, N32 run 1 claims 5-8, N11 warns (casual early 93.6%, active 84.2%,
+  optimal 37-44%), N12 early ×1.33 / ×1.34 / ×1.56, mid ×1.14 / ×1.10 / ×1.32 and late ×1.05 /
+  ×1.05 / ×1.22 (warn until R5), N13 warns (casual runs 28-44 ×1.27-1.30, active 23-31), N14
+  first nuke 6-8 and later medians 3-12, 4.10 25-26 Wipe Days and 240-560 glass at day 7, N23
+  largest 6.06e29, N5/N6 18 s.
+- **Price cuts (E25, `pnpm sim caps`):** wave 1 `upgrade_cost` ×0.689 grip / ×0.720 island /
+  ×0.650 line_mk (cap ×0.25: ×2.6-2.9 of room), `line_cost` ×0.810, `hand_cost` ×0.769, `era_cost`
+  untouched (cap ×0.5).
+- **Speed:** the quick profile 34 s → 12 s and the pacing test 12 s in vitest on the owner's
+  machine under a game's load (about 7-8 s idle, to be confirmed); the two 3-day tests merged at
+  2 days (3.3 s).
+- **Shots:** `preview/web/index.html`, the 24 `r4s4_*` shots and every R4 group re-rendered;
+  notes in `docs/ui-review.md`.
+- **Owner supplies:** a run of `pnpm test` on an idle machine (the 10 s bound); the call on N33
+  (accept day 6, or tighten the gate or the nuke's drop tier); playtest 2 on a phone; the R4 node
+  icons and names pass 2; `ADMIN_TOKEN` on the VPS for the founders' gift.
+
+
+### R4 S3 results: the map and the edges
+- **Built:** domain: `nodeGain` and `nodeTags` in `blastmap.ts` (the pick's weights shared with
+  the simulator; the filter chips from stats), `nodeGlance` and `nightShiftGlance` in
+  `glance.ts`, `nextMilestone` in `effects.ts` and `count: "next"` on `buy_line`, `launchAt` on
+  the yield, `words.feedLine` (the six feed sentences), `statBase` exported from the content.
+  Web: `state/map.ts`, `hud/blast/{layout,shared,Overview,Ladder,NodeSheet,BlastMap}`
+  (code-split), the dock's Map place with the affordable badge, `hud/Glass.tsx`, the postcard's
+  buttons and `rebuildToMap` (the map after the landing), Armored's plate and sheet behind its
+  gate, the Next size, the Multipliers' node names and Glow source, Escape and back closing the
+  node sheet first, the `__wipeDay.map` hook and 25 shots. Discord: `home.ts` card v2,
+  Collect keyed by the interaction id, `BOT_COMMANDS`, the allowlist boundary test, eight
+  fixtures and six feed posts in `pnpm preview`. API: `POST /api/bot/commands` takes Collect
+  only, without marking seen; one Wipe Day is one feed item (`bot.test.ts`). The gift:
+  `scripts/founders-gift.sh` and `docs/deploy.md`.
+- **Decisions:** D271.
+- **Tests:** `welcome.test.ts` (the crown before, never during, after the card), `glance.test.ts`
+  (the node sheet's kinds, a night-only node, an owned node, the Night Shift glance),
+  `prestige.test.ts` (tags and weights), `words.test.ts` (the six feed sentences),
+  `home.test.ts` (eight card states, one primary each, Collect on every card),
+  `boundary.test.ts` (the allowlist, one command type), `bot.test.ts` (Collect alone, replay,
+  never seen; a nuke on the stream); `pnpm check` passes.
+- **Balance:** unchanged from S1 (`pnpm sim check` passes; N11, N12 mid/late and N13 warn until
+  R5, as D269 says); the simulator buys by the domain's `nodeGain` now, the same weights as
+  before.
+- **Owner supplies:** `ADMIN_TOKEN` on the VPS, then `scripts/founders-gift.sh` (docs/deploy.md);
+  playtest 2 on a phone (the first nuke to the map); the R4 node icons.
 
 ### R4 S2 results: the show
 - **Built:** `scene/kettle.ts` (stages from `kettleStage`, the drum's taped / open / rattling

@@ -205,7 +205,7 @@ export { agendaAt };
 export function nodePick(
   content: Content,
   state: BaseState,
-  gainOf: (node: NodeDef) => number = () => 0,
+  gainOf: (node: NodeDef) => number = (node) => nodeGain(content, node),
 ): { node: NodeDef; state: NodeState } | null {
   const meta = state.meta;
   const shipped = shippedNodes(content);
@@ -239,4 +239,78 @@ export function nodePick(
   if (!next) return null;
   const found = states.get(next.id);
   return found ? { node: next, state: found } : null;
+}
+
+/**
+ * A node's rough worth in output, scope-weighted (04 7.3's weights, coarsely): what the pick
+ * divides by the cost, and what the simulator buys by (D268). Shared so the web, the bot and
+ * the simulator agree on the one pulsing pick.
+ */
+export function nodeGain(content: Content, node: NodeDef): number {
+  let gain = 0;
+  for (const effect of node.effects) {
+    const share =
+      effect.scope === undefined || effect.scope === "all"
+        ? 1
+        : content.lines.some((line) => line.id === effect.scope)
+          ? 1 / content.lines.length
+          : 0.25;
+    const v = effect.value;
+    switch (effect.stat) {
+      case "output":
+      case "speed":
+        gain += (effect.op === "more" ? v - 1 : v) * share * (effect.when ? 0.3 : 1);
+        break;
+      case "tap":
+      case "tap_share":
+        gain += 0.3 * v;
+        break;
+      case "glass_gain":
+        gain += 0.5 * (effect.op === "more" ? v - 1 : v);
+        break;
+      case "glow_k":
+        gain += 2 * v;
+        break;
+      case "night_shift":
+        gain += 0.05 * v;
+        break;
+      case "line_cost":
+      case "hand_cost":
+      case "upgrade_cost":
+      case "era_cost":
+        gain += 0.5 * (1 - v);
+        break;
+      case "keep_hand":
+      case "start_owned":
+      case "start_era":
+      case "start_upgrade":
+        gain += 0.2;
+        break;
+      default:
+        gain += effect.stat.startsWith("feature:") ? 0.1 : 0.05;
+    }
+  }
+  return gain;
+}
+
+/** The map's filter chips (04 8.4), derived from a node's stats, never authored. */
+export const NODE_TAGS = ["taps", "offline", "automation"] as const;
+export type NodeTag = (typeof NODE_TAGS)[number];
+
+const TAP_STATS = /^(tap|hustle|crit|fell|afterglow|rush)/;
+const OFFLINE_STATS = /^(night_shift|offline)$/;
+const AUTOMATION_STATS = /^(start_|keep_hand)/;
+
+/** Which chips a node answers to: Taps, Offline and Automation (a node may answer several). */
+export function nodeTags(node: NodeDef): NodeTag[] {
+  const tags = new Set<NodeTag>();
+  if (node.type === "automation") tags.add("automation");
+  for (const effect of node.effects) {
+    const stat = effect.stat;
+    if (TAP_STATS.test(stat)) tags.add("taps");
+    if (OFFLINE_STATS.test(stat) || effect.when === "offline" || effect.when === "night")
+      tags.add("offline");
+    if (AUTOMATION_STATS.test(stat) || stat === "feature:bulk_buy") tags.add("automation");
+  }
+  return NODE_TAGS.filter((tag) => tags.has(tag));
 }

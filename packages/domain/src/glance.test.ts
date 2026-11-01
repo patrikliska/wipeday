@@ -1,12 +1,14 @@
 /**
  * The HUD's read-only views (glance.ts) and the crown (advisor.ts, 02-the-run.md 11.1).
  */
+
+import { nodeOf } from "@wipe-day/content/blastmap";
 import { loadContent, loadLocale } from "@wipe-day/content/load";
 import { contentPaths } from "@wipe-day/content/paths";
 import { describe, expect, it } from "vitest";
 import { choices, crown, firstUse, type Player, sameRow, sheetPick, tapHintLive } from "./advisor";
-import { fullRate, unitRate } from "./effects";
-import { breakdown, hustleAt, shownRate, tapGlance } from "./glance";
+import { fullRate, rates, unitRate } from "./effects";
+import { breakdown, hustleAt, nightShiftGlance, nodeGlance, shownRate, tapGlance } from "./glance";
 import { lineOf } from "./lines";
 import { rng } from "./rng";
 import { mannedRate } from "./settle";
@@ -290,5 +292,93 @@ describe("onboarding: what the game still lights (D244)", () => {
   it("shows the tap hint only until the first lines are bought", () => {
     expect(tapHintLive(content, withStats({ units: 0 }))).toBe(true);
     expect(tapHintLive(content, withStats({ units: uses }))).toBe(false);
+  });
+});
+
+describe("the node sheet's numbers (04-blast-map.md 8.2; R4 S3)", () => {
+  const owner = (nodes: string[], run: Partial<BaseState["run"]> = {}): BaseState => {
+    const base = fresh({ lines: { beachcomber: 10, campfire: 5 }, hands: ["beachcomber"], ...run });
+    return {
+      ...base,
+      meta: {
+        ...base.meta,
+        wipeDays: 1,
+        nukes: 1,
+        glass: { ever: 100, held: 100, level: 100, spent: 0 },
+        nodes,
+      },
+    };
+  };
+  const node = (id: string) => {
+    const def = nodeOf(content, id);
+    if (!def) throw new Error(id);
+    return def;
+  };
+
+  it("reads income, taps, the Night Shift, glass, Glow and a bare stat with and without the node", () => {
+    const state = owner(["ground_zero"]);
+    const income = nodeGlance(content, state, node("conveyor"), T0);
+    expect(income).toHaveLength(1);
+    expect(income[0]).toMatchObject({
+      kind: "income",
+      before: fullRate(content, state, T0, { online: true }),
+    });
+    if (income[0]?.kind === "income")
+      expect(income[0].after / income[0].before).toBeCloseTo(1.3, 9);
+    const tap = nodeGlance(content, state, node("steady_hands"), T0);
+    expect(tap[0]?.kind).toBe("tap");
+    if (tap[0]?.kind === "tap") expect(tap[0].after / tap[0].before).toBeCloseTo(1.25, 9);
+    const cellars = nodeGlance(content, state, node("deep_cellars"), T0);
+    expect(cellars).toEqual([
+      {
+        kind: "night_shift",
+        before: rates(content, state).nightShift,
+        after: rates(content, state).nightShift + 4 * 3600,
+      },
+    ]);
+    const payload = nodeGlance(content, state, node("bigger_payload"), T0);
+    expect(payload[0]?.kind).toBe("glass");
+    const hats = nodeGlance(content, state, node("tinfoil_hats"), T0).map((line) => line.kind);
+    expect(hats).toEqual(["glass", "glow"]);
+    const swing = nodeGlance(content, state, node("lucky_swing"), T0);
+    expect(swing).toEqual(
+      expect.arrayContaining([
+        { kind: "stat", stat: "crit_chance", before: 0, after: 0.04, additive: true },
+        { kind: "stat", stat: "crit_mult", before: 1, after: 8, additive: false },
+      ]),
+    );
+    expect(nodeGlance(content, state, node("keep_swinging"), T0)).toEqual([{ kind: "feature" }]);
+  });
+
+  it("reads a night-only node under the night, marked, and an owned node the same way", () => {
+    const noon = T0 + 12 * 3600;
+    const state = owner(["ground_zero"]);
+    const lamps = nodeGlance(content, state, node("night_lamps"), noon);
+    expect(lamps[0]).toMatchObject({ kind: "income", when: "night" });
+    const owned = owner(["ground_zero", "hot_coals"]);
+    const coals = nodeGlance(content, owned, node("hot_coals"), T0);
+    expect(coals[0]?.kind).toBe("income");
+    if (coals[0]?.kind === "income") expect(coals[0].after).toBeGreaterThan(coals[0].before);
+  });
+});
+
+describe("the Night Shift glance (06-friends.md 10.2)", () => {
+  it("counts the window used since the last command, and when the hands stopped", () => {
+    const state = fresh({ hands: ["beachcomber"], lines: { beachcomber: 3 }, activeAt: T0 });
+    const window = rates(content, state).nightShift;
+    expect(nightShiftGlance(content, state, T0 + 1800)).toEqual({
+      window,
+      used: 1800,
+      left: window - 1800,
+      full: false,
+      stoppedAt: null,
+    });
+    expect(nightShiftGlance(content, state, T0 + window + 60)).toEqual({
+      window,
+      used: window,
+      left: 0,
+      full: true,
+      stoppedAt: T0 + window,
+    });
   });
 });

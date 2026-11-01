@@ -24,8 +24,9 @@
     active: {
       sessions: ["07:00+10m", "09:00+10m", "12:00+10m", "15:00+10m", "17:00+10m", "19:00+10m", "21:00+10m", "23:00+10m"],
       tapsPerSecond: 6,
-      // The quick profile plays the active a month (N9's day 60 is `--full`'s; R4 S2, D270).
-      quickDays: 30,
+      // The quick profile plays the active two weeks: N9's day 14; days 30 and 60 are `--full`'s
+      // (R4 S4, D272; a month was the profile's half, D270).
+      quickDays: 14,
       catches: 1,
       nuke: "crown",
       spend: "boosts",
@@ -35,10 +36,13 @@
     optimal: { sessions: ["hourly+5m"], tapsPerSecond: 6, catches: 1, nuke: "best", spend: "boosts", quickDays: 1 },
     lateJoiner: { sessions: ["08:00+5m", "13:00+5m", "21:00+5m"], tapsPerSecond: 4, catches: 0.5, nuke: "crown", startDay: 30, spend: "drops" },
   },
-  // One long session from the first tap.
+  // One long session from the first tap. Everything due reads a scenario's run 1 (N1, N2, N8,
+  // N32, the first-hour beats; N5 and N6 read runs 1-5 of the archetypes too), so the quick
+  // profile ends each session with its first press (`quickRuns`, D272); `--full` plays the three
+  // hours.
   scenarios: {
-    firstHour: { sessions: ["00:00+180m"], tapsPerSecond: 6, catches: 1, nuke: "crown" },
-    autoclicker: { sessions: ["00:00+180m"], tapsPerSecond: 15, catches: 1, nuke: "crown" },
+    firstHour: { sessions: ["00:00+180m"], tapsPerSecond: 6, catches: 1, nuke: "crown", quickRuns: 1 },
+    autoclicker: { sessions: ["00:00+180m"], tapsPerSecond: 15, catches: 1, nuke: "crown", quickRuns: 1 },
   },
   assertions: [
     // R0: the shape of the numbers.
@@ -93,7 +97,8 @@
     { n: "N30", on: "R3", check: "casualDropsPerDay", min: 1, days: 30, casualMean: [2, 4], anyMeanMax: 12 },
     // N33 (D248, D266): the Album's base set (every Common and Rare) in about two weeks for the
     // casual, never in under a week; the whole Album (the Legendaries by pity) takes months.
-    { n: "N33", on: "R3", check: "casualAlbumBase", days: 14, notBefore: 7 },
+    // R4's nuke drops (D269) bring the base set to day 6 on some seeds (`--full`, R4 S4; D272).
+    { n: "N33", on: "R3", check: "casualAlbumBase", days: 14, notBefore: 6 },
     { n: "N33", on: "R3", check: "casualAlbumFull", notBefore: 45, days: 30, warn: true },
     // N32 (D255, D256): five Work Orders are reachable in every run 1, for every archetype.
     { n: "N32", on: "R3", check: "ordersReachable" },

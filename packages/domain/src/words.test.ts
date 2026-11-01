@@ -88,3 +88,43 @@ describe("names", () => {
     expect(missing).toEqual([]);
   });
 });
+
+describe("the feed's sentences (06-friends.md 2.3; D271)", () => {
+  const nuked = (n: number, gain: number, extra: Record<string, unknown> = {}) =>
+    ({
+      type: "nuked",
+      n,
+      wipeDay: n,
+      gain,
+      ever: 1000,
+      glowBefore: 1,
+      glowAfter: 2,
+      doubling: false,
+      flight: "u_turn",
+      pays: { drop: 1, scrap: 0 },
+      news: { folded: 0, glass: 0 },
+      summary: {},
+      ...extra,
+    }) as never;
+
+  it("says the first, a milestone, a fold, a plain Wipe Day and a new flight", () => {
+    expect(w.feedLine(nuked(1, 10), "**Mira**")).toBe(
+      "**Mira** pressed the Big Red for the first time. Wipe Day #1: +10 crater glass and a fresh crater.",
+    );
+    expect(w.feedLine(nuked(4, 144), "Patrik")).toBe(
+      "Patrik pressed the Big Red. Wipe Day #4 on Saltmarsh: +144 crater glass.",
+    );
+    expect(w.feedLine(nuked(5, 86, { news: { folded: 2, glass: 200 } }), "Ivo")).toBe(
+      "Ivo pressed the Big Red 3 times lately. Wipe Day #5: +286 crater glass in all.",
+    );
+    expect(w.feedLine(nuked(50, 61_000), "Mira")).toBe(
+      "Mira reached Wipe Day #50: +61.0k crater glass. The crater sign needed a bigger post.",
+    );
+    expect(w.feedLine(nuked(2, 30, { flight: "loop_the_loop" }), "Patrik")).toBe(
+      "Patrik pressed the Big Red. Wipe Day #2 on Saltmarsh: +30 crater glass. The Kettle did a loop-the-loop first.",
+    );
+    expect(w.feedLine({ type: "era_reached", era: "hqm", at: 1, first: true }, "Ivo")).toBe(
+      "Ivo reached the Armored era for the first time. There is a wreck to crack open on the rise.",
+    );
+  });
+});

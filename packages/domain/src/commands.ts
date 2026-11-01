@@ -24,12 +24,13 @@ import { gateOpen, hasFeature, nodeEffects, nodeState } from "./blastmap";
 import { boostOf, boostUntil, tideSlot } from "./boosts";
 import { gearOf, survivorOf } from "./cards";
 import { credit, grantDrops, openDrop } from "./drops";
+import { nextMilestone } from "./effects";
 import type { GameEvent } from "./events";
 import { arrivalKind, claimUntil, crateValue, flotsamAt, gapBefore } from "./flotsam";
 import { crossing, gullValue } from "./gulls";
 import { costFactor, costOf, eraOpen, handPriceOf, lineOf, maxAffordable } from "./lines";
 import { orderClaimed, orderMet, orderOf, orderProgress } from "./orders";
-import { glassYield, nuke } from "./prestige";
+import { glassRateNow, glassYield, nuke } from "./prestige";
 import { claimQuest, questClaimed, questMet, questOf, questProgress, rollQuests } from "./quests";
 import { levelOf, levelsCost, maxResearch, mkFactor, researchGate, researchOf } from "./research";
 import { earnScrap, pay, spendScrap } from "./scrap";
@@ -49,7 +50,8 @@ import type { BaseState, RunState } from "./state";
 import { applyTaps } from "./taps";
 import type { World } from "./world";
 
-export type BuyCount = 1 | 10 | 100 | "max";
+/** "next": up to the line's next milestone (the Blast Map's Bulk Buttons, R4 S3; D271). */
+export type BuyCount = 1 | 10 | 100 | "max" | "next";
 
 export type Command =
   /** Taps from `from` to `to` (whole seconds): at most 1 s or 30 taps a batch (D134). */
@@ -210,7 +212,7 @@ export function applyCommand(
   const after: BaseState = { ...result.state, run };
   if (command.type !== "nuke") {
     // Rounded, so two settle paths' float noise never shows up in a stored number (N24).
-    const peak = Number(glassYield(content, after, now).peak.toPrecision(10));
+    const peak = Number(Math.max(run.peak, glassRateNow(content, after, now)).toPrecision(10));
     if (peak > run.peak) run = { ...run, peak };
     if (
       run.personalBestAt === null &&
@@ -704,8 +706,9 @@ function buyLine(content: Content, state: BaseState, id: string, count: BuyCount
       };
     }
   } else {
-    k = count;
-    if (n + k > line.maxOwned) return { ok: false, refusal: { reason: "max_owned", have: n } };
+    k = count === "next" ? Math.min(line.maxOwned, nextMilestone(content, n)) - n : count;
+    if (k < 1 || n + k > line.maxOwned)
+      return { ok: false, refusal: { reason: "max_owned", have: n } };
   }
   const cost = costOf(line, n, k, factor);
   if (cost > supplies)

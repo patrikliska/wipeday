@@ -59,6 +59,15 @@ export function rng(seed: number): Rng {
   };
 }
 
+/** `rng(seed).next()` without the closure: the one draw a crit or a weather block makes. */
+export function roll(seed: number): number {
+  const state = ((seed >>> 0) + 0x6d2b79f5) >>> 0;
+  let t = state;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+
 /** Mixes several integers into one seed (order matters). */
 export function seedOf(...parts: number[]): number {
   let hash = 0x811c9dc5;

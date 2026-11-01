@@ -1,4 +1,5 @@
 import { agendaAt, nextAgendaAt } from "@wipe-day/content/blastmap";
+import { affordableNodes } from "@wipe-day/domain/blastmap";
 import type { NukedEvent } from "@wipe-day/domain/events";
 import { glassYield } from "@wipe-day/domain/prestige";
 import type { BaseState } from "@wipe-day/domain/state";
@@ -18,8 +19,9 @@ import { postcardSvg } from "./postcardSvg";
  * player's own crater as an SVG from `postcardSvg`; it flips to the back 1.5 s after landing
  * (a cross-fade under reduced motion) and a tap flips it again. The back is the run summary
  * from the `nuked` event and NEXT, what the next Wipe Day unlocks (shipped content only). One
- * button, Rebuild: the landing plays and the island is the player's again. (The Blast Map's
- * own button joins in R4 S3, when the map exists.)
+ * button on Wipe Day #1, Open the Blast Map (03 8.4: the landing plays, then the map opens on
+ * its disk with the pick pulsing); from #2 Rebuild is the primary and "Blast Map · n
+ * affordable" the quiet second way on (D271).
  */
 
 const FLIP_MS = 1500;
@@ -93,6 +95,7 @@ export function PostcardSheet() {
   const postcard = useBigRed((state) => state.postcard);
   const flip = useBigRed((state) => state.flipPostcard);
   const rebuild = useBigRed((state) => state.rebuild);
+  const rebuildToMap = useBigRed((state) => state.rebuildToMap);
   const base = useWorld((state) => state.base);
   // It flips to the back 1.5 s after it lands.
   useEffect(() => {
@@ -146,6 +149,12 @@ export function PostcardSheet() {
     [t("postcard.era"), tierName(summary.era)],
   ];
   const next = nextLine(event, base, now);
+  const firstDay = event.wipeDay === 1;
+  const affordable = affordableNodes(content, base.meta).length;
+  const mapWords =
+    affordable > 0
+      ? t("postcard.map_affordable", { n: affordable })
+      : t("postcard.map_glass", { glass: fmt(base.meta.glass.held, "held") });
   return (
     <div className="sheet-backdrop">
       <button
@@ -200,11 +209,29 @@ export function PostcardSheet() {
             </button>
           </div>
         </div>
-        <footer className="panel-foot">
-          <button type="button" className="btn primary grow" onClick={rebuild}>
-            <Icon kind="nav" id="island" size={18} />
-            {t("postcard.rebuild")}
-          </button>
+        <footer className="panel-foot postcard-foot">
+          {firstDay ? (
+            <button type="button" className="btn primary grow" onClick={rebuildToMap}>
+              <Icon kind="nav" id="blast_map" size={18} />
+              <span className="postcard-btn-text">
+                {t("postcard.open_map")}
+                <small>
+                  {t("postcard.open_map_sub", { glass: fmt(base.meta.glass.held, "held") })}
+                </small>
+              </span>
+            </button>
+          ) : (
+            <>
+              <button type="button" className="btn secondary" onClick={rebuildToMap}>
+                <Icon kind="nav" id="blast_map" size={18} />
+                {mapWords}
+              </button>
+              <button type="button" className="btn primary grow" onClick={rebuild}>
+                <Icon kind="nav" id="island" size={18} />
+                {t("postcard.rebuild")}
+              </button>
+            </>
+          )}
         </footer>
       </section>
     </div>

@@ -560,6 +560,8 @@ export const archetypeSchema = z.strictObject({
   spend: z.enum(["boosts", "drops", "none"]).default("none"),
   /** The quick profile plays it this many days at most (its later days are `--full`'s, D236). */
   quickDays: z.int().min(1).optional(),
+  /** A scenario's runs in the quick profile: its session ends with this run's press (D272). */
+  quickRuns: z.int().min(1).optional(),
 });
 export type Archetype = z.infer<typeof archetypeSchema>;
 

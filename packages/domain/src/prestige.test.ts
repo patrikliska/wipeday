@@ -7,7 +7,16 @@ import { loadContent, loadLocale } from "@wipe-day/content/load";
 import { contentPaths } from "@wipe-day/content/paths";
 import { describe, expect, it } from "vitest";
 import { crown, type Player } from "./advisor";
-import { affordablePrefix, nodeEffects, nodePick, nodeState, pathCost, pathTo } from "./blastmap";
+import {
+  affordablePrefix,
+  nodeEffects,
+  nodeGain,
+  nodePick,
+  nodeState,
+  nodeTags,
+  pathCost,
+  pathTo,
+} from "./blastmap";
 import { applyCommand, type Command, type CommandResult } from "./commands";
 import { afterglowAt, rates } from "./effects";
 import {
@@ -412,5 +421,24 @@ describe("the Blast Map (04 5, 8)", () => {
     const respecced = ok(run(gifted, { type: "respec" }));
     expect(respecced.meta.nodes).toEqual(["ground_zero"]);
     expect(respecced.meta.glass).toEqual({ ever: 0, held: 7, level: 0, spent: 0 });
+  });
+
+  it("tags nodes for the filter chips from their stats, and weighs them for the pick", () => {
+    const tags = (id: string) => {
+      const node = content.blastMap.nodes.find((row) => row.id === id);
+      if (!node) throw new Error(id);
+      return nodeTags(node);
+    };
+    expect(tags("steady_hands")).toEqual(["taps"]);
+    expect(tags("deep_cellars")).toEqual(["offline"]);
+    expect(tags("night_lamps")).toEqual(["offline"]);
+    expect(tags("old_friend")).toEqual(["automation"]);
+    expect(tags("packed_crate")).toEqual(["automation"]);
+    expect(tags("bulk_buttons")).toEqual(["automation"]);
+    expect(tags("conveyor")).toEqual([]);
+    const conveyor = content.blastMap.nodes.find((row) => row.id === "conveyor");
+    const coals = content.blastMap.nodes.find((row) => row.id === "hot_coals");
+    if (!conveyor || !coals) throw new Error("nodes");
+    expect(nodeGain(content, conveyor)).toBeGreaterThan(nodeGain(content, coals));
   });
 });

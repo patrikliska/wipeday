@@ -12,10 +12,15 @@ import type { BaseState } from "./state";
 import { isNight, weatherAt } from "./weather";
 
 /** Badges earned that this content still lists (a removed badge stops counting). */
+const countMemo = new WeakMap<object, { content: Content; n: number }>();
+
 export function badgeCount(content: Content, state: BaseState): number {
+  const known = countMemo.get(state.meta.badges);
+  if (known && known.content === content) return known.n;
   let n = 0;
   for (const badge of content.achievements.badges)
     if (state.meta.badges[badge.id] !== undefined) n++;
+  countMemo.set(state.meta.badges, { content, n });
   return n;
 }
 

@@ -136,8 +136,11 @@ export function defaultParents(size: number, prev: number, slot: number): number
   return out;
 }
 
-/** The base a stat's `add` effects build on, for the 10% rule (04 9.3 check 12). */
-function addBase(content: Content, stat: StatId): number | null {
+/**
+ * The base a stat's `add` effects build on: the 10% rule (04 9.3 check 12) and the node sheet's
+ * "Night Shift 2 h -> 6 h" (the web reads the same number the check does).
+ */
+export function statBase(content: Content, stat: StatId): number | null {
   switch (stat) {
     case "night_shift":
       return content.run.nightShift.windowHours;
@@ -395,7 +398,7 @@ export function checkBlastMap(content: Content, locale: Locale): Problem[] {
     else if (effect.op === "more")
       ratio = STATS[stat].better === "lower" ? 1 / effect.value : effect.value;
     else if (effect.op === "add") {
-      const base = addBase(content, stat);
+      const base = statBase(content, stat);
       if (base !== null) ratio = (base + sum("add") + effect.value) / (base + sum("add"));
     }
     if (ratio < 1.1 - 1e-9)

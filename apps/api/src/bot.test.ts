@@ -7,9 +7,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadGame } from "@wipe-day/content/load";
 import { manualClock } from "@wipe-day/domain/clock";
+import type { FeedItem } from "@wipe-day/domain/feed";
 import { nextEventAt } from "@wipe-day/domain/settle";
 import type { BaseState } from "@wipe-day/domain/state";
-import type { BotHome, DmNote } from "@wipe-day/domain/wire";
+import type { BotHome, CommandResponse, DmNote } from "@wipe-day/domain/wire";
+import { words } from "@wipe-day/domain/words";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createApp } from "./app";
@@ -222,19 +224,41 @@ describe("acting for a player (W8)", () => {
     expect(cookieOf(late)).toBe("");
   });
 
-  it("refuses commands until R4 lets the bot Collect (not_on_discord), without marking seen", async () => {
-    const { bot, home, db, clock } = setup();
+  it("refuses every command but Collect (not_on_discord), and Collect never marks seen", async () => {
+    const { bot, home, db, clock, patch } = setup();
     const before = await home();
     const seenAt = () =>
       db.select().from(players).where(eq(players.id, before.player.id)).get()?.lastSeenAt;
     const joined = seenAt();
     clock.advance(3600);
-    const response = await bot("/commands", {
-      method: "POST",
-      body: { key: "discord:111", command: { type: "ping" } },
-    });
-    expect(response.status).toBe(403);
-    expect(await response.json()).toEqual({ error: "not_on_discord" });
+    const refused = [
+      { type: "ping" },
+      { type: "nuke", run: 1 },
+      { type: "buy_node", path: ["steady_hands"] },
+    ];
+    for (const command of refused) {
+      const response = await bot("/commands", {
+        method: "POST",
+        body: { key: `discord:${command.type}`, command },
+      });
+      expect(response.status, command.type).toBe(403);
+      expect(await response.json()).toEqual({ error: "not_on_discord" });
+    }
+    // Collect goes through, restarts the window, and runs once under its key (R4; D271).
+    patch(before.player.id, (state) => manned(state, T0));
+    clock.advance(3 * 3600);
+    const send = () =>
+      bot("/commands", {
+        method: "POST",
+        body: { key: "discord:111", command: { type: "collect" } },
+      });
+    const collected = await send();
+    expect(collected.status).toBe(200);
+    const answer = (await collected.json()) as CommandResponse;
+    expect(answer.ok).toBe(true);
+    expect(answer.state.run.activeAt).toBe(T0 + 4 * 3600);
+    const again = (await (await send()).json()) as CommandResponse;
+    expect(again.replay).toBe(true);
     expect(seenAt()).toBe(joined);
   });
 
@@ -302,10 +326,41 @@ describe("the bot's stream (W8)", () => {
     const stream = sse(await bot("/stream", { user: null }));
     expect(typeof (await stream.next("ready"))).toBe("number");
     await stream.close();
-    // The feed is empty until R4's Wipe Days, so there is nothing to catch up on.
+    // Nothing has happened yet, so there is nothing to catch up on.
     expect(game.feedMissed()).toEqual([]);
     expect((await bot("/feed/ack", { method: "POST", body: { id: 5 }, user: null })).status).toBe(
       200,
     );
+  });
+
+  it("carries one Wipe Day as one feed item, the same the channel catches up on (R4)", async () => {
+    const { bot, home, game, patch, clock } = setup();
+    const before = await home();
+    // The first launch ready: the formula's delta at 10 (03 2.3), as the shots' FIRST_NUKE.
+    patch(before.player.id, (state) => ({
+      ...state,
+      run: {
+        ...state.run,
+        made: 5.8e10,
+        startedAt: T0 - 2880,
+        firstBuyAt: T0 - 2870,
+        lines: { beachcomber: 10 },
+      },
+    }));
+    const stream = sse(await bot("/stream", { user: null }));
+    await stream.next("ready");
+    // The player presses on the web (the bot never nukes, D142).
+    const pressed = game.command(before.player.id, "web:nuke", { type: "nuke", run: 1 }, true);
+    expect(pressed.ok).toBe(true);
+    const items = (await stream.next("feed")) as FeedItem[];
+    await stream.close();
+    expect(items).toHaveLength(1);
+    expect(items[0]?.event).toMatchObject({ type: "nuked", wipeDay: 1, gain: 10 });
+    expect(items[0]?.playerName).toBe(NIA.name);
+    expect(game.feedMissed().map((item) => item.id)).toEqual([items[0]?.id]);
+    expect(words(locale, content).feedLine(items[0]?.event as never, "**Nia**")).toBe(
+      "**Nia** pressed the Big Red for the first time. Wipe Day #1: +10 crater glass and a fresh crater.",
+    );
+    void clock;
   });
 });

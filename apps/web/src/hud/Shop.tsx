@@ -1,3 +1,4 @@
+import { hasFeature } from "@wipe-day/domain/blastmap";
 import type { Command } from "@wipe-day/domain/commands";
 import {
   memo,
@@ -46,6 +47,7 @@ const BULK_LABEL: Record<string, string> = {
   "10": "drawer.bulk_ten",
   "100": "drawer.bulk_hundred",
   max: "drawer.bulk_max",
+  next: "drawer.bulk_next",
 };
 
 /** The shop appears with its first card: once the first line's price is reached (wireframe 1). */
@@ -85,7 +87,16 @@ export function Shop() {
 /** The bulk size in force: ×1 until the toggle exists. */
 function useBulk(view: AdvisorView): Bulk {
   const bulk = useUi((state) => state.bulk);
-  return bulkShown(view.base) ? bulk : 1;
+  const next = hasFeature(content, view.base.meta, "bulk_buy");
+  if (!bulkShown(view.base)) return 1;
+  return bulk === "next" && !next ? 1 : bulk;
+}
+
+/** Whether the map's Bulk Buttons are lit: the "Next" size exists. */
+function useNextBulk(): boolean {
+  return useWorld((state) =>
+    state.base ? hasFeature(content, state.base.meta, "bulk_buy") : false,
+  );
 }
 
 /** The tab in force: the Workshop's only once it is open (a new run starts on Lines). */
@@ -358,18 +369,22 @@ function CardList({
   );
 }
 
-/** The sizes a tab buys in: a Workshop level is one, or as many as the supplies reach. */
-const sizesOf = (tab: Tab): readonly Bulk[] => (tab === "research" ? [1, "max"] : BULKS);
+/** The sizes on offer: "Next" joins the lines' once the map's Bulk Buttons are lit (R4 S3). */
+const sizesOf = (tab: Tab, next: boolean): readonly Bulk[] =>
+  tab === "research" ? [1, "max"] : next ? [...BULKS, "next"] : BULKS;
 
 /** The size in force on a tab: on the Workshop's, ×10 and ×100 read as ×1. */
-const sizeOn = (tab: Tab, bulk: Bulk): Bulk => (tab === "research" && bulk !== "max" ? 1 : bulk);
+const sizeOn = (tab: Tab, bulk: Bulk, next: boolean): Bulk =>
+  tab === "research" && bulk !== "max" ? 1 : bulk === "next" && !next ? 1 : bulk;
 
 /** The handle's bulk button: ×1 → ×10 → ×100 → Max (44 × 44); ×1 ↔ Max on the Workshop. */
 function BulkCycle({ tab }: { tab: Tab }) {
-  const sizes = sizesOf(tab);
+  const nextOn = useNextBulk();
+  const sizes = sizesOf(tab, nextOn);
   const bulk = sizeOn(
     tab,
     useUi((state) => state.bulk),
+    nextOn,
   );
   const setBulk = useUi((state) => state.setBulk);
   const next = sizes[(sizes.indexOf(bulk) + 1) % sizes.length] ?? 1;
@@ -387,15 +402,17 @@ function BulkCycle({ tab }: { tab: Tab }) {
 
 /** The segmented control: ×1 · ×10 · ×100 · Max; ×1 · Max on the Workshop. */
 function BulkSegments({ tab }: { tab: Tab }) {
+  const next = useNextBulk();
   const bulk = sizeOn(
     tab,
     useUi((state) => state.bulk),
+    next,
   );
   const setBulk = useUi((state) => state.setBulk);
   return (
     <fieldset className="segments">
       <legend className="sr-only">{t("drawer.bulk")}</legend>
-      {sizesOf(tab).map((size) => (
+      {sizesOf(tab, next).map((size) => (
         <button
           key={String(size)}
           type="button"

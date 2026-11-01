@@ -33,7 +33,7 @@ import {
 } from "./effects";
 import type { GameEvent } from "./events";
 import { frenzyMeter, frenzyOpensAt, frenzyRules, frenzyUntil } from "./frenzy";
-import { rng, SEED, seedOf } from "./rng";
+import { roll, SEED, seedOf } from "./rng";
 import { cyclePayout } from "./settle";
 import type { BaseState } from "./state";
 
@@ -202,8 +202,7 @@ export function applyTaps(
       fellValue += parts.fellBonus * tap;
     }
     if (parts.critChance > 0) {
-      const roll = rng(seedOf(run.seed, SEED.crit, run.taps + k)).next();
-      if (roll < parts.critChance) {
+      if (roll(seedOf(run.seed, SEED.crit, run.taps + k)) < parts.critChance) {
         tap *= parts.critMult;
         crits += 1;
       }

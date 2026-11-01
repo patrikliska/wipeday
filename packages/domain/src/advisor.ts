@@ -22,7 +22,7 @@ import type { Amount } from "./amount";
 import { hireFactor } from "./cards";
 import type { Command } from "./commands";
 import type { Conditions, Effect } from "./effects";
-import { foldParts, rates, unitRate } from "./effects";
+import { type FoldParts, foldParts, rates, unitRate } from "./effects";
 import { costFactor, costOf, eraOpen, handPriceOf, lineOf } from "./lines";
 import { type BigRedRule, bigRedCrown } from "./prestige";
 import { levelOf, levelsCost, mkFactor, workshopOpen } from "./research";
@@ -227,12 +227,25 @@ function mannedAway(ctx: WorkshopContext): number {
   return total;
 }
 
+/** The Night Shift stat's parts per effects layer (keyed on the layer's memo, like `tapFolds`). */
+const nightShiftParts = new WeakMap<object, FoldParts>();
+
 /** A line's Σinc on output now (what one more inc is shared with). */
 function incOf(ctx: WorkshopContext, line: LineDef): number {
   const known = ctx.inc.get(line.id);
   if (known !== undefined) return known;
+  // The fold depends only on the effects in force: memoised with the layer's per-line folds.
   const r = rates(ctx.content, ctx.state);
-  const inc = foldParts("output", r.byStat.get("output") ?? [], { line }).inc;
+  let memo = r.perLine.get(line.id);
+  if (!memo) {
+    memo = new Map();
+    r.perLine.set(line.id, memo);
+  }
+  let inc = memo.get("inc");
+  if (inc === undefined) {
+    inc = foldParts("output", r.byStat.get("output") ?? [], { line }).inc;
+    memo.set("inc", inc);
+  }
   ctx.inc.set(line.id, inc);
   return inc;
 }
@@ -283,7 +296,12 @@ const RESEARCH_GAINS: Record<ScoredStat, (ctx: WorkshopContext, effect: Effect) 
     const { content } = ctx;
     const { windowHours, maxHours } = content.run.nightShift;
     const r = rates(content, ctx.state);
-    const parts = foldParts("night_shift", r.byStat.get("night_shift") ?? []);
+    // The fold depends only on the effects in force: once a layer, like `incOf`.
+    let parts = nightShiftParts.get(r.memo);
+    if (!parts) {
+      parts = foldParts("night_shift", r.byStat.get("night_shift") ?? []);
+      nightShiftParts.set(r.memo, parts);
+    }
     const hours = (add: number) =>
       Math.min(maxHours, ((parts.best ?? windowHours) + add) * (1 + parts.inc) * parts.more);
     // The player is away one stretch a day; a longer window pays only inside it.

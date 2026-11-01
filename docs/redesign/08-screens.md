@@ -1433,6 +1433,34 @@ order (D192): the groups once tagged R2-R7 are R4-R9.
 | `phone_rebuild_plain`, `phone_afterglow`, `desktop_afterglow` | the landing at 1.4 s; the green sky with ash, the pill frozen at ×3 and counting down | R4 |
 | `phone_crater_27` | the bowl and the metal sign at Wipe Day #27 | R4 |
 
+### 8.3e R4 S3's shots (the Blast Map, the glass plate, the edges)
+
+| Shot | Shows | Phase |
+| --- | --- | --- |
+| `phone_map_first`, `desktop_map_first` | after nuke 1: Ground Zero lit, 10 glass, the pick card on Go Bag (the one crown) | R4 |
+| `phone_map_mid`, `phone_map_filter`, `desktop_map` | a third island with twelve nodes lit: the disk's fills and counts, the Offline chip dimming the rest; the desktop's disk beside the Grip ladder | R4 |
+| `phone_sector_grip`, `phone_sector_works` | the ladders: owned paths in glass green, a locked node's glyph, the costs under reachable names | R4 |
+| `phone_node_sheet`, `phone_node_far`, `phone_node_path_partial`, `phone_node_short`, `phone_node_locked`, `phone_node_owned`, `desktop_map_sheet` | Lucky Swing's numbers and Buy; Conveyor Belts' lit path and "Buy path · 2 nodes"; "Buy the first 2 · 11 glass"; "Need 57 more glass"; ring 3's gate with no button; a lit node; the desktop popover | R4 |
+| `phone_node_just` | a buy mid-juice: the node filled, its edges lit | R4 |
+| `r4s3_phone_glass_plate`, `r4s3_desktop_glass_plate` | the glass plate beside the scrap chip, the dock's Map badge | R4 |
+| `phone_armored_locked`, `phone_armored_sheet` | run 2 at Sheet Metal: Armored's plate "Wipe Day #2 · 1 to go" and its sheet's disabled Build | R4 |
+| `r4s3_phone_postcard_first`, `r4s3_phone_postcard_later`, `r4s3_desktop_postcard_later` | Wipe Day #1's one button, Open the Blast Map; #4's Rebuild with "Blast Map · 24 affordable" | R4 |
+| `r4s3_phone_welcome_nuke` | welcome back with the first launch ready: Collect the one primary, the chip not crowned | R4 |
+| `r4s3_phone_bulk_next`, `r4s3_phone_multipliers_nodes` | the drawer's Next size; the Multipliers sheet's Blast Map step named and Glow's glass ever | R4 |
+
+### 8.3f R4 S4's shots (the lasting R4 states in four weathers)
+
+Each of these exists by day under its S2/S3 name; S4 adds `_dusk`, `_night` and `_rain` (D272).
+
+| Shot | Shows | Phase |
+| --- | --- | --- |
+| `r4s4_phone_kettle_pad_{dusk,night,rain}` | the pad's chip "+4 of 10 glass" over the drawer in each sky | R4 |
+| `r4s4_phone_bigred_chip_{dusk,night,rain}`, `r4s4_desktop_bigred_chip_{dusk,night,rain}` | the first launch crowned: the chip's readout and the steaming Kettle, phone and desktop | R4 |
+| `r4s4_phone_afterglow_{dusk,night,rain}` | the green sky with ash and the pill at ×3 against dusk, night and rain | R4 |
+| `r4s4_phone_rebuild_plain_{dusk,night,rain}` | the landing at 1.4 s: the rowboat, the sapling, the lean-to | R4 |
+| `r4s4_phone_crater_27_{dusk,night,rain}` | Wipe Day #27's island (the crater sits behind the chip on a phone; a known trade-off) | R4 |
+| `r4s4_phone_map_mid_{dusk,night,rain}`, `r4s4_desktop_map_{dusk,night,rain}` | the Blast Map's disk and the desktop's disk with the Grip ladder over each sky | R4 |
+
 ### 8.4 The `docs/ui-review.md` checklist, adapted
 
 The review loop of CLAUDE.md 6.4 stays; the checklist becomes:

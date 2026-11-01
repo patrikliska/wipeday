@@ -60,7 +60,9 @@ export type GameEvent =
   /** The press's gain rose by a whole glass while watched: the "+1" and its chime. */
   | { type: "yield_rose"; gain: number }
   /** Afterglow started counting down: the run's first tap after a nuke. */
-  | { type: "afterglow_started" };
+  | { type: "afterglow_started" }
+  /** Afterglow ran out (the pill's bar ends with a tick, 12-feel.md 3.2; R4 S4). */
+  | { type: "afterglow_ended" };
 
 export type UiAction = "open" | "close" | "switch";
 
@@ -129,6 +131,7 @@ export const EVENT_TYPES = Object.keys({
   kettle_stage: 1,
   yield_rose: 1,
   afterglow_started: 1,
+  afterglow_ended: 1,
 } satisfies Record<GameEvent["type"], 1>) as GameEvent["type"][];
 
 /** A sheet opened or closed, a switch flipped: the panels say so, the sound answers. */

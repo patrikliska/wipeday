@@ -13,6 +13,7 @@ import { islandDay, weatherAt } from "@wipe-day/domain/weather";
 import { filmLength, type Variant } from "./scene/cinematic";
 import { HOLD_MS, useBigRed } from "./state/bigred";
 import { demoClocks, wall } from "./state/clocks";
+import { useMap } from "./state/map";
 import { seedPace } from "./state/pace";
 import { useReveal } from "./state/reveal";
 import { useWorld } from "./state/store";
@@ -23,6 +24,8 @@ interface DebugHook {
   store: typeof useWorld;
   /** The HUD's own state: drawer, tab, bulk, panel, sheet and display settings. */
   ui: typeof useUi;
+  /** Where the Blast Map is open: a sector's ladder, a node's sheet, a filter (R4 S3). */
+  map: typeof useMap;
   /** As if the player had tapped this many times a second for the last minute (the crown). */
   pace: (tapsPerSecond: number) => void;
   /** The demo's clocks: `game` (what the rules see) and `wall` (animation). Shots pin both. */
@@ -112,6 +115,7 @@ export function installDebug(): void {
   window.__wipeDay = {
     store: useWorld,
     ui: useUi,
+    map: useMap,
     pace: (tapsPerSecond) => seedPace(tapsPerSecond, wall.nowMs()),
     clocks: demoClocks,
     frames: 0,

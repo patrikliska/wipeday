@@ -7,6 +7,8 @@
  *                              before it ships (only the shipped ones set the exit code)
  * `pnpm sim window [days]`     what the Night Shift's 2 h window costs on day 1 against R1's 12 h,
  *                              with and without the Workshop (12-feel.md 15)
+ * `pnpm sim caps`              the Blast Map's price cuts by stat and scope against errata E25's
+ *                              caps: the shipped wave's product, every node's, the room left
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -19,6 +21,7 @@ import {
   dayClock,
   type Life,
   phaseIndex,
+  priceCuts,
   simulateAll,
   type WindowRow,
   windowReport,
@@ -117,6 +120,17 @@ const clockOf = (seconds: number): string =>
 if (args[0] === "window") {
   const days = Number(args[1] ?? 3);
   console.log(windowTable(windowReport(content, days)));
+} else if (args[0] === "caps") {
+  console.log(
+    `  ${"stat".padEnd(14)} ${"scope".padEnd(10)} ${"shipped".padStart(8)} ${"all".padStart(8)} ${"cap".padStart(6)}   room`,
+  );
+  for (const row of priceCuts(content)) {
+    const room = row.cap === null ? "" : `×${(row.shipped / row.cap).toFixed(2)} to the cap`;
+    console.log(
+      `  ${row.stat.padEnd(14)} ${row.scope.padEnd(10)} ${`×${row.shipped.toFixed(3)}`.padStart(8)} ` +
+        `${`×${row.all.toFixed(3)}`.padStart(8)} ${(row.cap === null ? "—" : `×${row.cap}`).padStart(6)}   ${room}`,
+    );
+  }
 } else if (args[0] === "check") {
   const profile = args.includes("--full") ? "full" : "test";
   const asked = args[args.indexOf("--phase") + 1];

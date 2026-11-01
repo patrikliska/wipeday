@@ -2,7 +2,7 @@ import { heldDrops } from "@wipe-day/domain/cards";
 import type { NotifyPrefs } from "@wipe-day/domain/feed";
 import { eraOpen } from "@wipe-day/domain/lines";
 import { nextEra } from "@wipe-day/domain/shelf";
-import { type ReactNode, useEffect, useState } from "react";
+import { lazy, type ReactNode, Suspense, useEffect, useState } from "react";
 import type { NotifyView } from "../net/backend";
 import { currentSubscription, disablePush, enablePush, pushSupport } from "../net/push";
 import { haptics, sound } from "../sound/audio";
@@ -16,6 +16,11 @@ import { Bust, Stars } from "./cards";
 import { Icon } from "./Icon";
 import { LogbookPanel, logbookSummary } from "./Logbook";
 import { tierVar, vars } from "./util";
+
+/** The Blast Map (R4 S3): code-split, since most sessions never open it twice an hour. */
+const BlastMapPanel = lazy(() =>
+  import("./blast/BlastMap").then((module) => ({ default: module.BlastMapPanel })),
+);
 
 /**
  * Panels as sheets over the scene (12-feel.md 4; D187): Crew, the Logbook and Settings open from
@@ -34,7 +39,9 @@ export function Panels() {
         ? "logbook.title"
         : panel === "album"
           ? "album.title"
-          : "settings.title",
+          : panel === "map"
+            ? "map.title"
+            : "settings.title",
   );
   return (
     <div className="sheet-backdrop panel-backdrop">
@@ -61,6 +68,12 @@ export function PanelBody({ panel }: { panel: Panel }) {
   if (panel === "crew") return <CrewPanel />;
   if (panel === "logbook") return <LogbookShell />;
   if (panel === "album") return <AlbumShell />;
+  if (panel === "map")
+    return (
+      <Suspense fallback={<div className="panel-body" />}>
+        <BlastMapPanel />
+      </Suspense>
+    );
   return <SettingsPanel />;
 }
 

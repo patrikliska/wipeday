@@ -16,6 +16,7 @@
 import type { Locale, LocaleArgs } from "@wipe-day/content/locale";
 import type { Content } from "@wipe-day/content/schema";
 import type { FeedEvent } from "./feed";
+import { newsMilestone } from "./prestige";
 
 export type FmtMode = "held" | "cost";
 
@@ -129,8 +130,9 @@ export function words(
   options: { scientific?: boolean } = {},
 ): Words {
   const t = (key: string, args?: LocaleArgs): string => locale.t(key, args);
+  const numbers = numberFormat(suffixesOf(locale), options.scientific ?? false);
   return {
-    ...numberFormat(suffixesOf(locale), options.scientific ?? false),
+    ...numbers,
     t,
     resourceName: (id) => t(`resource.${id}.name`),
     crewName: (id) => t(`crew.${id}.name`),
@@ -148,7 +150,33 @@ export function words(
         : t(`research.${id}.name`),
     flotsamName: (id) => t(`flotsam.${id}.name`),
     buffName: (id) => t(`buff.${id}.name`),
-    // The feed has no event types until R4: every line is `feed.<type>`.
-    feedLine: (event, who) => t(`feed.${(event as { type: string }).type}`, { who }),
+    feedLine: (event, who) => feedLine(content, t, numbers, event, who),
   };
+}
+
+/**
+ * The feed's sentences (06-friends.md 2.3; D271): a Wipe Day as the first ever, a milestone
+ * count, several folded into one, or plain, plus the flight's line when this press unlocked
+ * it; the first Armored era. The web feed, the ticker and the Discord channel all say this.
+ */
+function feedLine(
+  content: Content,
+  t: (key: string, args?: LocaleArgs) => string,
+  numbers: NumberFormat,
+  event: FeedEvent,
+  who: string,
+): string {
+  if (event.type === "era_reached") return t("feed.first_armored", { who });
+  const n = event.wipeDay ?? 0;
+  const island = t("island.saltmarsh.name");
+  const folded = event.news?.folded ?? 0;
+  const gain = numbers.fmt(event.gain + (event.news?.glass ?? 0), "cost");
+  let line: string;
+  if (n === 1) line = t("feed.nuked_first", { who, gain });
+  else if (folded > 0) line = t("feed.nuked_folded", { who, times: folded + 1, n, gain });
+  else if (newsMilestone(content, n)) line = t("feed.nuked_milestone", { who, n, gain });
+  else line = t("feed.nuked", { who, n, island, gain });
+  const flight = content.prestige.flights.variants.find((row) => row.id === event.flight);
+  if (flight && flight.unlockAt === n && n > 1) line += ` ${t(`feed.flight.${flight.id}`)}`;
+  return line;
 }

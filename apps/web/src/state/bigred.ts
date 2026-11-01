@@ -109,6 +109,8 @@ interface BigRedActions {
   flipPostcard(): void;
   /** The postcard's Rebuild: the landing plays, then the island is the player's again. */
   rebuild(): void;
+  /** "Open the Blast Map": Rebuild, and the map once the boat has landed. */
+  rebuildToMap(): void;
   /** The scene reached the landing's end. */
   landingEnded(): void;
   /** Another tab's postcard, from its toast. */
@@ -201,6 +203,8 @@ const RELIEFS = ["big_red.relief_1", "big_red.relief_2", "big_red.relief_3"];
 
 /** Whether the store is waiting for my own press's `nuked` event (the launch just went). */
 let launching = false;
+/** What opens once the landing ends: the Blast Map, from the postcard's button (D271). */
+let afterLanding: "map" | null = null;
 let reliefs = 0;
 
 export const useBigRed = create<BigRedState & BigRedActions>((set, get) => {
@@ -250,7 +254,8 @@ export const useBigRed = create<BigRedState & BigRedActions>((set, get) => {
 
     openCard() {
       const base = useWorld.getState().base;
-      if (!base || get().phase !== "idle") return;
+      // Never behind the welcome card: Collect is its one action (6.3 rule 10).
+      if (!base || get().phase !== "idle" || useWorld.getState().welcome) return;
       set({
         quip: pickQuip(base),
         relief: null,
@@ -324,9 +329,20 @@ export const useBigRed = create<BigRedState & BigRedActions>((set, get) => {
       set({ phase: "landing", postcard: null, landingMs: now, landedMs: now });
     },
 
+    rebuildToMap() {
+      if (!get().postcard) return;
+      afterLanding = "map";
+      get().rebuild();
+    },
+
     landingEnded() {
       if (get().phase !== "landing") return;
       set({ phase: "idle", landingMs: null });
+      // "Open the Blast Map" (03 8.4): the boat lands first, then the map opens on its disk.
+      if (afterLanding === "map") {
+        afterLanding = null;
+        useUi.getState().openPanel("map");
+      }
     },
 
     showElsewhere() {

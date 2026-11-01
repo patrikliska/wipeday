@@ -2117,3 +2117,103 @@ midpoint), `phone_postcard_front` / `_back` / `desktop_postcard_back` / `_small`
   the house hint; the generated stages carry their pad, so the pad flies with the rocket (a
   separate pad sprite would stay); the hands scramble toward the rowboat but a 2 s walk is long
   for the far lines; the scene's film has no camera ease-out (D270); the drum is procedural.
+
+## R4 S3: the Blast Map, the glass plate, the edges (2026-11-01)
+
+Shots: `phone_map_first`, `phone_map_mid`, `phone_map_filter`, `phone_sector_grip`,
+`phone_sector_works`, `phone_node_sheet`, `phone_node_far`, `phone_node_path_partial`,
+`phone_node_short`, `phone_node_locked`, `phone_node_owned`, `phone_node_just`, `desktop_map`,
+`desktop_map_sheet`, `desktop_map_first`, `r4s3_phone_glass_plate`, `r4s3_desktop_glass_plate`,
+`phone_armored_locked`, `phone_armored_sheet`, `r4s3_phone_postcard_first`,
+`r4s3_phone_postcard_later`, `r4s3_desktop_postcard_later`, `r4s3_phone_welcome_nuke`,
+`r4s3_phone_bulk_next`, `r4s3_phone_multipliers_nodes`.
+
+### Iteration 1
+- **"3.00M/s/s → 3.39M/s/s"** on the node sheet: the rate formatter already says `/s` and the
+  locale line said it again. The line is "Now: 3.00M/s → 3.39M/s (+13%)".
+- **"Crit: 0 → 8"**: a set-only stat (crit ×8) folded from 0 like an amount. A stat with no base
+  and no `add` reads as a factor: "Crit: ×1 → ×8".
+- **The shut ring's gate sat on the sector labels**: a pill at ring 3's top overlapped SCRAPYARD
+  and GRIP and their badges. It moved into the header's sub line ("Glow ×1.95 · 1 of 73 lit ·
+  Ring 3 opens at Wipe Day #3"); the ring stays dashed, and the ladder's ring head says it.
+- **Stubs under ring 1** (short green lines to a Ground Zero the ladder does not draw) read as
+  broken edges: gone. Ring 1 hangs free, and the ladder sits at the foot of its box when short.
+- **The sheet's letters disagreed with the ladder's** ("LU" for Lucky Swing in the sheet, "LS" on
+  the ladder): one `nodeLetters` for both.
+- **The era sheet read "OPENS {COUNT} NEW LINES"** for Armored's gate: the new key collided with
+  the existing `era_sheet.opens`; the cell is "Opens after / Wipe Day #2" and the Build button
+  "Opens after Wipe Day #2 (1 to go)".
+- **The Big Red's chip covered the drawer's cards** when the phone's drawer was expanded (an S2
+  leftover, "Left:" in its notes): it steps aside while the drawer is open.
+- **The Multipliers shot wanted 0 crowns** but the sheet's Done is its one primary: the shot
+  says 1.
+- *Fine:* the disk's wedges, fills and counts at 390 px; the pick's orange ring and the pick
+  card on Go Bag with "Buy · 2 glass"; the Offline chip dimming the rest with the right-edge
+  fade on the chip row; the ladder's frames by type (circle, double ring, rounded square, dashed
+  ring), owned paths in glass green, locked glyphs; the lit path to a far node (Conveyor Belts
+  through First Light) and "Buy path · 2 nodes · 82 glass"; "Buy the first 2 · 11 glass" with
+  the two nodes lit on the path; the locked sheet's reason with no button; the desktop's disk
+  beside the Grip ladder and the Rainmaker popover ("Airdrop float: 13s → 23s", "for the path
+  of 3 · you'll have 40 left"); the glass plate on both devices; Armored's plate lock line; the
+  postcard's two button sets; welcome back over the ready chip with Collect alone; Next in the
+  segments ("BUY ×2 131k" to Campfire's 50); the Multipliers' Blast Map step naming its nodes
+  and Glow's "240 glass ever".
+
+### Iteration 2
+- **A selected node hid under its sheet** (`phone_node_far`: Conveyor Belts just above the
+  sheet's edge, rings 1-2 covered, nothing to scroll because the ladder was bottom-aligned): with
+  a sheet open the ladder gets 55 vh of room below and the node scrolls to the centre.
+- Clean: no audit problems and no console errors on the 25 shots; one crowned thing per view
+  (the pick card's Buy or a sheet's primary, nothing orange on the disk after onboarding).
+- *Left:* node icons are the lettered tile (an owner supply, D268); the Pixi ticker keeps 60 fps
+  under the map (10 fps was for 361 nodes, R5); the desktop shows one ladder, not the clockwise
+  neighbour too (the 1100 px panel holds the disk and one comfortably; the neighbour is a `<`
+  `>` away); the glass flyer is DOM shards from the header's chip, not the scene's floaters (the
+  panel covers the scene).
+
+## R4 S4: the finish, the lasting R4 states in four weathers (2026-11-01)
+
+Shots: `r4s4_phone_kettle_pad_{dusk,night,rain}`, `r4s4_phone_bigred_chip_{dusk,night,rain}`,
+`r4s4_desktop_bigred_chip_{dusk,night,rain}`, `r4s4_phone_afterglow_{dusk,night,rain}`,
+`r4s4_phone_rebuild_plain_{dusk,night,rain}`, `r4s4_phone_crater_27_{dusk,night,rain}`,
+`r4s4_phone_map_mid_{dusk,night,rain}`, `r4s4_desktop_map_{dusk,night,rain}`; then every R4
+group re-rendered (`pnpm web:shots --only` per group) after the fixes.
+
+### Iteration 1
+- **"Tap the tree." sat under the Kettle's chip** on the second island (`r4s4_phone_afterglow_*`:
+  "+0 of 10 glass" over the pill, "ee." peeking out). A real second island never shows the
+  onboarding hint (D244: it needs a new player's `stats.units`), and its dock has Workshop, Crew
+  and Album; the fixture `AFTER_FIRST_META` had no `stats`, so the demo played a veteran as a
+  newcomer. The fixture carries a first run's stats now; the landing shot loses its hint too, as
+  the game does.
+- **The airdrop hint covered the lamp's plate** on the desktop (`r4s4_desktop_bigred_chip_*`:
+  "Something's dropping in" over "Night Shift 3h 59m of 4h" while the crate was still at the top).
+  The hint's centre is clamped to 150 px from the top, under the top bar's two rows, on every
+  device (`scene/flotsam.ts`).
+- *Fine:* the Kettle's chip (dashed hazard frame, green glass figure) reads on the dusk orange,
+  the night blue and the rain grey alike; the crowned chip's "+10 glass · 13/h now · peak 13/h"
+  at 390 px in all three; Afterglow's green sky keeps its ash and the pill's "×3 · tap!" against
+  dusk and rain, and the moon shows through it at night; the landing's rowboat, sapling and
+  lean-to; the Blast Map's disk and ladders are opaque panels, the same in every sky, the
+  desktop's scene dimmed behind; the Frenzy bar's "Keep tapping: Frenzy" over the stockpile at
+  night; one crown per view everywhere (the chip's crown mark, or nothing).
+- *Known, left for the owner:* on a phone the Kettle's chip stands where the crater and its
+  "WIPE DAY #27" sign lie (`r4s4_phone_crater_27_*`, S2's note): moving the chip right collides
+  with the house and its hint, moving the crater changes the island's geography (D270), so the
+  call is the owner's after playtest 2.
+
+### Iteration 2
+- The second island reads right (`r4s4_phone_afterglow_*`, `phone_rebuild_plain`,
+  `phone_afterglow`): the Kettle's "+0 of 10 glass" chip alone over the drawer, no onboarding
+  pill, the dock with Crew, Album (1), Map (16) and Logbook (the Workshop joins when it opens in
+  the run, as in play).
+- The desktop's airdrop hint sits under the lamp's plate now, beside the crate's parachute
+  (`r4s4_desktop_bigred_chip_*`); the phone's was never high enough to clamp.
+- **Armored's shots gained a crown** once the fixture had real stats: a second island at 3T
+  made has a gain of 12 against 10 glass ever, a doubling, so the Big Red's chip is rightly
+  crowned (03 2.2 rule 2); the shots expect 1 now, and the view still has exactly one.
+- Clean: no audit problems and no console errors on the 24 `r4s4_*` shots and the re-rendered
+  R4 groups; one crowned thing per view.
+- *Left:* the crater behind the chip on phones (above); the S2 and S3 "Left" items stand (the
+  stage art's pad, no camera ease-out, lettered node icons, one ladder on the desktop, the Pixi
+  ticker at 60 fps under the map).
