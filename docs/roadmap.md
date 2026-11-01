@@ -134,9 +134,15 @@ in `docs/archive/roadmap-w.md`.
   back at 10 s, `pnpm sim check --full` (N33's lower bound moved to day 6), the price cuts
   measured at their caps (`pnpm sim caps`, E25), N13's flat fixture, Afterglow's end tick, 24
   weather shots, the docs.
-- **Next: R5 Blast Map wave 2** (plan mode first: rings 4-6, months of goals; the branch `r5`
-  from `redesign`, which is then retired, 11-roadmap). The owner's playtest 2 fixes come first if
-  they arrive.
+- **R4 committed** (6df28be) and **`redesign` merged into `main`** (fa30cc5, `--no-ff`; the
+  `redesign` branch deleted): `main` is the live game again, each phase on its own branch, merged
+  and deployed from `main` at its end (D273).
+- **R5 Blast Map wave 2's plan was approved on 2026-11-01** (D273; "R5 Blast Map wave 2" below):
+  four sessions on `r5` (S1 data and rules, S2 the simulator and the balance, S3 the map and the
+  features' faces, S4 the island and the finish), all 15 of the wave's features, the scene props
+  mixed (about ten from Retro Diffusion, the rest procedural), the catalog's keystone names.
+  Playtest 2 has not arrived; its screenshots go first whenever they do.
+- **Next: R5 S1, data and rules** (on `r5`).
 
 ### R4 S4 results: the finish
 - **Built:** domain: the unit-rate memo in the effects layer with `buffMask` and `perOwned`,
@@ -1141,7 +1147,28 @@ welcome back with the nuke ready (Collect stays primary); card v2 at phone width
 
 | Kind | Plan mode | Model and effort | Sessions | Lands on |
 | --- | --- | --- | --- | --- |
-| balance | yes, full | Opus, high | 3 (24-26) | branch `r5` |
+| balance | yes, full | Opus, high | 4 (24-27; D273) | branch `r5` |
+
+**Sessions (D273):**
+
+- **S1. Data and rules.** The schema (`reserved` slots, a node's `wave`, keystones' `conflicts`,
+  `shippedWave: 2`, the whole tree's ceilings, the scene rule per complete band); rings 4-6 from
+  `04b` as D268 copied wave 1, rings 7-9 and the 23 reserved-phase nodes in data, hidden; the
+  agenda's rows #5, #10 and #20 with the kinds `slot:<n>` and `night:<h>`; `meta.loadout`,
+  `set_loadout`, a keystone slotting itself into a free slot, keystones working only when
+  slotted, never the pick; the unread stats read (`hand_cap`, `flotsam_weight`, `milestone_x2`,
+  `roster_x2`, `mk_mult`); the fixes (rain float, `glow_k` per nukes, a flotsam rate of 0); the
+  domain side of the 15 features; `respec` clears the loadout and carries its note.
+- **S2. The simulator and the balance.** Phantom nodes at their catalog price (N15 on 361);
+  `treeHorizon`, `casualLitDay180`, `gapsAlone`, `casualRunDaysAfterDay30` reading `--full` days
+  (the test profile keeps its early stops); `metaPower` with scoped and conditional power; `pnpm
+  sim keystones`; `tapCoefficient` over the whole tree; the tuning pass; `shipped: "R5"`.
+- **S3. The map and the features' faces.** Rings 4-6 drawn, two ladders on desktop, the
+  Keystones chip and chips narrowing the pick, the keystone sheet, the rebuild screen's loadout,
+  the respec card, each feature's control, sounds and juice.
+- **S4. The island and the finish.** The scene-changing nodes (about ten props from Retro
+  Diffusion, the rest procedural), the Life Raft, the shots and two review rounds, the docs, the
+  merge into `main`.
 
 **Build:** rings 4-6 from `04b` (178 nodes in all; the slots for R6's and R7's systems stay
 reserved) and their keystones; exactly three keystone slots (Wipe Days 10, 20, 40; the third waits

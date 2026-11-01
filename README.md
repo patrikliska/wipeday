@@ -7,17 +7,17 @@ Discord bot as a companion. Private, single-server.
 - Spec: [CLAUDE.md](CLAUDE.md). Design: [docs/game-design.md](docs/game-design.md). Next phases:
   [docs/roadmap.md](docs/roadmap.md). Why things are the way they are:
   [docs/decisions.md](docs/decisions.md).
-- Current state: the **redesign** (phases R0-R9, on the `redesign` branch) replaces the W-phase
-  game, which is still live on `main` (W8) at https://wipeday.patrikliska.dev until the cut-over
-  at the end of R4 The Big Red; see the roadmap. Locally, `pnpm dev` runs the API and the
+- Current state: the **redesign** (phases R0-R9) replaced the W-phase game; R0-R4 are on `main`
+  and live at https://wipeday.patrikliska.dev, and each later phase is built on its own branch
+  (`r5`, `r6`, ...); see the roadmap. Locally, `pnpm dev` runs the API and the
   web client with dev test players. The Discord bot (`apps/discord`) is a thin client of the
   API: `/base`, DMs and the feed channel.
 
 ## Start here (a new computer)
 
 Where the project stands and what comes next: **[docs/roadmap.md, "Where we are"](docs/roadmap.md)**.
-Until the cut-over (end of R4) the work happens on the **`redesign`** branch (`git switch
-redesign`); `main` is the frozen live game, which gets emergency fixes only (D145).
+`main` is the live game; the current phase is built on its own branch (`git switch r5`), merged
+into `main` with `--no-ff` at the phase's end (D145, D273).
 The rules for working on it (for you and for Claude Code): [CLAUDE.md](CLAUDE.md).
 
 1. Install **Node 24** (the server runs `node:24`; 22+ works), **Git**, and on Windows **Git

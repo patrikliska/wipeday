@@ -46,10 +46,10 @@ the server settles lazily, in closed form. No native apps: the web client is mob
 
 - Work phase by phase (section 12). One phase per session or a few; plan mode first for phases
   marked architecture or balance in the roadmap. Stop and report at the end of every phase.
-- **Branches (D145):** until the cut-over at the end of R4 the redesign is built on `redesign`.
-  `main` is the frozen old game (season 1, live): nothing lands there except an emergency fix if
-  the live server or the backup breaks, merged into `redesign` at once. Everything deleted is
-  reachable at the `pre-redesign` tag. From R5 each phase gets its own branch again.
+- **Branches (D145, D273):** `main` is the live game (R0-R4 merged from the retired `redesign`
+  branch on 2026-11-01). Each phase gets its own branch (`r5`, `r6`, ...), merged into `main`
+  with `--no-ff` at its end and deployed from `main`; an emergency fix lands on `main` and is
+  merged into the phase branch at once. The old game is reachable at the `pre-redesign` tag.
 - A phase is done when `pnpm check` (typecheck + lint + test) passes, `pnpm sim check` passes
   every N-assertion switched on so far, every visual change has been reviewed with
   `pnpm web:shots` and noted in `docs/ui-review.md`, decisions are logged, and the docs are

@@ -3308,3 +3308,32 @@ The finish of R4 as built (the plan's S4; `docs/roadmap.md` "R4 S4 results"):
 - **The cut-over's remains are done** (D242, D271's gift): R4 is complete. `main` keeps shipping
   from `redesign` until R5 starts, when each phase gets its own branch again (11-roadmap).
 - **Playtest 2** did not arrive during R4; its fixes open R5 (owner screenshots are bugs first).
+
+### D273. R5 Blast Map wave 2's plan, the owner's answers, `main` live again (owner, 2026-11-01; R5)
+The plan (four sessions: S1 data and rules, S2 the simulator and the balance, S3 the map and the
+features' faces, S4 the island and the finish; `docs/roadmap.md` "R5 Blast Map wave 2") was
+approved in plan mode. The owner's answers: **all 15 of the wave's features** (auto-buy, Golden
+Chip, Pay Day, Roll Call, Life Raft, Drag Line, the Beachcomber's Net, Night Porter, Lights Out,
+Quick Rebuild, the Postcard Album, Salvage Cart and the keystones Skeleton Crew, Mass Production
+and Hoarder), hence a fourth session; the scene-changing nodes **mixed**, about ten props from
+Retro Diffusion (3-5 USD) and the rest procedural; **the catalog's keystone names** (Wipe Day
+Rush, Skeleton Crew, Mass Production, Scavenger's Eye, Bunker Mentality, Hot Core, Hoarder);
+**`redesign` merged into `main`** (`--no-ff`, fa30cc5) and the branch deleted, so `main` is the
+live game again and each phase merges into it at its end (D145's convention after the cut-over).
+Choices made in planning, from the exploration:
+- **The Night Shift stays under its 24 h cap** (12-feel.md 6 wins over the roadmap's "Wipe Day #10
+  +4 h"): the window is 2 h, Spare Wicks 4 h a run and wave 1's 12 h, 18 h in all; the agenda
+  adds **2 h at Wipe Days #10 and #20** (#40 in R9) for 22 h, R9's sources reach 24 h. Bunker's
+  ring 4-6 hour nodes (Root Cellar II and III, Cold Storage) pay offline or night output instead,
+  so no node is spent against the clamp.
+- **`per` with `more` keeps the domain's multiplier form** (`1 + (value − 1) × count`): data
+  writes 1.02 where the catalog wrote 0.02.
+- **Scavenger's Eye names shipped flotsam only** (the crate, the Adrenaline Kit, the Life Raft);
+  the drone, the bottle and lost cargo join it in their phases. **Mass Production** follows the
+  catalog (+2% a unit up to ×8; the speed milestones pay nothing), not 04 6.1's older line.
+- **N16's group row moves to R8** (it needs the group and Late Tide, which are R8's; D192
+  revisited); R5 asserts N15 and warns on the solo gaps. **N12's R5 early floor stays at 1.25**
+  (D269), not the row's 1.5.
+- **Keystone slot 3** (#40) joins the agenda in R9, when Wipe Day #40's ring 8 ships (D140).
+- Found and fixed in S1: rain's flotsam float never applied (Rainmaker did nothing), `glow_k`
+  with `per: nukes` folded to 0, and a flotsam rate of 0 divided by zero.
